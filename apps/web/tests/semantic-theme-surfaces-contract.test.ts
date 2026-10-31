@@ -42,7 +42,6 @@ const LIGHT_THEME_CRITICAL_SOURCES = [
 
 const APP_PRODUCT_SOURCES = [
   ...collectSourceFiles('app'),
-  ...collectSourceFiles('packages'),
   ...collectSourceFiles('src'),
 ] as const;
 
@@ -53,7 +52,7 @@ const CARD_MIGRATION_SOURCES = [
   'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx',
-  'packages/components/research/ads/AdsResearchWatchlistPanel.tsx',
+  'src/features/research/ads/AdsResearchWatchlistPanel.tsx',
   'src/features/content-runs/detail/content-run-detail.tsx',
 ] as const;
 

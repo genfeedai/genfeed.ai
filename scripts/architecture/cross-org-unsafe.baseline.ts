@@ -420,12 +420,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 140,
+      line: 144,
     },
     // #6120: superadmin edits another organization's blacklist entry.
     {
       file: 'apps/server/api/src/collections/elements/blacklists/controllers/blacklists.controller.ts',
-      line: 163,
+      line: 167,
     },
     // #6120: superadmin names a foreign organization.
     {

@@ -1,0 +1,389 @@
+import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const getBetterAuthServerTokenMock = vi.fn();
+const getBootstrapMock = vi.fn();
+const getPlatformFlagsMock = vi.fn();
+const getInstanceMock = vi.fn(() => ({
+  getBootstrap: getBootstrapMock,
+}));
+const cookiesMock = vi.fn(async () => ({
+  get: vi.fn(() => undefined),
+  getAll: vi.fn(() => []),
+}));
+const headersMock = vi.fn(async () => new Headers());
+
+vi.mock('@genfeedai/auth-client/server', () => ({
+  getBetterAuthServerToken: getBetterAuthServerTokenMock,
+  isBetterAuthEnabled: () => true,
+}));
+
+vi.mock('next/headers', () => ({
+  cookies: cookiesMock,
+  headers: headersMock,
+}));
+
+vi.mock('@services/auth/auth.service', () => ({
+  AuthService: {
+    getInstance: getInstanceMock,
+  },
+}));
+
+vi.mock('@services/external/public.service', () => ({
+  PublicService: {
+    getInstance: vi.fn(() => ({
+      getPlatformFlags: getPlatformFlagsMock,
+    })),
+  },
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    JWT_LABEL: 'genfeed',
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+describe('loadProtectedBootstrap', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
+    cookiesMock.mockResolvedValue({
+      get: vi.fn(() => undefined),
+      getAll: vi.fn(() => []),
+    });
+    headersMock.mockResolvedValue(new Headers());
+    getBetterAuthServerTokenMock.mockResolvedValue('token_123');
+    getPlatformFlagsMock.mockResolvedValue(DEFAULT_PLATFORM_FLAGS);
+    getBootstrapMock.mockResolvedValue({
+      access: {
+        brandId: 'brand_123',
+        creditsBalance: 50,
+        hasEverHadCredits: true,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId: 'org_123',
+        subscriptionStatus: 'active',
+        subscriptionTier: 'scale',
+        userId: 'user_123',
+      },
+      brands: [{ id: 'brand_123', label: 'Alpha' }],
+      currentUser: { id: 'user_123' },
+      fleetCapabilities: { brandEnabled: true },
+      settings: { organization: 'org_123' },
+      streak: { currentStreak: 6 },
+    });
+  });
+
+  it('loads the protected shell through one auth bootstrap call', async () => {
+    const { loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    const result = await loadProtectedBootstrap();
+
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+    expect(getBootstrapMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      accessState: expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+      brandId: 'brand_123',
+      brands: [{ id: 'brand_123', label: 'Alpha' }],
+      currentUser: { id: 'user_123' },
+      fleetCapabilities: { brandEnabled: true },
+      organizationId: 'org_123',
+      platformFlags: DEFAULT_PLATFORM_FLAGS,
+      settings: { organization: 'org_123' },
+      streak: { currentStreak: 6 },
+    });
+  });
+
+  it('keeps the shell bootstrap when platform flags fail to load', async () => {
+    getPlatformFlagsMock.mockRejectedValue(new Error('flags unavailable'));
+
+    const { loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+        platformFlags: null,
+      }),
+    );
+    expect(getBootstrapMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('still loads bootstrap in hybrid mode without an EE license key', async () => {
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('token_123');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('skips server auth bootstrap when the trusted Playwright env and cookie are both present', async () => {
+    process.env.PLAYWRIGHT_TEST = 'true';
+    cookiesMock.mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === '__playwright_test' ? { value: 'true' } : undefined,
+      ),
+      getAll: vi.fn(() => []),
+    });
+
+    const {
+      getServerAuthToken,
+      isProtectedBootstrapBypassed,
+      loadProtectedBootstrap,
+    } = await import('@/server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips server auth bootstrap when NEXT_PUBLIC_PLAYWRIGHT_TEST and the cookie are both present', async () => {
+    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST = 'true';
+    cookiesMock.mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === '__playwright_test' ? { value: 'true' } : undefined,
+      ),
+      getAll: vi.fn(() => []),
+    });
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@/server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(true);
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('does not treat the Playwright cookie alone as a bootstrap bypass', async () => {
+    cookiesMock.mockResolvedValue({
+      get: vi.fn((name: string) =>
+        name === '__playwright_test' ? { value: 'true' } : undefined,
+      ),
+      getAll: vi.fn(() => []),
+    });
+
+    const {
+      getServerAuthToken,
+      isProtectedBootstrapBypassed,
+      loadProtectedBootstrap,
+    } = await import('@/server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(getServerAuthToken()).resolves.toBe('token_123');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('does not bypass bootstrap from PLAYWRIGHT_TEST env without the cookie', async () => {
+    process.env.PLAYWRIGHT_TEST = 'true';
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@/server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({ brandId: 'brand_123' }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('cannot activate the Playwright bypass under production-like config', async () => {
+    delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
+
+    const { isProtectedBootstrapBypassed, loadProtectedBootstrap } =
+      await import('@/server/protected-bootstrap.server');
+
+    await expect(isProtectedBootstrapBypassed()).resolves.toBe(false);
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({ brandId: 'brand_123' }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
+  });
+
+  it('falls back to self-hosted bootstrap when server auth throws in hybrid mode', async () => {
+    vi.doMock('@genfeedai/auth-client/server', () => ({
+      getBetterAuthServerToken: vi.fn(async () => {
+        throw new Error('auth middleware missing');
+      }),
+      isBetterAuthEnabled: () => true,
+    }));
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('');
+  });
+
+  it('returns null when server auth throws in cloud mode', async () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    vi.doMock('@genfeedai/auth-client/server', () => ({
+      getBetterAuthServerToken: vi.fn(async () => {
+        throw new Error('auth middleware missing');
+      }),
+      isBetterAuthEnabled: () => true,
+    }));
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips cloud bootstrap in desktop shell mode without a desktop session token', async () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    getBetterAuthServerTokenMock.mockResolvedValue('');
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('skips cloud bootstrap for a remote desktop request without a session token', async () => {
+    headersMock.mockResolvedValue(
+      new Headers({ 'x-genfeed-desktop-version': '0.1.0' }),
+    );
+    getBetterAuthServerTokenMock.mockResolvedValue('');
+
+    const { loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(loadProtectedBootstrap()).resolves.toBeNull();
+    expect(getInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('still loads bootstrap without legacy auth provider keys in self-hosted mode', async () => {
+    delete process.env.BETTER_AUTH_SECRET;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('');
+  });
+});
+
+describe('loadServerSuperAdmin', () => {
+  const adminToken = `h.${Buffer.from(JSON.stringify({ isSuperAdmin: true })).toString('base64url')}.s`;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getBetterAuthServerTokenMock.mockReset();
+    // Earlier cases `doMock` a throwing token exchange, which outlives them.
+    vi.doMock('@genfeedai/auth-client/server', () => ({
+      getBetterAuthServerToken: getBetterAuthServerTokenMock,
+      isBetterAuthEnabled: () => true,
+    }));
+    vi.resetModules();
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '203.0.113.7');
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    delete process.env.PLAYWRIGHT_TEST;
+    delete process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST;
+    cookiesMock.mockResolvedValue({
+      get: vi.fn(() => undefined),
+      getAll: vi.fn(() => []),
+    });
+    headersMock.mockResolvedValue(
+      new Headers({ 'x-forwarded-for': '203.0.113.7' }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('decides from the token claim without loading the bootstrap or flags', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue(adminToken);
+
+    const { loadServerSuperAdmin } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(true);
+    expect(getBootstrapMock).not.toHaveBeenCalled();
+    expect(getPlatformFlagsMock).not.toHaveBeenCalled();
+  });
+
+  it('denies a visitor whose token has no super-admin claim', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue('h.e30.s');
+
+    const { loadServerSuperAdmin } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(false);
+  });
+
+  it('denies a visitor with no token', async () => {
+    getBetterAuthServerTokenMock.mockResolvedValue(null);
+
+    const { loadServerSuperAdmin } = await import(
+      '@/server/protected-bootstrap.server'
+    );
+
+    await expect(loadServerSuperAdmin()).resolves.toBe(false);
+  });
+});

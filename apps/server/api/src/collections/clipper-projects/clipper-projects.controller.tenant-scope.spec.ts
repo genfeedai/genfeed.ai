@@ -1,5 +1,6 @@
 import { ClipperProjectsController } from '@api/collections/clipper-projects/clipper-projects.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import {
   adminUser,
   emptyPage,
@@ -80,6 +81,42 @@ describe('ClipperProjectsController tenant reads (#6176)', () => {
     const request = tenantReadRequest(user);
     await controller.findAll(request, user, query);
     expect(mock.mock.calls[0]?.[0].where).toMatchObject({
+      OR: [{ brandId: null }, { brandId: 'brand-9' }],
+      isDeleted: false,
+      organizationId: sessionOrganizationId,
+    });
+  });
+
+  it('adds the search inside the tenant scope instead of replacing the brand filter', async () => {
+    const { controller, mock } = setup();
+    const user = memberUser;
+    const query = tenantReadQuery(SearchBaseQueryDto, {
+      brandId: 'brand-9',
+      search: ' launch ',
+    });
+    const request = tenantReadRequest(user);
+    await controller.findAll(request, user, query);
+    expect(mock.mock.calls[0]?.[0].where).toEqual({
+      AND: [
+        {
+          OR: [
+            {
+              config: {
+                mode: 'insensitive',
+                path: ['name'],
+                string_contains: 'launch',
+              },
+            },
+            {
+              config: {
+                mode: 'insensitive',
+                path: ['sourceVideoUrl'],
+                string_contains: 'launch',
+              },
+            },
+          ],
+        },
+      ],
       OR: [{ brandId: null }, { brandId: 'brand-9' }],
       isDeleted: false,
       organizationId: sessionOrganizationId,

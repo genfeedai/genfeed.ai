@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   createError: null as string | null,
   loadMore: vi.fn(),
   push: vi.fn(),
+  searches: [] as string[],
   state: {
     error: null as string | null,
     hasMore: false,
@@ -24,7 +26,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/studio/storyboard/hooks/use-storyboard-runs', () => ({
-  useStoryboardRuns: () => ({ ...mocks.state, loadMore: mocks.loadMore }),
+  useStoryboardRuns: (search: string) => {
+    mocks.searches.push(search);
+    return { ...mocks.state, loadMore: mocks.loadMore };
+  },
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -84,6 +89,7 @@ describe('StoryboardRunsPage', () => {
     vi.clearAllMocks();
     mocks.brandId = 'brand-1';
     mocks.createError = null;
+    mocks.searches = [];
     mocks.state = { error: null, hasMore: false, isLoading: false, runs: [] };
   });
 
@@ -120,6 +126,25 @@ describe('StoryboardRunsPage', () => {
     expect(needsYou).toBeVisible();
     expect(screen.getAllByText('Stalled run')).toHaveLength(2);
     expect(screen.getAllByText('Draft run')).toHaveLength(1);
+  });
+
+  it('asks for the searched title and explains a search with no match', async () => {
+    const user = userEvent.setup();
+    mocks.state.runs = [summary({ id: 'run-1', title: 'Proof-led hook' })];
+
+    const { rerender } = render(<StoryboardRunsPage />);
+    expect(mocks.searches.at(-1)).toBe('');
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search storyboards' }),
+      'recap{Enter}',
+    );
+    expect(mocks.searches.at(-1)).toBe('recap');
+
+    mocks.state.runs = [];
+    rerender(<StoryboardRunsPage />);
+    expect(screen.getByText('No storyboards match your search.')).toBeVisible();
+    expect(screen.queryByTestId('storyboard-onboarding')).toBeNull();
   });
 
   it('omits the runtime when the run has none and hides Needs you when nothing is waiting', () => {

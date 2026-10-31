@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
+import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';

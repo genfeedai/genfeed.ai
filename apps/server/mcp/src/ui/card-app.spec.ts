@@ -837,7 +837,9 @@ describe('organization switcher', () => {
     expect(trigger?.textContent).toContain('Acme');
     expect(document.body.textContent).toContain('Acme Main');
     expect(document.body.textContent).toContain('Acme Labs');
-    expect(document.body.textContent).not.toContain('Switching is off');
+    expect(document.body.textContent).not.toContain(
+      'limited to one organization',
+    );
   });
 
   it('shows the organization as plain text when switching is off', () => {
@@ -850,7 +852,7 @@ describe('organization switcher', () => {
 
     expect(document.querySelector('[role="combobox"]')).toBeNull();
     expect(document.body.textContent).toContain('Acme');
-    expect(document.body.textContent).toContain('Switching is off');
+    expect(document.body.textContent).toContain('limited to one organization');
     expect(document.body.textContent).toContain(
       'No brands in this organization yet.',
     );

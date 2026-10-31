@@ -29,10 +29,13 @@ function isSqlFragment(value: unknown): value is SqlFragmentMock {
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
+import {
+  LeaderboardOrder,
+  LeaderboardSort,
+} from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform, OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -813,6 +816,74 @@ describe('EntityLeaderboardService', () => {
       });
       expect(result.data.map(({ id }) => id)).toEqual(['org-9']);
     });
+
+    it('keeps only organizations of the requested type, by account type then category', async () => {
+      const capturedQueries = captureQueryRawCalls([rankRows('agency-1')]);
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: 'agency-1', label: 'Agency One' }],
+      });
+      mockPrismaService.organization.count.mockResolvedValue(3);
+
+      const result = await service.getOrganizationsWithStats(
+        undefined,
+        undefined,
+        1,
+        10,
+        LeaderboardSort.ENGAGEMENT,
+        undefined,
+        undefined,
+        OrganizationCategory.AGENCY,
+      );
+
+      expect(capturedQueries[0].sql).toContain(
+        'COALESCE(e."accountType", e."category") = ?::"OrganizationCategory"',
+      );
+      expect(capturedQueries[0].values).toContain('AGENCY');
+      expect(mockPrismaService.organization.count).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { accountType: 'AGENCY' },
+            { accountType: null, category: 'AGENCY' },
+          ],
+          isDeleted: false,
+        },
+      });
+      expect(result.pagination.total).toBe(3);
+    });
+
+    it('does not filter by type when none is requested', async () => {
+      const capturedQueries = captureQueryRawCalls([[]]);
+
+      await service.getOrganizationsWithStats(undefined, undefined, 1, 10);
+
+      expect(capturedQueries[0].sql).not.toContain('OrganizationCategory');
+    });
+
+    it.each([
+      [LeaderboardOrder.ASC, 'ASC'],
+      [LeaderboardOrder.DESC, 'DESC'],
+    ])(
+      'ranks %s by the metric in the requested direction',
+      async (order, keyword) => {
+        const capturedQueries = captureQueryRawCalls([[]]);
+
+        await service.getOrganizationsWithStats(
+          undefined,
+          undefined,
+          1,
+          10,
+          LeaderboardSort.VIEWS,
+          undefined,
+          undefined,
+          undefined,
+          order,
+        );
+
+        expect(capturedQueries[0].sql).toContain(
+          `ORDER BY COALESCE(m.metric, 0) ${keyword}, e."createdAt" DESC`,
+        );
+      },
+    );
 
     it('reports the organization type, preferring onboarding accountType over category', async () => {
       mockPrismaService.$queryRaw.mockResolvedValueOnce(

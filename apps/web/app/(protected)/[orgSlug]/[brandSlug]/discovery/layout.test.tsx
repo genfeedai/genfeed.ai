@@ -16,11 +16,11 @@ vi.mock('@/features/research/remix/DiscoveryRemixProvider', () => ({
 }));
 
 vi.mock(
-  '@app-components/research/work-surface/ResearchWorkspaceSurfaceAdapter',
+  '@/features/research/work-surface/ResearchWorkspaceSurfaceAdapter',
   () => ({ default: () => <div>Research adapter</div> }),
 );
 
-vi.mock('@app-components/research/remix/RemixBriefInspector', () => ({
+vi.mock('@/features/research/remix/RemixBriefInspector', () => ({
   default: () => <div>Remix brief inspector</div>,
 }));
 

@@ -33,6 +33,9 @@ import {
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const LIGHTING_SORT_KEYS = ['label', 'key'];
 
 function LightingsListContent({
   filters,
@@ -45,6 +48,9 @@ function LightingsListContent({
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: LIGHTING_SORT_KEYS,
+  });
   const searchParamsString = searchParams.toString();
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
@@ -84,6 +90,7 @@ function LightingsListContent({
       adminOrg,
       adminBrand,
       filters?.search,
+      sort,
     ],
     queryFn: async () => {
       const service = await getLightingsService();
@@ -91,6 +98,7 @@ function LightingsListContent({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -132,9 +140,15 @@ function LightingsListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (lighting: ElementLighting) => lighting.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -222,6 +236,9 @@ function LightingsListContent({
   return (
     <>
       <AppTable<ElementLighting>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={lightings}
         columns={columns}
         actions={actions}

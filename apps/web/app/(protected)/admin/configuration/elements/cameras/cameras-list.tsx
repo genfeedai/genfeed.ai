@@ -25,6 +25,9 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalCamera } from '@/components/lazy/modal/LazyModal';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const CAMERA_SORT_KEYS = ['label', 'key'];
 
 function CamerasListContent({
   filters,
@@ -38,6 +41,9 @@ function CamerasListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: CAMERA_SORT_KEYS,
+  });
 
   const getCamerasService = useAuthedService(
     useCallback((token: string) => CamerasService.getInstance(token), []),
@@ -76,6 +82,7 @@ function CamerasListContent({
       adminOrg,
       adminBrand,
       filters?.search,
+      sort,
     ],
     queryFn: async () => {
       const service = await getCamerasService();
@@ -84,6 +91,7 @@ function CamerasListContent({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         search: filters?.search || undefined,
+        ...(sort ? { sort } : {}),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -125,9 +133,15 @@ function CamerasListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (camera: ElementCamera) => camera.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -202,6 +216,9 @@ function CamerasListContent({
   return (
     <>
       <AppTable<ElementCamera>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={cameras}
         columns={columns}
         actions={actions}

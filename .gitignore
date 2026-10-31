@@ -21,8 +21,6 @@ apps/web/app/**/*.js
 !apps/web/app/runtime-config.js/
 !apps/web/app/runtime-config.js/**
 apps/web/app/**/*.js.map
-apps/web/packages/**/*.js
-apps/web/packages/**/*.js.map
 # Hand-authored ambient module declarations / generated API types — keep tracked
 !apps/web/src/types/*.d.ts
 !apps/desktop/src/shared/*.d.ts

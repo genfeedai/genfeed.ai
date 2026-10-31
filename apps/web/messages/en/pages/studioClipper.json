@@ -150,5 +150,7 @@
         "description": "Re-tell each highlight with an AI avatar and voice. Needs avatar and voice defaults."
       }
     }
-  }
+  },
+  "search": "Search clip projects",
+  "emptySearch": "No clip projects match your search."
 }

@@ -28,6 +28,7 @@ import type {
   StylesListAction,
   StylesListState,
 } from '@/features/admin/props/styles.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function stylesListReducer(
   state: StylesListState,
@@ -45,6 +46,8 @@ function stylesListReducer(
   }
 }
 
+const STYLE_SORT_KEYS = ['label', 'key'];
+
 function StylesListContent({
   filters,
   scope = PageScope.BRAND,
@@ -61,6 +64,9 @@ function StylesListContent({
   );
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: STYLE_SORT_KEYS,
+  });
 
   const [state, dispatch] = useReducer(stylesListReducer, {
     styles: [],
@@ -86,9 +92,15 @@ function StylesListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (style: ElementStyle) => style.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -139,8 +151,13 @@ function StylesListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllStyles = useCallback(
     async (isRefresh = false) => {
+      const requestId = ++latestRequestRef.current;
       dispatch({ type: 'SET_LOADING', payload: !isRefresh });
 
       // Notify parent of state changes
@@ -155,6 +172,7 @@ function StylesListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -167,21 +185,30 @@ function StylesListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'SET_STYLES', payload: data });
 
         logger.info('GET /styles success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /styles failed', error);
         notificationsService.error('Failed to load styles');
       } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          dispatch({ type: 'SET_LOADING', payload: false });
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       getStylesService,
       notificationsService.error,
       scope,
@@ -249,6 +276,9 @@ function StylesListContent({
   return (
     <>
       <AppTable<ElementStyle>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={styles}
         columns={columns}
         actions={actions}

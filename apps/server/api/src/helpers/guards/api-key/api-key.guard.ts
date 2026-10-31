@@ -1,6 +1,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import { MCP_ORGANIZATION_HEADER } from '@genfeedai/contracts/constants';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   CanActivate,
@@ -68,8 +69,14 @@ export class ApiKeyAuthGuard implements CanActivate {
     // A switchable MCP session may be acting in another of its user's
     // organizations. The key row keeps its issued organization (the action
     // origin proof is signed against it); only the request identity moves.
+    const requestedOrganization = request.headers[MCP_ORGANIZATION_HEADER];
     const organizationId =
-      await this.apiKeysService.resolveEffectiveOrganizationId(apiKey);
+      await this.apiKeysService.resolveEffectiveOrganizationId(
+        apiKey,
+        typeof requestedOrganization === 'string' && requestedOrganization
+          ? requestedOrganization
+          : undefined,
+      );
 
     const rateLimit = await this.apiKeysService.checkRateLimit(
       organizationId === apiKey.organizationId

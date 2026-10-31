@@ -332,9 +332,9 @@ const TOOL_DOCUMENTATION = new Map([
     'get_orgs',
     {
       original:
-        'List every organization you belong to, which one this connection works inside, and the brands in it. get_account, get_brands and every other tool act only in the active organization. When the connection allows switching, use switch_org to change it; otherwise reconnect and choose another on the consent screen.',
+        'List every organization you belong to, which one this connection works inside, and the brands in it. Every other tool acts in the active organization unless the connection allows all organizations: then each listing includes its brand ids, and any tool accepts an optional organization (name, slug or id) to act in that one for a single call. switch_org changes the default; a connection limited to one organization must be reconnected to choose another.',
       concise:
-        'List member organizations, active organization and its brands. All tools use the active organization. switch_org changes it when permitted; otherwise reconnect and choose at consent.',
+        'List member organizations, active one and brands. With all-organizations consent each org lists its brand ids and any tool takes optional organization; else reconnect to choose.',
     },
   ],
   [
@@ -476,9 +476,9 @@ const TOOL_DOCUMENTATION = new Map([
     'switch_org',
     {
       original:
-        'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved with organization switching on. Your role in the organization is checked on every request.',
+        'Switch which organization this connection works inside, by its name, slug or id from get_orgs. Only available when the connection was approved for all organizations. Your role in the organization is checked on every request.',
       concise:
-        'Switch active organization by name/slug/id from get_orgs. Requires organization-switching consent; role checked each request.',
+        'Switch active organization by name/slug/id from get_orgs. Requires all-organizations consent; role checked each request.',
     },
   ],
   [

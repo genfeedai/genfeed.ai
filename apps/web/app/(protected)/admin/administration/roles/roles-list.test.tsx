@@ -45,7 +45,7 @@ vi.mock('@services/organization/roles.service', () => ({
   RolesService: { getInstance: vi.fn() },
 }));
 
-vi.mock('@components/lazy/lazy-modal.admin', () => ({
+vi.mock('@/features/admin/lazy/lazy-modal.admin', () => ({
   LazyModalRole: ({ role }: { role: { label: string } | null }) => (
     <div data-testid="role-modal">Modal role: {role?.label ?? 'none'}</div>
   ),

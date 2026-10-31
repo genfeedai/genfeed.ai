@@ -14,7 +14,7 @@ import { useTranslations } from 'next-intl';
 
 /** The organization's Settings tab: release preview, released apps, settings. */
 function getReleaseAccessHref(organizationId: string): string {
-  return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}?tab=settings`;
+  return `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`;
 }
 
 function AdminOrganizationsLandingContent() {

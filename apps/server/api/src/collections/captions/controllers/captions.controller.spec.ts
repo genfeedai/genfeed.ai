@@ -105,6 +105,29 @@ describe('CaptionsController', () => {
     });
   });
 
+  describe('findAll sort', () => {
+    it.each([
+      ['format: 1', { createdAt: -1, format: 1, id: -1 }],
+      ['language: -1', { createdAt: -1, id: -1, language: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['content: 1', { createdAt: -1, id: -1 }],
+      [undefined, { createdAt: -1, id: -1 }],
+    ])('orders captions by %s', async (sort, orderBy) => {
+      deps.captionsService.findAll.mockResolvedValue({ docs: [] });
+
+      await controller.findAll(
+        createMockRequest(),
+        createMockUser(testId('user', 2)),
+        { sort } as never,
+      );
+
+      expect(deps.captionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy }),
+        expect.anything(),
+      );
+    });
+  });
+
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
       const captionId = testId('caption');

@@ -21,8 +21,8 @@ Source of truth:
   `apps/web/src/lib/workspace-shell/workspace-shell-registry.ts`
 - Protected/public page drift guard and public classification registry in
   `scripts/architecture/check-product-route-inventory.ts`
-- Shell surface resolver in `apps/web/packages/components/useAppProtectedLayout.ts`
-- Sidebar resolver in `apps/web/packages/components/AppProtectedLayoutSidebar.tsx`
+- Shell surface resolver in `apps/web/src/components/layouts/protected/useAppProtectedLayout.ts`
+- Sidebar resolver in `apps/web/src/components/layouts/protected/AppProtectedLayoutSidebar.tsx`
 - App rail in `apps/web/src/components/shell/app-rail/AppRail.tsx`, hosted by
   `apps/web/src/components/shell/AppProtectedRail.tsx` (#5304)
 

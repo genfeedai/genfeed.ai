@@ -1,6 +1,7 @@
 import type {
   McpMediaToolResult,
   OrganizationOption,
+  OrganizationOptionBrand,
 } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
@@ -21,7 +22,7 @@ async function bestEffort<T>(read: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-function matchOrganization(
+export function matchOrganization(
   organizations: OrganizationOption[],
   requested: string,
 ): OrganizationOption {
@@ -51,9 +52,30 @@ async function describeOrganizations(
   const active = organizations.find((org) => org.isActive);
   const brands = await bestEffort(client.listBrands(), []);
   const isSwitchable = canSwitch && organizations.length > 1;
+  // An all-organizations connection chooses the organization and brand per
+  // call, so it needs every organization's brands up front, not just the
+  // active one's.
+  const brandsByOrganization = new Map<string, OrganizationOptionBrand[]>(
+    isSwitchable
+      ? await Promise.all(
+          organizations.map(
+            async (org) =>
+              [
+                org.id,
+                await bestEffort(
+                  client.runInOrganization(org.id, () => client.listBrands()),
+                  [],
+                ),
+              ] as const,
+          ),
+        )
+      : [],
+  );
   const readable = organizations.map(
     ({ id, isActive, isOwner, label, slug }) => ({
-      ...(isSwitchable ? { id } : {}),
+      ...(isSwitchable
+        ? { brands: brandsByOrganization.get(id) ?? [], id }
+        : {}),
       isActive,
       isOwner,
       label,
@@ -65,8 +87,8 @@ async function describeOrganizations(
     organizations.length <= 1
       ? ''
       : isSwitchable
-        ? `This connection works inside ${workingIn}. Use switch_org with an organization name to work in another.\n\n`
-        : `This connection works inside ${workingIn}. To work in another, reconnect and choose it on the consent screen (tick "Switch between my organizations" to move between them later).\n\n`;
+        ? `This connection can use all of your organizations. It starts in ${workingIn}. To act in another organization for one call, pass its name, slug or id as "organization" on any tool (with that organization's brandId, listed under its brands in the structured result, for generation); switch_org changes the default instead.\n\n`
+        : `This connection works inside ${workingIn}. To work in another, reconnect and choose it on the consent screen (choose "All my organizations" to use every one of them).\n\n`;
   return {
     content: [
       {
@@ -79,7 +101,12 @@ async function describeOrganizations(
         ...(active ? { activeOrganizationId: active.id } : {}),
         brands,
         canSwitchOrganizations: isSwitchable,
-        organizations,
+        organizations: isSwitchable
+          ? organizations.map((org) => ({
+              ...org,
+              brands: brandsByOrganization.get(org.id) ?? [],
+            }))
+          : organizations,
       },
     },
   };
@@ -107,7 +134,7 @@ export function handleAccountManagementTool(
       }
       if (!(await client.canSwitchOrganizations())) {
         throw new Error(
-          'This connection was approved without organization switching. Reconnect and tick "Switch between my organizations" on the consent screen.',
+          'This connection was limited to one organization. Reconnect and choose "All my organizations" on the consent screen.',
         );
       }
       const organization = matchOrganization(

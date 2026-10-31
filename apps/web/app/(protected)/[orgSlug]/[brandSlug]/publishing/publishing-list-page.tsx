@@ -1,9 +1,3 @@
-import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
-import {
-  prefetchServerQuery,
-  ServerQueryHydrationBoundary,
-} from '@app-server/query-hydration.server';
-import { loadReleasePostsPageData } from '@app-server/release-posts-page-data.server';
 import {
   PageScope,
   PostStatus,
@@ -23,6 +17,12 @@ import {
   normalizeReleasePostsSort,
 } from '@/features/posts/list/release-posts-list-query';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
+import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
+import {
+  prefetchServerQuery,
+  ServerQueryHydrationBoundary,
+} from '@/server/query-hydration.server';
+import { loadReleasePostsPageData } from '@/server/release-posts-page-data.server';
 
 export type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 

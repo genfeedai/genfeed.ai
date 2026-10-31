@@ -731,6 +731,35 @@ describe('MCP organization switching', () => {
       });
     });
 
+    it('acts in the organization a call names while the membership is live, leaving the key alone', async () => {
+      const { delegate, service } = createSwitchHarness();
+
+      await expect(
+        service.resolveEffectiveOrganizationId(sessionKey(), 'org-2'),
+      ).resolves.toBe('org-2');
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a named organization the user is not an active member of', async () => {
+      const { service } = createSwitchHarness(false);
+
+      await expect(
+        service.resolveEffectiveOrganizationId(sessionKey(), 'org-9'),
+      ).rejects.toThrow(/not an active member/);
+    });
+
+    it('refuses a named organization on a connection limited to one organization', async () => {
+      const { prisma, service } = createSwitchHarness();
+
+      await expect(
+        service.resolveEffectiveOrganizationId(
+          sessionKey({ [MCP_CAN_SWITCH_ORGANIZATIONS_METADATA_KEY]: false }),
+          'org-2',
+        ),
+      ).rejects.toThrow(/limited to one organization/);
+      expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    });
+
     it('falls back to the key organization once the membership is gone', async () => {
       const { service } = createSwitchHarness(false);
 

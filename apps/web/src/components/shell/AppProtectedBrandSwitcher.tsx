@@ -1,6 +1,5 @@
 'use client';
 
-import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -12,6 +11,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
+import { isPersonalSettingsPage } from '@/components/layouts/protected/app-protected-layout.settings-scope';
 import MenuBrandSwitcher from '@/components/menus/switchers/MenuBrandSwitcher';
 
 import { resolveShellScope } from '@/components/shell/shell-scope';

@@ -6817,126 +6817,6 @@
       "workspace": "web"
     },
     {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/web/packages/components/app-protected-layout.test.tsx",
-      "fingerprint": "d4b0c5c93c0923f21127",
-      "message": "Type '{ currentApp: \"library\"; isCollapsed: true; onToggleCollapse: Mock<Procedure>; isAdminRoute: false; isAnalyticsRoute: false; isArtifactsRoute: boolean; isConversationRoute: false; ... 19 more ...; messagesMenuItems: never[]; }' is not assignable to type 'IntrinsicAttributes & Props'.   Property 'isArtifactsRoute' does not exist on type 'IntrinsicAttributes & Props'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "0e1d5e13d747b1b967fd",
-      "message": "Type 'null' is not assignable to type '{ readonly accountName: \"Growth Account\"; readonly campaignName: \"Search Prospecting\"; readonly channel: \"search\"; readonly creative: { readonly body: \"Search detail body\"; readonly headline: \"Search detail headline\"; }; ... 6 more ...; readonly title: \"Google lead gen detail\"; } | { ...; } | { ...; }[]'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "4582d4309cfb34018632",
-      "message": "Type 'Error' is not assignable to type 'null'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "5cc3938fc6f83b8be4a9",
-      "message": "Type '{ publicAds: { savedAdId: string; accountName: \"Founders Club\"; body: \"Meta ad body copy\"; channel: \"all\"; credentialId: \"cred-meta\"; headline: \"Meta hook copy\"; id: \"public-1\"; imageUrls: readonly [...]; ... 5 more ...; title: \"Meta hook story\"; }[]; connectedAds: { ...; }[]; filters: {}; summary: { ...; }; }' is not assignable to type '{ readonly accountName: \"Growth Account\"; readonly campaignName: \"Search Prospecting\"; readonly channel: \"search\"; readonly creative: { readonly body: \"Search detail body\"; readonly headline: \"Search detail headline\"; }; ... 6 more ...; readonly title: \"Google lead gen detail\"; } | { ...; } | { ...; }[]'.   Types of property 'publicAds' are incompatible.     Type '{ savedAdId: string; accountName: \"Founders Club\"; body: \"Meta ad body copy\"; channel: \"all\"; credentialId: \"cred-meta\"; headline: \"Meta hook copy\"; id: \"public-1\"; imageUrls: readonly [\"https://cdn.example.com/meta-ad.jpg\"]; ... 5 more ...; title: \"Meta hook story\"; }[]' is not assignable to type '{ readonly accountName: \"Founders Club\"; readonly body: \"Meta ad body copy\"; readonly channel: \"all\"; readonly credentialId: \"cred-meta\"; readonly headline: \"Meta hook copy\"; readonly id: \"public-1\"; ... 6 more ...; readonly title: \"Meta hook story\"; }[]'.       Object literal may only specify known properties, and 'savedAdId' does not exist in type '{ readonly accountName: \"Founders Club\"; readonly body: \"Meta ad body copy\"; readonly channel: \"all\"; readonly credentialId: \"cred-meta\"; readonly headline: \"Meta hook copy\"; readonly id: \"public-1\"; ... 6 more ...; readonly title: \"Meta hook story\"; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "605f7858832f3cab5e0d",
-      "message": "Type '\"meta\"' is not assignable to type 'AdsPlatform'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "d0648245aa474233d66c",
-      "message": "Type '\"all\"' is not assignable to type 'AdsChannel'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/web/packages/components/research/ads/AdsResearchPageClient.test.tsx",
-      "fingerprint": "09e9a9e22fbfe3602567",
-      "message": "Argument of type '{ adAccountId: undefined; credentialId: undefined; loginCustomerId: undefined; accountName: \"Growth Account\"; body: \"Google search ad body\"; channel: \"search\"; headline: \"Google lead gen headline\"; ... 6 more ...; title: \"Google lead gen winner\"; }' is not assignable to parameter of type 'AdsResearchItem'.   Property 'explanation' is missing in type '{ adAccountId: undefined; credentialId: undefined; loginCustomerId: undefined; accountName: \"Growth Account\"; body: \"Google search ad body\"; channel: \"search\"; headline: \"Google lead gen headline\"; ... 6 more ...; title: \"Google lead gen winner\"; }' but required in type 'AdsResearchItem'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 6,
-      "file": "apps/web/packages/components/research/ads/AdsResearchWatchlistPanel.test.tsx",
-      "fingerprint": "98e865d6f125be6b548d",
-      "message": "Type '\"meta\"' is not assignable to type 'AdWatchlistPlatform'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/components/research/remix/RemixBriefInspector.test.tsx",
-      "fingerprint": "69b6c7c9e5bb7c4b06aa",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/packages/components/research/remix/RemixBriefInspector.test.tsx",
-      "fingerprint": "7e86325e9b36fa7595a5",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/components/research/remix/RemixBriefInspector.test.tsx",
-      "fingerprint": "d4d643d7598e9ba85fab",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
-      "workspace": "web"
-    },
-    {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/web/packages/config/menu-items.config.test.ts",
-      "fingerprint": "851fba61d2b3560ecf1c",
-      "message": "'item.group' is possibly 'undefined'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/config/settings-menu-items.config.test.ts",
-      "fingerprint": "4626ef3c81936d8ed232",
-      "message": "Type '\"brand\" | \"personal\" | \"organization\"' is not assignable to type 'SettingsSurface'.   Type '\"brand\"' is not assignable to type 'SettingsSurface'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/packages/config/settings-menu-items.config.test.ts",
-      "fingerprint": "e15c28ca646348398aa7",
-      "message": "Type '\"brand\" | \"personal\" | \"organization\"' is not assignable to type 'SettingsSurface'.   Type '\"brand\"' is not assignable to type 'SettingsSurface'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/packages/server/protected-bootstrap.server.test.ts",
-      "fingerprint": "ca96aacffadca6e02a56",
-      "message": "Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type 'Mock<() => undefined>'.   Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type '{ (): undefined; new (): undefined; }'.     Target signature provides too few arguments. Expected 1 or more, but got 0.",
-      "workspace": "web"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/web/src/components/command-palette/command-palette/CommandPalette.test.tsx",
@@ -6982,6 +6862,14 @@
       "file": "apps/web/src/components/ingredients/list/media-grid/ingredient-time-groups.util.test.ts",
       "fingerprint": "adfe6fc5ea54e4eba830",
       "message": "Conversion of type '{ createdAt: Date; id: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: Date; id: string; }' is missing the following properties from type 'IIngredient': category, status, user, organization, and 10 more.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/web/src/components/layouts/protected/app-protected-layout.test.tsx",
+      "fingerprint": "da8cfc77e3e2bff91337",
+      "message": "Type '{ currentApp: \"library\"; isCollapsed: true; onToggleCollapse: Mock<Procedure>; isAdminRoute: false; isAnalyticsRoute: false; isArtifactsRoute: boolean; isConversationRoute: false; ... 19 more ...; messagesMenuItems: never[]; }' is not assignable to type 'IntrinsicAttributes & Props'.   Property 'isArtifactsRoute' does not exist on type 'IntrinsicAttributes & Props'.",
       "workspace": "web"
     },
     {
@@ -7449,6 +7337,30 @@
       "workspace": "web"
     },
     {
+      "code": 18048,
+      "count": 1,
+      "file": "apps/web/src/config/menu-items.config.test.ts",
+      "fingerprint": "2d0957ef86c4e90064b7",
+      "message": "'item.group' is possibly 'undefined'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/config/settings-menu-items.config.test.ts",
+      "fingerprint": "b045cebeadfe1fc8b0c1",
+      "message": "Type '\"brand\" | \"personal\" | \"organization\"' is not assignable to type 'SettingsSurface'.   Type '\"brand\"' is not assignable to type 'SettingsSurface'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/config/settings-menu-items.config.test.ts",
+      "fingerprint": "d30b7032e84c94b98029",
+      "message": "Type '\"brand\" | \"personal\" | \"organization\"' is not assignable to type 'SettingsSurface'.   Type '\"brand\"' is not assignable to type 'SettingsSurface'.",
+      "workspace": "web"
+    },
+    {
       "code": 2740,
       "count": 1,
       "file": "apps/web/src/features/agents/library/LivestreamChatBotPage.test.tsx",
@@ -7882,6 +7794,62 @@
     },
     {
       "code": 2322,
+      "count": 3,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "056873a915bacffb148a",
+      "message": "Type 'Error' is not assignable to type 'null'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "39fee34a0fb6b5280fb4",
+      "message": "Type 'null' is not assignable to type '{ readonly accountName: \"Growth Account\"; readonly campaignName: \"Search Prospecting\"; readonly channel: \"search\"; readonly creative: { readonly body: \"Search detail body\"; readonly headline: \"Search detail headline\"; }; ... 6 more ...; readonly title: \"Google lead gen detail\"; } | { ...; } | { ...; }[]'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "655e0f1d6781ccbc86e5",
+      "message": "Type '{ publicAds: { savedAdId: string; accountName: \"Founders Club\"; body: \"Meta ad body copy\"; channel: \"all\"; credentialId: \"cred-meta\"; headline: \"Meta hook copy\"; id: \"public-1\"; imageUrls: readonly [...]; ... 5 more ...; title: \"Meta hook story\"; }[]; connectedAds: { ...; }[]; filters: {}; summary: { ...; }; }' is not assignable to type '{ readonly accountName: \"Growth Account\"; readonly campaignName: \"Search Prospecting\"; readonly channel: \"search\"; readonly creative: { readonly body: \"Search detail body\"; readonly headline: \"Search detail headline\"; }; ... 6 more ...; readonly title: \"Google lead gen detail\"; } | { ...; } | { ...; }[]'.   Types of property 'publicAds' are incompatible.     Type '{ savedAdId: string; accountName: \"Founders Club\"; body: \"Meta ad body copy\"; channel: \"all\"; credentialId: \"cred-meta\"; headline: \"Meta hook copy\"; id: \"public-1\"; imageUrls: readonly [\"https://cdn.example.com/meta-ad.jpg\"]; ... 5 more ...; title: \"Meta hook story\"; }[]' is not assignable to type '{ readonly accountName: \"Founders Club\"; readonly body: \"Meta ad body copy\"; readonly channel: \"all\"; readonly credentialId: \"cred-meta\"; readonly headline: \"Meta hook copy\"; readonly id: \"public-1\"; ... 6 more ...; readonly title: \"Meta hook story\"; }[]'.       Object literal may only specify known properties, and 'savedAdId' does not exist in type '{ readonly accountName: \"Founders Club\"; readonly body: \"Meta ad body copy\"; readonly channel: \"all\"; readonly credentialId: \"cred-meta\"; readonly headline: \"Meta hook copy\"; readonly id: \"public-1\"; ... 6 more ...; readonly title: \"Meta hook story\"; }'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "805a6e86224f7c3bbcac",
+      "message": "Type '\"all\"' is not assignable to type 'AdsChannel'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "f9a45d6a78bd7b5fc60f",
+      "message": "Type '\"meta\"' is not assignable to type 'AdsPlatform'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "apps/web/src/features/research/ads/AdsResearchPageClient.test.tsx",
+      "fingerprint": "fb39e309508245f3b95c",
+      "message": "Argument of type '{ adAccountId: undefined; credentialId: undefined; loginCustomerId: undefined; accountName: \"Growth Account\"; body: \"Google search ad body\"; channel: \"search\"; headline: \"Google lead gen headline\"; ... 6 more ...; title: \"Google lead gen winner\"; }' is not assignable to parameter of type 'AdsResearchItem'.   Property 'explanation' is missing in type '{ adAccountId: undefined; credentialId: undefined; loginCustomerId: undefined; accountName: \"Growth Account\"; body: \"Google search ad body\"; channel: \"search\"; headline: \"Google lead gen headline\"; ... 6 more ...; title: \"Google lead gen winner\"; }' but required in type 'AdsResearchItem'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 6,
+      "file": "apps/web/src/features/research/ads/AdsResearchWatchlistPanel.test.tsx",
+      "fingerprint": "1e239e1ada025b71e574",
+      "message": "Type '\"meta\"' is not assignable to type 'AdWatchlistPlatform'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
       "count": 1,
       "file": "apps/web/src/features/research/remix/DiscoveryRemixProvider.test.tsx",
       "fingerprint": "12d580407a08ca6bebd4",
@@ -7893,6 +7861,30 @@
       "count": 2,
       "file": "apps/web/src/features/research/remix/DiscoveryRemixProvider.test.tsx",
       "fingerprint": "f571a7a12b0fca16fc97",
+      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/features/research/remix/RemixBriefInspector.test.tsx",
+      "fingerprint": "432da5dbd50dd64e9a3a",
+      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "apps/web/src/features/research/remix/RemixBriefInspector.test.tsx",
+      "fingerprint": "85ba3fe88d7aab652268",
+      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "apps/web/src/features/research/remix/RemixBriefInspector.test.tsx",
+      "fingerprint": "ef729cbbd03231787fd9",
       "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
       "workspace": "web"
     },
@@ -8422,6 +8414,14 @@
       "file": "apps/web/src/hooks/ui/use-crud-modal/use-crud-modal.test.ts",
       "fingerprint": "76f06c25521ef4581824",
       "message": "Conversion of type '{ preventDefault: Mock<Procedure>; }' to type 'FormEvent<Element>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ preventDefault: Mock<Procedure>; }' is missing the following properties from type 'FormEvent<Element>': nativeEvent, currentTarget, target, bubbles, and 10 more.",
+      "workspace": "web"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "apps/web/src/server/protected-bootstrap.server.test.ts",
+      "fingerprint": "3e98253966f4ae79d771",
+      "message": "Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type 'Mock<() => undefined>'.   Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type '{ (): undefined; new (): undefined; }'.     Target signature provides too few arguments. Expected 1 or more, but got 0.",
       "workspace": "web"
     },
     {

@@ -10,6 +10,7 @@ import { assertCampaignAssets } from '@api/collections/campaigns/services/campai
 import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
+import { handleAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { type AggregatePaginateResult, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -22,12 +23,38 @@ import type {
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
 } from '@genfeedai/contracts/interfaces';
-import type { Campaign } from '@genfeedai/prisma';
+import type { Campaign, Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+/** Columns the campaigns list can be ordered by. */
+const CAMPAIGN_SORT_FIELDS = [
+  'createdAt',
+  'name',
+  'objective',
+  'startDate',
+  'status',
+] as const;
+
+/** The requested order, then newest first, so rows with equal values keep a stable page order. */
+function toCampaignOrderBy(
+  sort: string | undefined,
+): Prisma.CampaignOrderByWithRelationInput[] {
+  const requested = handleAllowedQuerySort(sort, CAMPAIGN_SORT_FIELDS);
+  return [
+    ...Object.entries(requested).map(
+      ([field, direction]) =>
+        ({
+          [field]: direction === 1 ? 'asc' : 'desc',
+        }) as Prisma.CampaignOrderByWithRelationInput,
+    ),
+    { createdAt: 'desc' },
+    { id: 'desc' },
+  ];
+}
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -57,7 +84,7 @@ export class CampaignsService {
 
     const [rows, totalDocs] = await Promise.all([
       this.prisma.campaign.findMany({
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: toCampaignOrderBy(query.sort),
         skip: (page - 1) * limit,
         take: limit,
         where,

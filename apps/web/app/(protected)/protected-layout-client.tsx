@@ -1,6 +1,5 @@
 'use client';
 
-import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
@@ -9,6 +8,7 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import AppProtectedLayout from '@/components/layouts/protected/app-protected-layout';
 import { useAuthUser } from '@/hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@/hooks/feature-flags/provider';
 import { identifyAnalyticsUser } from '@/lib/analytics';

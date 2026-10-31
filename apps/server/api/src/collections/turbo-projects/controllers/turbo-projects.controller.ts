@@ -17,7 +17,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { SearchBaseQueryDto } from '@api/helpers/dto/search-base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
@@ -65,7 +65,7 @@ export class TurboProjectsController {
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: SearchBaseQueryDto,
   ) {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,

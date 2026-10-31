@@ -53,6 +53,7 @@ export interface CampaignListQuery {
   limit?: number;
   page?: number;
   search?: string;
+  sort?: string;
   status?: ContentCampaignStatus | string;
 }
 

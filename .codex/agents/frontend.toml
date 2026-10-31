@@ -152,7 +152,7 @@ automatically available here.
 ```
 @ui/*            -> packages/ui/src/*  |  packages/ui/src/components/*
 @ui-constants/*  -> packages/ui/src/components/constants/*
-@app-components/* -> apps/web/packages/components/*
+@/*              -> apps/web/src/*
 @protected/*     -> apps/web/app/(protected)/admin/*
 @app/*           -> apps/web/app/*
 @hooks/*         -> packages/hooks/*
@@ -174,7 +174,7 @@ automatically available here.
   `@components/loading/fallback/LazyLoadingFallback`,
   `@components/modals/modal/Modal`, `@components/cards/KpiCard`). A new
   `@components/<anything-else>` import will not resolve. Import shared UI via
-  `@ui/*` and app-local components via `@app-components/*`.
+  `@ui/*` and app-local code via `@/*` (`apps/web/src`).
 - `@ui/primitives/*` is covered by the `@ui/*` mapping
   (`packages/ui/src/primitives/*`); it is not a separate entry.
 - There is no `@constants/*`, `@enums/*`, or `@interfaces/*` alias here — use

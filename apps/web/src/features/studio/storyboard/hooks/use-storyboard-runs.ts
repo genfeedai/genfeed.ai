@@ -18,8 +18,11 @@ export interface UseStoryboardRunsResult {
   readonly runs: StoryboardListRun[];
 }
 
-/** Studio → Storyboard saved runs for the active brand, newest edit first. */
-export function useStoryboardRuns(): UseStoryboardRunsResult {
+/**
+ * Studio → Storyboard saved runs for the active brand, newest edit first. A
+ * `search` term narrows both run sources by title on the server.
+ */
+export function useStoryboardRuns(search = ''): UseStoryboardRunsResult {
   const brandId = useBrandId();
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
@@ -31,8 +34,8 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // A brand switch starts the list over.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId is the reset trigger.
+  // A brand switch or a new search starts the list over.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId and search are the reset triggers.
   useEffect(() => {
     setRuns([]);
     setLoadedPage(0);
@@ -41,7 +44,7 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
         ? current
         : { attempt: 0, page: 1 },
     );
-  }, [brandId]);
+  }, [brandId, search]);
 
   useEffect(() => {
     if (!brandId) {
@@ -49,6 +52,7 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
     }
     const controller = new AbortController();
     const { page } = request;
+    const searchParam = search ? { search } : {};
     setIsLoading(true);
 
     const load = async () => {
@@ -57,12 +61,12 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
         const results = await Promise.allSettled([
           service.listBrandRemixRuns(
             brandId,
-            { limit: STORYBOARD_RUNS_PAGE_SIZE, page },
+            { limit: STORYBOARD_RUNS_PAGE_SIZE, page, ...searchParam },
             controller.signal,
           ),
           service.listStoryboardRuns(
             brandId,
-            { limit: STORYBOARD_RUNS_PAGE_SIZE, page },
+            { limit: STORYBOARD_RUNS_PAGE_SIZE, page, ...searchParam },
             controller.signal,
           ),
         ]);
@@ -127,7 +131,7 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
 
     void load();
     return () => controller.abort();
-  }, [brandId, getContentRunsService, request]);
+  }, [brandId, getContentRunsService, request, search]);
 
   const loadMore = useCallback(() => {
     setRequest((current) => ({

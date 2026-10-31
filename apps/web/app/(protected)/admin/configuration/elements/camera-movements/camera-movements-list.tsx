@@ -27,6 +27,7 @@ import type {
   CameraMovementsAction,
   CameraMovementsState,
 } from '@/features/admin/props/camera-movements.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function cameraMovementsReducer(
   state: CameraMovementsState,
@@ -50,6 +51,8 @@ function cameraMovementsReducer(
   }
 }
 
+const CAMERA_MOVEMENT_SORT_KEYS = ['label', 'key'];
+
 function CameraMovementsListContent({
   filters,
   scope = PageScope.BRAND,
@@ -61,6 +64,9 @@ function CameraMovementsListContent({
   const { openConfirm } = useConfirmModal();
 
   const searchParams = useSearchParams();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: CAMERA_MOVEMENT_SORT_KEYS,
+  });
 
   const getCameraMovementsService = useAuthedService(
     useCallback(
@@ -98,9 +104,15 @@ function CameraMovementsListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (movement: ElementCameraMovement) => movement.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
     {
       header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
@@ -142,8 +154,13 @@ function CameraMovementsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllCameraMovements = useCallback(
     async (isRefresh = false) => {
+      const requestId = ++latestRequestRef.current;
       const newIsRefreshing = isRefresh;
       const newIsLoading = !isRefresh;
 
@@ -161,6 +178,7 @@ function CameraMovementsListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           search: filters?.search || undefined,
+          ...(sort ? { sort } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -173,21 +191,30 @@ function CameraMovementsListContent({
         }
 
         const data = await service.findAll(query);
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         dispatch({ type: 'FETCH_DONE', payload: data });
 
         logger.info('GET /camera-movements success', data);
       } catch (error) {
+        if (requestId !== latestRequestRef.current) {
+          return;
+        }
         logger.error('GET /camera-movements failed', error);
         notificationsService.error('Failed to load camera movements');
         dispatch({ type: 'FETCH_ERROR' });
       } finally {
-        onLoadingChangeRef.current?.(false);
-        onRefreshingChangeRef.current?.(false);
+        if (requestId === latestRequestRef.current) {
+          onLoadingChangeRef.current?.(false);
+          onRefreshingChangeRef.current?.(false);
+        }
       }
     },
     [
       currentPage,
       filters?.search,
+      sort,
       getCameraMovementsService,
       notificationsService.error,
       scope,
@@ -240,6 +267,9 @@ function CameraMovementsListContent({
   return (
     <>
       <AppTable<ElementCameraMovement>
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         items={cameraMovements}
         columns={columns}
         actions={actions}

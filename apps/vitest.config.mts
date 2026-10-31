@@ -59,30 +59,6 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './app/$1'),
       },
       {
-        find: /^@app-config$/,
-        replacement: path.resolve(appRoot, './packages/config'),
-      },
-      {
-        find: /^@app-config\/(.*)$/,
-        replacement: path.resolve(appRoot, './packages/config/$1'),
-      },
-      {
-        find: /^@app-components$/,
-        replacement: path.resolve(appRoot, './packages/components'),
-      },
-      {
-        find: /^@app-components\/(.*)$/,
-        replacement: path.resolve(appRoot, './packages/components/$1'),
-      },
-      {
-        find: /^@app-server$/,
-        replacement: path.resolve(appRoot, './packages/server'),
-      },
-      {
-        find: /^@app-server\/(.*)$/,
-        replacement: path.resolve(appRoot, './packages/server/$1'),
-      },
-      {
         find: /^@app-tests$/,
         replacement: path.resolve(appRoot, './tests'),
       },

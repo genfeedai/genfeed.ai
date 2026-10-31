@@ -1,10 +1,10 @@
-import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Progress } from '@ui/primitives/progress';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import type { Props } from '@/features/settings/props/settings-progress-checklist-card.props';
 
 export default function SettingsProgressChecklistCard({

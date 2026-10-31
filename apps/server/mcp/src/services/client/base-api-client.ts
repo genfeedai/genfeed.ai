@@ -1,5 +1,7 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import {
+  MCP_ORGANIZATION_HEADER,
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
@@ -44,6 +46,8 @@ export class BaseApiClient {
   private readonly http: AxiosInstance;
   private bearerToken: string;
   private readonly mcpOriginProof: string | undefined;
+  /** The organization one tool call acts in; scoped, never shared between calls. */
+  private readonly organizationScope = new AsyncLocalStorage<string>();
 
   constructor(
     readonly logger: LoggerService,
@@ -75,6 +79,25 @@ export class BaseApiClient {
       },
       timeout: 30000,
     });
+    this.http.interceptors?.request.use((config) => {
+      const organizationId = this.organizationScope.getStore();
+      if (organizationId) {
+        config.headers.set(MCP_ORGANIZATION_HEADER, organizationId);
+      }
+      return config;
+    });
+  }
+
+  /**
+   * Run `work` with every API call it makes acting in `organizationId`. The
+   * scope follows the async call chain, so concurrent tool calls for different
+   * organizations never see each other's choice.
+   */
+  runInOrganization<T>(
+    organizationId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    return this.organizationScope.run(organizationId, work);
   }
 
   setBearerToken(token: string): void {

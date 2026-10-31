@@ -1,6 +1,6 @@
-import PatternLabPage from '@app-components/performance-lab/PatternLabPage';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
+import PatternLabPage from '@/features/analytics/performance-lab/PatternLabPage';
 
 export const generateMetadata = createPageMetadata('Performance Lab');
 

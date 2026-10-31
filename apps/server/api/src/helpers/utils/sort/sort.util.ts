@@ -51,3 +51,24 @@ export const handleQuerySort = (
 
   return Object.keys(sort).length > 0 ? sort : getDefaultSort();
 };
+
+/**
+ * Parses a `sort` query like {@link handleQuerySort} but keeps only fields the
+ * endpoint can order by, so a client cannot name a column that does not exist
+ * (a Prisma error) or one it should not order by. Falls back to `fallback`
+ * when no requested field is allowed.
+ */
+export const handleAllowedQuerySort = (
+  query: string | undefined | null,
+  allowedFields: readonly string[],
+  fallback: SortObject = getDefaultSort(),
+): SortObject => {
+  const requested = handleQuerySort(query);
+  const allowed = Object.fromEntries(
+    Object.entries(requested).filter(([field]) =>
+      allowedFields.includes(field),
+    ),
+  ) as SortObject;
+
+  return Object.keys(allowed).length > 0 ? allowed : fallback;
+};

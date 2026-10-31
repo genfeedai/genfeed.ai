@@ -1,16 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ClipperWorkspace from './ClipperWorkspace';
 
 const mocks = vi.hoisted(() => ({
+  replace: vi.fn(),
   searchParams: new URLSearchParams(),
   useStudioClipperProjects: vi.fn(),
   useStudioClipperPage: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/moonrise/clipper',
+  useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
 }));
 
@@ -298,5 +301,55 @@ describe('ClipperWorkspace chrome stability', () => {
       'data-recent-visible',
       'false',
     );
+  });
+
+  it('puts the search in the topbar, keeps it on a miss, and searches by the q param', () => {
+    mocks.searchParams = new URLSearchParams('page=2');
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [
+        {
+          failedClipCount: 0,
+          id: 'clip-1',
+          isDraft: false,
+          name: 'Demo clip',
+          pendingClipCount: 0,
+          progress: 100,
+          readyClipCount: 1,
+          status: 'completed',
+        },
+      ],
+    });
+
+    const { rerender } = render(<ClipperWorkspace />);
+    const field = screen.getByRole('textbox', { name: 'Search clip projects' });
+    expect(screen.getByTestId('section-topbar')).toContainElement(field);
+
+    fireEvent.change(field, { target: { value: 'launch' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    // Searching returns to the first page.
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/clipper?q=launch',
+      { scroll: false },
+    );
+
+    mocks.searchParams = new URLSearchParams('q=launch');
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+    rerender(<ClipperWorkspace />);
+
+    expect(
+      screen.getByText('No clip projects match your search.'),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('textbox', { name: 'Search clip projects' }),
+    ).toHaveValue('launch');
+    expect(
+      screen.queryByTestId('clipper-project-list'),
+    ).not.toBeInTheDocument();
   });
 });

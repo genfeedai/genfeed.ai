@@ -15,6 +15,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { SingleOutputCreditsGuard } from '@api/helpers/guards/credits/single-output-credits.guard';
 import {
   ModelsGuard,
   ValidateModel,
@@ -88,7 +89,9 @@ export class VideosUpscaleController {
   ) {}
 
   @Post(':videoId/upscale')
-  @UseGuards(CreditsGuard, ModelsGuard)
+  // An upscale always yields one video, so SingleOutputCreditsGuard keeps a raw
+  // `outputs` value from changing the reservation away from the one-output quote.
+  @UseGuards(SingleOutputCreditsGuard, CreditsGuard, ModelsGuard)
   // CreditsGuard prices via modelKey; CreditsInterceptor deducts on success only.
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({

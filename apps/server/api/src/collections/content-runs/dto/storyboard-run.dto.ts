@@ -84,6 +84,15 @@ export class ListStoryboardRunsDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  @ApiProperty({
+    description: 'Case-insensitive title search; narrows the list server-side',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 }
 
 export class CreateStoryboardRunQuoteDto extends ControlStoryboardRunDto {

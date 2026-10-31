@@ -1,4 +1,3 @@
-import { getStudioAppForPath } from '@app-config/studio-menu-items.config';
 import {
   ButtonSize,
   ButtonVariant,
@@ -21,6 +20,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { isAppRailPathEnabled } from '@/components/shell/app-rail/app-rail.registry';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { getStudioAppForPath } from '@/config/studio-menu-items.config';
 import type { WorkspaceOverviewSidebarProps } from '@/features/workspace/props/workspace-overview-sidebar.props';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';

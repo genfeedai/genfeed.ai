@@ -170,6 +170,42 @@ describe('MembersController.findAll — organization roster', () => {
     );
   });
 
+  it('narrows the roster to members whose name, handle or email match the search', async () => {
+    const controller = buildController();
+    vi.mocked(mockMembersService.findAll).mockResolvedValue({
+      docs: [],
+    } as never);
+
+    await controller.findAll(
+      { search: ' dana ' } as never,
+      makeRequest(),
+      makeUser(),
+    );
+
+    const insensitive = (column: string) => ({
+      user: { [column]: { contains: 'dana', mode: 'insensitive' } },
+    });
+    expect(mockMembersService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                insensitive('email'),
+                insensitive('firstName'),
+                insensitive('handle'),
+                insensitive('lastName'),
+              ],
+            },
+          ],
+          isDeleted: false,
+          organizationId: callerOrgId,
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
   it('loads identity-only user fields, the role and active brand assignments', async () => {
     const controller = buildController();
     vi.mocked(mockMembersService.findAll).mockResolvedValue({

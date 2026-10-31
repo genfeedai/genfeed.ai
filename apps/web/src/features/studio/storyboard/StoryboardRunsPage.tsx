@@ -14,7 +14,8 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { Fragment, type ReactElement } from 'react';
+import { Fragment, type ReactElement, useState } from 'react';
+import SearchField from '@/components/content/search-field/SearchField';
 import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 import StoryboardPresetShelf from '@/features/studio/storyboard/components/StoryboardPresetShelf';
 import StoryboardRunsOnboarding from '@/features/studio/storyboard/components/StoryboardRunsOnboarding';
@@ -27,11 +28,14 @@ export default function StoryboardRunsPage(): ReactElement {
   const translate = useTranslations('pages.studioStoryboard.runs');
   const locale = useLocale();
   const { href } = useOrgUrl();
-  const { error, hasMore, isLoading, loadMore, runs } = useStoryboardRuns();
+  const [search, setSearch] = useState('');
+  const { error, hasMore, isLoading, loadMore, runs } =
+    useStoryboardRuns(search);
   const { view, setView } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
     surface: 'studio.storyboard',
   });
+  const isSearching = search.trim() !== '';
   const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
 
   function runHref(run: StoryboardListRun): string {
@@ -100,6 +104,14 @@ export default function StoryboardRunsPage(): ReactElement {
   return (
     <Container
       label={translate('title')}
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={search}
+        />
+      }
       right={
         <div className="flex items-center gap-2">
           <CollectionViewToggle onViewChange={setView} view={view} />
@@ -113,10 +125,10 @@ export default function StoryboardRunsPage(): ReactElement {
     >
       <div className="flex flex-col gap-8">
         {error ? <p role="alert">{error}</p> : null}
-        {!isLoading && runs.length === 0 && !error ? (
+        {!isLoading && runs.length === 0 && !error && !isSearching ? (
           <StoryboardRunsOnboarding />
         ) : null}
-        {runs.length > 0 ? <StoryboardPresetShelf /> : null}
+        {runs.length > 0 || isSearching ? <StoryboardPresetShelf /> : null}
         {needsAttention.length > 0 ? (
           <CollectionSection
             itemCount={needsAttention.length}
@@ -128,6 +140,9 @@ export default function StoryboardRunsPage(): ReactElement {
               ))}
             </CollectionList>
           </CollectionSection>
+        ) : null}
+        {isSearching && !isLoading && runs.length === 0 && !error ? (
+          <p>{translate('emptySearch')}</p>
         ) : null}
         <CollectionSection
           isLoading={isLoading}
