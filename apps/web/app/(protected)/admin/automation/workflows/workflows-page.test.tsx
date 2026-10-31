@@ -255,6 +255,33 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     ).toBeVisible();
   });
 
+  it.each([
+    ['label', 'label: 1'],
+    ['-status', 'status: -1'],
+    ['trigger', 'trigger: 1'],
+    ['-createdAt', 'createdAt: -1'],
+  ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
+    mocks.searchParams = new URLSearchParams(`sort=${urlSort}`);
+
+    await renderLoadedPage();
+
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: apiSort }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('ignores a sort on a column the API cannot order by', async () => {
+    mocks.searchParams = new URLSearchParams('sort=-config');
+
+    await renderLoadedPage();
+
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: 'createdAt: -1' }),
+      expect.any(AbortSignal),
+    );
+  });
+
   it('lists the pins in order, including workflows from other organizations', async () => {
     await renderLoadedPage();
 

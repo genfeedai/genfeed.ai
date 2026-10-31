@@ -19,7 +19,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -45,6 +45,16 @@ import {
 import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
+
+/** Columns the tags list can be ordered by. */
+export const TAG_SORT_FIELDS: readonly string[] = [
+  'category',
+  'createdAt',
+  'isActive',
+  'key',
+  'label',
+  'updatedAt',
+];
 
 @AutoSwagger()
 @Controller('tags')
@@ -366,7 +376,11 @@ export class TagsController extends BaseCRUDController<
 
     return {
       orderBy: query.sort
-        ? handleQuerySort(query.sort)
+        ? handleStableAllowedQuerySort(query.sort, TAG_SORT_FIELDS, {
+            createdAt: -1,
+            key: 1,
+            label: 1,
+          })
         : { createdAt: -1, key: 1, label: 1 },
       where: matchConditions,
     };

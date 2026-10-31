@@ -7,6 +7,7 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FontFamiliesController } from '@api/collections/font-families/controllers/font-families.controller';
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
+import type { FontFamiliesQueryDto } from '@api/collections/font-families/dto/font-families-query.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -181,6 +182,20 @@ describe('FontFamiliesController', () => {
       const query = controller.buildFindAllQuery(mockUser, inputQuery as never);
 
       expect(query.orderBy).toEqual({ createdAt: -1, label: 1 });
+    });
+
+    it.each([
+      ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+      ['key: -1', { createdAt: -1, id: -1, key: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['description: 1', { createdAt: -1, label: 1 }],
+      ['password: -1', { createdAt: -1, label: 1 }],
+    ])('orders by %j with the allowed columns only', (sort, expected) => {
+      const query = controller.buildFindAllQuery(mockUser, {
+        sort,
+      } as FontFamiliesQueryDto);
+
+      expect(query.orderBy).toEqual(expected);
     });
   });
 });

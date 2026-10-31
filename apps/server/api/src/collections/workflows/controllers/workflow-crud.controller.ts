@@ -9,6 +9,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { buildWorkflowListOrderBy } from '@api/collections/workflows/utils/workflow-list-order.util';
 import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { toWorkflowSchedulePrincipal } from '@api/collections/workflows/utils/workflow-schedule-actor.util';
@@ -32,7 +33,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/contracts';
 import type {
@@ -203,7 +203,7 @@ export class WorkflowCrudController {
 
     const aggregate = {
       where,
-      orderBy: handleQuerySort(query.sort),
+      orderBy: buildWorkflowListOrderBy(query.sort),
     };
 
     const data: AggregatePaginateResult<WorkflowDocument> =

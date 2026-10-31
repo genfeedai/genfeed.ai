@@ -29,6 +29,7 @@ function TagsListContent(props: TagsListProps) {
     handleToggleActive,
     isLoading,
     isRefreshing,
+    onSortChange,
     openDeleteConfirm,
     openTagModal,
     organizationId,
@@ -36,6 +37,8 @@ function TagsListContent(props: TagsListProps) {
     scope,
     selectedTag,
     setSelectedTag,
+    sortDirection,
+    sortKey,
   } = useTagsList(props);
 
   useEffect(() => {
@@ -47,17 +50,20 @@ function TagsListContent(props: TagsListProps) {
       {
         header: 'Label',
         key: 'label',
+        sortable: true,
         render: (t: ITag) => <TagLabelCell tag={t} />,
         subtext: (t: ITag) => t.description,
       },
       {
         header: 'Key',
         key: 'key',
+        sortable: true,
         render: (t: ITag) => <TagKeyCell tag={t} />,
       },
       {
         header: 'Category',
         key: 'category',
+        sortable: true,
         render: (t: ITag) => <TagCategoryCell tag={t} />,
       },
       ...(scope === 'superadmin' ||
@@ -82,7 +88,8 @@ function TagsListContent(props: TagsListProps) {
         : []),
       {
         header: 'Active',
-        key: 'active',
+        key: 'isActive',
+        sortable: true,
         render: (tag: ITag) => (
           <Switch
             isChecked={tag.isActive !== false}
@@ -163,6 +170,9 @@ function TagsListContent(props: TagsListProps) {
         actions={actions}
         columns={columns}
         isLoading={isLoading}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         getRowKey={(t) => t.id}
         rowSidebar={rowSidebar}
         emptyLabel={EMPTY_STATES.TAGS_FOUND}

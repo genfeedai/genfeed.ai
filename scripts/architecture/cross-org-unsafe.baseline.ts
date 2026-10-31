@@ -441,15 +441,15 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // families.
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 79,
+      line: 80,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 105,
+      line: 106,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 119,
+      line: 120,
     },
     // #6120: superadmin may read any organization's article (findOne,
     // createPreviewLink).

@@ -1,6 +1,6 @@
 import { buildElementScopeConditions } from '@api/collections/elements/shared/element-scope.util';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { handleAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 
 interface ElementMetadata {
   isSuperAdmin?: boolean;
@@ -37,28 +37,6 @@ export const ELEMENT_SORT_FIELDS: readonly string[] = [
   'key',
   'label',
 ];
-
-/**
- * A requested order keeps only allowed fields and ends with `createdAt` and
- * `id`, so rows that tie on the sorted column (labels repeat across platform
- * and organization rows) keep one stable order and pages never repeat or skip.
- * No allowed field requested returns `fallback`.
- */
-function buildRequestedElementOrderBy(
-  sort: string,
-  allowedSortFields: readonly string[],
-  fallback: Record<string, 1 | -1>,
-): Record<string, 1 | -1> {
-  const requested = handleAllowedQuerySort(sort, allowedSortFields, {});
-  if (Object.keys(requested).length === 0) {
-    return fallback;
-  }
-  return {
-    ...requested,
-    ...(requested.createdAt === undefined ? { createdAt: -1 } : {}),
-    id: -1,
-  };
-}
 
 export function buildElementFindAllQuery({
   adminFilter,
@@ -98,7 +76,7 @@ export function buildElementFindAllQuery({
 
   return {
     orderBy: query.sort
-      ? buildRequestedElementOrderBy(query.sort, allowedSortFields, defaultSort)
+      ? handleStableAllowedQuerySort(query.sort, allowedSortFields, defaultSort)
       : defaultSort,
     where,
   };

@@ -85,6 +85,22 @@ describe('TagsController', () => {
       expect(query.where.OR).toBeDefined();
     });
 
+    it.each([
+      ['label: 1', { createdAt: -1, id: -1, label: 1 }],
+      ['category: -1', { category: -1, createdAt: -1, id: -1 }],
+      ['isActive: 1', { createdAt: -1, id: -1, isActive: 1 }],
+      ['updatedAt: -1', { createdAt: -1, id: -1, updatedAt: -1 }],
+      ['createdAt: 1', { createdAt: 1, id: -1 }],
+      ['userId: 1', { createdAt: -1, key: 1, label: 1 }],
+    ])('orders by %j with the allowed columns only', (sort, expected) => {
+      const query = controller.buildFindAllQuery(mockUser, {
+        isDeleted: false,
+        sort,
+      } as TagsQueryDto);
+
+      expect(query.orderBy).toEqual(expected);
+    });
+
     it('should filter by category when provided', () => {
       const inputQuery = {
         category: 'hashtag',

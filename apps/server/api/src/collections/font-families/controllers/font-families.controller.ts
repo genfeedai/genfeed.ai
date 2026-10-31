@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ELEMENT_SORT_FIELDS } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { FontFamiliesQueryDto } from '@api/collections/font-families/dto/font-families-query.dto';
@@ -12,7 +13,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { FontFamilySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -149,7 +150,10 @@ export class FontFamiliesController extends BaseCRUDController<
 
     return {
       orderBy: query.sort
-        ? handleQuerySort(query.sort)
+        ? handleStableAllowedQuerySort(query.sort, ELEMENT_SORT_FIELDS, {
+            createdAt: -1,
+            label: 1,
+          })
         : { createdAt: -1, label: 1 },
       where: {
         OR: orConditions,

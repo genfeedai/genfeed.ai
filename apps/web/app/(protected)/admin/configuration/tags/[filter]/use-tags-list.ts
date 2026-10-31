@@ -17,9 +17,24 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type { TagsListProps } from '@/features/admin/props/tags-list.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const SUPERADMIN: ContentScope = 'superadmin';
 const ORGANIZATION: ContentScope = 'organization';
+
+/** The columns the tags API can order by; Organization and Account are relations. */
+const TAG_SORT_KEYS = ['label', 'key', 'category', 'isActive'];
+
+/**
+ * The toolbar's order as the API's `field: direction`. The sort menu already
+ * sends that form; a bare field name keeps its old direction (newest first,
+ * otherwise ascending).
+ */
+function toolbarSortParam(sort: string | undefined): string | undefined {
+  if (!sort) return undefined;
+  if (sort.includes(':')) return sort;
+  return `${sort}: ${sort === 'createdAt' ? '-1' : '1'}`;
+}
 
 function isGlobalTag(tag: ITag): boolean {
   return !tag.organization && !tag.user;
@@ -51,6 +66,7 @@ export function useTagsList({
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
+  const tableSort = useTableSort({ allowedKeys: TAG_SORT_KEYS });
 
   const filters = externalFilters ?? {
     format: '',
@@ -61,6 +77,8 @@ export function useTagsList({
     status: '',
     type: '',
   };
+  // A clicked column header wins over the toolbar's sort menu.
+  const sort = tableSort.sort ?? toolbarSortParam(filters.sort);
 
   const tagsQueryKey = useMemo(
     () => [
@@ -70,7 +88,7 @@ export function useTagsList({
       scope,
       refreshTrigger,
       filter,
-      filters.sort,
+      sort,
       filters.search,
       filters.type,
       adminOrg,
@@ -83,7 +101,7 @@ export function useTagsList({
       scope,
       refreshTrigger,
       filter,
-      filters.sort,
+      sort,
       filters.search,
       filters.type,
       adminOrg,
@@ -121,9 +139,8 @@ export function useTagsList({
       if (filters.type) {
         query.category = filters.type;
       }
-      if (filters.sort) {
-        const sortDirection = filters.sort === 'createdAt' ? '-1' : '1';
-        query.sort = `${filters.sort}: ${sortDirection}`;
+      if (sort) {
+        query.sort = sort;
       }
 
       if (scope === SUPERADMIN) {
@@ -284,6 +301,7 @@ export function useTagsList({
     handleToggleActive,
     isLoading,
     isRefreshing,
+    onSortChange: tableSort.onSortChange,
     openDeleteConfirm,
     openTagModal,
     organizationId,
@@ -291,5 +309,7 @@ export function useTagsList({
     scope,
     selectedTag,
     setSelectedTag,
+    sortDirection: tableSort.sortDirection,
+    sortKey: tableSort.sortKey,
   };
 }

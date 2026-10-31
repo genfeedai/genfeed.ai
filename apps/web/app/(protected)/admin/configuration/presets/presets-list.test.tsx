@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   openModal: vi.fn(),
   patch: vi.fn(),
   refetch: vi.fn(),
+  urlSort: null as string | null,
   replace: vi.fn(),
   useQuery: vi.fn(),
 }));
@@ -272,9 +273,13 @@ vi.mock('next/navigation', () => ({
       if (key === 'page') return '2';
       if (key === 'organization') return 'org-1';
       if (key === 'brand') return 'brand-1';
+      if (key === 'sort') return mocks.urlSort;
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=org-1&brand=brand-1&page=2${
+        mocks.urlSort ? `&sort=${mocks.urlSort}` : ''
+      }`,
   }),
 }));
 
@@ -327,6 +332,7 @@ function mockPresetsQuery(
 describe('PresetsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlSort = null;
     mocks.deletePreset.mockResolvedValue({ ok: true });
     mocks.findAll.mockResolvedValue([]);
     mocks.patch.mockResolvedValue({});
@@ -380,6 +386,39 @@ describe('PresetsList', () => {
     expect(mocks.refetch).toHaveBeenCalled();
     expect(mocks.openModal).toHaveBeenCalled();
   });
+
+  it.each([
+    ['category', 'category: 1'],
+    ['-category', 'category: -1'],
+    ['-isActive', 'isActive: -1'],
+  ])(
+    'asks the API for the order named in the URL (sort=%s)',
+    async (urlSort, sort) => {
+      mocks.urlSort = urlSort;
+      render(<PresetsList scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 2, sort }),
+        );
+      });
+    },
+  );
+
+  it.each(['-label', '-key'])(
+    'ignores a URL sort on %s, which the API cannot order by',
+    async (urlSort) => {
+      mocks.urlSort = urlSort;
+      render(<PresetsList scope={PageScope.SUPERADMIN} />);
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalled();
+      });
+      expect(mocks.findAll).not.toHaveBeenCalledWith(
+        expect.objectContaining({ sort: expect.anything() }),
+      );
+    },
+  );
 
   it('renders a platform default as System when a preset has no organization', () => {
     mockPresetsQuery([

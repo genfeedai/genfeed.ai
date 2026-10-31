@@ -34,6 +34,9 @@ import type {
   FontFamiliesAction as Action,
   FontFamiliesState as State,
 } from '@/features/admin/props/font-families.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const FONT_FAMILY_SORT_KEYS = ['label', 'key'];
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -66,6 +69,9 @@ function FontFamiliesListContent({
   const searchParams = useSearchParams();
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: FONT_FAMILY_SORT_KEYS,
+  });
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -101,9 +107,15 @@ function FontFamiliesListContent({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (fontFamily: FontFamily) => fontFamily.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
   ];
 
   const actions =
@@ -154,6 +166,7 @@ function FontFamiliesListContent({
           limit: ITEMS_PER_PAGE,
           page: currentPage,
           ...(search ? { search } : {}),
+          ...(sort ? { sort } : {}),
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -191,6 +204,7 @@ function FontFamiliesListContent({
       adminOrg,
       adminBrand,
       search,
+      sort,
     ],
   );
 
@@ -279,6 +293,9 @@ function FontFamiliesListContent({
         columns={columns}
         actions={actions}
         isLoading={isLoading}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         getRowKey={(item) => item.id}
         rowSidebar={rowSidebar}
         emptyLabel="No font families found"

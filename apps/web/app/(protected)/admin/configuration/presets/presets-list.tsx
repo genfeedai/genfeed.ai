@@ -29,6 +29,7 @@ import AdminOrgBrandUrlFilter, {
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
@@ -37,6 +38,10 @@ import {
   PresetOrganizationCell,
 } from './presets-list-columns';
 import PresetsListModals from './presets-list-modals';
+
+// A preset's label and key live in its JSON config, which the API cannot order
+// by, so only the real columns sort.
+const PRESET_SORT_KEYS = ['category', 'isActive'];
 
 function PresetsListContent({
   scope = PageScope.BRAND,
@@ -57,6 +62,9 @@ function PresetsListContent({
   const searchParams = useSearchParams();
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: PRESET_SORT_KEYS,
+  });
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -73,7 +81,15 @@ function PresetsListContent({
     error: presetsError,
     refetch: refreshPresets,
   } = useQuery({
-    queryKey: ['presets', currentPage, scope, adminOrg, adminBrand, search],
+    queryKey: [
+      'presets',
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+      search,
+      sort,
+    ],
     queryFn: async () => {
       const url = `GET /presets`;
       const service = await getPresetsService();
@@ -82,6 +98,7 @@ function PresetsListContent({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -180,6 +197,7 @@ function PresetsListContent({
     {
       header: 'Category',
       key: 'category',
+      sortable: true,
       render: (preset: Preset) => <PresetCategoryCell preset={preset} />,
     },
     {
@@ -190,6 +208,7 @@ function PresetsListContent({
     {
       header: 'Active',
       key: 'isActive',
+      sortable: true,
       render: (preset: Preset) => (
         <Switch
           isChecked={preset.isActive}
@@ -314,6 +333,9 @@ function PresetsListContent({
         columns={columns}
         actions={actions}
         isLoading={isLoading}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         getRowKey={(item) => item.id}
         rowSidebar={rowSidebar}
         emptyLabel="No presets found"
