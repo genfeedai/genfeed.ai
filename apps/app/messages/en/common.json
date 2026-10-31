@@ -1803,7 +1803,9 @@
         "removeLabel": "Stop monitoring @{username}",
         "removed": "Stopped monitoring @{username}",
         "removeFailed": "Could not stop monitoring that account"
-      }
+      },
+      "search": "Search replies",
+      "emptySearchTitle": "No replies match your search"
     },
     "workflowBinding": {
       "description": "Deterministic Run workflow uses this graph. Hire presets seed a template when empty; pick a workflow to pin one permanently.",
