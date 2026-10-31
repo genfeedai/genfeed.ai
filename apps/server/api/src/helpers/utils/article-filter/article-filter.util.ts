@@ -22,6 +22,18 @@ const PRISMA_ARTICLE_STATUS_VALUES = new Set<string>(
 );
 
 /**
+ * Columns the articles list can be ordered by. Author and word count are
+ * derived from the owner and the body, so the database cannot order by them.
+ */
+export const ARTICLE_SORT_FIELDS: readonly string[] = [
+  'createdAt',
+  'label',
+  'publishedAt',
+  'status',
+  'updatedAt',
+];
+
+/**
  * Mongo-era generate metadata. These are not Article columns — Prisma create
  * rejects them as unknown arguments. Strip at the persistence boundary so
  * generate cannot reintroduce them (#2859).
@@ -201,12 +213,22 @@ export const ArticleFilterUtil = {
       where.scope = query.scope;
     }
 
-    const sortBy = query.sortBy || 'createdAt';
-    const sortDirection = query.sortDirection || query.sortOrder || 'desc';
+    const isSortable =
+      !query.sortBy || ARTICLE_SORT_FIELDS.includes(query.sortBy);
+    const sortBy = isSortable && query.sortBy ? query.sortBy : 'createdAt';
+    const sortDirection = isSortable
+      ? query.sortDirection || query.sortOrder || 'desc'
+      : 'desc';
 
+    // Ties on the sorted column fall back to newest first, then id, so a page
+    // never repeats or skips an article.
     return {
       include: ArticleFilterUtil.buildTagPopulation().include,
-      orderBy: { [sortBy]: sortDirection === 'asc' ? 1 : -1 },
+      orderBy: {
+        [sortBy]: sortDirection === 'asc' ? 1 : -1,
+        ...(sortBy === 'createdAt' ? {} : { createdAt: -1 }),
+        id: -1,
+      },
       where,
     };
   },

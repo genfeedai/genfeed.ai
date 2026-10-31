@@ -3,6 +3,7 @@ import { BrandAccessService } from '@api/authorization/brand-access/brand-access
 import { InvitationsQueryDto } from '@api/collections/members/dto/invitations-query.dto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { buildMemberOrderBy } from '@api/collections/members/utils/member-list-order.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -20,7 +21,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
 import { MemberRole } from '@genfeedai/contracts';
@@ -110,7 +110,7 @@ export class MembersController {
             },
           },
         },
-        orderBy: handleQuerySort(query.sort),
+        orderBy: buildMemberOrderBy(query.sort),
         where: {
           ...scopedWhere(organizationId, { isDeleted }),
           ...buildSearchWhere(query.search, {

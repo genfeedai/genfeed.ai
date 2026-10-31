@@ -17,6 +17,9 @@ export default function VoicesCatalogTable({
   isLoading,
   togglingKey,
   voices,
+  sortKey,
+  sortDirection,
+  onSortChange,
   onToggle,
 }: Props) {
   const t = useTranslations('pages.adminVoices');
@@ -35,6 +38,7 @@ export default function VoicesCatalogTable({
     {
       header: t('columns.name'),
       key: 'name',
+      sortable: true,
       render: (voice) => (
         <span className="font-medium">{getVoiceName(voice)}</span>
       ),
@@ -42,6 +46,7 @@ export default function VoicesCatalogTable({
     {
       header: t('columns.provider'),
       key: 'provider',
+      sortable: true,
       render: (voice) => (
         <Badge variant="outline">{getProviderLabel(voice)}</Badge>
       ),
@@ -49,6 +54,7 @@ export default function VoicesCatalogTable({
     {
       header: t('columns.externalId'),
       key: 'externalVoiceId',
+      sortable: true,
       render: (voice) => (
         <span className="font-mono text-xs text-muted-foreground">
           {voice.externalVoiceId ?? voice.id}
@@ -58,11 +64,13 @@ export default function VoicesCatalogTable({
     {
       header: t('columns.language'),
       key: 'language',
+      sortable: true,
       render: (voice) => voice.language || '—',
     },
     {
       header: t('columns.status'),
       key: 'status',
+      sortable: true,
       render: (voice) => (
         <span className="flex flex-wrap gap-1.5">
           {voice.isActive === false ? (
@@ -101,6 +109,9 @@ export default function VoicesCatalogTable({
       getRowKey={(voice) => voice.id}
       isLoading={isLoading}
       items={voices}
+      sortKey={sortKey}
+      sortDirection={sortDirection}
+      onSortChange={onSortChange}
       renderRowActions={(voice) => {
         const name = getVoiceName(voice);
 

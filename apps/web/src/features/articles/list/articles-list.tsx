@@ -35,10 +35,13 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LazyModalArticle } from '@/components/lazy/modal/LazyModal';
 import ArticleTrafficPanel from '@/features/articles/analytics/article-traffic-panel';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 interface ArticlesListProps {
   status?: string;
 }
+
+const ARTICLE_SORT_KEYS = ['label', 'status', 'createdAt'] as const;
 
 function openCreateArticleModal(): void {
   openModal(ModalEnum.ARTICLE);
@@ -50,6 +53,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams?.get('page')) || 1;
+  const { sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: ARTICLE_SORT_KEYS,
+  });
 
   const getArticlesService = useAuthedService(
     useCallback((token: string) => ArticlesService.getInstance(token), []),
@@ -61,7 +67,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const requestId = useRef(0);
 
   const columns: TableColumn<Article>[] = [
-    { header: translate('title'), key: 'label' },
+    { header: translate('title'), key: 'label', sortable: true },
     {
       header: translate('author'),
       key: 'author',
@@ -70,6 +76,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     {
       header: translate('status'),
       key: 'status',
+      sortable: true,
       render: (article: Article) => (
         <Badge status={article.status || status}>
           {capitalize(article.status || status)}
@@ -85,6 +92,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     {
       header: translate('created'),
       key: 'createdAt',
+      sortable: true,
       render: (article: Article) =>
         article.createdAt ? formatDate(article.createdAt) : '-',
     },
@@ -106,6 +114,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         organizationId: organizationId,
         page: currentPage,
         status,
+        ...(sortKey ? { sortBy: sortKey, sortOrder: sortDirection } : {}),
       };
 
       const data = await service.findAll(query);
@@ -127,6 +136,8 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     getArticlesService,
     brandId,
     organizationId,
+    sortDirection,
+    sortKey,
     status,
   ]);
 
@@ -194,6 +205,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         getRowKey={(item) => item.id}
         getRowLink={getRowLink}
         rowSidebar={rowSidebar}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
         emptyLabel={translate('emptyLabel')}
         emptyState={
           <CardEmptyContent

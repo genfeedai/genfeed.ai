@@ -46,6 +46,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import BrandSidebarPanel from '@/features/brands/sidebar-panel/BrandSidebarPanel';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import type { BlockedCharacter } from '@/props/characters/characters-page.props';
 import { readBlockedCharacters } from './blocked-characters.util';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
@@ -54,6 +55,9 @@ import BrandMoveDialog from './brand-move-dialog';
 import { useBrandMoveDestinations } from './use-brand-move-destinations';
 
 const ITEMS_PER_PAGE = 20;
+
+// Platforms is assembled from linked credentials, which the API cannot order by.
+const BRAND_SORT_KEYS = ['label', 'slug', 'createdAt'];
 
 function BrandsListContent() {
   const { organizationId, refreshBrands } = useBrand();
@@ -69,6 +73,9 @@ function BrandsListContent() {
     [searchParamsString],
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: BRAND_SORT_KEYS,
+  });
 
   // The brand name and the "Open settings" action go to the brand settings
   // page — the real home for identity, voice, publishing and agent defaults.
@@ -114,7 +121,7 @@ function BrandsListContent() {
     isFetching: isRefreshing,
     refetch,
   } = useQuery({
-    queryKey: ['brands', organizationId, currentPage],
+    queryKey: ['brands', organizationId, currentPage, sort],
     queryFn: async () => {
       if (!organizationId) {
         return [];
@@ -124,6 +131,7 @@ function BrandsListContent() {
         limit: ITEMS_PER_PAGE,
         organizationId,
         page: currentPage,
+        ...(sort ? { sort } : {}),
       };
 
       const service = await getBrandsService();
@@ -218,6 +226,7 @@ function BrandsListContent() {
       {
         header: 'Brand',
         key: 'label',
+        sortable: true,
         // The table links this name to the brand settings page (`getRowLink`).
         render: (brand: Brand) => (
           <div className="flex items-center gap-2.5">
@@ -243,6 +252,7 @@ function BrandsListContent() {
       {
         header: 'Slug',
         key: 'slug',
+        sortable: true,
         render: (brand: Brand) => (
           <span className="text-sm text-foreground/70">
             {brand.slug ? `@${brand.slug}` : '-'}
@@ -267,6 +277,7 @@ function BrandsListContent() {
       {
         header: 'Created',
         key: 'createdAt',
+        sortable: true,
         render: (brand: Brand) => (
           <span className="text-sm text-foreground/70">
             <ClientFormattedDate
@@ -367,6 +378,9 @@ function BrandsListContent() {
       <AppTable<Brand>
         actions={actions}
         columns={columns}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         emptyLabel="No brands yet"
         emptyState={
           <EmptyState

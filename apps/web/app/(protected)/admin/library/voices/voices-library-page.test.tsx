@@ -169,6 +169,40 @@ describe('admin voice catalog table', () => {
     );
   });
 
+  it.each([
+    ['name', 'name: 1'],
+    ['-provider', 'provider: -1'],
+    ['status', 'status: 1'],
+  ])(
+    'asks the server to order the catalog by the %s URL sort',
+    async (urlSort, apiSort) => {
+      mocks.searchParams = new URLSearchParams({ sort: urlSort });
+      render(<VoicesLibraryPage />);
+
+      await waitFor(() =>
+        expect(mocks.service.findCatalog).toHaveBeenCalledWith(
+          expect.objectContaining({ sort: apiSort }),
+          expect.any(AbortSignal),
+        ),
+      );
+    },
+  );
+
+  it.each(['sampleAudioUrl', '-createdAt'])(
+    'ignores the unsortable URL sort %j',
+    async (urlSort) => {
+      mocks.searchParams = new URLSearchParams({ sort: urlSort });
+      render(<VoicesLibraryPage />);
+
+      await waitFor(() =>
+        expect(mocks.service.findCatalog).toHaveBeenCalledWith(
+          expect.not.objectContaining({ sort: expect.anything() }),
+          expect.any(AbortSignal),
+        ),
+      );
+    },
+  );
+
   it('writes search to the URL and resets to the first page', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
     render(<VoicesLibraryPage />);

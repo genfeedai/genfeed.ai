@@ -15,9 +15,14 @@ import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useWorkflowExecutions } from '@/hooks/data/workflow-executions/use-workflow-executions';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunHistoryList from './RunHistoryList';
 import RunStatsStrip from './RunStatsStrip';
+
+// Run and credits are derived from the workflow and its accounting, which the
+// API cannot order by.
+const RUN_SORT_KEYS = ['status', 'durationMs', 'createdAt'];
 
 export default function MissionControl() {
   const collectionScope = useCollectionScope();
@@ -26,6 +31,9 @@ export default function MissionControl() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: RUN_SORT_KEYS,
+  });
   const {
     cancelExecution,
     executions,
@@ -40,7 +48,7 @@ export default function MissionControl() {
       ...brandParams,
       limit: ITEMS_PER_PAGE,
       page: currentPage,
-      sort: '-createdAt',
+      sort: sort ?? 'createdAt: -1',
     },
     { enabled: isReady },
   );
@@ -113,6 +121,9 @@ export default function MissionControl() {
               isLoading={isLoading}
               isPaginated
               onClearFilter={searchQuery ? () => setSearchQuery('') : undefined}
+              onSortChange={onSortChange}
+              sortDirection={sortDirection}
+              sortKey={sortKey}
             />
           </>
         )}

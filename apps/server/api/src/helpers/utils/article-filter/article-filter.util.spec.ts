@@ -257,6 +257,33 @@ describe('ArticleFilterUtil', () => {
       expect((query.where as { AND: unknown[] }).AND).toHaveLength(1);
     });
 
+    it.each([
+      [
+        { sortBy: 'label', sortOrder: 'asc' as const },
+        { label: 1, createdAt: -1, id: -1 },
+      ],
+      [
+        { sortBy: 'status', sortOrder: 'desc' as const },
+        { status: -1, createdAt: -1, id: -1 },
+      ],
+      [
+        { sortBy: 'createdAt', sortOrder: 'asc' as const },
+        { createdAt: 1, id: -1 },
+      ],
+      [{ sortBy: 'content' }, { createdAt: -1, id: -1 }],
+      [
+        { sortBy: 'wordCount', sortOrder: 'asc' as const },
+        { createdAt: -1, id: -1 },
+      ],
+      [{}, { createdAt: -1, id: -1 }],
+    ])('orders %j by %j with stable tiebreakers', (sorting, expected) => {
+      const query = ArticleFilterUtil.buildArticlequery(sorting, {
+        isDeleted: false,
+      });
+
+      expect(query.orderBy).toEqual(expected);
+    });
+
     it('omits status filter when all provided statuses are unmappable', () => {
       const query = ArticleFilterUtil.buildArticlequery(
         { status: ArticleStatus.PROCESSING },

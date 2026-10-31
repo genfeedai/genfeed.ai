@@ -18,6 +18,7 @@ import { BrandRelocationJobsService } from '@api/collections/brands/services/bra
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { buildBrandListOrderBy } from '@api/collections/brands/utils/brand-list-order.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -39,7 +40,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
@@ -350,7 +350,7 @@ export class BrandsController extends BaseCRUDController<
 
     if (adminFilter) {
       return {
-        orderBy: handleQuerySort(query.sort),
+        orderBy: buildBrandListOrderBy(query.sort),
         where: { isDeleted, ...adminFilter },
       };
     }
@@ -367,7 +367,7 @@ export class BrandsController extends BaseCRUDController<
     }
 
     return {
-      orderBy: handleQuerySort(query.sort),
+      orderBy: buildBrandListOrderBy(query.sort),
       where: { isDeleted, organizationId },
     };
   }

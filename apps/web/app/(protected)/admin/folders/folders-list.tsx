@@ -32,8 +32,11 @@ import type {
   FoldersListAction,
   FoldersListState,
 } from '@/features/admin/props/folders.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
+
+const FOLDER_SORT_KEYS = ['label', 'isActive'] as const;
 
 const FOLDER_SORT_OPTIONS = [
   { label: 'Default Sort', value: '' },
@@ -148,6 +151,13 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
+  // A clicked column header wins over the toolbar sort until it is cleared.
+  const {
+    sort: headerSort,
+    sortKey,
+    sortDirection,
+    onSortChange,
+  } = useTableSort({ allowedKeys: FOLDER_SORT_KEYS });
 
   const {
     data: folders = [] as Folder[],
@@ -164,6 +174,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       scope,
       adminOrg,
       adminBrand,
+      headerSort,
     ],
     queryFn: async () => {
       const url = `GET /folders`;
@@ -174,7 +185,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         ...query,
         limit: ITEMS_PER_PAGE,
         page: currentPage,
-        sort: filters.sort || undefined,
+        sort: headerSort ?? (filters.sort || undefined),
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -371,6 +382,9 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         isLoading={isLoading}
         getRowKey={(item) => item.id}
         rowSidebar={rowSidebar}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={onSortChange}
         emptyLabel="No folders found"
       />
 

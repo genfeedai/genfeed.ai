@@ -171,6 +171,41 @@ describe('TrainingsList', () => {
     ).toBeVisible();
   });
 
+  it.each([
+    ['label', 'label: 1'],
+    ['-status', 'status: -1'],
+  ])(
+    'asks the server to order trainings by the %s URL sort',
+    async (urlSort, apiSort) => {
+      searchParamsState.current = new URLSearchParams({ sort: urlSort });
+
+      renderTrainingsList();
+
+      await waitFor(() => {
+        expect(mockFindAll).toHaveBeenCalledWith(
+          { limit: ITEMS_PER_PAGE, page: 1, sort: apiSort },
+          expect.anything(),
+        );
+      });
+    },
+  );
+
+  it.each(['steps', '-isActive', ''])(
+    'does not send the unsortable URL sort %j',
+    async (urlSort) => {
+      searchParamsState.current = new URLSearchParams({ sort: urlSort });
+
+      renderTrainingsList();
+
+      await waitFor(() => {
+        expect(mockFindAll).toHaveBeenCalledWith(
+          { limit: ITEMS_PER_PAGE, page: 1 },
+          expect.anything(),
+        );
+      });
+    },
+  );
+
   it('links the admin name to the training page', async () => {
     renderTrainingsList(PageScope.SUPERADMIN);
 

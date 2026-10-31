@@ -12,6 +12,7 @@ export function buildFoldersColumns(
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       render: (folder: Folder) => folder.label || '-',
       subtext: (folder: Folder) => folder.description,
     },
@@ -22,7 +23,8 @@ export function buildFoldersColumns(
     },
     {
       header: 'Active',
-      key: 'active',
+      key: 'isActive',
+      sortable: true,
       render: (folder: IFolder) => (
         <Switch
           isChecked={folder.isActive !== false}

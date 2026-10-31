@@ -50,6 +50,17 @@ export class SearchPaginationQueryDto extends PaginationQueryDto {
   search?: string;
 }
 
+/** {@link PaginationQueryDto} plus the `field: 1|-1` sort of a sortable list. */
+export class SortPaginationQueryDto extends PaginationQueryDto {
+  @ApiProperty({
+    description: 'Sort as `field: 1` (ascending) or `field: -1` (descending)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  sort?: string;
+}
+
 export interface PageWindow {
   limit: number;
   page: number;

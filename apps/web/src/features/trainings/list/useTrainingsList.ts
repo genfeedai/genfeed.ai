@@ -18,6 +18,9 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const TRAINING_SORT_KEYS = ['label', 'status'] as const;
 
 type TrainingStatusUpdate = {
   status: Training['status'];
@@ -56,6 +59,9 @@ export function useTrainingsList({
   const currentPage = Number(searchParams.get('page')) || 1;
   // The search field sits in the page subbar and stores its term in the URL.
   const { search } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: TRAINING_SORT_KEYS,
+  });
 
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
@@ -72,8 +78,9 @@ export function useTrainingsList({
         adminBrand,
         currentPage,
         search,
+        sort,
       ] as const,
-    [adminBrand, adminOrg, brandId, currentPage, scope, search],
+    [adminBrand, adminOrg, brandId, currentPage, scope, search, sort],
   );
 
   const {
@@ -91,6 +98,7 @@ export function useTrainingsList({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       if (scope === PageScope.BRAND && brandId) {
@@ -270,6 +278,9 @@ export function useTrainingsList({
     isRefreshing,
     error,
     selectedTraining,
+    sortKey,
+    sortDirection,
+    onSortChange,
     adminOrg,
     adminBrand,
     handleRefresh,

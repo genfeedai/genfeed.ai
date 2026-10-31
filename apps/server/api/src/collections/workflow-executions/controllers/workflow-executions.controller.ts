@@ -28,7 +28,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { handleStableAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import {
   AgentFailureReason,
@@ -63,6 +63,18 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+/**
+ * Columns the run history can be ordered by. A run's name and credits are
+ * derived from its workflow and its accounting, which the list cannot order by.
+ */
+export const WORKFLOW_EXECUTION_SORT_FIELDS: readonly string[] = [
+  'completedAt',
+  'createdAt',
+  'durationMs',
+  'startedAt',
+  'status',
+];
+
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
 @FeatureFlag('automation')
@@ -94,7 +106,11 @@ export class WorkflowExecutionsController {
       include: {
         workflow: { select: { description: true, id: true, label: true } },
       },
-      orderBy: handleQuerySort(query.sort),
+      orderBy: handleStableAllowedQuerySort(
+        query.sort,
+        WORKFLOW_EXECUTION_SORT_FIELDS,
+        { createdAt: -1 },
+      ),
       where: await this.workflowExecutionsService.buildCustomerListWhere(
         organizationId,
         query,

@@ -4,6 +4,7 @@ import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { buildModelListOrderBy } from '@api/collections/models/utils/model-list-order.util';
 import {
   findUnpriceableModelIds,
   unpriceableModelsScope,
@@ -21,14 +22,12 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
   IModelProviderContracts,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-  SortObject,
 } from '@genfeedai/contracts/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -177,9 +176,7 @@ export class ModelsController extends BaseCRUDController<
     // because it requires async database lookup
 
     return {
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+      orderBy: buildModelListOrderBy(query.sort),
       where: matchConditions,
     };
   }

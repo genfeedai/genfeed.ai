@@ -15,6 +15,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useSearchParams } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import type { PropsWithChildren, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -174,6 +175,10 @@ describe('ArticlesList', () => {
     vi.clearAllMocks();
     closeModal(ModalEnum.ARTICLE);
     mockFindAll.mockResolvedValue([]);
+    vi.mocked(useSearchParams).mockReturnValue({
+      get: () => null,
+      toString: () => '',
+    } as unknown as ReturnType<typeof useSearchParams>);
   });
 
   it('retains loaded rows and bounded retry progress until a failed refresh retry settles', async () => {
@@ -248,6 +253,47 @@ describe('ArticlesList', () => {
       expect(container.firstChild).toBeInTheDocument();
     });
   });
+
+  it.each([
+    ['label', { sortBy: 'label', sortOrder: 'asc' }],
+    ['-status', { sortBy: 'status', sortOrder: 'desc' }],
+    ['createdAt', { sortBy: 'createdAt', sortOrder: 'asc' }],
+  ])(
+    'asks the server to order articles by the %s URL sort',
+    async (urlSort, expected) => {
+      vi.mocked(useSearchParams).mockReturnValue({
+        get: (key: string) => (key === 'sort' ? urlSort : null),
+        toString: () => `sort=${urlSort}`,
+      } as unknown as ReturnType<typeof useSearchParams>);
+
+      render(<ArticlesList />);
+
+      await waitFor(() => {
+        expect(mockFindAll).toHaveBeenLastCalledWith(
+          expect.objectContaining(expected),
+        );
+      });
+    },
+  );
+
+  it.each(['wordCount', '-author', ''])(
+    'does not send the unsortable URL sort %j',
+    async (urlSort) => {
+      vi.mocked(useSearchParams).mockReturnValue({
+        get: (key: string) => (key === 'sort' ? urlSort : null),
+        toString: () => `sort=${urlSort}`,
+      } as unknown as ReturnType<typeof useSearchParams>);
+
+      render(<ArticlesList />);
+
+      await waitFor(() => {
+        expect(mockFindAll).toHaveBeenCalled();
+      });
+      expect(mockFindAll).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ sortBy: expect.anything() }),
+      );
+    },
+  );
 
   it('opens the create-article modal from the empty-state Create action', async () => {
     const user = userEvent.setup();

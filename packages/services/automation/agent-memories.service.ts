@@ -71,7 +71,7 @@ export class AgentMemoriesService extends HTTPBaseService {
    * `<AutoPagination />`.
    */
   async listOrganization(
-    query: { limit?: number; page?: number } = {},
+    query: { limit?: number; page?: number; sort?: string } = {},
     signal?: AbortSignal,
   ): Promise<OrgMemoryEntry[]> {
     const { data } = await this.instance.get<OrgMemoryPage>('/organization', {

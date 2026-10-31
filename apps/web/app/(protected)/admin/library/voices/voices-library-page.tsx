@@ -26,13 +26,21 @@ import type {
   VoicesLibraryAction,
   VoicesLibraryState,
 } from '@/features/admin/props/voices.props';
-
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import {
   VoicesCatalogSearch,
   VoicesSyncAllButton,
   VoicesSyncMenu,
 } from './voices-catalog-controls';
 import VoicesCatalogTable from './voices-catalog-table';
+
+const VOICE_SORT_KEYS = [
+  'name',
+  'provider',
+  'externalVoiceId',
+  'language',
+  'status',
+] as const;
 
 const initialState: VoicesLibraryState = {
   voices: [],
@@ -83,6 +91,9 @@ function VoicesLibraryPageContent() {
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('q') ?? '';
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: VOICE_SORT_KEYS,
+  });
   const providerFilter = (searchParams.get('provider') ??
     'all') as ProviderFilter;
   const [hasError, setHasError] = useState(false);
@@ -120,6 +131,7 @@ function VoicesLibraryPageContent() {
             page: currentPage,
             provider: providerFilter === 'all' ? undefined : providerFilter,
             search: search.trim() || undefined,
+            sort,
           },
           signal,
         );
@@ -133,7 +145,14 @@ function VoicesLibraryPageContent() {
         dispatch({ type: 'LOAD_ERROR' });
       }
     },
-    [currentPage, getVoicesService, notifications, providerFilter, search],
+    [
+      currentPage,
+      getVoicesService,
+      notifications,
+      providerFilter,
+      search,
+      sort,
+    ],
   );
 
   useEffect(() => {
@@ -235,6 +254,9 @@ function VoicesLibraryPageContent() {
           isLoading={isLoading}
           togglingKey={togglingKey}
           voices={voices}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSortChange={onSortChange}
           onToggle={handleToggle}
         />
         {hasError || voices.length === 0 ? null : <AutoPagination />}

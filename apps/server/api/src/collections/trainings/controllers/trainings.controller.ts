@@ -6,6 +6,7 @@ import type { TrainingEntity } from '@api/collections/trainings/entities/trainin
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { buildTrainingOrderBy } from '@api/collections/trainings/utils/training-list-order.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -25,7 +26,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -144,7 +144,7 @@ export class TrainingsController extends BaseCRUDController<
     }
 
     return {
-      orderBy: handleQuerySort(query.sort),
+      orderBy: buildTrainingOrderBy(query.sort),
       where,
     };
   }
