@@ -124,7 +124,7 @@ describe('Analytics split-controller HTTP contract', () => {
     [
       'getOrganizationsWithStats',
       ['analytics', 'super-admin', 'organizations'],
-      'analytics:orgs:superadmin:all:2025-01-01:2025-01-31:2:25:views',
+      'analytics:orgs:superadmin:all:2025-01-01:2025-01-31:2:25:views:all',
       { id: 'user-1', isSuperAdmin: true },
     ],
     [

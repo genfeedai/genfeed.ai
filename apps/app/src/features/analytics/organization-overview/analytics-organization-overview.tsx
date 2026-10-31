@@ -23,6 +23,7 @@ import type {
 } from '@services/analytics/analytics.service';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
@@ -192,15 +193,22 @@ export default function AnalyticsOrganizationOverview({
     dateRange?.startDate ?? undefined,
     dateRange?.endDate ?? undefined,
   );
+  // The organization on screen, not the viewer's own: without `scopeId` the
+  // hook falls back to the signed-in user's active organization, so a platform
+  // admin opening someone else's organization saw their own numbers.
   const { analytics, isLoading } = useAnalytics({
     autoLoad: true,
     endDate,
     scope: PageScope.ORGANIZATION,
+    scopeId: organizationId,
     startDate,
   });
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
+  );
+  const getOrganizationsService = useAuthedService((token: string) =>
+    OrganizationsService.getInstance(token),
   );
 
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
@@ -250,18 +258,21 @@ export default function AnalyticsOrganizationOverview({
 
   useEffect(() => {
     const fetchPlatformData = async () => {
-      if (!isSignedIn) {
+      if (!isSignedIn || !isFetchReady || !organizationId) {
         return;
       }
 
       setLoadingPlatform(true);
       try {
-        const service = await getAnalyticsService();
-        const platforms = await service.getPlatformComparison({
-          brandId: brandId || undefined,
-          endDate,
-          startDate,
-        });
+        const service = await getOrganizationsService();
+        const platforms = await service.findOrganizationAnalyticsPlatforms(
+          organizationId,
+          {
+            brandId: brandId || undefined,
+            endDate,
+            startDate,
+          },
+        );
 
         setPlatformData(
           platforms.map((row) => ({
@@ -279,7 +290,15 @@ export default function AnalyticsOrganizationOverview({
     };
 
     fetchPlatformData();
-  }, [isSignedIn, getAnalyticsService, brandId, startDate, endDate]);
+  }, [
+    isSignedIn,
+    isFetchReady,
+    getOrganizationsService,
+    organizationId,
+    brandId,
+    startDate,
+    endDate,
+  ]);
 
   const brandChartData: BrandPerformanceData[] = brandsData.map((brand) => ({
     engagement: brand.totalEngagement,

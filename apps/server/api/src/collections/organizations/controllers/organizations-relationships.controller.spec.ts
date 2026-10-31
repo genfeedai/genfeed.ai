@@ -68,6 +68,7 @@ describe('OrganizationsRelationshipsController', () => {
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     membersService: {
+      count: vi.fn().mockResolvedValue(0),
       findOne: vi.fn().mockResolvedValue(null),
     },
     organizationsService: {
@@ -212,6 +213,19 @@ describe('OrganizationsRelationshipsController', () => {
       ).toHaveBeenCalledWith('clorganizationrel0000000001', undefined);
       expect(result.data).toMatchObject({ totalCredentialsConnected: 3 });
     });
+  });
+
+  it('reports the active member count of the organization as totalUsers', async () => {
+    mockServices.membersService.count.mockResolvedValueOnce(4);
+
+    const result = await controller.findAnalytics(
+      {} as unknown as Request,
+      'clorganizationrel0000000001',
+      {},
+      mockUser,
+    );
+
+    expect(result.data).toMatchObject({ totalUsers: 4 });
   });
 
   it('counts credentials only for the requested analytics brand', async () => {

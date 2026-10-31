@@ -13,5 +13,18 @@
   "searchPlaceholder": "Search organizations...",
   "emptySearch": "No organizations match your search",
   "ownerLinkLabel": "Open user {name}",
-  "noOwner": "—"
+  "noOwner": "—",
+  "typeLabel": "Type",
+  "slugLabel": "Slug",
+  "createdLabel": "Created",
+  "ownerLabel": "Owner",
+  "membersLabel": "Members",
+  "brandsLabel": "Brands",
+  "profileLoadError": "Failed to load organization details.",
+  "types": {
+    "CREATOR": "Creator",
+    "BUSINESS": "Business",
+    "AGENCY": "Agency",
+    "EXPERT": "Expert"
+  }
 }
