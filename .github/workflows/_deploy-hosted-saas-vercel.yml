@@ -106,7 +106,7 @@ jobs:
 
       - name: Install Vercel CLI
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
-        run: bun add --global vercel@54.4.1
+        run: bun add --global vercel@64.3.1
 
       - name: Pull Vercel production environment
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
