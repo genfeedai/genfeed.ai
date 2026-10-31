@@ -106,10 +106,7 @@ export function applyDesktopReleaseVersion(options: {
 
 function main(): void {
   const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
-  const manifestPath = path.join(
-    repositoryRoot,
-    'apps/desktop/package.json',
-  );
+  const manifestPath = path.join(repositoryRoot, 'apps/desktop/package.json');
 
   const { isApplied, version } = applyDesktopReleaseVersion({
     manifestPath,
