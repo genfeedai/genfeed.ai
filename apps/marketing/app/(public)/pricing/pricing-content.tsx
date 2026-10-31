@@ -315,48 +315,58 @@ export default function PricingContent() {
             title="Compare plans."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
-          <Table aria-label="Compare plans">
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <span className="sr-only">Feature</span>
-                </TableHead>
-                {getCompareColumnLabels().map((label) => (
-                  <TableHead key={label}>{label}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {buildPricingCompareRows().map((row) => (
-                <TableRow key={row.label}>
-                  <TableHead
-                    scope="row"
-                    className="h-auto p-2 text-sm font-medium normal-case tracking-normal text-foreground"
-                  >
-                    {row.label}
+          <div className="overflow-hidden rounded-card border border-border bg-card">
+            <Table aria-label="Compare plans">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="h-10 px-4 font-semibold tracking-[0.12em]">
+                    <span className="sr-only">Feature</span>
                   </TableHead>
-                  {row.values.map((value, index) => (
-                    <TableCell
-                      key={`${row.label}-${getCompareColumnLabels()[index]}`}
-                      className="text-foreground/70"
+                  {getCompareColumnLabels().map((label) => (
+                    <TableHead
+                      key={label}
+                      className="h-10 px-4 font-semibold tracking-[0.12em]"
                     >
-                      {value === COMPARE_CHECKMARK ? (
-                        <span
-                          role="img"
-                          aria-label="Included"
-                          className="text-foreground"
-                        >
-                          {value}
-                        </span>
-                      ) : (
-                        value
-                      )}
-                    </TableCell>
+                      {label}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {buildPricingCompareRows().map((row) => (
+                  <TableRow
+                    key={row.label}
+                    className="odd:bg-card/50 hover:bg-accent/60"
+                  >
+                    <TableHead
+                      scope="row"
+                      className="h-auto px-4 py-3 text-sm font-medium normal-case tracking-normal text-foreground"
+                    >
+                      {row.label}
+                    </TableHead>
+                    {row.values.map((value, index) => (
+                      <TableCell
+                        key={`${row.label}-${getCompareColumnLabels()[index]}`}
+                        className="px-4 py-3 text-foreground/70"
+                      >
+                        {value === COMPARE_CHECKMARK ? (
+                          <span
+                            role="img"
+                            aria-label="Included"
+                            className="text-foreground"
+                          >
+                            {value}
+                          </span>
+                        ) : (
+                          value
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </WebSection>
 
         <ProofTestimonials context="pricing" />
