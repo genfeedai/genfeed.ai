@@ -2,6 +2,10 @@
 
 import { AppAssetCatalogBoundary } from '@app-i18n/AppGlobalModalIntlBoundary';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  useBrandCreateModal,
+  useConfirmModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -18,10 +22,6 @@ import type {
   TableRowLink,
   TableRowSidebar,
 } from '@props/ui/display/table.props';
-import {
-  useBrandCreateModal,
-  useConfirmModal,
-} from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';

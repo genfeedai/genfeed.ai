@@ -48,7 +48,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useGalleryModal: () => ({ openGallery: vi.fn() }),
   }),

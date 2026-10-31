@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  useConfirmModal,
+  usePostModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { type IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -13,10 +17,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCharacterReferenceDeleteWarning } from '@hooks/data/personas/use-character-reference-delete-warning/use-character-reference-delete-warning';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
-import {
-  useConfirmModal,
-  usePostModal,
-} from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';

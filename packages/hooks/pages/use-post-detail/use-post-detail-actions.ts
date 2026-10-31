@@ -1,6 +1,6 @@
 'use client';
 
-import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   IPost,

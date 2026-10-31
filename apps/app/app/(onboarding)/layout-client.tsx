@@ -7,7 +7,6 @@ import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
-import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import { usePathname } from 'next/navigation';
@@ -15,6 +14,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
+import { ProtectedAuthGate } from '@/providers/protected-providers/protected-providers';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {

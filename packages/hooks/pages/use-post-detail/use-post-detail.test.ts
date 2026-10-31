@@ -21,7 +21,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmDeleteModal: vi.fn(() => ({ openConfirmDelete: vi.fn() })),
     useGalleryModal: vi.fn(() => ({ openGallery: vi.fn() })),

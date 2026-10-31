@@ -1,10 +1,8 @@
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  GlobalModalsProvider,
-  useConfirmModal,
-} from './global-modals.provider';
+import { GlobalModalsProvider } from './global-modals.provider';
 
 vi.mock('@genfeedai/auth-client/react', () => ({}));
 
@@ -187,24 +185,27 @@ describe('GlobalModalsProvider', () => {
   });
 });
 
+const consumerRenders = { count: 0 };
+
+function ConfirmConsumer(): null {
+  useConfirmModal();
+  consumerRenders.count += 1;
+  return null;
+}
+
 describe('GlobalModalsProvider consumers', () => {
   it('does not re-render modal hook consumers when the route changes', () => {
-    let renders = 0;
-    function Consumer() {
-      useConfirmModal();
-      renders += 1;
-      return null;
-    }
-    const children = <Consumer />;
+    consumerRenders.count = 0;
+    const children = <ConfirmConsumer />;
     navigation.pathname = '/workspace';
     const { rerender } = render(
       <GlobalModalsProvider>{children}</GlobalModalsProvider>,
     );
-    const initialRenders = renders;
+    const initialRenders = consumerRenders.count;
 
     navigation.pathname = '/library';
     rerender(<GlobalModalsProvider>{children}</GlobalModalsProvider>);
 
-    expect(renders).toBe(initialRenders);
+    expect(consumerRenders.count).toBe(initialRenders);
   });
 });

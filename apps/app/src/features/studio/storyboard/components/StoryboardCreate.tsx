@@ -4,7 +4,7 @@ import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   useGalleryModal,
   useUploadModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonSize,
   ButtonVariant,

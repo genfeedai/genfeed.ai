@@ -49,11 +49,14 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useUploadModal: vi.fn(() => ({
-    openUpload: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useUploadModal: vi.fn(() => ({
+      openUpload: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IImage, IMusic, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';

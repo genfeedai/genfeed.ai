@@ -99,7 +99,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
     usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),

@@ -59,9 +59,12 @@ vi.mock(
     }),
   }),
 );
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  usePostModal: () => ({ openPostBatchModal: vi.fn() }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    usePostModal: () => ({ openPostBatchModal: vi.fn() }),
+  }),
+);
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: { getInstance: vi.fn() },
 }));

@@ -3,7 +3,7 @@ import CampaignCreativeContextFields from './CampaignCreativeContextFields';
 
 const mocks = vi.hoisted(() => ({ openGallery: vi.fn() }));
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useGalleryModal: () => ({ openGallery: mocks.openGallery }),
   }),

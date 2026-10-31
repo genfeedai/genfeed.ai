@@ -1,5 +1,9 @@
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
+  useConfirmModal,
+  useGalleryModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
@@ -17,10 +21,6 @@ import type {
   EditorProjectContent,
   EditorSaveWrite,
 } from '@props/studio/editor-save.props';
-import {
-  useConfirmModal,
-  useGalleryModal,
-} from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

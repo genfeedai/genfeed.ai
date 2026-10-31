@@ -1,18 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import type { IngredientCategory } from '@genfeedai/contracts';
-import type {
-  IAsset,
-  IIngredient,
-  IMetadata,
-  IPost,
-} from '@genfeedai/contracts/interfaces';
-import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
-import { act, render, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  GlobalModalsProvider,
   useBrandCreateModal,
   useConfirmDeleteModal,
   useConfirmModal,
@@ -24,7 +13,18 @@ import {
   usePostRemixModal,
   usePromptModal,
   useUploadModal,
-} from './global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import type { IngredientCategory } from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IIngredient,
+  IMetadata,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
+import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
+import { act, render, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GlobalModalsProvider } from './global-modals.provider';
 
 const captured = vi.hoisted(() => ({
   record: {} as Record<string, Record<string, unknown>>,
@@ -39,10 +39,11 @@ const loggerErrorMock = vi.hoisted(() => vi.fn());
 const loggerInfoMock = vi.hoisted(() => vi.fn());
 
 function makeStub(name: string): (props: Record<string, unknown>) => null {
-  return function Stub(props: Record<string, unknown>): null {
+  const stub = (props: Record<string, unknown>): null => {
     captured.record[name] = props;
     return null;
   };
+  return stub;
 }
 
 vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({

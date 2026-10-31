@@ -1,8 +1,6 @@
 {
   "packages/contexts/onboarding/onboarding-context.tsx": 1,
   "packages/contexts/providers/api-status/api-status.provider.tsx": 2,
-  "packages/contexts/providers/global-modals/global-modals.provider.tsx": 1,
-  "packages/contexts/providers/global-modals/GlobalModalsRenderer.tsx": 2,
   "packages/helpers/src/content/posts.helper.tsx": 1,
   "packages/helpers/src/voice-commands.helper.ts": 1,
   "packages/hooks/agent/use-agent-oauth-connect/use-agent-oauth-connect.ts": 1,

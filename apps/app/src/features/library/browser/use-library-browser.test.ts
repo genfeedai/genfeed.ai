@@ -34,9 +34,12 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useUploadModal: () => ({ openUpload: mockOpenUpload }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useUploadModal: () => ({ openUpload: mockOpenUpload }),
+  }),
+);
 
 import { useLibraryBrowser } from './use-library-browser';
 

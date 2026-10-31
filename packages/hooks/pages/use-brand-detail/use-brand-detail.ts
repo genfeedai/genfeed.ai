@@ -3,7 +3,7 @@
 import {
   useConfirmModal,
   useUploadModal,
-} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,

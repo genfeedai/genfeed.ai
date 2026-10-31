@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   IngredientStatus,
   PageScope,
@@ -10,7 +11,6 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
-import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { IngredientsLayoutProps } from '@/features/ingredients/props/ingredients-layout.props';

@@ -44,7 +44,7 @@ class MockResizeObserver {
   unobserve = vi.fn();
 }
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmModal: () => ({ openConfirm: modal.openConfirm }),
     useGalleryModal: () => ({ openGallery: vi.fn() }),

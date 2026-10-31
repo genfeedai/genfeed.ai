@@ -11,6 +11,7 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
+import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonSize,
   ButtonVariant,
@@ -65,7 +66,6 @@ import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredi
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
-import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';

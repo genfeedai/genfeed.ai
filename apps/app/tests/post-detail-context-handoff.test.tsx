@@ -29,14 +29,17 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  usePostRemixModal: () => ({
-    openPostRemixModal: mocks.openPostRemixModal,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    usePostRemixModal: () => ({
+      openPostRemixModal: mocks.openPostRemixModal,
+    }),
+    usePostRepurposeModal: () => ({
+      openPostRepurposeModal: mocks.openPostRepurposeModal,
+    }),
   }),
-  usePostRepurposeModal: () => ({
-    openPostRepurposeModal: mocks.openPostRepurposeModal,
-  }),
-}));
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',

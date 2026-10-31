@@ -72,9 +72,12 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
+  }),
+);
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {

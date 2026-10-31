@@ -1,6 +1,6 @@
 'use client';
 
-import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonVariant,
   ComponentSize,

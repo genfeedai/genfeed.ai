@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
 }));
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({ useConfirmModal: () => ({ openConfirm: mocks.confirm }) }),
 );
 vi.mock('@hooks/navigation/use-org-url', () => ({

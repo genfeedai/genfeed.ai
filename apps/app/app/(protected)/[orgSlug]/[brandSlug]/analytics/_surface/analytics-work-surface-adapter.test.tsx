@@ -62,9 +62,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 const exportModalValue = vi.hoisted(() => ({ openExport: vi.fn() }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useExportModal: () => exportModalValue,
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useExportModal: () => exportModalValue,
+  }),
+);
 
 const agentStore = vi.hoisted(() => ({
   pageContext: undefined as

@@ -19,7 +19,7 @@ const handleShare = vi.fn();
 const push = vi.fn();
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     usePostModal: () => ({ openPostBatchModal }),
   }),

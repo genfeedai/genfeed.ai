@@ -103,9 +103,14 @@ vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => notificationsService },
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useConfirmDeleteModal: () => ({ openConfirmDelete: mocks.openConfirmDelete }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmDeleteModal: () => ({
+      openConfirmDelete: mocks.openConfirmDelete,
+    }),
+  }),
+);
 
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({ children, label }: { children?: ReactNode; label: string }) => (

@@ -8,7 +8,7 @@ const { mockOpenConfirmDelete } = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     useConfirmDeleteModal: vi.fn(() => ({
       openConfirmDelete: mockOpenConfirmDelete,

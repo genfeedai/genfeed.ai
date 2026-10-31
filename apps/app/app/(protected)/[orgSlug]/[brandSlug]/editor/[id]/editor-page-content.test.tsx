@@ -93,14 +93,17 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: () => ({
-    openConfirm: mocks.openConfirm,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: () => ({
+      openConfirm: mocks.openConfirm,
+    }),
+    useGalleryModal: () => ({
+      openGallery: mocks.openGallery,
+    }),
   }),
-  useGalleryModal: () => ({
-    openGallery: mocks.openGallery,
-  }),
-}));
+);
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {

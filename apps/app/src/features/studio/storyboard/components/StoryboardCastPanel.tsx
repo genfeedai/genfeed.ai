@@ -1,6 +1,6 @@
 'use client';
 
-import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonSize,
   ButtonVariant,

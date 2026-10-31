@@ -143,17 +143,20 @@ vi.mock(
   }),
 );
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useConfirmDeleteModal: () => ({
-    openConfirmDelete: vi.fn(),
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmDeleteModal: () => ({
+      openConfirmDelete: vi.fn(),
+    }),
+    usePostRemixModal: () => ({
+      openPostRemixModal: vi.fn(),
+    }),
+    usePostRepurposeModal: () => ({
+      openPostRepurposeModal: vi.fn(),
+    }),
   }),
-  usePostRemixModal: () => ({
-    openPostRemixModal: vi.fn(),
-  }),
-  usePostRepurposeModal: () => ({
-    openPostRepurposeModal: vi.fn(),
-  }),
-}));
+);
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {

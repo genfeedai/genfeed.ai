@@ -31,7 +31,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({ useConfirmModal: () => ({ openConfirm: mocks.openConfirm }) }),
 );
 vi.mock('next/navigation', () => ({

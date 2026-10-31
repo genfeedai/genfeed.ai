@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
-  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
   () => ({
     usePostModal: vi.fn(() => ({
       close: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock(
   }),
 );
 
-import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { renderHook } from '@testing-library/react';
 
 describe('usePostModal', () => {

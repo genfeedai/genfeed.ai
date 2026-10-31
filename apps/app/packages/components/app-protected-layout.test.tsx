@@ -493,7 +493,7 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => mockFeatureFlags.isEnabled,
 }));
 
-vi.mock('@providers/protected-providers/protected-providers', () => ({
+vi.mock('@/providers/protected-providers/protected-providers', () => ({
   default: ({
     children,
     ...props

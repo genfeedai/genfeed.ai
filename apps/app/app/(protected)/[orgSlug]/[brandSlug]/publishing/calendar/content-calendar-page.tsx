@@ -2,6 +2,10 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  useConfirmModal,
+  usePostRepurposeModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -14,10 +18,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type { CalendarViewKey } from '@props/components/calendar.props';
 import type { ReleaseCalendarFilters as ReleaseFilters } from '@props/publisher/release-calendar.props';
-import {
-  useConfirmModal,
-  usePostRepurposeModal,
-} from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';

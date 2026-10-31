@@ -99,11 +99,14 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: vi.fn(() => ({
-    openConfirm: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useConfirmModal: vi.fn(() => ({
+      openConfirm: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <div>Daily traffic chart</div>,

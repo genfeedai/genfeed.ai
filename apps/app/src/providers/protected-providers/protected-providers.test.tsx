@@ -2,9 +2,9 @@
 'use client';
 
 import type { GlobalModalsProviderProps } from '@genfeedai/props/modals/global-modals.props';
-import ProtectedProviders from '@providers/protected-providers/protected-providers';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ProtectedProviders from '@/providers/protected-providers/protected-providers';
 
 const globalModalRendererMock = vi.fn();
 const useAuthMock = vi.fn();
@@ -71,7 +71,7 @@ vi.mock('@providers/elements/elements.provider', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@/providers/global-modals/global-modals.provider', () => ({
   GlobalModalsProvider: ({
     children,
     renderModal,

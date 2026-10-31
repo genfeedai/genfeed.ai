@@ -5,7 +5,7 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { usePromptModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { usePromptModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
