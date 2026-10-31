@@ -32,7 +32,6 @@ export class WorkflowPage {
   readonly runsPath = brandPath(APP_ROUTES.AUTOMATION.RUNS);
 
   // Layout
-  readonly sidebar: Locator;
   readonly mainContent: Locator;
 
   // Sidebar navigation
@@ -45,7 +44,9 @@ export class WorkflowPage {
   readonly canvas: Locator;
   readonly canvasEmpty: Locator;
 
-  // Node library / sidebar panel
+  // Node library: the toolbar's Add node menu replaced the fixed palette
+  readonly addNodeButton: Locator;
+  readonly nodeCatalogSearch: Locator;
   readonly nodeLibrary: Locator;
   readonly nodeSearchInput: Locator;
   readonly nodeCategory: Locator;
@@ -95,12 +96,6 @@ export class WorkflowPage {
     this.page = page;
 
     // Layout
-    this.sidebar = page
-      .locator('[data-testid="workflow-sidebar"]')
-      .or(page.getByTestId('sidebar-shell'))
-      .or(page.getByText('Search nodes...'))
-      .or(page.getByRole('heading', { name: 'Nodes' }))
-      .first();
     this.mainContent = page
       .locator('main, [data-testid="main-content"]')
       .or(page.getByRole('button', { name: 'Publish' }))
@@ -140,6 +135,10 @@ export class WorkflowPage {
         ' .react-flow__empty',
     );
 
+    this.addNodeButton = page.getByRole('button', { name: 'Add node' });
+    this.nodeCatalogSearch = page.getByRole('textbox', {
+      name: 'Search nodes',
+    });
     this.nodeLibrary = page.locator(
       '[data-testid="node-library"],' +
         ' [data-testid="node-sidebar"],' +
@@ -399,10 +398,6 @@ export class WorkflowPage {
 
   async assertCanvasVisible(): Promise<void> {
     await expect(this.canvas.first()).toBeVisible();
-  }
-
-  async assertSidebarVisible(): Promise<void> {
-    await expect(this.sidebar.first()).toBeVisible();
   }
 
   async assertNodeLibraryVisible(): Promise<void> {
