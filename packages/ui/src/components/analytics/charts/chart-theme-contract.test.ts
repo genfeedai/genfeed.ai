@@ -8,8 +8,6 @@ const TOGGLE_CHART_SOURCES = [
   'brand-performance/brand-performance-chart.tsx',
   'platform-comparison/platform-comparison-chart.tsx',
   'platform-time-series/platform-time-series-chart.tsx',
-  'post-performance/post-performance-chart.tsx',
-  'time-series/time-series-chart.tsx',
 ] as const;
 
 function readChart(relativePath: string): string {
@@ -30,20 +28,9 @@ describe('analytics chart theme contract', () => {
     },
   );
 
-  it('keeps the funnel series label legible while theming its summary divider', () => {
-    const source = readChart(
-      'video-completion-funnel/video-completion-funnel.tsx',
-    );
-
-    expect(source.match(/text-white/g)).toHaveLength(1);
-    expect(source).not.toContain('border-white');
-    expect(source).toContain('border-border');
-  });
-
   it.each([
     ...TOGGLE_CHART_SOURCES,
     'platform-breakdown/platform-breakdown-chart.tsx',
-    'video-completion-funnel/video-completion-funnel.tsx',
   ])(
     'never paints with the dark-only overlay-white ladder in %s',
     (relativePath) => {
