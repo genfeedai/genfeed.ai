@@ -204,7 +204,9 @@ describe('CronLlmIdleService', () => {
       expect(mockLoggerService.error).not.toHaveBeenCalled();
       expect(mockLoggerService.warn).toHaveBeenCalledTimes(1);
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('i-1234567890abcdef0 was not found in us-east-1'),
+        expect.stringContaining(
+          'i-1234567890abcdef0 was not found in us-east-1',
+        ),
       );
     });
 
