@@ -94,7 +94,7 @@ describe('summariseSmoke', () => {
     expect(markdown).toMatch(/\| music \| harness \|/);
   });
 
-  it('reports raw vs product pipeline per kind and names the kinds with no product route', () => {
+  it('reports raw vs product pipeline per kind and separates kinds with no product route from routed kinds that did not run', () => {
     const row = (
       contentKind: string,
       guidanceArm: 'raw' | 'product',
@@ -135,7 +135,10 @@ describe('summariseSmoke', () => {
     expect(markdown).toContain('| kind | raw accepted | product accepted |');
     expect(markdown).toContain('| social-post | 0/1 | 1/1 | 0.25 | 0.75 |');
     expect(markdown).toContain(
-      'No product text route yet, so not measured through the product: article, linkedin-article, ad-copy, script, newsletter.',
+      'No synchronous product API route (see product-generation.ts), so not measured through the product: ad-copy, script.',
+    );
+    expect(markdown).toContain(
+      'Product route exists but no rows ran (skipped or no fixture rows): article, linkedin-article, newsletter.',
     );
   });
 });

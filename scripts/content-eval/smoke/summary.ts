@@ -9,6 +9,7 @@ import {
   type GenerationTypeEntry,
 } from '../context-coverage/generation-types';
 import type { ContentEvalReport } from '../contracts';
+import { PRODUCT_TEXT_ROUTES } from '../text/product-generation';
 import type { SmokeCell } from './plan';
 
 export type SmokeCellStatus = 'passed' | 'failed' | 'aborted' | 'skipped';
@@ -121,13 +122,21 @@ export function summariseSmoke(
       );
     }
     if (isProduct) {
-      const unrouted = GENERATION_TYPES.filter(
+      const untallied = GENERATION_TYPES.filter(
         (entry) => entry.smoke === 'text' && !(entry.id in tallies),
       ).map((entry) => entry.id);
-      if (unrouted.length > 0) {
+      const noRoute = untallied.filter((id) => !(id in PRODUCT_TEXT_ROUTES));
+      const notRun = untallied.filter((id) => id in PRODUCT_TEXT_ROUTES);
+      if (noRoute.length > 0) {
         lines.push(
           '',
-          `No product text route yet, so not measured through the product: ${unrouted.join(', ')}.`,
+          `No synchronous product API route (see product-generation.ts), so not measured through the product: ${noRoute.join(', ')}.`,
+        );
+      }
+      if (notRun.length > 0) {
+        lines.push(
+          '',
+          `Product route exists but no rows ran (skipped or no fixture rows): ${notRun.join(', ')}.`,
         );
       }
     }
