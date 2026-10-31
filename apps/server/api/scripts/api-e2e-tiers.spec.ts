@@ -7,6 +7,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   closeContextEmbeddingResources,
   inspectContextEmbeddingTransport,
@@ -356,18 +357,23 @@ describe('dedicated Context Embedding Acceptance lane', () => {
 });
 
 describe('observed acceptance runtime identity', () => {
+  // `.node-version` is the single Node pin; never hardcode its value here.
+  const pinnedNode = readFileSync(
+    fileURLToPath(new URL('../../../../.node-version', import.meta.url)),
+    'utf8',
+  ).trim();
   const healthy = {
-    nodeVersion: '26.12.1',
+    nodeVersion: pinnedNode,
     bunVersion: '1.4.4',
     selector: 'latest',
     packageManager: 'bun@1.4.3',
-    ciCheckRuntime: 'Linux/X64/1.4.4/v26.12.1',
+    ciCheckRuntime: `Linux/X64/1.4.4/v${pinnedNode}`,
     platform: 'linux',
     architecture: 'x64',
   };
   it('accepts exact rolling stable identity while retaining the distinct packageManager declaration', () => {
     expect(validateContextEmbeddingRuntime(healthy)).toEqual({
-      node: '26.12.1',
+      node: pinnedNode,
       bun: '1.4.4',
       bunSelector: 'latest',
       packageManager: 'bun@1.4.3',
@@ -382,9 +388,12 @@ describe('observed acceptance runtime identity', () => {
   it.each([
     { nodeVersion: '24.22.0', ciCheckRuntime: 'Linux/X64/1.4.4/v24.22.0' },
     { ciCheckRuntime: undefined },
-    { ciCheckRuntime: 'Linux/X64/1.4.3/v26.12.1' },
-    { platform: 'darwin', ciCheckRuntime: 'macOS/X64/1.4.4/v26.12.1' },
-    { architecture: 'arm64', ciCheckRuntime: 'Linux/ARM64/1.4.4/v26.12.1' },
+    { ciCheckRuntime: `Linux/X64/1.4.3/v${pinnedNode}` },
+    { platform: 'darwin', ciCheckRuntime: `macOS/X64/1.4.4/v${pinnedNode}` },
+    {
+      architecture: 'arm64',
+      ciCheckRuntime: `Linux/ARM64/1.4.4/v${pinnedNode}`,
+    },
     { bunVersion: '1.4.4-canary.1' },
     { bunVersion: 'invalid' },
     { selector: '1.4.3' },

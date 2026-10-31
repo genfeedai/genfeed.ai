@@ -49,6 +49,10 @@ runs:
         set -euo pipefail
         printf 'registry=%s\nrepository=%s/%s/server\n' "${REGISTRY,,}" "${REGISTRY,,}" "${IMAGE_PREFIX,,}" >> "$GITHUB_OUTPUT"
 
+    - name: Read Node version
+      id: node
+      uses: ./.github/actions/node-version
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -103,6 +107,7 @@ runs:
       with:
         context: .
         file: docker/Dockerfile.server
+        build-args: NODE_VERSION=${{ steps.node.outputs.version }}
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
