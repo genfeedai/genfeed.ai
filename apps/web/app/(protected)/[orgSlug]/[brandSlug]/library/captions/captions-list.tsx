@@ -17,7 +17,11 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+/** Columns the captions endpoint can order by. */
+const CAPTION_SORT_KEYS = ['format', 'createdAt'];
 
 function CaptionsListContent() {
   const rowSidebarT = useTranslations('ui.rowSidebar');
@@ -26,6 +30,9 @@ function CaptionsListContent() {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('q') ?? '';
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: CAPTION_SORT_KEYS,
+  });
 
   const getCaptionsService = useAuthedService(
     useCallback((token: string) => CaptionsService.getInstance(token), []),
@@ -39,11 +46,13 @@ function CaptionsListContent() {
     {
       header: 'Format',
       key: 'format',
+      sortable: true,
       render: (caption: Caption) => caption.format || '-',
     },
     {
       header: 'Created',
       key: 'createdAt',
+      sortable: true,
       render: (caption: Caption) =>
         caption.createdAt ? formatDate(caption.createdAt) : '-',
     },
@@ -66,7 +75,12 @@ function CaptionsListContent() {
     kind: 'record',
   });
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllCaptions = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setCaptions(null);
     setLoadError(null);
 
@@ -76,19 +90,26 @@ function CaptionsListContent() {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       const data = await service.findAll(query);
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       setCaptions(data);
       setLoadError(null);
       logger.info('GET /captions success', data);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       logger.error('GET /captions failed', error);
       notificationsService.error('Failed to load captions');
       setCaptions([]);
       setLoadError('Captions could not be loaded.');
     }
-  }, [currentPage, getCaptionsService, notificationsService, search]);
+  }, [currentPage, getCaptionsService, notificationsService, search, sort]);
 
   useEffect(() => {
     findAllCaptions();
@@ -117,6 +138,9 @@ function CaptionsListContent() {
             actions={[]}
             isLoading={captions === null}
             getRowKey={(item) => item.id}
+            onSortChange={onSortChange}
+            sortDirection={sortDirection}
+            sortKey={sortKey}
             rowSidebar={rowSidebar}
             emptyLabel="No captions found"
           />

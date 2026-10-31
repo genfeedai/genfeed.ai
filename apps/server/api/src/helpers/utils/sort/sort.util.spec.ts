@@ -1,4 +1,7 @@
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import {
+  handleAllowedQuerySort,
+  handleQuerySort,
+} from '@api/helpers/utils/sort/sort.util';
 
 describe('handleQuerySort', () => {
   it('returns default sort when query is undefined', () => {
@@ -49,5 +52,40 @@ describe('handleQuerySort', () => {
 
   it('rejects operator-like field characters', () => {
     expect(handleQuerySort('createdAt$: 1')).toEqual({ createdAt: -1 });
+  });
+});
+
+describe('handleAllowedQuerySort', () => {
+  const allowed = ['name', 'status', 'createdAt'];
+
+  it('keeps allowed fields and their direction', () => {
+    expect(handleAllowedQuerySort('name: 1', allowed)).toEqual({ name: 1 });
+    expect(handleAllowedQuerySort('status: -1', allowed)).toEqual({
+      status: -1,
+    });
+  });
+
+  it('drops fields the endpoint cannot order by', () => {
+    expect(handleAllowedQuerySort('name: 1, secret: -1', allowed)).toEqual({
+      name: 1,
+    });
+  });
+
+  it('falls back to the default when nothing requested is allowed', () => {
+    expect(handleAllowedQuerySort('secret: 1', allowed)).toEqual({
+      createdAt: -1,
+    });
+    expect(
+      handleAllowedQuerySort('secret: 1', allowed, { updatedAt: -1 }),
+    ).toEqual({ updatedAt: -1 });
+  });
+
+  it('uses the default for a missing or malformed sort', () => {
+    expect(handleAllowedQuerySort(undefined, allowed)).toEqual({
+      createdAt: -1,
+    });
+    expect(handleAllowedQuerySort('not-a-sort', allowed)).toEqual({
+      createdAt: -1,
+    });
   });
 });

@@ -14,9 +14,13 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+/** Columns the scenes endpoint can order by. */
+const SCENE_SORT_KEYS = ['label', 'key'];
 
 function ScenesListContent() {
   const notificationsService = NotificationsService.getInstance();
@@ -24,6 +28,9 @@ function ScenesListContent() {
   const currentPage = Number(searchParams.get('page')) || 1;
   const searchT = useTranslations('common.listSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: SCENE_SORT_KEYS,
+  });
 
   const getScenesService = useAuthedService(
     useCallback((token: string) => ScenesService.getInstance(token), []),
@@ -37,14 +44,25 @@ function ScenesListContent() {
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       subtext: (scene: ElementScene) => scene.description,
     },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      className: 'font-mono text-sm',
+      header: 'Key',
+      key: 'key',
+      sortable: true,
+    },
   ];
 
   const rowSidebar = useElementRowSidebar<ElementScene>();
 
+  // Only the latest request may fill the list, so a slow response for an
+  // earlier sort or search cannot replace the current one.
+  const latestRequestRef = useRef(0);
+
   const findAllScenes = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setScenes(null);
 
     try {
@@ -53,17 +71,24 @@ function ScenesListContent() {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       };
 
       const data = await service.findAll(query);
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       setScenes(data);
       logger.info('GET /scenes success', data);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) {
+        return;
+      }
       logger.error('GET /scenes failed', error);
       notificationsService.error('Failed to load scenes');
       setScenes([]);
     }
-  }, [currentPage, getScenesService, notificationsService, search]);
+  }, [currentPage, getScenesService, notificationsService, search, sort]);
 
   useEffect(() => {
     findAllScenes();
@@ -87,6 +112,9 @@ function ScenesListContent() {
         actions={[]}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
+        onSortChange={onSortChange}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
         rowSidebar={rowSidebar}
         emptyLabel="No scenes found"
       />

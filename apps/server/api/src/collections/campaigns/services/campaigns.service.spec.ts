@@ -179,6 +179,28 @@ describe('CampaignsService', () => {
     expect(result.totalDocs).toBe(1);
   });
 
+  it.each([
+    ['name: 1', [{ name: 'asc' }, { createdAt: 'desc' }, { id: 'desc' }]],
+    ['status: -1', [{ status: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }]],
+    [
+      'createdAt: -1',
+      [{ createdAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+    ],
+    [
+      'brandId: 1',
+      [{ createdAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+    ],
+  ])('orders the list by "%s"', async (sort, expected) => {
+    asMock(prisma.campaign.findMany).mockResolvedValue([]);
+    asMock(prisma.campaign.count).mockResolvedValue(0);
+
+    await service.list(ORG_ID, { isDeleted: false, limit: 10, page: 1, sort });
+
+    expect(asMock(prisma.campaign.findMany).mock.calls[0][0].orderBy).toEqual(
+      expected,
+    );
+  });
+
   it('hides archived campaigns from the default list', async () => {
     asMock(prisma.campaign.findMany).mockResolvedValue([]);
     asMock(prisma.campaign.count).mockResolvedValue(0);

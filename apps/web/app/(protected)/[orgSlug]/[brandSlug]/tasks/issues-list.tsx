@@ -57,6 +57,7 @@ import type {
   IssuesListState,
   ViewMode,
 } from '@/features/tasks/props/issues-list.props';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 import {
   PRIORITY_ORDER,
@@ -69,6 +70,9 @@ import {
   useTaskStatusLabels,
 } from './task-pills';
 import { useTaskSelection } from './task-selection-context';
+
+/** Columns the tasks endpoint can order by. */
+const TASK_SORT_KEYS = ['title', 'status'];
 
 function IssueCard({
   issue,
@@ -193,6 +197,9 @@ export default function IssuesList() {
       : ViewType.LIST;
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: TASK_SORT_KEYS,
+  });
   const statusParam = searchParams.get('status');
   const statusFilter: TaskStatus | '' =
     statusParam && STATUS_ORDER.includes(statusParam as TaskStatus)
@@ -232,6 +239,7 @@ export default function IssuesList() {
       const result = await service.list({
         ...(statusFilter ? { status: statusFilter } : {}),
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
         // Brand selected → filter. Brand cleared on org Workspace → all brands.
         ...(brandId ? { brandId } : {}),
         limit: ITEMS_PER_PAGE,
@@ -250,7 +258,7 @@ export default function IssuesList() {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  }, [brandId, currentPage, getTasksService, search, statusFilter]);
+  }, [brandId, currentPage, getTasksService, search, sort, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
@@ -495,10 +503,14 @@ export default function IssuesList() {
           items={issues}
           getRowKey={(issue) => issue.id}
           onRowClick={handleSelectIssue}
+          onSortChange={onSortChange}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
           columns={[
             {
               key: 'title',
               header: translate('taskColumn'),
+              sortable: true,
               render: (issue) => (
                 <Link
                   className="block w-full text-left text-sm font-medium hover:underline"
@@ -518,6 +530,7 @@ export default function IssuesList() {
             {
               key: 'status',
               header: translate('statusColumn'),
+              sortable: true,
               render: (issue) => (
                 <TaskStatusSelect
                   ariaLabel={translate('statusForTask', {

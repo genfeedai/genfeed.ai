@@ -21,6 +21,7 @@ export interface UseCampaignsOptions {
   includeArchived?: boolean;
   page?: number;
   search?: string;
+  sort?: string;
   status?: ContentCampaignStatus | string;
 }
 
@@ -50,6 +51,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
     limit: ITEMS_PER_PAGE,
     page,
     ...(options.search ? { search: options.search } : {}),
+    ...(options.sort ? { sort: options.sort } : {}),
     ...(options.status ? { status: options.status } : {}),
   };
 
@@ -75,6 +77,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
       options.status ?? null,
       includeArchived ?? null,
       options.search ?? null,
+      options.sort ?? null,
       page,
     ],
   });

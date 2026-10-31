@@ -18,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
+import { handleAllowedQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
@@ -40,6 +41,9 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+/** Columns the captions list can be ordered by. */
+const CAPTION_SORT_FIELDS = ['createdAt', 'format', 'language'] as const;
 
 @AutoSwagger()
 @Controller('captions')
@@ -95,7 +99,20 @@ export class CaptionsController {
       }),
     );
 
-    const aggregate = { where: matchConditions, orderBy: { createdAt: -1 } };
+    // Captions that share a format or language need a unique tiebreaker, or
+    // consecutive pages can repeat or skip rows.
+    const requestedSort = handleAllowedQuerySort(
+      query.sort,
+      CAPTION_SORT_FIELDS,
+    );
+    const aggregate = {
+      orderBy: {
+        ...requestedSort,
+        ...(requestedSort.createdAt === undefined ? { createdAt: -1 } : {}),
+        id: -1,
+      },
+      where: matchConditions,
+    };
 
     const data: AggregatePaginateResult<CaptionDocument> =
       await this.captionsService.findAll(aggregate, options);
