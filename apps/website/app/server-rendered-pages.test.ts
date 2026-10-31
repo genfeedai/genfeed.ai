@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  */
 const SERVER_RENDERED_PAGES = [
   '../../packages/agent/src/components/SafeMarkdown.tsx',
-  '../../packages/ui/src/components/footers/SiteFooter.tsx',
+  'src/components/footers/SiteFooter.tsx',
   'app/(content)/articles/[slug]/article-detail.tsx',
   'app/(content)/articles/articles-list.tsx',
   'app/(public)/about/about-content.tsx',
