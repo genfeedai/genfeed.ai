@@ -42,6 +42,15 @@ export class CampaignsQueryDto extends BaseQueryDto {
   includeArchived?: boolean;
 
   @ApiProperty({
+    description:
+      'Case-insensitive search over the campaign name, objective and brief',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiProperty({
     description: 'Filter campaigns by lifecycle status',
     enum: ContentCampaignStatus,
     enumName: 'ContentCampaignStatus',

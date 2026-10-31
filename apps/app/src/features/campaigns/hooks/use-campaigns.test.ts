@@ -124,6 +124,25 @@ describe('useCampaigns', () => {
     });
   });
 
+  it('sends the search term to the list request', async () => {
+    const { useCampaigns } = await import('./use-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    renderHook(() => useCampaigns({ search: 'autumn' }), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockList).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        includeArchived: false,
+        limit: 15,
+        page: 1,
+        search: 'autumn',
+      });
+    });
+  });
+
   it('exposes a failed request instead of reporting a successful empty list', async () => {
     mockList.mockRejectedValue(new Error('offline'));
     const { useCampaigns } = await import('./use-campaigns');
