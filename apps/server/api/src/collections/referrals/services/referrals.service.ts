@@ -1,5 +1,6 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { buildReferralRewardOrderBy } from '@api/collections/referrals/utils/referral-reward-order.util';
 import { buildSearchWhere } from '@api/helpers/utils/search-where/search-where.util';
 import {
   billingAccountScopedWhere,
@@ -426,6 +427,7 @@ export class ReferralsService {
     limit?: number;
     page?: number;
     search?: string;
+    sort?: string;
     status?: ReferralRewardStatus;
   }): Promise<{ docs: IReferralAdminReward[]; total: number }> {
     const requestedLimit =
@@ -463,7 +465,7 @@ export class ReferralsService {
     const [rows, total] = await Promise.all([
       this.prisma.referralReward.findMany({
         include: { referral: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: buildReferralRewardOrderBy(input.sort),
         skip: (page - 1) * limit,
         take: limit,
         where,

@@ -7,8 +7,9 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReferralRewardsList from './referral-rewards-list';
 
-const { getAdminRewardsMock, identityState } = vi.hoisted(() => ({
+const { getAdminRewardsMock, identityState, urlState } = vi.hoisted(() => ({
   getAdminRewardsMock: vi.fn(),
+  urlState: { query: 'page=2' },
   identityState: {
     orgId: 'org_1',
     sessionId: 'session_1',
@@ -19,7 +20,7 @@ const { getAdminRewardsMock, identityState } = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin',
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams('page=2'),
+  useSearchParams: () => new URLSearchParams(urlState.query),
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
@@ -93,6 +94,7 @@ vi.mock('@ui/layout/container/Container', () => ({
 describe('ReferralRewardsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    urlState.query = 'page=2';
     getAdminRewardsMock.mockResolvedValue([]);
   });
 
@@ -121,6 +123,7 @@ describe('ReferralRewardsList', () => {
           'org_1',
           2,
           '',
+          undefined,
         ],
       }),
     ).toBeDefined();
@@ -150,5 +153,48 @@ describe('ReferralRewardsList', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+  });
+
+  it.each([
+    ['status', 'status: 1'],
+    ['-netAmountCents', 'netAmountCents: -1'],
+    ['-eligibleAt', 'eligibleAt: -1'],
+    ['attemptCount', 'attemptCount: 1'],
+  ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
+    urlState.query = `page=2&sort=${urlSort}`;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReferralRewardsList />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(getAdminRewardsMock).toHaveBeenCalledWith({
+        limit: 15,
+        page: 2,
+        sort: apiSort,
+      }),
+    );
+  });
+
+  it('ignores a sort on a column the API cannot order by', async () => {
+    urlState.query = 'page=2&sort=-referrerBillingAccountId';
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReferralRewardsList />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() =>
+      expect(getAdminRewardsMock).toHaveBeenCalledWith({ limit: 15, page: 2 }),
+    );
   });
 });

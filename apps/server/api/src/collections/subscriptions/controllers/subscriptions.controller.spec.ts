@@ -589,6 +589,7 @@ describe('SubscriptionsController', () => {
       expect(mockSubscriptionsService.findAdminBilling).toHaveBeenCalledWith({
         limit: 15,
         page: 2,
+        sort: 'createdAt: -1',
       });
       expect(result).toEqual({
         data: [billingRow],

@@ -32,4 +32,21 @@ describe('ReferralsController', () => {
 
     expect(listAdmin).toHaveBeenCalledWith({ limit: 50, page: 1 });
   });
+
+  it('passes a requested sort to the service', async () => {
+    await controller.listAdmin(
+      request,
+      '50',
+      '2',
+      undefined,
+      undefined,
+      'eligibleAt: -1',
+    );
+
+    expect(listAdmin).toHaveBeenCalledWith({
+      limit: 50,
+      page: 2,
+      sort: 'eligibleAt: -1',
+    });
+  });
 });

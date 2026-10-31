@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
   [ReferralRewardStatus.CANCELLED]: 'Cancelled',
@@ -31,6 +32,15 @@ const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
   [ReferralRewardStatus.PROCESSING]: 'Processing',
   [ReferralRewardStatus.REVERSED]: 'Reversed',
 };
+
+// The account and checkout columns show shortened ids, which have no order
+// worth sorting by, and Reward is net of reversals, which the API cannot order.
+const REFERRAL_REWARD_SORT_KEYS = [
+  'status',
+  'netAmountCents',
+  'eligibleAt',
+  'attemptCount',
+];
 
 function compactId(value: string | null): string {
   if (!value) {
@@ -46,6 +56,9 @@ export default function ReferralRewardsList() {
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
+  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+    allowedKeys: REFERRAL_REWARD_SORT_KEYS,
+  });
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
@@ -58,12 +71,14 @@ export default function ReferralRewardsList() {
       orgId,
       currentPage,
       search,
+      sort,
     ],
     queryFn: async () =>
       (await getReferralsService()).getAdminRewards({
         limit: ITEMS_PER_PAGE,
         page: currentPage,
         ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
       }),
   });
 
@@ -77,6 +92,7 @@ export default function ReferralRewardsList() {
     {
       header: 'Status',
       key: 'status',
+      sortable: true,
       render: (reward) => (
         <Badge status={reward.status.toLowerCase()}>
           {REFERRAL_REWARD_STATUS_LABELS[reward.status]}
@@ -92,6 +108,7 @@ export default function ReferralRewardsList() {
     {
       header: 'Purchase',
       key: 'netAmountCents',
+      sortable: true,
       render: (reward) => `$${(reward.netAmountCents / 100).toFixed(2)}`,
     },
     {
@@ -112,11 +129,13 @@ export default function ReferralRewardsList() {
     {
       header: 'Eligible',
       key: 'eligibleAt',
+      sortable: true,
       render: (reward) => new Date(reward.eligibleAt).toLocaleString('en-US'),
     },
     {
       header: 'Attempts',
       key: 'attemptCount',
+      sortable: true,
       render: (reward) => reward.attemptCount.toLocaleString('en-US'),
     },
   ];
@@ -219,6 +238,9 @@ export default function ReferralRewardsList() {
           items={data ?? []}
           isLoading={isLoading}
           columns={columns}
+          onSortChange={onSortChange}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
           getRowKey={(reward) => reward.id}
           rowSidebar={rowSidebar}
           emptyLabel="No referral rewards found"

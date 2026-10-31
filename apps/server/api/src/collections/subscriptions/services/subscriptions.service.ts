@@ -16,6 +16,7 @@ import {
   toSubscriptionPreviewException,
 } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
+import { buildAdminBillingOrderBy } from '@api/collections/subscriptions/utils/admin-billing-order.util';
 import { buildOrganizationBillingRow } from '@api/collections/subscriptions/utils/organization-billing.util';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -195,6 +196,7 @@ export class SubscriptionsService
     limit: number;
     page: number;
     search?: string;
+    sort?: string;
   }): Promise<AdminBillingPage> {
     const where: Prisma.OrganizationWhereInput = {
       isDeleted: false,
@@ -205,7 +207,7 @@ export class SubscriptionsService
     };
     const [organizations, totalDocs] = await Promise.all([
       this.prisma.organization.findMany({
-        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        orderBy: buildAdminBillingOrderBy(options.sort),
         select: {
           billingAccountId: true,
           id: true,

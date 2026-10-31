@@ -271,7 +271,7 @@ describe('SubscriptionsList', () => {
     };
     await options.queryFn();
 
-    expect(options.queryKey).toEqual(['admin-subscriptions', 2, '']);
+    expect(options.queryKey).toEqual(['admin-subscriptions', 2, '', undefined]);
     expect(mocks.getAdminBilling).toHaveBeenCalledWith({ limit: 15, page: 2 });
   });
 
@@ -288,11 +288,58 @@ describe('SubscriptionsList', () => {
     };
     await options.queryFn();
 
-    expect(options.queryKey).toEqual(['admin-subscriptions', 1, 'acme']);
+    expect(options.queryKey).toEqual([
+      'admin-subscriptions',
+      1,
+      'acme',
+      undefined,
+    ]);
     expect(mocks.getAdminBilling).toHaveBeenCalledWith({
       limit: 15,
       page: 1,
       search: 'acme',
     });
+  });
+
+  it.each([
+    ['organizationName', 'organizationName: 1'],
+    ['-ownerEmail', 'ownerEmail: -1'],
+  ])(
+    'sorts organizations server-side by ?sort=%s',
+    async (urlSort, apiSort) => {
+      mocks.queryString = `sort=${urlSort}`;
+      mockRows([]);
+      mocks.getAdminBilling.mockResolvedValue({ data: [] });
+
+      render(<SubscriptionsList />);
+
+      const options = mocks.useQuery.mock.calls[0]?.[0] as {
+        queryFn: () => Promise<unknown>;
+        queryKey: unknown[];
+      };
+      await options.queryFn();
+
+      expect(options.queryKey).toEqual(['admin-subscriptions', 1, '', apiSort]);
+      expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+        limit: 15,
+        page: 1,
+        sort: apiSort,
+      });
+    },
+  );
+
+  it('ignores a sort on a column the API cannot order by', async () => {
+    mocks.queryString = 'sort=-balance';
+    mockRows([]);
+    mocks.getAdminBilling.mockResolvedValue({ data: [] });
+
+    render(<SubscriptionsList />);
+
+    const options = mocks.useQuery.mock.calls[0]?.[0] as {
+      queryFn: () => Promise<unknown>;
+    };
+    await options.queryFn();
+
+    expect(mocks.getAdminBilling).toHaveBeenCalledWith({ limit: 15, page: 1 });
   });
 });
