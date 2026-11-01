@@ -904,5 +904,13 @@
       "steps": "Steps",
       "triggerWord": "Trigger word"
     }
+  },
+  "brandRuleProposals": {
+    "title": "Save your edit as a brand rule?",
+    "hint": "Future drafts for this brand will follow it. You can change it later in your content rules.",
+    "save": "Save rule",
+    "dismiss": "Dismiss",
+    "saved": "Saved to your content rules: {rule}",
+    "failed": "Could not save the rule. Please try again."
   }
 }
