@@ -748,7 +748,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/services/analytics/content-learning.service.test.ts',
   'packages/services/automation/bot-activities.service.test.ts',
   'packages/services/content/articles.service.test.ts',
-  'packages/services/content/content-runs.service.test.ts',
   'packages/services/content/dashboard-layouts.service.test.ts',
   'packages/services/content/posts.service.test.ts',
   'packages/services/content/release-groups.service.spec.ts',

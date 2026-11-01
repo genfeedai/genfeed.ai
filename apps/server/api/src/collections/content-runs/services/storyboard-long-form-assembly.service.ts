@@ -10,6 +10,10 @@ import {
   buildLongFormTimeline,
   type LongFormTimeline,
 } from '@api/collections/content-runs/services/storyboard-long-form-timeline';
+import {
+  type StoryboardVideoFormat,
+  storyboardVideoFormat,
+} from '@api/collections/content-runs/services/storyboard-plan-state';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { wrapCompositionText } from '@api/collections/editor-projects/utils/remotion-composition.util';
@@ -48,7 +52,7 @@ const FOOTAGE_CATEGORIES = [
 const READY_STATUSES = new Set(['GENERATED', 'VALIDATED', 'UPLOADED']);
 
 const SETTINGS: Record<
-  StoryboardPlan['format'],
+  StoryboardVideoFormat,
   Pick<IEditorProjectSettings, 'format' | 'width' | 'height'>
 > = {
   '16:9': { format: IngredientFormat.LANDSCAPE, width: 1920, height: 1080 },
@@ -57,7 +61,7 @@ const SETTINGS: Record<
 };
 
 /** Caption line width in characters; a cue holds at most two lines. */
-const CAPTION_LINE_CHARACTERS: Record<StoryboardPlan['format'], number> = {
+const CAPTION_LINE_CHARACTERS: Record<StoryboardVideoFormat, number> = {
   '16:9': 42,
   '9:16': 26,
   '1:1': 30,
@@ -80,7 +84,7 @@ function frames(seconds: number): number {
 /** Burned-in captions of the narration, low in the frame over every track. */
 function captionTrack(
   chunks: readonly StoryboardARollChunk[],
-  format: StoryboardPlan['format'],
+  format: StoryboardVideoFormat,
   totalDurationFrames: number,
 ): IEditorTrack {
   const { width, height } = SETTINGS[format];
@@ -245,14 +249,14 @@ export class StoryboardLongFormAssemblyService {
       ...(isDraft
         ? this.buildDraftTracks(timeline, footage, presenter.avatarAssetId)
         : this.buildTracks(timeline, footage)),
-      captionTrack(chunks, plan.format, totalDurationFrames),
+      captionTrack(chunks, storyboardVideoFormat(plan), totalDurationFrames),
     ];
     const project = await this.editorProjects.create({
       brandId,
       config: {
         name: `${plan.title || 'Long-form video'}${isDraft ? ' (animatic)' : ''}`,
         settings: {
-          ...SETTINGS[plan.format],
+          ...SETTINGS[storyboardVideoFormat(plan)],
           backgroundColor: '#000000',
           fps: LONG_FORM_EDIT_FPS,
         },

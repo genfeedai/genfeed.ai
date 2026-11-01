@@ -1,7 +1,8 @@
-import type {
-  StoryboardCutaway,
-  StoryboardSegment,
-  StoryboardShot,
+import {
+  STORYBOARD_SLIDESHOW_LIMITS,
+  type StoryboardCutaway,
+  type StoryboardSegment,
+  type StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StoryboardEditablePlan } from '@/features/studio/props/storyboard.props';
@@ -27,6 +28,28 @@ export function storyboardApprovalProblems(
       if (!speaker?.voiceId)
         problems.push(`Shot ${shot.ordinal}: assign a speaker with a voice.`);
     }
+  }
+  return problems;
+}
+
+/** What a slideshow plan still needs before it can be approved (#8896). */
+export function storyboardSlideshowApprovalProblems(
+  plan: StoryboardEditablePlan,
+  messages: {
+    count: string;
+    description: (ordinal: number) => string;
+    image: (ordinal: number) => string;
+  },
+): string[] {
+  const { minSlides, maxSlides } = STORYBOARD_SLIDESHOW_LIMITS;
+  const problems: string[] = [];
+  if (plan.shots.length < minSlides || plan.shots.length > maxSlides)
+    problems.push(messages.count);
+  for (const slide of plan.shots) {
+    if (!slide.action.trim())
+      problems.push(messages.description(slide.ordinal));
+    if (slide.stillFreshness !== 'fresh' || !slide.stillAssetId)
+      problems.push(messages.image(slide.ordinal));
   }
   return problems;
 }
