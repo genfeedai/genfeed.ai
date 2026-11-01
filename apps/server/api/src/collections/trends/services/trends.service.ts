@@ -23,6 +23,10 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import {
+  type BrandDigestSources,
+  TrendBrandDigestService,
+} from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
@@ -41,7 +45,6 @@ import {
   buildBrandNicheQueries,
   countNicheTermMatches,
   isWithinTimeframe,
-  matchedNicheTerms,
   rankBrandVideos,
 } from '@api/collections/trends/utils/brand-niche.util';
 import {
@@ -52,26 +55,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
 import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
-import type { TrendDigestSourcePost } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-/** Topics read from the corpus per digest before the score gate and the cap. */
-const DIGEST_TOPIC_POOL = 20;
-
-export interface BrandDigestSources {
-  brand: { description?: string; id: string; label: string };
-  topics: Array<{
-    matchedTerms: string[];
-    mentions: number;
-    platform: string;
-    posts: TrendDigestSourcePost[];
-    topic: string;
-    url?: string;
-    viralityScore: number;
-  }>;
-  videos: Array<TrendingVideoDocument & { matchedTerms: string[] }>;
-}
 
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
@@ -97,6 +82,7 @@ export class TrendsService {
     private readonly trendQueryService: TrendQueryService,
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
+    private readonly trendBrandDigestService: TrendBrandDigestService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -836,53 +822,12 @@ export class TrendsService {
         id: brand.id,
         label: brand.label,
       },
-      topics: await Promise.all(
-        [...corpus.trends]
-          .sort((a, b) => b.viralityScore - a.viralityScore)
-          .slice(0, DIGEST_TOPIC_POOL)
-          .map(async (trend) => {
-            // Stored previews only: the digest never triggers a live fetch.
-            const discovery =
-              await this.trendSourcePreviewService.buildTrendDiscoveryItem(
-                trend,
-                organizationId,
-              );
-            return {
-              matchedTerms: matchedNicheTerms(
-                { hashtags: trend.metadata?.hashtags, title: trend.topic },
-                queries,
-              ),
-              mentions: trend.mentions,
-              platform: trend.platform,
-              posts: discovery.sourcePreview
-                .filter(
-                  (item) =>
-                    item.contentType !== 'video' && Boolean(item.sourceUrl),
-                )
-                .map((item) => ({
-                  authorHandle: item.authorHandle,
-                  likes: item.metrics?.likes,
-                  platform: item.platform,
-                  text: item.text ?? item.title,
-                  url: item.sourceUrl,
-                  views: item.metrics?.views,
-                })),
-              topic: trend.topic,
-              url: trend.metadata?.videoUrl ?? trend.metadata?.urls?.[0],
-              viralityScore: trend.viralityScore,
-            };
-          }),
+      topics: await this.trendBrandDigestService.buildTopics(
+        corpus.trends,
+        queries,
+        organizationId,
       ),
-      videos: videos.map((video) => {
-        const matched = matchedNicheTerms(video, queries);
-        const nicheQuery =
-          typeof video.nicheQuery === 'string' ? video.nicheQuery : undefined;
-        return {
-          ...video,
-          matchedTerms:
-            matched.length > 0 ? matched : nicheQuery ? [nicheQuery] : [],
-        };
-      }),
+      videos: this.trendBrandDigestService.tagVideos(videos, queries),
     };
   }
 
