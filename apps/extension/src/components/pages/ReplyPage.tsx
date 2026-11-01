@@ -1,8 +1,4 @@
-import {
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
   ReplyVariantTone,

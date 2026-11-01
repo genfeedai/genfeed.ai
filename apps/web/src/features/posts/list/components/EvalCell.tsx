@@ -10,17 +10,26 @@ import { useTranslations } from 'next-intl';
 import type { PostEvaluationProps } from '@/features/posts/props/post-evaluation.props';
 import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
 
-function getScoreTone(score: number): { label: string; variant: BadgeVariant } {
+type ScoreLabelKey =
+  | 'scoreAverage'
+  | 'scoreExcellent'
+  | 'scoreGood'
+  | 'scoreNeedsWork';
+
+function getScoreTone(score: number): {
+  labelKey: ScoreLabelKey;
+  variant: BadgeVariant;
+} {
   if (score >= 90) {
-    return { label: 'Excellent', variant: 'success' };
+    return { labelKey: 'scoreExcellent', variant: 'success' };
   }
   if (score >= 70) {
-    return { label: 'Good', variant: 'info' };
+    return { labelKey: 'scoreGood', variant: 'info' };
   }
   if (score >= 50) {
-    return { label: 'Average', variant: 'warning' };
+    return { labelKey: 'scoreAverage', variant: 'warning' };
   }
-  return { label: 'Needs Work', variant: 'destructive' };
+  return { labelKey: 'scoreNeedsWork', variant: 'destructive' };
 }
 
 export default function EvalCell({
@@ -39,12 +48,15 @@ export default function EvalCell({
   const score = evaluation?.data.overallScore ?? post.evalScore;
 
   if (score != null && presentation !== 'menu') {
-    const { label, variant } = getScoreTone(score);
+    const { labelKey, variant } = getScoreTone(score);
     return (
       <Badge
         casing="normal"
         isSolid
-        title={`Quality Score: ${score}/100 - ${label}`}
+        title={translate('qualityScore', {
+          label: translate(labelKey),
+          score,
+        })}
         variant={variant}
       >
         {score}
@@ -79,10 +91,10 @@ export default function EvalCell({
   return (
     <Button
       variant={isGrid ? ButtonVariant.GHOST : ButtonVariant.DEFAULT}
-      ariaLabel={isGrid ? undefined : 'Evaluate'}
+      ariaLabel={isGrid ? undefined : translate('evaluate')}
       icon={<ArrowUp />}
-      label={isGrid ? 'Evaluate' : undefined}
-      tooltip="Evaluate"
+      label={isGrid ? translate('evaluate') : undefined}
+      tooltip={translate('evaluate')}
       isLoading={isEvaluating}
       onClick={(event) => {
         if (isGrid) event.stopPropagation();
