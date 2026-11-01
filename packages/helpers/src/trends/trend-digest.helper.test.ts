@@ -167,6 +167,17 @@ describe('buildTrendDigestHtml', () => {
     expect(html).toContain('href="https://x.com/lenabuilds/status/1"');
   });
 
+  it('shows each post idea once: the lead in its card, the rest as drafts', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      minViralScore: 70,
+    });
+
+    expect(html.split('We made the same ad twice.')).toHaveLength(2);
+    expect(html.split('Run a full AI studio on your own server.')).toHaveLength(
+      2,
+    );
+  });
+
   it('never prints a score badge', () => {
     const html = buildTrendDigestHtml([leadTrend], { minViralScore: 70 });
 

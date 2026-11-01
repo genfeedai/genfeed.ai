@@ -296,7 +296,7 @@ function draftHtml(trend: TrendDigestItem): string {
     </div>`;
 }
 
-function moreRowHtml(trend: TrendDigestItem): string {
+function moreRowHtml(trend: TrendDigestItem, hasDraft: boolean): string {
   const url = safeUrl(trend.url);
   const thumb = thumbnailHtml(trend, 112);
   const post = trend.posts?.[0];
@@ -309,7 +309,7 @@ function moreRowHtml(trend: TrendDigestItem): string {
       trend.angle
         ? `<div style="color:${COLORS.sub};font-size:13px;line-height:19px;">${escapeTrendHtml(trend.angle)}</div>`
         : '',
-      trend.postIdea
+      trend.postIdea && !hasDraft
         ? `<div style="color:${COLORS.sub};font-size:13px;line-height:19px;"><span style="color:${COLORS.text};font-weight:600;">${escapeTrendHtml(trend.postIdea.format)}</span> &middot; ${escapeTrendHtml(trend.postIdea.hook)}</div>`
         : '',
     ],
@@ -323,11 +323,20 @@ function moreRowHtml(trend: TrendDigestItem): string {
   return `<div style="border-top:1px solid ${COLORS.border};padding:14px 0;">${body}</div>`;
 }
 
+/** The lead story's own idea plus the drafts queued after it. */
+function readyPostCount(trends: TrendDigestItem[]): number {
+  const [lead, ...rest] = trends;
+  return (lead?.postIdea ? 1 : 0) + queuedDrafts(rest).length;
+}
+
+/** Topics after the lead whose idea is shown as a draft, not repeated in the rows. */
+function queuedDrafts(rest: TrendDigestItem[]): TrendDigestItem[] {
+  return rest.filter((trend) => trend.postIdea).slice(0, DIGEST_DRAFT_LIMIT);
+}
+
 /** Email subject: lead with the posts the reader can make, not the count of trends. */
 export function buildTrendDigestSubject(trends: TrendDigestItem[]): string {
-  const drafts = trends
-    .filter((trend) => trend.postIdea)
-    .slice(0, DIGEST_DRAFT_LIMIT).length;
+  const drafts = readyPostCount(trends);
   const topics = `${trends.length} ${trends.length === 1 ? 'topic' : 'topics'}`;
   if (drafts > 0) {
     return `${drafts} ${drafts === 1 ? 'post' : 'posts'} ready for today, from ${topics} in your niche`;
@@ -343,12 +352,11 @@ export function buildTrendDigestHtml(
   const headerTitle = options.headerTitle ?? DEFAULT_HEADER_TITLE;
   const appUrl = options.appUrl ?? '';
   const [lead, ...rest] = trends;
-  const drafts = trends
-    .filter((trend) => trend.postIdea)
-    .slice(0, DIGEST_DRAFT_LIMIT);
+  const drafts = queuedDrafts(rest);
+  const readyPosts = readyPostCount(trends);
   const topicCount = `${trends.length} ${trends.length === 1 ? 'topic' : 'topics'}`;
   const intro = options.brandLabel
-    ? `${topicCount} moving in the ${options.brandLabel} niche${drafts.length > 0 ? `, ${drafts.length} ${drafts.length === 1 ? 'post' : 'posts'} ready for today` : ''}.`
+    ? `${topicCount} moving in the ${options.brandLabel} niche${readyPosts > 0 ? `, ${readyPosts} ${readyPosts === 1 ? 'post' : 'posts'} ready for today` : ''}.`
     : `${topicCount} trending today.`;
 
   const sections: string[] = [buildSystemEmailParagraph(intro)];
@@ -366,7 +374,7 @@ export function buildTrendDigestHtml(
   }
   if (rest.length > 0) {
     sections.push(
-      `<div style="margin-top:24px;">${eyebrowHtml('Also moving in your niche')}<div style="margin-top:8px;">${rest.map(moreRowHtml).join('')}</div></div>`,
+      `<div style="margin-top:24px;">${eyebrowHtml('Also moving in your niche')}<div style="margin-top:8px;">${rest.map((trend) => moreRowHtml(trend, drafts.includes(trend))).join('')}</div></div>`,
     );
   }
 
@@ -374,9 +382,7 @@ export function buildTrendDigestHtml(
     action: appUrl ? { label: 'Open Genfeed', url: appUrl } : undefined,
     appUrl,
     bodyHtml: sections.join(''),
-    preheader: lead
-      ? `${lead.topic}${lead.postIdea ? ` — ${lead.postIdea.hook}` : ''}`
-      : intro,
+    preheader: lead ? (lead.angle ?? lead.topic) : intro,
     title: headerTitle,
   });
 }
