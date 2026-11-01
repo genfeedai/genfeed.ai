@@ -10,10 +10,10 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
+import { Badge } from '@ui/primitives/badge';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import {
   NodeButton,
   SelectableButton,
@@ -48,36 +48,41 @@ function getStatusBadge(
     {
       icon: React.JSX.Element;
       label: string;
-      variant: 'green' | 'orange' | 'red' | 'yellow';
+      variant: 'destructive' | 'success' | 'warning';
     }
   > = {
     [ReviewGateStatus.APPROVED]: {
-      icon: <CheckIcon className="size-4" />,
+      icon: <CheckIcon />,
       label: 'Approved',
-      variant: 'green' as const,
+      variant: 'success' as const,
     },
     [ReviewGateStatus.PENDING]: {
-      icon: <ClockIcon className="size-4" />,
+      icon: <ClockIcon />,
       label: 'Pending',
-      variant: 'orange' as const,
+      variant: 'warning' as const,
     },
     [ReviewGateStatus.REJECTED]: {
-      icon: <XIcon className="size-4" />,
+      icon: <XIcon />,
       label: 'Rejected',
-      variant: 'red' as const,
+      variant: 'destructive' as const,
     },
     [ReviewGateStatus.TIMEOUT]: {
-      icon: <ClockIcon className="size-4" />,
+      icon: <ClockIcon />,
       label: 'Timeout',
-      variant: 'yellow' as const,
+      variant: 'warning' as const,
     },
   };
   const badge = badges[status];
   return (
-    <NodeBadge variant={badge.variant}>
-      {badge.icon}
+    <Badge
+      casing="normal"
+      icon={badge.icon}
+      shape="pill"
+      size="lg"
+      variant={badge.variant}
+    >
       {badge.label}
-    </NodeBadge>
+    </Badge>
   );
 }
 

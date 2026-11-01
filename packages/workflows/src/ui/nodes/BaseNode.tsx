@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   NodeStatus,
   NodeType,
@@ -10,6 +9,7 @@ import type {
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import {
@@ -439,9 +439,9 @@ function BaseNodeContent({
 
 function LockBadge() {
   return (
-    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-2xs font-bold text-background">
+    <Badge className="absolute -right-2 -top-2" variant="inverse">
       LOCKED
-    </div>
+    </Badge>
   );
 }
 

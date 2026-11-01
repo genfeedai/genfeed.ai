@@ -1,57 +1,52 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 
-const MODEL_CATEGORY_BADGE_CLASSES: Record<ModelCategory, string> = {
-  [ModelCategory.AVATAR]: 'bg-agent/10 text-agent border-agent/20',
-  [ModelCategory.EMBEDDING]: 'bg-muted text-muted-foreground border-border',
-  [ModelCategory.IMAGE]: 'bg-info/10 text-info border-info/20',
-  [ModelCategory.IMAGE_EDIT]:
-    '[background-color:color-mix(in_srgb,var(--accent-pink)_15%,transparent)] text-[var(--accent-pink)] [border-color:color-mix(in_srgb,var(--accent-pink)_30%,transparent)]',
-  [ModelCategory.IMAGE_UPSCALE]:
-    '[background-color:color-mix(in_srgb,var(--accent-rose)_15%,transparent)] text-[var(--accent-rose)] [border-color:color-mix(in_srgb,var(--accent-rose)_30%,transparent)]',
-  [ModelCategory.MUSIC]: 'bg-warning/10 text-warning border-warning/20',
-  [ModelCategory.TEXT]: 'bg-success/10 text-success border-success/20',
-  [ModelCategory.VIDEO]:
-    '[background-color:color-mix(in_srgb,var(--accent-violet)_15%,transparent)] text-[var(--accent-violet)] [border-color:color-mix(in_srgb,var(--accent-violet)_30%,transparent)]',
-  [ModelCategory.VIDEO_EDIT]:
-    '[background-color:color-mix(in_srgb,var(--accent-purple)_15%,transparent)] text-[var(--accent-purple)] [border-color:color-mix(in_srgb,var(--accent-purple)_30%,transparent)]',
-  [ModelCategory.VIDEO_UPSCALE]: 'bg-primary/10 text-primary border-primary/20',
-  [ModelCategory.VOICE]:
-    '[background-color:color-mix(in_srgb,var(--accent-orange)_15%,transparent)] text-[var(--accent-orange)] [border-color:color-mix(in_srgb,var(--accent-orange)_30%,transparent)]',
+export interface ModelBadgeColors {
+  backgroundColor: string;
+  textColor: string;
+}
+
+const tint = (color: string): ModelBadgeColors => ({
+  backgroundColor: `color-mix(in srgb, ${color} 15%, transparent)`,
+  textColor: color,
+});
+
+const MODEL_CATEGORY_BADGE_COLORS: Record<ModelCategory, ModelBadgeColors> = {
+  [ModelCategory.AVATAR]: tint('var(--color-agent)'),
+  [ModelCategory.EMBEDDING]: tint('var(--color-muted-foreground)'),
+  [ModelCategory.IMAGE]: tint('var(--color-info)'),
+  [ModelCategory.IMAGE_EDIT]: tint('var(--accent-pink)'),
+  [ModelCategory.IMAGE_UPSCALE]: tint('var(--accent-rose)'),
+  [ModelCategory.MUSIC]: tint('var(--color-warning)'),
+  [ModelCategory.TEXT]: tint('var(--color-success)'),
+  [ModelCategory.VIDEO]: tint('var(--accent-violet)'),
+  [ModelCategory.VIDEO_EDIT]: tint('var(--accent-purple)'),
+  [ModelCategory.VIDEO_UPSCALE]: tint('var(--color-primary)'),
+  [ModelCategory.VOICE]: tint('var(--accent-orange)'),
 };
 
-const FALLBACK_BADGE_CLASS = 'bg-muted text-muted-foreground border-border';
+const FALLBACK_BADGE_COLORS: ModelBadgeColors = tint(
+  'var(--color-muted-foreground)',
+);
 
 /**
  * Branded inference-provider pills. Hex values match `MODEL_BRANDS` where the
  * provider exists in that catalog; OpenRouter is the local operator color.
  */
-const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
-  [ModelProvider.CRUN]: FALLBACK_BADGE_CLASS,
-  [ModelProvider.ELEVENLABS]:
-    '[background-color:color-mix(in_srgb,#A1A1AA_15%,transparent)] text-[#D4D4D8] [border-color:color-mix(in_srgb,#A1A1AA_30%,transparent)]',
-  [ModelProvider.FAL]:
-    '[background-color:color-mix(in_srgb,#06B6D4_15%,transparent)] text-[#06B6D4] [border-color:color-mix(in_srgb,#06B6D4_30%,transparent)]',
-  [ModelProvider.GENFEED_AI]:
-    '[background-color:color-mix(in_srgb,#3B82F6_15%,transparent)] text-[#3B82F6] [border-color:color-mix(in_srgb,#3B82F6_30%,transparent)]',
-  [ModelProvider.HEYGEN]:
-    '[background-color:color-mix(in_srgb,#EC4899_15%,transparent)] text-[#F472B6] [border-color:color-mix(in_srgb,#EC4899_30%,transparent)]',
-  [ModelProvider.HIGGSFIELD]:
-    '[background-color:color-mix(in_srgb,#84CC16_15%,transparent)] text-[#A3E635] [border-color:color-mix(in_srgb,#84CC16_30%,transparent)]',
-  [ModelProvider.MUREKA]:
-    '[background-color:color-mix(in_srgb,#6B7280_15%,transparent)] text-[#9CA3AF] [border-color:color-mix(in_srgb,#6B7280_30%,transparent)]',
-  [ModelProvider.OPENROUTER]:
-    '[background-color:color-mix(in_srgb,#8B5CF6_15%,transparent)] text-[#A78BFA] [border-color:color-mix(in_srgb,#8B5CF6_30%,transparent)]',
-  [ModelProvider.REPLICATE]:
-    '[background-color:color-mix(in_srgb,#D97706_15%,transparent)] text-[#F59E0B] [border-color:color-mix(in_srgb,#D97706_30%,transparent)]',
-  [ModelProvider.GOOGLE]:
-    '[background-color:color-mix(in_srgb,#4285F4_15%,transparent)] text-[#4285F4] [border-color:color-mix(in_srgb,#4285F4_30%,transparent)]',
-  [ModelProvider.XAI]: 'bg-foreground/10 text-foreground border-foreground/20',
-  [ModelProvider.BFL]:
-    '[background-color:color-mix(in_srgb,#FB923C_15%,transparent)] text-[#FB923C] [border-color:color-mix(in_srgb,#FB923C_30%,transparent)]',
-  [ModelProvider.RUNWAY]:
-    '[background-color:color-mix(in_srgb,#FACC15_15%,transparent)] text-[#FACC15] [border-color:color-mix(in_srgb,#FACC15_30%,transparent)]',
-  [ModelProvider.OPENAI]:
-    '[background-color:color-mix(in_srgb,#10A37F_15%,transparent)] text-[#10A37F] [border-color:color-mix(in_srgb,#10A37F_30%,transparent)]',
+const MODEL_PROVIDER_BADGE_COLORS: Record<ModelProvider, ModelBadgeColors> = {
+  [ModelProvider.CRUN]: FALLBACK_BADGE_COLORS,
+  [ModelProvider.ELEVENLABS]: { ...tint('#A1A1AA'), textColor: '#D4D4D8' },
+  [ModelProvider.FAL]: tint('#06B6D4'),
+  [ModelProvider.GENFEED_AI]: tint('#3B82F6'),
+  [ModelProvider.HEYGEN]: { ...tint('#EC4899'), textColor: '#F472B6' },
+  [ModelProvider.HIGGSFIELD]: { ...tint('#84CC16'), textColor: '#A3E635' },
+  [ModelProvider.MUREKA]: { ...tint('#6B7280'), textColor: '#9CA3AF' },
+  [ModelProvider.OPENROUTER]: { ...tint('#8B5CF6'), textColor: '#A78BFA' },
+  [ModelProvider.REPLICATE]: { ...tint('#D97706'), textColor: '#F59E0B' },
+  [ModelProvider.GOOGLE]: tint('#4285F4'),
+  [ModelProvider.XAI]: tint('var(--color-foreground)'),
+  [ModelProvider.BFL]: tint('#FB923C'),
+  [ModelProvider.RUNWAY]: tint('#FACC15'),
+  [ModelProvider.OPENAI]: tint('#10A37F'),
 };
 
 const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
@@ -71,20 +66,25 @@ const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
   [ModelProvider.OPENAI]: 'OpenAI',
 };
 
-export function getModelCategoryBadgeClass(category?: string): string {
-  if (category && category in MODEL_CATEGORY_BADGE_CLASSES) {
-    return MODEL_CATEGORY_BADGE_CLASSES[category as ModelCategory];
+/** Colours for `<Badge variant="custom" colors={...}>`. */
+export function getModelCategoryBadgeColors(
+  category?: string,
+): ModelBadgeColors {
+  if (category && category in MODEL_CATEGORY_BADGE_COLORS) {
+    return MODEL_CATEGORY_BADGE_COLORS[category as ModelCategory];
   }
 
-  return FALLBACK_BADGE_CLASS;
+  return FALLBACK_BADGE_COLORS;
 }
 
-export function getModelProviderBadgeClass(provider?: string): string {
-  if (provider && provider in MODEL_PROVIDER_BADGE_CLASSES) {
-    return MODEL_PROVIDER_BADGE_CLASSES[provider as ModelProvider];
+export function getModelProviderBadgeColors(
+  provider?: string,
+): ModelBadgeColors {
+  if (provider && provider in MODEL_PROVIDER_BADGE_COLORS) {
+    return MODEL_PROVIDER_BADGE_COLORS[provider as ModelProvider];
   }
 
-  return FALLBACK_BADGE_CLASS;
+  return FALLBACK_BADGE_COLORS;
 }
 
 export function getModelProviderLabel(provider?: string): string {

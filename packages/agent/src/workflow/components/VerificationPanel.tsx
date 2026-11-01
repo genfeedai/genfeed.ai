@@ -1,6 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   CircleAlert,
@@ -81,16 +82,14 @@ function VerificationPanelInner() {
           </h2>
         </div>
         {evidence.length > 0 && (
-          <span
-            className={cn(
-              'text-xs font-medium px-2 py-0.5 rounded-full',
-              allPassed
-                ? 'bg-success/10 text-success'
-                : 'bg-destructive/10 text-destructive',
-            )}
+          <Badge
+            casing="normal"
+            shape="pill"
+            size="lg"
+            variant={allPassed ? 'success' : 'destructive'}
           >
             {evidence.filter((e) => e.passed).length}/{evidence.length} passed
-          </span>
+          </Badge>
         )}
       </div>
 

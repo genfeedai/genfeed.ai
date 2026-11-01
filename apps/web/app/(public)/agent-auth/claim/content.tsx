@@ -3,6 +3,7 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@services/core/environment.service';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -242,12 +243,15 @@ export default function AgentAuthClaimContent() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {claimDetails.requested_scopes.map((scope) => (
-                      <span
-                        className="rounded-full border border-border bg-tertiary px-3 py-1 font-mono text-xs text-muted-foreground"
+                      <Badge
+                        isMono
                         key={scope}
+                        shape="pill"
+                        size="lg"
+                        variant="outline"
                       >
                         {scope}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>

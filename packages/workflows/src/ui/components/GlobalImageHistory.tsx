@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Clock3, X } from 'lucide-react';
 import Image from 'next/image';
@@ -303,9 +304,14 @@ export function GlobalImageHistory() {
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
-        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-muted-foreground rounded-full text-2xs text-background flex items-center justify-center font-bold">
-          {history.length > 99 ? '99+' : history.length}
-        </span>
+        <Badge
+          className="absolute -top-1.5 -right-1.5"
+          isSolid
+          shape="pill"
+          size="sm"
+          value={history.length > 99 ? '99+' : history.length}
+          variant="secondary"
+        />
       </Button>
 
       {isOpen && (

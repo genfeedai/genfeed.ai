@@ -6,6 +6,7 @@ import type {
   FilterMenuFacet,
   FilterMenuProps,
 } from '@genfeedai/props/ui/forms/filter-menu.props';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -212,12 +213,12 @@ export default function FilterMenu({
           {label ?? translate('menu')}
           {activeCount > 0 ? (
             <>
-              <span
+              <Badge
                 aria-hidden="true"
-                className="rounded-full bg-foreground px-1.5 text-2xs font-semibold text-background"
-              >
-                {activeCount}
-              </span>
+                shape="pill"
+                value={activeCount}
+                variant="inverse"
+              />
               <span className="sr-only">
                 {resolvedActiveCountLabel(activeCount)}
               </span>

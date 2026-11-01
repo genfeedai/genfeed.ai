@@ -214,18 +214,18 @@ export default function ReviewItemsTable({
                 {formatReviewItemStatus(item, translateReview)}
               </Badge>
               {performanceLabel ? (
-                <span
-                  className={cn(
-                    'inline-flex items-center rounded-md border px-1.5 py-0.5 text-2xs font-medium',
+                <Badge
+                  casing="normal"
+                  variant={
                     performanceSignal === 'winning'
-                      ? 'border-success/20 bg-success/10 text-success'
+                      ? 'success'
                       : performanceSignal === 'underperforming'
-                        ? 'border-destructive/20 bg-destructive/10 text-destructive'
-                        : 'border-warning/20 bg-warning/10 text-warning',
-                  )}
+                        ? 'destructive'
+                        : 'warning'
+                  }
                 >
                   {performanceLabel}
-                </span>
+                </Badge>
               ) : null}
             </span>
           );

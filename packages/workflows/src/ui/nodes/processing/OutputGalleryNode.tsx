@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type { OutputGalleryNodeData } from '@genfeedai/contracts/types';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, Download, X } from 'lucide-react';
@@ -286,13 +286,14 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 </Button>
               )}
 
-              <div
-                className={
-                  'absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 rounded text-white text-xs font-medium' /* design-system-allow-content-color */
-                }
+              <Badge
+                casing="normal"
+                className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                size="xl"
+                variant="overlay"
               >
                 {lightboxIndex + 1} / {displayImages.length}
-              </div>
+              </Badge>
             </div>
           </div>,
           document.body,

@@ -216,16 +216,11 @@ export function ViralVideoLeaderboard({
             key: 'viralScore',
             render: (video) => {
               const rank = sortedVideos.findIndex((v) => v.id === video.id) + 1;
-              const badgeClass =
-                rank <= 3
-                  ? 'bg-primary text-primary-foreground'
-                  : rank <= 10
-                    ? 'bg-muted text-foreground'
-                    : 'bg-muted text-muted-foreground';
               return (
                 <Badge
+                  isSolid={rank <= 3}
                   value={Math.round(video.viralScore)}
-                  className={badgeClass}
+                  variant={rank <= 3 ? 'default' : 'secondary'}
                 />
               );
             },

@@ -120,15 +120,12 @@ export default function TrainingFileList({
                           ? 'destructive'
                           : 'secondary'
                       }
-                      className="whitespace-nowrap text-xs tabular-nums"
+                      size="lg"
                     >
                       {formatSize(f.size)}
                     </Badge>
                     {fileStatus && (
-                      <Badge
-                        variant={getStatusBadgeVariant(fileStatus.status)}
-                        className="whitespace-nowrap tabular-nums"
-                      >
+                      <Badge variant={getStatusBadgeVariant(fileStatus.status)}>
                         {getStatusBadgeLabel(fileStatus)}
                       </Badge>
                     )}

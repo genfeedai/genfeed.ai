@@ -149,13 +149,13 @@ export function TrendingHashtags({
                           ? translate('notMeasured')
                           : `Score: ${Math.round(hashtag.viralityScore)}`
                       }
-                      className={`text-xs w-full justify-center ${
-                        hashtag.viralityScore >= 70
-                          ? 'bg-primary text-primary-foreground'
-                          : hashtag.viralityScore >= 40
-                            ? 'bg-muted text-foreground'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
+                      casing="normal"
+                      className="w-full justify-center"
+                      isSolid={hashtag.viralityScore >= 70}
+                      size="lg"
+                      variant={
+                        hashtag.viralityScore >= 70 ? 'default' : 'secondary'
+                      }
                     />
                   </div>
                 </Card>

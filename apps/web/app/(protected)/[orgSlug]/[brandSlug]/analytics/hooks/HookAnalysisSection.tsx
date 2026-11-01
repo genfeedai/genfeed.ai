@@ -24,7 +24,7 @@ export default function HookAnalysisSection({ analysisData }: Props) {
                   key={hook.hook}
                   className="flex items-start gap-3 bg-tertiary p-3"
                 >
-                  <Badge className="bg-primary text-primary-foreground mt-1">
+                  <Badge isSolid className="mt-1">
                     #{idx + 1}
                   </Badge>
                   <div className="space-y-1">

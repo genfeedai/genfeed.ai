@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Pause, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -178,13 +179,9 @@ export default function AuthShowcase({
         }
       >
         <div className="flex flex-col items-start gap-3">
-          <span
-            className={
-              'rounded-full border border-white/20 bg-black/40 px-3 py-1 text-xs font-medium backdrop-blur' /* design-system-allow-content-color -- caption over showcase media */
-            }
-          >
+          <Badge casing="normal" shape="pill" size="lg" variant="overlay">
             {activeSlide.modelLabel}
-          </span>
+          </Badge>
           <p className="text-2xl font-semibold tracking-tight">
             {activeSlide.caption}
           </p>

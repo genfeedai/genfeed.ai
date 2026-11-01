@@ -6,6 +6,7 @@ import type {
   SocialInboxSyncRealtimeEvent,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
@@ -99,11 +100,11 @@ export const STATUS_LABELS: Record<string, string> = {
   resolved: 'Resolved',
 };
 
-export const STATUS_STYLES: Record<string, string> = {
-  archived: 'bg-tertiary text-gray-800',
-  needs_review: 'bg-warning/10 text-warning',
-  open: 'bg-info/10 text-info',
-  resolved: 'bg-success/10 text-success',
+export const STATUS_VARIANTS: Record<string, BadgeVariant> = {
+  archived: 'secondary',
+  needs_review: 'warning',
+  open: 'info',
+  resolved: 'success',
 };
 
 const ACTION_LABELS: Record<string, string> = {

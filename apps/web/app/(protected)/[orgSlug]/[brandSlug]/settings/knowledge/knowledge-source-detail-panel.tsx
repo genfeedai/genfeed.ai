@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import type { KnowledgeSourceDetailPanelProps } from '@props/content/knowledge-library.props';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import {
@@ -193,12 +194,14 @@ export default function KnowledgeSourceDetailPanel({
                 spaces
                   .filter((space) => spaceIds.includes(space.id))
                   .map((space) => (
-                    <span
-                      className="rounded-sm border border-border px-2 py-0.5 text-xs"
+                    <Badge
+                      casing="normal"
                       key={space.id}
+                      size="lg"
+                      variant="outline"
                     >
                       {space.isInbox ? translate('inbox') : space.title}
-                    </span>
+                    </Badge>
                   ))
               )}
             </div>

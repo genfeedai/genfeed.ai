@@ -184,10 +184,6 @@ function Panel({
   );
 }
 
-function Pill({ children }: { children: ReactNode }) {
-  return <Badge variant="secondary">{children}</Badge>;
-}
-
 function Section({
   children,
   icon,
@@ -268,12 +264,14 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
       {variants.map((variant) => (
         <Panel as="article" key={variant.id} className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Pill>{variant.format ?? variant.type}</Pill>
+            <Badge variant="secondary">{variant.format ?? variant.type}</Badge>
             <PlatformBadge
               platform={variant.platform}
               size={ComponentSize.SM}
             />
-            {variant.status ? <Pill>{variant.status}</Pill> : null}
+            {variant.status ? (
+              <Badge variant="secondary">{variant.status}</Badge>
+            ) : null}
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>
           {variant.hypothesis ? (
@@ -401,9 +399,11 @@ function RecommendationsSection({
       ).map(({ item: recommendation, key }) => (
         <Panel as="article" key={key} className="p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill>{recommendation.type}</Pill>
+            <Badge variant="secondary">{recommendation.type}</Badge>
             {typeof recommendation.confidence === 'number' ? (
-              <Pill>{formatPercent(recommendation.confidence * 100)}</Pill>
+              <Badge variant="secondary">
+                {formatPercent(recommendation.confidence * 100)}
+              </Badge>
             ) : null}
           </div>
           <h3 className="mt-3 text-sm font-medium">
@@ -595,9 +595,13 @@ export default function ContentRunDetailPage({
         <header>
           <Card bodyClassName="gap-0 p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Pill>{run.status ?? 'unknown'}</Pill>
-              <Pill>{run.skillSlug ?? 'content-run'}</Pill>
-              {run.source ? <Pill>{run.source}</Pill> : null}
+              <Badge variant="secondary">{run.status ?? 'unknown'}</Badge>
+              <Badge variant="secondary">
+                {run.skillSlug ?? 'content-run'}
+              </Badge>
+              {run.source ? (
+                <Badge variant="secondary">{run.source}</Badge>
+              ) : null}
             </div>
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>

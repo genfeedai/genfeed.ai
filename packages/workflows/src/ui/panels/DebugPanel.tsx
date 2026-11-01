@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import { Pre } from '@genfeedai/ui';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
@@ -68,9 +68,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-xs font-medium text-foreground truncate">
               {payload.nodeName || payload.nodeId}
             </span>
-            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+            <Badge casing="normal" variant="secondary">
               {payload.nodeType}
-            </span>
+            </Badge>
           </div>
           <div className="text-2xs text-muted-foreground mt-0.5">
             {payload.model} &bull; {timestamp}
@@ -120,9 +120,11 @@ function DebugPanelComponent() {
           <Bug className="size-4 text-muted-foreground" />
           <span className="font-medium text-sm">Debug Console</span>
           {debugPayloads.length > 0 && (
-            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
-              {debugPayloads.length}
-            </span>
+            <Badge
+              shape="pill"
+              value={debugPayloads.length}
+              variant="secondary"
+            />
           )}
         </div>
         <div className="flex items-center gap-1">
