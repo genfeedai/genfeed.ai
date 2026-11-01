@@ -1,15 +1,4 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
-import { describe, expect, it, vi } from 'vitest';
-
-const mockLimits = vi.hoisted(() => ({
-  instagram: { max: 10, min: 2, name: 'Instagram' },
-  tiktok: { max: 35, min: 2, name: 'TikTok' },
-}));
-
-vi.mock('@genfeedai/contracts/constants', () => ({
-  CAROUSEL_LIMITS: mockLimits,
-}));
-
 import {
   filterValidPlatforms,
   getCarouselLimits,
@@ -17,6 +6,7 @@ import {
   platformSupportsCarousel,
   validateCarouselCount,
 } from '@utils/carousel-validation';
+import { describe, expect, it } from 'vitest';
 
 const instagram = 'instagram' as CredentialPlatform;
 const tiktok = 'tiktok' as CredentialPlatform;
@@ -49,6 +39,35 @@ describe('carousel-validation', () => {
     });
   });
 
+  describe('getCarouselLimits', () => {
+    it.each([
+      ['instagram', 2, 10, 'Instagram'],
+      ['tiktok', 2, 35, 'TikTok'],
+      ['twitter', 2, 4, 'X (Twitter)'],
+      ['linkedin', 2, 20, 'LinkedIn'],
+      ['threads', 2, 20, 'Threads'],
+    ])(
+      'reads %s limits from the channel catalog',
+      (platform, min, max, name) => {
+        expect(getCarouselLimits(platform as CredentialPlatform)).toEqual({
+          max,
+          min,
+          name,
+        });
+      },
+    );
+
+    it('returns undefined for unsupported platform', () => {
+      expect(getCarouselLimits(unsupported)).toBeUndefined();
+    });
+
+    it('has no carousel for a channel that posts one image', () => {
+      expect(
+        getCarouselLimits('facebook' as CredentialPlatform),
+      ).toBeUndefined();
+    });
+  });
+
   describe('platformSupportsCarousel', () => {
     it('returns true for supported platforms', () => {
       expect(platformSupportsCarousel(instagram)).toBe(true);
@@ -56,16 +75,6 @@ describe('carousel-validation', () => {
 
     it('returns false for unsupported platforms', () => {
       expect(platformSupportsCarousel(unsupported)).toBe(false);
-    });
-  });
-
-  describe('getCarouselLimits', () => {
-    it('returns limits for supported platform', () => {
-      expect(getCarouselLimits(tiktok)).toEqual(mockLimits.tiktok);
-    });
-
-    it('returns undefined for unsupported platform', () => {
-      expect(getCarouselLimits(unsupported)).toBeUndefined();
     });
   });
 

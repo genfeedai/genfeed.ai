@@ -13,7 +13,6 @@ export * from './app-display.constant';
 export * from './avatar-video-aspect-ratio.constant';
 export * from './brand-handle.constant';
 export * from './brand-vision-models.constant';
-export * from './carousel.constant';
 export * from './character-references.constant';
 export * from './context-embedding.constant';
 export * from './credit-display.constant';

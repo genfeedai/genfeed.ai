@@ -143,9 +143,13 @@ export function usePostDetailMedia({
       }
 
       const platform = targetPost.platform ?? targetPost.credential?.platform;
+      // TikTok takes a video, or a photo carousel when the post already
+      // holds images.
+      const isPhotoPost =
+        currentIngredients[0]?.category === IngredientCategory.IMAGE;
       const isVideoPlatform =
-        platform === CredentialPlatform.TIKTOK ||
-        platform === CredentialPlatform.YOUTUBE;
+        platform === CredentialPlatform.YOUTUBE ||
+        (platform === CredentialPlatform.TIKTOK && !isPhotoPost);
       const ingredientCategory = isVideoPlatform
         ? IngredientCategory.VIDEO
         : currentIngredients[0]?.category || IngredientCategory.IMAGE;

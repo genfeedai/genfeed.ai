@@ -131,6 +131,38 @@ describe('usePostDetailMedia', () => {
     },
   );
 
+  it('keeps images for a TikTok photo carousel instead of forcing a video', () => {
+    const { result } = renderHook(() =>
+      usePostDetailMedia({
+        ...baseProps,
+        post: {
+          ...PARENT_POST,
+          credential: undefined,
+          platform: CredentialPlatform.TIKTOK,
+        },
+      }),
+    );
+    act(() => {
+      result.current.handleSelectMedia(
+        'post-1',
+        ['ing-1', 'ing-2'].map(
+          (id) =>
+            ({
+              category: IngredientCategory.IMAGE,
+              id,
+            }) as unknown as IIngredient,
+        ),
+      );
+    });
+
+    expect(mockOpenGallery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: IngredientCategory.IMAGE,
+        maxSelectableItems: 10,
+      }),
+    );
+  });
+
   it('opens the gallery with carousel limits and current selection', () => {
     const { result } = renderHook(() => usePostDetailMedia(baseProps));
 

@@ -105,6 +105,16 @@ type LinkedInCommentsResponse = {
 const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
 
 /**
+ * Version header of the versioned `/rest` APIs (Images and Posts), which carry
+ * multi-image posts. Versions are supported for about a year, so bump this
+ * when LinkedIn sunsets it.
+ */
+const LINKEDIN_REST_VERSION = '202610';
+const LINKEDIN_REST_BASE_URL = 'https://api.linkedin.com/rest';
+/** A multi-image post takes 2 to 20 images (Posts API, multiImage). */
+export const LINKEDIN_MULTI_IMAGE_LIMITS = { max: 20, min: 2 } as const;
+
+/**
  * LinkedIn's member-network visibility for this release.
  *
  * `PUBLIC` stays the fallback because it is what every share used before the
@@ -444,6 +454,153 @@ export class LinkedInService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Publish one post holding several images, in the order given.
+   *
+   * Multi-image posts exist only on the versioned Posts API, which takes
+   * `urn:li:image` ids from the Images API, so this does not share the
+   * legacy asset upload used for a single image.
+   *
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
+  public async uploadImages(
+    organizationId: string,
+    brandId: string,
+    imageUrls: readonly string[],
+    caption: string,
+    settings: ChannelTargetSettings = {},
+    credentialId?: string,
+    mediaSource: LinkedInMediaSource = 'external',
+  ): Promise<{ id: string | null }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (
+      imageUrls.length < LINKEDIN_MULTI_IMAGE_LIMITS.min ||
+      imageUrls.length > LINKEDIN_MULTI_IMAGE_LIMITS.max
+    ) {
+      throw new Error(
+        `LinkedIn multi-image posts take ${LINKEDIN_MULTI_IMAGE_LIMITS.min} to ${LINKEDIN_MULTI_IMAGE_LIMITS.max} images`,
+      );
+    }
+
+    try {
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
+
+      if (!credential?.accessToken) {
+        throw new Error('LinkedIn credential not found or invalid');
+      }
+
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+      const userInfo = await this.getUserProfile(decryptedAccessToken);
+      const personURN = `urn:li:person:${userInfo.id}`;
+      const headers = {
+        Authorization: `Bearer ${decryptedAccessToken}`,
+        'Content-Type': 'application/json',
+        'Linkedin-Version': LINKEDIN_REST_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0',
+      };
+
+      // One at a time: the post lists the images in this order, and a failed
+      // upload should stop before more bytes are sent.
+      const imageUrns: string[] = [];
+      for (const imageUrl of imageUrls) {
+        imageUrns.push(
+          await this.uploadRestImage(
+            decryptedAccessToken,
+            personURN,
+            imageUrl,
+            mediaSource,
+          ),
+        );
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${LINKEDIN_REST_BASE_URL}/posts`,
+          {
+            author: personURN,
+            commentary: caption,
+            content: {
+              multiImage: { images: imageUrns.map((id) => ({ id })) },
+            },
+            distribution: {
+              feedDistribution: 'MAIN_FEED',
+              targetEntities: [],
+              thirdPartyDistributionChannels: [],
+            },
+            isReshareDisabledByAuthor: false,
+            lifecycleState: 'PUBLISHED',
+            visibility: resolveLinkedInVisibility(settings),
+          },
+          { headers },
+        ),
+      );
+
+      // The Posts API answers 201 with the new post's URN in a header.
+      const rawId: unknown = response.headers?.['x-restli-id'];
+      const id = typeof rawId === 'string' && rawId.length > 0 ? rawId : null;
+      this.loggerService.log(`${url} success`, { id });
+      return { id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /** Upload one image through the versioned Images API and return its URN. */
+  private async uploadRestImage(
+    accessToken: string,
+    ownerUrn: string,
+    imageUrl: string,
+    mediaSource: LinkedInMediaSource,
+  ): Promise<string> {
+    const initialized = await firstValueFrom(
+      this.httpService.post(
+        `${LINKEDIN_REST_BASE_URL}/images?action=initializeUpload`,
+        { initializeUploadRequest: { owner: ownerUrn } },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Linkedin-Version': LINKEDIN_REST_VERSION,
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+        },
+      ),
+    );
+
+    const uploadUrl: unknown = initialized.data?.value?.uploadUrl;
+    const imageUrn: unknown = initialized.data?.value?.image;
+    if (typeof uploadUrl !== 'string' || typeof imageUrn !== 'string') {
+      throw new Error('LinkedIn did not return an image upload target');
+    }
+
+    const image = await downloadLinkedInMedia(
+      imageUrl,
+      'image',
+      this.configService.ingredientsEndpoint,
+      mediaSource,
+    );
+
+    await firstValueFrom(
+      this.httpService.put(uploadUrl, image, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/octet-stream',
+        },
+      }),
+    );
+
+    return imageUrn;
   }
 
   /**

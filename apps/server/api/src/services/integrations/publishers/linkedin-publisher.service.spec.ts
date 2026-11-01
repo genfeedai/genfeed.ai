@@ -110,7 +110,7 @@ describe('LinkedInPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Mock post with multiple images (carousel - not supported)
+  // Mock post with multiple images (published as one multi-image post)
   const mockCarouselPost = {
     id: mockPostId,
     brandId: mockBrandId,
@@ -176,6 +176,7 @@ describe('LinkedInPublisherService', () => {
             createTextPost: vi.fn(),
             postComment: vi.fn(),
             uploadImage: vi.fn(),
+            uploadImages: vi.fn(),
             uploadVideo: vi.fn(),
           },
         },
@@ -255,8 +256,8 @@ describe('LinkedInPublisherService', () => {
       expect(service.supportsVideos).toBe(true);
     });
 
-    it('should NOT support carousel', () => {
-      expect(service.supportsCarousel).toBe(false);
+    it('should support carousel', () => {
+      expect(service.supportsCarousel).toBe(true);
     });
 
     it('should support threads', () => {
@@ -430,14 +431,59 @@ describe('LinkedInPublisherService', () => {
       });
     });
 
-    describe('carousel posts (not supported)', () => {
-      it('should return failed result for carousel posts', async () => {
+    describe('carousel posts', () => {
+      it('publishes several images as one post, in slide order', async () => {
         const context = createPublishContext(mockCarouselPost);
+        linkedInService.uploadImages.mockResolvedValue({
+          id: 'urn:li:share:carousel1',
+        });
+
+        const result = await service.publish(context);
+
+        expect(result.success).toBe(true);
+        expect(result.externalId).toBe('urn:li:share:carousel1');
+        expect(linkedInService.uploadImages).toHaveBeenCalledWith(
+          mockOrganizationId.toString(),
+          mockBrandId.toString(),
+          [
+            expect.stringContaining('/images/'),
+            expect.stringContaining('/images/'),
+          ],
+          expect.any(String),
+          {},
+          mockCredential.id,
+          'publisher',
+        );
+        expect(linkedInService.uploadImage).not.toHaveBeenCalled();
+      });
+
+      it('rejects more than 20 images', async () => {
+        const images = Array.from({ length: 21 }, (_, index) => ({
+          id: testId('ingredient', index + 10),
+          mediaUrl: `https://authorized.test/ingredients/images/key-${index}?signature=fixture`,
+        }));
+        const context = createPublishContext({
+          ...mockCarouselPost,
+          ingredients: images,
+        } as unknown as PostEntity);
 
         const result = await service.publish(context);
 
         expect(result.success).toBe(false);
-        expect(result.error).toContain('does not support carousel posts');
+        expect(result.error).toContain('at most 20 images');
+        expect(linkedInService.uploadImages).not.toHaveBeenCalled();
+      });
+
+      it('rejects several videos in one post', async () => {
+        const context = createPublishContext({
+          ...mockCarouselPost,
+          category: PostCategory.VIDEO,
+        } as unknown as PostEntity);
+
+        const result = await service.publish(context);
+
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('single video');
       });
     });
 
@@ -725,7 +771,7 @@ describe('LinkedInPublisherService', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('should fail validation for carousel posts', () => {
+    it('should pass validation for image carousel posts', () => {
       const context = createPublishContext(mockCarouselPost);
       const mediaInfo: MediaInfo = {
         hasIngredients: true,
@@ -740,8 +786,7 @@ describe('LinkedInPublisherService', () => {
 
       const result = service['validatePost'](context, mediaInfo);
 
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain('does not support carousel posts');
+      expect(result.valid).toBe(true);
     });
 
     it('should pass validation for single image posts', () => {

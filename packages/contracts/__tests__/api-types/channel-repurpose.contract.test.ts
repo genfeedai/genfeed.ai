@@ -210,7 +210,7 @@ describe('repurposePostContent media compatibility', () => {
     const outcome = repurposePostContent({
       caption: 'Carousel recap',
       media: [{ kind: 'carousel' }],
-      targetPlatform: CredentialPlatform.TWITTER,
+      targetPlatform: CredentialPlatform.YOUTUBE,
     });
 
     expect(outcome.ok).toBe(false);

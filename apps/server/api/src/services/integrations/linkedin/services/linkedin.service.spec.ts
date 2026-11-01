@@ -343,6 +343,123 @@ describe('LinkedInService', () => {
     });
   });
 
+  describe('uploadImages (multi-image post)', () => {
+    const imageUrls = [
+      'https://public.example/slide-1.png?signature=valid',
+      'https://public.example/slide-2.png?signature=valid',
+      'https://public.example/slide-3.png?signature=valid',
+    ];
+    let uploadCounter = 0;
+
+    beforeEach(() => {
+      uploadCounter = 0;
+      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+        id: 'credential',
+        accessToken: 'access-token',
+      });
+      vi.spyOn(service, 'getUserProfile').mockResolvedValue({
+        id: 'member',
+        firstName: 'Test',
+        lastName: 'Member',
+        email: 'test@example.com',
+      });
+      mockHttpService.post.mockImplementation((endpoint: string) => {
+        if (endpoint.includes('/images?action=initializeUpload')) {
+          uploadCounter += 1;
+          return of({
+            data: {
+              value: {
+                image: `urn:li:image:${uploadCounter}`,
+                uploadUrl: `https://www.linkedin.com/dms-uploads/${uploadCounter}`,
+              },
+            },
+          });
+        }
+        return of({ data: '', headers: { 'x-restli-id': 'urn:li:share:77' } });
+      });
+      mockHttpService.put.mockReturnValue(of({ data: {} }));
+      vi.mocked(safeFetch).mockImplementation(
+        async () => new Response(new Uint8Array([1, 2])),
+      );
+    });
+
+    afterEach(() => {
+      mockHttpService.post.mockReset();
+      mockHttpService.put.mockReset();
+    });
+
+    it('posts the images in slide order and returns the post URN from the header', async () => {
+      const result = await service.uploadImages(
+        'org',
+        'brand',
+        imageUrls,
+        'Three slides',
+        { visibility: 'CONNECTIONS' },
+        'credential',
+      );
+
+      expect(result).toEqual({ id: 'urn:li:share:77' });
+      const [postEndpoint, postBody, postConfig] =
+        mockHttpService.post.mock.calls.at(-1) ?? [];
+      expect(postEndpoint).toBe('https://api.linkedin.com/rest/posts');
+      expect(postBody).toMatchObject({
+        author: 'urn:li:person:member',
+        commentary: 'Three slides',
+        content: {
+          multiImage: {
+            images: [
+              { id: 'urn:li:image:1' },
+              { id: 'urn:li:image:2' },
+              { id: 'urn:li:image:3' },
+            ],
+          },
+        },
+        lifecycleState: 'PUBLISHED',
+        visibility: 'CONNECTIONS',
+      });
+      expect(postConfig.headers).toMatchObject({
+        'Linkedin-Version': '202610',
+        'X-Restli-Protocol-Version': '2.0.0',
+      });
+    });
+
+    it.each([[1], [21]])(
+      'refuses %i image(s) before any upload',
+      async (count) => {
+        await expect(
+          service.uploadImages(
+            'org',
+            'brand',
+            Array.from(
+              { length: count },
+              (_, index) => `${imageUrls[0]}${index}`,
+            ),
+            'caption',
+            {},
+            'credential',
+          ),
+        ).rejects.toThrow(/2 to 20 images/);
+        expect(mockHttpService.post).not.toHaveBeenCalled();
+      },
+    );
+
+    it('publishes nothing when an image upload fails', async () => {
+      mockHttpService.put.mockReturnValueOnce(of({ data: {} }));
+      mockHttpService.put.mockReturnValueOnce(
+        throwError(() => new Error('upload failed')),
+      );
+
+      await expect(
+        service.uploadImages('org', 'brand', imageUrls, 'caption', {}, 'cred'),
+      ).rejects.toThrow('upload failed');
+      expect(mockHttpService.post).not.toHaveBeenCalledWith(
+        'https://api.linkedin.com/rest/posts',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
