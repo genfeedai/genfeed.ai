@@ -38,6 +38,7 @@ export * from './media/provenance/provenance.helper';
 export * from './model-allowlist.helper';
 export * from './model-capability.helper';
 export * from './model-provider-catalog.helper';
+export * from './oauth/direct-message-capability.helper';
 export * from './oauth/parse-granted-oauth-scopes.helper';
 export * from './onboarding/signup-attribution.helper';
 export * from './onboarding/signup-brand-domain.helper';

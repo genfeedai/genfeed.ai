@@ -1,4 +1,5 @@
 import {
+  computeDirectMessageCapability,
   computeNeedsAccountSelection,
   credentialAttributes,
   credentialInstagramAttributes,
@@ -22,6 +23,7 @@ const baseRelationships = {
 
 export const credentialSerializerConfig = {
   attributeDerivations: {
+    directMessageCapability: computeDirectMessageCapability,
     needsAccountSelection: computeNeedsAccountSelection,
   },
   attributeTransforms: { platform: mapSerializedCredentialPlatform },
