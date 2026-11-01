@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -10,11 +9,11 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Text } from '@ui/typography/text';
 import {
   AtSign,
@@ -378,7 +377,7 @@ function FollowingDeckColumnView({
             />
           ))
         ) : (
-          <CardEmptyContent label={translate('columnEmpty')} />
+          <EmptyState title={translate('columnEmpty')} />
         )}
       </div>
     </section>
@@ -422,7 +421,8 @@ export default function FollowingDeck({
   if (columns.length === 0) {
     return (
       <>
-        <CardEmpty
+        <EmptyState
+          surface="card"
           actions={
             <Button
               icon={<AtSign className="size-3.5" />}
@@ -433,7 +433,7 @@ export default function FollowingDeck({
             />
           }
           icon={AtSign}
-          label={translate('emptyTitle')}
+          title={translate('emptyTitle')}
         />
         {followModal}
       </>

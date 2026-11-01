@@ -32,6 +32,7 @@ import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -417,17 +418,20 @@ function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
   );
 }
 
-function EmptyState({ block }: { block: EmptyStateBlock }): ReactElement {
+function EmptyBlock({ block }: { block: EmptyStateBlock }): ReactElement {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
-      {block.icon && <span className="text-3xl">{block.icon}</span>}
-      <p className="text-sm font-medium text-foreground">{block.message}</p>
-      {block.ctaLabel && (
-        <Button variant={ButtonVariant.DEFAULT} className="mt-2">
-          {block.ctaLabel}
-        </Button>
-      )}
-    </div>
+    <EmptyState
+      actions={
+        block.ctaLabel ? (
+          <Button variant={ButtonVariant.DEFAULT} className="mt-2">
+            {block.ctaLabel}
+          </Button>
+        ) : undefined
+      }
+      glyph={block.icon}
+      surface="card"
+      title={block.message}
+    />
   );
 }
 
@@ -458,7 +462,7 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
     case 'composite':
       return <CompositeLayout block={block as CompositeBlock} />;
     case 'empty_state':
-      return <EmptyState block={block} />;
+      return <EmptyBlock block={block} />;
     default:
       return (
         <Card variant={CardVariant.INSET}>

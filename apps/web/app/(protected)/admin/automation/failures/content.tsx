@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AgentFailureReason,
   type AgentFailureResolution,
@@ -12,7 +11,6 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -20,6 +18,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ChevronDown,
   ChevronUp,
@@ -301,9 +300,7 @@ export default function AgentFailuresPage() {
             <Button label={translate('retry')} onClick={refreshFailures} />
           </Alert>
         ) : failures.length === 0 ? (
-          <CardEmptyContent
-            label={translate(search ? 'emptySearch' : 'empty')}
-          />
+          <EmptyState title={translate(search ? 'emptySearch' : 'empty')} />
         ) : (
           <Table<IWorkflowExecution>
             ariaLabel={translate('title')}

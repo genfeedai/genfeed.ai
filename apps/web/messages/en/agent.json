@@ -585,5 +585,9 @@
   "referenceMentions": {
     "empty": "No matching references or characters",
     "listLabel": "References and characters"
+  },
+  "strategyStatus": {
+    "emptyDescription": "Create one in the configuration above.",
+    "emptyTitle": "No strategy configured yet."
   }
 }

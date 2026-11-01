@@ -1,5 +1,4 @@
 'use client';
-
 import {
   useConfirmModal,
   useGalleryModal,
@@ -17,9 +16,9 @@ import {
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -814,9 +813,9 @@ export default function StoryboardPlanEditor({
               ) : null}
             </>
           ) : (
-            <CardEmptyContent
+            <EmptyState
               icon={Clapperboard}
-              label={translateDraft('emptyTitle')}
+              title={translateDraft('emptyTitle')}
               actions={
                 <div className="mt-1 flex flex-wrap justify-center gap-2">
                   {sourceBrief && onDraftFromBrief ? (

@@ -1,8 +1,3 @@
-export {
-  EmptyState,
-  EmptyStateCard,
-  type EmptyStateProps,
-} from '@ui/card/EmptyState';
 export { default as BrandLoader } from '@ui/feedback/brand-loader/BrandLoader';
 export { default as ConnectionSuccess } from '@ui/feedback/connection-success/ConnectionSuccess';
 export {

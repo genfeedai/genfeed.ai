@@ -30,7 +30,6 @@ import { CardBoundary } from '@mcp/ui/card-boundary';
 import uiMessages from '@preview-messages/ui';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
@@ -53,6 +52,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
 import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
@@ -1062,7 +1062,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           />
         )}
         {emptyMessage ? (
-          <CardEmptyContent label={emptyMessage} />
+          <EmptyState title={emptyMessage} />
         ) : (
           <Text
             as="p"

@@ -1,5 +1,4 @@
 'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -14,7 +13,6 @@ import {
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
-import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -28,6 +26,7 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -58,7 +57,6 @@ import type {
   ViewMode,
 } from '@/features/tasks/props/issues-list.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
 import {
   PRIORITY_ORDER,
   STATUS_ORDER,
@@ -124,7 +122,7 @@ function KanbanColumn({
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <CardEmptyContent label={translate('noTasksKanban')} />
+          <EmptyState title={translate('noTasksKanban')} />
         ) : null}
       </div>
     </section>
@@ -483,8 +481,9 @@ export default function IssuesList() {
       {isLoading ? (
         <SkeletonTable rows={6} columns={4} />
       ) : isEmpty ? (
-        <CardEmpty
-          label={
+        <EmptyState
+          surface="card"
+          title={
             isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
           }
           action={

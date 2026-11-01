@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonVariant,
   CardGap,
@@ -20,11 +19,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ChartColumn,
   CircleCheck,
@@ -230,7 +229,7 @@ function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
 
 function BriefSection({ brief }: { brief?: ContentRunBrief }) {
   if (!brief) {
-    return <CardEmptyContent label="No brief has been attached to this run." />;
+    return <EmptyState title="No brief has been attached to this run." />;
   }
 
   return (
@@ -265,7 +264,7 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
 
 function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   if (!variants?.length) {
-    return <CardEmptyContent label="No remix variants have been stored yet." />;
+    return <EmptyState title="No remix variants have been stored yet." />;
   }
 
   return (
@@ -299,9 +298,7 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
 
 function PublishSection({ publish }: { publish?: ContentRunPublishContext }) {
   if (!publish) {
-    return (
-      <CardEmptyContent label="No publish context has been captured yet." />
-    );
+    return <EmptyState title="No publish context has been captured yet." />;
   }
 
   return (
@@ -336,9 +333,7 @@ function AnalyticsSection({
   analytics?: ContentRunAnalyticsSummary;
 }) {
   if (!analytics) {
-    return (
-      <CardEmptyContent label="No analytics summary has been synced yet." />
-    );
+    return <EmptyState title="No analytics summary has been synced yet." />;
   }
 
   return (
@@ -395,7 +390,7 @@ function RecommendationsSection({
 }) {
   if (!recommendations?.length) {
     return (
-      <CardEmptyContent label="No recommended actions have been generated yet." />
+      <EmptyState title="No recommended actions have been generated yet." />
     );
   }
 
