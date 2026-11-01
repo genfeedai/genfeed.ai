@@ -20,6 +20,7 @@ export default function AppError({ error, reset }: ErrorProps) {
 
   return (
     <div
+      // ui-guard-allow:overlay -- full-page error state that replaces the app shell, not a dismissible overlay
       className="fixed inset-0 flex items-center justify-center bg-card z-40"
       data-testid="error-boundary-fallback"
     >

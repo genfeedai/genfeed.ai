@@ -35,3 +35,59 @@
   animation: gen-dialog-panel-right-out var(--motion-duration-fast)
     var(--motion-ease-standard);
 }
+
+@keyframes gen-dialog-panel-left-in {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes gen-dialog-panel-left-out {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes gen-dialog-panel-top-in {
+  from {
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes gen-dialog-panel-top-out {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -100%, 0);
+  }
+}
+
+.gen-dialog-panel-left[data-state="open"] {
+  animation: gen-dialog-panel-left-in var(--motion-duration-normal)
+    var(--motion-ease-standard);
+}
+
+.gen-dialog-panel-left[data-state="closed"] {
+  animation: gen-dialog-panel-left-out var(--motion-duration-fast)
+    var(--motion-ease-standard);
+}
+
+.gen-dialog-panel-top[data-state="open"] {
+  animation: gen-dialog-panel-top-in var(--motion-duration-normal)
+    var(--motion-ease-standard);
+}
+
+.gen-dialog-panel-top[data-state="closed"] {
+  animation: gen-dialog-panel-top-out var(--motion-duration-fast)
+    var(--motion-ease-standard);
+}

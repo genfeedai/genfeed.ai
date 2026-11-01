@@ -1,8 +1,13 @@
 'use client';
 
 import { getActionDefinition } from '@genfeedai/actions';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '@genfeedai/ui/primitives/popover';
 import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
 import { Plus } from 'lucide-react';
@@ -194,43 +199,47 @@ function ConnectionDropMenuComponent() {
       } else if (e.key === 'Enter' && filteredNodes[selectedIndex]) {
         e.preventDefault();
         handleSelect(filteredNodes[selectedIndex].type);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        closeConnectionDropMenu();
       }
     },
-    [filteredNodes, selectedIndex, handleSelect, closeConnectionDropMenu],
+    [filteredNodes, selectedIndex, handleSelect],
   );
 
   if (!isOpen || !connectionDropMenu) return null;
 
-  // Position the menu at the cursor location
-  const menuStyle: React.CSSProperties = {
+  // The menu opens at the cursor: a zero-size fixed anchor gives the shared
+  // Popover its position, and the Popover owns Escape, outside-click dismissal
+  // and focus.
+  const anchorStyle: React.CSSProperties = {
+    height: 0,
     left: connectionDropMenu.screenPosition.x,
     position: 'fixed',
     top: connectionDropMenu.screenPosition.y,
-    zIndex: 50,
+    width: 0,
   };
 
   let flatIndex = 0;
 
   return (
-    <>
-      <Button
-        withWrapper={false}
-        type="button"
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.ICON}
-        className="fixed inset-0 z-40 size-full p-0 opacity-0"
-        onClick={closeConnectionDropMenu}
-        aria-label="Close add node menu"
-      />
-      <div
-        style={menuStyle}
-        className="bg-background border border-border shadow-xl w-64 max-h-80 flex flex-col"
-        role="dialog"
+    <Popover
+      open
+      onOpenChange={(isPopoverOpen) => {
+        if (!isPopoverOpen) {
+          closeConnectionDropMenu();
+        }
+      }}
+    >
+      <PopoverAnchor asChild>
+        <span aria-hidden="true" style={anchorStyle} />
+      </PopoverAnchor>
+      <PopoverContent
+        align="start"
         aria-label="Add Node"
+        className="flex max-h-80 w-64 flex-col p-0"
+        collisionPadding={8}
         onKeyDown={handleKeyDown}
+        role="dialog"
+        side="bottom"
+        sideOffset={0}
       >
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
           <Plus className="size-3.5 text-muted-foreground" />
@@ -286,8 +295,8 @@ function ConnectionDropMenuComponent() {
             })
           )}
         </div>
-      </div>
-    </>
+      </PopoverContent>
+    </Popover>
   );
 }
 
