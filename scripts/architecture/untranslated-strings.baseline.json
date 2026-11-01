@@ -582,7 +582,6 @@
     "packages/workflows/src/ui/components/CostModal.tsx": 9,
     "packages/workflows/src/ui/components/GlobalImageHistory.tsx": 6,
     "packages/workflows/src/ui/components/MultiSelectToolbar.tsx": 6,
-    "packages/workflows/src/ui/components/NotificationToast.tsx": 2,
     "packages/workflows/src/ui/lib/CubicBezierEditor.tsx": 2,
     "packages/workflows/src/ui/nodes/ai/LipSyncNode.tsx": 4,
     "packages/workflows/src/ui/nodes/ai/MotionControlNode.tsx": 33,
@@ -617,7 +616,7 @@
     "packages/workflows/src/ui/toolbar/BottomBar.tsx": 7,
     "packages/workflows/src/ui/toolbar/OverflowMenu.tsx": 1,
     "packages/workflows/src/ui/toolbar/SaveIndicator.tsx": 6,
-    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 15,
+    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 13,
     "packages/workflows/src/ui/ui/comparison-slider.tsx": 1,
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": 2
   }

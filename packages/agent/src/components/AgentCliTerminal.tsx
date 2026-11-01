@@ -30,6 +30,12 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { Button } from '@ui/primitives/button';
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@ui/primitives/context-menu';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -48,7 +54,6 @@ import { ChevronDown, Plus, Search, X } from 'lucide-react';
 import {
   type FormEvent,
   type KeyboardEvent,
-  type MouseEvent,
   type ReactElement,
   type RefObject,
   useCallback,
@@ -629,18 +634,7 @@ export function AgentCliTerminalBody({
   onCloseSearch,
   onSendSelection,
 }: AgentCliTerminalBodyProps): ReactElement {
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-
-  const handleContextMenu = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setContextMenu({ x: event.clientX, y: event.clientY });
-  }, []);
-
   const handleSendSelection = useCallback(() => {
-    setContextMenu(null);
     // xterm exposes getSelection via the terminal element's shadow DOM; we
     // read window.getSelection() as a fallback since xterm syncs to it.
     const selection = window.getSelection()?.toString() ?? '';
@@ -658,82 +652,62 @@ export function AgentCliTerminalBody({
     [onCloseSearch],
   );
 
-  // Close context menu on outside click
-  useEffect(() => {
-    if (!contextMenu) {
-      return undefined;
-    }
-
-    function handleClick(): void {
-      setContextMenu(null);
-    }
-
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [contextMenu]);
-
   return (
-    <div
-      className="relative flex h-full flex-col font-mono text-sm leading-relaxed"
-      data-testid="agent-cli-terminal"
-      onClick={() => containerRef.current?.querySelector('textarea')?.focus()}
-      onContextMenu={handleContextMenu}
-      role="presentation"
-    >
-      {/* T7: Inline search bar */}
-      {isSearchOpen && (
-        <div className="flex shrink-0 items-center gap-1 border-b border-border/20 bg-background/80 px-3 py-1 backdrop-blur-sm">
-          <Input
-            aria-label="Terminal search"
-            autoFocus
-            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/20 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/40 focus:border-success/50"
-            onChange={(event) => onSearchQueryChange?.(event.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search..."
-            spellCheck={false}
-            value={searchQuery}
-          />
-          <Button
-            aria-label="Close search"
-            className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
-            label="✕"
-            onClick={(event) => {
-              event.stopPropagation();
-              onCloseSearch?.();
-            }}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        </div>
-      )}
-
-      {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- xterm mounts into a div host, not a native <input>. */}
-      <div
-        ref={containerRef}
-        aria-label="Genfeed terminal"
-        className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-sm text-foreground/80 outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
-        role="textbox"
-        tabIndex={0}
-      />
-
-      {/* T8: Right-click context menu */}
-      {contextMenu && (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
         <div
-          className="fixed z-50 min-w-[160px] overflow-hidden rounded border border-border/60 bg-background shadow-lg"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          className="relative flex h-full flex-col font-mono text-sm leading-relaxed"
+          data-testid="agent-cli-terminal"
+          onClick={() =>
+            containerRef.current?.querySelector('textarea')?.focus()
+          }
+          role="presentation"
         >
-          <Button
-            className="w-full px-3 py-2 text-left text-xs text-foreground/80 transition-colors hover:bg-foreground/5"
-            label="Send selection to agent"
-            onClick={handleSendSelection}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
+          {/* T7: Inline search bar */}
+          {isSearchOpen && (
+            <div className="flex shrink-0 items-center gap-1 border-b border-border/20 bg-background/80 px-3 py-1 backdrop-blur-sm">
+              <Input
+                aria-label="Terminal search"
+                autoFocus
+                className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/20 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/40 focus:border-success/50"
+                onChange={(event) => onSearchQueryChange?.(event.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search..."
+                spellCheck={false}
+                value={searchQuery}
+              />
+              <Button
+                aria-label="Close search"
+                className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
+                label="✕"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onCloseSearch?.();
+                }}
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              />
+            </div>
+          )}
+
+          {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- xterm mounts into a div host, not a native <input>. */}
+          <div
+            ref={containerRef}
+            aria-label="Genfeed terminal"
+            className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-sm text-foreground/80 outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
+            role="textbox"
+            tabIndex={0}
           />
         </div>
-      )}
-    </div>
+      </ContextMenuTrigger>
+      {/* T8: Right-click context menu */}
+      <ContextMenuContent className="min-w-[160px]">
+        <ContextMenuItem onSelect={handleSendSelection}>
+          Send selection to agent
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

@@ -4,9 +4,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 
 import type { WorkflowFile } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { toast } from '@genfeedai/ui/primitives/toaster';
 import {
   Bug,
-  CircleAlert,
   CircleQuestionMark,
   FolderOpen,
   LayoutGrid,
@@ -14,7 +14,6 @@ import {
   Save,
   Settings,
   Undo2,
-  X,
 } from 'lucide-react';
 import NextImage from 'next/image';
 import {
@@ -142,49 +141,45 @@ function useFileMenuItems({
   }, [handleExport, handleImport, fileMenuItemsPrepend, fileMenuItemsAppend]);
 }
 
-function ValidationErrorsToast({
-  messages,
-  onClear,
-}: {
-  messages: string[];
-  onClear: () => void;
-}) {
-  if (messages.length === 0) return null;
+const VALIDATION_TOAST_ID = 'workflow-validation-errors';
+const MAX_VISIBLE_VALIDATION_ERRORS = 5;
 
+function ValidationErrorList({ messages }: { messages: string[] }) {
   return (
-    <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/20 bg-destructive/10 p-4 shadow-xl">
-      <div className="flex items-start gap-3">
-        <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
-        <div className="min-w-0 flex-1">
-          <h4 className="mb-2 text-sm font-medium text-destructive">
-            Cannot run workflow
-          </h4>
-          <ul className="space-y-1">
-            {messages.slice(0, 5).map((message) => (
-              <li key={message} className="text-xs text-destructive/80">
-                {message}
-              </li>
-            ))}
-            {messages.length > 5 && (
-              <li className="text-xs text-destructive/60">
-                +{messages.length - 5} more errors
-              </li>
-            )}
-          </ul>
-        </div>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={onClear}
-          className="text-destructive hover:bg-destructive/20"
-          title="Dismiss validation errors"
-        >
-          <X className="size-4" />
-        </Button>
-      </div>
-    </div>
+    <ul className="space-y-1">
+      {messages.slice(0, MAX_VISIBLE_VALIDATION_ERRORS).map((message) => (
+        <li key={message}>{message}</li>
+      ))}
+      {messages.length > MAX_VISIBLE_VALIDATION_ERRORS && (
+        <li>+{messages.length - MAX_VISIBLE_VALIDATION_ERRORS} more errors</li>
+      )}
+    </ul>
   );
+}
+
+/**
+ * Surfaces workflow validation failures through the shared toaster. The toast
+ * stays until dismissed; dismissing it clears the validation errors.
+ */
+function useValidationErrorToast(
+  messages: string[],
+  onClear: () => void,
+): void {
+  useEffect(() => {
+    if (messages.length === 0) {
+      toast.dismiss(VALIDATION_TOAST_ID);
+      return;
+    }
+
+    toast.error('Cannot run workflow', {
+      description: <ValidationErrorList messages={messages} />,
+      duration: Number.POSITIVE_INFINITY,
+      id: VALIDATION_TOAST_ID,
+      onDismiss: onClear,
+    });
+  }, [messages, onClear]);
+
+  useEffect(() => () => void toast.dismiss(VALIDATION_TOAST_ID), []);
 }
 
 export function Toolbar({
@@ -221,6 +216,8 @@ export function Toolbar({
     if (!validationErrors?.errors.length) return [];
     return [...new Set(validationErrors.errors.map((e) => e.message))];
   }, [validationErrors]);
+
+  useValidationErrorToast(uniqueErrorMessages, clearValidationErrors);
 
   // Subscribe to temporal state changes for undo/redo button states
   useEffect(() => {
@@ -415,11 +412,6 @@ export function Toolbar({
           <Settings className="size-4" />
         </Button>
       )}
-
-      <ValidationErrorsToast
-        messages={uniqueErrorMessages}
-        onClear={clearValidationErrors}
-      />
     </div>
   );
 }

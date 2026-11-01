@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { Toaster } from '@genfeedai/ui/primitives/toaster';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Toolbar } from './Toolbar';
 
@@ -125,15 +126,22 @@ describe('Toolbar actions', () => {
     expect(onAutoLayout).toHaveBeenCalledWith('LR');
   });
 
-  it('deduplicates validation error messages and clears them', () => {
-    render(<Toolbar />);
+  it('shows deduplicated validation errors in a toast and clears them on dismiss', async () => {
+    render(
+      <>
+        <Toaster theme="light" />
+        <Toolbar />
+      </>,
+    );
 
-    expect(screen.getByText('Cannot run workflow')).toBeInTheDocument();
+    expect(await screen.findByText('Cannot run workflow')).toBeInTheDocument();
     expect(screen.getAllByText('Missing input')).toHaveLength(1);
     expect(screen.getByText('Cycle detected')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Dismiss validation errors'));
-    expect(stores.clearValidationErrors).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close toast' }));
+    await waitFor(() => {
+      expect(stores.clearValidationErrors).toHaveBeenCalled();
+    });
   });
 
   it('exports the workflow as a JSON download', () => {
