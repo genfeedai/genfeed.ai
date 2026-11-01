@@ -44,9 +44,11 @@ export default function StoryboardPitchCards({
             withWrapper={false}
           >
             <Icon aria-hidden className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{title}</span>
-            <span className="text-xs text-muted-foreground">
-              {translate(`items.${pitch.id}.description`)}
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">{title}</span>
+              <span className="text-xs text-muted-foreground">
+                {translate(`items.${pitch.id}.description`)}
+              </span>
             </span>
           </Button>
         );
