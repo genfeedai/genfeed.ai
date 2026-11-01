@@ -56,7 +56,7 @@ describe('posts semantic theme surfaces', () => {
       'components/calendar/content-calendar/ContentCalendarView.tsx',
     );
 
-    expect(source).toContain('border-border');
+    expect(source).toContain('CardVariant.BORDERED');
     expect(source).toContain("'--fc-classic-border': 'hsl(var(--border))'");
     expect(source).toContain(
       "'--fc-classic-strong-border': 'hsl(var(--border-strong))'",
