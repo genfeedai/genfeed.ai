@@ -407,7 +407,10 @@
   "transferProvenance": {
     "copy": "Copy",
     "openConversation": "Open conversation",
-    "openInThreads": "Open in Threads"
+    "openInThreads": "Open in Threads",
+    "reopen": "Reopen",
+    "resolve": "Resolve",
+    "resolved": "Resolved"
   },
   "settings": {
     "autoDescription": "Use the platform default model",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -69,9 +69,7 @@ export default function RolesList() {
     {
       icon: <Pencil />,
       onClick: (r: IRole) => openRoleModal(ModalEnum.ROLE, r),
-      size: ButtonSize.SM,
       tooltip: 'Edit',
-      variant: ButtonVariant.DEFAULT,
     },
     {
       icon: <Trash2 />,
@@ -85,9 +83,8 @@ export default function RolesList() {
           onConfirm: () => handleDelete(r),
         });
       },
-      size: ButtonSize.SM,
       tooltip: 'Delete',
-      variant: ButtonVariant.DESTRUCTIVE,
+      tone: 'destructive',
     },
   ];
 

@@ -1,7 +1,7 @@
 /**
- * table-dates.ts — blocks hand-formatted dates in table columns.
+ * table-columns.ts — keeps table cells to content.
  *
- * A date in a table column renders through `TableDateCell`
+ * Rule `date`: a date in a table column renders through `TableDateCell`
  * (`@ui/display/table/TableDateCell`): one line, compact, the full date in its
  * tooltip, in the viewer's zone. A column (an object literal with `key`,
  * `header` and `render`) fails when its `render` formats a date itself:
@@ -13,8 +13,16 @@
  *
  * Relative times ("3 hours ago") are not dates in this sense and stay allowed.
  *
- * Escape hatch: `ui-guard-allow:table-date -- <reason>` on the offending line
- * or the line above. The reason is required.
+ * Rule `action`: a column's `render` never holds a control that acts on the
+ * row (`<Button onClick>`, `<Button asChild>`, `<ButtonDropdown>`,
+ * `<DropdownMenu>`). An unstyled button (a clickable name or thumbnail) is
+ * content and stays allowed. Row actions go in the table's `actions` (or
+ * `renderRowActions`): ghost icons over the row's end, revealed on hover or
+ * focus, so they never sit in a column of their own.
+ *
+ * Escape hatch: `ui-guard-allow:table-date -- <reason>` or
+ * `ui-guard-allow:table-action -- <reason>` on the offending line or the line
+ * above. The reason is required.
  */
 
 import { readFileSync } from 'node:fs';
@@ -26,13 +34,21 @@ import {
   scriptKindFor,
 } from '../../architecture/parse-source-file';
 
-export type TableDateViolation = {
+export type TableColumnRule = 'action' | 'date';
+
+export type TableColumnViolation = {
   file: string;
   line: number;
   message: string;
+  rule: TableColumnRule;
 };
 
-const ALLOW_PATTERN = /ui-guard-allow:table-date\s+--\s+\S/;
+const ALLOW_PATTERNS: Record<TableColumnRule, RegExp> = {
+  action: /ui-guard-allow:table-action\s+--\s+\S/,
+  date: /ui-guard-allow:table-date\s+--\s+\S/,
+};
+const ACTION_ATTRIBUTES = new Set(['asChild', 'href', 'onClick']);
+const MENU_TAGS = new Set(['ButtonDropdown', 'DropdownMenu']);
 const FILE_IGNORE = [
   '**/*.test.*',
   '**/*.spec.*',
@@ -120,10 +136,44 @@ function describeDateFormatting(
   return null;
 }
 
-export function detectTableDateViolations(
+function describeCellAction(node: ts.Node): string | null {
+  if (!(ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))) {
+    return null;
+  }
+  const tag = node.tagName.getText();
+  if (MENU_TAGS.has(tag)) return `<${tag}>`;
+  if (tag !== 'Button') return null;
+  // An unstyled button is the cell's own content made clickable (a name or a
+  // thumbnail that opens the record), not a control sitting in the cell.
+  const isUnstyled = node.attributes.properties.some(
+    (attribute) =>
+      ts.isJsxAttribute(attribute) &&
+      attribute.name.getText() === 'variant' &&
+      attribute.initializer?.getText().includes('ButtonVariant.UNSTYLED') ===
+        true,
+  );
+  if (isUnstyled) return null;
+  const actionAttribute = node.attributes.properties.find(
+    (attribute) =>
+      ts.isJsxAttribute(attribute) &&
+      ACTION_ATTRIBUTES.has(attribute.name.getText()),
+  );
+  return actionAttribute && ts.isJsxAttribute(actionAttribute)
+    ? `<Button ${actionAttribute.name.getText()}>`
+    : null;
+}
+
+const RULE_MESSAGES: Record<TableColumnRule, (found: string) => string> = {
+  action: (found) =>
+    `Table column renders a row control (${found}). Put it in the table's \`actions\`.`,
+  date: (found) =>
+    `Table column formats a date with ${found}. Render <TableDateCell value={...} />.`,
+};
+
+export function detectTableColumnViolations(
   filePath: string,
   source: string,
-): TableDateViolation[] {
+): TableColumnViolation[] {
   if (!/\brender\b/.test(source) || !/\bheader\b/.test(source)) return [];
 
   const sourceFile = parseSourceFile(
@@ -134,26 +184,31 @@ export function detectTableDateViolations(
   );
   const lines = source.split('\n');
   const hasDateFnsFormat = importsDateFnsFormat(sourceFile);
-  const violations: TableDateViolation[] = [];
+  const violations: TableColumnViolation[] = [];
+
+  const report = (node: ts.Node, rule: TableColumnRule, found: string) => {
+    const line =
+      sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+      1;
+    const isAllowed =
+      ALLOW_PATTERNS[rule].test(lines[line - 1] ?? '') ||
+      ALLOW_PATTERNS[rule].test(lines[line - 2] ?? '');
+    if (!isAllowed) {
+      violations.push({
+        file: filePath,
+        line,
+        message: RULE_MESSAGES[rule](found),
+        rule,
+      });
+    }
+  };
 
   const scanRender = (render: ts.Node): void => {
     const visit = (node: ts.Node): void => {
-      const found = describeDateFormatting(node, hasDateFnsFormat);
-      if (found) {
-        const line =
-          sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-            .line + 1;
-        const isAllowed =
-          ALLOW_PATTERN.test(lines[line - 1] ?? '') ||
-          ALLOW_PATTERN.test(lines[line - 2] ?? '');
-        if (!isAllowed) {
-          violations.push({
-            file: filePath,
-            line,
-            message: `Table column formats a date with ${found}. Render <TableDateCell value={...} />.`,
-          });
-        }
-      }
+      const date = describeDateFormatting(node, hasDateFnsFormat);
+      if (date) report(node, 'date', date);
+      const action = describeCellAction(node);
+      if (action) report(node, 'action', action);
       ts.forEachChild(node, visit);
     };
     visit(render);
@@ -172,10 +227,10 @@ export function detectTableDateViolations(
   return violations;
 }
 
-export function runTableDatesGuard(options: {
+export function runTableColumnsGuard(options: {
   files?: readonly string[];
   rootDir?: string;
-}): TableDateViolation[] {
+}): TableColumnViolation[] {
   const rootDir = options.rootDir ?? process.cwd();
   const files =
     options.files ??
@@ -184,7 +239,7 @@ export function runTableDatesGuard(options: {
   return files
     .filter((file) => file.endsWith('.tsx') && !/\.(test|spec)\./.test(file))
     .flatMap((file) =>
-      detectTableDateViolations(
+      detectTableColumnViolations(
         file,
         readFileSync(path.join(rootDir, file), 'utf8'),
       ),
@@ -193,18 +248,22 @@ export function runTableDatesGuard(options: {
 
 if (import.meta.main) {
   const files = process.argv.slice(2);
-  const violations = runTableDatesGuard(files.length > 0 ? { files } : {});
+  const violations = runTableColumnsGuard(files.length > 0 ? { files } : {});
   if (violations.length > 0) {
-    console.error('[table-dates] Hand-formatted dates in table columns:');
+    console.error(
+      '[table-columns] Table cells that hold dates or row controls:',
+    );
     for (const violation of violations) {
       console.error(
-        `  ${violation.file}:${violation.line} ${violation.message}`,
+        `  ${violation.file}:${violation.line} [${violation.rule}] ${violation.message}`,
       );
     }
     console.error(
-      '[table-dates] Escape hatch: `ui-guard-allow:table-date -- reason`.',
+      '[table-columns] Escape hatch: `ui-guard-allow:table-date|table-action -- reason`.',
     );
     process.exit(1);
   }
-  console.log('[table-dates] Every table date renders through TableDateCell.');
+  console.log(
+    '[table-columns] Table dates use TableDateCell and row controls are row actions.',
+  );
 }
