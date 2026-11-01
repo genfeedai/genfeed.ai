@@ -82,7 +82,9 @@ describe('MetricCard', () => {
     expect(
       screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
     ).toBe(0);
-    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      1,
+    );
   });
 
   it('starts the counter only after the real value arrives', () => {

@@ -100,10 +100,7 @@ export function SkeletonCard({
   return (
     <ShadcnSkeleton
       aria-label={label}
-      className={cn(
-        'block w-full rounded-card motion-reduce:animate-none motion-reduce:before:animate-none',
-        className,
-      )}
+      className={cn('block w-full rounded-card', className)}
       data-testid={dataTestId}
       role="status"
       style={{ minHeight }}

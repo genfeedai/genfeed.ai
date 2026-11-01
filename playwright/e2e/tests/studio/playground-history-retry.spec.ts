@@ -221,7 +221,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         }),
       ).toHaveCount(0);
       await expect(
-        restoredCard.locator('.masonry-skeleton, .animate-pulse'),
+        restoredCard.locator('.masonry-skeleton, [data-slot="skeleton"]'),
       ).toHaveCount(0);
       await testInfo.attach('decoded-media-state', {
         body: JSON.stringify(await readMediaState(), null, 2),
