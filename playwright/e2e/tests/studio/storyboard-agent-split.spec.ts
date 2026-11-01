@@ -156,6 +156,56 @@ test.describe('Storyboard agent + output split', () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test('docks the animatic in a third Preview pane on a wide screen', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1680 });
+    await routeSplitRun(page, { drafts: [], run: buildRun(1, originalAction) });
+
+    await page.goto(`${base}/split-run`);
+    await assertNoErrorBoundaryFallback(page);
+
+    const agent = page.getByTestId('agent-output-agent-pane');
+    const output = page.getByTestId('agent-output-output-pane');
+    const preview = page.getByTestId('agent-output-preview-pane');
+    await expect(preview).toBeVisible();
+    // Agent, then the board, then the preview, left to right.
+    const [agentBox, outputBox, previewBox] = await Promise.all([
+      agent.boundingBox(),
+      output.boundingBox(),
+      preview.boundingBox(),
+    ]);
+    expect(agentBox?.x ?? 0).toBeLessThan(outputBox?.x ?? 0);
+    expect(outputBox?.x ?? 0).toBeLessThan(previewBox?.x ?? 0);
+
+    await expect(
+      preview.getByRole('region', { name: 'Storyboard animatic' }),
+    ).toBeVisible();
+    await expect(
+      output.getByRole('region', { name: 'Storyboard animatic' }),
+    ).toHaveCount(0);
+    await expect(
+      preview.getByText('The final video shows here once the shots render.'),
+    ).toBeVisible();
+  });
+
+  test('keeps the animatic on the board when the preview pane does not fit', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await routeSplitRun(page, { drafts: [], run: buildRun(1, originalAction) });
+
+    await page.goto(`${base}/split-run`);
+    await assertNoErrorBoundaryFallback(page);
+
+    await expect(page.getByTestId('agent-output-preview-pane')).toBeHidden();
+    await expect(
+      page
+        .getByTestId('agent-output-output-pane')
+        .getByRole('region', { name: 'Storyboard animatic' }),
+    ).toBeVisible();
+  });
+
   test('shows one pane at a time on a phone', async ({
     authenticatedPage: page,
   }) => {

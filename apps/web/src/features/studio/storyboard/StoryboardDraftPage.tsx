@@ -95,6 +95,11 @@ export default function StoryboardDraftPage({
   const lastRequest = useRef<DraftRequest>({});
   const lastRequestId = useRef<string | undefined>(undefined);
   const nextRequestId = useRef(0);
+  // The docked preview pane's body; the editor renders the animatic and the
+  // final video into it so they share the board's unsaved edits.
+  const [previewTarget, setPreviewTarget] = useState<HTMLDivElement | null>(
+    null,
+  );
   const [requests, setRequests] = useState<readonly StoryboardAgentRequest[]>(
     [],
   );
@@ -232,6 +237,7 @@ export default function StoryboardDraftPage({
       capabilities={capabilities}
       capabilityError={capabilityError}
       refreshCapabilities={refreshCapabilities}
+      previewTarget={hasAgentColumn ? previewTarget : undefined}
       sourceBrief={savedBrief || undefined}
       onDraftFromBrief={canCompose ? () => void runDraft({}) : undefined}
       actions={
@@ -307,6 +313,10 @@ export default function StoryboardDraftPage({
       }
       agentTitle={translate('agentThread.title')}
       outputLabel={translate('agentThread.board')}
+      preview={{
+        content: <div ref={setPreviewTarget} className="flex flex-col" />,
+        label: translate('preview.label'),
+      }}
     >
       {board}
     </AgentOutputShell>

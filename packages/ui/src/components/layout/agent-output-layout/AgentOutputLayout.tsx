@@ -28,6 +28,7 @@ export default function AgentOutputLayout({
   isOutputExpandable = false,
   labels,
   mode = 'split',
+  preview,
   tabs,
 }: AgentOutputLayoutProps) {
   const [mobileView, setMobileView] = useState<MobileView>('agent');
@@ -68,6 +69,13 @@ export default function AgentOutputLayout({
             (isRail
               ? 'xl:grid-cols-[22.5rem_minmax(0,1fr)]'
               : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'),
+          // The preview docks as a third column only where all three fit.
+          preview &&
+            (isAgentHidden
+              ? '2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]'
+              : isRail
+                ? '2xl:grid-cols-[22.5rem_minmax(0,1fr)_minmax(22rem,30rem)]'
+                : '2xl:grid-cols-[minmax(20rem,1fr)_minmax(0,1.25fr)_minmax(22rem,0.9fr)]'),
         )}
       >
         <section
@@ -167,6 +175,23 @@ export default function AgentOutputLayout({
             </div>
           ))}
         </section>
+
+        {preview ? (
+          <section
+            aria-label={preview.label}
+            className="flex min-h-0 min-w-0 flex-col border-border max-2xl:hidden 2xl:border-l"
+            data-testid="agent-output-preview-pane"
+          >
+            <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                {preview.label}
+              </span>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              {preview.content}
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );

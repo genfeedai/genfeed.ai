@@ -13,6 +13,16 @@ export interface AgentOutputTabDefinition {
   readonly label: string;
 }
 
+/**
+ * A third pane beside the output for what the output produces: a preview, a
+ * render, the final file. It docks on wide screens only; below that the page
+ * keeps its own inline version, so nothing is lost on a laptop or phone.
+ */
+export interface AgentOutputPreviewDefinition {
+  readonly content: ReactNode;
+  readonly label: string;
+}
+
 export interface AgentOutputLayoutLabels {
   readonly agent: string;
   readonly collapseAgent: string;
@@ -46,6 +56,8 @@ export interface AgentOutputLayoutProps {
   readonly isOutputExpandable?: boolean;
   readonly labels: AgentOutputLayoutLabels;
   readonly mode?: AgentOutputLayoutMode;
+  /** Docked third pane, shown from the `2xl` breakpoint. */
+  readonly preview?: AgentOutputPreviewDefinition;
   readonly tabs: readonly AgentOutputTabDefinition[];
 }
 
@@ -86,4 +98,6 @@ export interface AgentOutputShellProps {
   readonly mode?: AgentOutputLayoutMode;
   /** Tab label for the page output. Defaults to "Output". */
   readonly outputLabel?: string;
+  /** Docked third pane for the output's preview or final result. */
+  readonly preview?: AgentOutputPreviewDefinition;
 }

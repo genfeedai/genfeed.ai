@@ -40,6 +40,7 @@ export default function AgentOutputShell({
   isOutputExpandable,
   mode,
   outputLabel,
+  preview,
 }: AgentOutputShellProps) {
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
@@ -166,6 +167,7 @@ export default function AgentOutputShell({
         output: translate('output'),
       }}
       mode={mode}
+      preview={preview}
       tabs={tabs}
     />
   );

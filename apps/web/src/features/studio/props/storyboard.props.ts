@@ -113,6 +113,13 @@ export interface StoryboardAnimaticProps {
   readonly shots: readonly StoryboardAnimaticShot[];
 }
 
+export interface StoryboardPreviewPanelProps {
+  /** The animatic for shot-based plans; slideshow and long-form plans have none. */
+  readonly animatic?: StoryboardAnimaticProps;
+  /** The assembled video once every shot has rendered. */
+  readonly finalVideoUrl?: string;
+}
+
 export interface StoryboardSaveSnapshot<T> {
   readonly revision: number;
   readonly value: T;
@@ -185,6 +192,11 @@ export interface StoryboardPlanEditorProps {
   readonly notices?: ReactNode;
   /** Drafts the plan from the saved brief, offered by the empty board. */
   readonly onDraftFromBrief?: () => void;
+  /**
+   * The page's docked preview pane. When set, the editor renders the animatic
+   * and final video there and keeps the inline animatic for narrower screens.
+   */
+  readonly previewTarget?: HTMLElement | null;
   /** The saved brief, shown read-only under Details once shots exist. */
   readonly sourceBrief?: string;
   readonly transport?: StoryboardDraftTransport;
