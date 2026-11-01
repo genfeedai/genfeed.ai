@@ -214,7 +214,6 @@ export {
 export { Textarea, type TextareaProps } from './textarea';
 export { Toggle } from './toggle';
 export { toggleVariants } from './toggle.variants';
-export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export {
   Tooltip,
   TooltipContent,

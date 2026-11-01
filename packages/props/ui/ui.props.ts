@@ -13,11 +13,6 @@ import type { HTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
 
 export { CardVariant };
 
-export interface BadgeFormatProps {
-  format?: string;
-  className?: string;
-}
-
 export interface CardProps
   extends Omit<
     HTMLAttributes<HTMLElement>,
