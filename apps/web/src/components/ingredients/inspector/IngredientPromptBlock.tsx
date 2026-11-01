@@ -50,7 +50,7 @@ export default function IngredientPromptBlock({
         </h4>
         <Button
           ariaLabel={translate('copyPrompt')}
-          className="size-6 text-muted-foreground hover:text-foreground"
+          className="size-6"
           icon={<Copy className="size-3.5" />}
           onClick={() => ClipboardService.getInstance().copyToClipboard(text)}
           size={ButtonSize.ICON}

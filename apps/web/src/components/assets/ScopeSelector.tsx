@@ -1,7 +1,10 @@
 import { AssetScope } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 import { Building2, Globe, Lock, Tag } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -57,34 +60,23 @@ export function ScopeSelector({
 
       {variant === 'segmented' ? (
         <>
-          <ToggleGroup
-            {...groupProps}
-            className="w-full gap-1 rounded-lg bg-background-secondary p-1 shadow-border"
-            onValueChange={(nextValue) => {
-              // Radix reports '' when the active item is pressed again.
-              if (nextValue) {
-                onChange(nextValue as AssetScope);
-              }
-            }}
-            type="single"
-            value={value}
-          >
-            {SCOPE_OPTIONS.map((option) => {
+          <SegmentedControl
+            ariaLabel={groupProps['aria-label']}
+            isDisabled={isDisabled}
+            isFullWidth
+            onValueChange={onChange}
+            options={SCOPE_OPTIONS.map((option) => {
               const Icon = SCOPE_ICONS[option.value];
 
-              return (
-                <ToggleGroupItem
-                  aria-label={option.label}
-                  className="flex-1 rounded-md"
-                  key={option.value}
-                  value={option.value}
-                >
-                  <Icon className="size-3.5" />
-                  <span className="hidden sm:inline">{option.label}</span>
-                </ToggleGroupItem>
-              );
+              return {
+                ariaLabel: option.label,
+                icon: <Icon />,
+                label: <span className="hidden sm:inline">{option.label}</span>,
+                value: option.value,
+              };
             })}
-          </ToggleGroup>
+            value={value}
+          />
 
           {selectedOption ? (
             <p className="text-xs text-muted-foreground">
@@ -180,19 +172,23 @@ export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
     return null;
   }
 
-  const bgColor = {
-    [AssetScope.USER]: 'bg-muted',
-    [AssetScope.BRAND]: 'bg-info/10',
-    [AssetScope.ORGANIZATION]: 'bg-success/10',
-    [AssetScope.PUBLIC]: 'bg-primary/10',
-  }[scope];
+  const variant = {
+    [AssetScope.USER]: 'secondary',
+    [AssetScope.BRAND]: 'info',
+    [AssetScope.ORGANIZATION]: 'success',
+    [AssetScope.PUBLIC]: 'default',
+  }[scope] as BadgeVariant;
 
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${bgColor} ${option.color} ${className}`}
+    <Badge
+      casing="normal"
+      className={className}
+      shape="pill"
+      size="lg"
+      variant={variant}
     >
-      <span>{option.label}</span>
-    </span>
+      {option.label}
+    </Badge>
   );
 }
 
@@ -219,12 +215,11 @@ export function ScopeIcon({
   }
 
   return (
-    <span
-      className={`${className}`}
-      title={showTooltip ? `${option.label}: ${option.description}` : undefined}
+    <SimpleTooltip
+      label={showTooltip ? `${option.label}: ${option.description}` : undefined}
     >
-      {option.label.charAt(0)}
-    </span>
+      <span className={`${className}`}>{option.label.charAt(0)}</span>
+    </SimpleTooltip>
   );
 }
 

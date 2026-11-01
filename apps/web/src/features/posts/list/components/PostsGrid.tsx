@@ -1,10 +1,8 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
   CardGap,
-  ComponentSize,
   Platform,
   PostStatus,
 } from '@genfeedai/contracts';
@@ -23,8 +21,7 @@ import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -33,6 +30,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -67,7 +66,7 @@ function getPostMediaUrls(post: IPost): string[] {
 function getStatusPresentation(status: string): {
   canonicalStatus: string;
   label: string;
-  variant: 'success' | 'info' | 'warning' | 'destructive' | 'ghost';
+  variant: 'success' | 'info' | 'warning' | 'destructive' | 'secondary';
 } {
   switch (status.toLowerCase()) {
     case PostStatus.PUBLIC:
@@ -107,7 +106,11 @@ function getStatusPresentation(status: string): {
         variant: 'warning',
       };
     default:
-      return { canonicalStatus: 'planned', label: status, variant: 'ghost' };
+      return {
+        canonicalStatus: 'planned',
+        label: status,
+        variant: 'secondary',
+      };
   }
 }
 
@@ -165,7 +168,7 @@ const PostsGrid = memo(
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
     if (posts.length === 0) {
-      return <CardEmpty label={EMPTY_STATES.POSTS_FOUND} />;
+      return <EmptyState surface="card" title={EMPTY_STATES.POSTS_FOUND} />;
     }
 
     return (
@@ -380,12 +383,11 @@ const PostsGrid = memo(
 
                 {post.status === PostStatus.FAILED &&
                   post.targetError?.message && (
-                    <p
-                      className="mt-3 truncate text-xs text-destructive"
-                      title={post.targetError.message}
-                    >
-                      {post.targetError.message}
-                    </p>
+                    <SimpleTooltip label={post.targetError.message}>
+                      <p className="mt-3 truncate text-xs text-destructive">
+                        {post.targetError.message}
+                      </p>
+                    </SimpleTooltip>
                   )}
 
                 <div
@@ -398,7 +400,6 @@ const PostsGrid = memo(
                   <Badge
                     status={statusPresentation.canonicalStatus}
                     variant={statusPresentation.variant}
-                    size={ComponentSize.SM}
                   >
                     {statusPresentation.label}
                   </Badge>

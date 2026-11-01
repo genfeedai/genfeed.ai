@@ -1,5 +1,4 @@
 'use client';
-
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -20,7 +19,6 @@ import {
   getPublishingReleaseHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -39,13 +37,14 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -560,9 +559,7 @@ export default function PublishingContentLibrary() {
               {formatPublishingContentStatus(item.status)}
             </Badge>
             {item.scheduledAt ? (
-              <span className="text-xs text-muted-foreground">
-                {formatDate(item.scheduledAt)}
-              </span>
+              <TableDateCell value={item.scheduledAt} />
             ) : null}
           </div>
         </PublishingPostHoverPreview>
@@ -582,13 +579,13 @@ export default function PublishingContentLibrary() {
       className: 'hidden md:table-cell',
       header: 'Scheduled',
       key: 'scheduledAt',
-      render: (item) => (item.scheduledAt ? formatDate(item.scheduledAt) : '—'),
+      render: (item) => <TableDateCell value={item.scheduledAt} />,
     },
     {
       className: 'hidden md:table-cell',
       header: 'Created',
       key: 'createdAt',
-      render: (item) => formatDate(item.createdAt),
+      render: (item) => <TableDateCell value={item.createdAt} />,
     },
   ];
 
@@ -672,11 +669,11 @@ export default function PublishingContentLibrary() {
   }, [isFetching, setIsRefreshing]);
 
   const emptyState = error ? (
-    <CardEmptyContent icon={Files} label="Posts unavailable" />
+    <EmptyState icon={Files} title="Posts unavailable" />
   ) : (
-    <CardEmptyContent
+    <EmptyState
       icon={Files}
-      label={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
+      title={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
     />
   );
 
@@ -695,6 +692,7 @@ export default function PublishingContentLibrary() {
   }
 
   const renderPostCard = (item: PublishingContentLibraryItem) => (
+    // ui-guard-allow:clickable-element -- pointer shortcut for the whole card; the title link and the primary action inside are the keyboard path
     <div
       key={`${item.type}:${item.id}`}
       className="cursor-pointer"

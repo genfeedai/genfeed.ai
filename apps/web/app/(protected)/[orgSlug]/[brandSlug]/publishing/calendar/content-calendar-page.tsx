@@ -36,7 +36,10 @@ import CalendarRepublishDialog, {
   CALENDAR_REPUBLISH_ACTION,
 } from '@/features/posts/shared/calendar-republish-dialog';
 import { useCalendarWeekRange } from '@/hooks/utils/use-calendar-week-range/use-calendar-week-range';
-import type { CalendarViewKey } from '@/props/components/calendar.props';
+import type {
+  CalendarToolbar,
+  CalendarViewKey,
+} from '@/props/components/calendar.props';
 import type { ReleaseCalendarFilters as ReleaseFilters } from '@/props/publisher/release-calendar.props';
 import CadenceFormSheet from './cadence-form-sheet';
 import { isMissingCalendarSlot } from './calendar-day-aggregate';
@@ -220,7 +223,14 @@ export default function ContentCalendarPage({
       credentials,
       credentialIds: filters.credentialId,
     });
-  const { setRefresh } = usePostsLayout();
+  const {
+    setExportNode,
+    setFiltersNode,
+    setLeadingNode,
+    setRefresh,
+    setScheduleActionsNode,
+    setViewToggleNode,
+  } = usePostsLayout();
   useEffect(() => {
     if (!embedded) return;
     setRefresh(
@@ -281,51 +291,72 @@ export default function ContentCalendarPage({
     [setDateRange],
   );
 
-  // Content-sized and unwrapped: the calendar topbar scrolls horizontally
-  // when narrow, so a full-width wrapping row here only stacked the controls.
-  const filterControls = (
-    <div className="flex shrink-0 items-center justify-end gap-2">
-      <Button
-        aria-label="New cadence"
-        isDisabled={!defaultCredentialId}
-        onClick={() => {
-          setEditingCadence(null);
-          setIsCadenceFormOpen(true);
-        }}
-        size={ButtonSize.SM}
-        variant={ButtonVariant.SECONDARY}
-      >
-        <Repeat className="size-4" />
-        Cadence
-      </Button>
-      {missingIdentityKeys.length > 0 ? (
+  const cadenceActions = useMemo(
+    () => (
+      <>
         <Button
-          aria-label={translate('bulkGenerate', {
-            count: missingIdentityKeys.length,
-          })}
-          isDisabled={isBulkPending}
-          onClick={() => confirmBulkGenerate(missingIdentityKeys)}
+          aria-label="New cadence"
+          isDisabled={!defaultCredentialId}
+          onClick={() => {
+            setEditingCadence(null);
+            setIsCadenceFormOpen(true);
+          }}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
         >
-          {translate('bulkGenerate', { count: missingIdentityKeys.length })}
+          <Repeat className="size-4" />
+          Cadence
         </Button>
-      ) : null}
-      {isBulkPending ? (
-        <Button
-          onClick={() => bulkAbortRef.current?.abort()}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-        >
-          {translate('cancelBulk')}
-        </Button>
-      ) : null}
+        {missingIdentityKeys.length > 0 ? (
+          <Button
+            aria-label={translate('bulkGenerate', {
+              count: missingIdentityKeys.length,
+            })}
+            isDisabled={isBulkPending}
+            onClick={() => confirmBulkGenerate(missingIdentityKeys)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            {translate('bulkGenerate', { count: missingIdentityKeys.length })}
+          </Button>
+        ) : null}
+        {isBulkPending ? (
+          <Button
+            onClick={() => bulkAbortRef.current?.abort()}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          >
+            {translate('cancelBulk')}
+          </Button>
+        ) : null}
+      </>
+    ),
+    [
+      bulkAbortRef,
+      confirmBulkGenerate,
+      defaultCredentialId,
+      isBulkPending,
+      missingIdentityKeys,
+      setEditingCadence,
+      setIsCadenceFormOpen,
+      translate,
+    ],
+  );
+
+  const filterMenu = useMemo(
+    () => (
       <ReleaseCalendarFilters
         credentialOptions={credentialOptions}
         filters={filters}
         onChange={setFilters}
         platformOptions={platformOptions}
       />
+    ),
+    [credentialOptions, filters, platformOptions],
+  );
+
+  const newArticleAction = useMemo(
+    () => (
       <Button
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}
@@ -335,7 +366,49 @@ export default function ContentCalendarPage({
       >
         <FileText className="size-3.5" />
       </Button>
-    </div>
+    ),
+    [translate],
+  );
+
+  // Every control lives in the host's sub bar (the Publishing desk or the
+  // campaign shell): the period navigation on the left, then filters, the view
+  // dropdown, the cadence actions and the primary action. Nothing sits above
+  // the grid.
+  useEffect(() => {
+    setFiltersNode(filterMenu);
+    setScheduleActionsNode(cadenceActions);
+    setExportNode(newArticleAction);
+  }, [
+    cadenceActions,
+    filterMenu,
+    newArticleAction,
+    setExportNode,
+    setFiltersNode,
+    setScheduleActionsNode,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      setLeadingNode(null);
+      setViewToggleNode(null);
+      setFiltersNode(null);
+      setScheduleActionsNode(null);
+      setExportNode(null);
+    };
+  }, [
+    setExportNode,
+    setFiltersNode,
+    setLeadingNode,
+    setScheduleActionsNode,
+    setViewToggleNode,
+  ]);
+
+  const handleToolbarChange = useCallback(
+    ({ navigation, viewMenu }: CalendarToolbar) => {
+      setLeadingNode(navigation);
+      setViewToggleNode(viewMenu);
+    },
+    [setLeadingNode, setViewToggleNode],
   );
 
   const modal = (
@@ -421,7 +494,7 @@ export default function ContentCalendarPage({
       getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}
       onEventDrop={handleEventDrop}
-      filterControls={filterControls}
+      onToolbarChange={handleToolbarChange}
       modal={modal}
       isLoading={isLoading}
     />

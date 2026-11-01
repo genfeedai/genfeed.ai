@@ -29,7 +29,7 @@ describe('AiTextActionCard', () => {
     render(<AiTextActionCard action={makeAction()} />);
 
     expect(screen.getByText('Polish text')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rewrite' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Rewrite' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
   });
 
@@ -37,7 +37,7 @@ describe('AiTextActionCard', () => {
     const onApply = vi.fn();
     render(<AiTextActionCard action={makeAction()} onApply={onApply} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Shorten' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     expect(onApply).toHaveBeenCalledWith({
@@ -52,9 +52,9 @@ describe('AiTextActionCard', () => {
       <AiTextActionCard action={makeAction({ textActions: ['Emojify'] })} />,
     );
 
-    expect(screen.getByRole('button', { name: 'Emojify' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Emojify' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Rewrite' }),
+      screen.queryByRole('radio', { name: 'Rewrite' }),
     ).not.toBeInTheDocument();
   });
 });

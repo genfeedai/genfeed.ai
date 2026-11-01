@@ -11,7 +11,7 @@ import {
   RedditIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
 

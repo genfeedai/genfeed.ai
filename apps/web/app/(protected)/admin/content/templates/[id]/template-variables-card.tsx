@@ -1,6 +1,5 @@
-import { ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Text } from '@ui/typography/text';
 import type { TemplateVariablesCardProps as Props } from '@/features/admin/props/templates.props';
 import { DetailCard } from './template-detail-helpers';
@@ -22,13 +21,9 @@ export default function TemplateVariablesCard({ variables }: Props) {
               <Code size="md" className="bg-background">
                 {`{{${variable.name}}}`}
               </Code>
-              <Badge variant="outline" size={ComponentSize.SM}>
-                {variable.type}
-              </Badge>
+              <Badge variant="outline">{variable.type}</Badge>
               {variable.required && (
-                <Badge variant="error" size={ComponentSize.SM}>
-                  Required
-                </Badge>
+                <Badge variant="destructive">Required</Badge>
               )}
             </div>
             {variable.label && (
@@ -66,11 +61,7 @@ export default function TemplateVariablesCard({ variables }: Props) {
                 </Text>
                 <div className="flex flex-wrap gap-2">
                   {variable.options.map((option) => (
-                    <Badge
-                      key={String(option.value)}
-                      variant="ghost"
-                      size={ComponentSize.SM}
-                    >
+                    <Badge key={String(option.value)} variant="secondary">
                       {option.label} ({option.value})
                     </Badge>
                   ))}

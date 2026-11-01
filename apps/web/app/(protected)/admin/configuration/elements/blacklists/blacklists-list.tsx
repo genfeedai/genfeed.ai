@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ComponentSize, ModalEnum, PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementBlacklist,
@@ -13,11 +13,11 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BlacklistsService } from '@services/elements/blacklists.service';
-import Badge from '@ui/display/badge/Badge';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -123,9 +123,7 @@ function BlacklistsListContent({
       key: 'category',
       sortable: true,
       render: (blacklist: IElementBlacklist) => (
-        <Badge variant="outline" size={ComponentSize.SM}>
-          {blacklist.category ?? 'Undefined'}
-        </Badge>
+        <Badge variant="outline">{blacklist.category ?? 'Undefined'}</Badge>
       ),
     },
     {
@@ -306,9 +304,7 @@ function BlacklistsListContent({
     getBadges: (blacklist) => (
       <>
         {blacklist.category ? (
-          <Badge variant="outline" size={ComponentSize.SM}>
-            {blacklist.category}
-          </Badge>
+          <Badge variant="outline">{blacklist.category}</Badge>
         ) : null}
         <ElementScopeBadge
           isActive={blacklist.isActive}

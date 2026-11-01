@@ -209,9 +209,7 @@
       }
     },
     "viewToggle": {
-      "approvals": "Approvals",
       "board": "Board",
-      "calendar": "Calendar view",
       "grid": "Grid",
       "list": "List"
     },
@@ -224,6 +222,11 @@
       "retryFailed": "Could not retry this post. Please try again.",
       "evaluate": "Evaluate",
       "evaluationScore": "Evaluation: {score}",
+      "qualityScore": "Quality Score: {score}/100 - {label}",
+      "scoreAverage": "Average",
+      "scoreExcellent": "Excellent",
+      "scoreGood": "Good",
+      "scoreNeedsWork": "Needs Work",
       "openTarget": "Open {platform} post",
       "variations": "Remix {platform} post",
       "setStatus": "Set status to {status}",

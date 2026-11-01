@@ -282,10 +282,10 @@ describe('ModalPost', () => {
         screen.getByRole('button', { name: 'Acme on LinkedIn' }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Article' }),
+        screen.getByRole('radio', { name: 'Article' }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Newsletter' }),
+        screen.getByRole('radio', { name: 'Newsletter' }),
       ).toBeInTheDocument();
       expect(screen.queryByText('Channel')).not.toBeInTheDocument();
     });
@@ -487,7 +487,7 @@ describe('ModalPost', () => {
       const user = userEvent.setup();
       renderComposer();
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
-      await user.click(screen.getByRole('button', { name: 'Article' }));
+      await user.click(screen.getByRole('radio', { name: 'Article' }));
 
       expect(screen.getByRole('button', { name: 'Acme on X' })).toHaveAttribute(
         'aria-pressed',
@@ -506,7 +506,7 @@ describe('ModalPost', () => {
     it('hands off to the newsletter editor', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Newsletter' }));
+      await user.click(screen.getByRole('radio', { name: 'Newsletter' }));
       await user.click(screen.getByRole('button', { name: 'Continue' }));
       expect(isModalOpen(ModalEnum.NEWSLETTER)).toBe(true);
       closeModal(ModalEnum.NEWSLETTER);
@@ -515,10 +515,10 @@ describe('ModalPost', () => {
     it('selecting an account clears an article destination', async () => {
       const user = userEvent.setup();
       renderComposer();
-      await user.click(screen.getByRole('button', { name: 'Article' }));
+      await user.click(screen.getByRole('radio', { name: 'Article' }));
       await user.click(screen.getByRole('button', { name: 'Acme on X' }));
-      expect(screen.getByRole('button', { name: 'Article' })).toHaveAttribute(
-        'aria-pressed',
+      expect(screen.getByRole('radio', { name: 'Article' })).toHaveAttribute(
+        'aria-checked',
         'false',
       );
       expect(

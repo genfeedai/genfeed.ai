@@ -23,7 +23,6 @@ import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-ru
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
-import { CalendarClock, History, Images, MessagesSquare } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
@@ -253,52 +252,6 @@ export function useAppProtectedLayout(
         }),
       ),
     [dynamicMenuItems, taskContextSearchParams],
-  );
-
-  // The agent scope: the master conversation, then where its work lands.
-  const agentMenuItems = useMemo<MenuItemConfig[]>(
-    () =>
-      [
-        {
-          group: '',
-          href: APP_ROUTES.AGENT.ROOT,
-          label:
-            pathname === APP_ROUTES.AGENT.NEW ? 'New conversation' : 'Master',
-          matchPaths: [APP_ROUTES.AGENT.ROOT],
-          outline: MessagesSquare,
-          solid: MessagesSquare,
-        },
-        {
-          group: '',
-          href: APP_ROUTES.AUTOMATION.RUNS,
-          label: 'Runs',
-          matchPaths: [APP_ROUTES.AUTOMATION.RUNS],
-          outline: History,
-          solid: History,
-        },
-        {
-          group: '',
-          href: APP_ROUTES.LIBRARY.OVERVIEW,
-          label: 'Outputs',
-          matchPaths: [APP_ROUTES.LIBRARY.OVERVIEW],
-          outline: Images,
-          solid: Images,
-        },
-        {
-          group: '',
-          href: APP_ROUTES.PUBLISHING.CALENDAR,
-          label: 'Scheduled',
-          matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
-          outline: CalendarClock,
-          solid: CalendarClock,
-        },
-      ].map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [pathname, taskContextSearchParams],
   );
 
   const secondaryMenuItems = useMemo(
@@ -546,7 +499,6 @@ export function useAppProtectedLayout(
     agentApiService,
     threads,
     // menu items
-    agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
     libraryMenuItems,

@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
-import Badge from '@ui/display/badge/Badge';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
@@ -16,7 +16,6 @@ export default function MenuItem({
   badgeKind = 'count',
   badgeLabel,
   count,
-  isPulsing = false,
   href,
   label,
   icon,
@@ -42,14 +41,7 @@ export default function MenuItem({
 
     if (OutlineIcon && SolidIcon) {
       const IconComponent = isActive ? SolidIcon : OutlineIcon;
-      return (
-        <IconComponent
-          className={cn(
-            'size-4',
-            isPulsing && 'animate-spin [animation-duration:2.4s]',
-          )}
-        />
-      );
+      return <IconComponent className="size-4" />;
     }
 
     return null;
@@ -135,8 +127,7 @@ export default function MenuItem({
         ) : shouldRenderBadge ? (
           <Badge
             className="ml-auto min-w-5 justify-center"
-            size={ComponentSize.SM}
-            variant="error"
+            variant="destructive"
           >
             {badgeCount}
           </Badge>
@@ -187,8 +178,7 @@ export default function MenuItem({
       ) : shouldRenderBadge && isIconVariant && !isHorizontalLayout ? (
         <Badge
           className="absolute right-1 top-1 min-w-5 justify-center"
-          size={ComponentSize.SM}
-          variant="error"
+          variant="destructive"
         >
           {badgeCount}
         </Badge>

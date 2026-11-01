@@ -3,7 +3,6 @@
 import {
   ButtonSize,
   ButtonVariant,
-  CardGap,
   CardPadding,
   CardVariant,
   FONT_FAMILY_METADATA,
@@ -21,6 +20,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -617,7 +617,7 @@ export default function BrandDetailManualKitCard({
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label={brand.logo || brand.logoUrl ? 'Replace logo' : 'Upload logo'}
             size={ButtonSize.SM}
@@ -626,7 +626,7 @@ export default function BrandDetailManualKitCard({
             onClick={onUploadLogo}
           />
           <Button
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label={
               brand.banner || brand.bannerUrl
@@ -639,7 +639,7 @@ export default function BrandDetailManualKitCard({
             onClick={onUploadBanner}
           />
           <Button
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             icon={<Upload className="size-3.5" />}
             label="Upload reference"
             size={ButtonSize.SM}
@@ -670,14 +670,7 @@ export default function BrandDetailManualKitCard({
           </div>
         </Card>
 
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        ) : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
 
         <Button
           className="w-full"
@@ -741,18 +734,14 @@ export default function BrandDetailManualKitCard({
             </div>
 
             {draft.assetCandidates.length > 0 ? (
-              <Card
-                variant={CardVariant.INSET}
-                padding={CardPadding.SM}
-                gap={CardGap.SM}
-                bodyClassName="flex-row items-center"
+              <Alert
+                icon={<CircleCheck className="size-4" />}
+                size="sm"
+                variant="note"
               >
-                <div className="text-xs text-muted-foreground">
-                  <CircleCheck className="size-4" />
-                  {draft.assetCandidates.length} asset source
-                  {draft.assetCandidates.length === 1 ? '' : 's'} included
-                </div>
-              </Card>
+                {draft.assetCandidates.length} asset source
+                {draft.assetCandidates.length === 1 ? '' : 's'} included
+              </Alert>
             ) : null}
 
             {draft.diagnostics.length > 0 ? (

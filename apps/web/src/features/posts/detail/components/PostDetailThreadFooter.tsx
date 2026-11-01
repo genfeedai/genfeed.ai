@@ -2,10 +2,10 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SelectField } from '@ui/primitives/select';
+import { Tabs } from '@ui/primitives/tabs';
 import { MessageSquarePlus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type React from 'react';

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  AssetCategory,
-  AssetScope,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { AssetCategory, AssetScope, ModalEnum } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
@@ -14,8 +9,8 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { EnvironmentService } from '@services/core/environment.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { useCallback, useMemo } from 'react';
 import {
   LazyModalBrandGenerate,
@@ -114,7 +109,7 @@ export default function BrandDetail() {
   if (!hasBrandId) {
     return (
       <Container>
-        <Alert type={AlertCategory.ERROR}>Error! Invalid brand ID.</Alert>
+        <Alert variant="destructive">Error! Invalid brand ID.</Alert>
       </Container>
     );
   }
@@ -135,7 +130,7 @@ export default function BrandDetail() {
           </div>
         </div>
       ) : !brand ? (
-        <Alert type={AlertCategory.ERROR}>Error! Account not found.</Alert>
+        <Alert variant="destructive">Error! Account not found.</Alert>
       ) : (
         <>
           <BrandDetailBanner

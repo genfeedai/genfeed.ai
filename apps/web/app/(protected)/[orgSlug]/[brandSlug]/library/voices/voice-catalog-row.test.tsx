@@ -47,14 +47,10 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
   }) => <div>{`${label}:${audioUrl ?? 'no-preview'}`}</div>,
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({
-    children,
-    variant,
-  }: {
-    children: ReactNode;
-    variant: string;
-  }) => <span>{`${variant}:${String(children)}`}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children, variant }: { children: ReactNode; variant: string }) => (
+    <span>{`${variant}:${String(children)}`}</span>
+  ),
 }));
 
 function createVoice(overrides: Partial<Voice> = {}): Voice {
@@ -105,12 +101,12 @@ describe('VoiceCatalogRow', () => {
       'Warm narration voice',
     );
     expect(screen.getByText('secondary:ElevenLabs')).toBeInTheDocument();
-    expect(screen.getByText('ghost:Cloned')).toBeInTheDocument();
+    expect(screen.getByText('secondary:Cloned')).toBeInTheDocument();
     expect(screen.getByText('outline:ready')).toBeInTheDocument();
-    expect(screen.getByText('accent:Featured')).toBeInTheDocument();
+    expect(screen.getByText('default:Featured')).toBeInTheDocument();
     expect(screen.getByText('success:Org Default')).toBeInTheDocument();
     expect(
-      screen.getByText((content) => content.includes('primary:Acme')),
+      screen.getByText((content) => content.includes('default:Acme')),
     ).toBeInTheDocument();
     expect(screen.getByTestId('row-meta-primary')).toHaveTextContent(
       'voice-ext-1',
@@ -167,7 +163,7 @@ describe('VoiceCatalogRow', () => {
       'voice-fallback',
     );
     expect(screen.getByText('secondary:Unknown')).toBeInTheDocument();
-    expect(screen.getByText('ghost:Cloned')).toBeInTheDocument();
+    expect(screen.getByText('secondary:Cloned')).toBeInTheDocument();
     expect(screen.getByText('Not default selectable')).toBeInTheDocument();
     expect(screen.getByTestId('row-stats')).toHaveTextContent(
       'voice-fallback:no-preview',

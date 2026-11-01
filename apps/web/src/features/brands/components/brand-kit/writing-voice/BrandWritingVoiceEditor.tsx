@@ -98,7 +98,7 @@ export default function BrandWritingVoiceEditor({
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
-                className="h-8 gap-1.5 px-2.5 text-xs"
+                className="h-8 gap-1.5 px-2.5"
                 onClick={handleGenerate}
                 isLoading={isGenerating}
                 isDisabled={isGenerating}
@@ -124,7 +124,7 @@ export default function BrandWritingVoiceEditor({
               </p>
             ) : null}
             {voiceCorpus?.guidance ? (
-              <Alert variant="warning">
+              <Alert variant="warning" icon={false}>
                 <AlertTitle>{translate('corpus.notEnoughPosts')}</AlertTitle>
                 <AlertDescription className="text-xs leading-5">
                   {voiceCorpus.guidance}

@@ -702,8 +702,24 @@ function UniversalWorkspaceShellContent({
     }
   }, [isAgentDockHost, isCompactViewport, isMobileContextOpen, openAgentDock]);
 
+  // On a split page the topbar's Context icon swaps the output pane to Context
+  // instead of opening a rail; a new route starts back on the output.
+  const [outputContextPath, setOutputContextPath] = useState<string | null>(
+    null,
+  );
+  const isOutputContextOpen = outputContextPath === normalizedPathname;
+  const setIsOutputContextOpen = useCallback(
+    (isOpen: boolean) =>
+      setOutputContextPath(isOpen ? normalizedPathname : null),
+    [normalizedPathname],
+  );
+
   const handleSelectPanelTab = useCallback(
     (tab: WorkspacePanelTab) => {
+      if (isAgentOutputSurface) {
+        setIsOutputContextOpen(tab === 'details');
+        return;
+      }
       if (isAgentDockHost) {
         requestedPanelTabRef.current = isAgentDockOpen ? null : tab;
         openAgentDock?.();
@@ -719,10 +735,12 @@ function UniversalWorkspaceShellContent({
       activeContextSidebar,
       isAgentDockHost,
       isAgentDockOpen,
+      isAgentOutputSurface,
       isCompactViewport,
       isInspectorOpen,
       isMobileContextOpen,
       openAgentDock,
+      setIsOutputContextOpen,
     ],
   );
 
@@ -736,6 +754,10 @@ function UniversalWorkspaceShellContent({
     [openAgentDock, selectDockThread],
   );
   const handleClosePanel = useCallback(() => {
+    if (isAgentOutputSurface) {
+      setIsOutputContextOpen(false);
+      return;
+    }
     closeAgentDock?.();
     if (isInspectorOpen || isMobileContextOpen) {
       activeContextSidebar?.close();
@@ -743,24 +765,31 @@ function UniversalWorkspaceShellContent({
   }, [
     activeContextSidebar,
     closeAgentDock,
+    isAgentOutputSurface,
     isInspectorOpen,
     isMobileContextOpen,
+    setIsOutputContextOpen,
   ]);
 
   // The topbar's Chat and Context toggles drive this panel through the dock.
   const registerAgentDockPanel = agentDock?.registerPanel;
   // Below `xl` the rail does not render, so a context left open at a wider
   // size is not visible: only the sheet (dock or mobile context) is.
-  const isPanelVisible =
-    !isAgentOutputSurface &&
-    ((isAgentDockHost && isAgentDockOpen) ||
+  const isPanelVisible = isAgentOutputSurface
+    ? isOutputContextOpen
+    : (isAgentDockHost && isAgentDockOpen) ||
       (isInspectorOpen && !isCompactViewport) ||
-      isMobileContextOpen);
+      isMobileContextOpen;
+  // A split page always has Context to show: its pane swaps to it.
   const hasContextView =
-    !isAgentOutputSurface && (isAgentDockHost || Boolean(activeContextSidebar));
+    isAgentOutputSurface || isAgentDockHost || Boolean(activeContextSidebar);
   const panelControls = useMemo<WorkspacePanelControls>(
     () => ({
-      activeView: isPanelVisible ? activePanelTab : null,
+      activeView: isPanelVisible
+        ? isAgentOutputSurface
+          ? 'details'
+          : activePanelTab
+        : null,
       canShowContext: hasContextView,
       close: handleClosePanel,
       selectView: handleSelectPanelTab,
@@ -770,6 +799,7 @@ function UniversalWorkspaceShellContent({
       handleClosePanel,
       handleSelectPanelTab,
       hasContextView,
+      isAgentOutputSurface,
       isPanelVisible,
     ],
   );
@@ -1219,7 +1249,10 @@ function UniversalWorkspaceShellContent({
           scopeLabel={conversationScope.contextLabel}
         />
       ),
+      isContextOpen: isOutputContextOpen,
+      onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,
+      onOpenContext: () => setIsOutputContextOpen(true),
       onOpenFullPage: handleOpenFullConversation,
       threadsPanel: (
         <AgentThreadsPanel
@@ -1241,7 +1274,9 @@ function UniversalWorkspaceShellContent({
     effectiveShellContextLabel,
     handleOpenFullConversation,
     isAgentOutputSurface,
+    isOutputContextOpen,
     openFullThreadFromPage,
+    setIsOutputContextOpen,
     threads,
   ]);
 

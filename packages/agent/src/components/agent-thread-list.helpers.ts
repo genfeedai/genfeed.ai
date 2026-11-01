@@ -2,7 +2,7 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import { AgentThreadKind } from '@genfeedai/contracts';
+import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import type { StatusKey } from '@genfeedai/ui';
 
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
@@ -199,6 +199,8 @@ export interface ChildThreadGroups {
   needsYou: AgentThread[];
   readyForReview: AgentThread[];
   recent: AgentThread[];
+  /** Marked done by the operator (archived); reopening moves one back. */
+  resolved: AgentThread[];
   working: AgentThread[];
 }
 
@@ -207,6 +209,7 @@ export interface ChildThreadGroups {
  * into what needs the operator first. "Ready for review" is a thread that
  * finished with output nobody has opened yet (`attentionState: 'updated'`).
  * `brandId` narrows to one brand; a thread with no brand shows under none.
+ * An archived thread is resolved whatever it was doing.
  */
 export function groupChildThreads(
   threads: AgentThread[],
@@ -220,6 +223,7 @@ export function groupChildThreads(
     needsYou: [],
     readyForReview: [],
     recent: [],
+    resolved: [],
     working: [],
   };
 
@@ -231,6 +235,11 @@ export function groupChildThreads(
       continue;
     }
     if (!matchesThreadSearch(thread, options.searchQuery)) {
+      continue;
+    }
+
+    if (thread.status === AgentThreadStatus.ARCHIVED) {
+      groups.resolved.push(thread);
       continue;
     }
 

@@ -1,7 +1,7 @@
 import type { IContentPlan } from '@genfeedai/contracts/interfaces';
 import { parsePlanSeedSummary } from '@helpers/content/content-plan-seed.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';

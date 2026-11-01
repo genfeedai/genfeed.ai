@@ -2,7 +2,9 @@ import type { ConversationComposerContextReferenceKind } from '@genfeedai/agent/
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Film, ImageIcon, Link, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
@@ -69,122 +71,123 @@ export function AgentChatInputAttachmentTray({
           const status = attachmentStatusById[asset.id] ?? 'completed';
 
           return (
+            <SimpleTooltip key={asset.id} label={assetName}>
+              <div
+                aria-label={`${assetName}: ${status}`}
+                className={cn(
+                  'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
+                  isDisabled && 'opacity-60',
+                  status === 'failed' && 'border-destructive/50',
+                )}
+                role="group"
+              >
+                {asset.previewUrl && asset.kind === 'image' ? (
+                  <Image
+                    src={asset.previewUrl}
+                    alt={assetName}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-muted-foreground">
+                    {asset.kind === 'video' ? (
+                      <Film aria-hidden="true" className="size-5" />
+                    ) : asset.kind === 'audio' ? (
+                      <Volume2 aria-hidden="true" className="size-5" />
+                    ) : (
+                      <ImageIcon aria-hidden="true" className="size-5" />
+                    )}
+                  </div>
+                )}
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  onClick={() => onRemoveAttachedAsset(asset.id)}
+                  isDisabled={isDisabled}
+                  ariaLabel={translate('removeAttachment', { name: assetName })}
+                  className={cn(
+                    'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                    hoverRevealClassName({ focus: 'visible' }),
+                  )}
+                >
+                  <X className="size-3.5" />
+                </Button>
+                {status !== 'completed' ? (
+                  <Badge
+                    casing="normal"
+                    className="absolute inset-x-1 bottom-1 justify-center"
+                    isTruncated
+                    variant={status === 'failed' ? 'destructive' : 'secondary'}
+                  >
+                    {status === 'failed' ? 'Reattach' : 'Uploading'}
+                  </Badge>
+                ) : null}
+              </div>
+            </SimpleTooltip>
+          );
+        })}
+
+        {contentReferences.map((reference) => (
+          <SimpleTooltip
+            key={`content:${reference.id}`}
+            label={
+              reference.isSkipped
+                ? `${reference.label}: Skipped — brand does not match or is unknown. Pick this post again.`
+                : reference.label
+            }
+          >
             <div
-              aria-label={`${assetName}: ${status}`}
-              key={asset.id}
+              aria-label={`${translate('referencedContent', {
+                label: reference.label,
+              })}${reference.isSkipped ? ': Skipped' : ''}`}
               className={cn(
                 'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
                 isDisabled && 'opacity-60',
-                status === 'failed' && 'border-destructive/50',
+                reference.isSkipped && 'border-destructive/50 opacity-60',
               )}
-              title={assetName}
               role="group"
             >
-              {asset.previewUrl && asset.kind === 'image' ? (
+              {reference.thumbnailUrl ? (
                 <Image
-                  src={asset.previewUrl}
-                  alt={assetName}
+                  src={reference.thumbnailUrl}
+                  alt={reference.label}
                   fill
                   sizes="64px"
                   className="object-cover"
                   unoptimized
                 />
               ) : (
-                <div className="flex size-full items-center justify-center text-muted-foreground">
-                  {asset.kind === 'video' ? (
-                    <Film aria-hidden="true" className="size-5" />
-                  ) : asset.kind === 'audio' ? (
-                    <Volume2 aria-hidden="true" className="size-5" />
-                  ) : (
-                    <ImageIcon aria-hidden="true" className="size-5" />
-                  )}
+                <div className="flex size-full flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground">
+                  <ImageIcon aria-hidden="true" className="size-5" />
+                  <span className="max-w-full truncate text-2xs font-medium text-foreground/60">
+                    {reference.contentType ?? 'content'}
+                  </span>
                 </div>
               )}
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => onRemoveAttachedAsset(asset.id)}
-                isDisabled={isDisabled}
-                ariaLabel={translate('removeAttachment', { name: assetName })}
-                className={cn(
-                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
-                  hoverRevealClassName({ focus: 'visible' }),
-                )}
-              >
-                <X className="size-3.5" />
-              </Button>
-              {status !== 'completed' ? (
-                <span
+              {onRemoveReference ? (
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  onClick={() => onRemoveReference(reference)}
+                  isDisabled={isDisabled}
+                  ariaLabel={translate('removeReference', {
+                    label: reference.label,
+                  })}
                   className={cn(
-                    'absolute inset-x-1 bottom-1 truncate rounded bg-background/90 px-1 py-0.5 text-center text-2xs font-medium',
-                    status === 'failed'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground',
+                    'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
+                    hoverRevealClassName({ focus: 'visible' }),
                   )}
                 >
-                  {status === 'failed' ? 'Reattach' : 'Uploading'}
-                </span>
+                  <X className="size-3.5" />
+                </Button>
               ) : null}
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-2xs font-medium text-foreground/70">
+                {reference.isSkipped ? 'Skipped' : reference.label}
+              </span>
             </div>
-          );
-        })}
-
-        {contentReferences.map((reference) => (
-          <div
-            aria-label={`${translate('referencedContent', {
-              label: reference.label,
-            })}${reference.isSkipped ? ': Skipped' : ''}`}
-            key={`content:${reference.id}`}
-            className={cn(
-              'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
-              isDisabled && 'opacity-60',
-              reference.isSkipped && 'border-destructive/50 opacity-60',
-            )}
-            title={
-              reference.isSkipped
-                ? `${reference.label}: Skipped — brand does not match or is unknown. Pick this post again.`
-                : reference.label
-            }
-            role="group"
-          >
-            {reference.thumbnailUrl ? (
-              <Image
-                src={reference.thumbnailUrl}
-                alt={reference.label}
-                fill
-                sizes="64px"
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="flex size-full flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground">
-                <ImageIcon aria-hidden="true" className="size-5" />
-                <span className="max-w-full truncate text-2xs font-medium text-foreground/60">
-                  {reference.contentType ?? 'content'}
-                </span>
-              </div>
-            )}
-            {onRemoveReference ? (
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => onRemoveReference(reference)}
-                isDisabled={isDisabled}
-                ariaLabel={translate('removeReference', {
-                  label: reference.label,
-                })}
-                className={cn(
-                  'absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/90 text-foreground/70 shadow-sm transition-opacity hover:text-foreground',
-                  hoverRevealClassName({ focus: 'visible' }),
-                )}
-              >
-                <X className="size-3.5" />
-              </Button>
-            ) : null}
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-2xs font-medium text-foreground/70">
-              {reference.isSkipped ? 'Skipped' : reference.label}
-            </span>
-          </div>
+          </SimpleTooltip>
         ))}
 
         {chipReferences.map((reference) => {
@@ -195,31 +198,27 @@ export function AgentChatInputAttachmentTray({
             reference.type === 'asset' && Boolean(onRemoveReference);
 
           return (
-            <span
-              className={cn(
-                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/80',
-                isRemovableAsset && 'pr-1.5',
-              )}
+            <Badge
+              casing="normal"
+              className="max-w-48"
+              icon={<Link />}
+              isRemoveDisabled={isDisabled}
+              isTruncated
               key={`${reference.type}:${reference.id}`}
+              onRemove={
+                isRemovableAsset
+                  ? () => onRemoveReference?.(reference)
+                  : undefined
+              }
+              removeLabel={translate('removeReference', {
+                label: reference.label,
+              })}
+              size="xl"
               title={reference.label}
+              variant="outline"
             >
-              <Link className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">{reference.label}</span>
-              {isRemovableAsset ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => onRemoveReference?.(reference)}
-                  isDisabled={isDisabled}
-                  ariaLabel={translate('removeReference', {
-                    label: reference.label,
-                  })}
-                  className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded text-foreground/60 hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </Button>
-              ) : null}
-            </span>
+              {reference.label}
+            </Badge>
           );
         })}
       </div>

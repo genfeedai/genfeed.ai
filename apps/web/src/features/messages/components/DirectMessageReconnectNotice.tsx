@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import Alert from '@ui/feedback/alert/Alert';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -25,13 +25,13 @@ export default function DirectMessageReconnectNotice({
   }
 
   return (
-    <Alert type={AlertCategory.WARNING}>
+    <Alert variant="warning">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium">{translate('title')}</p>
-          <p className="text-xs text-muted-foreground">
+          <AlertTitle>{translate('title')}</AlertTitle>
+          <AlertDescription>
             {translate('description', { count: accounts.length })}
-          </p>
+          </AlertDescription>
         </div>
         <div className="flex flex-wrap gap-2">
           {accounts.map((account) => (

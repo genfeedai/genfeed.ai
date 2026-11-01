@@ -2,10 +2,11 @@
 
 import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
-type FileStatusVariant = 'success' | 'error' | 'info' | 'ghost';
+type FileStatusVariant = 'success' | 'destructive' | 'info' | 'secondary';
 
 function getStatusBadgeVariant(
   status: FileUploadStatus['status'],
@@ -14,11 +15,11 @@ function getStatusBadgeVariant(
     case UploadStatus.COMPLETED:
       return 'success';
     case UploadStatus.FAILED:
-      return 'error';
+      return 'destructive';
     case UploadStatus.UPLOADING:
       return 'info';
     default:
-      return 'ghost';
+      return 'secondary';
   }
 }
 
@@ -83,7 +84,7 @@ export default function TrainingFileList({
             )}
 
             {failedCount > 0 && (
-              <Badge variant="error" className="tabular-nums">
+              <Badge variant="destructive" className="tabular-nums">
                 {failedCount} failed
               </Badge>
             )}
@@ -110,24 +111,23 @@ export default function TrainingFileList({
                 className="space-y-1 p-2 bg-tertiary/50"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate max-w-56 text-sm" title={f.name}>
-                    {f.name}
-                  </span>
+                  <SimpleTooltip label={f.name}>
+                    <span className="truncate max-w-56 text-sm">{f.name}</span>
+                  </SimpleTooltip>
 
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={
-                        f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'
+                        f.size > maxSize * 1024 * 1024
+                          ? 'destructive'
+                          : 'secondary'
                       }
-                      className="whitespace-nowrap text-xs tabular-nums"
+                      size="lg"
                     >
                       {formatSize(f.size)}
                     </Badge>
                     {fileStatus && (
-                      <Badge
-                        variant={getStatusBadgeVariant(fileStatus.status)}
-                        className="whitespace-nowrap tabular-nums"
-                      >
+                      <Badge variant={getStatusBadgeVariant(fileStatus.status)}>
                         {getStatusBadgeLabel(fileStatus)}
                       </Badge>
                     )}

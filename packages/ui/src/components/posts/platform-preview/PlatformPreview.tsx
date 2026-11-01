@@ -1,5 +1,5 @@
 'use client';
-import { ButtonVariant, CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   PlatformPreviewProps,
@@ -30,7 +30,7 @@ import InstagramPreviewRenderer, {
 } from '@ui/posts/platform-preview/PlatformPreviewVisual';
 import { formatHandle } from '@ui/posts/platform-preview/platform-preview.helpers';
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
-import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -165,11 +165,12 @@ export default function PlatformPreview({
       aria-label={translate('label')}
     >
       {resolvedTargets.length > 1 ? (
-        <div className="flex flex-wrap gap-1">
-          {resolvedTargets.map((item) => {
-            const itemKey = item.id;
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('targetsLabel')}
+          onValueChange={setSelectedTargetId}
+          options={resolvedTargets.map((item) => {
             const Icon = getPlatformPreviewIcon(item.platform);
-            const isSelected = itemKey === activeTarget.id;
             const hasMultipleAccounts =
               resolvedTargets.filter(
                 (candidate) =>
@@ -177,37 +178,28 @@ export default function PlatformPreview({
                   getPlatformKey(item.platform),
               ).length > 1;
 
-            return (
-              <Button
-                key={itemKey}
-                type="button"
-                withWrapper={false}
-                variant={ButtonVariant.UNSTYLED}
-                aria-pressed={isSelected}
-                onClick={() => setSelectedTargetId(itemKey)}
-                className={cn(
-                  'inline-flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-medium transition',
-                  isSelected
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
-                )}
-              >
-                <Icon className="size-3.5" />
-                {item.platformLabel}
-                {hasMultipleAccounts ? (
-                  <span className="text-muted-foreground">
-                    {item.author?.handle
-                      ? formatHandle(item.author.handle)
-                      : item.author?.name ||
-                        translate('account', {
-                          count: resolvedTargets.indexOf(item) + 1,
-                        })}
-                  </span>
-                ) : null}
-              </Button>
-            );
+            return {
+              icon: <Icon />,
+              label: (
+                <>
+                  {item.platformLabel}
+                  {hasMultipleAccounts ? (
+                    <span className="text-muted-foreground">
+                      {item.author?.handle
+                        ? formatHandle(item.author.handle)
+                        : item.author?.name ||
+                          translate('account', {
+                            count: resolvedTargets.indexOf(item) + 1,
+                          })}
+                    </span>
+                  ) : null}
+                </>
+              ),
+              value: item.id,
+            };
           })}
-        </div>
+          value={activeTarget.id}
+        />
       ) : null}
 
       <PreviewPresentation.Provider

@@ -11,15 +11,16 @@ import {
 } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Badge from '@ui/display/badge/Badge';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import EvalCell from './EvalCell';
 
@@ -204,12 +205,11 @@ export function buildPostsTableColumns({
           <div className="max-w-48">
             <Badge status={post.status}>{displayStatus}</Badge>
             {post.status === PostStatus.FAILED && post.targetError?.message && (
-              <p
-                className="mt-1 truncate text-xs text-destructive"
-                title={post.targetError.message}
-              >
-                {post.targetError.message}
-              </p>
+              <SimpleTooltip label={post.targetError.message}>
+                <p className="mt-1 truncate text-xs text-destructive">
+                  {post.targetError.message}
+                </p>
+              </SimpleTooltip>
             )}
           </div>
         );
@@ -219,10 +219,9 @@ export function buildPostsTableColumns({
       className: 'text-xs',
       header: 'Scheduled',
       key: 'scheduledDate',
-      render: (p: IPost) =>
-        p.scheduledDate
-          ? formatDateInTimezone(p.scheduledDate, browserTimezone, 'short')
-          : '-',
+      render: (p: IPost) => (
+        <TableDateCell timeZone={browserTimezone} value={p.scheduledDate} />
+      ),
     },
     // Eval column - hidden in Analytics app
     ...(scope !== PageScope.ANALYTICS

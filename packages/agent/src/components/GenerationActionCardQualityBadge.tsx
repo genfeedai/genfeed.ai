@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -16,18 +17,18 @@ export function GenerationActionCardQualityBadge({
 }: GenerationActionCardQualityBadgeProps): ReactElement | null {
   if (score >= 8) {
     return (
-      <div className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+      <Badge casing="normal" shape="pill" size="lg" variant="success">
         ✨ Quality: {score}/10
-      </div>
+      </Badge>
     );
   }
 
   if (score < 6) {
     return (
       <div className="space-y-1">
-        <div className="flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
+        <Badge casing="normal" shape="pill" size="lg" variant="warning">
           ⚠️ Quality: {score}/10
-        </div>
+        </Badge>
         {feedback && feedback.length > 0 && (
           <p className="text-xs text-muted-foreground">{feedback[0]}</p>
         )}
@@ -48,8 +49,8 @@ export function GenerationActionCardQualityBadge({
 
   // Score 6-7: neutral display
   return (
-    <div className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+    <Badge casing="normal" shape="pill" size="lg" variant="secondary">
       Quality: {score}/10
-    </div>
+    </Badge>
   );
 }

@@ -1,5 +1,6 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import { useAgentThreadOpen } from '@genfeedai/agent/components/AgentThreadOpenContext';
+import { useAgentThreadResolution } from '@genfeedai/agent/components/AgentThreadResolutionContext';
 import {
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
@@ -12,16 +13,19 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentTransferPresentation } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  CheckCheck,
   CheckCircle2,
   Clipboard,
   ExternalLink,
   Loader2,
   RotateCcw,
   Send,
+  Undo2,
   XCircle,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -52,6 +56,7 @@ export function AgentTransferProvenanceCard({
 }: AgentTransferProvenanceCardProps): ReactElement {
   const translate = useTranslations('agent.transferProvenance');
   const openThread = useAgentThreadOpen();
+  const resolution = useAgentThreadResolution();
   const transfer = readTransfer(action);
   const direction =
     transfer?.direction ??
@@ -72,6 +77,12 @@ export function AgentTransferProvenanceCard({
     direction === 'inbound'
       ? transfer?.sourceThreadTitle
       : transfer?.destinationThreadTitle;
+  const isResolved = counterpartId
+    ? (resolution?.isResolved(counterpartId) ?? false)
+    : false;
+  const isResolutionPending = counterpartId
+    ? (resolution?.isPending(counterpartId) ?? false)
+    : false;
   const isFailed = status === 'FAILED' || status === 'DEPTH_LIMIT_REACHED';
   const [isExpanded, setIsExpanded] = useState(isFailed);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -139,12 +150,43 @@ export function AgentTransferProvenanceCard({
         )}
         role="status"
       >
+        {/* ui-guard-allow:loading-spinner -- status glyph rotates while the transfer is active */}
         <StatusIcon
           aria-hidden="true"
           className={cn('size-3.5', ACTIVE.has(status) && 'animate-spin')}
         />
         {statusLabel}
       </span>
+      {isResolved ? (
+        <Badge
+          data-testid="agent-transfer-resolved"
+          icon={<CheckCheck />}
+          variant="success"
+        >
+          {translate('resolved')}
+        </Badge>
+      ) : null}
+      {resolution && counterpartId && direction === 'outbound' ? (
+        <Button
+          data-testid="agent-transfer-resolution"
+          isDisabled={isResolutionPending}
+          onClick={() =>
+            void (isResolved
+              ? resolution.reopenThread(counterpartId)
+              : resolution.resolveThread(counterpartId))
+          }
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          {isResolved ? (
+            <Undo2 className="size-3.5" />
+          ) : (
+            <CheckCheck className="size-3.5" />
+          )}
+          {isResolved ? translate('reopen') : translate('resolve')}
+        </Button>
+      ) : null}
       {openThread && counterpartId ? (
         <Button
           data-testid="agent-transfer-open-thread"
@@ -241,6 +283,7 @@ export function AgentTransferProvenanceCard({
             withWrapper={false}
             onClick={() => void retry()}
           >
+            {/* ui-guard-allow:loading-spinner -- retry icon rotates while retrying */}
             <RotateCcw
               className={cn('size-3.5', isRetrying && 'animate-spin')}
             />

@@ -21,13 +21,14 @@ vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
   ],
 }));
 
-vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({
+vi.mock('@ui/primitives/tabs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ui/primitives/tabs')>()),
+  Tabs: ({
     tabs,
     activeTab,
     onTabChange,
   }: import('react').ComponentProps<
-    typeof import('@ui/navigation/tabs/Tabs').default
+    typeof import('@ui/primitives/tabs').Tabs
   >) => (
     <div data-testid="tabs">
       {(tabs ?? []).map((tab) => (
@@ -44,19 +45,19 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
   ),
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({
     children,
   }: import('react').ComponentProps<
-    typeof import('@ui/feedback/alert/Alert').default
+    typeof import('@ui/primitives/alert').Alert
   >) => <div data-testid="alert">{children}</div>,
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({
     children,
   }: import('react').ComponentProps<
-    typeof import('@ui/display/badge/Badge').default
+    typeof import('@ui/primitives/badge').Badge
   >) => <span data-testid="badge">{children}</span>,
 }));
 

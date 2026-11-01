@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { ChevronsLeftRight } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useRef, useState } from 'react';
@@ -162,20 +163,18 @@ function ComparisonSliderComponent({
         </div>
       </div>
 
-      <div
-        className={
-          'absolute top-1.5 left-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none' /* design-system-allow-content-color */
-        }
+      <Badge
+        className="pointer-events-none absolute top-1.5 left-1.5"
+        variant="overlay"
       >
         {beforeLabel}
-      </div>
-      <div
-        className={
-          'absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none' /* design-system-allow-content-color */
-        }
+      </Badge>
+      <Badge
+        className="pointer-events-none absolute top-1.5 right-1.5"
+        variant="overlay"
       >
         {afterLabel}
-      </div>
+      </Badge>
     </div>
   );
 }

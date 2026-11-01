@@ -7,7 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Check, Plus } from 'lucide-react';
 import type { RefObject } from 'react';
-import TagBadge from '@/components/tags/badge/TagBadge';
+import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
 
 type DropdownPosition = {
   left: number;
@@ -101,11 +101,11 @@ export default function DropdownTagsPanel({
 
           <div className="flex flex-wrap gap-2">
             {selectedTagObjects.map((tag) => (
-              <TagBadge
+              <LibraryTagChip
                 key={tag.id}
+                onRemove={() => onRemoveTag(tag.id)}
+                removeLabel={`Remove ${tag.label}`}
                 tag={tag}
-                isRemovable
-                onRemove={onRemoveTag}
               />
             ))}
           </div>

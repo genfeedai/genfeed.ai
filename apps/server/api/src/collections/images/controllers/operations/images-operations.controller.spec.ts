@@ -12,10 +12,6 @@ vi.mock('@api/services/integrations/klingai/services/klingai.service', () => ({
   KlingAIService: class {},
 }));
 
-vi.mock('@api/services/integrations/comfyui/comfyui.service', () => ({
-  ComfyUIService: class {},
-}));
-
 vi.mock('@api/services/integrations/fal/services/fal.service', () => ({
   FalService: class {},
 }));
@@ -61,7 +57,6 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -89,7 +84,6 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
@@ -107,7 +101,6 @@ import { IngredientCompletionService } from '@api/shared/services/poll-until/ing
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
-  FileInputType,
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
@@ -134,7 +127,6 @@ describe('ImagesOperationsController', () => {
   let routerService: vi.Mocked<RouterService>;
   let pollingService: vi.Mocked<IngredientCompletionService>;
   let filesClientService: vi.Mocked<FilesClientService>;
-  let comfyUIService: vi.Mocked<ComfyUIService>;
   let tagsService: vi.Mocked<TagsService>;
   let _websocketService: vi.Mocked<NotificationsPublisherService>;
   let failedGenerationService: vi.Mocked<FailedGenerationService>;
@@ -277,7 +269,6 @@ describe('ImagesOperationsController', () => {
         // Real service resolved from the mocks below; the controller delegates
         // create() to it, so the DI graph must be able to construct it.
         FalImageGenerationProviderAdapter,
-        GenfeedAiImageGenerationProviderAdapter,
         ImageGenerationAdmissionService,
         {
           provide: PersonasService,
@@ -397,15 +388,6 @@ describe('ImagesOperationsController', () => {
               s3Key: 'ingredients/images/test',
               size: 1024 * 1024,
               width: 1920,
-            }),
-          },
-        },
-        {
-          provide: ComfyUIService,
-          useValue: {
-            generateImage: vi.fn().mockResolvedValue({
-              filename: 'test.png',
-              imageBuffer: mockFrameBuffer,
             }),
           },
         },
@@ -656,7 +638,6 @@ describe('ImagesOperationsController', () => {
     routerService = module.get(RouterService);
     pollingService = module.get(IngredientCompletionService);
     filesClientService = module.get(FilesClientService);
-    comfyUIService = module.get(ComfyUIService);
     tagsService = module.get(TagsService);
     _websocketService = module.get(NotificationsPublisherService);
     failedGenerationService = module.get(FailedGenerationService);
@@ -814,41 +795,6 @@ describe('ImagesOperationsController', () => {
       const result = await controller.create(mockRequest, dto, mockUser);
 
       expect(replicateService.generateTextToImage).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
-    it('should route genfeed-ai models to ComfyUI instead of Replicate', async () => {
-      const dto: CreateImageDto = {
-        ...baseCreateDto,
-        model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
-        waitForCompletion: true,
-      };
-
-      imagesService.findOne.mockResolvedValue({
-        ...mockImage,
-        cdnUrl: 'https://cdn.genfeed.ai/images/test.png',
-        status: IngredientStatus.GENERATED,
-      } as unknown as IngredientEntity);
-
-      const result = await controller.create(mockRequest, dto, mockUser);
-
-      expect(comfyUIService.generateImage).toHaveBeenCalledWith(
-        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
-        expect.objectContaining({
-          height: dto.height,
-          prompt: dto.text,
-          width: dto.width,
-        }),
-      );
-      expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
-        mockImageId.toString(),
-        'images',
-        expect.objectContaining({
-          contentType: 'image/png',
-          type: FileInputType.BUFFER,
-        }),
-      );
       expect(result).toBeDefined();
     });
 

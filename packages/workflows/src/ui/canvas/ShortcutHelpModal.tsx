@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
+import { CardEmptySize, ComponentSize } from '@genfeedai/contracts';
 
 import { Kbd } from '@genfeedai/ui';
 import {
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
+import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { Keyboard } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -183,9 +184,10 @@ export function ShortcutHelpModal() {
             ))}
 
             {filteredShortcuts.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                No shortcuts found for &quot;{searchQuery}&quot;
-              </div>
+              <EmptyState
+                size={CardEmptySize.SM}
+                title={`No shortcuts found for "${searchQuery}"`}
+              />
             )}
           </div>
         </div>

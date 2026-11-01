@@ -286,8 +286,8 @@ vi.mock('@ui/display/table/Table', () => ({
   default: () => <div data-testid="table" />,
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: () => <div data-testid="alert" />,
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: () => <div data-testid="alert" />,
 }));
 
 vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
@@ -437,7 +437,7 @@ describe('AnalyticsOverview', () => {
 
     expect(markup).toContain('Connect accounts to see analytics');
     expect(markup).toContain('Connect accounts');
-    expect(markup).toContain('card-empty');
+    expect(markup).toContain('data-testid="empty-state"');
     expect(markup).not.toContain('First run');
     expect(markup).not.toContain(
       'Trend lines will appear here once performance data lands',

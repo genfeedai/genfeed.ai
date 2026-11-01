@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  PostsLayoutContext,
-  type RefreshFunction,
-} from '@contexts/posts/posts-layout-context';
+import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
@@ -19,48 +16,13 @@ import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
+import { Suspense, useCallback, useEffect } from 'react';
 import {
   LazyModalArticle,
   LazyModalNewsletter,
   LazyModalPost,
 } from '@/components/lazy/modal/LazyModal';
-import type {
-  PublishingLayoutAction,
-  PublishingLayoutState,
-} from '@/features/posts/props/publishing-layout-content.props';
-
-const initialPublishingLayoutState: PublishingLayoutState = {
-  refreshFn: null,
-  isRefreshing: false,
-  filtersNode: null,
-  leadingNode: null,
-  exportNode: null,
-  viewToggleNode: null,
-  scheduleActionsNode: null,
-};
-
-function publishingLayoutReducer(
-  state: PublishingLayoutState,
-  action: PublishingLayoutAction,
-): PublishingLayoutState {
-  switch (action.type) {
-    case 'SET_REFRESH_FN':
-      return { ...state, refreshFn: action.payload };
-    case 'SET_IS_REFRESHING':
-      return { ...state, isRefreshing: action.payload };
-    case 'SET_LEADING_NODE':
-      return { ...state, leadingNode: action.payload };
-    case 'SET_FILTERS_NODE':
-      return { ...state, filtersNode: action.payload };
-    case 'SET_EXPORT_NODE':
-      return { ...state, exportNode: action.payload };
-    case 'SET_VIEW_TOGGLE_NODE':
-      return { ...state, viewToggleNode: action.payload };
-    case 'SET_SCHEDULE_ACTIONS_NODE':
-      return { ...state, scheduleActionsNode: action.payload };
-  }
-}
+import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
 
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
   setExportNode: () => {
@@ -93,10 +55,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const { credentials } = useBrand();
   const translate = useTranslations('pages.publishing.layout');
 
-  const [state, dispatch] = useReducer(
-    publishingLayoutReducer,
-    initialPublishingLayoutState,
-  );
+  const { contextValue: mainContextValue, slots } = usePostsLayoutSlots();
   const {
     refreshFn,
     isRefreshing,
@@ -105,7 +64,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     exportNode,
     viewToggleNode,
     scheduleActionsNode,
-  } = state;
+  } = slots;
 
   const pathSegments = (pathname ?? '').split('/').filter(Boolean);
   const publishingSegmentIndex = pathSegments.lastIndexOf('publishing');
@@ -146,60 +105,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const handleNewPost = useCallback(() => {
     openModal(ModalEnum.POST_COMPOSE);
   }, []);
-
-  const setExportNode = useCallback(
-    (node: ReactNode) => dispatch({ type: 'SET_EXPORT_NODE', payload: node }),
-    [],
-  );
-  const setFiltersNode = useCallback(
-    (node: ReactNode) => dispatch({ type: 'SET_FILTERS_NODE', payload: node }),
-    [],
-  );
-  const setLeadingNode = useCallback(
-    (node: ReactNode) => dispatch({ type: 'SET_LEADING_NODE', payload: node }),
-    [],
-  );
-  const setIsRefreshing = useCallback(
-    (value: boolean) => dispatch({ type: 'SET_IS_REFRESHING', payload: value }),
-    [],
-  );
-  const setRefreshFn = useCallback(
-    (fn: RefreshFunction | (() => RefreshFunction)) =>
-      dispatch({ type: 'SET_REFRESH_FN', payload: fn }),
-    [],
-  );
-  const setScheduleActionsNode = useCallback(
-    (node: ReactNode) =>
-      dispatch({ type: 'SET_SCHEDULE_ACTIONS_NODE', payload: node }),
-    [],
-  );
-  const setViewToggleNode = useCallback(
-    (node: ReactNode) =>
-      dispatch({ type: 'SET_VIEW_TOGGLE_NODE', payload: node }),
-    [],
-  );
-
-  const mainContextValue = useMemo(
-    () => ({
-      setExportNode,
-      setFiltersNode,
-      setIsRefreshing,
-      setLeadingNode,
-      setRefresh: setRefreshFn,
-      setScheduleActionsNode,
-      setViewToggleNode,
-    }),
-    // dispatch-wrapped callbacks are stable references (useCallback with [] deps)
-    [
-      setExportNode,
-      setFiltersNode,
-      setIsRefreshing,
-      setLeadingNode,
-      setRefreshFn,
-      setScheduleActionsNode,
-      setViewToggleNode,
-    ],
-  );
 
   if (hasOwnPageLayout) {
     return (

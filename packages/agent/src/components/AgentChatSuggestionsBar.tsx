@@ -78,8 +78,9 @@ export function AgentChatSuggestionsBar({
   }
 
   // Short follow-up labels (e.g. post-analytics "Create a remix") are
-  // one-liner chips — PostHog-style. Cards only when any item has a
-  // multi-line description worth the taller tile.
+  // one-liner chips — PostHog-style. Cards when any item has a multi-line
+  // description worth the taller tile, and always on the new-conversation
+  // hero, where the starters sit as one row of equal tiles.
   const hasDescriptions = normalized.some((action) =>
     Boolean(action.description?.trim()),
   );
@@ -97,16 +98,18 @@ export function AgentChatSuggestionsBar({
         }}
         isDisabled={isReadOnly}
         maxSuggestions={4}
-        variant={hasDescriptions ? 'cards' : 'chips'}
+        variant={hasDescriptions || layout === 'equal' ? 'cards' : 'chips'}
         className={
-          layout === 'equal' && !hasDescriptions
+          layout === 'equal'
             ? cn(
-                'grid grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
+                // `sm:` would put three tiles in a narrow pane on a wide
+                // screen; the container queries below own the columns.
+                'grid grid-cols-1 sm:grid-cols-1 [&>button]:w-full [&>button]:max-w-none',
                 // A fourth tile (the leading "About this page" action) gets
                 // its own column instead of orphaning onto a second row.
                 normalized.length > 3
                   ? '@md:grid-cols-2 @3xl:grid-cols-4'
-                  : '@xl:grid-cols-3',
+                  : '@lg:grid-cols-3',
               )
             : undefined
         }

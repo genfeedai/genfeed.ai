@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
@@ -45,12 +46,9 @@ export function EngagementOpportunityCard({
 
   if (acted) {
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">Response handled</span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        Response handled
+      </Alert>
     );
   }
 
@@ -133,7 +131,7 @@ export function EngagementOpportunityCard({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={handleSkip}
-          className="flex-1 bg-muted text-muted-foreground hover:bg-muted/80"
+          className="flex-1 bg-muted hover:bg-muted/80"
         >
           <FastForward className="size-3.5" />
           Skip

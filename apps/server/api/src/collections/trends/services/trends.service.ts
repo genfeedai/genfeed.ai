@@ -23,6 +23,10 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import {
+  type BrandDigestSources,
+  TrendBrandDigestService,
+} from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
@@ -50,6 +54,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
+import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -77,6 +82,7 @@ export class TrendsService {
     private readonly trendQueryService: TrendQueryService,
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
     private readonly trendBrandNicheVideoService: TrendBrandNicheVideoService,
+    private readonly trendBrandDigestService: TrendBrandDigestService,
   ) {}
 
   async getGlobalCorpusStats(): Promise<{
@@ -467,6 +473,18 @@ export class TrendsService {
     );
   }
 
+  generateDigestAngles(
+    trends: Array<{ matchedTerms?: string[]; platform: string; topic: string }>,
+    brand: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
+  ): Promise<Map<number, TrendDigestAngle>> {
+    return this.trendContentIdeasService.generateDigestAngles(
+      trends,
+      brand,
+      byokApiKeyOverride,
+    );
+  }
+
   /**
    * Mark expired trends as historical
    */
@@ -751,6 +769,66 @@ export class TrendsService {
       return true;
     });
     return rankBrandVideos(merged, queries).slice(0, options?.limit ?? 12);
+  }
+
+  /**
+   * What the daily digest is built from: the org's default brand and only the
+   * videos and topics that match that brand's niche. Returns null when the org
+   * has no brand or the brand has no niche to match, so the digest sends
+   * nothing instead of falling back to the global chart (mostly music).
+   */
+  async getBrandDigestSources(
+    organizationId: string,
+    options: { minViralScore: number },
+  ): Promise<BrandDigestSources | null> {
+    const brands = await this.brandsService.find({
+      isDeleted: false,
+      organizationId,
+    });
+    const brand =
+      brands.find((candidate) => candidate.isDefault) ??
+      [...brands].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      )[0];
+    if (!brand) return null;
+
+    const preferences = await this.trendPreferencesService.getPreferences(
+      organizationId,
+      brand.id,
+    );
+    const queries = buildBrandNicheQueries({
+      categories: preferences?.categories,
+      description: brand.description,
+      hashtags: preferences?.hashtags,
+      keywords: preferences?.keywords,
+    });
+    if (queries.length === 0) return null;
+
+    const [videos, corpus] = await Promise.all([
+      this.getBrandViralVideos(organizationId, brand.id, {
+        limit: 30,
+        minViralScore: options.minViralScore,
+      }),
+      this.getTrendsWithAccessControl(organizationId, brand.id, undefined, {
+        allowFetchIfMissing: false,
+        relevance: 'brand',
+      }),
+    ]);
+
+    return {
+      brand: {
+        description: brand.description ?? undefined,
+        id: brand.id,
+        label: brand.label,
+      },
+      topics: await this.trendBrandDigestService.buildTopics(
+        corpus.trends,
+        queries,
+        organizationId,
+      ),
+      videos: this.trendBrandDigestService.tagVideos(videos, queries),
+    };
   }
 
   /**

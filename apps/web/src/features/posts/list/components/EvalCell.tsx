@@ -1,13 +1,36 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import EvaluationBadge from '@/features/posts/components/evaluation/badge/EvaluationBadge';
 import type { PostEvaluationProps } from '@/features/posts/props/post-evaluation.props';
 import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
+
+type ScoreLabelKey =
+  | 'scoreAverage'
+  | 'scoreExcellent'
+  | 'scoreGood'
+  | 'scoreNeedsWork';
+
+function getScoreTone(score: number): {
+  labelKey: ScoreLabelKey;
+  variant: BadgeVariant;
+} {
+  if (score >= 90) {
+    return { labelKey: 'scoreExcellent', variant: 'success' };
+  }
+  if (score >= 70) {
+    return { labelKey: 'scoreGood', variant: 'info' };
+  }
+  if (score >= 50) {
+    return { labelKey: 'scoreAverage', variant: 'warning' };
+  }
+  return { labelKey: 'scoreNeedsWork', variant: 'destructive' };
+}
 
 export default function EvalCell({
   post,
@@ -25,7 +48,20 @@ export default function EvalCell({
   const score = evaluation?.data.overallScore ?? post.evalScore;
 
   if (score != null && presentation !== 'menu') {
-    return <EvaluationBadge score={score} size={ComponentSize.XS} />;
+    const { labelKey, variant } = getScoreTone(score);
+    return (
+      <Badge
+        casing="normal"
+        isSolid
+        title={translate('qualityScore', {
+          label: translate(labelKey),
+          score,
+        })}
+        variant={variant}
+      >
+        {score}
+      </Badge>
+    );
   }
 
   const handleEvaluate = async () => {
@@ -55,10 +91,10 @@ export default function EvalCell({
   return (
     <Button
       variant={isGrid ? ButtonVariant.GHOST : ButtonVariant.DEFAULT}
-      ariaLabel={isGrid ? undefined : 'Evaluate'}
+      ariaLabel={isGrid ? undefined : translate('evaluate')}
       icon={<ArrowUp />}
-      label={isGrid ? 'Evaluate' : undefined}
-      tooltip="Evaluate"
+      label={isGrid ? translate('evaluate') : undefined}
+      tooltip={translate('evaluate')}
       isLoading={isEvaluating}
       onClick={(event) => {
         if (isGrid) event.stopPropagation();

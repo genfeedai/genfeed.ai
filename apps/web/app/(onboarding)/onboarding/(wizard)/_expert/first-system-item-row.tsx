@@ -78,7 +78,6 @@ export default function FirstSystemItemRow({
                   onEdit(item, topic.trim());
                   setIsEditing(false);
                 }}
-                className="rounded-none"
               />
               <Button
                 variant={ButtonVariant.GHOST}
@@ -88,7 +87,6 @@ export default function FirstSystemItemRow({
                   setTopic(item.topic);
                   setIsEditing(false);
                 }}
-                className="rounded-none"
               />
             </>
           ) : (
@@ -99,7 +97,6 @@ export default function FirstSystemItemRow({
                 label={translate('approve')}
                 isLoading={isBusy}
                 onClick={() => onApprove(item)}
-                className="rounded-none"
               />
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -107,7 +104,6 @@ export default function FirstSystemItemRow({
                 label={translate('edit')}
                 isDisabled={isBusy}
                 onClick={() => setIsEditing(true)}
-                className="rounded-none"
               />
               <Button
                 variant={ButtonVariant.GHOST}
@@ -115,7 +111,6 @@ export default function FirstSystemItemRow({
                 label={translate('reject')}
                 isDisabled={isBusy}
                 onClick={() => onReject(item)}
-                className="rounded-none"
               />
             </>
           )}

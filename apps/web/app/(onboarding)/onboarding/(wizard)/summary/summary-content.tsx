@@ -475,15 +475,20 @@ export default function SummaryContent() {
             withWrapper={false}
             onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
             icon={<ArrowLeft className="size-4" />}
-            className="h-8 rounded-full border border-border bg-muted px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
+            className="h-8 rounded-full border border-border bg-muted px-4 hover:border-border-strong hover:bg-hover"
           >
             Back
           </Button>
 
-          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-muted px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-            <Sparkles className="size-3" />
+          <Badge
+            className="step-badge shrink-0"
+            icon={<Sparkles />}
+            shape="pill"
+            size="xl"
+            variant="outline"
+          >
             Step 3 of 3
-          </div>
+          </Badge>
         </div>
       </div>
     </div>

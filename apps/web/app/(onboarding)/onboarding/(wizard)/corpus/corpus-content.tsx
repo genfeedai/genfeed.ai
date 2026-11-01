@@ -6,7 +6,6 @@ import ExpertStepHeader from '@app/(onboarding)/onboarding/(wizard)/_expert/expe
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   KnowledgeMemoryScope,
@@ -17,9 +16,10 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
 import { logger } from '@services/core/logger.service';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -260,23 +260,16 @@ export default function CorpusContent() {
       />
 
       <div className="max-w-2xl space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {MODES.map((option) => (
-            <Button
-              key={option}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              aria-pressed={mode === option}
-              label={translate(`corpus.modes.${option}`)}
-              onClick={() => setMode(option)}
-              className={`h-9 border px-3 text-xs font-medium transition ${
-                mode === option
-                  ? 'border-border-strong bg-hover text-foreground'
-                  : 'border-border bg-tertiary text-muted-foreground hover:border-border-strong hover:text-foreground'
-              }`}
-            />
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('corpus.title')}
+          onValueChange={setMode}
+          options={MODES.map((option) => ({
+            label: translate(`corpus.modes.${option}`),
+            value: option,
+          }))}
+          value={mode}
+        />
 
         {mode === 'url' ? (
           <Input
@@ -314,7 +307,6 @@ export default function CorpusContent() {
                 label={file?.name ?? translate('corpus.chooseFile')}
                 icon={<Upload className="size-4" />}
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-none"
               />
               <span className="text-xs text-muted-foreground">
                 {translate('corpus.fileHint')}
@@ -337,7 +329,6 @@ export default function CorpusContent() {
           isDisabled={!canAdd}
           isLoading={isAdding}
           onClick={handleAdd}
-          className="rounded-none px-5"
         />
       </div>
 
@@ -351,7 +342,7 @@ export default function CorpusContent() {
 
       {errorKey ? (
         <div className="max-w-2xl">
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               <div className="font-medium">
                 {translate('common.errorTitle')}

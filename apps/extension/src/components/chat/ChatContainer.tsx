@@ -1,15 +1,10 @@
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   LibraryAsset,
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
-import { Button } from '@ui/primitives/button';
+import { Alert } from '@ui/primitives/alert';
 import Spinner from '@ui/primitives/spinner';
 import { PenLine, Shuffle } from 'lucide-react';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
@@ -76,19 +71,15 @@ export function ChatContainer({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {error ? (
-        <div
-          role="alert"
-          className="mx-4 mt-3 flex items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        <Alert
+          className="mx-4 mt-3"
+          closeLabel="Dismiss"
+          onClose={() => setError(null)}
+          size="sm"
+          variant="destructive"
         >
-          <span>{error}</span>
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            onClick={() => setError(null)}
-          >
-            Dismiss
-          </Button>
-        </div>
+          {error}
+        </Alert>
       ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 && mode === 'reply' ? (

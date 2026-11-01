@@ -2,6 +2,7 @@ import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   type ReactElement,
@@ -87,16 +88,14 @@ export function TeamMentionList({
           <div className="flex flex-col">
             <span className="font-medium">{item.displayName}</span>
           </div>
-          <span
-            className={cn(
-              'ml-auto rounded-full px-2 py-0.5 text-2xs font-medium',
-              item.isAgent
-                ? 'bg-primary/10 text-primary'
-                : 'bg-success/10 text-success',
-            )}
+          <Badge
+            casing="normal"
+            className="ml-auto"
+            shape="pill"
+            variant={item.isAgent ? 'default' : 'success'}
           >
             {item.isAgent ? 'agent' : 'human'}
-          </span>
+          </Badge>
         </Button>
       ))}
     </div>

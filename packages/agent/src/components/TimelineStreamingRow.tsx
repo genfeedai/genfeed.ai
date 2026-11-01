@@ -8,6 +8,7 @@ import {
 import type { TimelineStreaming } from '@genfeedai/agent/utils/derive-timeline';
 import { stripKnowledgeCitationMarkers } from '@genfeedai/agent/utils/strip-knowledge-citation-markers';
 import { summarizeStreamingProgress } from '@genfeedai/agent/utils/summarize-streaming-progress';
+import { StatusDot } from '@ui/primitives/status-dot';
 import { Clock, Sparkles } from 'lucide-react';
 import { type ReactElement, useMemo } from 'react';
 
@@ -139,7 +140,12 @@ export function TimelineStreamingRow({
             <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-7 text-foreground">
               {visibleContent}
               {streamState.isStreaming && (
-                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
+                <StatusDot
+                  className="ml-0.5"
+                  isPulsing
+                  shape="caret"
+                  tone="foreground"
+                />
               )}
             </p>
           </div>

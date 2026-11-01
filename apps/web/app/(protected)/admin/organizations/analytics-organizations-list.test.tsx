@@ -144,13 +144,14 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     );
 
     expect(
-      await screen.findByRole('columnheader', { name: 'Release access' }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('link', {
+      await screen.findByRole('link', {
         name: 'Open release access for Acme Inc',
       }),
     ).toHaveAttribute('href', '/admin/organizations/org-1');
+    // A row action, not a column of its own.
+    expect(
+      screen.queryByRole('columnheader', { name: 'Release access' }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens an organization summary in the sidebar from the row while the name stays a link', async () => {

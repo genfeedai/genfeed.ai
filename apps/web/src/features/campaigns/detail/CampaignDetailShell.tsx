@@ -1,5 +1,6 @@
 'use client';
 
+import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
@@ -16,9 +17,9 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Flag, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -32,6 +33,7 @@ import {
 import CampaignGenerateDialog from '@/features/campaigns/detail/CampaignGenerateDialog';
 import CampaignUnavailableState from '@/features/campaigns/detail/CampaignUnavailableState';
 import { useCampaign } from '@/features/campaigns/hooks/use-campaign';
+import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
 
 export default function CampaignDetailShell({
   campaignId,
@@ -57,6 +59,9 @@ export default function CampaignDetailShell({
     useCampaign(campaignId);
   const [isMutating, setIsMutating] = useState(false);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  // A section (the campaign calendar) mounts its controls in this shell's sub
+  // bar, beside the campaign actions, never above its own content.
+  const { contextValue: subbarContext, slots } = usePostsLayoutSlots();
 
   if (isUnavailable) {
     return <CampaignUnavailableState />;
@@ -224,132 +229,141 @@ export default function CampaignDetailShell({
   }
 
   return (
-    <Container
-      headerTabs={{
-        items: [
-          {
-            href: overviewHref,
-            label: translate('tabs.overview'),
-            matchMode: 'exact',
-          },
-          {
-            href: contentHref,
-            label: translate('tabs.content'),
-            matchMode: 'exact',
-          },
-          {
-            href: calendarHref,
-            label: translate('tabs.calendar'),
-            matchMode: 'exact',
-          },
-          {
-            href: performanceHref,
-            label: translate('tabs.performance'),
-            matchMode: 'exact',
-          },
-          {
-            href: adsHref,
-            label: translate('tabs.ads'),
-            matchMode: 'exact',
-          },
-        ],
-      }}
-      icon={Flag}
-      label={resolvedCampaign.name}
-      titleVisibility="visible"
-      moduleChrome
-    >
-      <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border py-4">
-        <Badge status={resolvedCampaign.status}>
-          {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
-            resolvedCampaign.status}
-        </Badge>
-        {deskActions.canGenerate ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('generate')}
-            icon={<Sparkles className="size-4" />}
-            onClick={handleGenerate}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
+    <PostsLayoutContext.Provider value={subbarContext}>
+      <Container
+        headerTabs={{
+          items: [
+            {
+              href: overviewHref,
+              label: translate('tabs.overview'),
+              matchMode: 'exact',
+            },
+            {
+              href: contentHref,
+              label: translate('tabs.content'),
+              matchMode: 'exact',
+            },
+            {
+              href: calendarHref,
+              label: translate('tabs.calendar'),
+              matchMode: 'exact',
+            },
+            {
+              href: performanceHref,
+              label: translate('tabs.performance'),
+              matchMode: 'exact',
+            },
+            {
+              href: adsHref,
+              label: translate('tabs.ads'),
+              matchMode: 'exact',
+            },
+          ],
+        }}
+        icon={Flag}
+        label={resolvedCampaign.name}
+        titleVisibility="visible"
+        moduleChrome
+        leading={slots.leadingNode}
+        iconActions={slots.exportNode}
+        right={
+          <>
+            <Badge status={resolvedCampaign.status}>
+              {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
+                resolvedCampaign.status}
+            </Badge>
+            {slots.filtersNode}
+            {slots.viewToggleNode}
+            {slots.scheduleActionsNode}
+            {deskActions.canStart ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('start')}
+                onClick={handleStart}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
+            {deskActions.canPause ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('pause')}
+                onClick={handlePause}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+            {deskActions.canComplete ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('complete')}
+                onClick={handleComplete}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+            <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
+              <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
+                {translate('backToCampaigns')}
+              </Link>
+            </Button>
+            {section === 'overview' ? (
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <Link
+                  href={href(
+                    createPublishingCampaignRoute(resolvedCampaign.id, 'edit'),
+                  )}
+                >
+                  {translate('edit')}
+                </Link>
+              </Button>
+            ) : null}
+            {deskActions.canRestore ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('restore')}
+                onClick={() => {
+                  void handleRestore();
+                }}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              />
+            ) : null}
+            {deskActions.canArchive ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('archive')}
+                onClick={handleArchive}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+              />
+            ) : null}
+            {/* The primary action closes the bar. */}
+            {deskActions.canGenerate ? (
+              <Button
+                isDisabled={isMutating}
+                label={translate('generate')}
+                icon={<Sparkles className="size-4" />}
+                onClick={handleGenerate}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              />
+            ) : null}
+          </>
+        }
+      >
+        {isGenerateOpen ? (
+          <CampaignGenerateDialog
+            campaign={resolvedCampaign}
+            onClose={() => setIsGenerateOpen(false)}
           />
         ) : null}
-        {deskActions.canStart ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('start')}
-            onClick={handleStart}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          />
-        ) : null}
-        {deskActions.canPause ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('pause')}
-            onClick={handlePause}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-          />
-        ) : null}
-        {deskActions.canComplete ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('complete')}
-            onClick={handleComplete}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-          />
-        ) : null}
-        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
-          <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
-            {translate('backToCampaigns')}
-          </Link>
-        </Button>
-        {section === 'overview' ? (
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link
-              href={href(
-                createPublishingCampaignRoute(resolvedCampaign.id, 'edit'),
-              )}
-            >
-              {translate('edit')}
-            </Link>
-          </Button>
-        ) : null}
-        {deskActions.canRestore ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('restore')}
-            onClick={() => {
-              void handleRestore();
-            }}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          />
-        ) : null}
-        {deskActions.canArchive ? (
-          <Button
-            isDisabled={isMutating}
-            label={translate('archive')}
-            onClick={handleArchive}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-          />
-        ) : null}
-      </div>
-
-      {isGenerateOpen ? (
-        <CampaignGenerateDialog
-          campaign={resolvedCampaign}
-          onClose={() => setIsGenerateOpen(false)}
-        />
-      ) : null}
-      {children}
-    </Container>
+        {children}
+      </Container>
+    </PostsLayoutContext.Provider>
   );
 }

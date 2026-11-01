@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -9,8 +8,8 @@ import {
 } from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -60,7 +59,7 @@ export default function BrandDetailExternalLinksCard({
             asChild
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
-            className="h-8 shrink-0 px-2.5 text-xs"
+            className="h-8 shrink-0 px-2.5"
           >
             <Link href={social.manageHref}>Manage</Link>
           </Button>
@@ -88,7 +87,7 @@ export default function BrandDetailExternalLinksCard({
                 <Button
                   asChild
                   variant={ButtonVariant.SECONDARY}
-                  className="flex-1 gap-1.5 text-xs [&_svg]:size-3.5"
+                  className="flex-1 gap-1.5 [&_svg]:size-3.5"
                   size={ButtonSize.SM}
                   wrapperClassName="flex-1"
                 >
@@ -109,12 +108,12 @@ export default function BrandDetailExternalLinksCard({
               </div>
             ))
           ) : (
-            <CardEmptyContent label="No website links yet." />
+            <EmptyState title="No website links yet." />
           )}
 
           <Button
             variant={ButtonVariant.SECONDARY}
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={() => onOpenLinkModal()}

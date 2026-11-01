@@ -9,8 +9,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children?: ReactNode }) => (
     <div role="alert">{children}</div>
   ),
 }));

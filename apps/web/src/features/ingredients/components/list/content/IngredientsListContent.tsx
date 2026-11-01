@@ -1,11 +1,9 @@
 'use client';
-
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
-  ComponentSize,
   categoryToString,
   formatEnumLabel,
   IngredientCategory,
@@ -42,16 +40,18 @@ import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.u
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { format } from 'date-fns';
 import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -304,28 +304,27 @@ function IngredientLedgerAssetCell({
             {label || 'Untitled asset'}
           </Link>
         ) : (
-          <span
-            className="truncate text-sm font-medium"
-            title={label || undefined}
-          >
-            {label || 'Untitled asset'}
-          </span>
+          <SimpleTooltip label={label || undefined}>
+            <span className="truncate text-sm font-medium">
+              {label || 'Untitled asset'}
+            </span>
+          </SimpleTooltip>
         )}
         {failureReason ? (
-          <span
-            className="truncate text-xs text-destructive"
-            data-testid={`ingredient-failure-reason-${ingredient.id}`}
-            title={failureReason}
-          >
-            {failureReason}
-          </span>
+          <SimpleTooltip label={failureReason}>
+            <span
+              className="truncate text-xs text-destructive"
+              data-testid={`ingredient-failure-reason-${ingredient.id}`}
+            >
+              {failureReason}
+            </span>
+          </SimpleTooltip>
         ) : promptText ? (
-          <span
-            className="truncate text-xs text-muted-foreground"
-            title={promptText}
-          >
-            {promptText}
-          </span>
+          <SimpleTooltip label={promptText}>
+            <span className="truncate text-xs text-muted-foreground">
+              {promptText}
+            </span>
+          </SimpleTooltip>
         ) : null}
       </div>
       {isAudio ? (
@@ -513,9 +512,7 @@ export default function IngredientsListContent({
             <div className="flex flex-wrap items-center gap-1.5">
               <LibraryAssetTypeBadge category={ingredient.category} />
               {formatLabel ? (
-                <Badge size={ComponentSize.SM} variant="slate">
-                  {formatLabel}
-                </Badge>
+                <Badge variant="secondary">{formatLabel}</Badge>
               ) : null}
             </div>
           );
@@ -555,9 +552,9 @@ export default function IngredientsListContent({
 
           return (
             <div className="flex w-20 min-w-0 max-w-20 flex-col">
-              <span className="truncate text-sm" title={modelLabel}>
-                {modelLabel}
-              </span>
+              <SimpleTooltip label={modelLabel}>
+                <span className="truncate text-sm">{modelLabel}</span>
+              </SimpleTooltip>
               {providerLabel ? (
                 <span className="truncate text-xs text-muted-foreground">
                   {providerLabel}
@@ -579,12 +576,11 @@ export default function IngredientsListContent({
           }
 
           return (
-            <span
-              className="block truncate text-xs tabular-nums text-foreground/70"
-              title={sizeLabel}
-            >
-              {sizeLabel}
-            </span>
+            <SimpleTooltip label={sizeLabel}>
+              <span className="block truncate text-xs tabular-nums text-foreground/70">
+                {sizeLabel}
+              </span>
+            </SimpleTooltip>
           );
         },
       },
@@ -592,25 +588,9 @@ export default function IngredientsListContent({
         className: 'w-20',
         header: translate('browser.columns.created'),
         key: 'createdAt',
-        render: (ingredient: IIngredient) => {
-          const createdAt = ingredient.createdAt
-            ? new Date(ingredient.createdAt)
-            : null;
-
-          if (!createdAt || Number.isNaN(createdAt.getTime())) {
-            return <span className="text-muted-foreground">—</span>;
-          }
-
-          return (
-            <time
-              className="whitespace-nowrap text-xs tabular-nums text-foreground/70"
-              title={format(createdAt, 'd MMM yyyy')}
-              dateTime={createdAt.toISOString()}
-            >
-              {format(createdAt, 'd MMM yy')}
-            </time>
-          );
-        },
+        render: (ingredient: IIngredient) => (
+          <TableDateCell hasTime={false} value={ingredient.createdAt} />
+        ),
       },
       {
         className: 'w-32',
@@ -799,7 +779,7 @@ export default function IngredientsListContent({
       // Mirror the media grid and say so.
       if (filteredIngredients.length === 0) {
         const noun = categoryToString(singularType);
-        return <CardEmptyContent label={`No ${noun} yet`} className="w-full" />;
+        return <EmptyState title={`No ${noun} yet`} className="w-full" />;
       }
 
       return (
@@ -1004,8 +984,8 @@ export default function IngredientsListContent({
           onInspect={inspectIngredient}
         />
       ) : hasFilteredEmptyState ? (
-        <CardEmptyContent
-          label={EMPTY_STATES.RESULTS_FOUND}
+        <EmptyState
+          title={EMPTY_STATES.RESULTS_FOUND}
           action={{
             label: 'Clear Filters',
             onClick: onClearFilters,

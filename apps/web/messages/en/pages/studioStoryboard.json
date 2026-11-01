@@ -59,6 +59,10 @@
     "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
     "remixTitle": "Remix a video",
     "removeAsset": "Remove {title}",
+    "result": "Storyboard",
+    "resultEmpty": "Your storyboard shows up here once you save the idea.",
+    "heroDescription": "Pitch your idea, or start from one of these.",
+    "heroTitle": "Start a storyboard",
     "retrySaving": "Retry saving storyboard",
     "runtimeBudget": "Runtime budget (seconds)",
     "secondsUnit": "s",
@@ -220,6 +224,34 @@
     "scratchDescription": "Write your own brief.",
     "scratchTitle": "Start from scratch",
     "title": "Turn an idea into a storyboard"
+  },
+  "pitches": {
+    "items": {
+      "explainer": {
+        "description": "Correct a common mistake and show a better way.",
+        "title": "Explain an idea"
+      },
+      "howTo": {
+        "description": "One clear step per slide, from start to result.",
+        "title": "Step-by-step guide"
+      },
+      "lessons": {
+        "description": "Five lessons, each with a real example.",
+        "title": "Lessons learned"
+      },
+      "story": {
+        "description": "Where you started, what changed, where you are now.",
+        "title": "A story in slides"
+      },
+      "tips": {
+        "description": "A hook, five quick tips and a save-this close.",
+        "title": "Quick tips"
+      },
+      "voiceNote": {
+        "description": "Talk through the biggest lesson of your year.",
+        "title": "Voice note"
+      }
+    }
   },
   "presets": {
     "chipsAria": "Storyboard presets",
@@ -484,7 +516,40 @@
     "changeDone": "Updated the board.",
     "emptyBrief": "Describe the video you want and the agent drafts the shots on the board.",
     "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
+    "emptySlides": "Ask for a change, like rewording slide 3, and the board updates.",
+    "emptyTitleBrief": "What's your idea?",
+    "emptyTitleChanges": "What should change?",
     "failed": "That did not change the board.",
+    "starters": {
+      "slideshow": {
+        "beforeAfter": {
+          "prompt": "A 5-slide before and after story: the problem, what changed, the result, and how to get it.",
+          "title": "Before and after"
+        },
+        "mythBusting": {
+          "prompt": "A 6-slide carousel that busts three common myths in my niche, with one myth and its fix per slide.",
+          "title": "Myth busting"
+        },
+        "tips": {
+          "prompt": "A 6-slide carousel with five practical tips for my audience, one tip per slide, and a call to action on the last slide.",
+          "title": "Tips carousel"
+        }
+      },
+      "video": {
+        "founderStory": {
+          "prompt": "A 30-second founder story: why I started, the turning point, and where we are going next.",
+          "title": "Founder story"
+        },
+        "howTo": {
+          "prompt": "A 15-second how-to that shows one tip in three steps, with a punchy hook in the first second.",
+          "title": "Quick how-to"
+        },
+        "productTeaser": {
+          "prompt": "A 20-second teaser for a product launch: open on the problem, reveal the product, and end on a clear call to action.",
+          "title": "Product teaser"
+        }
+      }
+    },
     "title": "Storyboard agent",
     "unavailable": "Change requests are not available for this storyboard.",
     "working": "Working on the board"
@@ -498,6 +563,7 @@
   "promptBar": {
     "briefPlaceholder": "Describe the video you want to make",
     "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",
+    "slidesPlaceholder": "Ask for changes, e.g. reword slide 3 and end on a question",
     "retry": "Try again"
   },
   "longForm": {

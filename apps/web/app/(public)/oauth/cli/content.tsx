@@ -14,6 +14,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
@@ -670,11 +671,16 @@ function CliAuthPageContent() {
               />
               {user?.primaryEmailAddress?.emailAddress && (
                 <div className="text-center">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary border border-border text-xs text-muted-foreground">
+                  <Badge
+                    casing="normal"
+                    shape="pill"
+                    size="xl"
+                    variant="outline"
+                  >
                     {translate('requesting.signedInAs', {
                       email: user.primaryEmailAddress.emailAddress,
                     })}
-                  </span>
+                  </Badge>
                 </div>
               )}
             </div>

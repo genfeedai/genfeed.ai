@@ -26,11 +26,10 @@ export interface ScoreBarProps {
 }
 
 export type PatternTypeBadgeVariant =
-  | 'blue'
+  | 'default'
+  | 'info'
   | 'success'
-  | 'amber'
-  | 'accent'
-  | 'multimodal';
+  | 'warning';
 
 export type PatternTypeVariantMap = Record<
   PatternType,

@@ -1,5 +1,7 @@
 import type { CalendarItem } from '@/props/components/calendar.props';
 import '@testing-library/jest-dom/vitest';
+import { CalendarWithSubbar as ContentCalendarView } from '@app-tests/calendar-subbar.harness';
+import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   act,
   fireEvent,
@@ -7,9 +9,9 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ContentCalendarView from '@/features/posts/components/calendar/content-calendar/ContentCalendarView';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
@@ -156,7 +158,8 @@ describe('ContentCalendarView', () => {
     expect(instance?.destroy).toHaveBeenCalledTimes(1);
   });
 
-  it('offers the requested layouts in the header toolbar', async () => {
+  it('offers the requested layouts in a view dropdown, not tabs', async () => {
+    const user = userEvent.setup();
     render(
       <ContentCalendarView
         items={[]}
@@ -171,16 +174,14 @@ describe('ContentCalendarView', () => {
     });
 
     expect(calendarMocks.instances[0]?.options.headerToolbar).toBe(false);
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'Day',
-      'Week',
-      'Month',
-      'List',
-    ]);
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Month' }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    await user.click(viewMenuTrigger('Week'));
+    expect(
+      (await screen.findAllByRole('menuitemradio')).map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(['Day', 'Week', 'Month', 'List']);
+    await user.click(screen.getByRole('menuitemradio', { name: 'Month' }));
     expect(calendarMocks.instances[0]?.changeView).toHaveBeenCalledWith(
       'dayGridMonth',
     );
@@ -207,7 +208,9 @@ describe('ContentCalendarView', () => {
       expect(calendarMocks.instances).toHaveLength(1);
     });
 
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^View: / }),
+    ).not.toBeInTheDocument();
   });
 
   // The instance is torn down and rebuilt on every data refresh, so a view the

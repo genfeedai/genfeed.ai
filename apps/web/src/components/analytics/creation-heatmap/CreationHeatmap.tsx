@@ -1,6 +1,8 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Skeleton } from '@ui/primitives/skeleton';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type {
@@ -81,17 +83,33 @@ export default function CreationHeatmap({
 
             const count = calendar[cell.dayKey]?.count ?? 0;
 
+            if (isLoading) {
+              return (
+                <Skeleton
+                  key={cell.dayKey}
+                  aria-hidden="true"
+                  className="size-3.5 rounded-sm"
+                />
+              );
+            }
+
             return (
-              <div
+              <SimpleTooltip
                 key={cell.dayKey}
-                className={cn(
-                  'size-3.5 rounded-sm transition-colors',
-                  isLoading
-                    ? 'animate-pulse bg-foreground/10'
-                    : INTENSITY_CLASSES[getIntensityLevel(count)],
-                )}
-                title={translate('cellTitle', { count, day: cell.dayKey })}
-              />
+                label={translate('cellTitle', { count, day: cell.dayKey })}
+              >
+                <div
+                  role="img"
+                  aria-label={translate('cellTitle', {
+                    count,
+                    day: cell.dayKey,
+                  })}
+                  className={cn(
+                    'size-3.5 rounded-sm transition-colors',
+                    INTENSITY_CLASSES[getIntensityLevel(count)],
+                  )}
+                />
+              </SimpleTooltip>
             );
           })}
         </div>

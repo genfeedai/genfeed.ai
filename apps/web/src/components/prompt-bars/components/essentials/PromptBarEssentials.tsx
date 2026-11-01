@@ -190,7 +190,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltip="Collapse"
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 size-8 rounded-md border border-border bg-background/20 p-0 text-muted-foreground backdrop-blur-sm hover:bg-hover hover:text-foreground"
+            className="absolute right-2 top-2 size-8 rounded-md border border-border bg-background/20 p-0 backdrop-blur-sm hover:bg-hover"
             icon={<ChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
@@ -360,7 +360,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
-                className="h-8 gap-2 px-2 pr-2.5 text-muted-foreground hover:text-foreground"
+                className="h-8 gap-2 px-2 pr-2.5"
                 tooltip={
                   references.length > 1
                     ? `${references.length} references selected`
@@ -454,10 +454,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 variant={
                   isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
                 }
-                className={cn(
-                  'h-8 px-3 transition-colors duration-300 flex-shrink-0',
-                  isRecording && 'animate-pulse',
-                )}
+                className="h-8 px-3 transition-colors duration-300 flex-shrink-0"
+                isPulsing={isRecording}
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
                 tooltipPosition="top"

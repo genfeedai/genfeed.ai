@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/nextjs';
 import { initAnalytics } from '@/lib/analytics';
+import {
+  dispatchNavigationStart,
+  toNavigationType,
+} from '@/lib/navigation/navigation-events';
 import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
 
 Sentry.init({
@@ -82,4 +86,19 @@ attachErrorReplayWhenIdle();
 // in self-hosted or desktop builds. See src/lib/analytics/posthog-client.ts.
 initAnalytics();
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+/**
+ * The only hook that sees every router transition (Link clicks, router.push
+ * and replace, back/forward). The app shell's NavigationProgress arms on the
+ * event so a slow navigation is acknowledged right away instead of looking
+ * like an ignored click.
+ */
+export function onRouterTransitionStart(
+  ...args: Parameters<typeof Sentry.captureRouterTransitionStart>
+): void {
+  const [url, navigationType] = args;
+  dispatchNavigationStart({
+    navigationType: toNavigationType(navigationType),
+    url: String(url),
+  });
+  Sentry.captureRouterTransitionStart(...args);
+}

@@ -1,15 +1,11 @@
 'use client';
 
-import {
-  ComponentSize,
-  formatEnumLabel,
-  IngredientCategory,
-} from '@genfeedai/contracts';
+import { formatEnumLabel, IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import Image from 'next/image';
 
 type AspectRatioInfo = {
@@ -91,13 +87,9 @@ export default function ModalPostBatchIngredientPreview({
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Badge size={ComponentSize.SM}>
-              {formatEnumLabel(ingredient.category)}
-            </Badge>
+            <Badge>{formatEnumLabel(ingredient.category)}</Badge>
             {ingredient.ingredientFormat && (
-              <Badge size={ComponentSize.SM}>
-                {ingredient.ingredientFormat}
-              </Badge>
+              <Badge>{ingredient.ingredientFormat}</Badge>
             )}
           </div>
         </div>

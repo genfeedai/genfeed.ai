@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
 import {
   PRODUCT_EMAIL_PREFERENCES,
   type ProductEmailTopic,
@@ -8,7 +7,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
@@ -80,7 +79,7 @@ export default function ProductEmailPreferences() {
   return (
     <div className="space-y-3" aria-busy={isLoading}>
       {error ? (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <span>{error}</span>
           <Button
             label={translate('retry')}

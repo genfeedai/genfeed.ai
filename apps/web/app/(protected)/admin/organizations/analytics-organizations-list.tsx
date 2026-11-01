@@ -13,7 +13,7 @@ import {
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
   type IOrgWithStats,
@@ -26,7 +26,7 @@ import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -302,38 +302,32 @@ export default function AnalyticsOrganizationsList({
         key: 'totalMembers',
         render: (org) => <span className="font-mono">{org.totalMembers}</span>,
       },
-      ...(getReleaseAccessHref
+    ],
+    [translate],
+  );
+
+  const actions = useMemo<TableAction<IOrgWithStats>[]>(
+    () =>
+      getReleaseAccessHref
         ? [
             {
-              className: 'text-right',
-              header: translate('releaseAccessColumn'),
-              key: 'releaseAccess',
-              render: (org: IOrgWithStats) => (
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                >
-                  <Link
-                    aria-label={translate('releaseAccessLinkLabel', {
-                      name: org.name || rowSidebarT('unknown'),
-                    })}
-                    href={getReleaseAccessHref(org.id)}
-                  >
-                    {translate('releaseAccessLink')}
-                  </Link>
-                </Button>
-              ),
+              ariaLabel: (org) =>
+                translate('releaseAccessLinkLabel', {
+                  name: org.name || rowSidebarT('unknown'),
+                }),
+              href: (org) => getReleaseAccessHref(org.id),
+              icon: <KeyRound />,
+              tooltip: translate('releaseAccess'),
             },
           ]
-        : []),
-    ],
+        : [],
     [getReleaseAccessHref, rowSidebarT, translate],
   );
 
   return (
     <div className="flex flex-col gap-4">
       <AppTable<IOrgWithStats>
+        actions={actions}
         items={orgs}
         isLoading={isLoading}
         columns={columns}

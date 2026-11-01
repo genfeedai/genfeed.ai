@@ -224,6 +224,9 @@ vi.mock('@ui/primitives/tooltip', async () => {
   // The hover spec is covered in ModelSelectorModelItem.test.tsx with the real
   // Radix tooltip. Here it would only duplicate every model label in the tree.
   return {
+    SimpleTooltip: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
     Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     TooltipContent: () => null,
     TooltipProvider: ({ children }: { children: React.ReactNode }) => (
@@ -516,10 +519,10 @@ describe('ModelSelectorPopover', () => {
       name: 'Model capabilities',
     });
     expect(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
+      within(filterGroup).getByRole('radio', { name: 'Audio' }),
     ).toBeInTheDocument();
     expect(
-      within(filterGroup).queryByRole('button', { name: 'Fast' }),
+      within(filterGroup).queryByRole('radio', { name: 'Fast' }),
     ).not.toBeInTheDocument();
   });
 
@@ -548,15 +551,13 @@ describe('ModelSelectorPopover', () => {
     const filterGroup = screen.getByRole('group', {
       name: 'Model capabilities',
     });
-    await user.click(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
-    );
+    await user.click(within(filterGroup).getByRole('radio', { name: 'Audio' }));
 
     expect(screen.getByText('Veo 3')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(
-      within(filterGroup).getByRole('button', { name: 'Audio' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(filterGroup).getByRole('radio', { name: 'Audio' }),
+    ).toHaveAttribute('aria-checked', 'true');
     // Capability views are catalog subsets — routing is not one of them.
     expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
   });
@@ -601,24 +602,24 @@ describe('ModelSelectorPopover', () => {
       name: 'Model categories',
     });
     expect(
-      within(filterGroup).getByRole('button', { name: 'Auto' }),
+      within(filterGroup).getByRole('radio', { name: 'Auto' }),
     ).toBeInTheDocument();
     expect(
-      within(filterGroup).getByRole('button', { name: 'Brand models' }),
+      within(filterGroup).getByRole('radio', { name: 'Brand models' }),
     ).toBeInTheDocument();
     expect(
-      within(filterGroup).getByRole('button', { name: 'Catalog' }),
+      within(filterGroup).getByRole('radio', { name: 'Catalog' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Best Quality')).toBeInTheDocument();
 
-    await user.click(within(filterGroup).getByRole('button', { name: 'Auto' }));
+    await user.click(within(filterGroup).getByRole('radio', { name: 'Auto' }));
 
     expect(screen.getByText('Best Quality')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(screen.queryByText('Nano Banana Pro')).not.toBeInTheDocument();
 
     await user.click(
-      within(filterGroup).getByRole('button', { name: 'Brand models' }),
+      within(filterGroup).getByRole('radio', { name: 'Brand models' }),
     );
 
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
@@ -675,18 +676,18 @@ describe('ModelSelectorPopover', () => {
     });
 
     await user.click(
-      within(categories).getByRole('button', { name: 'Catalog' }),
+      within(categories).getByRole('radio', { name: 'Catalog' }),
     );
     await user.click(
-      within(capabilities).getByRole('button', { name: 'Audio' }),
+      within(capabilities).getByRole('radio', { name: 'Audio' }),
     );
 
     expect(
-      within(categories).getByRole('button', { name: 'Catalog' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(categories).getByRole('radio', { name: 'Catalog' }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(
-      within(capabilities).getByRole('button', { name: 'Audio' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(capabilities).getByRole('radio', { name: 'Audio' }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('Veo 3')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(screen.queryByText('Brand Video')).not.toBeInTheDocument();
@@ -884,7 +885,7 @@ describe('ModelSelectorPopover', () => {
       name: 'Model capabilities',
     });
     await user.click(
-      within(filterGroup).getByRole('button', { name: 'Legacy' }),
+      within(filterGroup).getByRole('radio', { name: 'Legacy' }),
     );
 
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();

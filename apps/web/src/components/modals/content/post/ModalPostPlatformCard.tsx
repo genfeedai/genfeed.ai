@@ -157,7 +157,6 @@ export default function ModalPostPlatformCard({
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="gap-2"
             onClick={() =>
               handleGenerateContent(
                 config.credentialId,

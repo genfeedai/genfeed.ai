@@ -1,10 +1,12 @@
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  BrandKitFieldKey,
   IHarnessActivationReport,
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
+  IPublishPipelineReport,
   ISystemNotificationOverview,
   ITraining,
   ModelPricingAttentionLevel,
@@ -175,9 +177,19 @@ export interface WarmupAccountInput {
   websiteUrl?: string;
 }
 
+export interface WarmupContextDecisions {
+  draftId?: string;
+  fields: Partial<
+    Record<BrandKitFieldKey, { action: 'accept' | 'reject' | 'preserve'; value?: unknown }>
+  >;
+}
+
 export interface WarmupPrepareInput {
   action: string;
   amount?: number;
+  assetCandidateId?: string;
+  contextDecisions?: WarmupContextDecisions;
+  prompt?: string;
   publicProfileUrl?: string;
   reason?: string;
   sourceUrl?: string;
@@ -384,6 +396,12 @@ export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
 export async function readOnboardingFunnel(days: number): Promise<IOnboardingFunnelReport> {
   return flattenSingle<IOnboardingFunnelReport>(
     await adminGet<JsonApiDocument>(`/admin/onboarding-funnel?days=${days}`)
+  );
+}
+
+export async function readPublishPipeline(days: number): Promise<IPublishPipelineReport> {
+  return flattenSingle<IPublishPipelineReport>(
+    await adminGet<JsonApiDocument>(`/admin/publish-pipeline?days=${days}`)
   );
 }
 

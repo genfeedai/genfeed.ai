@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
 import type {
   IEconomicsRevenueEvent,
   IEconomicsRevenueOrganizationRow,
@@ -8,9 +7,10 @@ import type {
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import AppTable from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,7 +20,6 @@ import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
-  formatLedgerTimestamp,
   formatUsd,
   formatUsdAxis,
 } from '../economics-report.util';
@@ -127,11 +126,8 @@ export default function EconomicsRevenueReport() {
     {
       header: translate('revenue.columns.date'),
       key: 'occurredAt',
-      render: (row) => (
-        <span className="tabular-nums">
-          {formatLedgerTimestamp(row.occurredAt)}
-        </span>
-      ),
+      // The ledger reads in UTC, like the report's date range.
+      render: (row) => <TableDateCell timeZone="UTC" value={row.occurredAt} />,
     },
     {
       header: translate('revenue.columns.organization'),
@@ -182,17 +178,15 @@ export default function EconomicsRevenueReport() {
       ) : (
         <div className="flex flex-col gap-6">
           {report && !report.ledgerStartedAt ? (
-            <Alert type={AlertCategory.WARNING}>
-              {translate('revenue.ledgerEmpty')}
-            </Alert>
+            <Alert variant="warning">{translate('revenue.ledgerEmpty')}</Alert>
           ) : null}
           {report && startsAfterPeriod && ledgerStartedOn ? (
-            <Alert type={AlertCategory.WARNING}>
+            <Alert variant="warning">
               {translate('revenue.ledgerStartsLate', { date: ledgerStartedOn })}
             </Alert>
           ) : null}
           {report && report.nonUsdEvents > 0 ? (
-            <Alert type={AlertCategory.INFO}>
+            <Alert variant="info">
               {translate('revenue.nonUsd', {
                 count: formatCount(report.nonUsdEvents),
               })}

@@ -4,8 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
-  CardPadding,
-  CardVariant,
   type CredentialPlatform,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
@@ -27,6 +25,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -37,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -86,12 +86,13 @@ function ConnectedAccount({
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="block truncate text-sm font-medium">{label}</span>
           {needsReconnect ? (
-            <span
-              aria-label={translate('needsReconnect')}
-              className="gen-dot gen-dot-warning shrink-0"
-              role="img"
-              title={translate('needsReconnect')}
-            />
+            <SimpleTooltip label={translate('needsReconnect')}>
+              <span
+                aria-label={translate('needsReconnect')}
+                className="gen-dot gen-dot-warning shrink-0"
+                role="img"
+              />
+            </SimpleTooltip>
           ) : null}
         </span>
         {connection.handle ? (
@@ -648,7 +649,7 @@ export default function BrandDetailSocialMediaCard({
                   <Button
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
-                    className="h-8 text-xs"
+                    className="h-8"
                     onClick={() => {
                       setOverrideUnresolvedChecks([]);
                       setOverrideCredentialId(summary.credentialId);
@@ -775,10 +776,10 @@ export default function BrandDetailSocialMediaCard({
 
         {selectedOverrideHealth ? (
           <div className="space-y-4">
-            <div className="rounded-md border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+            <Alert variant="warning">
               {selectedOverrideHealth.holdReason ??
                 translate('accountHeldByWarmup')}
-            </div>
+            </Alert>
             {selectedOverrideHealth.override.reason ||
             selectedOverrideHealth.override.expiresAt ? (
               <p className="text-xs text-muted-foreground">
@@ -874,7 +875,7 @@ export default function BrandDetailSocialMediaCard({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="h-8 shrink-0 px-2.5 text-xs"
+            className="h-8 shrink-0 px-2.5"
             onClick={() => setIsDialogOpen(true)}
           >
             {hasConnectedAccounts ? translate('manage') : translate('connect')}
@@ -899,11 +900,9 @@ export default function BrandDetailSocialMediaCard({
             ))}
           </div>
         ) : (
-          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
-            <div className="text-xs text-muted-foreground">
-              {translate('empty')}
-            </div>
-          </Card>
+          <Alert size="sm" variant="note">
+            {translate('empty')}
+          </Alert>
         )}
 
         {accountHealthSection ? (
@@ -931,7 +930,7 @@ export default function BrandDetailSocialMediaCard({
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      className="h-7 px-2 text-2xs text-muted-foreground"
+                      className="h-7 px-2 text-2xs"
                       onClick={() => setDisconnectTarget(connection)}
                     >
                       {translate('disconnectNamed', {

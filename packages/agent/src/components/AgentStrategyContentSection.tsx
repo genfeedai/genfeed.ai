@@ -1,8 +1,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 const PLATFORM_OPTIONS = [
@@ -41,6 +44,7 @@ export function AgentStrategyContentSection({
   platforms,
   handleTogglePlatform,
 }: Props): ReactElement {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   return (
     <section className="space-y-4 border border-border p-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -93,20 +97,17 @@ export function AgentStrategyContentSection({
         {topics.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {topics.map((topic) => (
-              <span
+              <Badge
+                casing="normal"
                 key={topic}
-                className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs text-foreground"
+                onRemove={() => handleRemoveTopic(topic)}
+                removeLabel={`Remove ${topic}`}
+                shape="pill"
+                size="lg"
+                variant="secondary"
               >
                 {topic}
-                <Button
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.XS}
-                  onClick={() => handleRemoveTopic(topic)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  x
-                </Button>
-              </span>
+              </Badge>
             ))}
           </div>
         )}
@@ -127,23 +128,26 @@ export function AgentStrategyContentSection({
 
       <div className="space-y-1">
         <span className="text-xs font-medium text-foreground">Platforms</span>
-        <div className="flex flex-wrap gap-2">
-          {PLATFORM_OPTIONS.map((platform) => (
-            <Button
-              key={platform}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => handleTogglePlatform(platform)}
-              className={`border px-3 py-1 text-xs font-medium capitalize transition-colors ${
-                platforms.includes(platform)
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/20'
-              }`}
-            >
-              {platform}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={selectionLabels('platforms')}
+          onValueChange={(next) => {
+            const changed = [
+              ...next.filter((platform) => !platforms.includes(platform)),
+              ...platforms.filter((platform) => !next.includes(platform)),
+            ];
+            for (const platform of changed) {
+              handleTogglePlatform(platform);
+            }
+          }}
+          options={PLATFORM_OPTIONS.map((platform) => ({
+            label: <span className="capitalize">{platform}</span>,
+            value: platform,
+          }))}
+          size="sm"
+          type="multiple"
+          value={platforms}
+        />
       </div>
     </section>
   );

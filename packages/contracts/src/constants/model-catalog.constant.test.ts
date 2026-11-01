@@ -731,8 +731,39 @@ describe('model version lifecycle', () => {
       MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+      MODEL_KEYS.FAL_STABLE_VIDEO,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
+  });
+
+  it('keeps the fal models whose endpoint ids moved and points them at the live id', () => {
+    expect(byKey.get(MODEL_KEYS.FAL_SEEDANCE_2_0)).toMatchObject({
+      endpoint: 'bytedance/seedance-2.0/text-to-video',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_ELEVEN_LABS_TTS)).toMatchObject({
+      endpoint: 'fal-ai/elevenlabs/tts/multilingual-v2',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_GPT_IMAGE_2)).toMatchObject({
+      endpoint: 'openai/gpt-image-2',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_RECRAFT_V4_PRO)).toMatchObject({
+      endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO)).toMatchObject({
+      endpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_PIXVERSE_V6)).toMatchObject({
+      endpoint: 'fal-ai/pixverse/v6/text-to-video',
+    });
+    for (const key of [
+      MODEL_KEYS.FAL_SEEDANCE_2_0,
+      MODEL_KEYS.FAL_ELEVEN_LABS_TTS,
+      MODEL_KEYS.FAL_GPT_IMAGE_2,
+      MODEL_KEYS.FAL_RECRAFT_V4_PRO,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
+      MODEL_KEYS.FAL_PIXVERSE_V6,
+    ])
+      expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
   });
 
   it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {
@@ -749,10 +780,7 @@ describe('model version lifecycle', () => {
   });
 
   it('points every Legacy or Retired row at a non-retired model of its category', () => {
-    for (const catalog of [
-      UNIFIED_MODEL_CATALOG,
-      getModelCatalogForDeployment(true, { isCloud: true }),
-    ]) {
+    for (const catalog of [UNIFIED_MODEL_CATALOG]) {
       const keys = new Map(catalog.map((entry) => [entry.key, entry]));
       for (const entry of catalog) {
         if (!entry.succeededBy) continue;
@@ -766,25 +794,21 @@ describe('model version lifecycle', () => {
     }
   });
 
-  it('retires Genfeed fleet deployments on Cloud only', () => {
-    const fleetKeys = Object.values(MODEL_KEYS).filter((key) =>
-      key.startsWith('genfeed-ai/'),
-    );
-    const mediaFleetKeys = fleetKeys.filter((key) => byKey.has(key));
-    expect(mediaFleetKeys.length).toBeGreaterThan(0);
-    const cloud = new Map(
-      getModelCatalogForDeployment(true, { isCloud: true }).map((entry) => [
-        entry.key,
-        entry,
-      ]),
-    );
-    for (const key of mediaFleetKeys) {
-      expect(cloud.get(key), key).toMatchObject({
-        isActive: false,
-        isPublic: false,
-        lifecycle: ModelLifecycle.RETIRED,
-      });
-      expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
-    }
+  it.each([
+    MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+    MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
+    MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
+    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+  ])('retires the Genfeed fleet model %s on every deployment', (key) => {
+    expect(byKey.get(key)).toMatchObject({
+      isActive: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.RETIRED,
+    });
   });
 });

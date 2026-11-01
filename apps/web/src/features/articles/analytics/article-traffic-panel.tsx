@@ -10,9 +10,12 @@ import { capitalize } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { ArticlesService } from '@services/content/articles.service';
-import Badge from '@ui/display/badge/Badge';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -110,26 +113,16 @@ export default function ArticleTrafficPanel({
         openLabel={openLabel}
       >
         <h3 className="text-sm font-semibold">{translate('title')}</h3>
-        <div
-          className="flex flex-wrap gap-2"
-          role="group"
-          aria-label={translate('periodLabel')}
-        >
-          {PERIODS.map((option) => (
-            <Button
-              key={option}
-              aria-pressed={period === option}
-              variant={
-                period === option
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              onClick={() => setPeriod(option)}
-            >
-              {translate(`period.${option}`)}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('periodLabel')}
+          onValueChange={setPeriod}
+          options={PERIODS.map((option) => ({
+            label: translate(`period.${option}`),
+            value: option,
+          }))}
+          value={period}
+        />
         {isLoading ? <p role="status">{translate('loading')}</p> : null}
         {isError || traffic?.status === 'unavailable' ? (
           <div className="space-y-3" role="status">
@@ -150,24 +143,20 @@ export default function ArticleTrafficPanel({
         ) : null}
         {traffic?.status === 'available' ? (
           <div className="space-y-4">
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm text-muted-foreground">
-                  {translate('views')}
-                </dt>
-                <dd className="text-2xl font-semibold">
-                  {traffic.totalViews?.toLocaleString(locale)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">
-                  {translate('resourceActions')}
-                </dt>
-                <dd className="text-2xl font-semibold">
-                  {traffic.totalResourceClicks?.toLocaleString(locale)}
-                </dd>
-              </div>
-            </dl>
+            <MetricCardGrid columns={2}>
+              <MetricCard
+                appearance="inset"
+                label={translate('views')}
+                size="sm"
+                value={traffic.totalViews?.toLocaleString(locale)}
+              />
+              <MetricCard
+                appearance="inset"
+                label={translate('resourceActions')}
+                size="sm"
+                value={traffic.totalResourceClicks?.toLocaleString(locale)}
+              />
+            </MetricCardGrid>
             <ArticleTrafficChart days={traffic.days} />
             <p className="text-xs text-muted-foreground">
               {translate('methodology')}

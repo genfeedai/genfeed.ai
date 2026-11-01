@@ -1,15 +1,13 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   IReviewInboxItem,
   ReviewInboxItemSource,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { BadgeProps } from '@props/ui/display/badge.props';
-import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import { Avatar } from '@ui/primitives/avatar';
-import { Button } from '@ui/primitives/button';
+import type { BadgeProps } from '@ui/primitives/badge';
+import { Badge } from '@ui/primitives/badge';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -22,15 +20,16 @@ const SOURCE_BADGE_VARIANTS: Record<
   ReviewInboxItemSource,
   NonNullable<BadgeProps['variant']>
 > = {
-  agent: 'purple',
-  mcp_client: 'amber',
-  workflow: 'blue',
+  agent: 'default',
+  mcp_client: 'warning',
+  workflow: 'info',
 };
 
 /**
  * One row per workflow review gate or MCP approval waiting on a human. Each row
  * says in full what will happen, for which brand, at what cost, who asked and
- * when, with Approve and Reject beside it in words.
+ * when. Approve and Reject are the row's actions: revealed on hover or keyboard
+ * focus, always visible where the pointer cannot hover.
  */
 export default function ReviewInboxApprovalsTable({
   items,
@@ -83,6 +82,11 @@ export default function ReviewInboxApprovalsTable({
                 {item.actionDetails}
               </span>
             ) : null}
+            {item.isResolvable ? null : (
+              <span className="break-words text-xs text-muted-foreground">
+                {translate('notResolvable')}
+              </span>
+            )}
             {item.reasons.map((reason) => (
               <span
                 className="break-words text-xs text-warning"
@@ -106,7 +110,7 @@ export default function ReviewInboxApprovalsTable({
         key: 'estimatedCredits',
         render: (item) =>
           item.estimatedCredits !== null ? (
-            <Badge size={ComponentSize.SM} variant="outline">
+            <Badge variant="outline">
               {translate('credits', { count: item.estimatedCredits })}
             </Badge>
           ) : (
@@ -121,10 +125,7 @@ export default function ReviewInboxApprovalsTable({
         key: 'requestedAt',
         render: (item) => (
           <span className="flex min-w-0 flex-col items-start gap-1">
-            <Badge
-              size={ComponentSize.SM}
-              variant={SOURCE_BADGE_VARIANTS[item.source]}
-            >
+            <Badge variant={SOURCE_BADGE_VARIANTS[item.source]}>
               {translate(REVIEW_INBOX_SOURCE_MESSAGE_KEYS[item.source])}
             </Badge>
             {item.requestedByLabel ? (
@@ -140,45 +141,31 @@ export default function ReviewInboxApprovalsTable({
           </span>
         ),
       },
+    ],
+    [translate],
+  );
+
+  const actions = useMemo<TableAction<IReviewInboxItem>[]>(
+    () => [
       {
-        className: 'w-56',
-        header: translate('columns.decision'),
-        key: 'decision',
-        render: (item) =>
-          item.isResolvable ? (
-            <span className="flex items-center gap-1.5">
-              <Button
-                className="h-8 gap-1 px-3 text-xs"
-                isDisabled={isDeciding}
-                onClick={() => {
-                  void onDecide(item, 'approve');
-                }}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.DEFAULT}
-                withWrapper={false}
-              >
-                <Check className="size-3.5" />
-                {translate('approve')}
-              </Button>
-              <Button
-                className="h-8 gap-1 px-3 text-xs"
-                isDisabled={isDeciding}
-                onClick={() => {
-                  void onDecide(item, 'reject');
-                }}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              >
-                <X className="size-3.5" />
-                {translate('reject')}
-              </Button>
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {translate('notResolvable')}
-            </span>
-          ),
+        icon: <Check />,
+        isDisabled: () => isDeciding,
+        isVisible: (item) => item.isResolvable,
+        onClick: (item) => {
+          void onDecide(item, 'approve');
+        },
+        tone: 'success',
+        tooltip: translate('approve'),
+      },
+      {
+        icon: <X />,
+        isDisabled: () => isDeciding,
+        isVisible: (item) => item.isResolvable,
+        onClick: (item) => {
+          void onDecide(item, 'reject');
+        },
+        tone: 'destructive',
+        tooltip: translate('reject'),
       },
     ],
     [isDeciding, onDecide, translate],
@@ -186,6 +173,7 @@ export default function ReviewInboxApprovalsTable({
 
   return (
     <AppTable<IReviewInboxItem>
+      actions={actions}
       ariaLabel={translate('ariaLabel')}
       columns={columns}
       getRowClassName={(item) =>

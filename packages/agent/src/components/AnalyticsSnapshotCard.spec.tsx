@@ -65,11 +65,11 @@ describe('AnalyticsSnapshotCard', () => {
 
     render(<AnalyticsSnapshotCard action={action} />);
 
-    expect(screen.getByRole('tab', { name: '7d' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '30d' })).toBeTruthy();
+    expect(screen.queryByRole('tab')).toBeNull();
     expect(screen.getByText('99')).toBeTruthy();
 
-    await user.click(screen.getByRole('tab', { name: '7d' }));
+    await user.click(screen.getByRole('button', { name: 'View: 30d' }));
+    await user.click(await screen.findByRole('menuitemradio', { name: '7d' }));
     expect(screen.getByText('10')).toBeTruthy();
   });
 

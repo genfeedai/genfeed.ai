@@ -23,6 +23,7 @@ import {
   readOrganizationAppsReport,
   readOrganizationBrand,
   readOrganizationsReport,
+  readPublishPipeline,
   readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
@@ -193,6 +194,15 @@ describe('operations/admin', () => {
       2,
       '/admin/organizations?page=2&limit=100&includeDeleted=true'
     );
+  });
+
+  it('reads the publish pipeline for the requested window', async () => {
+    mockAdminGet.mockResolvedValueOnce({ data: { windowDays: 2 } });
+
+    const result = await readPublishPipeline(2);
+
+    expect(result).toEqual({ windowDays: 2 });
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/publish-pipeline?days=2');
   });
 
   it('reads the onboarding funnel for the requested window', async () => {
@@ -510,6 +520,40 @@ describe('operations/admin', () => {
         action: 'fund',
         amount: 500,
         reason: 'Setup',
+      });
+    });
+
+    it('sends the reviewed asset candidate and prompt with starter-content', async () => {
+      adminPost.mockResolvedValue({ data: { id: 'warm-1', type: 'warmup-accounts' } });
+
+      await prepareWarmupAccount('warm-1', {
+        action: 'starter-content',
+        assetCandidateId: 'banner:2',
+        prompt: 'Bold launch visual',
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/warmup-accounts/warm-1/prepare', {
+        action: 'starter-content',
+        assetCandidateId: 'banner:2',
+        prompt: 'Bold launch visual',
+      });
+    });
+
+    it('sends per-field context decisions with apply-context', async () => {
+      adminPost.mockResolvedValue({ data: { id: 'warm-1', type: 'warmup-accounts' } });
+
+      await prepareWarmupAccount('warm-1', {
+        action: 'apply-context',
+        contextDecisions: {
+          fields: { description: { action: 'accept', value: 'Public description' } },
+        },
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/warmup-accounts/warm-1/prepare', {
+        action: 'apply-context',
+        contextDecisions: {
+          fields: { description: { action: 'accept', value: 'Public description' } },
+        },
       });
     });
   });

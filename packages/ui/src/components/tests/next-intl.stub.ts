@@ -420,6 +420,9 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    viewMenu: {
+      label: 'View',
+    },
     promptBarBlacklist: {
       avoid: 'Avoid',
       chooseWhatToAvoid: 'Choose what to avoid',
@@ -713,7 +716,6 @@ const UI_TEST_MESSAGES = {
         details: 'Details',
         preview: 'Preview',
       },
-      viewAria: 'Inspector view',
       tiktokSettings: 'TikTok settings',
       youtubeSettings: 'YouTube settings',
       tiktokReady: 'Ready',
@@ -1083,6 +1085,12 @@ const UI_TEST_MESSAGES = {
     publishing: {
       calendar: {
         today: 'Today',
+        views: {
+          day: 'Day',
+          list: 'List',
+          month: 'Month',
+          week: 'Week',
+        },
       },
     },
     publish: {

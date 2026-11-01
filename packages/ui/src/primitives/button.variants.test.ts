@@ -7,12 +7,13 @@ import {
 } from './button.variants';
 
 describe('button variants', () => {
-  it('defines only the canonical semantic variants', () => {
+  it('defines only the canonical variants', () => {
     expect(Object.keys(BUTTON_VARIANT_CONFIG)).toEqual([
       ButtonVariant.DEFAULT,
       ButtonVariant.DESTRUCTIVE,
       ButtonVariant.GHOST,
       ButtonVariant.LINK,
+      ButtonVariant.OVERLAY,
       ButtonVariant.SECONDARY,
       ButtonVariant.UNSTYLED,
     ]);
@@ -68,6 +69,21 @@ describe('button variants', () => {
     expect(className).toContain('size-7');
     expect(className).toContain('justify-center');
     expect(className).toContain('p-0');
+  });
+
+  it('sizes the inline step by its content with no padding', () => {
+    const className = buttonVariants({ size: ButtonSize.INLINE });
+
+    expect(className).toContain('h-auto');
+    expect(className).toContain('p-0');
+  });
+
+  it('gives the overlay variant a fixed dark surface for use on media', () => {
+    const className = buttonVariants({ variant: ButtonVariant.OVERLAY });
+
+    expect(className).toContain('bg-black/50');
+    expect(className).toContain('hover:bg-black/70');
+    expect(className).toContain('text-white');
   });
 
   it.each(Object.values(ButtonSize))(

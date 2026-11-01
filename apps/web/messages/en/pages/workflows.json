@@ -140,6 +140,7 @@
   "castPrompt": {
     "action": "Action",
     "cameraMovement": "Camera movement",
+    "family": "Prompt family",
     "preset": "Preset",
     "startFrameReference": "Start-frame reference",
     "subject": "Subject",

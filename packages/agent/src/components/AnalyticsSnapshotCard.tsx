@@ -8,22 +8,16 @@ import {
   ButtonVariant,
   CardGap,
   CardPadding,
-  CardVariant,
 } from '@genfeedai/contracts';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import {
-  ChartColumn,
-  Eye,
-  Heart,
-  MessageCircle,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { ChartColumn, Eye, Heart, MessageCircle } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AnalyticsSnapshotCardProps {
@@ -34,7 +28,7 @@ interface MetricData {
   label: string;
   value: number | string;
   change?: number;
-  icon: ReactElement;
+  icon: IconComponent;
 }
 
 interface AnalyticsMetricItem {
@@ -110,25 +104,25 @@ function buildMetrics(data: Record<string, unknown> | undefined): MetricData[] {
   return [
     {
       change: data?.viewsChange as number | undefined,
-      icon: <Eye className="size-4" />,
+      icon: Eye,
       label: 'Views',
       value: formatNumber((data?.views as number) ?? 0),
     },
     {
       change: data?.likesChange as number | undefined,
-      icon: <Heart className="size-4" />,
+      icon: Heart,
       label: 'Likes',
       value: formatNumber((data?.likes as number) ?? 0),
     },
     {
       change: data?.commentsChange as number | undefined,
-      icon: <MessageCircle className="size-4" />,
+      icon: MessageCircle,
       label: 'Comments',
       value: formatNumber((data?.comments as number) ?? 0),
     },
     {
       change: data?.engagementChange as number | undefined,
-      icon: <ChartColumn className="size-4" />,
+      icon: ChartColumn,
       label: 'Engagement',
       value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
     },
@@ -169,18 +163,18 @@ export function AnalyticsSnapshotCard({
           Analytics summary
         </h3>
         {periodSnapshots.length > 1 ? (
-          <Tabs
-            activeTab={selectedPeriod}
-            ariaLabel="Analytics period"
-            fullWidth={false}
-            items={periodSnapshots.map((snapshot) => ({
-              id: snapshot.period,
-              label: snapshot.period,
-            }))}
-            onTabChange={(period) => {
+          <ViewMenu
+            activeView={selectedPeriod}
+            onChange={(period) => {
               setSelectedPeriod(period);
               setIsExpanded(true);
             }}
+            options={periodSnapshots.map((snapshot) => ({
+              icon: null,
+              label: snapshot.period,
+              type: snapshot.period,
+            }))}
+            trigger="label"
           />
         ) : (
           <span className="shrink-0 text-2xs font-medium text-muted-foreground">
@@ -233,38 +227,15 @@ export function AnalyticsSnapshotCard({
           ) : null}
           <div className="grid grid-cols-2 gap-3">
             {metrics.map((metric) => (
-              <Card
-                variant={CardVariant.INSET}
-                padding={CardPadding.SM}
+              <MetricCard
                 key={metric.label}
-              >
-                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
-                  {metric.icon}
-                  <span className="text-xs">{metric.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-foreground">
-                    {metric.value}
-                  </span>
-                  {metric.change != null ? (
-                    <span
-                      className={cn(
-                        'flex items-center text-xs',
-                        metric.change >= 0
-                          ? 'text-success'
-                          : 'text-destructive',
-                      )}
-                    >
-                      {metric.change >= 0 ? (
-                        <TrendingUp className="mr-0.5 size-3" />
-                      ) : (
-                        <TrendingDown className="mr-0.5 size-3" />
-                      )}
-                      {Math.abs(metric.change).toFixed(1)}%
-                    </span>
-                  ) : null}
-                </div>
-              </Card>
+                appearance="inset"
+                icon={metric.icon}
+                label={metric.label}
+                size="sm"
+                trend={metric.change ?? undefined}
+                value={metric.value}
+              />
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -285,7 +256,6 @@ export function AnalyticsSnapshotCard({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               withWrapper={false}
-              className="text-xs"
               onClick={() => {
                 setIsExpanded(false);
               }}
@@ -312,20 +282,20 @@ function formatMetricValue(metric: AnalyticsMetricItem): string {
   return `${formattedNumber}${metric.suffix ?? ''}`;
 }
 
-function getMetricIcon(label: string): ReactElement {
+function getMetricIcon(label: string): IconComponent {
   const normalizedLabel = label.toLowerCase();
 
   if (normalizedLabel.includes('view')) {
-    return <Eye className="size-4" />;
+    return Eye;
   }
 
   if (normalizedLabel.includes('like')) {
-    return <Heart className="size-4" />;
+    return Heart;
   }
 
   if (normalizedLabel.includes('comment')) {
-    return <MessageCircle className="size-4" />;
+    return MessageCircle;
   }
 
-  return <ChartColumn className="size-4" />;
+  return ChartColumn;
 }

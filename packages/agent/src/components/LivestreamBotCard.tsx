@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, ExternalLink, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
@@ -69,10 +70,14 @@ export function LivestreamBotCard({
             />
           ) : null}
           {action.sessionStatus ? (
-            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-2xs font-medium text-muted-foreground">
-              <CircleCheck className="size-3.5" />
-              <span>{action.sessionStatus}</span>
-            </div>
+            <Badge
+              className="mt-2"
+              icon={<CircleCheck />}
+              shape="pill"
+              variant="outline"
+            >
+              {action.sessionStatus}
+            </Badge>
           ) : null}
         </div>
 

@@ -6,8 +6,8 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
-import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { PanelTabs } from '@ui/primitives/tabs';
 import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -245,7 +245,6 @@ export function WorkspaceTaskInspectorBody({
               asChild
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              className="font-semibold"
             >
               <Link
                 href={taskHref(

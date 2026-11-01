@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { KPISectionProps } from '@genfeedai/props/ui/kpi/kpi-section.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -8,7 +7,7 @@ import {
   MetricCardGrid,
   type MetricCardGridProps,
 } from '@ui/cards/metric-card/MetricCardGrid';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 
 interface SectionHeaderProps {
   title: string;
@@ -45,7 +44,7 @@ export default function KPISection({
   ) as MetricCardGridProps['columns'];
 
   const sectionContent: React.ReactNode = error ? (
-    <Alert type={AlertCategory.ERROR}>{error}</Alert>
+    <Alert variant="destructive">{error}</Alert>
   ) : (
     <MetricCardGrid columns={columns}>
       {items.map((item) => (
@@ -56,14 +55,13 @@ export default function KPISection({
           className={item.className}
           description={item.description}
           icon={item.icon}
-          iconClassName={item.iconClassName}
           isLoading={isLoading}
           label={item.label}
           size={size}
+          tone={item.tone}
           trend={item.trend}
           trendLabel={item.trendLabel}
           value={item.value}
-          valueClassName={item.valueClassName}
         />
       ))}
     </MetricCardGrid>

@@ -7,6 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -87,6 +88,26 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
+
+function SwapsComposerOnSend() {
+  const [hasSent, setHasSent] = useState(false);
+  return (
+    <ConversationComposerShellProvider
+      contextLabel="Conversation"
+      draftScopeKey="acme:thread-1:3"
+      portalTarget={null}
+      shellState="canvas"
+    >
+      <AgentChatInput
+        key={hasSent ? 'thread' : 'empty'}
+        onSend={() => {
+          setHasSent(true);
+          return true;
+        }}
+      />
+    </ConversationComposerShellProvider>
+  );
+}
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
@@ -193,6 +214,35 @@ describe('AgentChatInput', () => {
 
     expect(screen.getByLabelText('Stop agent')).toBeTruthy();
     expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
+  });
+
+  it('fills the draft from a prefill and does not send it', async () => {
+    const onSend = vi.fn();
+
+    const { rerender } = render(
+      <AgentChatInput
+        onSend={onSend}
+        prefill={{ content: 'A pitch for a sneaker drop', nonce: 1 }}
+      />,
+    );
+
+    const editor = await screen.findByRole('textbox');
+    await waitFor(() => {
+      expect(editor).toHaveTextContent('A pitch for a sneaker drop');
+    });
+    expect(onSend).not.toHaveBeenCalled();
+
+    rerender(
+      <AgentChatInput
+        onSend={onSend}
+        prefill={{ content: 'A second pitch', nonce: 2 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(editor).toHaveTextContent('A second pitch');
+    });
+    expect(onSend).not.toHaveBeenCalled();
   });
 
   it('keeps the editor writable while a run is active', async () => {
@@ -444,6 +494,25 @@ describe('AgentChatInput', () => {
     );
   });
 
+  it('leaves the next composer empty when sending swaps the composer out', async () => {
+    // The first message of a conversation replaces the empty-state composer
+    // with the thread's: the new one reads the saved draft on mount.
+    render(<SwapsComposerOnSend />);
+
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByRole('textbox'),
+      'schedule my posts for the week',
+    );
+    fireEvent.click(await screen.findByLabelText('Send message'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).not.toHaveTextContent(
+        'schedule my posts',
+      );
+    });
+  });
+
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {
     const dispatchAction = vi.fn(() => ({
       message: 'Opened Publishing. Explicit approval is still required.',
@@ -585,9 +654,9 @@ describe('AgentChatInput', () => {
       'Referenced content: Launch post: Skipped',
     );
     expect(within(tile).getByText('Skipped')).toBeInTheDocument();
-    expect(tile).toHaveAttribute(
-      'title',
-      expect.stringContaining('brand does not match'),
+    await user.hover(tile);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'brand does not match',
     );
     const editor = screen.getByRole('textbox');
     await user.click(editor);

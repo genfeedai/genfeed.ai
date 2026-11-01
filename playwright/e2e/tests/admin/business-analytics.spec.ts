@@ -125,7 +125,7 @@ test.describe('Admin Business Analytics', () => {
       .filter({
         has: adminPage.getByRole('heading', { name: 'Daily Revenue (30d)' }),
       });
-    await expect(chart.locator('[title*=": $"]')).toHaveCount(30);
+    await expect(chart.getByTestId('daily-chart-bar')).toHaveCount(30);
     await expect(chart).not.toContainText('No data available');
   });
 
@@ -146,7 +146,7 @@ test.describe('Admin Business Analytics', () => {
           name: 'Daily Ingredients (30d)',
         }),
       });
-    await expect(chart.locator('[title*=": "]')).toHaveCount(30);
+    await expect(chart.getByTestId('daily-chart-bar')).toHaveCount(30);
     await expect(chart).not.toContainText('No data available');
   });
 

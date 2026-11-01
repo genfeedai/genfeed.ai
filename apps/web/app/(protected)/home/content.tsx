@@ -7,13 +7,17 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import NoticeBanner from '@/components/banners/notice-banner/NoticeBanner';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { resolveOperationalHomeScope } from './operational-home.helpers';
@@ -102,18 +106,18 @@ function ConnectionStatusLine({
   }
 
   return (
-    <NoticeBanner
-      tone="info"
-      icon={<Plug />}
-      title={translate('home.connect.title')}
-      dismissLabel={translate('home.connect.dismiss')}
-      onDismiss={onDismiss}
-      testId="operational-home-unconfigured"
-      actions={
+    <Alert
+      closeLabel={translate('home.connect.dismiss')}
+      data-testid="operational-home-unconfigured"
+      icon={<Plug className="size-5" />}
+      onClose={onDismiss}
+      variant="info"
+    >
+      <AlertTitle>{translate('home.connect.title')}</AlertTitle>
+      <AlertActions>
         <Button
           asChild
-          className="flex-1 @2xl:flex-none"
-          size={ButtonSize.LG}
+          size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
@@ -122,8 +126,8 @@ function ConnectionStatusLine({
             <ArrowRight aria-hidden="true" className="size-3.5" />
           </Link>
         </Button>
-      }
-    />
+      </AlertActions>
+    </Alert>
   );
 }
 

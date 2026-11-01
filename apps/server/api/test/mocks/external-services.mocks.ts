@@ -159,12 +159,6 @@ export const createMockFalService = () => ({
     .mockResolvedValue({ url: 'https://mock-fal.test/output.png' }),
 });
 
-export const createMockComfyUIService = () => ({
-  generateImage: vi
-    .fn()
-    .mockResolvedValue({ imageBuffer: Buffer.from('mock-comfyui-image') }),
-});
-
 export const createMockKlingAIImageService = () => ({
   queueGenerateImage: vi.fn().mockResolvedValue('mock-kling-image-task-id'),
 });

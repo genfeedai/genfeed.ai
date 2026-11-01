@@ -1,3 +1,4 @@
+import { EmptyState } from '@ui/primitives/empty-state';
 import Spinner from '@ui/primitives/spinner';
 import { type ReactElement, useEffect, useState } from 'react';
 import { ThreadItem } from '~components/history/ThreadItem';
@@ -53,12 +54,11 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
 
   if (threads.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-        <p className="text-sm text-muted-foreground">No threads yet</p>
-        <p className="text-xs text-muted-foreground">
-          Start chatting to see your history here
-        </p>
-      </div>
+      <EmptyState
+        className="h-full"
+        description="Start chatting to see your history here"
+        title="No threads yet"
+      />
     );
   }
 

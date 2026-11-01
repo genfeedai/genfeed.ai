@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, ChevronsDown, MessageCircle } from 'lucide-react';
 import type { IssueCommentsCardProps } from '@/features/tasks/props/issue-comments-card.props';
@@ -33,7 +33,7 @@ export default function IssueCommentsCard({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="flex items-center gap-1 text-2xs text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1 text-2xs"
             onClick={onScrollToLatest}
           >
             <ChevronsDown className="size-3" />
@@ -48,7 +48,7 @@ export default function IssueCommentsCard({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
-              className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 hover:bg-muted/40 hover:text-foreground"
+              className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 hover:bg-muted/40"
               onClick={onShowAllComments}
             >
               <ChevronDown className="size-3" />
@@ -70,7 +70,7 @@ export default function IssueCommentsCard({
           ))}
         </>
       ) : (
-        <CardEmptyContent label="No comments yet" />
+        <EmptyState title="No comments yet" />
       )}
       <div className="border-t border-border p-4">
         <Textarea

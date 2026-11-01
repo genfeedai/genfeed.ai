@@ -1,5 +1,4 @@
 'use client';
-
 import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
 import SystemEmailRangeFilter from '@app/(protected)/admin/administration/system-emails/system-email-range-filter';
 import { useSystemEmailRange } from '@app/(protected)/admin/administration/system-emails/use-system-email-range';
@@ -15,8 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -25,6 +23,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@ui/primitives/accordion';
+import { Badge } from '@ui/primitives/badge';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -148,8 +154,8 @@ export default function SystemEmailsPage() {
           data-testid="system-emails-surface"
         >
           {visibleEmails.length === 0 ? (
-            <CardEmptyContent
-              label={
+            <EmptyState
+              title={
                 search
                   ? 'No system emails match your search'
                   : 'No system emails registered'
@@ -171,7 +177,7 @@ export default function SystemEmailsPage() {
                             {email.name}
                           </span>
                           <Badge variant="outline">{email.sequence}</Badge>
-                          <Badge variant="ghost">{email.visibility}</Badge>
+                          <Badge variant="secondary">{email.visibility}</Badge>
                         </span>
                         <span className="text-xs font-normal text-foreground/60">
                           {email.schedule}
@@ -183,60 +189,64 @@ export default function SystemEmailsPage() {
                         {email.systemWorkflowId}
                       </p>
 
-                      <dl className="grid gap-4 md:grid-cols-3">
-                        <div>
-                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                      <DefinitionList columns={3} variant="metrics">
+                        <DefinitionRow>
+                          <DefinitionTerm variant="label">
                             Trigger
-                          </dt>
-                          <dd className="mt-1 text-sm text-foreground">
+                          </DefinitionTerm>
+                          <DefinitionDetail className="mt-1">
                             {email.trigger}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                          </DefinitionDetail>
+                        </DefinitionRow>
+                        <DefinitionRow>
+                          <DefinitionTerm variant="label">
                             Schedule
-                          </dt>
-                          <dd className="mt-1 text-sm text-foreground">
+                          </DefinitionTerm>
+                          <DefinitionDetail className="mt-1">
                             {email.schedule}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-medium uppercase text-foreground/50">
+                          </DefinitionDetail>
+                        </DefinitionRow>
+                        <DefinitionRow>
+                          <DefinitionTerm variant="label">
                             Audience
-                          </dt>
-                          <dd className="mt-1 text-sm text-foreground">
+                          </DefinitionTerm>
+                          <DefinitionDetail className="mt-1">
                             {email.audience}
-                          </dd>
-                        </div>
-                      </dl>
+                          </DefinitionDetail>
+                        </DefinitionRow>
+                      </DefinitionList>
 
                       <section className="border-t border-border pt-4">
-                        <div className="grid gap-3 md:grid-cols-[9rem_1fr]">
-                          <span className="text-xs font-medium uppercase text-foreground/50">
-                            Subject
-                          </span>
-                          <p className="text-sm font-medium text-foreground">
-                            {email.subject}
-                          </p>
-                          <span className="text-xs font-medium uppercase text-foreground/50">
-                            Preheader
-                          </span>
-                          <p className="text-sm text-foreground/80">
-                            {email.preheader}
-                          </p>
-                          <span className="text-xs font-medium uppercase text-foreground/50">
-                            Title
-                          </span>
-                          <p className="text-sm text-foreground/80">
-                            {email.title}
-                          </p>
-                          <span className="text-xs font-medium uppercase text-foreground/50">
-                            CTA
-                          </span>
-                          <p className="text-sm text-foreground/80">
-                            {resolvePreviewAction(email)}
-                          </p>
-                        </div>
+                        <DefinitionList variant="properties">
+                          <DefinitionRow>
+                            <DefinitionTerm variant="label">
+                              Subject
+                            </DefinitionTerm>
+                            <DefinitionDetail className="font-medium text-foreground">
+                              {email.subject}
+                            </DefinitionDetail>
+                          </DefinitionRow>
+                          <DefinitionRow>
+                            <DefinitionTerm variant="label">
+                              Preheader
+                            </DefinitionTerm>
+                            <DefinitionDetail>
+                              {email.preheader}
+                            </DefinitionDetail>
+                          </DefinitionRow>
+                          <DefinitionRow>
+                            <DefinitionTerm variant="label">
+                              Title
+                            </DefinitionTerm>
+                            <DefinitionDetail>{email.title}</DefinitionDetail>
+                          </DefinitionRow>
+                          <DefinitionRow>
+                            <DefinitionTerm variant="label">CTA</DefinitionTerm>
+                            <DefinitionDetail>
+                              {resolvePreviewAction(email)}
+                            </DefinitionDetail>
+                          </DefinitionRow>
+                        </DefinitionList>
                       </section>
 
                       <section className="space-y-2">

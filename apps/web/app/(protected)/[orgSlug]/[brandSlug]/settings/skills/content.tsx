@@ -25,6 +25,7 @@ import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -958,12 +959,9 @@ export default function BrandSettingsSkillsPage() {
   if (!isScopeMatch) {
     return (
       <div className="w-full">
-        <div
-          className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          role="alert"
-        >
+        <Alert variant="destructive">
           {translate('errors.brandUnavailable')}
-        </div>
+        </Alert>
       </div>
     );
   }
@@ -1000,12 +998,9 @@ export default function BrandSettingsSkillsPage() {
       titleVisibility="sr-only"
     >
       {error && !selectedSkill ? (
-        <div
-          className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          role="alert"
-        >
+        <Alert className="mb-4" variant="destructive">
           {error}
-        </div>
+        </Alert>
       ) : null}
 
       <InsetSurface className="mb-4" density="compact">

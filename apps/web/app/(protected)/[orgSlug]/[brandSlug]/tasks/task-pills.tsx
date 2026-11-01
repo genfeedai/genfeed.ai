@@ -1,11 +1,10 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
 import type {
   TaskPriority,
   TaskStatus,
 } from '@services/management/tasks.service';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import {
   Select,
   SelectContent,
@@ -32,9 +31,9 @@ import {
 
 const PRIORITY_VARIANTS: Record<
   TaskPriority,
-  'error' | 'warning' | 'info' | 'secondary'
+  'destructive' | 'warning' | 'info' | 'secondary'
 > = {
-  critical: 'error',
+  critical: 'destructive',
   high: 'warning',
   low: 'secondary',
   medium: 'info',
@@ -58,11 +57,7 @@ export const PRIORITY_PILL_CLASS = 'w-24 justify-center';
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
   const statusLabels = useTaskStatusLabels();
   return (
-    <Badge
-      status={status}
-      size={ComponentSize.SM}
-      className={STATUS_PILL_CLASS}
-    >
+    <Badge status={status} className={STATUS_PILL_CLASS}>
       {statusLabels[status]}
     </Badge>
   );
@@ -74,7 +69,6 @@ export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
   return (
     <Badge
       variant={PRIORITY_VARIANTS[priority]}
-      size={ComponentSize.SM}
       className={PRIORITY_PILL_CLASS}
       icon={<Icon aria-hidden="true" className="size-3" />}
     >

@@ -1,5 +1,6 @@
 'use client';
 
+import { CardEmptySize } from '@genfeedai/contracts';
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
+import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import { DollarSign } from 'lucide-react';
 import { useMemo } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
@@ -56,9 +58,10 @@ export function CostModal() {
 
         <div>
           {breakdown.items.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              No billable nodes in workflow
-            </div>
+            <EmptyState
+              size={CardEmptySize.SM}
+              title="No billable nodes in workflow"
+            />
           ) : (
             <>
               <div className="max-h-[40vh] overflow-y-auto">

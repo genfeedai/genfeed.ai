@@ -13,11 +13,12 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Alert } from '@ui/primitives/alert';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import ArticleCover from '@website/(content)/articles/article-cover';
-import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, User } from 'lucide-react';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
@@ -187,8 +188,9 @@ export default function ArticleDetail({
   if (!article || article?.id === 'undefined') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <CardEmpty
-          label="Article not found"
+        <EmptyState
+          surface="card"
+          title="Article not found"
           actions={
             <Link
               href="/articles"
@@ -239,23 +241,17 @@ export default function ArticleDetail({
         />
 
         {isPreview && (
-          <div className="mb-6 flex items-start gap-3 border border-yellow-500/20 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
-            <TriangleAlert className="size-4 flex-shrink-0 text-warning" />
-            <span className="text-sm text-foreground md:text-base">
-              You are viewing a preview of this article. This article may not be
-              published or publicly visible yet.
-            </span>
-          </div>
+          <Alert className="mb-6 md:mb-8" variant="warning">
+            You are viewing a preview of this article. This article may not be
+            published or publicly visible yet.
+          </Alert>
         )}
 
         <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <header className="mb-6 md:mb-8">
               {article.category && (
-                <Badge
-                  variant="primary"
-                  className="mb-3 bg-foreground/20 text-foreground border-foreground/20 md:mb-4 md:text-sm"
-                >
+                <Badge className="mb-3 md:mb-4" size="lg" variant="secondary">
                   {article.category}
                 </Badge>
               )}

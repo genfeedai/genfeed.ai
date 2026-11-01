@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
@@ -15,15 +16,11 @@ export function AgentUiActionCard({
       <div className="flex items-center gap-2">
         <span className="font-medium text-foreground">{action.title}</span>
         {action.riskLevel && action.riskLevel !== 'low' && (
-          <span
-            className={`rounded px-1.5 py-0.5 text-2xs ${
-              action.riskLevel === 'high'
-                ? 'bg-destructive/10 text-destructive'
-                : 'bg-warning/10 text-warning'
-            }`}
+          <Badge
+            variant={action.riskLevel === 'high' ? 'destructive' : 'warning'}
           >
             {action.riskLevel}
-          </span>
+          </Badge>
         )}
       </div>
       {action.description && (
@@ -48,7 +45,7 @@ export function AgentUiActionCard({
               <Button
                 key={`${action.id}-cta-${cta.label}`}
                 variant={ButtonVariant.SECONDARY}
-                className="h-auto px-2 py-1 text-xs"
+                className="h-auto px-2 py-1"
                 isDisabled
               >
                 {cta.label}

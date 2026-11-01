@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { ModelProvider } from '@genfeedai/contracts';
+import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
@@ -206,6 +206,74 @@ describe('CronFalModelWatcherService', () => {
         expect.objectContaining({
           deduplicationKey: expect.stringContaining(
             'message.model-pricing-unavailable/minimax/h3-max/text-to-video/The fal price refresh failed (model_fetch_failed)',
+          ),
+        }),
+      );
+    });
+
+    it('neither refreshes nor alerts for a retired registry row fal no longer serves', async () => {
+      modelsService.prisma.model.findMany.mockResolvedValueOnce([
+        ...registryRows,
+        {
+          endpoint: 'fal-ai/seedance-2.0',
+          id: 'model-retired',
+          isActive: false,
+          isFree: false,
+          key: 'fal-ai/seedance-2.0',
+          lifecycle: ModelLifecycle.RETIRED,
+          provider: ModelProvider.FAL,
+          reviewedProviderContractVersion: null,
+        },
+      ]);
+      falPlatformClient.fetchModels.mockResolvedValueOnce([
+        falModel('fal-ai/flux/dev'),
+        falModel('minimax/h3-max/text-to-video'),
+      ]);
+
+      const result = await service.refreshRegistryModels();
+
+      expect(falPlatformClient.fetchModels).toHaveBeenCalledWith([
+        'fal-ai/flux/dev',
+        'minimax/h3-max/text-to-video',
+      ]);
+      expect(result.errors).toBe(0);
+      expect(activityRecorder.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('does not claim an approved rate keeps charging for a row that never had one', async () => {
+      falPlatformClient.fetchModels.mockResolvedValueOnce([
+        falModel('fal-ai/flux/dev'),
+      ]);
+
+      await service.refreshRegistryModels();
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'this model has no approved rate yet',
+          ),
+        }),
+      );
+    });
+
+    it('keeps the approved-rate wording for a row with a reviewed contract', async () => {
+      modelsService.prisma.model.findMany.mockResolvedValueOnce([
+        registryRows[0],
+        {
+          ...registryRows[1],
+          reviewedProviderContractVersion: 'sha256:reviewed',
+        },
+      ]);
+      falPlatformClient.fetchModels.mockResolvedValueOnce([
+        falModel('fal-ai/flux/dev'),
+      ]);
+
+      await service.refreshRegistryModels();
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'the last approved rate keeps charging',
           ),
         }),
       );

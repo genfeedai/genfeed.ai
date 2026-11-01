@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { PublishingOverviewHealthRow } from '@/features/posts/props/publishing-overview.props';
 import AccountHealthSection from './AccountHealthSection';
@@ -114,7 +115,7 @@ describe('publishing account sections', () => {
     ).toHaveAttribute('href', '/acme/studio/settings/connected-accounts');
   });
 
-  it('keeps a long account name available through its title', () => {
+  it('keeps a long account name available through a tooltip', async () => {
     const name = 'Studio account with a very long name across multiple teams';
     render(
       <AccountHealthSection
@@ -123,6 +124,7 @@ describe('publishing account sections', () => {
         state={{ status: 'success', data: [row] }}
       />,
     );
-    expect(screen.getByText(name)).toHaveAttribute('title', name);
+    await userEvent.hover(screen.getByText(name));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(name);
   });
 });

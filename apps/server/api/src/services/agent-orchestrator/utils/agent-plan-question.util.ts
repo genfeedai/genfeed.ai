@@ -84,9 +84,45 @@ export function countTrailingPlanQuestions(
   return count;
 }
 
+const MAX_EMBEDDED_JSON_ATTEMPTS = 25;
+
+/**
+ * The JSON object a reply ends with, after a sentence or two of prose. The
+ * planner is told to answer with JSON only but often opens with a line such as
+ * "I'll check your review queue first." Without this the whole reply, braces
+ * included, would be posted as an ordinary message.
+ */
+function findTrailingJsonObject(text: string): string | null {
+  if (!text.endsWith('}')) return null;
+  let attempts = 0;
+  for (
+    let start = text.indexOf('{');
+    start !== -1 && attempts < MAX_EMBEDDED_JSON_ATTEMPTS;
+    start = text.indexOf('{', start + 1)
+  ) {
+    attempts += 1;
+    const slice = text.slice(start);
+    try {
+      const value: unknown = JSON.parse(slice);
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        Object.keys(value).length > 0
+      ) {
+        return slice;
+      }
+    } catch {
+      // Not the start of the JSON object; try the next brace.
+    }
+  }
+  return null;
+}
+
 /**
  * Splits a planner reply into its text and the JSON object it carries, if any.
- * The model may fence the JSON; a reply that is not a JSON object parses to null.
+ * The model may fence the JSON or put a line of prose before it; a reply that
+ * carries no JSON object parses to null.
  */
 export function parsePlanResponse(assistantContent: string): {
   candidate: string;
@@ -94,7 +130,11 @@ export function parsePlanResponse(assistantContent: string): {
 } {
   const trimmed = assistantContent.trim();
   const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
+  const trailingFenceMatch = fencedJsonMatch
+    ? null
+    : trimmed.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```$/i);
+  let candidate =
+    fencedJsonMatch?.[1]?.trim() ?? trailingFenceMatch?.[1]?.trim() ?? trimmed;
   let parsed: Record<string, unknown> | null = null;
 
   if (candidate.startsWith('{') && candidate.endsWith('}')) {
@@ -102,6 +142,12 @@ export function parsePlanResponse(assistantContent: string): {
       parsed = JSON.parse(candidate) as Record<string, unknown>;
     } catch {
       parsed = null;
+    }
+  } else {
+    const embedded = findTrailingJsonObject(candidate);
+    if (embedded) {
+      candidate = embedded;
+      parsed = JSON.parse(embedded) as Record<string, unknown>;
     }
   }
 

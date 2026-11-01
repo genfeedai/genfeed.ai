@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   HandleDefinition,
   WorkflowInterface,
   WorkflowRefNodeData,
 } from '@genfeedai/contracts/types';
+import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Label } from '@genfeedai/ui/primitives/label';
 import {
@@ -139,9 +139,9 @@ function WorkflowSelectorSection({
       )}
 
       {error && (
-        <div className="text-xs text-destructive bg-destructive/10 rounded px-2 py-1">
+        <Alert size="sm" variant="destructive">
           {error}
-        </div>
+        </Alert>
       )}
     </>
   );
@@ -172,6 +172,7 @@ function WorkflowInterfaceSummary({
           disabled={isFetchingWorkflows}
           title="Refresh interface"
         >
+          {/* ui-guard-allow:loading-spinner -- refresh icon rotates while refetching */}
           <RefreshCw
             className={clsx('size-3', isFetchingWorkflows && 'animate-spin')}
           />
@@ -243,15 +244,15 @@ function WorkflowRefMessages({
       )}
 
       {childExecutionId && (
-        <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+        <Alert size="sm" variant="note">
           Child execution: {childExecutionId.substring(0, 8)}...
-        </div>
+        </Alert>
       )}
 
       {error && (
-        <div className="border border-destructive/20 bg-destructive/10 p-2">
-          <p className="text-xs text-destructive">{error}</p>
-        </div>
+        <Alert size="sm" variant="destructive">
+          {error}
+        </Alert>
       )}
     </>
   );

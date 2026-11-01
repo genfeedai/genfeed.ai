@@ -1,17 +1,17 @@
 import type { Skill } from '@services/content/skills.service';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import type { SkillsTableProps } from '@/features/settings/props/skills.props';
 
 function getSourceBadgeVariant(
   source: Skill['source'],
-): 'accent' | 'outline' | 'secondary' {
+): 'default' | 'outline' | 'secondary' {
   switch (source) {
     case 'custom':
     case 'customized':
-      return 'accent';
+      return 'default';
     case 'imported':
       return 'secondary';
     default:
@@ -21,20 +21,20 @@ function getSourceBadgeVariant(
 
 function getModalityBadgeVariant(
   modality: string,
-): 'audio' | 'ghost' | 'image' | 'multimodal' | 'text' | 'video' {
+): 'warning' | 'secondary' | 'info' | 'default' | 'success' | 'default' {
   switch (modality) {
     case 'audio':
-      return 'audio';
+      return 'warning';
     case 'image':
-      return 'image';
+      return 'info';
     case 'multi':
-      return 'multimodal';
+      return 'default';
     case 'text':
-      return 'text';
+      return 'success';
     case 'video':
-      return 'video';
+      return 'default';
     default:
-      return 'ghost';
+      return 'secondary';
   }
 }
 
@@ -95,7 +95,7 @@ export default function SkillsTable({
           header: translate('table.stage'),
           key: 'workflowStage',
           render: (skill) => (
-            <Badge variant="ghost">{skill.workflowStage}</Badge>
+            <Badge variant="secondary">{skill.workflowStage}</Badge>
           ),
         },
         {

@@ -30,6 +30,7 @@ export interface FalSyncModelRecord {
   isActive: boolean;
   isFree?: boolean;
   key?: string;
+  lifecycle?: string | null;
   provider: string;
   reviewedProviderContractVersion?: string | null;
 }

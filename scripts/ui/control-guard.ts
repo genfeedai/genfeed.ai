@@ -130,10 +130,7 @@ export const ALLOWLIST = {
    * is already covered by the shared test-file exclusion.
    */
   selfReferenceFiles: new Set<string>(['scripts/ui/control-guard.ts']),
-  sharedTabsFiles: new Set<string>([
-    'packages/ui/src/components/navigation/tabs/Tabs.tsx',
-    'packages/ui/src/primitives/tabs.tsx',
-  ]),
+  sharedTabsFiles: new Set<string>(['packages/ui/src/primitives/tabs.tsx']),
 } as const;
 
 // Shared scope helpers
@@ -243,7 +240,6 @@ const BANNED_IMPORT_PATTERNS = [
   /@\/features\/workflows\/components\/ui\/inputs\/select\/Select/g,
 ];
 const TABS_BYPASS_PATTERNS = [
-  /primitives\/tabs(?:\.styles)?/g,
   /@radix-ui\/react-tabs/g,
   /role\s*=\s*(?:["']tab(?:list)?["']|\{["']tab(?:list)?["']\})/g,
 ];
@@ -724,8 +720,6 @@ function repoWideGitGrepFilter(): string {
     '@/features/workflows/components/ui/inputs/input/Input',
     '@/features/workflows/components/ui/inputs/textarea/Textarea',
     '@/features/workflows/components/ui/inputs/select/Select',
-    '@ui/primitives/tabs',
-    '@ui/primitives/tabs.styles',
     '@radix-ui/react-tabs',
     'role=',
   ].join('|');
@@ -807,7 +801,7 @@ const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'raw-input': 'Use the shared Input primitive (hidden/file inputs excepted).',
   'raw-select': 'Use the shared Select primitive.',
   'tabs-bypass':
-    'Use @ui/navigation/tabs/Tabs instead of primitive or hand-rolled tabs.',
+    'Use Tabs from @ui/primitives/tabs instead of @radix-ui/react-tabs or hand-rolled tab semantics.',
   'raw-button': 'Use the shared Button primitive.',
   'styled-anchor': 'Use Button/AppLink instead of a button-styled anchor.',
 };

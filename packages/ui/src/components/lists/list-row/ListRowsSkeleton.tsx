@@ -1,5 +1,5 @@
 import type { ListRowsSkeletonProps } from '@genfeedai/props/ui/lists/list-row.props';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import { Skeleton } from '@ui/primitives/skeleton';
 import type { ReactElement } from 'react';
 
 const ROW_SKELETON_KEYS = [

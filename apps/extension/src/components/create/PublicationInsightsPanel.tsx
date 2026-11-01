@@ -120,7 +120,7 @@ function PublicationInsightDetails({
         variant={ButtonVariant.SECONDARY}
         isDisabled={isBusy || insight.analyticsAvailability !== 'eligible'}
         onClick={onRefresh}
-        className="w-full text-xs"
+        className="w-full"
       >
         Refresh analytics
       </Button>
@@ -152,7 +152,7 @@ function PublicationInsightDetails({
               )
             }
             onClick={() => onLink(account)}
-            className="w-full text-xs"
+            className="w-full"
           >
             Link account
           </Button>
@@ -298,7 +298,7 @@ export function PublicationInsightsPanel() {
               variant={ButtonVariant.SECONDARY}
               isDisabled={state.isBusy || state.isLoading}
               onClick={state.reload}
-              className="w-full text-xs"
+              className="w-full"
             >
               Reload saved metrics
             </Button>

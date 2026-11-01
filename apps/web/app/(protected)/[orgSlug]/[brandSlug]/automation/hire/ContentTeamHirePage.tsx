@@ -8,8 +8,8 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -106,8 +106,8 @@ export default function ContentTeamHirePage({
 
   const content =
     !isBrandReady || !brandId ? (
-      <CardEmptyContent
-        label={translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
+      <EmptyState
+        title={translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
       />
     ) : (
       <AgentMarketplace

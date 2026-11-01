@@ -2,6 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { LibraryAsset } from '@genfeedai/contracts/interfaces';
 import type { LibraryAttachmentActionsProps } from '@genfeedai/props/extension/extension-library.props';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 import { handoffLibraryAsset } from '~services/library-handoff.service';
 
@@ -70,9 +71,9 @@ export function LibraryAttachmentActions({
       <p>Download assets, then attach them manually on the platform.</p>
       {assets.map((asset) => (
         <div key={asset.id} className="min-w-0 space-y-1">
-          <p className="truncate text-foreground" title={asset.contentTitle}>
-            {asset.contentTitle}
-          </p>
+          <SimpleTooltip label={asset.contentTitle}>
+            <p className="truncate text-foreground">{asset.contentTitle}</p>
+          </SimpleTooltip>
           <div className="flex flex-wrap gap-2">
             <Button
               withWrapper={false}

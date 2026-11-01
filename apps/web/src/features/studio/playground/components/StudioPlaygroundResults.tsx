@@ -1,9 +1,8 @@
 'use client';
-
 import { ViewType } from '@genfeedai/contracts';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
 import StudioPlaygroundCard from '@/features/studio/playground/components/StudioPlaygroundCard';
@@ -120,8 +119,8 @@ export default function StudioPlaygroundResults({
         isLoading ? (
           <ResultsSkeleton />
         ) : (
-          <CardEmptyContent
-            label={translate('emptyTitle')}
+          <EmptyState
+            title={translate('emptyTitle')}
             description={translate('emptyDescription')}
           />
         )

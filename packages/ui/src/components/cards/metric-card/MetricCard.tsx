@@ -1,6 +1,6 @@
 'use client';
 
-import { CardGap, CardPadding } from '@genfeedai/contracts';
+import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
@@ -8,6 +8,7 @@ import type {
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
+  MetricCardTone,
   MetricSummaryItem,
   MetricSummaryProps,
 } from '@genfeedai/props/cards/metric-card.props';
@@ -21,25 +22,49 @@ const BODY_PADDING: Record<MetricCardSize, CardPadding> = {
   lg: CardPadding.LG,
   md: CardPadding.MD,
   sm: CardPadding.SM,
+  xs: CardPadding.SM,
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
   lg: 'text-4xl sm:text-5xl',
   md: 'text-3xl',
   sm: 'text-2xl',
+  xs: 'text-lg',
 };
 
 const VALUE_SKELETON: Record<MetricCardSize, string> = {
   lg: 'h-12 w-24',
   md: 'h-9 w-16',
   sm: 'h-7 w-12',
+  xs: 'h-5 w-10',
 };
 
 const LABEL_CLASS =
   'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
 
-const VALUE_CLASS =
-  'font-semibold tracking-[-0.02em] tabular-nums text-foreground';
+const VALUE_CLASS = 'font-semibold tracking-[-0.02em] tabular-nums';
+
+const VALUE_TONE: Record<MetricCardTone, string> = {
+  accent: 'text-accent',
+  default: 'text-foreground',
+  destructive: 'text-destructive',
+  info: 'text-info',
+  muted: 'text-muted-foreground',
+  primary: 'text-primary',
+  success: 'text-success',
+  warning: 'text-warning',
+};
+
+const ICON_TONE: Record<MetricCardTone, string> = {
+  accent: 'bg-accent/10 text-accent',
+  default: 'bg-muted text-foreground/50',
+  destructive: 'bg-destructive/10 text-destructive',
+  info: 'bg-info/10 text-info',
+  muted: 'bg-muted text-muted-foreground',
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+};
 
 function AnimatedValue({ value }: { value: string }): ReactElement {
   const match = value.match(/^([\d.]+)(.*)$/);
@@ -88,28 +113,32 @@ function resolveValueContent(
  *
  * **One component, states via props** — do not invent StatCard / KPICard /
  * SummaryMetricCard / raw metric divs:
- * - `appearance="tile"` (default) — framed {@link Card}, label → value → detail
- * - `appearance="inline"` — frameless pair for {@link MetricSummary} strips
- * - `size` — sm / md / lg scale only
+ * - `appearance="tile"` (default) — framed {@link Card}: the value first and
+ *   largest, the label under it, then the detail line
+ * - `appearance="inset"` — the same tile as a recessed panel inside a card
+ * - `appearance="inline"` — frameless value/label pair for {@link MetricSummary}
+ * - `size` — xs / sm / md / lg scale only
+ * - `align` — start (default) or center
+ * - `tone` — state colour of the value and icon chip
  * - `trend` — optional; omit to hide
  *
- * Surface frame is always {@link Card} (`rounded-card` + `shadow-border`).
+ * Surface frame is always {@link Card}.
  */
 const MetricCard = memo(function MetricCard({
+  align = 'start',
   analyticsMetric,
   analyticsMetricVariant,
   appearance = 'tile',
   className,
   description,
   icon: Icon,
-  iconClassName,
   isLoading = false,
   label,
   size = 'md',
+  tone = 'default',
   trend,
   trendLabel,
   value,
-  valueClassName,
 }: MetricCardProps): ReactElement {
   const hasTrend = typeof trend === 'number';
   const isPositiveTrend = hasTrend && trend > 0;
@@ -120,20 +149,20 @@ const MetricCard = memo(function MetricCard({
       ? TrendingDown
       : null;
 
-  const valueNode = (
-    <div
-      className={cn(
-        'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1',
-        appearance === 'tile' ? 'mt-2' : undefined,
-      )}
+  const labelNode = analyticsMetric ? (
+    <AnalyticsMetricLabel
+      metric={analyticsMetric}
+      variant={analyticsMetricVariant}
     >
-      <p
-        className={cn(
-          VALUE_CLASS,
-          appearance === 'inline' ? 'text-sm' : VALUE_SIZE[size],
-          valueClassName,
-        )}
-      >
+      {label}
+    </AnalyticsMetricLabel>
+  ) : (
+    label
+  );
+
+  const valueNode = (
+    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+      <p className={cn(VALUE_CLASS, VALUE_SIZE[size], VALUE_TONE[tone])}>
         {isLoading ? value : resolveValueContent(value, false, size)}
       </p>
 
@@ -166,21 +195,10 @@ const MetricCard = memo(function MetricCard({
         data-testid="metric-card"
         data-appearance="inline"
       >
-        <span className="font-medium text-foreground tabular-nums">
+        <span className={cn('font-medium tabular-nums', VALUE_TONE[tone])}>
           {resolveValueContent(value, isLoading, 'sm')}
         </span>
-        <span className="text-foreground/60">
-          {analyticsMetric ? (
-            <AnalyticsMetricLabel
-              metric={analyticsMetric}
-              variant={analyticsMetricVariant}
-            >
-              {label}
-            </AnalyticsMetricLabel>
-          ) : (
-            label
-          )}
-        </span>
+        <span className="text-foreground/60">{labelNode}</span>
       </span>
     );
   }
@@ -190,41 +208,46 @@ const MetricCard = memo(function MetricCard({
       bodyClassName="h-full"
       gap={CardGap.NONE}
       padding={BODY_PADDING[size]}
+      variant={appearance === 'inset' ? CardVariant.INSET : undefined}
       className={cn('h-full', className)}
       data-testid="metric-card"
+      data-appearance={appearance}
       isLoading={isLoading}
       loadingLabel={`Loading ${label}`}
     >
-      <div className="flex items-center gap-2">
+      <div
+        className={cn(
+          'flex items-start justify-between gap-3',
+          align === 'center' && 'justify-center',
+        )}
+      >
+        {valueNode}
         {Icon ? (
           <span
+            aria-hidden="true"
             className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground/50',
+              'flex size-8 shrink-0 items-center justify-center rounded-md',
+              ICON_TONE[tone],
               size === 'lg' && 'size-10',
-              iconClassName,
             )}
           >
             <Icon className={size === 'lg' ? 'size-5' : 'size-4'} />
           </span>
         ) : null}
-        <p className={LABEL_CLASS}>
-          {analyticsMetric ? (
-            <AnalyticsMetricLabel
-              metric={analyticsMetric}
-              variant={analyticsMetricVariant}
-            >
-              {label}
-            </AnalyticsMetricLabel>
-          ) : (
-            label
-          )}
-        </p>
       </div>
 
-      {valueNode}
+      <p
+        className={cn(
+          LABEL_CLASS,
+          'mt-1.5',
+          align === 'center' && 'text-center',
+        )}
+      >
+        {labelNode}
+      </p>
 
       {description ? (
-        <p className="mt-1.5 text-xs leading-5 text-foreground/60">
+        <p className="mt-1 text-xs leading-5 text-foreground/60">
           {description}
         </p>
       ) : null}
@@ -269,6 +292,7 @@ export type {
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
+  MetricCardTone,
   MetricSummaryItem,
   MetricSummaryProps,
 };

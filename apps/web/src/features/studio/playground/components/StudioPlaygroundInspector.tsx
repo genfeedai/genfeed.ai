@@ -25,9 +25,15 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
-import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
+import { PanelTabs } from '@ui/primitives/tabs';
 import {
   Download,
   GitBranch,
@@ -569,18 +575,21 @@ export default function StudioPlaygroundInspector({
           <p className="text-xs font-medium">
             {translate('inspector.promptSlots.title')}
           </p>
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
+          <DefinitionList variant="properties">
             {storedPrompt.slots.map((slot) => (
-              <div className="contents" key={slot.key}>
-                <dt className="text-muted-foreground">
+              <DefinitionRow key={slot.key}>
+                <DefinitionTerm variant="muted">
                   {translate(`inspector.promptSlots.labels.${slot.key}`)}
-                </dt>
-                <dd className="whitespace-pre-wrap break-words text-foreground/80">
+                </DefinitionTerm>
+                <DefinitionDetail
+                  className="whitespace-pre-wrap break-words"
+                  variant="compact"
+                >
                   {slot.value}
-                </dd>
-              </div>
+                </DefinitionDetail>
+              </DefinitionRow>
             ))}
-          </dl>
+          </DefinitionList>
           <Button
             className="self-start"
             icon={<Pencil className="size-3.5" />}
@@ -935,16 +944,19 @@ export default function StudioPlaygroundInspector({
             withWrapper={false}
           />
         ) : null}
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
+        <DefinitionList variant="properties">
           {factRows.map((row) => (
-            <div className="contents" key={row.key}>
-              <dt className="text-muted-foreground">{row.label}</dt>
-              <dd className="truncate text-right text-foreground/80">
+            <DefinitionRow key={row.key}>
+              <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
+              <DefinitionDetail
+                className="truncate text-right"
+                variant="compact"
+              >
                 {row.value}
-              </dd>
-            </div>
+              </DefinitionDetail>
+            </DefinitionRow>
           ))}
-        </dl>
+        </DefinitionList>
       </div>
 
       <PanelTabs

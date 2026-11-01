@@ -16,10 +16,10 @@ import {
   resolveProviderCostUnits,
 } from '@genfeedai/pricing';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import ModelAvatar from '@ui/models/ModelAvatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -365,34 +365,34 @@ export function buildModelsTableColumns({
   const getRegistryStatus = (model: IModel) => {
     if (model.lifecycle === ModelLifecycle.LEGACY) {
       return {
-        className: 'bg-warning/10 text-warning shadow-border',
+        variant: 'warning' as const,
         label: translate('table.legacyStatus'),
       };
     }
 
     if (model.reviewStatus === 'rejected') {
       return {
-        className: 'bg-destructive/10 text-destructive shadow-border',
+        variant: 'destructive' as const,
         label: translate('table.rejectedStatus'),
       };
     }
 
     if (model.isDiscovered && !model.isActive) {
       return {
-        className: 'bg-info/10 text-info shadow-border',
+        variant: 'info' as const,
         label: translate('table.pendingStatus'),
       };
     }
 
     if (model.isDiscovered) {
       return {
-        className: 'bg-success/10 text-success shadow-border',
+        variant: 'success' as const,
         label: translate('table.approvedStatus'),
       };
     }
 
     return {
-      className: 'bg-muted text-foreground/70 shadow-border',
+      variant: 'secondary' as const,
       label: translate('table.seededStatus'),
     };
   };
@@ -439,7 +439,7 @@ export function buildModelsTableColumns({
             sortable: true,
             render: (model: IModel) => {
               const status = getRegistryStatus(model);
-              return <Badge className={status.className}>{status.label}</Badge>;
+              return <Badge variant={status.variant}>{status.label}</Badge>;
             },
           },
         ]

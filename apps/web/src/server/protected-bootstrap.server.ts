@@ -73,9 +73,11 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
         onFailure: (failure) =>
           logger.warn('Better Auth token exchange failed', {
             ...failure,
-            // A 401/403 is a signed-out visitor; anything else is a fault.
+            // A 401/403 is a signed-out visitor and a prerender that ended
+            // first cut its own fetch off; anything else is a fault.
             reportToSentry:
-              failure.reason !== 'http' || (failure.status ?? 0) >= 429,
+              failure.reason !== 'prerender-ended' &&
+              (failure.reason !== 'http' || (failure.status ?? 0) >= 429),
           }),
       })) ?? ''
     );

@@ -134,7 +134,7 @@ function InlineListAnswer({
               variant={ButtonVariant.SECONDARY}
               isDisabled={isDisabled}
               onClick={() => removeChip(chip)}
-              className="h-7 max-w-full gap-1 rounded-full px-2.5 text-xs"
+              className="h-7 max-w-full gap-1 rounded-full px-2.5"
               ariaLabel={`Remove ${chip}`}
             >
               <span className="truncate">{chip}</span>
@@ -659,7 +659,7 @@ export default function BrandGuidedSetupPage() {
             </div>
             <Button
               size={ButtonSize.SM}
-              className="h-9 shrink-0 gap-1.5 px-3 text-xs"
+              className="h-9 shrink-0 gap-1.5 px-3"
               isDisabled={isInterviewLoading}
               isLoading={isInterviewLoading}
               onClick={() => {
@@ -707,7 +707,7 @@ export default function BrandGuidedSetupPage() {
             </div>
             <Button
               size={ButtonSize.SM}
-              className="h-9 px-3 text-xs"
+              className="h-9 px-3"
               onClick={() => {
                 window.location.reload();
               }}
@@ -790,7 +790,7 @@ export default function BrandGuidedSetupPage() {
                 <Button
                   type="submit"
                   size={ButtonSize.SM}
-                  className="h-9 px-4 text-xs"
+                  className="h-9 px-4"
                   isDisabled={isInterviewLoading || !answerValue.trim()}
                   isLoading={isInterviewLoading}
                 >
@@ -801,7 +801,7 @@ export default function BrandGuidedSetupPage() {
                     type="button"
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
-                    className="h-9 px-3 text-xs"
+                    className="h-9 px-3"
                     isDisabled={isInterviewLoading}
                     onClick={() => {
                       void handleSkip();
@@ -814,7 +814,7 @@ export default function BrandGuidedSetupPage() {
                     type="button"
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
-                    className="h-9 px-3 text-xs"
+                    className="h-9 px-3"
                     isDisabled={isInterviewLoading || !frontierFieldKey}
                     onClick={() => {
                       if (frontierFieldKey) {

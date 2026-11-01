@@ -205,10 +205,9 @@ describe('ConfigService (Workers)', () => {
     const consumedKeys = [
       'OPENROUTER_API_KEY', // clip analysis/factory workflow actions
       'REPLICATE_KEY', // model-watcher cron + model-discovery service
-      'AWS_REGION', // llm-idle cron EC2Client
-      'AWS_ACCESS_KEY_ID', // llm-idle cron EC2Client
-      'AWS_SECRET_ACCESS_KEY', // llm-idle cron EC2Client
-      'GPU_LLM_INSTANCE_ID', // llm-idle cron
+      'AWS_REGION', // queue metrics and shared AWS clients
+      'AWS_ACCESS_KEY_ID', // shared AWS clients
+      'AWS_SECRET_ACCESS_KEY', // shared AWS clients
       'SERVICE_NAME', // health-response label
     ] as const;
 

@@ -130,6 +130,7 @@ export default function FeaturesPage(): React.ReactElement {
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  {/* ui-guard-allow:metric-hand-built -- caption over a poster, not a stat */}
                   <figcaption className="absolute inset-x-0 bottom-0 p-6">
                     <p className="text-2xs font-bold uppercase tracking-[0.14em] text-white/60">
                       {output.format}
@@ -171,7 +172,6 @@ export default function FeaturesPage(): React.ReactElement {
                   asChild
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.PUBLIC}
-                  className="tracking-[0.3em]"
                 >
                   <Link href="/pricing">View Plans</Link>
                 </Button>
@@ -179,7 +179,6 @@ export default function FeaturesPage(): React.ReactElement {
                   asChild
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.PUBLIC}
-                  className="tracking-[0.3em]"
                 >
                   <Link href="/agent">See How It Works</Link>
                 </Button>

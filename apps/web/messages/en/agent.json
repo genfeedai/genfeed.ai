@@ -2,6 +2,9 @@
   "nextSteps": {
     "start": "Start"
   },
+  "conversationError": {
+    "dismissAriaLabel": "Dismiss alert"
+  },
   "timeline": {
     "thinking": "Thinking",
     "worked": "Worked",
@@ -407,7 +410,10 @@
   "transferProvenance": {
     "copy": "Copy",
     "openConversation": "Open conversation",
-    "openInThreads": "Open in Threads"
+    "openInThreads": "Open in Threads",
+    "reopen": "Reopen",
+    "resolve": "Resolve",
+    "resolved": "Resolved"
   },
   "settings": {
     "autoDescription": "Use the platform default model",
@@ -582,5 +588,9 @@
   "referenceMentions": {
     "empty": "No matching references or characters",
     "listLabel": "References and characters"
+  },
+  "strategyStatus": {
+    "emptyDescription": "Create one in the configuration above.",
+    "emptyTitle": "No strategy configured yet."
   }
 }

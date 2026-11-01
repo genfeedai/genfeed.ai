@@ -8,7 +8,6 @@ import {
   LibraryPlace,
   PageScope,
   parseLibraryShelf,
-  ViewType,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -31,7 +30,6 @@ import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 import LibraryOverview from '@/features/library/overview/library-overview';
-import PublishingDeskViewToggle from '@/features/posts/library/publishing-desk-view-toggle';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
@@ -385,7 +383,6 @@ export default async function OrgRootAppPage({
     if (publishingSegments.length === 1 && section === 'calendar') {
       return (
         <PublishingLayoutContent>
-          <PublishingDeskViewToggle activeView={ViewType.CALENDAR} />
           <ContentCalendarPage embedded />
         </PublishingLayoutContent>
       );
@@ -394,7 +391,6 @@ export default async function OrgRootAppPage({
     if (section === 'approvals' && publishingSegments.length <= 3) {
       return (
         <PublishingLayoutContent>
-          <PublishingDeskViewToggle activeView={ViewType.APPROVALS} />
           <ReviewQueueContent />
         </PublishingLayoutContent>
       );

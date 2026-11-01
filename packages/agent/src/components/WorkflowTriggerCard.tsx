@@ -4,10 +4,12 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Alert } from '@ui/primitives/alert';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Spinner from '@ui/primitives/spinner';
-import { CircleCheck, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
@@ -114,40 +116,32 @@ export function WorkflowTriggerCard({
       </div>
 
       <div className="space-y-3 p-3">
-        <div className="space-y-1.5">
+        <OptionTileGroup
+          ariaLabel={action.title}
+          columns={1}
+          isDisabled={status !== 'idle'}
+          onValueChange={setSelectedId}
+          value={selectedId ?? undefined}
+        >
           {workflows.map((wf) => (
-            <Button
+            <OptionTile
+              description={wf.description}
               key={wf.id}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              isDisabled={status !== 'idle'}
-              onClick={() => setSelectedId(wf.id)}
-              className={`w-full border px-3 py-2 text-left transition-colors disabled:opacity-50 ${
-                selectedId === wf.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-accent'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  {wf.name}
-                </span>
-                {wf.status && (
+              size="sm"
+              title={wf.name}
+              trailing={
+                wf.status ? (
                   <Badge
                     variant={STATUS_BADGE[wf.status] ?? STATUS_BADGE.draft}
                   >
                     {wf.status}
                   </Badge>
-                )}
-              </div>
-              {wf.description && (
-                <p className="mt-0.5 line-clamp-1 text-2xs text-muted-foreground">
-                  {wf.description}
-                </p>
-              )}
-            </Button>
+                ) : undefined
+              }
+              value={wf.id}
+            />
           ))}
-        </div>
+        </OptionTileGroup>
 
         {/* Trigger button */}
         {status === 'idle' && (
@@ -175,12 +169,9 @@ export function WorkflowTriggerCard({
         {/* Done state */}
         {status === 'done' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2  ">
-              <CircleCheck className="size-4 text-success " />
-              <span className="text-sm text-success ">
-                Workflow started successfully
-              </span>
-            </div>
+            <Alert size="sm" variant="success">
+              Workflow started successfully
+            </Alert>
             {executionId && (
               <a
                 href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)}

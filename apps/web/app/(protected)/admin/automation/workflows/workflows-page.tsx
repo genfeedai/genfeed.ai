@@ -16,11 +16,12 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ChevronDown,
@@ -36,20 +37,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function getWorkflowStatusVariant(
   status: string,
-): 'success' | 'ghost' | 'warning' | 'info' | 'error' {
+): 'success' | 'secondary' | 'warning' | 'info' | 'destructive' {
   switch (status) {
     case 'running':
     case 'active':
       return 'success';
     case 'draft':
-      return 'ghost';
+      return 'secondary';
     case 'paused':
     case 'inactive':
       return 'warning';
@@ -57,7 +57,7 @@ function getWorkflowStatusVariant(
     case 'failed':
       return 'info';
     default:
-      return 'error';
+      return 'destructive';
   }
 }
 
@@ -308,7 +308,7 @@ export default function WorkflowsPage() {
       icon: <Trash2 />,
       onClick: handleDelete,
       tooltip: translate('actions.delete'),
-      variant: ButtonVariant.DESTRUCTIVE,
+      tone: 'destructive',
     },
   ];
 
@@ -352,10 +352,7 @@ export default function WorkflowsPage() {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (workflow) =>
-        workflow.createdAt ? (
-          <ClientFormattedDate format="date" value={workflow.createdAt} />
-        ) : null,
+      render: (workflow) => <TableDateCell value={workflow.createdAt} />,
     },
   ];
 
@@ -389,7 +386,7 @@ export default function WorkflowsPage() {
       render: (entry) => {
         const status = getCatalogStatus(entry);
         return (
-          <Badge variant={status === 'installed' ? 'success' : 'ghost'}>
+          <Badge variant={status === 'installed' ? 'success' : 'secondary'}>
             {translate(`catalog.status.${status}`)}
           </Badge>
         );

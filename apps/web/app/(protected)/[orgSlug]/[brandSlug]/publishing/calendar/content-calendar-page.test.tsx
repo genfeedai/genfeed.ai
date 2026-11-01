@@ -1,3 +1,4 @@
+import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -23,9 +24,11 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
 import type {
   CalendarEventAction,
   CalendarEventBadge,
@@ -224,7 +227,6 @@ vi.mock(
   () => ({
     default: ({
       emptyState,
-      filterControls,
       getEventActions,
       getEventBadge,
       getEventChannels,
@@ -240,7 +242,6 @@ vi.mock(
       timezone,
     }: {
       emptyState?: ReactNode;
-      filterControls: ReactNode;
       getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
       getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
       getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -272,7 +273,6 @@ vi.mock(
 
       return (
         <div>
-          {filterControls}
           {items.map((item) => (
             <div key={item.id}>
               <button type="button" onClick={() => onEventClick(item)}>
@@ -450,10 +450,29 @@ function latestCalendarProps() {
   return latest;
 }
 
+/** A host sub bar: the page mounts its controls here, never above the grid. */
+function SubbarHost({ children }: { children: ReactNode }) {
+  const { contextValue, slots } = usePostsLayoutSlots();
+  return (
+    <PostsLayoutContext.Provider value={contextValue}>
+      <div data-testid="subbar">
+        {slots.leadingNode}
+        {slots.filtersNode}
+        {slots.viewToggleNode}
+        {slots.scheduleActionsNode}
+        {slots.exportNode}
+      </div>
+      {children}
+    </PostsLayoutContext.Provider>
+  );
+}
+
 function renderCalendarPage(embedded = false) {
   return render(
     <ContextSidebarProvider>
-      <ContentCalendarPage embedded={embedded} />
+      <SubbarHost>
+        <ContentCalendarPage embedded={embedded} />
+      </SubbarHost>
       <ContextSidebarOutlet />
     </ContextSidebarProvider>,
   );
@@ -582,10 +601,22 @@ describe('ContentCalendarPage', () => {
   });
 
   it('uses the parent article modal for the embedded publishing calendar', async () => {
-    render(<ContentCalendarPage embedded />);
+    renderCalendarPage(true);
     expect(articleModal.mount).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'New article' }));
     expect(articleModal.open).toHaveBeenCalledWith('modal-article');
+  });
+
+  it('mounts the calendar controls in the sub bar, not above the grid', async () => {
+    renderCalendarPage();
+
+    const subbar = screen.getByTestId('subbar');
+    expect(
+      within(subbar).getByRole('button', { name: 'New cadence' }),
+    ).toBeVisible();
+    expect(
+      within(subbar).getByRole('button', { name: 'Filter scheduled' }),
+    ).toBeVisible();
   });
 
   it('sends an article to its dedicated editor rather than the release drawer', async () => {

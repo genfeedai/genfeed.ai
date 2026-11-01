@@ -57,7 +57,7 @@ export default function LibraryOverview({
       isLoading,
       label: translate('kpi.failed'),
       value: failed,
-      valueClassName: failed > 0 ? 'text-destructive' : undefined,
+      tone: failed > 0 ? ('destructive' as const) : undefined,
     },
     {
       isLoading,

@@ -12,7 +12,7 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

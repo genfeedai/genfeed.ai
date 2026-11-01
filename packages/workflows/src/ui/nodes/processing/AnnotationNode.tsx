@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type { AnnotationNodeData } from '@genfeedai/contracts/types';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Pencil, Shapes } from 'lucide-react';
@@ -81,10 +81,14 @@ function AnnotationNodeComponent(props: NodeProps) {
               unoptimized
             />
             {nodeData.hasAnnotations && (
-              <div className="absolute left-2 top-2 flex items-center gap-1 rounded bg-primary/90 px-2 py-0.5 text-xs font-medium text-primary-foreground">
-                <Shapes className="size-3" />
+              <Badge
+                className="absolute left-2 top-2"
+                icon={<Shapes />}
+                isSolid
+                size="lg"
+              >
                 {nodeData.annotations?.length ?? 0}
-              </div>
+              </Badge>
             )}
           </div>
         ) : (

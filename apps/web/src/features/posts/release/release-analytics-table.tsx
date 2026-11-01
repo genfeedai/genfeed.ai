@@ -1,14 +1,13 @@
 'use client';
-
 import type {
   IReleaseTargetAnalyticsComparison,
   IReleaseTargetAnalyticsMetrics,
   SchedulerAnalyticsComparisonMetric,
 } from '@genfeedai/contracts/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import type { ReleaseAnalyticsTableProps } from '@/props/publisher/release-calendar.props';
 
@@ -62,9 +61,10 @@ export default function ReleaseAnalyticsTable({
 
   if (!comparison || comparison.targets.length === 0) {
     return (
-      <CardEmpty
+      <EmptyState
+        surface="card"
         description={translate('analytics.emptyDescription')}
-        label={translate('analytics.emptyTitle')}
+        title={translate('analytics.emptyTitle')}
       />
     );
   }

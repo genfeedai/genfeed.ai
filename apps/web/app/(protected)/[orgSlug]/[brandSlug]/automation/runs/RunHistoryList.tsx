@@ -1,15 +1,15 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import type { RunHistoryListProps } from '@/features/automation/props/run-history-list.props';
@@ -52,13 +52,12 @@ export default function RunHistoryList({
               {getRunLabel(execution)}
             </p>
             {execution.error ? (
-              <p
-                className="truncate text-xs text-destructive"
-                title={execution.error}
-              >
-                {execution.failedNodeId ? `${execution.failedNodeId}: ` : ''}
-                {execution.error}
-              </p>
+              <SimpleTooltip label={execution.error}>
+                <p className="truncate text-xs text-destructive">
+                  {execution.failedNodeId ? `${execution.failedNodeId}: ` : ''}
+                  {execution.error}
+                </p>
+              </SimpleTooltip>
             ) : null}
           </div>
         ),
@@ -71,7 +70,6 @@ export default function RunHistoryList({
         render: (execution) => (
           <Badge
             status={execution.status.toLowerCase()}
-            size={ComponentSize.SM}
             className="w-28 justify-center"
           >
             {getExecutionStatusLabel(execution.status, translate)}
@@ -87,7 +85,9 @@ export default function RunHistoryList({
           if (credits.value <= 0) return '—';
           const formatted = credits.value.toLocaleString('en-US');
           return credits.isEstimate ? (
-            <span title={translate('creditsEstimated')}>~{formatted}</span>
+            <SimpleTooltip label={translate('creditsEstimated')}>
+              <span>~{formatted}</span>
+            </SimpleTooltip>
           ) : (
             formatted
           );
@@ -120,10 +120,7 @@ export default function RunHistoryList({
     return (
       <TableRowSummary
         badges={
-          <Badge
-            status={execution.status.toLowerCase()}
-            size={ComponentSize.SM}
-          >
+          <Badge status={execution.status.toLowerCase()}>
             {getExecutionStatusLabel(execution.status, translate)}
           </Badge>
         }

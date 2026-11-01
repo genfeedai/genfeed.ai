@@ -1,17 +1,17 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ViewOption } from '@props/ui/navigation/view-option.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionView from '@ui/collection/CollectionView';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -395,7 +395,7 @@ export default function DiscoveryDesk() {
         }
         right={
           <>
-            <Badge variant="ghost">
+            <Badge variant="secondary">
               {isLoading
                 ? translateDesk('signalsLoading')
                 : translateDesk('signalsCount', {
@@ -418,7 +418,7 @@ export default function DiscoveryDesk() {
         }
       >
         {currentError && !isLoading ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
                 <div className="font-medium">

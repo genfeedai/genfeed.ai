@@ -4,18 +4,16 @@ import { PageScope } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -101,21 +99,21 @@ export default function IngredientTabsPosts({
       className: 'text-xs',
       header: 'Scheduled',
       key: 'scheduledDate',
-      render: (post: IPost) =>
-        post.scheduledDate
-          ? formatDateInTimezone(post.scheduledDate, browserTimezone, 'short')
-          : '-',
+      render: (post: IPost) => (
+        <TableDateCell timeZone={browserTimezone} value={post.scheduledDate} />
+      ),
     },
     {
       header: 'Published',
       key: 'publicationDate',
-      render: (p: IPost) =>
-        p.publicationDate ? new Date(p.publicationDate).toLocaleString() : '-',
+      render: (p: IPost) => (
+        <TableDateCell timeZone={browserTimezone} value={p.publicationDate} />
+      ),
     },
     {
       header: 'Status',
       key: 'status',
-      render: (p: IPost) => <Badge variant="ghost">{p.status}</Badge>,
+      render: (p: IPost) => <Badge variant="secondary">{p.status}</Badge>,
     },
   ];
 

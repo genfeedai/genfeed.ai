@@ -3,12 +3,7 @@
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import {
-  AlertCategory,
-  ButtonVariant,
-  PageScope,
-  VoiceProvider,
-} from '@genfeedai/contracts';
+import { ButtonVariant, PageScope, VoiceProvider } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildDefaultVoiceRefFromVoice,
@@ -25,8 +20,8 @@ import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
-import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -357,7 +352,7 @@ function LibraryVoicesContent() {
       ) : null}
 
       {voicesError && !isLoadingVoices ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{voicesError}</span>
             <Button

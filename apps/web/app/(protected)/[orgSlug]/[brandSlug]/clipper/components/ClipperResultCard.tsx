@@ -7,8 +7,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -21,36 +23,39 @@ import type {
   ViralityBadgeProps,
 } from '@/props/studio/clipper.props';
 
-const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
+const STATUS_CONFIG: Record<
+  ClipStatus,
+  { label?: string; variant: BadgeVariant }
+> = {
   captioning: {
-    color: 'bg-info/10 text-info border-transparent',
+    variant: 'info',
     label: 'Captioning',
   },
   completed: {
-    color: 'bg-success/10 text-success border-transparent',
+    variant: 'success',
     label: 'Ready',
   },
   degraded: {
-    color: 'bg-warning/10 text-warning border-transparent',
+    variant: 'warning',
   },
   extracting: {
-    color: 'bg-warning/10 text-warning border-transparent',
+    variant: 'warning',
     label: 'Generating',
   },
   failed: {
-    color: 'bg-destructive/10 text-destructive border-transparent',
+    variant: 'destructive',
     label: 'Failed',
   },
   pending: {
-    color: 'bg-muted text-muted-foreground border-transparent',
+    variant: 'secondary',
     label: 'Queued',
   },
   reframing: {
-    color: 'bg-info/10 text-info border-transparent',
+    variant: 'info',
     label: 'Framing',
   },
   validating: {
-    color: 'bg-info/10 text-info border-transparent',
+    variant: 'info',
     label: 'Validating',
   },
 };
@@ -62,9 +67,9 @@ function ViralityBadge({ score }: ViralityBadgeProps) {
   else if (score >= 40) color = 'text-warning';
 
   return (
-    <span className={`font-mono text-xs ${color}`} title="Virality score">
-      {score}
-    </span>
+    <SimpleTooltip label="Virality score">
+      <span className={`font-mono text-xs ${color}`}>{score}</span>
+    </SimpleTooltip>
   );
 }
 
@@ -181,30 +186,16 @@ export default function ClipperResultCard({
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={statusConfig.color}>
+          <Badge variant={statusConfig.variant}>
             {statusConfig.label ?? t('reviewRequired')}
           </Badge>
-          {clip.clipType && (
-            <Badge
-              variant="secondary"
-              className="bg-muted text-muted-foreground"
-            >
-              {clip.clipType}
-            </Badge>
-          )}
-          <Badge variant="secondary" className="bg-muted text-muted-foreground">
+          {clip.clipType && <Badge variant="secondary">{clip.clipType}</Badge>}
+          <Badge variant="secondary">
             {(clip.mode ?? mode ?? 'avatar') === 'raw-cut'
               ? 'Raw cut'
               : 'AI avatar'}
           </Badge>
-          {isInLibrary && (
-            <Badge
-              variant="secondary"
-              className="bg-muted text-muted-foreground"
-            >
-              {t('inLibrary')}
-            </Badge>
-          )}
+          {isInLibrary && <Badge variant="secondary">{t('inLibrary')}</Badge>}
         </div>
         <ViralityBadge score={clip.viralityScore} />
       </div>
@@ -252,11 +243,7 @@ export default function ClipperResultCard({
       {clip.tags.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1">
           {clip.tags.slice(0, 3).map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-              className="bg-muted/50 text-muted-foreground"
-            >
+            <Badge key={tag} variant="secondary" casing="normal">
               #{tag}
             </Badge>
           ))}

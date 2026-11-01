@@ -196,8 +196,8 @@ vi.mock('@ui/primitives/button', () => ({
     ),
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 // Flattened like the other collection-actions consumers: the real Radix

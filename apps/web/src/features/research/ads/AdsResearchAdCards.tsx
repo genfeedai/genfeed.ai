@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonVariant,
   CardPadding,
@@ -12,15 +11,15 @@ import {
   type AdsResearchMetric,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Bookmark, Megaphone } from 'lucide-react';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Bookmark, BookmarkCheck, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -80,7 +79,7 @@ export function AdGridCard({
                 {item.title}
               </h3>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+                <Badge variant={item.source === 'public' ? 'info' : 'default'}>
                   {item.source === 'public' ? 'Public' : 'Connected'}
                 </Badge>
                 <PlatformBadge
@@ -88,11 +87,13 @@ export function AdGridCard({
                   size={ComponentSize.SM}
                 />
                 {item.channel !== AdsChannel.ALL && (
-                  <Badge variant="ghost">{item.channel}</Badge>
+                  <Badge variant="secondary">{item.channel}</Badge>
                 )}
                 {longevityLabel && (
                   <Badge
-                    variant={item.longevity?.isStillRunning ? 'blue' : 'ghost'}
+                    variant={
+                      item.longevity?.isStillRunning ? 'info' : 'secondary'
+                    }
                   >
                     {longevityLabel}
                   </Badge>
@@ -190,8 +191,8 @@ export function AdsResearchAdGrid({
 
   if (ads.length === 0 && !isLoading) {
     return (
-      <CardEmptyContent
-        label={
+      <EmptyState
+        title={
           search.trim()
             ? translate('emptySearch')
             : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')
@@ -280,7 +281,7 @@ export function AdsResearchAdTable({
       header: translate('source'),
       key: 'source',
       render: (item) => (
-        <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+        <Badge variant={item.source === 'public' ? 'info' : 'default'}>
           {item.source === 'public' ? 'Public' : 'Connected'}
         </Badge>
       ),
@@ -318,38 +319,36 @@ export function AdsResearchAdTable({
     {
       header: translate('saved'),
       key: 'savedAdId',
-      render: (item) => {
-        const savedActionLabel = translateAds(
+      render: (item) =>
+        item.savedAdId ? (
+          <Badge variant="secondary">{translateAds('swipeFile.saved')}</Badge>
+        ) : (
+          '—'
+        ),
+    },
+  ];
+
+  const actions: TableAction<AdsResearchItem>[] = [
+    {
+      ariaLabel: (item) =>
+        translateAds(
           item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
           { title: item.title },
-        );
-
-        return (
-          <Button
-            type="button"
-            variant={
-              item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-            }
-            ariaLabel={savedActionLabel}
-            disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleSaved([item]);
-            }}
-            icon={
-              <Bookmark
-                className={cn('size-4', item.savedAdId && 'fill-current')}
-              />
-            }
-            label={<span className="sr-only">{savedActionLabel}</span>}
-          />
-        );
-      },
+        ),
+      icon: (item) => (item.savedAdId ? <BookmarkCheck /> : <Bookmark />),
+      isDisabled: (item) =>
+        savedMutating || item.usagePolicy === 'disclosure_only',
+      onClick: (item) => onToggleSaved([item]),
+      tooltip: (item) =>
+        translateAds(
+          item.savedAdId ? 'swipeFile.unsaveAction' : 'swipeFile.saveAction',
+        ),
     },
   ];
 
   return (
     <Table<AdsResearchItem>
+      actions={actions}
       ariaLabel={translate('tableLabel')}
       columns={columns}
       emptyLabel={

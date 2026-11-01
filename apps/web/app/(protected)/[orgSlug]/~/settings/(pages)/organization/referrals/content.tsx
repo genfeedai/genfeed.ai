@@ -15,15 +15,16 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
 import { Copy, Gift, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
-import type { ReferralStatProps } from '@/features/settings/props/referral-hub-card.props';
 
 const REFERRAL_REWARD_STATUS_KEYS = {
   [ReferralRewardStatus.CANCELLED]: 'status.cancelled',
@@ -70,8 +71,10 @@ export default function SettingsReferralsPage() {
       <div className="flex flex-col gap-4 pb-10">
         <h1 className="sr-only">{translate('title')}</h1>
         <Card label={translate('title')} gap={CardGap.LG}>
-          <Alert variant="destructive">
-            <TriangleAlert className="size-4" aria-hidden="true" />
+          <Alert
+            variant="destructive"
+            icon={<TriangleAlert className="size-4" aria-hidden="true" />}
+          >
             <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
             <AlertDescription>
               <p>{translate('loadErrorDescription')}</p>
@@ -143,20 +146,26 @@ export default function SettingsReferralsPage() {
           </Button>
         </div>
 
-        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-3">
-          <ReferralStat
+        <MetricCardGrid className="border-t border-border pt-4" columns={3}>
+          <MetricCard
+            appearance="inset"
             label={translate('stats.referred')}
-            value={data?.referralCount ?? 0}
+            size="sm"
+            value={(data?.referralCount ?? 0).toLocaleString('en-US')}
           />
-          <ReferralStat
+          <MetricCard
+            appearance="inset"
             label={translate('stats.pending')}
-            value={data?.pendingCredits ?? 0}
+            size="sm"
+            value={(data?.pendingCredits ?? 0).toLocaleString('en-US')}
           />
-          <ReferralStat
+          <MetricCard
+            appearance="inset"
             label={translate('stats.earned')}
-            value={data?.earnedCredits ?? 0}
+            size="sm"
+            value={(data?.earnedCredits ?? 0).toLocaleString('en-US')}
           />
-        </div>
+        </MetricCardGrid>
       </Card>
 
       {data?.recentRewards.length ? (
@@ -185,19 +194,6 @@ export default function SettingsReferralsPage() {
           </div>
         </Card>
       ) : null}
-    </div>
-  );
-}
-
-function ReferralStat({ label, value }: ReferralStatProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Text as="p" size="xs" color="muted">
-        {label}
-      </Text>
-      <Text as="p" size="xl" weight="bold" className="tabular-nums">
-        {value.toLocaleString('en-US')}
-      </Text>
     </div>
   );
 }

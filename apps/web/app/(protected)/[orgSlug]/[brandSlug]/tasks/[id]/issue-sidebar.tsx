@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   DefinitionDetail,
@@ -9,7 +9,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { FileText, Image, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ export default function IssueSidebar({
             <div>
               <DefinitionTerm variant="label">Status</DefinitionTerm>
               <DefinitionDetail variant="inline" className="mt-1">
-                <Badge status={issue.status} size={ComponentSize.SM}>
+                <Badge status={issue.status}>
                   {statusLabels[issue.status]}
                 </Badge>
                 {statusTransitions[issue.status].length > 0 && (

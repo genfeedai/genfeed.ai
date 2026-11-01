@@ -1,7 +1,6 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { useTranslations } from 'next-intl';
 import type { EconomicsReportErrorProps } from '@/features/admin/props/economics.props';
 
@@ -12,7 +11,7 @@ export default function EconomicsReportError({
   const translate = useTranslations('pages.adminEconomics');
 
   return (
-    <Alert type={AlertCategory.ERROR}>
+    <Alert variant="destructive">
       {translate('loadFailed')}
       {error instanceof Error && error.message ? `: ${error.message}` : ''}
     </Alert>

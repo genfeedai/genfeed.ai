@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarBlacklistSelectorProps } from '@genfeedai/props/studio/prompt-bar.props';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -69,9 +70,12 @@ const PromptBarBlacklistSelector = memo(function PromptBarBlacklistSelector({
         >
           <Ban className="size-4" />
           {selectedCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-2xs font-bold text-primary-foreground bg-primary rounded-full tabular-nums">
-              {selectedCount}
-            </span>
+            <Badge
+              className="absolute -top-0.5 -right-0.5"
+              isSolid
+              shape="pill"
+              value={selectedCount}
+            />
           )}
         </Button>
       </PopoverTrigger>

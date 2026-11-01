@@ -2,6 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ReviewInboxDecision } from '@genfeedai/contracts/interfaces';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Label } from '@ui/primitives/label';
@@ -113,14 +114,9 @@ export function ReviewGateCard({
   const resolvedCount = resolvedIds.size;
   if (resolvedCount > 0 && pendingItems.length === 0) {
     return (
-      <div className="border border-success/20  bg-success/10  p-4 my-2">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            {translate('submitted', { count: resolvedCount })}
-          </span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        {translate('submitted', { count: resolvedCount })}
+      </Alert>
     );
   }
 
@@ -227,7 +223,7 @@ export function ReviewGateCard({
             size={ButtonSize.SM}
             onClick={handleReject}
             isDisabled={!isDecisionAvailable || selected.size === 0}
-            className="bg-destructive/10 text-destructive hover:bg-destructive/10  "
+            className="bg-destructive/10 hover:bg-destructive/10"
           >
             <X className="size-3.5" />
             {translate('reject', { count: selected.size })}

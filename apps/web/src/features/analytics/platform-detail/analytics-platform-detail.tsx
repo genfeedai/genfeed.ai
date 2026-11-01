@@ -16,6 +16,7 @@ import { BrandsService } from '@services/social/brands.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -34,12 +35,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
-
-const PLATFORM_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
 
 export interface AnalyticsPlatformDetailProps {
   brandId: string;
@@ -133,11 +128,6 @@ export default function AnalyticsPlatformDetail({
     posts[0],
   );
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return PLATFORM_DATE_FORMATTER.format(date);
-  };
-
   const platformLabel =
     platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase();
 
@@ -150,7 +140,6 @@ export default function AnalyticsPlatformDetail({
           onClick={() => router.push(`${basePath}/brands/${brandId}`)}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
-          className="gap-2"
           icon={<ArrowLeft className="size-4" />}
           label="Back to Brand"
         />
@@ -164,21 +153,18 @@ export default function AnalyticsPlatformDetail({
         items={[
           {
             icon: Video,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'posts' as const,
             label: 'Total Posts',
             value: posts.length,
           },
           {
             icon: Eye,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Total Views',
             value: formatCompactNumberIntl(totalViews),
           },
           {
             icon: ChartColumn,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Avg Views/Post',
             analyticsMetricVariant: 'perPost' as const,
@@ -187,21 +173,18 @@ export default function AnalyticsPlatformDetail({
           {
             description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: Heart,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'engagement' as const,
             label: 'Total Engagement',
             value: formatCompactNumberIntl(totalEngagement),
           },
           {
             icon: Flame,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'engagementRate' as const,
             label: 'Engagement Rate',
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
             icon: Trophy,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Best Performing',
             value: bestPost
@@ -252,11 +235,7 @@ export default function AnalyticsPlatformDetail({
               {
                 header: 'Published',
                 key: 'publishedAt',
-                render: (post) => (
-                  <span className="text-sm">
-                    {post.publishedAt ? formatDate(post.publishedAt) : '-'}
-                  </span>
-                ),
+                render: (post) => <TableDateCell value={post.publishedAt} />,
               },
               {
                 header: (

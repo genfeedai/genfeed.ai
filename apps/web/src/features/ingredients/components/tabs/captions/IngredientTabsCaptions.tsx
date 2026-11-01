@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  CaptionFormat,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CaptionFormat } from '@genfeedai/contracts';
 import type {
   ICaption,
   IFieldOption,
@@ -21,12 +16,14 @@ import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { SelectField } from '@ui/primitives/select';
 import { Download, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 import type { IngredientTabsCaptionsProps } from '@/props/content/ingredient.props';
 
@@ -47,6 +44,7 @@ const formatOptions: IFieldOption[] = [{ label: 'SRT (SubRip)', value: 'srt' }];
 export default function IngredientTabsCaptions({
   ingredient,
 }: IngredientTabsCaptionsProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const { isSignedIn } = useAuthIdentity();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -218,46 +216,42 @@ export default function IngredientTabsCaptions({
             Existing Captions ({captions.length})
           </h3>
 
-          <div className="space-y-2 mb-4">
+          <OptionTileGroup
+            ariaLabel={selectionLabels('existingCaptions')}
+            className="mb-4"
+            columns={1}
+            onValueChange={(captionId) =>
+              setSelectedCaption(
+                captions.find((caption) => caption.id === captionId) ?? null,
+              )
+            }
+            value={selectedCaption?.id}
+          >
             {captions.map((caption: ICaption) => (
-              <div
-                key={caption.id}
-                onClick={() => setSelectedCaption(caption)}
-                className={`p-3 cursor-pointer transition-colors ${
-                  selectedCaption?.id === caption.id
-                    ? 'border border-primary bg-primary/10'
-                    : 'shadow-border hover:bg-tertiary'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">
-                      {caption.language?.toUpperCase()} -{' '}
-                      {caption.format?.toUpperCase() || 'SRT'}
-                    </p>
-
-                    <p className="text-sm text-foreground/60">
-                      <ClientDateTime
-                        value={caption.createdAt}
-                        prefix="Created "
-                        format={(date) => date.toLocaleDateString()}
-                      />
-                    </p>
-                  </div>
-                  <Button
-                    icon={<Download className="text-xl" />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadCaption(caption);
-                    }}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    tooltip="Download Caption"
-                  />
-                </div>
+              <div className="flex items-center gap-2" key={caption.id}>
+                <OptionTile
+                  description={
+                    <ClientDateTime
+                      value={caption.createdAt}
+                      prefix="Created "
+                      format={(date) => date.toLocaleDateString()}
+                    />
+                  }
+                  title={`${caption.language?.toUpperCase()} - ${
+                    caption.format?.toUpperCase() || 'SRT'
+                  }`}
+                  value={caption.id}
+                />
+                <Button
+                  icon={<Download className="text-xl" />}
+                  onClick={() => handleDownloadCaption(caption)}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
+                  tooltip="Download Caption"
+                />
               </div>
             ))}
-          </div>
+          </OptionTileGroup>
 
           {selectedCaption && (
             <>
@@ -280,7 +274,7 @@ export default function IngredientTabsCaptions({
           )}
         </Card>
       ) : (
-        <Alert type={AlertCategory.INFO}>
+        <Alert variant="info">
           No captions generated yet. Use the form above to generate your first
           caption.
         </Alert>

@@ -5,8 +5,8 @@ import {
   formatEnumLabel,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';
 import NextLink from 'next/link';

@@ -2,7 +2,8 @@ import { CardPadding } from '@genfeedai/contracts';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -34,7 +35,7 @@ export default function PostsIngredientsList({
       totalLabel="ingredients"
     >
       {ingredients.length === 0 ? (
-        <CardEmpty label="No ingredients available" />
+        <EmptyState surface="card" title="No ingredients available" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {ingredients.map((ingredient) => {
@@ -87,9 +88,9 @@ export default function PostsIngredientsList({
                     {/* Category badge */}
                     {ingredient.category && (
                       <div className="mt-3">
-                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
+                        <Badge casing="normal" shape="pill" size="lg">
                           {ingredient.category}
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>

@@ -37,12 +37,11 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/contracts/constants';
 import {
   assembleTrendDigest,
   buildTrendDigestHtml,
-  type RawTrendHashtag,
-  type RawTrendSound,
+  buildTrendDigestSubject,
   type RawTrendTopic,
   type RawTrendVideo,
+  type TrendDigestItem,
 } from '@genfeedai/helpers';
-import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   DigestTrendsLookup,
   KeywordTriggerPlatform,
@@ -436,12 +435,11 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     executor.setRenderer((items, options) => ({
       html: buildTrendDigestHtml(items, {
         appUrl,
+        brandLabel: options.brandLabel,
         headerTitle: options.headerTitle,
         minViralScore: options.minViralScore,
       }),
-      subject: `Your daily trends — ${items.length} trending ${
-        items.length === 1 ? 'topic' : 'topics'
-      }`,
+      subject: buildTrendDigestSubject(items),
     }));
 
     engine.registerExecutor(
@@ -795,9 +793,10 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   }
 
   /**
-   * Videos, hashtags, and sounds are a different store from the topic corpus
-   * `get_trends` reads. Both are assembled here so a populated corpus cannot
-   * collapse into an empty digest. The score gate stays in the mapper.
+   * The digest is written for one brand: only videos and topics that match the
+   * brand's niche reach it, and each gets an angle and a post idea. Hashtags
+   * and sounds are left out because neither is something to post about. An org
+   * with no brand or no niche gets no digest, never the global chart.
    */
   async collectDigestTrends(
     trends: TrendsService,
@@ -806,58 +805,73 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     platforms: string[],
     organizationId?: string,
   ): Promise<DigestTrendsLookup> {
-    const safeFetch = async <T>(
-      fetcher: () => Promise<unknown>,
-    ): Promise<T[]> => {
-      try {
-        return ((await fetcher()) as T[]) ?? [];
-      } catch (error) {
-        this.loggerService.error(
-          `${this.logContext} trend digest fetch failed`,
-          { error },
-        );
-        return [];
-      }
-    };
+    const empty: DigestTrendsLookup = { sourceTopicCount: 0, trends: [] };
+    if (!organizationId) {
+      return empty;
+    }
 
-    const getTrends = trends.getTrends;
-    const [videos, hashtags, sounds, corpus] = await Promise.all([
-      // Keep the score prefilter here. The video read is capped at 10 and
-      // sorts by views, so dropping it would fill that window with non-viral
-      // rows and hide videos that already clear the threshold.
-      safeFetch<RawTrendVideo>(() =>
-        trends.getViralVideos({ limit: 10, minViralScore }),
-      ),
-      safeFetch<RawTrendHashtag>(() =>
-        trends.getTrendingHashtags({ limit: 10 }),
-      ),
-      safeFetch<RawTrendSound>(() => trends.getTrendingSounds({ limit: 10 })),
-      typeof getTrends === 'function'
-        ? safeFetch<unknown>(() =>
-            getTrends.call(trends, organizationId, undefined, undefined, {
-              allowFetchIfMissing: false,
-            }),
-          )
-        : Promise.resolve([]),
-    ]);
+    let sources: Awaited<ReturnType<TrendsService['getBrandDigestSources']>>;
+    try {
+      sources = await trends.getBrandDigestSources(organizationId, {
+        minViralScore,
+      });
+    } catch (error) {
+      this.loggerService.error(`${this.logContext} trend digest fetch failed`, {
+        error,
+      });
+      return empty;
+    }
+    if (!sources) {
+      return empty;
+    }
 
     const assembly = assembleTrendDigest(
       {
-        hashtags,
-        sounds,
-        topics: corpus.flatMap((row) => {
-          const topic = toDigestTopic(row);
-          return topic ? [topic] : [];
-        }),
-        videos,
+        hashtags: [],
+        sounds: [],
+        topics: sources.topics satisfies RawTrendTopic[],
+        videos: sources.videos satisfies RawTrendVideo[],
       },
       { limit: topN, minViralScore, platforms },
     );
 
     return {
+      brandLabel: sources.brand.label,
       sourceTopicCount: assembly.sourceTopicCount,
-      trends: assembly.items,
+      trends: await this.addAngles(trends, assembly.items, sources.brand),
     };
+  }
+
+  /** A failed or partial answer leaves those rows without an idea; it never drops them. */
+  private async addAngles(
+    trends: TrendsService,
+    items: TrendDigestItem[],
+    brand: { description?: string; label: string },
+  ): Promise<TrendDigestItem[]> {
+    if (
+      items.length === 0 ||
+      typeof trends.generateDigestAngles !== 'function'
+    ) {
+      return items;
+    }
+    const angles = await trends.generateDigestAngles(items, {
+      description: brand.description,
+      label: brand.label,
+    });
+    return items.map((item, index) => {
+      const angle = angles.get(index);
+      return angle
+        ? {
+            ...item,
+            angle: angle.angle,
+            postIdea: {
+              caption: angle.caption,
+              format: angle.format,
+              hook: angle.hook,
+            },
+          }
+        : item;
+    });
   }
 
   private async findTrendFromSocialKeywordMatch(params: {
@@ -924,64 +938,4 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   private digestUtcDateKey(): string {
     return new Date().toISOString().slice(0, 10);
   }
-}
-
-function readText(
-  record: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = record[key];
-  return typeof value === 'string' && value.trim().length > 0
-    ? value
-    : undefined;
-}
-
-function readScore(
-  record: Record<string, unknown>,
-  key: string,
-): number | undefined {
-  const value = record[key];
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-/** Copy a `get_trends` row onto the digest topic shape, including its `data` blob. */
-function toDigestTopic(value: unknown): RawTrendTopic | null {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const data = isRecord(value.data) ? value.data : undefined;
-  const rowMetadata = isRecord(value.metadata) ? value.metadata : undefined;
-  const dataMetadata =
-    data && isRecord(data.metadata) ? data.metadata : undefined;
-
-  return {
-    data: data
-      ? {
-          mentions: readScore(data, 'mentions'),
-          metadata: dataMetadata
-            ? { urls: dataMetadata.urls, videoUrl: dataMetadata.videoUrl }
-            : undefined,
-          name: readText(data, 'name'),
-          platform: readText(data, 'platform'),
-          score: readScore(data, 'score'),
-          title: readText(data, 'title'),
-          topic: readText(data, 'topic'),
-          viralScore: readScore(data, 'viralScore'),
-          viralityScore: readScore(data, 'viralityScore'),
-        }
-      : undefined,
-    mentions: readScore(value, 'mentions'),
-    metadata: rowMetadata
-      ? { urls: rowMetadata.urls, videoUrl: rowMetadata.videoUrl }
-      : undefined,
-    name: readText(value, 'name'),
-    platform: readText(value, 'platform'),
-    score: readScore(value, 'score'),
-    topic: readText(value, 'topic'),
-    viralScore: readScore(value, 'viralScore'),
-    viralityScore: readScore(value, 'viralityScore'),
-  };
 }

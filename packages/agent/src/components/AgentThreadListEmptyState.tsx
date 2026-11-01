@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Spinner from '@ui/primitives/spinner';
 import { MessageSquare, TriangleAlert } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
@@ -34,45 +35,30 @@ export function AgentThreadListEmptyState({
 
   if (shouldShowLoadFailureState) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-warning/10 ring-1 ring-inset ring-orange-500/20">
-          <TriangleAlert className="size-5 text-warning/80" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground/70">
-            Failed to load threads
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Check your connection and try again.
-          </p>
-        </div>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.SECONDARY}
-          className="h-8 px-3 text-xs"
-          onClick={onRetry}
-        >
-          Retry
-        </Button>
-      </div>
+      <EmptyState
+        action={{
+          label: 'Retry',
+          onClick: onRetry,
+          variant: ButtonVariant.SECONDARY,
+        }}
+        description="Check your connection and try again."
+        icon={TriangleAlert}
+        title="Failed to load threads"
+      />
     );
   }
 
   if (shouldShowEmptyState) {
     return (
-      <div className="relative flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+      <div className="relative">
         {actions ? (
           <div className="absolute right-2 top-2">{actions}</div>
         ) : null}
-        <div className="flex size-10 items-center justify-center rounded-md bg-foreground/5 ring-1 ring-inset ring-border">
-          <MessageSquare className="size-5 text-muted-foreground" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-foreground/50">No threads</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Start one to get going
-          </p>
-        </div>
+        <EmptyState
+          description="Start one to get going"
+          icon={MessageSquare}
+          title="No threads"
+        />
       </div>
     );
   }

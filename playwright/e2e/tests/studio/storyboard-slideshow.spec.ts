@@ -190,10 +190,15 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
   });
 
   await page.goto(`${base}/new`);
-  await page.getByRole('button', { name: 'Slideshow', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Storyboard source' }).click();
+  await page.getByRole('option', { name: 'Slideshow', exact: true }).click();
   await expect(
     page.getByRole('combobox', { name: 'Runtime budget (seconds)' }),
   ).toHaveCount(0);
+  await page.getByRole('button', { name: 'Quick tips' }).click();
+  await expect(page.getByLabel('Brief', { exact: true })).toHaveText(
+    /^Five small habits/,
+  );
   await page
     .getByLabel('Brief', { exact: true })
     .fill('Three habits of calm founders');

@@ -2,9 +2,8 @@ import { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ButtonVariant } from '@genfeedai/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -41,27 +40,18 @@ export function AgentSidebarContent({
           </span>
         </Link>
       </div>
-      <div className="flex gap-1 px-3 pb-2">
-        <Button
-          variant={
-            listView === 'conversations'
-              ? ButtonVariant.SECONDARY
-              : ButtonVariant.GHOST
-          }
-          withWrapper={false}
-          onClick={() => setListView('conversations')}
-        >
-          {translate('conversations')}
-        </Button>
-        <Button
-          variant={
-            listView === 'runs' ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-          }
-          withWrapper={false}
-          onClick={() => setListView('runs')}
-        >
-          {translate('runs')}
-        </Button>
+      <div className="px-3 pb-2">
+        <SegmentedControl
+          ariaLabel={translate('title')}
+          isFullWidth
+          onValueChange={setListView}
+          options={[
+            { label: translate('conversations'), value: 'conversations' },
+            { label: translate('runs'), value: 'runs' },
+          ]}
+          size="sm"
+          value={listView}
+        />
       </div>
       {listView === 'runs' ? (
         <AgentRunsList

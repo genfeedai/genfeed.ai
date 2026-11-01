@@ -1,9 +1,4 @@
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
   ReplyVariantTone,
@@ -13,9 +8,11 @@ import type {
   ActionRouting,
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
@@ -381,7 +378,6 @@ export function ReplyPage({
             type="button"
             variant={ButtonVariant.GHOST}
             onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
-            className="text-xs"
           >
             ← Back
           </Button>
@@ -412,7 +408,7 @@ export function ReplyPage({
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  className="flex-1 text-xs"
+                  className="flex-1"
                   onClick={() => {
                     void handleInsert(variant, index);
                   }}
@@ -422,7 +418,7 @@ export function ReplyPage({
                 <Button
                   type="button"
                   variant={ButtonVariant.SECONDARY}
-                  className="flex-1 text-xs"
+                  className="flex-1"
                   onClick={() => {
                     void handleCopy(variant, index);
                   }}
@@ -463,12 +459,9 @@ export function ReplyPage({
   return (
     <div className="flex h-full flex-col gap-4">
       {error && (
-        <div
-          role="alert"
-          className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-        >
+        <Alert size="sm" variant="destructive">
           {error}
-        </div>
+        </Alert>
       )}
 
       <RecoveryActions
@@ -519,26 +512,20 @@ export function ReplyPage({
         <legend className="mb-2 text-xs font-medium text-muted-foreground">
           Tone
         </legend>
-        <div className="flex flex-wrap gap-1.5">
-          {TONES.map((t) => (
-            <Button
-              key={t.value}
-              type="button"
-              size={ButtonSize.SM}
-              aria-pressed={tone === t.value}
-              variant={
-                tone === t.value
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              onClick={() => dispatch({ payload: t.value, type: 'SET_TONE' })}
-              title={t.description}
-              className="rounded-full text-xs"
-            >
-              {t.label}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel="Tone"
+          onValueChange={(value) =>
+            dispatch({ payload: value, type: 'SET_TONE' })
+          }
+          options={TONES.map((t) => ({
+            label: t.label,
+            tooltip: t.description,
+            value: t.value,
+          }))}
+          size="sm"
+          value={tone}
+        />
       </fieldset>
 
       <Button

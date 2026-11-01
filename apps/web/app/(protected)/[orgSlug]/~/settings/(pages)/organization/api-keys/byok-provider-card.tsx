@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
@@ -71,13 +72,14 @@ function ProviderLogo({
   }
 
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center border border-border bg-muted/40 text-sm font-semibold uppercase text-muted-foreground ${shell}`}
-      aria-hidden
-      title={label}
-    >
-      {label.slice(0, 1)}
-    </div>
+    <SimpleTooltip label={label}>
+      <div
+        className={`flex shrink-0 items-center justify-center border border-border bg-muted/40 text-sm font-semibold uppercase text-muted-foreground ${shell}`}
+        aria-hidden
+      >
+        {label.slice(0, 1)}
+      </div>
+    </SimpleTooltip>
   );
 }
 

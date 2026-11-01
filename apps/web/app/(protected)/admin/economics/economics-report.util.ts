@@ -69,13 +69,6 @@ export function buildEconomicsRange(
   return { from: toDateOnly(from), to: toDateOnly(now) };
 }
 
-export function formatLedgerTimestamp(value: string | null): string {
-  if (!value) {
-    return '—';
-  }
-  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
-}
-
 /** Placeholder totals while a report loads, so cards keep their labels. */
 export const EMPTY_ECONOMICS_TOTALS: IEconomicsTotals = {
   activeOrganizations: 0,

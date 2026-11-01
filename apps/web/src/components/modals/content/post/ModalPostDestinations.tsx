@@ -1,15 +1,14 @@
 'use client';
 
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers';
+import { formatPlatformLabel } from '@genfeedai/contracts';
 import type {
   ComposerDestination,
   ModalPostDestinationsProps,
 } from '@genfeedai/props/modals/modal.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar } from '@ui/primitives/avatar';
-import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Separator } from '@ui/primitives/separator';
 import { Newspaper, Rss } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,12 +19,6 @@ const DESTINATION_ICONS = {
 } as const;
 
 const DESTINATIONS: ComposerDestination[] = ['article', 'newsletter'];
-
-// Equal-height cards so every row of the grid lines up.
-const CARD_CLASS =
-  'flex h-15 min-w-0 items-center gap-3 rounded-xl border px-3 text-left text-sm normal-case transition-colors';
-const SELECTED = 'border-foreground bg-foreground/5';
-const IDLE = 'border-border hover:bg-muted/50';
 
 function getCredentialLabel(credential: {
   externalHandle?: string | null;
@@ -64,44 +57,56 @@ export default function ModalPostDestinations({
     >
       <div className="space-y-4">
         {credentials.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          <OptionTileGroup
+            ariaLabel={translate('destinations')}
+            className="sm:grid-cols-3"
+            columns={2}
+            isDisabled={isDisabled}
+            onValueChange={(nextIds) => {
+              const changed = [
+                ...nextIds.filter((id) => !selectedCredentialIds.includes(id)),
+                ...selectedCredentialIds.filter((id) => !nextIds.includes(id)),
+              ];
+              for (const credentialId of changed) {
+                onToggleCredential(credentialId);
+              }
+            }}
+            type="multiple"
+            value={selectedCredentialIds}
+          >
             {credentials.map((credential) => {
               const label = getCredentialLabel(credential);
-              const isSelected = selectedCredentialIds.includes(credential.id);
 
               return (
-                <Button
-                  key={credential.id}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
+                <OptionTile
                   ariaLabel={label}
-                  aria-pressed={isSelected}
-                  isDisabled={isDisabled}
-                  onClick={() => onToggleCredential(credential.id)}
-                  className={cn(CARD_CLASS, isSelected ? SELECTED : IDLE)}
+                  icon={
+                    <Avatar
+                      badge={
+                        <PlatformBadge
+                          platform={credential.platform}
+                          showLabel={false}
+                          variant="solid"
+                        />
+                      }
+                      name={label}
+                      size="lg"
+                      src={credential.externalAvatar}
+                    />
+                  }
+                  key={credential.id}
+                  value={credential.id}
                 >
-                  <Avatar
-                    badge={
-                      <PlatformBadge
-                        platform={credential.platform}
-                        showLabel={false}
-                        variant="solid"
-                      />
-                    }
-                    name={label}
-                    size="lg"
-                    src={credential.externalAvatar}
-                  />
                   <span className="flex min-w-0 flex-1 flex-col leading-tight">
                     <span className="truncate font-medium">{label}</span>
                     <span className="truncate text-xs text-foreground/60">
                       {formatPlatformLabel(credential.platform)}
                     </span>
                   </span>
-                </Button>
+                </OptionTile>
               );
             })}
-          </div>
+          </OptionTileGroup>
         ) : null}
 
         <Separator />
@@ -110,37 +115,38 @@ export default function ModalPostDestinations({
           <p className="text-2xs font-medium uppercase tracking-wider text-foreground/60">
             {translate('editorsHeading')}
           </p>
-          <div className="grid grid-cols-2 gap-2.5">
+          <OptionTileGroup
+            ariaLabel={translate('editorsHeading')}
+            columns={2}
+            isDeselectable
+            isDisabled={isDisabled}
+            onValueChange={(next) => {
+              const target = next ?? destination;
+              if (target) {
+                onSelectDestination(target);
+              }
+            }}
+            value={destination ?? undefined}
+          >
             {DESTINATIONS.map((value) => {
               const Icon = DESTINATION_ICONS[value];
-              const isSelected = destination === value;
 
               return (
-                <Button
-                  key={value}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
+                <OptionTile
                   ariaLabel={translate(value)}
-                  aria-pressed={isSelected}
-                  isDisabled={isDisabled}
-                  onClick={() => onSelectDestination(value)}
-                  className={cn(CARD_CLASS, isSelected ? SELECTED : IDLE)}
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card">
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                    <span className="truncate font-medium">
-                      {translate(value)}
+                  description={translate(`${value}Hint`)}
+                  icon={
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+                      <Icon className="size-4" />
                     </span>
-                    <span className="truncate text-xs text-foreground/60">
-                      {translate(`${value}Hint`)}
-                    </span>
-                  </span>
-                </Button>
+                  }
+                  key={value}
+                  title={translate(value)}
+                  value={value}
+                />
               );
             })}
-          </div>
+          </OptionTileGroup>
         </div>
 
         {credentials.length === 0 && destination === null ? (

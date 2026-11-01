@@ -1,9 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import { Pre } from '@genfeedai/ui';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
@@ -68,9 +69,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-xs font-medium text-foreground truncate">
               {payload.nodeName || payload.nodeId}
             </span>
-            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+            <Badge casing="normal" variant="secondary">
               {payload.nodeType}
-            </span>
+            </Badge>
           </div>
           <div className="text-2xs text-muted-foreground mt-0.5">
             {payload.model} &bull; {timestamp}
@@ -87,9 +88,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <Button
               withWrapper={false}
               variant={ButtonVariant.LINK}
-              size={ButtonSize.SM}
+              size={ButtonSize.INLINE}
               onClick={handleCopy}
-              className="flex items-center gap-1 text-2xs text-primary h-auto p-0"
+              className="flex items-center gap-1 text-2xs text-primary"
             >
               <Copy className="size-3" />
               {copied ? 'Copied!' : 'Copy'}
@@ -120,9 +121,11 @@ function DebugPanelComponent() {
           <Bug className="size-4 text-muted-foreground" />
           <span className="font-medium text-sm">Debug Console</span>
           {debugPayloads.length > 0 && (
-            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
-              {debugPayloads.length}
-            </span>
+            <Badge
+              shape="pill"
+              value={debugPayloads.length}
+              variant="secondary"
+            />
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -150,13 +153,11 @@ function DebugPanelComponent() {
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Bug className="size-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
-            <p className="text-sm font-medium mb-2">No payloads captured</p>
-            <p className="text-xs">
-              Run a workflow with debug mode enabled to capture API payloads.
-            </p>
-          </div>
+          <EmptyState
+            description="Run a workflow with debug mode enabled to capture API payloads."
+            icon={Bug}
+            title="No payloads captured"
+          />
         ) : (
           debugPayloads.map((payload) => (
             <PayloadCard

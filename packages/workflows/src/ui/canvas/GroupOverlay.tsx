@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import {
@@ -395,19 +396,16 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
       </div>
 
       {group.isLocked && (
-        <div
-          className={clsx(
-            'absolute px-2 py-0.5 rounded text-xs font-medium pointer-events-none',
-            colors.bg,
-            colors.text,
-          )}
+        <Badge
+          className="pointer-events-none absolute"
           style={{
             left: bounds.x + 12,
             top: bounds.y + HEADER_HEIGHT + 8,
           }}
+          variant="secondary"
         >
           LOCKED
-        </div>
+        </Badge>
       )}
     </>
   );

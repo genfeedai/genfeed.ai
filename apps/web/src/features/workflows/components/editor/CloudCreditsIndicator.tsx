@@ -9,11 +9,11 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-
 import {
   coerceWorkflowItems,
   getWorkflowNodeConfig,
@@ -63,19 +63,18 @@ export function CloudCreditsIndicator() {
   const displayCredits = Math.ceil(displayCostUsd / CREDIT_VALUE_DOLLARS);
 
   return (
-    <div
-      title={translate('estimatedCost')}
-      className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-sm text-muted-foreground"
-    >
-      <CreditCard className="size-3.5" />
-      <span className="font-mono text-xs">
-        {translate('creditEstimate', {
-          credits: formatNumberWithCommas(displayCredits),
-        })}
-      </span>
-      {isRunning && actualCostUsd > 0 ? (
-        <Badge status="running">{translate('running')}</Badge>
-      ) : null}
-    </div>
+    <SimpleTooltip label={translate('estimatedCost')}>
+      <div className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-sm text-muted-foreground">
+        <CreditCard className="size-3.5" />
+        <span className="font-mono text-xs">
+          {translate('creditEstimate', {
+            credits: formatNumberWithCommas(displayCredits),
+          })}
+        </span>
+        {isRunning && actualCostUsd > 0 ? (
+          <Badge status="running">{translate('running')}</Badge>
+        ) : null}
+      </div>
+    </SimpleTooltip>
   );
 }

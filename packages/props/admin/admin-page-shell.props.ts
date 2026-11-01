@@ -1,5 +1,5 @@
+import type { TabsProps } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
 import type { ReactNode } from 'react';
 
 /**

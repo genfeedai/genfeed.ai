@@ -2,10 +2,10 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -74,31 +74,31 @@ function getInvitationNotice(
       return {
         message:
           'Invitation accepted. Sign in to continue to your organization.',
-        type: AlertCategory.SUCCESS,
+        variant: 'success',
       };
     case 'already-accepted':
       return {
         message:
           'This invitation was already accepted. Sign in, or ask an organization admin to resend it.',
-        type: AlertCategory.INFO,
+        variant: 'info',
       };
     case 'expired':
       return {
         message:
           'This invitation has expired. Ask an organization admin to resend it.',
-        type: AlertCategory.WARNING,
+        variant: 'warning',
       };
     case 'revoked':
       return {
         message:
           'This invitation was revoked. Ask an organization admin for a new invitation.',
-        type: AlertCategory.WARNING,
+        variant: 'warning',
       };
     case 'invalid':
       return {
         message:
           'This invitation link is invalid or no longer available. Ask an organization admin for a new invitation.',
-        type: AlertCategory.ERROR,
+        variant: 'destructive',
       };
     default:
       return undefined;
@@ -696,7 +696,9 @@ export default function LoginBetterAuth({
     >
       <div className="w-full space-y-4">
         {invitationNotice ? (
-          <Alert type={invitationNotice.type}>{invitationNotice.message}</Alert>
+          <Alert variant={invitationNotice.variant}>
+            {invitationNotice.message}
+          </Alert>
         ) : null}
         <AuthActionSurface
           actions={

@@ -4,7 +4,7 @@ import ExpertStepHeader from '@app/(onboarding)/onboarding/(wizard)/_expert/expe
 import FirstSystemItemRow from '@app/(onboarding)/onboarding/(wizard)/_expert/first-system-item-row';
 import { useCompleteOnboarding } from '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ExpertFirstSystemItemAction,
@@ -14,7 +14,7 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ExpertPathService } from '@services/content/expert-path.service';
 import { logger } from '@services/core/logger.service';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -218,7 +218,6 @@ export default function FirstSystemContent() {
             icon={<Sparkles className="size-4" />}
             isLoading={isGenerating}
             onClick={handleGenerate}
-            className="rounded-none px-5"
           />
           {isGenerating ? (
             <p className="text-xs text-muted-foreground">
@@ -251,7 +250,7 @@ export default function FirstSystemContent() {
 
       {errorKey ? (
         <div className="max-w-2xl">
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               <div className="font-medium">
                 {translate('common.errorTitle')}
@@ -272,7 +271,6 @@ export default function FirstSystemContent() {
           icon={<ArrowRight className="size-4" />}
           isLoading={isEntering}
           onClick={handleEnterWorkspace}
-          className="rounded-none px-5"
         />
         {errorKey === 'generate' ? (
           <Button
@@ -281,7 +279,6 @@ export default function FirstSystemContent() {
             label={translate('common.retry')}
             isLoading={isGenerating}
             onClick={handleGenerate}
-            className="rounded-none px-5"
           />
         ) : null}
       </div>

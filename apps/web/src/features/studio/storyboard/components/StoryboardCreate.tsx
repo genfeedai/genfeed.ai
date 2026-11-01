@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   useGalleryModal,
@@ -14,6 +15,8 @@ import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/co
 import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
+import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -25,11 +28,17 @@ import { Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { StoryboardPreset } from '@/features/studio/props/storyboard-presets.props';
+import type {
+  StoryboardCreateProps,
+  StoryboardPitch,
+  StoryboardPreset,
+} from '@/features/studio/props/storyboard-presets.props';
 import { resolveAgentPromptAuthor } from '@/features/studio/shared/utils/agent-prompt-author';
 import StoryboardAgentBriefs from '@/features/studio/storyboard/components/StoryboardAgentBriefs';
+import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
 import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
+import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard-pitches';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
@@ -56,19 +65,25 @@ const MAX_LONG_FORM_BRIEF_LENGTH = STORYBOARD_LONG_BRIEF_MAX_CHARACTERS;
 const COUNTER_THRESHOLD = 0.8;
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
-export default function StoryboardCreate() {
+export default function StoryboardCreate({
+  actions,
+  label,
+}: StoryboardCreateProps) {
   const translate = useTranslations('pages.studioStoryboard.create');
   const brandId = useBrandId();
   const { openGallery } = useGalleryModal();
   const { openUpload } = useUploadModal();
   const { href } = useOrgUrl();
   const router = useRouter();
+  const hasAgentColumn = Boolean(useAgentOutputHost());
+  const translateAgent = useTranslations('pages.studioStoryboard.agentThread');
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
   const [mode, setMode] = useState<
     'brief' | 'longForm' | 'slideshow' | 'video'
   >('brief');
   const isLongForm = mode === 'longForm';
   const isSlideshow = mode === 'slideshow';
+  const pitchKind = isSlideshow ? 'slideshow' : 'longForm';
   const formats = isSlideshow ? SLIDESHOW_FORMATS : VIDEO_FORMATS;
   const maxBriefLength = isLongForm
     ? MAX_LONG_FORM_BRIEF_LENGTH
@@ -164,6 +179,10 @@ export default function StoryboardCreate() {
     setFormat(preset.format);
     setBudget(String(preset.runtimeBudgetSeconds));
   }
+  function applyPitch(pitch: StoryboardPitch) {
+    setBrief(pitch.brief);
+    setAgentBrief(null);
+  }
   function applyAgentBrief(proposal: StudioStoryboardProposal) {
     const draft = buildStoryboardAgentBrief(
       proposal,
@@ -243,344 +262,386 @@ export default function StoryboardCreate() {
       /* The hook keeps the source and exposes the retryable error. */
     }
   }
+  function selectMode(next: string) {
+    if (next === 'brief') {
+      setMode('brief');
+      if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
+    } else if (next === 'longForm') {
+      setMode('longForm');
+      setFormat('16:9');
+    } else if (next === 'slideshow') {
+      setMode('slideshow');
+      setFormat('4:5');
+    } else if (next === 'video') {
+      setMode('video');
+    }
+  }
+  const modeSelect = (
+    <PromptBarCompactSelect
+      ariaLabel={translate('sourceAria')}
+      isDisabled={isCreating}
+      options={[
+        { label: translate('fromBrief'), value: 'brief' },
+        { label: translate('longFormTitle'), value: 'longForm' },
+        { label: translate('slideshowTitle'), value: 'slideshow' },
+        { label: translate('remixTitle'), value: 'video' },
+      ]}
+      value={mode}
+      onChange={selectMode}
+    />
+  );
+  const composer = (
+    <PromptBarContainer layoutMode="inflow" maxWidth="full">
+      <PromptBarComposer
+        data-testid="storyboard-composer"
+        density="compact"
+        banner={
+          error ? (
+            <p role="alert" className="p-3 text-sm text-destructive">
+              {error}
+            </p>
+          ) : undefined
+        }
+      >
+        {mode !== 'video' ? (
+          <PromptEditor
+            ariaLabel={translate('brief')}
+            value={brief}
+            isDisabled={isCreating}
+            placeholder={translate(
+              isLongForm
+                ? 'longFormPlaceholder'
+                : isSlideshow
+                  ? 'slideshowPlaceholder'
+                  : 'briefPlaceholder',
+            )}
+            onValueChange={setBrief}
+            onSubmit={() => void submit()}
+            className="min-h-16"
+          />
+        ) : null}
+        <PromptBarToolbar
+          leading={
+            <>
+              {modeSelect}
+              {mode !== 'video' ? (
+                <>
+                  <PromptBarCompactSelect
+                    ariaLabel={translate('formatAria')}
+                    isDisabled={isCreating}
+                    options={formatOptions(formats)}
+                    value={format}
+                    onChange={(value) => {
+                      if (isFormatIn(formats, value)) setFormat(value);
+                    }}
+                  />
+                  {isLongForm || isSlideshow ? null : (
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('runtimeBudget')}
+                      isDisabled={isCreating}
+                      options={budgetOptions}
+                      value={budget}
+                      onChange={setBudget}
+                    />
+                  )}
+                </>
+              ) : null}
+            </>
+          }
+          reference={
+            mode === 'brief' ? (
+              <Button
+                ariaLabel={translateWorkspace('references')}
+                icon={<Paperclip className="size-3.5" />}
+                isDisabled={isCreating}
+                onClick={chooseStartingImage}
+                size={ButtonSize.ICON}
+                tooltip={translateWorkspace('references')}
+                tooltipPosition="top"
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null
+          }
+          trailing={
+            <PromptBarSendButton
+              ariaLabel={saveLabel}
+              isDisabled={isCreating || !valid}
+              isLoading={isCreating}
+              onClick={() => void submit()}
+              tooltip={saveLabel}
+            />
+          }
+        />
+        {mode !== 'video' &&
+        brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
+          <p
+            className={
+              brief.length > maxBriefLength
+                ? 'mt-2 text-xs text-destructive'
+                : 'mt-2 text-xs text-muted-foreground'
+            }
+          >
+            {translate('characterCount', { count: brief.length })}
+          </p>
+        ) : null}
+      </PromptBarComposer>
+    </PromptBarContainer>
+  );
+  const modeHint = isSlideshow
+    ? translate('slideshowHint')
+    : isLongForm
+      ? translate('longFormHint')
+      : translate('heroDescription');
+  const guidance =
+    mode === 'video' ? (
+      <p role="status" className="text-sm">
+        {video?.title || translate('chooseOwnedVideo')}
+      </p>
+    ) : isLongForm || isSlideshow ? (
+      <>
+        {hasAgentColumn ? null : (
+          <p className="text-sm text-muted-foreground">{modeHint}</p>
+        )}
+        <StoryboardPitchCards
+          isDisabled={isCreating}
+          kind={pitchKind}
+          onSelect={applyPitch}
+        />
+      </>
+    ) : (
+      <>
+        <StoryboardAgentBriefs
+          brandId={brandId || undefined}
+          isDisabled={isCreating}
+          onSelect={applyAgentBrief}
+        />
+        <StoryboardPresetCards
+          activePresetId={
+            STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+          }
+          isDisabled={isCreating}
+          onSelect={applyPreset}
+        />
+      </>
+    );
+  const referencesPanel = (
+    <StoryboardReferencesPanel
+      references={[
+        ...(mode === 'brief' && image
+          ? [
+              {
+                id: `seed:${image.id}`,
+                title: image.title,
+                kind: 'image' as const,
+                url: image.url,
+                group: translate('startingImage'),
+                onRemove: () => setSeed(undefined),
+              },
+            ]
+          : []),
+        ...(mode !== 'video'
+          ? styles.map((reference) => ({
+              id: `style:${reference.id}`,
+              title: reference.title,
+              kind: 'image' as const,
+              url: reference.url,
+              group: translateWorkspace('styles'),
+              onRemove: () =>
+                setStyleReferences((current) =>
+                  current.filter(
+                    (item) =>
+                      item.id !== reference.id || item.brandId !== brandId,
+                  ),
+                ),
+            }))
+          : []),
+        ...(mode === 'video' && video
+          ? [
+              {
+                id: `video:${video.id}`,
+                title: video.title,
+                kind: 'video' as const,
+                url: video.url,
+                group: translate('uploadedVideo'),
+                onRemove: () => setSelected(undefined),
+              },
+            ]
+          : []),
+      ]}
+      actions={
+        mode === 'brief' || isSlideshow ? (
+          <>
+            {mode === 'brief' ? (
+              <Button
+                label={translate('chooseStartingImage')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={chooseStartingImage}
+              />
+            ) : null}
+            <Button
+              label={translatePlan('addStyleReferences')}
+              variant={ButtonVariant.SECONDARY}
+              disabled={isCreating || styles.length >= 20}
+              onClick={() =>
+                openGallery({
+                  category: IngredientCategory.IMAGE,
+                  format,
+                  maxSelectableItems: 20 - styles.length,
+                  title: translateWorkspace('styles'),
+                  onSelect: (items) => {
+                    const selected = items.filter(
+                      (item) => item.brandId === brandId && !item.isDeleted,
+                    );
+                    if (!brandId) return;
+                    setStyleReferences((current) =>
+                      [
+                        ...new Map(
+                          [
+                            ...current.filter(
+                              (item) => item.brandId === brandId,
+                            ),
+                            ...selected.map((item) => ({
+                              brandId,
+                              id: item.id,
+                              title: storyboardAssetLabel(
+                                item,
+                                translateWorkspace('styles'),
+                              ),
+                              url: item.cdnUrl ?? undefined,
+                            })),
+                          ].map((item) => [item.id, item]),
+                        ).values(),
+                      ].slice(0, 20),
+                    );
+                  },
+                })
+              }
+            />
+          </>
+        ) : (
+          <>
+            <Button
+              label={translate('chooseFromLibrary')}
+              variant={ButtonVariant.SECONDARY}
+              disabled={isCreating}
+              onClick={() =>
+                openGallery({
+                  category: IngredientCategory.VIDEO,
+                  maxSelectableItems: 1,
+                  title: translate('remixTitle'),
+                  onSelect: (items) => {
+                    const item = items.find(
+                      (candidate) =>
+                        candidate.brandId === brandId && !candidate.isDeleted,
+                    );
+                    if (item && brandId && 'brandId' in item)
+                      setSelected({
+                        brandId,
+                        id: item.id,
+                        url: item.cdnUrl ?? undefined,
+                        title: storyboardAssetLabel(
+                          item,
+                          translate('uploadedVideo'),
+                        ),
+                      });
+                  },
+                })
+              }
+            />
+            <Button
+              label={translate('uploadVideo')}
+              variant={ButtonVariant.SECONDARY}
+              disabled={isCreating}
+              onClick={() =>
+                openUpload({
+                  category: IngredientCategory.VIDEO,
+                  isMultiple: false,
+                  maxFiles: 1,
+                  onComplete: (items) => {
+                    const item = items.find(
+                      (candidate) =>
+                        'brandId' in candidate &&
+                        candidate.brandId === brandId &&
+                        !candidate.isDeleted,
+                    );
+                    if (item && brandId && 'brandId' in item)
+                      setSelected({
+                        brandId,
+                        id: item.id,
+                        url: item.cdnUrl ?? undefined,
+                        title: storyboardAssetLabel(
+                          item,
+                          translate('uploadedVideo'),
+                        ),
+                      });
+                  },
+                })
+              }
+            />
+            {video ? (
+              <Button
+                label={translate('clearVideo')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() => setSelected(undefined)}
+              />
+            ) : null}
+          </>
+        )
+      }
+    />
+  );
+  if (hasAgentColumn) {
+    return (
+      <AgentOutputShell
+        agent={
+          <div
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+            data-testid="storyboard-agent"
+          >
+            {/* Centered on the column like the main agent's empty state; the
+                cap keeps a tall block scrolling clear of the composer. */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6">
+              <div className="pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto">
+                <div className="w-full text-center">
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-[1.75rem]">
+                    {translate('heroTitle')}
+                  </h2>
+                  <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">
+                    {mode === 'video' ? null : modeHint}
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-4">{guidance}</div>
+              </div>
+            </div>
+            <div className="mt-auto shrink-0 px-4 pb-4 md:px-6">
+              <div className="mx-auto w-full max-w-2xl">{composer}</div>
+            </div>
+          </div>
+        }
+        agentTitle={translateAgent('title')}
+        outputLabel={translate('result')}
+      >
+        <Container label={label} moduleChrome right={actions}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              {translate('resultEmpty')}
+            </p>
+            {referencesPanel}
+          </div>
+        </Container>
+      </AgentOutputShell>
+    );
+  }
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        <div
-          role="group"
-          aria-label={translate('sourceAria')}
-          className="flex flex-wrap gap-2"
-        >
-          <Button
-            label={translate('fromBrief')}
-            aria-pressed={mode === 'brief'}
-            variant={
-              mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('brief');
-              if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
-            }}
-          />
-          <Button
-            label={translate('longFormTitle')}
-            aria-pressed={isLongForm}
-            variant={
-              isLongForm ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('longForm');
-              setFormat('16:9');
-            }}
-          />
-          <Button
-            label={translate('slideshowTitle')}
-            aria-pressed={isSlideshow}
-            variant={
-              isSlideshow ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('slideshow');
-              setFormat('4:5');
-            }}
-          />
-          <Button
-            label={translate('remixTitle')}
-            aria-pressed={mode === 'video'}
-            variant={
-              mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => setMode('video')}
-          />
-        </div>
-        <PromptBarContainer layoutMode="inflow" maxWidth="full">
-          <PromptBarComposer
-            data-testid="storyboard-composer"
-            density="compact"
-            banner={
-              error ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {error}
-                </p>
-              ) : undefined
-            }
-          >
-            {mode !== 'video' ? (
-              <PromptEditor
-                ariaLabel={translate('brief')}
-                value={brief}
-                isDisabled={isCreating}
-                placeholder={translate(
-                  isLongForm
-                    ? 'longFormPlaceholder'
-                    : isSlideshow
-                      ? 'slideshowPlaceholder'
-                      : 'briefPlaceholder',
-                )}
-                onValueChange={setBrief}
-                onSubmit={() => void submit()}
-                className="min-h-16"
-              />
-            ) : null}
-            <PromptBarToolbar
-              leading={
-                mode !== 'video' ? (
-                  <>
-                    <PromptBarCompactSelect
-                      ariaLabel={translate('formatAria')}
-                      isDisabled={isCreating}
-                      options={formatOptions(formats)}
-                      value={format}
-                      onChange={(value) => {
-                        if (isFormatIn(formats, value)) setFormat(value);
-                      }}
-                    />
-                    {isLongForm || isSlideshow ? null : (
-                      <PromptBarCompactSelect
-                        ariaLabel={translate('runtimeBudget')}
-                        isDisabled={isCreating}
-                        options={budgetOptions}
-                        value={budget}
-                        onChange={setBudget}
-                      />
-                    )}
-                  </>
-                ) : null
-              }
-              reference={
-                mode === 'brief' ? (
-                  <Button
-                    ariaLabel={translateWorkspace('references')}
-                    icon={<Paperclip className="size-3.5" />}
-                    isDisabled={isCreating}
-                    onClick={chooseStartingImage}
-                    size={ButtonSize.ICON}
-                    tooltip={translateWorkspace('references')}
-                    tooltipPosition="top"
-                    variant={ButtonVariant.GHOST}
-                    withWrapper={false}
-                  />
-                ) : null
-              }
-              trailing={
-                <PromptBarSendButton
-                  ariaLabel={saveLabel}
-                  isDisabled={isCreating || !valid}
-                  isLoading={isCreating}
-                  onClick={() => void submit()}
-                  tooltip={saveLabel}
-                />
-              }
-            />
-            {mode !== 'video' &&
-            brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
-              <p
-                className={
-                  brief.length > maxBriefLength
-                    ? 'mt-2 text-xs text-destructive'
-                    : 'mt-2 text-xs text-muted-foreground'
-                }
-              >
-                {translate('characterCount', { count: brief.length })}
-              </p>
-            ) : null}
-          </PromptBarComposer>
-        </PromptBarContainer>
-        {mode === 'video' ? (
-          <p role="status" className="text-sm">
-            {video?.title || translate('chooseOwnedVideo')}
-          </p>
-        ) : isLongForm || isSlideshow ? (
-          <p className="text-sm text-muted-foreground">
-            {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
-          </p>
-        ) : (
-          <>
-            <StoryboardAgentBriefs
-              brandId={brandId || undefined}
-              isDisabled={isCreating}
-              onSelect={applyAgentBrief}
-            />
-            <StoryboardPresetCards
-              activePresetId={
-                STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
-              }
-              isDisabled={isCreating}
-              onSelect={applyPreset}
-            />
-          </>
-        )}
+        {composer}
+        {guidance}
       </div>
-      <StoryboardReferencesPanel
-        references={[
-          ...(mode === 'brief' && image
-            ? [
-                {
-                  id: `seed:${image.id}`,
-                  title: image.title,
-                  kind: 'image' as const,
-                  url: image.url,
-                  group: translate('startingImage'),
-                  onRemove: () => setSeed(undefined),
-                },
-              ]
-            : []),
-          ...(mode !== 'video'
-            ? styles.map((reference) => ({
-                id: `style:${reference.id}`,
-                title: reference.title,
-                kind: 'image' as const,
-                url: reference.url,
-                group: translateWorkspace('styles'),
-                onRemove: () =>
-                  setStyleReferences((current) =>
-                    current.filter(
-                      (item) =>
-                        item.id !== reference.id || item.brandId !== brandId,
-                    ),
-                  ),
-              }))
-            : []),
-          ...(mode === 'video' && video
-            ? [
-                {
-                  id: `video:${video.id}`,
-                  title: video.title,
-                  kind: 'video' as const,
-                  url: video.url,
-                  group: translate('uploadedVideo'),
-                  onRemove: () => setSelected(undefined),
-                },
-              ]
-            : []),
-        ]}
-        actions={
-          mode === 'brief' || isSlideshow ? (
-            <>
-              {mode === 'brief' ? (
-                <Button
-                  label={translate('chooseStartingImage')}
-                  variant={ButtonVariant.SECONDARY}
-                  disabled={isCreating}
-                  onClick={chooseStartingImage}
-                />
-              ) : null}
-              <Button
-                label={translatePlan('addStyleReferences')}
-                variant={ButtonVariant.SECONDARY}
-                disabled={isCreating || styles.length >= 20}
-                onClick={() =>
-                  openGallery({
-                    category: IngredientCategory.IMAGE,
-                    format,
-                    maxSelectableItems: 20 - styles.length,
-                    title: translateWorkspace('styles'),
-                    onSelect: (items) => {
-                      const selected = items.filter(
-                        (item) => item.brandId === brandId && !item.isDeleted,
-                      );
-                      if (!brandId) return;
-                      setStyleReferences((current) =>
-                        [
-                          ...new Map(
-                            [
-                              ...current.filter(
-                                (item) => item.brandId === brandId,
-                              ),
-                              ...selected.map((item) => ({
-                                brandId,
-                                id: item.id,
-                                title: storyboardAssetLabel(
-                                  item,
-                                  translateWorkspace('styles'),
-                                ),
-                                url: item.cdnUrl ?? undefined,
-                              })),
-                            ].map((item) => [item.id, item]),
-                          ).values(),
-                        ].slice(0, 20),
-                      );
-                    },
-                  })
-                }
-              />
-            </>
-          ) : (
-            <>
-              <Button
-                label={translate('chooseFromLibrary')}
-                variant={ButtonVariant.SECONDARY}
-                disabled={isCreating}
-                onClick={() =>
-                  openGallery({
-                    category: IngredientCategory.VIDEO,
-                    maxSelectableItems: 1,
-                    title: translate('remixTitle'),
-                    onSelect: (items) => {
-                      const item = items.find(
-                        (candidate) =>
-                          candidate.brandId === brandId && !candidate.isDeleted,
-                      );
-                      if (item && brandId && 'brandId' in item)
-                        setSelected({
-                          brandId,
-                          id: item.id,
-                          url: item.cdnUrl ?? undefined,
-                          title: storyboardAssetLabel(
-                            item,
-                            translate('uploadedVideo'),
-                          ),
-                        });
-                    },
-                  })
-                }
-              />
-              <Button
-                label={translate('uploadVideo')}
-                variant={ButtonVariant.SECONDARY}
-                disabled={isCreating}
-                onClick={() =>
-                  openUpload({
-                    category: IngredientCategory.VIDEO,
-                    isMultiple: false,
-                    maxFiles: 1,
-                    onComplete: (items) => {
-                      const item = items.find(
-                        (candidate) =>
-                          'brandId' in candidate &&
-                          candidate.brandId === brandId &&
-                          !candidate.isDeleted,
-                      );
-                      if (item && brandId && 'brandId' in item)
-                        setSelected({
-                          brandId,
-                          id: item.id,
-                          url: item.cdnUrl ?? undefined,
-                          title: storyboardAssetLabel(
-                            item,
-                            translate('uploadedVideo'),
-                          ),
-                        });
-                    },
-                  })
-                }
-              />
-              {video ? (
-                <Button
-                  label={translate('clearVideo')}
-                  variant={ButtonVariant.SECONDARY}
-                  disabled={isCreating}
-                  onClick={() => setSelected(undefined)}
-                />
-              ) : null}
-            </>
-          )
-        }
-      />
+      {referencesPanel}
     </div>
   );
 }

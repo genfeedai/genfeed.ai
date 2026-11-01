@@ -2,6 +2,7 @@ import type { CardSize, CardVariant } from '@genfeedai/contracts';
 import type { AnalyticsQueryMetric } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { AnalyticsMetricVariant } from '@props/analytics/analytics-metric-definition.props';
+import type { MetricCardTone } from '@props/cards/metric-card.props';
 import type { ReactNode } from 'react';
 
 export interface KPICardProps {
@@ -11,8 +12,7 @@ export interface KPICardProps {
   value: ReactNode;
   description?: string;
   icon?: IconComponent;
-  iconClassName?: string;
-  valueClassName?: string;
+  tone?: MetricCardTone;
   trend?: number;
   trendLabel?: string;
   className?: string;

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonVariant,
   CardGap,
@@ -20,11 +19,14 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ChartColumn,
   CircleCheck,
@@ -189,10 +191,6 @@ function Panel({
   );
 }
 
-function Pill({ children }: { children: ReactNode }) {
-  return <Badge variant="secondary">{children}</Badge>;
-}
-
 function Section({
   children,
   icon,
@@ -230,7 +228,7 @@ function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
 
 function BriefSection({ brief }: { brief?: ContentRunBrief }) {
   if (!brief) {
-    return <CardEmptyContent label="No brief has been attached to this run." />;
+    return <EmptyState title="No brief has been attached to this run." />;
   }
 
   return (
@@ -265,7 +263,7 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
 
 function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   if (!variants?.length) {
-    return <CardEmptyContent label="No remix variants have been stored yet." />;
+    return <EmptyState title="No remix variants have been stored yet." />;
   }
 
   return (
@@ -273,12 +271,14 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
       {variants.map((variant) => (
         <Panel as="article" key={variant.id} className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Pill>{variant.format ?? variant.type}</Pill>
+            <Badge variant="secondary">{variant.format ?? variant.type}</Badge>
             <PlatformBadge
               platform={variant.platform}
               size={ComponentSize.SM}
             />
-            {variant.status ? <Pill>{variant.status}</Pill> : null}
+            {variant.status ? (
+              <Badge variant="secondary">{variant.status}</Badge>
+            ) : null}
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>
           {variant.hypothesis ? (
@@ -299,9 +299,7 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
 
 function PublishSection({ publish }: { publish?: ContentRunPublishContext }) {
   if (!publish) {
-    return (
-      <CardEmptyContent label="No publish context has been captured yet." />
-    );
+    return <EmptyState title="No publish context has been captured yet." />;
   }
 
   return (
@@ -336,44 +334,38 @@ function AnalyticsSection({
   analytics?: ContentRunAnalyticsSummary;
 }) {
   if (!analytics) {
-    return (
-      <CardEmptyContent label="No analytics summary has been synced yet." />
-    );
+    return <EmptyState title="No analytics summary has been synced yet." />;
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-4">
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Impressions</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatMetric(analytics.impressions)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Engagements</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatMetric(analytics.engagements)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Engagement rate</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatPercent(analytics.engagementRate)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Winning variant</div>
-        <div className="mt-2 truncate text-sm font-medium">
-          {analytics.winningVariantId ?? '-'}
-        </div>
-      </Panel>
+    <div className="grid gap-3">
+      <MetricCardGrid columns={4}>
+        <MetricCard
+          label="Impressions"
+          size="sm"
+          value={formatMetric(analytics.impressions)}
+        />
+        <MetricCard
+          label="Engagements"
+          size="sm"
+          value={formatMetric(analytics.engagements)}
+        />
+        <MetricCard
+          label="Engagement rate"
+          size="sm"
+          value={formatPercent(analytics.engagementRate)}
+        />
+        <MetricCard
+          label="Winning variant"
+          size="xs"
+          value={analytics.winningVariantId ?? '-'}
+        />
+      </MetricCardGrid>
       {analytics.summary ? (
-        <p className="md:col-span-4 text-sm text-foreground/80">
-          {analytics.summary}
-        </p>
+        <p className="text-sm text-foreground/80">{analytics.summary}</p>
       ) : null}
       {analytics.topSignals?.length ? (
-        <div className="grid gap-2 md:col-span-4">
+        <div className="grid gap-2">
           {analytics.topSignals.map((signal) => (
             <Panel
               key={signal}
@@ -395,7 +387,7 @@ function RecommendationsSection({
 }) {
   if (!recommendations?.length) {
     return (
-      <CardEmptyContent label="No recommended actions have been generated yet." />
+      <EmptyState title="No recommended actions have been generated yet." />
     );
   }
 
@@ -406,9 +398,11 @@ function RecommendationsSection({
       ).map(({ item: recommendation, key }) => (
         <Panel as="article" key={key} className="p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill>{recommendation.type}</Pill>
+            <Badge variant="secondary">{recommendation.type}</Badge>
             {typeof recommendation.confidence === 'number' ? (
-              <Pill>{formatPercent(recommendation.confidence * 100)}</Pill>
+              <Badge variant="secondary">
+                {formatPercent(recommendation.confidence * 100)}
+              </Badge>
             ) : null}
           </div>
           <h3 className="mt-3 text-sm font-medium">
@@ -587,9 +581,7 @@ export default function ContentRunDetailPage({
   if (state === 'error' || !run) {
     return (
       <Container>
-        <div className="rounded-lg bg-destructive/10 p-8 text-sm text-destructive shadow-border">
-          Content run could not be loaded.
-        </div>
+        <Alert variant="destructive">Content run could not be loaded.</Alert>
       </Container>
     );
   }
@@ -600,9 +592,13 @@ export default function ContentRunDetailPage({
         <header>
           <Card padding={CardPadding.LG} gap={CardGap.NONE}>
             <div className="flex flex-wrap items-center gap-2">
-              <Pill>{run.status ?? 'unknown'}</Pill>
-              <Pill>{run.skillSlug ?? 'content-run'}</Pill>
-              {run.source ? <Pill>{run.source}</Pill> : null}
+              <Badge variant="secondary">{run.status ?? 'unknown'}</Badge>
+              <Badge variant="secondary">
+                {run.skillSlug ?? 'content-run'}
+              </Badge>
+              {run.source ? (
+                <Badge variant="secondary">{run.source}</Badge>
+              ) : null}
             </div>
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -675,9 +671,7 @@ export default function ContentRunDetailPage({
           <div className="grid content-start gap-5">
             <TimelinePanel run={run} />
             {remixError ? (
-              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive shadow-border">
-                {remixError}
-              </div>
+              <Alert variant="destructive">{remixError}</Alert>
             ) : null}
             <NavigationPanel
               isRemixing={isRemixing}

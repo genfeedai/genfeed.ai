@@ -1,18 +1,13 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Columns2, Eye, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
@@ -211,7 +206,7 @@ export default function AdsResearchPageClient() {
         connectionError ||
         detailError ||
         savedError) && (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <div className="space-y-1">
             <div className="font-medium">{translate('errors.title')}</div>
             <div className="text-xs text-foreground/70">
@@ -229,7 +224,7 @@ export default function AdsResearchPageClient() {
       )}
 
       {actionError && !selectedAd ? (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <div className="text-xs">{actionError}</div>
         </Alert>
       ) : null}
@@ -269,7 +264,7 @@ export default function AdsResearchPageClient() {
       {effectivePlatform === AdsPlatform.X ? <XAdsDsaNotice /> : null}
 
       {showConnectStrip ? (
-        <Alert type={AlertCategory.INFO} className="mb-4">
+        <Alert variant="info" className="mb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <div className="font-medium">{translate('connection.title')}</div>

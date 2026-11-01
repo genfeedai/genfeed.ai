@@ -10,7 +10,6 @@ import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Select,
   SelectContent,
@@ -18,6 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Tabs } from '@ui/primitives/tabs';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -120,6 +121,7 @@ function BrandPreviewSurface({
         <p className="text-sm leading-relaxed">{description}</p>
       ) : (
         <div className="space-y-2">
+          {/* ui-guard-allow:hand-built-stat -- font specimen of the brand heading face, not a metric */}
           <p
             className="text-2xl font-semibold leading-tight"
             style={previewFontStyle(fontFamily)}
@@ -159,11 +161,12 @@ function BrandPreviewSurface({
           <ul className="flex shrink-0 gap-1.5">
             {colors.map((color) => (
               <li key={color.key}>
-                <span
-                  className="block size-4 rounded-sm border border-border"
-                  style={{ backgroundColor: color.value }}
-                  title={color.value}
-                />
+                <SimpleTooltip label={color.value}>
+                  <span
+                    className="block size-4 rounded-sm border border-border"
+                    style={{ backgroundColor: color.value }}
+                  />
+                </SimpleTooltip>
               </li>
             ))}
           </ul>

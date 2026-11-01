@@ -18,18 +18,13 @@ export function AgentThreadListErrorBanner({
   onRetry,
 }: AgentThreadListErrorBannerProps): ReactElement | null {
   if (authError) {
-    return (
-      <AgentErrorMessage
-        className="mx-3 mt-2 rounded-md border-destructive/20 bg-destructive/10 text-xs text-destructive"
-        message={authError}
-      />
-    );
+    return <AgentErrorMessage className="mx-3 mt-2" message={authError} />;
   }
 
   if (loadError && hasThreads) {
     return (
       <div className="mx-3 mt-2 space-y-2">
-        <AgentErrorMessage className="rounded-md text-xs" message={loadError} />
+        <AgentErrorMessage message={loadError} />
         <Button
           withWrapper={false}
           variant={ButtonVariant.SECONDARY}

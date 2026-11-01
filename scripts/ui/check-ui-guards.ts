@@ -38,6 +38,20 @@ const checks = [
     required: true,
   },
   {
+    // Table cells hold content: dates render through TableDateCell (relative
+    // times allowed) and row controls live in the table's hover row actions.
+    command: ['bun', 'run', 'scripts/ui/hand-built/table-columns.ts'],
+    name: 'Table columns (TableDateCell dates, controls as row actions)',
+    required: true,
+  },
+  {
+    // Views and filters are dropdowns in the sub bar (ViewMenu, FilterMenu),
+    // never tab bars. Baseline: scripts/ui/hand-built/view-tabs.baseline.json.
+    command: ['bun', 'run', 'scripts/ui/hand-built/view-tabs.ts'],
+    name: 'View and filter tabs (ViewMenu / FilterMenu dropdowns)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,
@@ -66,6 +80,20 @@ const checks = [
     // Baseline: scripts/ui/hand-built/cards.baseline.json (empty).
     command: ['bun', 'run', 'scripts/ui/hand-built/cards.ts'],
     name: 'Cards and panels (shared Card, no hand-built surfaces or restyles)',
+    required: true,
+  },
+  {
+    // One AST drift guard for hand-built UI, one file per area under
+    // scripts/ui/hand-built/areas with its own shrink-only baseline.
+    command: ['bun', 'run', 'scripts/ui/hand-built/check-hand-built.ts'],
+    name: 'Hand-built UI (shared components are not restyled or rebuilt)',
+    required: true,
+  },
+  {
+    // Blocks hand-built empty states and className restyles of EmptyState.
+    // Baseline: scripts/ui/hand-built/empty-states.baseline.json (empty).
+    command: ['bun', 'run', 'scripts/ui/hand-built/empty-states.ts'],
+    name: 'Empty states (shared EmptyState, no hand-built blocks or restyles)',
     required: true,
   },
   {

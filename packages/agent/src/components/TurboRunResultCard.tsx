@@ -24,10 +24,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Badge from '@ui/display/badge/Badge';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, CircleX, Layers } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -124,7 +124,6 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
       size={ButtonSize.SM}
       variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
       withWrapper={false}
-      className="font-medium"
     >
       <a href={href}>{cta.label}</a>
     </Button>

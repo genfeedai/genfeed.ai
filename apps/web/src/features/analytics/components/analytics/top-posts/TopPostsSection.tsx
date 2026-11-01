@@ -8,6 +8,7 @@ import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-ic
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import { Eye, Heart, ImageIcon, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -178,22 +179,23 @@ export default function TopPostsSection({
                     className="object-cover outline-media group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Rank badge */}
-                  <div
-                    className={
-                      'absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
-                    }
-                  >
-                    #{index + 2}
-                  </div>
+                  <Badge
+                    className="absolute left-1.5 top-1.5"
+                    shape="pill"
+                    size="lg"
+                    value={`#${index + 2}`}
+                    variant="overlay"
+                  />
                   {/* Views badge */}
-                  <div
-                    className={
-                      'absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
-                    }
+                  <Badge
+                    className="absolute bottom-1.5 right-1.5"
+                    icon={<Eye />}
+                    shape="pill"
+                    size="lg"
+                    variant="overlay"
                   >
-                    <Eye className="size-3" />
                     {formatCompactNumber(post.totalViews)}
-                  </div>
+                  </Badge>
                 </div>
               </Link>
             ))}

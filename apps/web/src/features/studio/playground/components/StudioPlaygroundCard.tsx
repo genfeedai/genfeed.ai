@@ -3,7 +3,6 @@
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   IngredientStatus,
   ViewType,
 } from '@genfeedai/contracts';
@@ -20,8 +19,6 @@ import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recover
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import TileBadge from '@ui/display/badge/Badge';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import {
@@ -31,6 +28,7 @@ import {
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { Skeleton } from '@ui/primitives/skeleton';
 import {
   Film,
   GitBranch,
@@ -557,6 +555,7 @@ export default function StudioPlaygroundCard({
     };
 
     return (
+      // ui-guard-allow:clickable-element -- pointer shortcut to select the card; the select toggle and actions inside are the keyboard path
       <article
         aria-label={`${label} generation`}
         className={`group relative w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
@@ -607,14 +606,13 @@ export default function StudioPlaygroundCard({
             {isVideo || (job.ingredient && unbrandedMode) ? (
               <div className="pointer-events-none absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
                 {isVideo ? (
-                  <TileBadge
+                  <Badge
                     icon={<Film aria-hidden="true" className="size-3" />}
-                    size={ComponentSize.SM}
-                    variant="slate"
+                    variant="secondary"
                   >
                     <span className="sr-only">{translate('videoBadge')}</span>
                     {videoDuration ? formatDuration(videoDuration) : null}
-                  </TileBadge>
+                  </Badge>
                 ) : null}
                 {job.ingredient && unbrandedMode ? (
                   <BrandModeBadge brandMode={unbrandedMode} />
@@ -637,6 +635,7 @@ export default function StudioPlaygroundCard({
   }
 
   return (
+    // ui-guard-allow:clickable-element -- pointer shortcut to select the card; the select toggle and actions inside are the keyboard path
     <article
       aria-label={`${label} generation`}
       className={`group relative w-full cursor-pointer overflow-hidden rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${

@@ -1,5 +1,5 @@
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Skeleton } from '@ui/primitives/skeleton';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import type { ReactElement } from 'react';

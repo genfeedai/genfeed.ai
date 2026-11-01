@@ -5,7 +5,7 @@ import ExpertStepHeader from '@app/(onboarding)/onboarding/(wizard)/_expert/expe
 import PositioningScorecard from '@app/(onboarding)/onboarding/(wizard)/_expert/positioning-scorecard';
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IBrandInterviewAnswerResult,
   IBrandInterviewQuestion,
@@ -16,7 +16,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ExpertPathService } from '@services/content/expert-path.service';
 import { logger } from '@services/core/logger.service';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
@@ -323,7 +323,6 @@ export default function PositioningContent() {
               isDisabled={!answer.trim()}
               isLoading={isSubmitting}
               onClick={handleSaveAnswer}
-              className="rounded-none px-5"
             />
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -331,7 +330,6 @@ export default function PositioningContent() {
               label={translate('positioning.skipQuestion')}
               isDisabled={isSubmitting}
               onClick={handleSkipQuestion}
-              className="rounded-none px-5"
             />
             {isKeepingGoing ? (
               <Button
@@ -340,7 +338,6 @@ export default function PositioningContent() {
                 label={translate('positioning.finish')}
                 isDisabled={isSubmitting}
                 onClick={handleScore}
-                className="rounded-none px-5"
               />
             ) : null}
           </div>
@@ -359,7 +356,6 @@ export default function PositioningContent() {
               label={translate('positioning.finish')}
               isLoading={isSubmitting}
               onClick={handleScore}
-              className="rounded-none px-5"
             />
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -367,7 +363,6 @@ export default function PositioningContent() {
               label={translate('positioning.keepGoing')}
               isDisabled={isSubmitting}
               onClick={handleKeepGoing}
-              className="rounded-none px-5"
             />
           </div>
         </div>
@@ -379,7 +374,7 @@ export default function PositioningContent() {
 
       {errorKey ? (
         <div className="max-w-2xl">
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               <div className="font-medium">
                 {translate('common.errorTitle')}

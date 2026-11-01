@@ -36,6 +36,7 @@ import {
   readOrganizationBrand,
   readOrganizationsReport,
   readPricingReport,
+  readPublishPipeline,
   readSystemBrand,
   readTrainingsReport,
   scanOrganizationBrand,
@@ -46,6 +47,7 @@ import {
   updateOrganizationBrand,
   updateSystemBrand,
   type WarmupAccountInput,
+  type WarmupContextDecisions,
   type WarmupPrepareInput,
 } from '@/operations/admin';
 import {
@@ -129,10 +131,39 @@ interface WarmupCreateOptions {
 interface WarmupPrepareOptions {
   action: string;
   amount?: number;
+  assetCandidateId?: string;
+  prompt?: string;
+  contextDecisions?: string;
   publicProfileUrl?: string;
   reason?: string;
   sourceUrl?: string;
   yes?: boolean;
+}
+
+async function readContextDecisions(path: string): Promise<WarmupContextDecisions> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    throw new GenfeedError(`Could not read context decisions from ${path}`, 'Pass a JSON file.');
+  }
+  const fields = (parsed as { fields?: unknown } | null)?.fields;
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
+    throw new GenfeedError(
+      'Context decisions need a "fields" object',
+      'Shape: {"fields":{"description":{"action":"accept","value":"..."}}}'
+    );
+  }
+  for (const [field, decision] of Object.entries(fields)) {
+    const action = (decision as { action?: unknown } | null)?.action;
+    if (action !== 'accept' && action !== 'reject' && action !== 'preserve') {
+      throw new GenfeedError(
+        `Context decision for "${field}" needs an action`,
+        'Use "accept", "reject" or "preserve".'
+      );
+    }
+  }
+  return parsed as WarmupContextDecisions;
 }
 
 async function runAdminLogin(): Promise<void> {
@@ -511,6 +542,33 @@ async function runOnboardingFunnel(options: { days: number; isJson: boolean }): 
     formatFunnelBucket(emailClass, report.byEmailClass[emailClass]);
   }
   print(chalk.dim('\nInternal organizations are not excluded; use --json and filter by id.'));
+}
+
+function formatCounts(counts: Record<string, number>): string {
+  const entries = Object.entries(counts).sort(([, a], [, b]) => b - a);
+  return entries.length > 0 ? entries.map(([key, count]) => `${key} ${count}`).join(', ') : 'none';
+}
+
+async function runPublishPipeline(options: { days: number; isJson: boolean }): Promise<void> {
+  const report = await readPublishPipeline(options.days);
+  if (options.isJson) {
+    printJson(report);
+    return;
+  }
+
+  const { counts } = report;
+  print(formatHeader(`Publish approvals, last ${report.windowDays} days\n`));
+  print(formatLabel('Approvals', String(counts.total)));
+  print(formatLabel('By approval status', formatCounts(counts.byApprovalStatus)));
+  print(formatLabel('By post status', formatCounts(counts.byPostStatus)));
+  print(formatLabel('Overdue, not executed', String(counts.overdue)));
+  print(formatLabel('Invalidated', String(counts.invalidated)));
+  print(formatLabel('With an error', String(counts.withError)));
+  print(
+    chalk.dim(
+      `\nShowing the ${report.items.length} newest of ${counts.total}; use --json for the rows.`
+    )
+  );
 }
 
 async function runHarnessActivation(options: {
@@ -1103,6 +1161,15 @@ function createWarmupCommand(): Command {
         .option('--reason <text>', 'Audit reason')
         .option('--source-url <url>', 'Source URL for context actions')
         .option('--public-profile-url <url>', 'Public profile URL for context actions')
+        .option(
+          '--context-decisions <file>',
+          'JSON file with per-field accept/reject/preserve decisions for apply-context'
+        )
+        .option(
+          '--asset-candidate-id <id>',
+          'Reviewed imported asset candidate (for example banner:2) used by starter-content'
+        )
+        .option('--prompt <text>', 'Optional prompt for starter-content')
         .option('--yes', 'Run the action')
         .option('--json', 'Output as JSON')
         .action(async (accountId: string, options: WarmupPrepareOptions, command: Command) => {
@@ -1110,6 +1177,11 @@ function createWarmupCommand(): Command {
             const input: WarmupPrepareInput = {
               action: options.action,
               amount: options.amount,
+              assetCandidateId: options.assetCandidateId,
+              contextDecisions: options.contextDecisions
+                ? await readContextDecisions(options.contextDecisions)
+                : undefined,
+              prompt: options.prompt,
               publicProfileUrl: options.publicProfileUrl,
               reason: options.reason,
               sourceUrl: options.sourceUrl,
@@ -1218,6 +1290,25 @@ export const adminCommand = new Command('admin')
             throw new GenfeedError('--days must be a whole number from 1 to 90');
           }
           await runOnboardingFunnel({ days, isJson: wantsJson(command) });
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  )
+  .addCommand(
+    new Command('publish-pipeline')
+      .description(
+        'Show what became of items approved for publishing: approvals and their posts, by status'
+      )
+      .option('--days <days>', 'How many days back to include (1-30)', '3')
+      .option('--json', 'Output as JSON')
+      .action(async (options: { days: string }, command: Command) => {
+        try {
+          const days = Number.parseInt(options.days, 10);
+          if (!Number.isInteger(days) || days < 1 || days > 30) {
+            throw new GenfeedError('--days must be a whole number from 1 to 30');
+          }
+          await runPublishPipeline({ days, isJson: wantsJson(command) });
         } catch (error) {
           handleError(error);
         }

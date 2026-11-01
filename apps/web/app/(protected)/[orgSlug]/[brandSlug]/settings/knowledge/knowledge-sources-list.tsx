@@ -3,7 +3,6 @@
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import type { KnowledgeSource } from '@genfeedai/client/models';
 import {
-  AlertCategory,
   ButtonVariant,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -14,7 +13,6 @@ import type {
   KnowledgeSourceCaptureRequest,
   KnowledgeSourceUpdateRequest,
 } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   KnowledgeSourceRow,
@@ -27,8 +25,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isServiceOperationError } from '@services/core/operation-error';
 import AppTable from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
+import TableDateCell from '@ui/display/table/TableDateCell';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -37,6 +37,8 @@ import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-know
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';
+
+const ALL_SPACES = 'all';
 
 const PURPOSE_KEY: Record<string, string> = {
   BRAND_TRUTH: 'brandTruth',
@@ -506,38 +508,32 @@ export default function KnowledgeSourcesList({
     {
       header: translate('captured'),
       key: 'observedAt',
-      render: (row) => (row.version ? formatDate(row.version.observedAt) : '-'),
+      render: (row) => <TableDateCell value={row.version?.observedAt} />,
     },
   ];
 
   return (
     <div className="space-y-4">
       {spaces.length > 0 ? (
-        <nav aria-label={translate('spaces')} className="flex flex-wrap gap-2">
-          <Button
-            label={translate('allSources')}
-            onClick={() => setSelectedSpaceId(null)}
-            variant={
-              selectedSpaceId ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-            }
-          />
-          {spaces.map((space) => (
-            <Button
-              key={space.id}
-              label={space.isInbox ? translate('inbox') : space.title}
-              onClick={() => setSelectedSpaceId(space.id)}
-              variant={
-                selectedSpaceId === space.id
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-            />
-          ))}
-        </nav>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('spaces')}
+          onValueChange={(spaceId) =>
+            setSelectedSpaceId(spaceId === ALL_SPACES ? null : spaceId)
+          }
+          options={[
+            { label: translate('allSources'), value: ALL_SPACES },
+            ...spaces.map((space) => ({
+              label: space.isInbox ? translate('inbox') : space.title,
+              value: space.id,
+            })),
+          ]}
+          value={selectedSpaceId ?? ALL_SPACES}
+        />
       ) : null}
 
       {(selectionError || isInvalidSelection) && !isLoading ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{translate('loadError')}</span>
             <Button
@@ -552,7 +548,7 @@ export default function KnowledgeSourcesList({
       ) : null}
 
       {error && !isLoading ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
             <Button

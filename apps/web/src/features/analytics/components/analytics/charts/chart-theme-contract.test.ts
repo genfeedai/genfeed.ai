@@ -19,15 +19,11 @@ function readChart(relativePath: string): string {
 
 describe('analytics chart theme contract', () => {
   it.each(TOGGLE_CHART_SOURCES)(
-    'uses semantic colors for metric controls in %s',
+    'paints no fixed white chrome in the metric controls of %s',
     (relativePath) => {
       const source = readChart(relativePath);
 
       expect(source).not.toMatch(/(?:bg|border|text)-white/);
-      expect(source).toContain('border-border-strong bg-muted text-foreground');
-      expect(source).toContain(
-        'border-border/60 bg-transparent text-muted-foreground',
-      );
     },
   );
 

@@ -189,7 +189,7 @@ describe('UiActionRenderer dispatch matrix', () => {
       />,
     );
 
-    fireEvent.click(getByRole('button', { name: 'Enhance' }));
+    fireEvent.click(getByRole('radio', { name: 'Enhance' }));
     fireEvent.click(getByRole('button', { name: 'Apply' }));
 
     expect(calls).toEqual([

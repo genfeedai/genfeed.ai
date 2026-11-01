@@ -1,6 +1,5 @@
 'use client';
-
-import { AlertCategory, CardGap } from '@genfeedai/contracts';
+import { CardGap } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -9,11 +8,12 @@ import {
 } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 import type {
   ComparisonCardProps,
@@ -47,7 +47,7 @@ function LeaderTable({
     <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       ) : (
         <Table<LeaderTableProps['leaders'][number]>
           ariaLabel={title}
@@ -123,7 +123,7 @@ function DailySeriesChart({
     return (
       <Card gap={CardGap.NONE}>
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       </Card>
     );
   }
@@ -139,16 +139,20 @@ function DailySeriesChart({
           const value = (point[valueKey] as number) ?? 0;
           const height = (value / maxValue) * 100;
           return (
-            <div
+            <SimpleTooltip
               key={point.date}
-              className="group relative flex-1"
-              title={`${point.date}: ${formatter(value)}`}
+              label={`${point.date}: ${formatter(value)}`}
             >
               <div
-                className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
-                style={{ height: `${Math.max(height, 2)}%` }}
-              />
-            </div>
+                className="group relative flex-1"
+                data-testid="daily-chart-bar"
+              >
+                <div
+                  className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
+                  style={{ height: `${Math.max(height, 2)}%` }}
+                />
+              </div>
+            </SimpleTooltip>
           );
         })}
       </div>
@@ -229,7 +233,7 @@ export default function BusinessDashboard() {
 
   if (error && !data) {
     return (
-      <Alert type={AlertCategory.ERROR}>
+      <Alert variant="destructive">
         Failed to load business analytics. Please try again.
       </Alert>
     );
@@ -237,9 +241,7 @@ export default function BusinessDashboard() {
 
   if (!isLoading && !data) {
     return (
-      <Alert type={AlertCategory.WARNING}>
-        No business analytics data available.
-      </Alert>
+      <Alert variant="warning">No business analytics data available.</Alert>
     );
   }
 

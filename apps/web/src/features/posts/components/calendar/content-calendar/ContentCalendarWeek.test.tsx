@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { CalendarWithSubbar as ContentCalendarView } from '@app-tests/calendar-subbar.harness';
+import { selectView } from '@app-tests/view-menu.helpers';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ContentCalendarView from '@/features/posts/components/calendar/content-calendar/ContentCalendarView';
 import type {
   CalendarItem,
   ContentCalendarProps,
@@ -83,16 +85,10 @@ describe('ContentCalendar Week view with the real renderer', () => {
     });
     expect(container.querySelector('[data-time="09:00:00"]')).not.toBeNull();
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'List' }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    await selectView(userEvent.setup(), 'List');
     expect(await screen.findByText('Monday at nine')).toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Week' }), {
-      button: 0,
-      ctrlKey: false,
-    });
+    await selectView(userEvent.setup(), 'Week');
     await waitFor(() => {
       expect(
         container.querySelectorAll('[role="columnheader"][data-date]'),
@@ -115,7 +111,7 @@ describe('ContentCalendar Week view with the real renderer', () => {
       ],
       onDatesChange: vi.fn(),
       onEventClick: vi.fn(),
-    } satisfies ContentCalendarProps<CalendarItem>;
+    } satisfies Omit<ContentCalendarProps<CalendarItem>, 'onToolbarChange'>;
     const { rerender } = render(
       <ContentCalendarView {...props} timezone="America/Los_Angeles" />,
     );

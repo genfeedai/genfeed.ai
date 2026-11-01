@@ -9,6 +9,7 @@ import { TrendsController } from '@api/collections/trends/controllers/trends.con
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import { TrendBrandDigestService } from '@api/collections/trends/services/modules/trend-brand-digest.service';
 import { TrendBrandNicheVideoService } from '@api/collections/trends/services/modules/trend-brand-niche-video.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
@@ -147,6 +148,7 @@ import { Module } from '@nestjs/common';
     TrendSourceItemsService,
     TrendSourcePreviewService,
     TrendBrandNicheVideoService,
+    TrendBrandDigestService,
     TrendVideoService,
     TrendsService,
     CreditsGuard,

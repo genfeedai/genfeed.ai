@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -96,16 +97,16 @@ function InputModeNotice({
 }) {
   if (!inputType) {
     return (
-      <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5 text-center">
+      <Alert className="text-center" size="sm" variant="note">
         Connect an image or video input
-      </div>
+      </Alert>
     );
   }
 
   return (
-    <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+    <Alert size="sm" variant="note">
       Mode: <span className="font-medium capitalize">{inputType}</span>
-    </div>
+    </Alert>
   );
 }
 
@@ -295,10 +296,10 @@ function VideoUpscaleSettings({
         </Select>
       </div>
 
-      <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+      <Alert size="sm" variant="note">
         Estimated cost:{' '}
         {getVideoPriceEstimate(nodeData.targetResolution, nodeData.targetFps)}
-      </div>
+      </Alert>
     </>
   );
 }
@@ -460,13 +461,11 @@ function RefreshOutputButton({
   return (
     <Button
       withWrapper={false}
-      variant={ButtonVariant.GHOST}
+      variant={ButtonVariant.OVERLAY}
       size={ButtonSize.ICON}
       onClick={onProcess}
       disabled={status === 'processing'}
-      className={
-        'absolute right-2 top-2 size-6 bg-black/50 hover:bg-black/70' /* design-system-allow-content-color */
-      }
+      className="absolute right-2 top-2 size-6"
     >
       <RefreshCw
         className={

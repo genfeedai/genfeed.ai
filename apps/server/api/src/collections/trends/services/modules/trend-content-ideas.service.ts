@@ -7,7 +7,10 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import {
   createLenientTrendContentIdeasSchema,
+  createLenientTrendDigestAnglesSchema,
   TREND_CONTENT_IDEAS_SCHEMA_NAME,
+  TREND_DIGEST_ANGLES_SCHEMA_NAME,
+  type TrendDigestAngle,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -175,6 +178,79 @@ The ideas field contains creative, engaging, platform-appropriate ideas.`;
       });
       throw error;
     }
+  }
+
+  /**
+   * One angle and one post idea per trend, written for a single brand. Trends
+   * the model skipped or answered badly come back absent, so the caller sends
+   * the email without ideas for them instead of failing the digest.
+   */
+  async generateDigestAngles(
+    trends: Array<{ matchedTerms?: string[]; platform: string; topic: string }>,
+    brand: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
+  ): Promise<Map<number, TrendDigestAngle>> {
+    const angles = new Map<number, TrendDigestAngle>();
+    if (trends.length === 0) {
+      return angles;
+    }
+
+    const list = trends
+      .map((trend, index) => {
+        const terms = trend.matchedTerms?.length
+          ? ` (niche: ${trend.matchedTerms.join(', ')})`
+          : '';
+        return `${index}. [${this.sanitizeForPrompt(trend.platform)}] ${this.sanitizeForPrompt(trend.topic)}${this.sanitizeForPrompt(terms)}`;
+      })
+      .join('\n');
+    const brandLine = [
+      this.sanitizeForPrompt(brand.label),
+      brand.description ? this.sanitizeForPrompt(brand.description) : null,
+    ]
+      .filter(Boolean)
+      .join(' - ');
+
+    const prompt = `You write a daily trend briefing for this brand: ${brandLine}.
+
+For each trending topic below, return:
+- index: the number shown in front of the topic
+- angle: one sentence on why this topic matters to this brand's audience (no generic praise, name the specific link)
+- format: the best post format with length, e.g. "Video · 30s", "Thread · 5 posts", "Carousel · 7 slides"
+- hook: the first line of the post, under 90 characters
+- caption: the post copy in one or two sentences, in the brand's voice
+
+Sell the output the brand makes, not its features. Do not invent statistics.
+
+Trending topics:
+${list}`;
+
+    try {
+      const result = await this.replicateService.generateStructuredTextSync(
+        DEFAULT_TEXT_MODEL,
+        {
+          input: { max_completion_tokens: 2500 },
+          prompt,
+          schema: createLenientTrendDigestAnglesSchema((dropped) =>
+            this.loggerService.warn('Dropped invalid trend digest angles', {
+              code: 'trend_digest_angles_items_dropped',
+              droppedCount: dropped.length,
+            }),
+          ),
+          schemaName: TREND_DIGEST_ANGLES_SCHEMA_NAME,
+        },
+        byokApiKeyOverride,
+      );
+      for (const angle of result.topics) {
+        if (angle.index < trends.length && !angles.has(angle.index)) {
+          angles.set(angle.index, angle);
+        }
+      }
+    } catch {
+      this.loggerService.warn('Trend digest angle generation failed', {
+        code: 'trend_digest_angles_failed',
+      });
+    }
+    return angles;
   }
 
   private async calculateDefaultTextCharge(

@@ -30,7 +30,6 @@ export interface ImageEditingContext {
 
 export type ImageGenerationProvider =
   | 'crun'
-  | 'genfeedai'
   | 'higgsfield'
   | 'klingai'
   | 'fal'
@@ -39,7 +38,6 @@ export type ImageGenerationProvider =
   | 'sdxl';
 
 export type ImageGenerationCompletionKind =
-  | 'inline'
   | 'poll-single'
   | 'poll-multiple'
   | 'background-only'
@@ -108,7 +106,7 @@ export interface ImageGenerationContext {
 
 export interface ImageGenerationCompletionPlan {
   generationPromise: Promise<unknown>;
-  kind: 'inline' | 'poll-single' | 'poll-multiple' | 'background-only';
+  kind: 'poll-single' | 'poll-multiple' | 'background-only';
   pollIds?: string[];
 }
 
@@ -149,17 +147,12 @@ export interface ImageGenerationProviderRequest {
   onProviderSubmissionStarted?: () => void;
 }
 
-export type ImageGenerationProviderResult =
-  | {
-      imageBuffer: Buffer;
-      kind: 'inline-buffer';
-    }
-  | {
-      externalId: string;
-      kind: 'external-id';
-      outputUrls?: string[];
-      promptId?: string;
-    };
+export type ImageGenerationProviderResult = {
+  externalId: string;
+  kind: 'external-id';
+  outputUrls?: string[];
+  promptId?: string;
+};
 
 export interface PreparedImageGenerationProvider {
   tracksSubmissionStarted?: boolean;

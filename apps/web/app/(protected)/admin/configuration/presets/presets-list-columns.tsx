@@ -1,6 +1,7 @@
 import type { IOrganization } from '@genfeedai/contracts/interfaces';
 import type { Preset } from '@models/elements/preset.model';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
 export function PresetLabelCell({ preset }: { preset: Preset }) {
   return (
@@ -20,9 +21,7 @@ export function PresetOrganizationCell({ preset }: { preset: Preset }) {
   const isSystemPreset = !preset.organizationId;
 
   return (
-    <Badge
-      className={`border border-border bg-transparent ${isSystemPreset ? 'text-muted-foreground' : 'text-primary'}`}
-    >
+    <Badge variant={isSystemPreset ? 'outline' : 'default'}>
       {isSystemPreset ? 'System' : organization?.label || 'Organization'}
     </Badge>
   );
@@ -37,11 +36,7 @@ export function PresetCategoryCell({ preset }: { preset: Preset }) {
     return '-';
   }
 
-  return (
-    <Badge className="border border-border bg-transparent">
-      {preset.category}
-    </Badge>
-  );
+  return <Badge variant="outline">{preset.category}</Badge>;
 }
 
 /** The settings an operator scans for; the edit modal shows the full recipe. */
@@ -58,12 +53,14 @@ export function PresetDefaultsCell({ preset }: { preset: Preset }) {
     <div className="flex max-w-56 flex-col items-start gap-2 text-xs">
       {defaults.map((def) => (
         <Badge
+          className="max-w-full overflow-hidden"
+          isMono
           key={def}
-          className="max-w-full overflow-hidden border border-border bg-transparent font-mono"
+          variant="outline"
         >
-          <span className="truncate" title={def}>
-            {def}
-          </span>
+          <SimpleTooltip label={def}>
+            <span className="truncate">{def}</span>
+          </SimpleTooltip>
         </Badge>
       ))}
     </div>

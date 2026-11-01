@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { FirstDraftCardProps } from '@/features/onboarding/props/first-drafts.props';
@@ -89,20 +90,16 @@ export default function DraftCard({
           </>
         ) : (
           <>
-            <Button
-              size={ButtonSize.SM}
-              isDisabled={isSaving}
-              variant={
-                verdict === 'up'
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              aria-pressed={verdict === 'up'}
-              onClick={() => onVerdict(draft, 'up')}
+            <Toggle
+              disabled={isSaving}
+              onPressedChange={() => onVerdict(draft, 'up')}
+              pressed={verdict === 'up'}
+              size="sm"
+              variant="outline"
             >
-              <Check className="size-3.5" />
+              <Check />
               {t(verdict === 'up' ? 'verdict.kept' : 'verdict.up')}
-            </Button>
+            </Toggle>
             <Button
               size={ButtonSize.SM}
               isDisabled={isSaving}

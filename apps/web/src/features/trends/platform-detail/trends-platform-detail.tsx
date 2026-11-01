@@ -2,7 +2,6 @@
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   ButtonVariant,
   CardPadding,
   CardVariant,
@@ -21,10 +20,10 @@ import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
@@ -67,7 +66,7 @@ function SectionHeader({
       <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
         {title}
       </h2>
-      {badge ? <Badge variant="ghost">{badge}</Badge> : null}
+      {badge ? <Badge variant="secondary">{badge}</Badge> : null}
     </div>
   );
 }
@@ -250,7 +249,7 @@ export default function TrendsPlatformDetail({
         ) : null}
 
         {error && !isLoading ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
                 <div className="font-medium">

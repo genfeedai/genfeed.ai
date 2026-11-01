@@ -33,11 +33,11 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -58,7 +58,7 @@ const HEALTH_BADGES: Record<
   AccountEvaluationState,
   {
     labelKey: HealthBadgeLabelKey;
-    variant: 'success' | 'warning' | 'error' | 'secondary';
+    variant: 'success' | 'warning' | 'destructive' | 'secondary';
   }
 > = {
   [AccountEvaluationState.HEALTHY]: {
@@ -71,7 +71,7 @@ const HEALTH_BADGES: Record<
   },
   [AccountEvaluationState.UNDERPERFORMING]: {
     labelKey: 'healthUnderperforming',
-    variant: 'error',
+    variant: 'destructive',
   },
   [AccountEvaluationState.WATCH]: {
     labelKey: 'healthWatch',

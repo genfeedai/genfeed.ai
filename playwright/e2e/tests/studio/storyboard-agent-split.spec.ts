@@ -223,8 +223,9 @@ test.describe('Storyboard agent + output split', () => {
 
     await page
       .getByTestId('agent-output-layout')
-      .getByRole('tab', { name: 'Output' })
+      .getByRole('button', { name: 'View: Agent' })
       .click();
+    await page.getByRole('menuitemradio', { name: 'Output' }).click();
 
     await expect(output).toBeVisible();
     await expect(agent).toBeHidden();

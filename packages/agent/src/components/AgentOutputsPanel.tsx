@@ -6,9 +6,10 @@ import type {
   ThreadOutputVariant,
 } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   Download,
   ExternalLink,
@@ -109,11 +110,7 @@ function renderVariantPreview(
     );
   }
 
-  return (
-    <div className="gen-shell-empty-state rounded-[1.25rem] p-8 text-center text-sm text-muted-foreground">
-      No preview available.
-    </div>
-  );
+  return <EmptyState title="No preview available." />;
 }
 
 function VariantIcon({

@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  AlertCategory,
   ButtonVariant,
+  CardEmptySize,
   CardPadding,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -12,10 +12,12 @@ import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -100,9 +102,10 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
             ))}
           </div>
         ) : data.length === 0 ? (
-          <div className="text-muted-foreground text-sm text-center py-8">
-            No organization data available
-          </div>
+          <EmptyState
+            size={CardEmptySize.SM}
+            title="No organization data available"
+          />
         ) : (
           data.map((org) => (
             <div
@@ -126,19 +129,21 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                 <span className="text-sm text-muted-foreground">
                   {org.totalPosts.toLocaleString()} posts
                 </span>
-                <span
-                  className={cn(
-                    'px-2 py-0.5 rounded-full text-xs font-medium',
+                <Badge
+                  casing="normal"
+                  shape="pill"
+                  size="lg"
+                  variant={
                     org.growth > 0
-                      ? 'bg-success/10 text-success'
+                      ? 'success'
                       : org.growth < 0
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-muted text-muted-foreground',
-                  )}
+                        ? 'destructive'
+                        : 'secondary'
+                  }
                 >
                   {org.growth > 0 ? '+' : ''}
                   {org.growth}%
-                </span>
+                </Badge>
               </div>
             </div>
           ))
@@ -149,7 +154,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       <Button
         asChild
         variant={ButtonVariant.SECONDARY}
-        className="w-full mt-6 py-4 border border-border text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
+        className="w-full mt-6 py-4 border border-border font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
       >
         <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>View All Entities</Link>
       </Button>
@@ -297,7 +302,7 @@ export default function OverviewPage() {
     >
       <div className="flex w-full flex-col gap-5">
         {hasFailedStats ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <span className="flex flex-wrap items-center gap-3">
               {translate('adminDashboard.loadFailed')}
               <Button
