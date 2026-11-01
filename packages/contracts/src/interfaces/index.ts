@@ -399,6 +399,7 @@ export * from './ui/menu-config.interface';
 export * from './ui/module-card.interface';
 export * from './ui/native-app.interface';
 export * from './ui/navigation.interface';
+export * from './ui/navigation-start.interface';
 export * from './ui/overview-card.interface';
 export * from './ui/platform-badge-config.interface';
 export * from './ui/provider-brand.interface';

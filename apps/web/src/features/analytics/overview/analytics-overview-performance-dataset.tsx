@@ -15,8 +15,8 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentPerformanceService } from '@services/analytics/content-performance.service';
 import { logger } from '@services/core/logger.service';
-import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';

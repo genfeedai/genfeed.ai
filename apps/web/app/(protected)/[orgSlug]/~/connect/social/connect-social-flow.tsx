@@ -91,7 +91,7 @@ export default function ConnectSocialFlow() {
             </p>
           ) : null}
           {errorMessage ? (
-            <Alert variant="destructive">
+            <Alert variant="destructive" icon={false}>
               <AlertTitle>{translate('failedTitle')}</AlertTitle>
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>

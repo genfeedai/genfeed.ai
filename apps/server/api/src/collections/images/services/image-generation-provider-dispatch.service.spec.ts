@@ -29,8 +29,14 @@ describe('ImageGenerationProviderDispatchService', () => {
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
   };
+  // No images runtime is configured, so genfeedai models run on the
+  // self-hosted ComfyUI path.
   const comfyUIService = {
     generateImage: vi.fn(),
+    isConfigured: vi.fn().mockReturnValue(true),
+  };
+  const managedInferenceRuntimeService = {
+    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
   };
   const failedGenerationService = {
     notifyFailedImageGeneration: vi.fn(),
@@ -90,7 +96,11 @@ describe('ImageGenerationProviderDispatchService', () => {
   };
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
+    new GenfeedAiImageGenerationProviderAdapter(
+      managedInferenceRuntimeService as never,
+      comfyUIService as never,
+      {} as never,
+    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),

@@ -9,7 +9,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';

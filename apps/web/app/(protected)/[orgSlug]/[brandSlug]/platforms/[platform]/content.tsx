@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -8,12 +7,12 @@ import {
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
-import { EmptyStateCard } from '@ui/card/EmptyState';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   Calendar,
   ChartColumn,
@@ -109,7 +108,8 @@ export default function PlatformHomePage({
     return (
       <Container label={translate('title', { platform: platformLabel })}>
         <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
-          <EmptyStateCard
+          <EmptyState
+            surface="card"
             title={translate('empty.title', { platform: platformLabel })}
             icon={Plug}
             action={{

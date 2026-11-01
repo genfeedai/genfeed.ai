@@ -1,8 +1,9 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Calendar } from 'lucide-react';
 import type { AnnouncementHistoryListProps as Props } from '@/features/admin/props/announcements.props';
 
@@ -40,7 +41,7 @@ export default function AnnouncementHistoryList({
           <SkeletonCard key={key} showImage={false} />
         ))
       ) : announcements.length === 0 ? (
-        <CardEmpty label="No announcements yet" />
+        <EmptyState surface="card" title="No announcements yet" />
       ) : (
         announcements.map((announcement) => (
           <div
@@ -55,7 +56,7 @@ export default function AnnouncementHistoryList({
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-2">
               {announcement.channels.discord && (
-                <Badge variant="blue">Discord</Badge>
+                <Badge variant="info">Discord</Badge>
               )}
               {announcement.channels.twitter && (
                 <Badge variant="outline">Twitter/X</Badge>

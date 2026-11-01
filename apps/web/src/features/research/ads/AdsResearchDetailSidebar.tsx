@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   CardPadding,
@@ -20,8 +19,8 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
@@ -58,6 +57,7 @@ type AdPackPanelProps = {
 
 function AdPackPanel({ adPack }: AdPackPanelProps) {
   return (
+    // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole ad pack, not a notice
     <div className="space-y-4 rounded-md bg-emerald-500/5 p-4">
       <div className="flex items-center gap-2">
         <Badge variant="success">Ad Pack Ready</Badge>
@@ -141,7 +141,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {adPack.campaignRecipe.placements.map((placement) => (
-            <Badge key={placement} variant="ghost">
+            <Badge key={placement} variant="secondary">
               {placement}
             </Badge>
           ))}
@@ -159,6 +159,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
   const { href } = useOrgUrl();
 
   return (
+    // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole launch plan, not a notice
     <div className="space-y-4 rounded-md bg-amber-500/5 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -167,7 +168,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
             No external ad objects were created
           </span>
         </div>
-        <Badge variant="ghost">{prep.publishMode}</Badge>
+        <Badge variant="secondary">{prep.publishMode}</Badge>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -286,7 +287,7 @@ export function DetailSidebar({
         <>
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="ghost">
+              <Badge variant="secondary">
                 {detail.platform === AdsPlatform.META
                   ? 'Meta Ads'
                   : detail.platform === AdsPlatform.TIKTOK
@@ -296,7 +297,7 @@ export function DetailSidebar({
                       : 'Google Ads'}
               </Badge>
               {detail.channel !== AdsChannel.ALL && (
-                <Badge variant="ghost">{detail.channel}</Badge>
+                <Badge variant="secondary">{detail.channel}</Badge>
               )}
               {detail.status && <Badge status={detail.status} />}
               {detail.isSavedSnapshot && (
@@ -367,7 +368,7 @@ export function DetailSidebar({
                           {pattern.label}
                         </span>
                         {typeof pattern.score === 'number' && (
-                          <Badge variant="ghost">
+                          <Badge variant="secondary">
                             {formatMetric(pattern.score)}
                           </Badge>
                         )}
@@ -399,7 +400,7 @@ export function DetailSidebar({
           </div>
 
           {actionError && (
-            <Alert type={AlertCategory.ERROR}>
+            <Alert variant="destructive">
               <div className="text-xs">{actionError}</div>
             </Alert>
           )}
@@ -491,7 +492,7 @@ export function DetailSidebar({
           {workflowResult && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="mb-2 flex items-center gap-2">
-                <Badge variant="primary">Workflow Created</Badge>
+                <Badge variant="default">Workflow Created</Badge>
                 <span className="text-sm font-medium text-foreground">
                   {workflowResult.workflowName}
                 </span>

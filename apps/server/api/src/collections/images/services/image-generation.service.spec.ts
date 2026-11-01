@@ -199,7 +199,13 @@ const createService = () => {
       templateVersion: '1.0.0',
     }),
   };
-  const comfyUIService = { generateImage: vi.fn() };
+  const comfyUIService = {
+    generateImage: vi.fn(),
+    isConfigured: vi.fn().mockReturnValue(true),
+  };
+  const managedInferenceRuntimeService = {
+    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
+  };
   const klingAIService = { queueGenerateImage: vi.fn() };
   const leonardoaiService = {
     generateImage: vi.fn().mockResolvedValue('leo-gen'),
@@ -316,7 +322,11 @@ const createService = () => {
   };
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
+    new GenfeedAiImageGenerationProviderAdapter(
+      managedInferenceRuntimeService as never,
+      comfyUIService as never,
+      {} as never,
+    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),

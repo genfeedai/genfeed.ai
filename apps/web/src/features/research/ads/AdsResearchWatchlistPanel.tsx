@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   CardPadding,
@@ -16,7 +15,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -263,13 +262,13 @@ export function AdsResearchWatchlistPanel({
       </div>
 
       {addError || loadError ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="text-xs">{addError || loadError}</div>
         </Alert>
       ) : null}
 
       {blockedPlatforms.length > 0 ? (
-        <Alert type={AlertCategory.INFO}>
+        <Alert variant="info">
           <div className="space-y-1 text-xs">
             <div className="font-medium">
               {translate('archivesUnavailable')}

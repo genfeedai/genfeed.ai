@@ -3,13 +3,13 @@
 import { PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
-import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
@@ -27,10 +27,6 @@ import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
 
 const USER_SORT_KEYS = ['name', 'email', 'createdAt', 'lastActiveAt'];
-
-function formatUserDate(value: string | Date | null | undefined): string {
-  return formatDate(value, DATE_FORMATS.DISPLAY_DATETIME) || EMPTY_VALUE;
-}
 
 export default function UsersList() {
   const queryClient = useQueryClient();
@@ -109,13 +105,13 @@ export default function UsersList() {
       header: translate('columns.joined'),
       key: 'createdAt',
       sortable: true,
-      render: (u: IUser) => formatUserDate(u.createdAt),
+      render: (u: IUser) => <TableDateCell value={u.createdAt} />,
     },
     {
       header: translate('columns.lastConnected'),
       key: 'lastActiveAt',
       sortable: true,
-      render: (u: IUser) => formatUserDate(u.lastActiveAt),
+      render: (u: IUser) => <TableDateCell value={u.lastActiveAt} />,
     },
   ];
 

@@ -73,8 +73,8 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 function buildSummary(overrides: Record<string, unknown> = {}) {

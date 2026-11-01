@@ -790,7 +790,7 @@ describe('OperationalHomeContent', () => {
     expect(
       metrics.querySelectorAll('[data-testid="metric-card"]'),
     ).toHaveLength(5);
-    expect(metrics.querySelectorAll('.animate-pulse')).toHaveLength(2);
+    expect(metrics.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(2);
     expect(
       within(screen.getByTestId('operational-home-publishing')).queryByRole(
         'status',

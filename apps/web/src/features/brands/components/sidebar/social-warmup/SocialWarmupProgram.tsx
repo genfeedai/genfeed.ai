@@ -246,7 +246,7 @@ export default function SocialWarmupProgram({
 
   if (enrollError || error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" icon={false}>
         <AlertTitle>{translate('programTitle')}</AlertTitle>
         <AlertDescription className="space-y-3">
           <p>{enrollError ?? translate('enrollError')}</p>
@@ -268,7 +268,7 @@ export default function SocialWarmupProgram({
 
   if (data && !enrolledBlueprint) {
     return (
-      <Alert variant="warning">
+      <Alert variant="warning" icon={false}>
         <AlertTitle>{translate('programTitle')}</AlertTitle>
         <AlertDescription>{translate('blueprintMissing')}</AlertDescription>
       </Alert>
@@ -367,13 +367,13 @@ export default function SocialWarmupProgram({
       </p>
 
       {signalsError ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" icon={false}>
           <AlertDescription>{signalsError}</AlertDescription>
         </Alert>
       ) : null}
 
       {health?.override.isActive ? (
-        <Alert variant="info">
+        <Alert variant="info" icon={false}>
           <AlertTitle>{translate('overrideActive')}</AlertTitle>
           <AlertDescription>
             {health.override.reason}
@@ -385,7 +385,7 @@ export default function SocialWarmupProgram({
       ) : null}
 
       {health?.holdPublishing || model.unresolvedChecks.length > 0 ? (
-        <Alert variant="warning">
+        <Alert variant="warning" icon={false}>
           <AlertTitle>
             {health?.holdPublishing
               ? translate('holdTitle')

@@ -1254,6 +1254,7 @@
       "needsYou": "Needs you",
       "readyForReview": "Ready for review",
       "recent": "Recent",
+      "resolved": "Resolved",
       "working": "Working"
     },
     "loadFailed": "Failed to load this thread.",
@@ -1264,6 +1265,10 @@
     "openFull": "Open full page",
     "openOutput": "Open output",
     "outputs": "Outputs",
+    "reopen": "Reopen",
+    "reopenToSteer": "Reopen this thread to steer it.",
+    "resolve": "Resolve",
+    "resolved": "Resolved",
     "roleAgent": "Agent",
     "roleYou": "You",
     "search": "Search threads",
@@ -2851,6 +2856,9 @@
       "label": "Platform",
       "description": "Superadmin settings, access, flags and messaging."
     }
+  },
+  "navigationProgress": {
+    "loading": "Loading page"
   },
   "windowChrome": {
     "back": "Back",

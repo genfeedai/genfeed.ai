@@ -19,10 +19,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialTimelinesService } from '@services/social/social-timelines.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { AtSign, RefreshCw } from 'lucide-react';
@@ -309,7 +309,7 @@ export default function ConnectedTimelines() {
                         ? 'success'
                         : account.status === 'unsupported' ||
                             account.status === 'not_synced'
-                          ? 'ghost'
+                          ? 'secondary'
                           : 'warning'
                     }
                   >

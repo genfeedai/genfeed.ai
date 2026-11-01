@@ -1,8 +1,9 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Check, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface AiTextActionCardProps {
@@ -48,14 +49,9 @@ export function AiTextActionCard({
 
   if (isApplied) {
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            &quot;{selectedAction}&quot; applied
-          </span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        &quot;{selectedAction}&quot; applied
+      </Alert>
     );
   }
 

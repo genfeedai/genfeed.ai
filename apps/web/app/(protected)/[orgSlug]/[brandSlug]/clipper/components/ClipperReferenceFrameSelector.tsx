@@ -3,6 +3,7 @@ import type {
   ClipperReferenceFrameCandidate,
   ClipperReferenceFrameDiagnostic,
 } from '@genfeedai/contracts/interfaces';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import type { ClipperReferenceFrameSelectorProps } from '@/props/studio/clipper.props';
@@ -35,7 +36,7 @@ function renderDiagnostics(diagnostics: ClipperReferenceFrameDiagnostic[]) {
   const hiddenCount = diagnostics.length - visibleDiagnostics.length;
 
   return (
-    <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-xs text-foreground/80">
+    <Alert className="mt-3" size="sm" variant="warning">
       {visibleDiagnostics.map((diagnostic) => (
         <p key={`${diagnostic.code}-${diagnostic.candidateId ?? 'set'}`}>
           {diagnostic.message}
@@ -46,7 +47,7 @@ function renderDiagnostics(diagnostics: ClipperReferenceFrameDiagnostic[]) {
           {hiddenCount} more diagnostic{hiddenCount === 1 ? '' : 's'} not shown.
         </p>
       ) : null}
-    </div>
+    </Alert>
   );
 }
 
@@ -167,21 +168,20 @@ export default function ClipperReferenceFrameSelector({
       {renderDiagnostics(diagnostics)}
 
       {error ? (
-        <div
-          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2"
-          role="alert"
-        >
-          <p className="text-xs text-destructive">{error}</p>
-          <Button
-            className="text-xs"
-            isDisabled={pendingCandidateId !== null}
-            label="Retry selection"
-            onClick={onRetry}
-            type="button"
-            variant={ButtonVariant.LINK}
-            withWrapper={false}
-          />
-        </div>
+        <Alert className="mt-3" size="sm" variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+          <AlertActions>
+            <Button
+              className="text-xs"
+              isDisabled={pendingCandidateId !== null}
+              label="Retry selection"
+              onClick={onRetry}
+              type="button"
+              variant={ButtonVariant.LINK}
+              withWrapper={false}
+            />
+          </AlertActions>
+        </Alert>
       ) : null}
     </fieldset>
   );

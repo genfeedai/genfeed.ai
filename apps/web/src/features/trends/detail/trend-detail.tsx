@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -13,10 +13,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buildTrendAgentHref } from '@utils/url/desktop-loop-url.util';
 import {
@@ -38,33 +38,33 @@ import TrendDetailRelatedTable from './trend-detail-related-table';
 const TREND_KPI_METRICS = [
   {
     icon: Hash,
-    iconClassName: 'bg-primary/10 text-primary',
+    tone: 'primary' as const,
     key: 'mentions',
   },
   {
     icon: TrendingUp,
-    iconClassName: 'bg-success/10 text-success',
+    tone: 'success' as const,
     key: 'growthRate',
   },
   {
     icon: Sparkles,
-    iconClassName: 'bg-muted/10 text-muted-foreground',
+    tone: 'muted' as const,
     key: 'viralityScore',
   },
   {
     analyticsMetric: 'engagementRate' as const,
     icon: Flame,
-    iconClassName: 'bg-accent/10 text-accent',
+    tone: 'accent' as const,
     key: 'engagementRate',
   },
   {
     icon: Globe,
-    iconClassName: 'bg-info/10 text-info',
+    tone: 'info' as const,
     key: 'reach',
   },
   {
     icon: ChartColumn,
-    iconClassName: 'bg-warning/10 text-warning',
+    tone: 'warning' as const,
     key: 'impressions',
   },
 ] as const;
@@ -118,7 +118,7 @@ export default function TrendDetail({
   if (error) {
     return (
       <Container label={translate('error')} icon={Flame}>
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           {error}
           <Button
             label={translate('goBack')}
@@ -133,7 +133,7 @@ export default function TrendDetail({
   if (!isLoading && !data) {
     return (
       <Container label={translate('error')} icon={Flame}>
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           {translate('notFound')}
           <Button
             label={translate('goBack')}
@@ -154,55 +154,48 @@ export default function TrendDetail({
         {
           ...metricCopy('mentions'),
           icon: Hash,
-          iconClassName: 'bg-primary/10 text-primary',
           value: formatCompactNumber(trend.mentions),
-          valueClassName: 'text-primary',
+          tone: 'primary' as const,
         },
         {
           ...metricCopy('growthRate'),
           icon: TrendingUp,
-          iconClassName:
-            trend.growthRate > 0
-              ? 'bg-success/10 text-success'
-              : 'bg-destructive/10 text-destructive',
           value: `${trend.growthRate > 0 ? '+' : ''}${trend.growthRate}%`,
-          valueClassName:
-            trend.growthRate > 0 ? 'text-success' : 'text-destructive',
+          tone:
+            trend.growthRate > 0
+              ? ('success' as const)
+              : ('destructive' as const),
         },
         {
           ...metricCopy('viralityScore'),
           icon: Sparkles,
-          iconClassName: 'bg-muted/10 text-muted-foreground',
           value: `${trend.viralityScore}/100`,
-          valueClassName: 'text-muted-foreground',
+          tone: 'muted' as const,
         },
         {
           ...metricCopy('engagementRate'),
           icon: Flame,
-          iconClassName: 'bg-accent/10 text-accent',
           analyticsMetric: 'engagementRate' as const,
           value: trend.metadata?.engagementRate
             ? `${trend.metadata.engagementRate.toFixed(1)}%`
             : '-',
-          valueClassName: 'text-accent',
+          tone: 'accent' as const,
         },
         {
           ...metricCopy('reach'),
           icon: Globe,
-          iconClassName: 'bg-info/10 text-info',
           value: trend.metadata?.reach
             ? formatCompactNumber(trend.metadata.reach)
             : '-',
-          valueClassName: 'text-info',
+          tone: 'info' as const,
         },
         {
           ...metricCopy('impressions'),
           icon: ChartColumn,
-          iconClassName: 'bg-warning/10 text-warning',
           value: trend.metadata?.impressions
             ? formatCompactNumber(trend.metadata.impressions)
             : '-',
-          valueClassName: 'text-warning',
+          tone: 'warning' as const,
         },
       ]
     : TREND_KPI_METRICS.map(({ key, ...metric }) => ({

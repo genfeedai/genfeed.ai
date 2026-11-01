@@ -1,6 +1,6 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { Props } from '@/features/analytics/props/hook-analysis-section.props';
 
 const REACH_LIMIT = 5;

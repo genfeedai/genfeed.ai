@@ -3,7 +3,6 @@
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import type { KnowledgeSource } from '@genfeedai/client/models';
 import {
-  AlertCategory,
   ButtonVariant,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -14,7 +13,6 @@ import type {
   KnowledgeSourceCaptureRequest,
   KnowledgeSourceUpdateRequest,
 } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   KnowledgeSourceRow,
@@ -27,7 +25,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isServiceOperationError } from '@services/core/operation-error';
 import AppTable from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
+import TableDateCell from '@ui/display/table/TableDateCell';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -506,7 +505,7 @@ export default function KnowledgeSourcesList({
     {
       header: translate('captured'),
       key: 'observedAt',
-      render: (row) => (row.version ? formatDate(row.version.observedAt) : '-'),
+      render: (row) => <TableDateCell value={row.version?.observedAt} />,
     },
   ];
 
@@ -537,7 +536,7 @@ export default function KnowledgeSourcesList({
       ) : null}
 
       {(selectionError || isInvalidSelection) && !isLoading ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{translate('loadError')}</span>
             <Button
@@ -552,7 +551,7 @@ export default function KnowledgeSourcesList({
       ) : null}
 
       {error && !isLoading ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
             <Button

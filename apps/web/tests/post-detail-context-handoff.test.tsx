@@ -78,8 +78,8 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 const post = {

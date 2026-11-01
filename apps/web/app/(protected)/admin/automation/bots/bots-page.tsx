@@ -1,5 +1,4 @@
 'use client';
-
 import {
   BotStatus,
   ComponentSize,
@@ -12,12 +11,13 @@ import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -39,7 +39,7 @@ const BOT_SKELETON_KEYS = [
 // `secondary` is the deliberate-stop treatment for a normally stopped bot.
 function getBotStatusVariant(
   status: string,
-): 'success' | 'warning' | 'error' | 'secondary' {
+): 'success' | 'warning' | 'destructive' | 'secondary' {
   switch (status) {
     case BotStatus.ACTIVE:
       return 'success';
@@ -48,7 +48,7 @@ function getBotStatusVariant(
     case BotStatus.STOPPED:
       return 'secondary';
     default:
-      return 'error';
+      return 'destructive';
   }
 }
 
@@ -136,8 +136,8 @@ export default function BotsPage() {
               <SkeletonCard key={key} showImage={false} />
             ))
           ) : bots.length === 0 ? (
-            <CardEmptyContent
-              label={search ? 'No bots match your search' : 'No bots yet'}
+            <EmptyState
+              title={search ? 'No bots match your search' : 'No bots yet'}
             />
           ) : (
             bots.map((bot: Bot) => (

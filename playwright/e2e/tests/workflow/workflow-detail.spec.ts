@@ -58,7 +58,7 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
       .poll(() => workflowPage.getNodeCount())
       .toBe(workflow.nodes.length);
     await expect(
-      authenticatedPage.locator('.border-destructive\\/20.bg-destructive\\/10'),
+      authenticatedPage.getByTestId('workflow-cloud-error'),
     ).toHaveCount(0);
   });
 
@@ -99,7 +99,7 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
       .poll(() => workflowPage.getNodeCount())
       .toBe(workflow.nodes.length);
     await expect(
-      authenticatedPage.locator('.border-destructive\\/20.bg-destructive\\/10'),
+      authenticatedPage.getByTestId('workflow-cloud-error'),
     ).toHaveCount(0);
   });
 

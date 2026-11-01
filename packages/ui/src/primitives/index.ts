@@ -14,7 +14,8 @@ export {
 export { Alert, AlertDescription, AlertTitle } from './alert';
 export { Avatar } from './avatar';
 export { Badge, type BadgeProps } from './badge';
-export { badgeVariants } from './badge.variants';
+export { type BadgeStatus, getBadgeStatus } from './badge.status';
+export { type BadgeVariant, badgeVariants } from './badge.variants';
 export {
   Blockquote,
   type BlockquoteProps,
@@ -108,6 +109,7 @@ export {
   default as DropzoneField,
 } from './dropzone-field';
 export { EditableText, type EditableTextProps } from './editable-text';
+export { EmptyState } from './empty-state';
 export {
   default as Field,
   type FieldElementProps,

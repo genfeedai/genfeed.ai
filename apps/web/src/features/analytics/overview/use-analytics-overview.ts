@@ -280,7 +280,6 @@ export function useAnalyticsOverview({
         analyticsMetric: 'engagementRate' as const,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
-        valueClassName: 'text-4xl',
       },
       {
         label: 'Active Platforms',
@@ -346,7 +345,7 @@ export function useAnalyticsOverview({
 
   const heroContent = useMemo<DashboardHeroContent | null>(() => {
     // Active dashboards need no status strip — metrics and charts carry the page.
-    // Empty is a page-level blocker (EmptyStateCard), not a banner over zeros.
+    // Empty is a page-level blocker (EmptyState surface="card"), not a banner over zeros.
     // Warming_up keeps a compact badge + next-action row (no in-page H1;
     // the shell breadcrumb owns page identity).
     if (scope === PageScope.SUPERADMIN || dashboardState !== 'warming_up') {

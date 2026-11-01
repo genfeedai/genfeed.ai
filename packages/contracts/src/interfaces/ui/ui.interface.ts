@@ -100,13 +100,6 @@ export interface ILoadingProps extends IBaseComponentProps {
   variant?: 'spinner' | 'dots' | 'bars';
 }
 
-export interface IEmptyStateProps extends IBaseComponentProps {
-  title?: string;
-  description?: string;
-  icon?: IconType | ReactNode;
-  action?: ReactNode;
-}
-
 export interface IPaginationProps extends IBaseComponentProps {
   currentPage: number;
   totalPages: number;

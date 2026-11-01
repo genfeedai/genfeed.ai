@@ -3,7 +3,6 @@ import {
   ButtonVariant,
   CardGap,
   CardVariant,
-  ComponentSize,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -16,14 +15,14 @@ import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflo
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
-import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -109,12 +108,7 @@ function WorkflowExecutionCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Badge
-            status={execution.status.toLowerCase()}
-            size={ComponentSize.SM}
-          >
-            {statusLabel}
-          </Badge>
+          <Badge status={execution.status.toLowerCase()}>{statusLabel}</Badge>
           <p className="truncate text-sm font-semibold text-foreground">
             {label}
           </p>
@@ -347,7 +341,7 @@ export function DashboardRecentActivity({
                 description={message}
                 key={task.id}
                 leading={
-                  <Badge status={task.status} size={ComponentSize.SM}>
+                  <Badge status={task.status}>
                     {task.status.replaceAll('_', ' ')}
                   </Badge>
                 }
@@ -366,7 +360,7 @@ export function DashboardRecentActivity({
           })}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentActivity.empty')} />
+        <EmptyState title={translate('recentActivity.empty')} />
       )}
     </WorkspaceSurface>
   );
@@ -424,7 +418,7 @@ export function DashboardRecentTasks({
               density="compact"
               key={task.id}
               leading={
-                <Badge status={task.status} size={ComponentSize.SM}>
+                <Badge status={task.status}>
                   {task.status.replaceAll('_', ' ')}
                 </Badge>
               }
@@ -442,7 +436,7 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentTasks.empty')} />
+        <EmptyState title={translate('recentTasks.empty')} />
       )}
     </WorkspaceSurface>
   );

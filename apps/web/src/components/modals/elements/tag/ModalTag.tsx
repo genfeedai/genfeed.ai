@@ -1,10 +1,5 @@
 import { type TagSchema, tagSchema } from '@genfeedai/client/schemas';
-import {
-  AlertCategory,
-  ButtonVariant,
-  ModalEnum,
-  TagCategory,
-} from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum, TagCategory } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
@@ -14,9 +9,9 @@ import type { Tag } from '@genfeedai/models/content/tag.model';
 import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import type { BaseService } from '@genfeedai/services/core/base.service';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -175,7 +170,7 @@ export default function ModalTag({
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

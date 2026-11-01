@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
-import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
 

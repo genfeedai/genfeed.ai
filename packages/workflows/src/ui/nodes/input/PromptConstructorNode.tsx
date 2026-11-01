@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   AvailableVariable,
   PromptConstructorNodeData,
@@ -9,6 +8,7 @@ import type {
   PromptNodeData,
 } from '@genfeedai/contracts/types';
 import { Textarea, ToggleGroup, ToggleGroupItem } from '@genfeedai/ui';
+import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';
@@ -313,19 +313,16 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
-          <div className="px-2 py-1 bg-warning/10 border border-warning/20 rounded text-2xs text-warning">
+          <Alert size="sm" variant="warning">
             <span className="font-semibold">Unresolved:</span>{' '}
             {unresolvedVars.map((v) => `@${v}`).join(', ')}
-          </div>
+          </Alert>
         )}
 
         {jsonWarning ? (
-          <div
-            className="px-2 py-1 bg-warning/10 border border-warning/20 rounded text-2xs text-warning"
-            data-testid="json-warning"
-          >
+          <Alert data-testid="json-warning" size="sm" variant="warning">
             {jsonWarning}
-          </div>
+          </Alert>
         ) : null}
 
         {/* Template textarea with autocomplete */}

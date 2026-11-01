@@ -2,12 +2,7 @@ import {
   type ElementStyleSchema,
   elementStyleSchema,
 } from '@genfeedai/client/schemas';
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IElementStyle } from '@genfeedai/contracts/interfaces';
 import {
@@ -16,9 +11,9 @@ import {
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { StylesService } from '@genfeedai/services/elements/styles.service';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -76,7 +71,7 @@ export default function ModalStyle({
     <Modal id={ModalEnum.STYLE} title={item ? 'Edit Style' : 'Create Style'}>
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

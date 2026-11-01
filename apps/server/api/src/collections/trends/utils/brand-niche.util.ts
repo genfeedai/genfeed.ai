@@ -90,23 +90,23 @@ function videoSearchText(video: TrendingVideoDocument): string {
 }
 
 /**
- * How many of the brand's niche terms a video mentions in its caption or
- * hashtags. A term matches when every one of its words appears (`ai` only as a
- * whole word) or when it appears run together as a hashtag (`#aiinfluencers`).
+ * The brand's niche terms a video mentions in its caption or hashtags. A term
+ * matches when every one of its words appears (`ai` only as a whole word) or
+ * when it appears run together as a hashtag (`#aiinfluencers`).
  */
-export function countNicheTermMatches(
+export function matchedNicheTerms(
   video: TrendingVideoDocument,
   terms: string[],
-): number {
+): string[] {
   const text = normalizeTerm(videoSearchText(video));
   if (!text) {
-    return 0;
+    return [];
   }
   const words = new Set(text.split(' '));
   const hashtags = (video.hashtags ?? []).map((tag) =>
     normalizeTerm(tag).replace(/\s/g, ''),
   );
-  let matches = 0;
+  const matched: string[] = [];
   for (const term of terms) {
     const termWords = tokenize(term);
     if (termWords.length === 0) {
@@ -121,10 +121,18 @@ export function countNicheTermMatches(
       compactTerm.length >= 5 &&
       hashtags.some((tag) => tag.includes(compactTerm));
     if (hasAllWords || isHashtagMatch) {
-      matches += 1;
+      matched.push(term);
     }
   }
-  return matches;
+  return matched;
+}
+
+/** How many of the brand's niche terms a video mentions. */
+export function countNicheTermMatches(
+  video: TrendingVideoDocument,
+  terms: string[],
+): number {
+  return matchedNicheTerms(video, terms).length;
 }
 
 /**

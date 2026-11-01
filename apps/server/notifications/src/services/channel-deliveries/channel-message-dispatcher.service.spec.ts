@@ -182,6 +182,42 @@ describe('ChannelMessageDispatcherService', () => {
     });
   });
 
+  it('passes the account behind an ingredient to the Discord service', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+
+    await dispatcher.dispatch(
+      request({
+        action: 'ingredient_notification',
+        payload: {
+          category: IngredientCategory.VIDEO,
+          cdnUrl: 'https://cdn.example.com/v.mp4',
+          ingredient: {
+            id: 'ingredient-3',
+            owner: {
+              creditBalance: 13,
+              organizationLabel: 'Acme',
+              userEmail: 'owner@example.com',
+            },
+          },
+        },
+        type: 'discord',
+      }),
+    );
+
+    expect(discord.sendIngredientNotification).toHaveBeenCalledWith(
+      IngredientCategory.VIDEO,
+      'https://cdn.example.com/v.mp4',
+      expect.objectContaining({
+        owner: {
+          creditBalance: 13,
+          organizationLabel: 'Acme',
+          userEmail: 'owner@example.com',
+        },
+      }),
+      undefined,
+    );
+  });
+
   it('passes the storyboard context of a still to the Discord service', async () => {
     const { discord, dispatcher } = makeDispatcher();
 

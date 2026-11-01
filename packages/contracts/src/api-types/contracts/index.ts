@@ -84,6 +84,7 @@ export * from './template-ranking.contract';
 export * from './tiktok-authorized-signals.contract';
 export * from './tiktok-publishing.contract';
 export * from './trend-content-ideas.contract';
+export * from './trend-digest-angles.contract';
 export * from './twitter-authorized-signals.contract';
 export * from './twitter-opportunities.contract';
 export * from './video-generation-brief-compiler.contract';

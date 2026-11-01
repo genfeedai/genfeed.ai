@@ -57,6 +57,12 @@ describe('storyboard prompt bar', () => {
       'Ask for changes',
     );
   });
+  it('asks for changes to slides, not shots, on a slideshow', () => {
+    renderBar({ hasShots: true, isSlideshow: true });
+    expect(screen.getByTestId('placeholder')).toHaveTextContent(
+      'reword slide 3',
+    );
+  });
   it('hands the text on and lets the composer clear straight away', () => {
     const onSubmit = vi.fn();
     renderBar({ onSubmit });

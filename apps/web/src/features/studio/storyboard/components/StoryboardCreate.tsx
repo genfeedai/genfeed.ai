@@ -25,11 +25,16 @@ import { Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { StoryboardPreset } from '@/features/studio/props/storyboard-presets.props';
+import type {
+  StoryboardPitch,
+  StoryboardPreset,
+} from '@/features/studio/props/storyboard-presets.props';
 import { resolveAgentPromptAuthor } from '@/features/studio/shared/utils/agent-prompt-author';
 import StoryboardAgentBriefs from '@/features/studio/storyboard/components/StoryboardAgentBriefs';
+import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
 import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
+import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard-pitches';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
@@ -69,6 +74,7 @@ export default function StoryboardCreate() {
   >('brief');
   const isLongForm = mode === 'longForm';
   const isSlideshow = mode === 'slideshow';
+  const pitchKind = isSlideshow ? 'slideshow' : 'longForm';
   const formats = isSlideshow ? SLIDESHOW_FORMATS : VIDEO_FORMATS;
   const maxBriefLength = isLongForm
     ? MAX_LONG_FORM_BRIEF_LENGTH
@@ -163,6 +169,10 @@ export default function StoryboardCreate() {
     setAgentBrief(null);
     setFormat(preset.format);
     setBudget(String(preset.runtimeBudgetSeconds));
+  }
+  function applyPitch(pitch: StoryboardPitch) {
+    setBrief(pitch.brief);
+    setAgentBrief(null);
   }
   function applyAgentBrief(proposal: StudioStoryboardProposal) {
     const draft = buildStoryboardAgentBrief(
@@ -395,9 +405,21 @@ export default function StoryboardCreate() {
             {video?.title || translate('chooseOwnedVideo')}
           </p>
         ) : isLongForm || isSlideshow ? (
-          <p className="text-sm text-muted-foreground">
-            {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
-          </p>
+          <>
+            <p className="text-sm text-muted-foreground">
+              {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
+            </p>
+            <StoryboardPitchCards
+              activePitchId={
+                STORYBOARD_PITCHES[pitchKind].find(
+                  (pitch) => pitch.brief === brief,
+                )?.id
+              }
+              isDisabled={isCreating}
+              kind={pitchKind}
+              onSelect={applyPitch}
+            />
+          </>
         ) : (
           <>
             <StoryboardAgentBriefs

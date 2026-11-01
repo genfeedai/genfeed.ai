@@ -103,4 +103,57 @@ describe('cards guard', () => {
       'hand-built-card',
     ]);
   });
+
+  it.each([
+    [
+      'a label above a big value',
+      '<div><p className="text-xs uppercase text-muted-foreground">Views</p><p className="mt-2 text-2xl font-semibold">{views}</p></div>',
+    ],
+    [
+      'a big value above a label',
+      '<div><div className="text-2xl font-semibold">{views}</div><p className="text-2xs text-foreground/60">Views</p></div>',
+    ],
+    [
+      'a definition list pair',
+      '<div><dt className="text-sm">Views</dt><dd className="text-2xl font-semibold">{views}</dd></div>',
+    ],
+    [
+      'a muted Text label',
+      '<div><Text as="p" size="sm" color="muted">Left</Text><p className="text-3xl font-bold">{left}</p></div>',
+    ],
+    [
+      'a value behind a loading ternary',
+      '<div>{isLoading ? <Skeleton /> : <div className="text-2xl font-semibold">{views}</div>}<p className="text-2xs uppercase">Views</p></div>',
+    ],
+  ])('flags a hand-built stat tile: %s', (_name, jsx) => {
+    expect(rulesFor(jsx)).toEqual(['hand-built-stat']);
+  });
+
+  it.each([
+    [
+      'a heading next to a caption',
+      '<div><h2 className="text-2xl font-semibold">{title}</h2><p className="text-sm text-muted-foreground">x</p></div>',
+    ],
+    [
+      'a big caption without a muted label',
+      '<div><span className="text-xs font-medium">Model</span><p className="text-2xl font-semibold">{caption}</p></div>',
+    ],
+    [
+      'a big static string',
+      '<div><p className="text-2xl font-semibold">Hello</p><p className="text-sm text-muted-foreground">x</p></div>',
+    ],
+    [
+      'an allowed one-off',
+      '<div>{/* ui-guard-allow:hand-built-stat -- balance meter */}<p className="text-3xl font-semibold">{left}</p><p className="text-sm text-muted-foreground">Left</p></div>',
+    ],
+  ])('allows %s', (_name, jsx) => {
+    expect(rulesFor(jsx)).toEqual([]);
+  });
+
+  it('skips marketing pages, which own their own display type', () => {
+    const source =
+      'export const X = () => (<div><p className="text-xs text-muted-foreground">Stars</p><p className="text-3xl font-bold">{stars}</p></div>);';
+
+    expect(scanSource(source, 'apps/marketing/app/page.tsx')).toEqual([]);
+  });
 });

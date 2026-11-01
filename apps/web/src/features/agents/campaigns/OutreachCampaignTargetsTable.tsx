@@ -7,14 +7,15 @@ import {
 } from '@genfeedai/contracts';
 import type { TableAction } from '@props/ui/display/table.props';
 import type { CampaignTarget } from '@services/automation/outreach-campaigns.service';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
 
 const targetStatusVariants: Record<
   string,
-  'success' | 'warning' | 'secondary' | 'error'
+  'success' | 'warning' | 'secondary' | 'destructive'
 > = {
   [CampaignTargetStatus.PENDING]: 'secondary',
   [CampaignTargetStatus.SCHEDULED]: 'secondary',
@@ -22,7 +23,7 @@ const targetStatusVariants: Record<
   [CampaignTargetStatus.REPLIED]: 'success',
   [CampaignTargetStatus.SENT]: 'success',
   [CampaignTargetStatus.SKIPPED]: 'warning',
-  [CampaignTargetStatus.FAILED]: 'error',
+  [CampaignTargetStatus.FAILED]: 'destructive',
 };
 
 type Props = {
@@ -144,9 +145,7 @@ export default function OutreachCampaignTargetsTable({
         header: 'Sent At',
         key: 'sentAt',
         render: (target: CampaignTarget) => (
-          <span className="text-sm">
-            {target.dmSentAt ? new Date(target.dmSentAt).toLocaleString() : '-'}
-          </span>
+          <TableDateCell value={target.dmSentAt} />
         ),
       },
     ],

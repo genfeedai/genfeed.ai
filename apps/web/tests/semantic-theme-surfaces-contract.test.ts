@@ -246,7 +246,7 @@ describe('semantic theme surface contracts', () => {
     (relativePath) => {
       const source = readSource(relativePath);
 
-      expect(source).toContain("import Badge from '@ui/display/badge/Badge'");
+      expect(source).toContain("import { Badge } from '@ui/primitives/badge'");
       expect(source).toContain('status=');
       expect(source).not.toContain('STATUS_COLORS');
       expect(source).not.toContain('statusColors');

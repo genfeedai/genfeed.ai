@@ -204,7 +204,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   legacyUiAllowance(
     'apps/web/src/features/agents/campaigns/OutreachCampaignTargetsTable.tsx',
     'to-locale-string',
-    3,
+    2,
   ),
   legacyUiAllowance(
     'apps/web/src/features/agents/campaigns/OutreachCampaignsKPI.tsx',
@@ -235,11 +235,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'apps/web/src/features/ingredients/components/tabs/metadata/IngredientTabsMetadata.tsx',
     'to-locale-string',
     2,
-  ),
-  legacyUiAllowance(
-    'apps/web/src/features/ingredients/tabs-posts/IngredientTabsPosts.tsx',
-    'to-locale-string',
-    1,
   ),
   legacyUiAllowance(
     'apps/web/src/components/modals/automation/useModalBot.ts',

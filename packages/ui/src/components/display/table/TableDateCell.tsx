@@ -1,15 +1,16 @@
 'use client';
 
+import { useViewerTimeZone } from '@genfeedai/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import type { TableDateCellProps } from '@genfeedai/props/ui/display/table-date-cell.props';
 
-const EMPTY_CELL = '—';
+const EMPTY_CELL = '-';
 
-function toDate(value: Date | string): Date | null {
-  const date = typeof value === 'string' ? new Date(value) : value;
+function toDate(value: Date | string | number): Date | null {
+  const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function getYear(date: Date, timeZone: string | undefined): string {
+function getYear(date: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric' }).format(
     date,
   );
@@ -23,10 +24,12 @@ function getYear(date: Date, timeZone: string | undefined): string {
  */
 export default function TableDateCell({
   value,
-  timeZone,
+  timeZone: timeZoneOverride,
   hasTime = true,
 }: TableDateCellProps) {
-  const date = value ? toDate(value) : null;
+  const viewerTimeZone = useViewerTimeZone();
+  const timeZone = timeZoneOverride ?? viewerTimeZone;
+  const date = value || value === 0 ? toDate(value) : null;
 
   if (!date) {
     return <span className="text-xs text-muted-foreground">{EMPTY_CELL}</span>;

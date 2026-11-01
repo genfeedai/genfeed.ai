@@ -17,9 +17,9 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Flag, Sparkles } from 'lucide-react';
 import Link from 'next/link';

@@ -15,6 +15,7 @@ export * from './menu-config.interface';
 export * from './module-card.interface';
 export * from './native-app.interface';
 export * from './navigation.interface';
+export * from './navigation-start.interface';
 export * from './overview-card.interface';
 export * from './platform-badge-config.interface';
 export * from './provider-brand.interface';

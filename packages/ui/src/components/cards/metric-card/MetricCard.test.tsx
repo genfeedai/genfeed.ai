@@ -14,6 +14,36 @@ describe('MetricCard', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('renders the value first and the label under it', () => {
+    render(<MetricCard label="Not posted" value="13" />);
+
+    const value = screen.getByText('13');
+    const label = screen.getByText('Not posted');
+    expect(
+      value.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ['destructive', 'text-destructive'],
+    ['success', 'text-success'],
+    ['default', 'text-foreground'],
+  ] as const)('paints the %s tone on the value', (tone, className) => {
+    render(<MetricCard label="Failed" tone={tone} value="2" />);
+
+    expect(screen.getByText('2').closest('p')).toHaveClass(className);
+  });
+
+  it('renders the inset appearance as a recessed tile', () => {
+    render(<MetricCard appearance="inset" label="Total tags" value="4" />);
+
+    expect(screen.getByTestId('metric-card')).toHaveAttribute(
+      'data-appearance',
+      'inset',
+    );
+    expect(screen.getByText('Total tags')).toBeInTheDocument();
+  });
+
   it('hides trend when the prop is omitted', () => {
     const { container } = render(
       <MetricCard label="Pending posts" value="9" />,
@@ -52,7 +82,9 @@ describe('MetricCard', () => {
     expect(
       screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
     ).toBe(0);
-    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      1,
+    );
   });
 
   it('starts the counter only after the real value arrives', () => {

@@ -1,4 +1,4 @@
-import { CardEmptySize, IngredientStatus } from '..';
+import { IngredientStatus } from '..';
 
 /**
  * Gallery grid layout class - responsive columns
@@ -10,11 +10,6 @@ export const GALLERY_GRID_CLASS =
  * Gallery container padding - responsive
  */
 export const GALLERY_CONTAINER_PADDING = 'p-3 sm:p-4 md:p-6';
-
-/**
- * Gallery empty state size
- */
-export const GALLERY_EMPTY_SIZE = CardEmptySize.LG;
 
 /**
  * Default sort order for gallery items

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   formatCreditBalanceExact,
@@ -14,12 +14,12 @@ import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Button } from '@ui/primitives/button';
+import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
 import { Copy, CreditCard, Pencil, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -190,39 +190,33 @@ export default function SubscriptionsList() {
     {
       header: t('columnCustomerId'),
       key: 'stripeCustomerId',
-      render: (row: IOrganizationBilling) => {
-        const customerId = row.stripeCustomerId;
-        if (!customerId) {
-          return EMPTY_CELL;
-        }
-
-        return (
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            tooltip={t('copyCustomerId')}
-            tooltipPosition="right"
-            onClick={() => handleCopy(customerId)}
-            label={
-              <span className="flex items-center gap-2">
-                <Copy />
-                {customerId}
-              </span>
-            }
-          />
-        );
-      },
+      render: (row: IOrganizationBilling) =>
+        row.stripeCustomerId ? (
+          <span className="font-mono text-xs">{row.stripeCustomerId}</span>
+        ) : (
+          EMPTY_CELL
+        ),
     },
     {
       header: t('columnPeriodEnd'),
       key: 'currentPeriodEnd',
-      render: (row: IOrganizationBilling) =>
-        row.currentPeriodEnd
-          ? new Date(row.currentPeriodEnd).toLocaleDateString('en-US')
-          : EMPTY_CELL,
+      render: (row: IOrganizationBilling) => (
+        <TableDateCell hasTime={false} value={row.currentPeriodEnd} />
+      ),
     },
   ];
 
   const actions: TableAction<IOrganizationBilling>[] = [
+    {
+      icon: <Copy />,
+      isVisible: (row: IOrganizationBilling) => Boolean(row.stripeCustomerId),
+      onClick: (row: IOrganizationBilling) => {
+        if (row.stripeCustomerId) {
+          void handleCopy(row.stripeCustomerId);
+        }
+      },
+      tooltip: t('copyCustomerId'),
+    },
     {
       href: (row: IOrganizationBilling) =>
         row.stripeCustomerId
@@ -230,24 +224,18 @@ export default function SubscriptionsList() {
           : undefined,
       icon: <CreditCard />,
       isExternal: true,
-      size: ButtonSize.SM,
       tooltip: t('openStripe'),
-      variant: ButtonVariant.SECONDARY,
     },
     {
       icon: <ShieldAlert />,
       onClick: (row: IOrganizationBilling) => setHoldsOrganization(row),
-      size: ButtonSize.SM,
       tooltip: t('reviewHolds'),
-      variant: ButtonVariant.SECONDARY,
     },
     {
       icon: <Pencil />,
       onClick: (row: IOrganizationBilling) =>
         openSubscriptionModal(row.organizationId),
-      size: ButtonSize.SM,
       tooltip: t('editSubscription'),
-      variant: ButtonVariant.DEFAULT,
     },
   ];
 

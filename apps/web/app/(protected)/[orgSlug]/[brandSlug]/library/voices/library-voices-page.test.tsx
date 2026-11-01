@@ -182,8 +182,8 @@ vi.mock('@ui/card/Card', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({

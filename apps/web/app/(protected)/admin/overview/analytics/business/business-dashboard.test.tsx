@@ -37,8 +37,8 @@ vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div data-testid="loading">Loading</div>,
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="alert">{children}</div>
   ),
 }));

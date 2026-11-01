@@ -2,6 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Film } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -98,28 +99,25 @@ export function ClipperWorkflowRunCard({
         />
 
         {identity && (
-          <div
-            className={`border px-3 py-2 text-xs ${
-              identity.isComplete
-                ? 'border-success/20 bg-success/10 text-success   '
-                : 'border-warning/20 bg-warning/10 text-warning   '
-            }`}
+          <Alert
+            size="sm"
+            variant={identity.isComplete ? 'success' : 'warning'}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium">Clip identity</span>
+            <AlertTitle className="flex flex-wrap items-center justify-between gap-2">
+              Clip identity
               <span>{identity.label}</span>
-            </div>
-            <p className="mt-1 text-muted-foreground">
+            </AlertTitle>
+            <AlertDescription>
               {identity.isComplete
                 ? `Avatar ${identity.avatarId} and voice ${identity.voiceId} are ready.`
                 : formatMissingIdentity(identity)}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         <ClipperWorkflowStepsList steps={steps} />
 
-        {error && <AgentErrorMessage message={error} className="text-xs" />}
+        {error && <AgentErrorMessage message={error} />}
 
         <ClipperWorkflowStatusFooter
           generatedVideoIds={generatedVideoIds}

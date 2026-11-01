@@ -521,7 +521,6 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
       {
         reconcileCrunTasks: vi.fn(),
         synchronizeCrunContracts: vi.fn(),
@@ -529,7 +528,7 @@ describe('proactive organization to strategy run and attributed draft integratio
         reconcileRawCutClips: vi.fn(),
       } as unknown as ConstructorParameters<
         typeof PlatformSchedulesProcessor
-      >[22],
+      >[21],
       {} as never,
       {} as never,
       {} as never,

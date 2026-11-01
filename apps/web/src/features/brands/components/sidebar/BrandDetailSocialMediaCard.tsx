@@ -4,8 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
-  CardPadding,
-  CardVariant,
   type CredentialPlatform,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
@@ -27,6 +25,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -775,10 +774,10 @@ export default function BrandDetailSocialMediaCard({
 
         {selectedOverrideHealth ? (
           <div className="space-y-4">
-            <div className="rounded-md border border-warning/20 bg-warning/10 p-3 text-sm text-warning">
+            <Alert variant="warning">
               {selectedOverrideHealth.holdReason ??
                 translate('accountHeldByWarmup')}
-            </div>
+            </Alert>
             {selectedOverrideHealth.override.reason ||
             selectedOverrideHealth.override.expiresAt ? (
               <p className="text-xs text-muted-foreground">
@@ -899,11 +898,9 @@ export default function BrandDetailSocialMediaCard({
             ))}
           </div>
         ) : (
-          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
-            <div className="text-xs text-muted-foreground">
-              {translate('empty')}
-            </div>
-          </Card>
+          <Alert size="sm" variant="note">
+            {translate('empty')}
+          </Alert>
         )}
 
         {accountHealthSection ? (

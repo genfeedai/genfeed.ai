@@ -1,4 +1,5 @@
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { Alert } from '@ui/primitives/alert';
 import { ColorInput } from '@ui/primitives/color-input';
 import { Textarea } from '@ui/primitives/textarea';
 import type {
@@ -83,9 +84,9 @@ export function SocialLinkReadout({
   const links = readSocialProposals(value);
   if (links.length === 0) {
     return (
-      <p className="min-h-12 rounded-md bg-card p-2 text-xs text-muted-foreground">
+      <Alert className="min-h-12" size="sm" variant="note">
         {emptyLabel}
-      </p>
+      </Alert>
     );
   }
 

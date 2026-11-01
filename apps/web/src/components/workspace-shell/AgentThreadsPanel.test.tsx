@@ -43,6 +43,9 @@ const threads: AgentThread[] = [
     parentThreadId: 'master-1',
     runStatus: 'running',
   }),
+  makeThread('done', 'Shipped reel', {
+    status: AgentThreadStatus.ARCHIVED,
+  }),
   makeThread('old', 'Old idea', {
     brandId: 'brand-b',
     brandLabel: 'Second',
@@ -205,5 +208,92 @@ describe('AgentThreadsPanel', () => {
 
     expect(screen.getByTestId('agent-thread-light-view')).toBeVisible();
     expect(screen.getByText('Spring captions')).toBeVisible();
+  });
+
+  describe('resolving threads', () => {
+    it('lists an archived thread under Resolved, not with the active ones', () => {
+      render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+      const resolved = screen.getByTestId('agent-threads-panel-group-resolved');
+      expect(within(resolved).getByText('Shipped reel')).toBeVisible();
+      expect(
+        within(
+          screen.getByTestId('agent-threads-panel-group-recent'),
+        ).queryByText('Shipped reel'),
+      ).toBeNull();
+    });
+
+    it('lists resolved threads the store never loaded', () => {
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          resolvedThreads={[
+            makeThread('loaded-later', 'Old launch', {
+              status: AgentThreadStatus.ARCHIVED,
+            }),
+          ]}
+          threads={threads}
+        />,
+      );
+
+      expect(
+        within(
+          screen.getByTestId('agent-threads-panel-group-resolved'),
+        ).getByText('Old launch'),
+      ).toBeVisible();
+    });
+
+    it('resolves an active thread and reopens a resolved one from its row', async () => {
+      const onResolveThread = vi.fn();
+      const onReopenThread = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          onReopenThread={onReopenThread}
+          onResolveThread={onResolveThread}
+          threads={threads}
+        />,
+      );
+
+      await user.click(
+        screen.getByRole('button', { name: 'Resolve: Cut the trailer' }),
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'Reopen: Shipped reel' }),
+      );
+
+      expect(onResolveThread).toHaveBeenCalledWith('running');
+      expect(onReopenThread).toHaveBeenCalledWith('done');
+    });
+
+    it('has no resolve action where the surface offers none', () => {
+      render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
+
+      expect(screen.queryByRole('button', { name: /^Resolve:/ })).toBeNull();
+    });
+
+    it('lets a resolved thread be read but not steered until it is reopened', async () => {
+      const onReopenThread = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <AgentThreadsPanel
+          apiService={apiService}
+          onReopenThread={onReopenThread}
+          openThreadId="done"
+          threads={threads}
+        />,
+      );
+
+      expect(screen.getByTestId('agent-thread-resolved')).toHaveTextContent(
+        'Resolved',
+      );
+      expect(screen.getByLabelText('Steer this thread')).toBeDisabled();
+      expect(screen.getByText('Reopen this thread to steer it.')).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: 'Reopen' }));
+
+      expect(onReopenThread).toHaveBeenCalledWith('done');
+    });
   });
 });

@@ -76,8 +76,8 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 vi.mock('@ui/feedback/LoadingState', () => ({

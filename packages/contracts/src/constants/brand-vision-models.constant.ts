@@ -76,3 +76,13 @@ export const BRAND_VISION_MODELS: readonly BrandVisionCatalogModel[] = [
     providerCostUsd: 0.000225,
   },
 ];
+
+/**
+ * Whether Replicate bills this model by GPU runtime, so its public page states
+ * no `billingConfig` and the price refresh can never read a list price for it.
+ * The registry row records the hardware rate instead, and the model is an
+ * internal cost, never customer-billed.
+ */
+export function isRuntimeBilledBrandVisionModel(key: string): boolean {
+  return BRAND_VISION_MODELS.some((model) => model.key === key);
+}

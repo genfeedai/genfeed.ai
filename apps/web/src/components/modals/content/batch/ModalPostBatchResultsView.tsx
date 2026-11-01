@@ -1,12 +1,12 @@
 'use client';
 
-import { AlertCategory, ButtonVariant, PostStatus } from '@genfeedai/contracts';
+import { ButtonVariant, PostStatus } from '@genfeedai/contracts';
 import type { PlatformSubmissionStatus } from '@genfeedai/contracts/interfaces/modals/platform-submission-status.interface';
 import { getPublishingPostsHref } from '@genfeedai/helpers/content/posts.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { PLATFORM_ICONS } from './batch-post.utils';
@@ -80,7 +80,7 @@ export default function ModalPostBatchResultsView({
                 case 'submitting':
                   return <Badge status="info">Submitting…</Badge>;
                 default:
-                  return <Badge variant="ghost">Pending</Badge>;
+                  return <Badge variant="secondary">Pending</Badge>;
               }
             };
 
@@ -116,7 +116,7 @@ export default function ModalPostBatchResultsView({
             (s) => s.status === 'completed' || s.status === 'failed',
           ) && (
             <div className="w-full space-y-4 pt-4 border-t border-border">
-              <Alert type={AlertCategory.SUCCESS} className="w-full">
+              <Alert variant="success" className="w-full">
                 <div className="space-y-1">
                   <p className="font-semibold">All posts have been created</p>
                   <p className="text-sm opacity-80">

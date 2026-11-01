@@ -1,7 +1,7 @@
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { type RoleSchema, roleSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
@@ -9,8 +9,8 @@ import {
 } from '@helpers/ui/form-error/form-error.helper';
 import type { ModalRoleProps } from '@props/modals/modal.props';
 import { RolesService } from '@services/organization/roles.service';
-import Alert from '@ui/feedback/alert/Alert';
 import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -57,7 +57,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

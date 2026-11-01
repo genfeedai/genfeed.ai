@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -7,11 +6,11 @@ import type {
   AgentBrandContextLayerKey,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { BrainCircuit, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -105,7 +104,8 @@ export default function BrandSettingsAgentContextPage() {
     body = <Loading isFullSize={false} />;
   } else if (!snapshot) {
     body = (
-      <CardEmpty
+      <EmptyState
+        surface="card"
         actions={
           <Button
             label={translate('retry')}
@@ -114,7 +114,7 @@ export default function BrandSettingsAgentContextPage() {
           />
         }
         icon={TriangleAlert}
-        label={translate('loadError')}
+        title={translate('loadError')}
       />
     );
   } else {

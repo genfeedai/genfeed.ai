@@ -97,7 +97,8 @@ export default function EconomicsCostsReport() {
         }),
         label: translate('costs.kpis.unpriced'),
         value: formatCount(totals?.unpricedCalls ?? 0),
-        valueClassName: (totals?.unpricedCalls ?? 0) > 0 ? 'text-warning' : '',
+        tone:
+          (totals?.unpricedCalls ?? 0) > 0 ? ('warning' as const) : undefined,
       },
     ];
   }, [report, translate]);

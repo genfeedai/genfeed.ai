@@ -1,5 +1,4 @@
 'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/contracts';
 import {
@@ -17,7 +16,6 @@ import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -28,13 +26,14 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
 import { RolesService } from '@services/organization/roles.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -203,8 +202,7 @@ function MembersListContent() {
       header: 'Joined',
       key: 'createdAt',
       sortable: true,
-      render: (member: Member) =>
-        member.createdAt ? formatDate(member.createdAt) : '-',
+      render: (member: Member) => <TableDateCell value={member.createdAt} />,
     },
   ];
 
@@ -269,8 +267,9 @@ function MembersListContent() {
     {
       header: 'Expires',
       key: 'expiresAt',
-      render: (invitation) =>
-        invitation.expiresAt ? formatDate(invitation.expiresAt) : '-',
+      render: (invitation) => (
+        <TableDateCell hasTime={false} value={invitation.expiresAt} />
+      ),
     },
   ];
 
@@ -414,7 +413,8 @@ function MembersListContent() {
       }
     >
       {isTeamSubscriptionLocked ? (
-        <CardEmpty
+        <EmptyState
+          surface="card"
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
@@ -423,7 +423,7 @@ function MembersListContent() {
             </Button>
           }
           icon={Lock}
-          label={`Unlock team members with ${upgradeTierLabel}`}
+          title={`Unlock team members with ${upgradeTierLabel}`}
         />
       ) : (
         <>

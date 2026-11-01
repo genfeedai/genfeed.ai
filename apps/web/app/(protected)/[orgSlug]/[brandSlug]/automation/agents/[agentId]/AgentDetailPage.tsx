@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AgentAutonomyMode,
   ButtonSize,
@@ -27,12 +26,12 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowLeft, CirclePlay, Cpu, Pencil, Workflow } from 'lucide-react';
 import Link from 'next/link';
@@ -333,9 +332,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   if (!strategy) {
     return (
       <Container label={detail('title')} icon={Cpu}>
-        <CardEmptyContent
+        <EmptyState
           icon={Cpu}
-          label={detail('notFound')}
+          title={detail('notFound')}
           actions={
             <Link
               href={href(APP_ROUTES.AUTOMATION.AGENTS)}
@@ -507,10 +506,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             {
               label: detail('failures'),
               value: strategy.consecutiveFailures,
-              valueClassName:
+              tone:
                 strategy.consecutiveFailures > 0
-                  ? 'text-destructive'
-                  : 'text-success',
+                  ? ('destructive' as const)
+                  : ('success' as const),
             },
           ]}
         />

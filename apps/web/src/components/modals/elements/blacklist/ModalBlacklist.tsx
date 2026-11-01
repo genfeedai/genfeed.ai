@@ -3,12 +3,7 @@ import {
   elementBlacklistSchema,
 } from '@genfeedai/client/schemas';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import {
-  AlertCategory,
-  ButtonVariant,
-  ModalEnum,
-  ModelCategory,
-} from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -16,9 +11,9 @@ import {
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { ModalBlacklistProps } from '@genfeedai/props/modals/modal.props';
 import { BlacklistsService } from '@genfeedai/services/elements/blacklists.service';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -83,7 +78,7 @@ export default function ModalBlacklist({
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

@@ -5,12 +5,7 @@ import {
   trainingEditSchema,
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IBrand, ITraining } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
@@ -19,9 +14,9 @@ import {
 import type { ModalTrainingProps } from '@genfeedai/props/modals/modal.props';
 import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
 import { Code } from '@genfeedai/ui';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -96,7 +91,7 @@ export default function ModalTraining({
     <Modal id={ModalEnum.TRAINING_EDIT} title="Edit Training">
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

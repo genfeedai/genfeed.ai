@@ -10,7 +10,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -231,7 +231,9 @@ export default function ElevenLabsAccountVoicesDialog({
                           <p className="truncate font-medium">{voice.name}</p>
                           <div className="flex flex-wrap gap-1">
                             {voice.category ? (
-                              <Badge variant="ghost">{voice.category}</Badge>
+                              <Badge variant="secondary">
+                                {voice.category}
+                              </Badge>
                             ) : null}
                             {isAvailable ? null : (
                               <Badge variant="warning">

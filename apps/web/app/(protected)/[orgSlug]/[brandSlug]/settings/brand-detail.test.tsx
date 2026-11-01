@@ -105,8 +105,8 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: { children: ReactNode }) => (
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => (
     <div role="alert">{children}</div>
   ),
 }));

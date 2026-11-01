@@ -1,7 +1,7 @@
 'use client';
 
 import { formatEnumLabel } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 
 const STATUS_VARIANTS: Record<string, 'success' | 'destructive' | 'warning'> = {
   FAILED: 'destructive',

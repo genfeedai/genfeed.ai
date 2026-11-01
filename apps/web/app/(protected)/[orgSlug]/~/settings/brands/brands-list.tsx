@@ -1,5 +1,4 @@
 'use client';
-
 import { AppAssetCatalogBoundary } from '@app-i18n/AppGlobalModalIntlBoundary';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -24,14 +23,15 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { EmptyState } from '@ui/card/EmptyState';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ArrowRightLeft,
   Building2,
@@ -42,7 +42,6 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import BrandSidebarPanel from '@/features/brands/sidebar-panel/BrandSidebarPanel';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
@@ -269,15 +268,7 @@ function BrandsListContent() {
         header: 'Created',
         key: 'createdAt',
         sortable: true,
-        render: (brand: Brand) => (
-          <span className="text-sm text-foreground/70">
-            <ClientFormattedDate
-              fallback="-"
-              format="date"
-              value={brand.createdAt}
-            />
-          </span>
-        ),
+        render: (brand: Brand) => <TableDateCell value={brand.createdAt} />,
       },
     ],
     [],

@@ -731,8 +731,39 @@ describe('model version lifecycle', () => {
       MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+      MODEL_KEYS.FAL_STABLE_VIDEO,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
+  });
+
+  it('keeps the fal models whose endpoint ids moved and points them at the live id', () => {
+    expect(byKey.get(MODEL_KEYS.FAL_SEEDANCE_2_0)).toMatchObject({
+      endpoint: 'bytedance/seedance-2.0/text-to-video',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_ELEVEN_LABS_TTS)).toMatchObject({
+      endpoint: 'fal-ai/elevenlabs/tts/multilingual-v2',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_GPT_IMAGE_2)).toMatchObject({
+      endpoint: 'openai/gpt-image-2',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_RECRAFT_V4_PRO)).toMatchObject({
+      endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO)).toMatchObject({
+      endpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_PIXVERSE_V6)).toMatchObject({
+      endpoint: 'fal-ai/pixverse/v6/text-to-video',
+    });
+    for (const key of [
+      MODEL_KEYS.FAL_SEEDANCE_2_0,
+      MODEL_KEYS.FAL_ELEVEN_LABS_TTS,
+      MODEL_KEYS.FAL_GPT_IMAGE_2,
+      MODEL_KEYS.FAL_RECRAFT_V4_PRO,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
+      MODEL_KEYS.FAL_PIXVERSE_V6,
+    ])
+      expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
   });
 
   it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {

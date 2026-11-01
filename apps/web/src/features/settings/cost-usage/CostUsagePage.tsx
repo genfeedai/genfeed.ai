@@ -9,7 +9,6 @@ import type {
   ICostReportEntry,
   ICostReportQuery,
 } from '@genfeedai/contracts/interfaces/billing';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CostsService } from '@services/billing/costs.service';
@@ -21,6 +20,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
@@ -190,7 +190,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     {
       header: translate('tables.headers.when'),
       key: 'createdAt',
-      render: (row) => formatDate(new Date(row.createdAt)),
+      render: (row) => <TableDateCell value={row.createdAt} />,
     },
     {
       header: translate('tables.headers.type'),

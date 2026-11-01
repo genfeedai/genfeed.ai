@@ -8,8 +8,8 @@ import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Badge } from '@ui/primitives/badge';
 import {
   Collapsible,
   CollapsibleContent,
@@ -78,7 +78,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
             </Badge>
           )}
           {template?.isPremium && (
-            <Badge variant="primary">{t('detailPremium')}</Badge>
+            <Badge variant="default">{t('detailPremium')}</Badge>
           )}
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                   </Badge>
                 ))}
                 {(template.tags ?? []).map((tag) => (
-                  <Badge key={tag} variant="ghost">
+                  <Badge key={tag} variant="secondary">
                     {tag}
                   </Badge>
                 ))}

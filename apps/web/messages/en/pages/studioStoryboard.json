@@ -221,6 +221,36 @@
     "scratchTitle": "Start from scratch",
     "title": "Turn an idea into a storyboard"
   },
+  "pitches": {
+    "groupAria": "Starter ideas",
+    "items": {
+      "explainer": {
+        "description": "Correct a common mistake and show a better way.",
+        "title": "Explain an idea"
+      },
+      "howTo": {
+        "description": "One clear step per slide, from start to result.",
+        "title": "Step-by-step guide"
+      },
+      "lessons": {
+        "description": "Five lessons, each with a real example.",
+        "title": "Lessons learned"
+      },
+      "story": {
+        "description": "Where you started, what changed, where you are now.",
+        "title": "A story in slides"
+      },
+      "tips": {
+        "description": "A hook, five quick tips and a save-this close.",
+        "title": "Quick tips"
+      },
+      "voiceNote": {
+        "description": "Talk through the biggest lesson of your year.",
+        "title": "Voice note"
+      }
+    },
+    "prefillAria": "Start from the {title} idea"
+  },
   "presets": {
     "chipsAria": "Storyboard presets",
     "create": "Try this",
@@ -484,6 +514,7 @@
     "changeDone": "Updated the board.",
     "emptyBrief": "Describe the video you want and the agent drafts the shots on the board.",
     "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
+    "emptySlides": "Ask for a change, like rewording slide 3, and the board updates.",
     "failed": "That did not change the board.",
     "title": "Storyboard agent",
     "unavailable": "Change requests are not available for this storyboard.",
@@ -492,6 +523,7 @@
   "promptBar": {
     "briefPlaceholder": "Describe the video you want to make",
     "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",
+    "slidesPlaceholder": "Ask for changes, e.g. reword slide 3 and end on a question",
     "retry": "Try again"
   },
   "longForm": {

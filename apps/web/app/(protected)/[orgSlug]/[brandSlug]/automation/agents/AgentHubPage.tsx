@@ -1,11 +1,5 @@
 'use client';
-
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -26,17 +20,17 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { formatDistanceToNow } from 'date-fns';
 import {
   CirclePause,
@@ -159,7 +153,7 @@ function AgentHubStatusBadge({ strategy }: AgentHubStatusBadgeProps) {
 
   if (!strategy.isActive) {
     return (
-      <Badge size={ComponentSize.SM} status="paused">
+      <Badge status="paused">
         {hasFailedLastRun(strategy)
           ? translate('status.pausedAfterFailures', {
               count: strategy.consecutiveFailures,
@@ -169,11 +163,7 @@ function AgentHubStatusBadge({ strategy }: AgentHubStatusBadgeProps) {
     );
   }
 
-  return (
-    <Badge size={ComponentSize.SM} status="failed">
-      {translate('status.lastRunFailed')}
-    </Badge>
-  );
+  return <Badge status="failed">{translate('status.lastRunFailed')}</Badge>;
 }
 
 /** The status badge, when there is one, followed by the fact line. */
@@ -553,9 +543,9 @@ export default function AgentHubPage() {
       }
     >
       {isEmpty ? (
-        <CardEmptyContent
+        <EmptyState
           icon={Users}
-          label={translate('empty.title')}
+          title={translate('empty.title')}
           description={translate('empty.description')}
           actions={
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
