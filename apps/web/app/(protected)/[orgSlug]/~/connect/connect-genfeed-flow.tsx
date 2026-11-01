@@ -36,6 +36,7 @@ import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Tabs } from '@ui/primitives/tabs';
+import { StatusDot } from '@ui/primitives/status-dot';
 import {
   ArrowRight,
   CircleCheck,
@@ -542,10 +543,7 @@ export default function ConnectGenfeedFlow() {
                 className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"
                 data-testid="connect-genfeed-waiting"
               >
-                <span
-                  aria-hidden="true"
-                  className="size-2 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
-                />
+                <StatusDot isPulsing />
                 {translate('waitingForAgent', { client: selectedClientLabel })}
               </p>
               <p className="mt-4 text-sm text-muted-foreground">

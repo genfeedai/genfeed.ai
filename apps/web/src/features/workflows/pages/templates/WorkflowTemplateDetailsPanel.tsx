@@ -3,6 +3,12 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { WorkflowTemplateDetailsPanelProps } from '@/features/workflows/props/workflow-template-details-panel.props';
@@ -50,18 +56,22 @@ export function WorkflowTemplateDetailsPanel({
         data-testid="workflow-template-details-panel"
       >
         <p className="text-sm text-foreground/80">{description}</p>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">{translate('source')}</dt>
-          <dd>{sourceLabel}</dd>
-          <dt className="text-muted-foreground">{translate('category')}</dt>
-          <dd>{categoryLabel}</dd>
+        <DefinitionList variant="properties">
+          <DefinitionRow>
+            <DefinitionTerm>{translate('source')}</DefinitionTerm>
+            <DefinitionDetail>{sourceLabel}</DefinitionDetail>
+          </DefinitionRow>
+          <DefinitionRow>
+            <DefinitionTerm>{translate('category')}</DefinitionTerm>
+            <DefinitionDetail>{categoryLabel}</DefinitionDetail>
+          </DefinitionRow>
           {scheduleLabel ? (
-            <>
-              <dt className="text-muted-foreground">{translate('schedule')}</dt>
-              <dd>{scheduleLabel}</dd>
-            </>
+            <DefinitionRow>
+              <DefinitionTerm>{translate('schedule')}</DefinitionTerm>
+              <DefinitionDetail>{scheduleLabel}</DefinitionDetail>
+            </DefinitionRow>
           ) : null}
-        </dl>
+        </DefinitionList>
         {changeSummary ? (
           <p className="text-sm text-foreground/80">{changeSummary}</p>
         ) : null}

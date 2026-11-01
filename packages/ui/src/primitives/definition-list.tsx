@@ -1,12 +1,23 @@
 import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
-import { ddVariants, dlVariants, dtVariants } from './definition-list.variants';
+import {
+  ddVariants,
+  dlVariants,
+  dRowVariants,
+  dtVariants,
+} from './definition-list.variants';
 
 export interface DefinitionListProps
   extends HTMLAttributes<HTMLDListElement>,
     VariantProps<typeof dlVariants> {
   ref?: React.Ref<HTMLDListElement>;
+}
+
+export interface DefinitionRowProps
+  extends HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof dRowVariants> {
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 export interface DefinitionTermProps
@@ -24,18 +35,35 @@ export interface DefinitionDetailProps
 function DefinitionList({
   ref,
   className,
+  columns,
   variant,
   ...props
 }: DefinitionListProps) {
   return (
     <dl
       ref={ref}
-      className={cn(dlVariants({ variant }), className)}
+      className={cn(dlVariants({ columns, variant }), className)}
       {...props}
     />
   );
 }
 DefinitionList.displayName = 'DefinitionList';
+
+function DefinitionRow({
+  ref,
+  className,
+  variant,
+  ...props
+}: DefinitionRowProps) {
+  return (
+    <div
+      ref={ref}
+      className={cn(dRowVariants({ variant }), className)}
+      {...props}
+    />
+  );
+}
+DefinitionRow.displayName = 'DefinitionRow';
 
 function DefinitionTerm({
   ref,
@@ -69,4 +97,4 @@ function DefinitionDetail({
 }
 DefinitionDetail.displayName = 'DefinitionDetail';
 
-export { DefinitionDetail, DefinitionList, DefinitionTerm };
+export { DefinitionDetail, DefinitionList, DefinitionRow, DefinitionTerm };

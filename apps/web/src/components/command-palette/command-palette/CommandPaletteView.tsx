@@ -1,5 +1,6 @@
 'use client';
 
+import { CardEmptySize } from '@genfeedai/contracts';
 import type {
   ICommand,
   ICommandPaletteProps,
@@ -7,6 +8,7 @@ import type {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
 import Modal from '@ui/modals/modal/Modal';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import type { ReactElement, RefObject } from 'react';
 import { CommandPaletteItem } from '@/components/command-palette/command-palette-item/CommandPaletteItem';
@@ -61,9 +63,7 @@ export function CommandPaletteView({
 
         <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto p-2">
           {displayedCommands.length === 0 ? (
-            <div className="px-4 py-8 text-center text-foreground/60">
-              {noResultsMessage}
-            </div>
+            <EmptyState size={CardEmptySize.SM} title={noResultsMessage} />
           ) : (
             <div>
               {!query && displayedCommands.length > 0 && (

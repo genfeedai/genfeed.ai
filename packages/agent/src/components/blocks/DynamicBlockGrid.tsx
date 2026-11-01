@@ -34,6 +34,7 @@ import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -202,14 +203,21 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
             bodyClassName={topPostBodyClassName(isList)}
             variant={CardVariant.BORDERED}
           >
-            <div
-              className={`animate-pulse rounded bg-muted/70 ${
-                isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'
-              }`}
+            <Skeleton
+              aria-hidden="true"
+              className={isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'}
             />
             <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+              <Skeleton
+                aria-hidden="true"
+                className="h-4 w-2/3"
+                variant="text"
+              />
+              <Skeleton
+                aria-hidden="true"
+                className="h-3 w-1/2"
+                variant="text"
+              />
             </div>
           </Card>
         ))}
