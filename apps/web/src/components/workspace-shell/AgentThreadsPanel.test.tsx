@@ -217,9 +217,9 @@ describe('AgentThreadsPanel', () => {
       const resolved = screen.getByTestId('agent-threads-panel-group-resolved');
       expect(within(resolved).getByText('Shipped reel')).toBeVisible();
       expect(
-        within(screen.getByTestId('agent-threads-panel-group-recent')).queryByText(
-          'Shipped reel',
-        ),
+        within(
+          screen.getByTestId('agent-threads-panel-group-recent'),
+        ).queryByText('Shipped reel'),
       ).toBeNull();
     });
 
@@ -237,9 +237,9 @@ describe('AgentThreadsPanel', () => {
       );
 
       expect(
-        within(screen.getByTestId('agent-threads-panel-group-resolved')).getByText(
-          'Old launch',
-        ),
+        within(
+          screen.getByTestId('agent-threads-panel-group-resolved'),
+        ).getByText('Old launch'),
       ).toBeVisible();
     });
 

@@ -49,7 +49,9 @@ describe('useThreadResolution', () => {
 
     const { result } = renderHook(() => useThreadResolution(api, true));
 
-    await waitFor(() => expect(result.current.isResolved('shipped')).toBe(true));
+    await waitFor(() =>
+      expect(result.current.isResolved('shipped')).toBe(true),
+    );
     expect(result.current.resolvedThreads.map((thread) => thread.id)).toEqual([
       'shipped',
     ]);

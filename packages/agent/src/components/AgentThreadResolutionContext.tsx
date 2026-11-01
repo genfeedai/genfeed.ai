@@ -16,9 +16,8 @@ export interface AgentThreadResolution {
  * reopen it) against the same state the Threads panel reads. Absent everywhere
  * else, so cards on other surfaces show no resolve action.
  */
-const AgentThreadResolutionContext = createContext<AgentThreadResolution | null>(
-  null,
-);
+const AgentThreadResolutionContext =
+  createContext<AgentThreadResolution | null>(null);
 
 export const AgentThreadResolutionProvider = AgentThreadResolutionContext;
 

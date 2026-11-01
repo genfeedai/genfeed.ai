@@ -271,10 +271,10 @@ export default function AgentThreadLightView({
             {isResolved
               ? translate('reopenToSteer')
               : steerState === 'sent'
-              ? translate('steerSent')
-              : steerState === 'failed'
-                ? translate('steerFailed')
-                : ''}
+                ? translate('steerSent')
+                : steerState === 'failed'
+                  ? translate('steerFailed')
+                  : ''}
           </p>
           <Button
             isDisabled={!draft.trim() || steerState === 'sending' || isResolved}

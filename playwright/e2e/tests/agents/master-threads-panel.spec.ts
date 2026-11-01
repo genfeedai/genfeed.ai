@@ -20,30 +20,29 @@ interface MockThread {
 
 function makeThreads(): MockThread[] {
   return [
-  {
-    id: MASTER_ID,
-    kind: 'master',
-    parentThreadId: null,
-    title: 'Master',
-  },
-  {
-    attentionState: 'running',
-    id: WORKING_ID,
-    runStatus: 'running',
-    kind: 'thread',
-    parentThreadId: MASTER_ID,
-    title: 'Launch teaser cut',
-  },
-  {
-    attentionState: 'updated',
-    id: REVIEW_ID,
-    kind: 'thread',
-    parentThreadId: MASTER_ID,
-    title: 'Carousel for the speaker drop',
-  },
-];
+    {
+      id: MASTER_ID,
+      kind: 'master',
+      parentThreadId: null,
+      title: 'Master',
+    },
+    {
+      attentionState: 'running',
+      id: WORKING_ID,
+      runStatus: 'running',
+      kind: 'thread',
+      parentThreadId: MASTER_ID,
+      title: 'Launch teaser cut',
+    },
+    {
+      attentionState: 'updated',
+      id: REVIEW_ID,
+      kind: 'thread',
+      parentThreadId: MASTER_ID,
+      title: 'Carousel for the speaker drop',
+    },
+  ];
 }
-
 
 function toResource(thread: MockThread) {
   return {
@@ -218,29 +217,29 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
         threadId === MASTER_ID
           ? [MASTER_TRANSFER_MESSAGE]
           : threadId === REVIEW_ID
-          ? [
-              {
-                attributes: {
-                  content: 'Make a carousel for the speaker drop',
-                  createdAt: now,
-                  metadata: {},
-                  role: 'user',
+            ? [
+                {
+                  attributes: {
+                    content: 'Make a carousel for the speaker drop',
+                    createdAt: now,
+                    metadata: {},
+                    role: 'user',
+                  },
+                  id: 'review-message-1',
+                  type: 'thread-message',
                 },
-                id: 'review-message-1',
-                type: 'thread-message',
-              },
-              {
-                attributes: {
-                  content: 'Five slides drafted, ready for your review.',
-                  createdAt: now,
-                  metadata: {},
-                  role: 'assistant',
+                {
+                  attributes: {
+                    content: 'Five slides drafted, ready for your review.',
+                    createdAt: now,
+                    metadata: {},
+                    role: 'assistant',
+                  },
+                  id: 'review-message-2',
+                  type: 'thread-message',
                 },
-                id: 'review-message-2',
-                type: 'thread-message',
-              },
-            ]
-          : [];
+              ]
+            : [];
       await fulfillJson(route, {
         data: messages,
         meta: {

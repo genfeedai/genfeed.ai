@@ -13,7 +13,6 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
-import { CheckCheck, Undo2 } from 'lucide-react';
 import Searchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -22,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { CheckCheck, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type { AgentThreadsPanelProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
@@ -112,7 +112,8 @@ export default function AgentThreadsPanel({
     const parent = openThread.parentThreadId
       ? allThreads.find((thread) => thread.id === openThread.parentThreadId)
       : undefined;
-    const isOpenThreadResolved = openThread.status === AgentThreadStatus.ARCHIVED;
+    const isOpenThreadResolved =
+      openThread.status === AgentThreadStatus.ARCHIVED;
     return (
       <AgentThreadLightView
         apiService={apiService}
