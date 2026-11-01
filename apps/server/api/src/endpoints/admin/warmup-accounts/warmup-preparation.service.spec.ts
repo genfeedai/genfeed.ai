@@ -129,6 +129,25 @@ describe('warm-up preparation orchestration', () => {
     expect(brands.applyBrandKitDraft).not.toHaveBeenCalled();
   });
 
+  it('applies reviewed context as the operator so the logo can be imported', async () => {
+    const { service, brands } = fixture({
+      context: { id: 'draft-1' } as IWarmupPreparation['context'],
+    });
+    const decisions = {
+      fields: { description: { action: 'accept' as const, value: 'About us' } },
+    };
+    await service.prepare('warmup-1', 'operator-1', {
+      action: 'apply-context',
+      contextDecisions: decisions,
+    });
+    expect(brands.applyBrandKitDraft).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+      decisions,
+      'operator-1',
+    );
+  });
+
   it('requires an explicit reviewed context decision rather than automatic apply', async () => {
     const { service, brands, tx } = fixture();
     await expect(
