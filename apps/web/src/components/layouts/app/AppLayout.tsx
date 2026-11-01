@@ -78,7 +78,11 @@ export default function AppLayout({
   const drawerOpenerRef = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     const active = document.activeElement;
-    if (isSidebarOpen && active instanceof HTMLElement && active !== document.body) {
+    if (
+      isSidebarOpen &&
+      active instanceof HTMLElement &&
+      active !== document.body
+    ) {
       drawerOpenerRef.current = active;
     }
   }, [isSidebarOpen]);
