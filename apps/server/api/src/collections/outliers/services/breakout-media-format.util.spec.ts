@@ -13,7 +13,7 @@ describe('breakout media format capability', () => {
   // The expected matrix mirrors the channel capability catalog the scheduler validates against.
   const supported: Record<string, BreakoutMediaFormat[]> = {
     youtube: ['video', 'short'],
-    tiktok: ['video', 'short'],
+    tiktok: ['image', 'video', 'short'],
     instagram: ['image', 'carousel', 'video', 'short'],
     twitter: ['image', 'carousel', 'video'],
     linkedin: ['image', 'video'],
