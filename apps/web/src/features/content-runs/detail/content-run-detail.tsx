@@ -19,6 +19,8 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
@@ -336,38 +338,34 @@ function AnalyticsSection({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-4">
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Impressions</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatMetric(analytics.impressions)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Engagements</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatMetric(analytics.engagements)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Engagement rate</div>
-        <div className="mt-2 text-xl font-semibold">
-          {formatPercent(analytics.engagementRate)}
-        </div>
-      </Panel>
-      <Panel className="p-4">
-        <div className="text-xs text-foreground/50">Winning variant</div>
-        <div className="mt-2 truncate text-sm font-medium">
-          {analytics.winningVariantId ?? '-'}
-        </div>
-      </Panel>
+    <div className="grid gap-3">
+      <MetricCardGrid columns={4}>
+        <MetricCard
+          label="Impressions"
+          size="sm"
+          value={formatMetric(analytics.impressions)}
+        />
+        <MetricCard
+          label="Engagements"
+          size="sm"
+          value={formatMetric(analytics.engagements)}
+        />
+        <MetricCard
+          label="Engagement rate"
+          size="sm"
+          value={formatPercent(analytics.engagementRate)}
+        />
+        <MetricCard
+          label="Winning variant"
+          size="xs"
+          value={analytics.winningVariantId ?? '-'}
+        />
+      </MetricCardGrid>
       {analytics.summary ? (
-        <p className="md:col-span-4 text-sm text-foreground/80">
-          {analytics.summary}
-        </p>
+        <p className="text-sm text-foreground/80">{analytics.summary}</p>
       ) : null}
       {analytics.topSignals?.length ? (
-        <div className="grid gap-2 md:col-span-4">
+        <div className="grid gap-2">
           {analytics.topSignals.map((signal) => (
             <Panel
               key={signal}

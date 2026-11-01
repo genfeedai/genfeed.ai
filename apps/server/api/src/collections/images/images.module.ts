@@ -29,7 +29,6 @@ import { ImageResizeService } from '@api/collections/images/services/image-resiz
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
 import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -54,7 +53,6 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
-import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { CrunCoreModule } from '@api/services/integrations/crun/crun-core.module';
 import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
@@ -62,7 +60,6 @@ import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfie
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
-import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
 import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
@@ -116,8 +113,6 @@ import { Module } from '@nestjs/common';
     ActivitiesModule,
     AssetsModule,
     ConfigModule,
-    ComfyUIModule,
-    ManagedInferenceRuntimeModule,
     FailedGenerationModule,
     FileQueueModule,
     FilesClientModule,
@@ -147,7 +142,6 @@ import { Module } from '@nestjs/common';
     CrunImageGenerationProviderAdapter,
     CrunPreviewQuoteService,
     FalImageGenerationProviderAdapter,
-    GenfeedAiImageGenerationProviderAdapter,
     {
       inject: [HiggsFieldService],
       provide: HiggsFieldImageGenerationProviderAdapter,

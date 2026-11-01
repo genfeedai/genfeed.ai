@@ -1,7 +1,5 @@
 const NO_PUBLIC_RATE =
   'No public per-variant list price was captured (2026-10-06 evidence); it prices from its configured row until `bun run pricing:rates:pull` adds an entry.';
-const PRIVATE_DEPLOYMENT =
-  'Private managed deployment: no public provider rate exists, so it stays red until an operator-approved rate is set.';
 const INPUT_MEGAPIXELS =
   'Bills input and output megapixels; dispatch does not supply input megapixels.';
 const IDENTITY_404 =
@@ -55,15 +53,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'fal-ai/stable-video-diffusion': FAL_ENDPOINT_GONE,
   'fal-ai/topaz/upscale/video':
     'fal prices per second by output resolution band and frame rate; dispatch does not supply the output band.',
-  'genfeed-ai/flux-dev': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux-dev-pulid': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux2-dev': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux2-dev-pulid': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux2-dev-pulid-lora': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux2-dev-pulid-upscale': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/flux2-klein': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/z-image-turbo': PRIVATE_DEPLOYMENT,
-  'genfeed-ai/z-image-turbo-lora': PRIVATE_DEPLOYMENT,
   'heygen/heygen-video-1':
     'HeyGen publishes no per-video list price for this legacy endpoint; the priced HeyGen avatar engines replace it.',
   'higgsfield-ai/dop/lite': NO_RATE_SHEET_PROVIDER,

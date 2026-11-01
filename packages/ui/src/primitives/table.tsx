@@ -1,16 +1,25 @@
 import { cn } from '@genfeedai/helpers';
+import type { VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
+import {
+  tableCellVariants,
+  tableHeadVariants,
+  tableVariants,
+} from './table.variants';
 
 function Table({
   ref,
   className,
+  isStriped,
+  size,
   ...props
-}: HTMLAttributes<HTMLTableElement> & { ref?: React.Ref<HTMLTableElement> }) {
+}: HTMLAttributes<HTMLTableElement> &
+  VariantProps<typeof tableVariants> & { ref?: React.Ref<HTMLTableElement> }) {
   return (
     <div className="relative w-full overflow-auto">
       <table
         ref={ref}
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn(tableVariants({ isStriped, size }), className)}
         {...props}
       />
     </div>
@@ -97,16 +106,21 @@ TableRow.displayName = 'TableRow';
 
 function TableHead({
   ref,
+  align,
   className,
+  isSortable,
+  tone,
+  variant,
   ...props
-}: ThHTMLAttributes<HTMLTableCellElement> & {
-  ref?: React.Ref<HTMLTableCellElement>;
-}) {
+}: ThHTMLAttributes<HTMLTableCellElement> &
+  VariantProps<typeof tableHeadVariants> & {
+    ref?: React.Ref<HTMLTableCellElement>;
+  }) {
   return (
     <th
       ref={ref}
       className={cn(
-        'h-9 px-2 text-left align-middle text-2xs font-medium uppercase tracking-wide text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        tableHeadVariants({ align, isSortable, tone, variant }),
         className,
       )}
       {...props}
@@ -117,18 +131,18 @@ TableHead.displayName = 'TableHead';
 
 function TableCell({
   ref,
+  align,
   className,
+  tone,
   ...props
-}: TdHTMLAttributes<HTMLTableCellElement> & {
-  ref?: React.Ref<HTMLTableCellElement>;
-}) {
+}: TdHTMLAttributes<HTMLTableCellElement> &
+  VariantProps<typeof tableCellVariants> & {
+    ref?: React.Ref<HTMLTableCellElement>;
+  }) {
   return (
     <td
       ref={ref}
-      className={cn(
-        'px-2 py-2 align-middle text-xs text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
-        className,
-      )}
+      className={cn(tableCellVariants({ align, tone }), className)}
       {...props}
     />
   );

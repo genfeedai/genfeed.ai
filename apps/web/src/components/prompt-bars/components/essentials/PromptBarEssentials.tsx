@@ -454,10 +454,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 variant={
                   isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
                 }
-                className={cn(
-                  'h-8 px-3 transition-colors duration-300 flex-shrink-0',
-                  isRecording && 'animate-pulse',
-                )}
+                className="h-8 px-3 transition-colors duration-300 flex-shrink-0"
+                isPulsing={isRecording}
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
                 tooltipPosition="top"

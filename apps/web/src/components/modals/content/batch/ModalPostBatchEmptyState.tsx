@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  type IngredientCategory,
+} from '@genfeedai/contracts';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';

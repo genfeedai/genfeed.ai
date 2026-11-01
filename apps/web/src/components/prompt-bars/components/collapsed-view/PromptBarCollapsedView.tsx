@@ -261,10 +261,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             variant={
               isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
             }
-            className={cn(
-              'px-4 transition-colors duration-300 flex-shrink-0',
-              isRecording && 'animate-pulse',
-            )}
+            className="px-4 transition-colors duration-300 flex-shrink-0"
+            isPulsing={isRecording}
             isDisabled={isGenerateBlocked || isProcessing}
             tooltip={getVoiceTooltip(
               isRecording ?? false,

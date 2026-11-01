@@ -7,12 +7,12 @@ import type {
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import IngredientTileOverlays from '@/components/ingredients/ingredient-tile-overlays';
 import type { IngredientsMediaGridProps } from '@/props/content/ingredient.props';
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';

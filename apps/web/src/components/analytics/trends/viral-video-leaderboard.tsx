@@ -9,6 +9,7 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';

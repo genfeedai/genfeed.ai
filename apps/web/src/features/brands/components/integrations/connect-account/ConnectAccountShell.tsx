@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Searchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, type ReactNode, useState } from 'react';
@@ -86,9 +87,7 @@ export default function ConnectAccountShell({
 
         <DialogBody className="max-h-[26rem] min-h-40">
           {visibleGroups.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {translate('noPlatformsFound')}
-            </p>
+            <EmptyState title={translate('noPlatformsFound')} />
           ) : (
             children(visibleGroups)
           )}

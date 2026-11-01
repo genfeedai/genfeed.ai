@@ -4,6 +4,7 @@ import type {
   ChartBlock,
   ChartSeriesConfig,
 } from '@genfeedai/contracts/interfaces';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 import {
@@ -80,15 +81,14 @@ function DynamicChartView({ block }: DynamicChartProps): ReactElement {
       >
         <div className="flex h-full items-end gap-3 px-6 py-5">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div
+            <Skeleton
+              aria-hidden="true"
               // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
               key={`chart-skeleton-${index}`}
-              className="animate-pulse rounded-t-md bg-muted/70"
-              style={{
-                animationDelay: `${index * 80}ms`,
-                height: `${35 + ((index % 4) + 1) * 14}%`,
-                width: '100%',
-              }}
+              className="rounded-b-none"
+              height={`${35 + ((index % 4) + 1) * 14}%`}
+              style={{ animationDelay: `${index * 80}ms` }}
+              width="100%"
             />
           ))}
         </div>

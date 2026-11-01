@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonVariant,
-  CardEmptySize,
-  CardPadding,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';

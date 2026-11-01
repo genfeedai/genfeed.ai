@@ -1,12 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { ContentTeamRolePreset } from '@/features/agents/content-team/content-team-presets';
@@ -110,9 +111,7 @@ export default function AgentMarketplace({
       </CollectionCarouselSection>
 
       {visiblePresets.length === 0 ? (
-        <p className="py-8 text-center text-sm text-foreground/50">
-          {translate('emptySearch')}
-        </p>
+        <EmptyState size={CardEmptySize.SM} title={translate('emptySearch')} />
       ) : null}
 
       <CollectionSection

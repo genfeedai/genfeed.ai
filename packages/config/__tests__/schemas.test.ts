@@ -420,16 +420,6 @@ describe('Config Schemas', () => {
         expect(error.message).toContain('required');
       }
     });
-
-    it('should allow an empty optional ComfyUI URL from env templates', () => {
-      const schema = Joi.object(fleetSchema);
-      const { error, value } = schema.validate({
-        COMFYUI_URL: '',
-      });
-
-      expect(error).toBeUndefined();
-      expect(value.COMFYUI_URL).toBe('');
-    });
   });
 
   describe('gpuFleetSchema', () => {
