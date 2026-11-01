@@ -1,4 +1,9 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  STUDIO_APP_ROUTE_PREFIXES,
+} from '@genfeedai/contracts/constants';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import {
   afterAll,
   afterEach,
@@ -273,11 +278,73 @@ describe('proxy', () => {
     const { config } = await import('./proxy');
 
     expect(
-      config.matcher.some((matcher) =>
-        new RegExp(`^${matcher}$`).test('/runtime-config.js'),
-      ),
+      unstable_doesMiddlewareMatch({
+        config,
+        url: 'https://app.genfeed.ai/runtime-config.js',
+      }),
     ).toBe(false);
   });
+
+  it.each([
+    ['a full page load', {}, true],
+    ['a client navigation', { rsc: '1' }, true],
+    [
+      'a router prefetch of the route shell',
+      { rsc: '1', 'next-router-prefetch': '1' },
+      false,
+    ],
+    [
+      'a router segment prefetch',
+      {
+        rsc: '1',
+        'next-router-prefetch': '1',
+        'next-router-segment-prefetch': '/_tree',
+      },
+      false,
+    ],
+  ])('runs the proxy for %s: %s', async (_label, headers, expected) => {
+    const { config } = await import('./proxy');
+
+    expect(
+      unstable_doesMiddlewareMatch({
+        config,
+        headers,
+        url: 'https://app.genfeed.ai/acme/brand/publishing/overview',
+      }),
+    ).toBe(expected);
+  });
+
+  // Every path the proxy canonicalizes must still reach it on a prefetch, or
+  // the router would cache the page the click should have been redirected
+  // away from.
+  it.each([
+    '/',
+    APP_ROUTES.SETTINGS.ROOT,
+    APP_ROUTE_PREFIXES.ANALYTICS,
+    APP_ROUTE_PREFIXES.AGENT,
+    APP_ROUTE_PREFIXES.LIBRARY,
+    `${APP_ROUTE_PREFIXES.LIBRARY}/assets`,
+    APP_ROUTE_PREFIXES.AUTOMATION,
+    APP_ROUTE_PREFIXES.OVERVIEW,
+    APP_ROUTE_PREFIXES.PUBLISHING,
+    APP_ROUTE_PREFIXES.DISCOVERY,
+    APP_ROUTE_PREFIXES.WORKSPACE,
+    ...STUDIO_APP_ROUTE_PREFIXES,
+    '/api/stale-brand/library/assets',
+  ])(
+    'runs the proxy for a prefetch of the redirected path %s',
+    async (pathname) => {
+      const { config } = await import('./proxy');
+
+      expect(
+        unstable_doesMiddlewareMatch({
+          config,
+          headers: { rsc: '1', 'next-router-prefetch': '1' },
+          url: `https://app.genfeed.ai${pathname}`,
+        }),
+      ).toBe(true);
+    },
+  );
 
   it.each(['/api/version', '/v1', '/v1/auth/get-session', '/v1/health'])(
     'passes the same-origin API proxy route %s through without app auth routing',
