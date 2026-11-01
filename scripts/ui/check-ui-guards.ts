@@ -38,10 +38,10 @@ const checks = [
     required: true,
   },
   {
-    // Dates in table columns render through TableDateCell: one line, compact,
-    // the full date in the tooltip. Relative times stay allowed.
-    command: ['bun', 'run', 'scripts/ui/hand-built/table-dates.ts'],
-    name: 'Table dates (TableDateCell, no hand-formatted dates in columns)',
+    // Table cells hold content: dates render through TableDateCell (relative
+    // times allowed) and row controls live in the table's hover row actions.
+    command: ['bun', 'run', 'scripts/ui/hand-built/table-columns.ts'],
+    name: 'Table columns (TableDateCell dates, controls as row actions)',
     required: true,
   },
   {
