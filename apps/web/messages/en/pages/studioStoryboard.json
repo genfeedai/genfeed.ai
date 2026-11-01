@@ -484,6 +484,7 @@
     "changeDone": "Updated the board.",
     "emptyBrief": "Describe the video you want and the agent drafts the shots on the board.",
     "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
+    "emptySlides": "Ask for a change, like rewording slide 3, and the board updates.",
     "failed": "That did not change the board.",
     "title": "Storyboard agent",
     "unavailable": "Change requests are not available for this storyboard.",
@@ -492,6 +493,7 @@
   "promptBar": {
     "briefPlaceholder": "Describe the video you want to make",
     "changesPlaceholder": "Ask for changes, e.g. make shot 3 shorter and end on a question",
+    "slidesPlaceholder": "Ask for changes, e.g. reword slide 3 and end on a question",
     "retry": "Try again"
   },
   "longForm": {
