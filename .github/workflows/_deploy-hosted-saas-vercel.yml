@@ -179,7 +179,7 @@ jobs:
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
         id: deploy
         run: |
-          url="$(vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}")"
+          url="$(vercel deploy --prebuilt --prod --archive=tgz --token="${VERCEL_TOKEN}")"
           echo "${url}"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
