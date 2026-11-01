@@ -151,6 +151,15 @@ async function readContextDecisions(path: string): Promise<WarmupContextDecision
       'Shape: {"fields":{"description":{"action":"accept","value":"..."}}}'
     );
   }
+  for (const [field, decision] of Object.entries(fields)) {
+    const action = (decision as { action?: unknown } | null)?.action;
+    if (action !== 'accept' && action !== 'reject' && action !== 'preserve') {
+      throw new GenfeedError(
+        `Context decision for "${field}" needs an action`,
+        'Use "accept", "reject" or "preserve".'
+      );
+    }
+  }
   return parsed as WarmupContextDecisions;
 }
 
