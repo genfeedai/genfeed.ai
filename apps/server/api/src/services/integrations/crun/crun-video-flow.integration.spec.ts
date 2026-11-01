@@ -280,6 +280,10 @@ describe('Crun video quote through durable owned output and accounting', () => {
         ),
       ),
     );
+  });
+  // The shared setup unstubs globals after every test (isolate: false), so the
+  // transport must be re-installed before each one, not once in beforeAll.
+  beforeEach(() => {
     vi.stubGlobal('fetch', transport.fetch);
   });
   afterAll(async () => {
