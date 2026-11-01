@@ -14,8 +14,9 @@ test.describe('Admin Organization', () => {
   test.setTimeout(60_000);
 
   // The breadcrumb is the page title, so each admin page renders its title as
-  // the screen-reader-only level-one heading of AdminPageShell. The sort lives
-  // in the subbar, not in a heading inside the content.
+  // the screen-reader-only level-one heading of AdminPageShell. The Filters
+  // menu sits inside the search field and filters by organization type; sorting
+  // lives in the column headers, not in the menu.
   const routes = [
     {
       hasOrganizationsList: true,
@@ -50,7 +51,7 @@ test.describe('Admin Organization', () => {
       if (hasOrganizationsList) {
         await adminPage.getByRole('button', { name: /^Filters/ }).click();
         await expect(
-          adminPage.getByRole('menuitem', { name: /^Sort/ }),
+          adminPage.getByRole('menuitem', { name: /^Type/ }),
         ).toBeVisible();
         await adminPage.keyboard.press('Escape');
         await expect(organizationsListSurface(adminPage)).toBeVisible();
