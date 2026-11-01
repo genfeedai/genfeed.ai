@@ -38,6 +38,7 @@ export default function AgentOutputShell({
   isOutputExpandable,
   mode,
   outputLabel,
+  preview,
 }: AgentOutputShellProps) {
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
@@ -149,6 +150,7 @@ export default function AgentOutputShell({
       }}
       mode={mode}
       onTabChange={setActiveTabId}
+      preview={preview}
       tabs={tabs}
     />
   );

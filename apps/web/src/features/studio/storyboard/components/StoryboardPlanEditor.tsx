@@ -24,6 +24,7 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Fragment, useEffect, useImperativeHandle, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   StoryboardEditablePlan,
   StoryboardPlanEditorProps,
@@ -33,6 +34,7 @@ import StoryboardCastPanel from '@/features/studio/storyboard/components/Storybo
 import StoryboardDetailsPanel from '@/features/studio/storyboard/components/StoryboardDetailsPanel';
 import StoryboardInspector from '@/features/studio/storyboard/components/StoryboardInspector';
 import StoryboardLongFormBoard from '@/features/studio/storyboard/components/StoryboardLongFormBoard';
+import StoryboardPreviewPanel from '@/features/studio/storyboard/components/StoryboardPreviewPanel';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
 import StoryboardRuntimeRail from '@/features/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@/features/studio/storyboard/components/StoryboardSaveIndicator';
@@ -87,6 +89,7 @@ export default function StoryboardPlanEditor({
   capabilities,
   capabilityError,
   refreshCapabilities,
+  previewTarget,
   sourceBrief,
 }: StoryboardPlanEditorProps) {
   const translate = useTranslations('pages.studioStoryboard.plan');
@@ -182,10 +185,16 @@ export default function StoryboardPlanEditor({
     isSourceSaving ||
     isDrafting ||
     ['analysing', 'generating', 'assembling'].includes(run.config.state);
+  const pipeline = run.config.scenePipeline;
+  const finalVideoAssetId =
+    pipeline?.state === 'ready' ? pipeline.assembly?.assetId : undefined;
   const assets = useStoryboardAssets(
     `${run.id}:${autosave.revision}`,
     run.brandId,
     [
+      ...(finalVideoAssetId
+        ? [{ id: finalVideoAssetId, kind: 'video' as const }]
+        : []),
       ...plan.shots.flatMap((shot) =>
         shot.stillAssetId
           ? [{ id: shot.stillAssetId, kind: 'image' as const }]
@@ -468,6 +477,22 @@ export default function StoryboardPlanEditor({
     stillUrl: stillUrl(shot),
   }));
   const missingStillCount = storyboardShotsNeedingStills(plan).length;
+  const animatic =
+    hasShots && !isLongForm && !isSlideshow
+      ? {
+          scope: `${run.id}:${autosave.revision}:${JSON.stringify(plan.shots)}`,
+          shots: plan.shots.map((shot) => ({
+            id: shot.id,
+            ordinal: shot.ordinal,
+            durationSeconds: shot.durationSeconds,
+            dialogue: shot.dialogue,
+            stillUrl: stillUrl(shot),
+          })),
+        }
+      : undefined;
+  const finalVideoUrl = finalVideoAssetId
+    ? (assets[`video:${finalVideoAssetId}`]?.cdnUrl ?? undefined)
+    : undefined;
 
   return (
     <>
@@ -696,16 +721,16 @@ export default function StoryboardPlanEditor({
             </>
           ) : hasShots ? (
             <>
-              <StoryboardAnimatic
-                scope={`${run.id}:${autosave.revision}:${JSON.stringify(plan.shots)}`}
-                shots={plan.shots.map((shot) => ({
-                  id: shot.id,
-                  ordinal: shot.ordinal,
-                  durationSeconds: shot.durationSeconds,
-                  dialogue: shot.dialogue,
-                  stillUrl: stillUrl(shot),
-                }))}
-              />
+              {animatic ? (
+                // With a docked preview pane the inline animatic only shows
+                // where that pane does not fit.
+                <div className={previewTarget ? '2xl:hidden' : undefined}>
+                  <StoryboardAnimatic
+                    scope={animatic.scope}
+                    shots={animatic.shots}
+                  />
+                </div>
+              ) : null}
               {!supportedDurations.length ? (
                 <p role="status" className="text-xs text-muted-foreground">
                   {translate('durationUntilResolved')}
@@ -850,6 +875,15 @@ export default function StoryboardPlanEditor({
         </div>
         {composer}
       </Container>
+      {previewTarget
+        ? createPortal(
+            <StoryboardPreviewPanel
+              animatic={isDrafting ? undefined : animatic}
+              finalVideoUrl={finalVideoUrl}
+            />,
+            previewTarget,
+          )
+        : null}
       <ContextSidebarPanel
         selection={{
           id: run.id,
