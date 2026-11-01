@@ -1,5 +1,4 @@
 import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
-import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { GPT_IMAGE_IMAGE_COMPILER_ID } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
@@ -126,45 +125,5 @@ describe('compileRemainingImageGenerationBrief', () => {
 
     expect(result.dispatch).not.toHaveProperty('seed');
     expect(result.dispatch.quality).toBe('high');
-  });
-
-  it('rejects PuLID compilation when the required identity reference is missing', () => {
-    const brief = imageGenerationBriefSchema.parse({
-      constraints: [],
-      fidelityMode: 'strict',
-      intent: { objective: 'a portrait of the brand face' },
-      mediaKind: 'image',
-      output: {},
-      version: 1,
-    });
-
-    expect(() =>
-      compileRemainingImageGenerationBrief({
-        brief,
-        family: familyFor(MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID),
-        modelKey: MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
-      }),
-    ).toThrow(GenerationBriefCompileError);
-  });
-
-  it('dispatches PuLID identity onto id_image', () => {
-    const brief = imageGenerationBriefSchema.parse({
-      constraints: [],
-      fidelityMode: 'strict',
-      intent: { objective: 'a portrait of the brand face' },
-      mediaKind: 'image',
-      output: { aspectRatio: '1:1' },
-      references: [{ assetId: 'face-1', role: 'character' }],
-      version: 1,
-    });
-
-    const result = compileRemainingImageGenerationBrief({
-      brief,
-      family: familyFor(MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID),
-      modelKey: MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
-    });
-
-    expect(result.dispatch.id_image).toBe('face-1');
-    expect(result.evidence.referenceAssetIds).toEqual(['face-1']);
   });
 });

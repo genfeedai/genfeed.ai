@@ -13,7 +13,6 @@ describe('image generation output helpers', () => {
       shouldFinalizeExternalOutput({ kind: 'external-id', outputUrls: ['a'] }),
     ).toBe(true);
     expect(shouldFinalizeExternalOutput({ kind: 'external-id' })).toBe(false);
-    expect(shouldFinalizeExternalOutput({ kind: 'inline-buffer' })).toBe(false);
   });
 
   it('ignores ingredients that are no longer processing', () => {

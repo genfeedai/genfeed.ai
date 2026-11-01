@@ -19,7 +19,6 @@ import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recover
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import {
@@ -29,6 +28,7 @@ import {
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { Skeleton } from '@ui/primitives/skeleton';
 import {
   Film,
   GitBranch,

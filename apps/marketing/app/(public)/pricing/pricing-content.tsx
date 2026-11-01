@@ -316,38 +316,27 @@ export default function PricingContent() {
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
           <div className="overflow-hidden rounded-card border border-border bg-card">
-            <Table aria-label="Compare plans">
+            <Table aria-label="Compare plans" isStriped size="md">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="h-10 px-4 font-semibold tracking-[0.12em]">
+                  <TableHead>
                     <span className="sr-only">Feature</span>
                   </TableHead>
                   {getCompareColumnLabels().map((label) => (
-                    <TableHead
-                      key={label}
-                      className="h-10 px-4 font-semibold tracking-[0.12em]"
-                    >
-                      {label}
-                    </TableHead>
+                    <TableHead key={label}>{label}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {buildPricingCompareRows().map((row) => (
-                  <TableRow
-                    key={row.label}
-                    className="odd:bg-card/50 hover:bg-accent/60"
-                  >
-                    <TableHead
-                      scope="row"
-                      className="h-auto px-4 py-3 text-sm font-medium normal-case tracking-normal text-foreground"
-                    >
+                  <TableRow key={row.label}>
+                    <TableHead scope="row" variant="row">
                       {row.label}
                     </TableHead>
                     {row.values.map((value, index) => (
                       <TableCell
                         key={`${row.label}-${getCompareColumnLabels()[index]}`}
-                        className="px-4 py-3 text-foreground/70"
+                        tone="muted"
                       >
                         {value === COMPARE_CHECKMARK ? (
                           <span

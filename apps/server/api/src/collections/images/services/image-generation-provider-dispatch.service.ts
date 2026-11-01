@@ -331,13 +331,9 @@ export class ImageGenerationProviderDispatchService {
     pollIds: string[],
   ): Promise<unknown> {
     const path = resolveImageDispatchExecutePath({
-      completionKind: provider.completionKind,
       outputStrategy: provider.outputStrategy,
       outputs: context.outputs,
     });
-    if (path === 'inline') {
-      return this.executeInline(context, provider);
-    }
     if (path === 'batch') {
       return this.executeBatch(context, provider, pollIds);
     }
@@ -345,74 +341,6 @@ export class ImageGenerationProviderDispatchService {
       return this.executeSequential(context, provider, pollIds);
     }
     return this.executeSingle(context, provider);
-  }
-
-  private async executeInline(
-    context: ImageGenerationContext,
-    provider: PreparedImageGenerationProvider,
-  ): Promise<string> {
-    const id = context.ingredientData.id.toString();
-    try {
-      if (!provider.tracksSubmissionStarted)
-        this.beginSubmission(context, [id]);
-      const result = await provider.generate();
-      if (result.kind !== 'inline-buffer') {
-        throw new Error('Inline image provider returned an external result');
-      }
-      this.receipts.accepted(context, context.ingredientData.id);
-
-      const uploadMeta = await this.filesClientService.uploadToS3(
-        id,
-        'images',
-        {
-          contentType: 'image/png',
-          data: result.imageBuffer,
-          type: FileInputType.BUFFER,
-        },
-      );
-
-      await this.metadataService.patch(
-        context.metadataData.id,
-        new MetadataEntity({
-          height: uploadMeta.height,
-          promptId: context.promptData.id,
-          size: uploadMeta.size,
-          width: uploadMeta.width,
-        }),
-      );
-      const claimed = await this.claimOutputDisposition(context, id, {
-        promptId: context.promptData.id,
-        s3Key: optionalUploadString(uploadMeta.s3Key),
-        status: IngredientStatus.GENERATED,
-      });
-      if (!claimed) return id;
-      await this.websocketService.publishVideoComplete(
-        context.websocketUrl,
-        {
-          id: id,
-          ingredientId: id,
-          status: 'completed',
-        },
-        context.user.id,
-        getUserRoomName(context.user.id),
-      );
-
-      await completeImageGeneration(
-        this.completionServices,
-        context,
-        id,
-        {
-          mimeType: 'image/png',
-          storageKey: optionalUploadString(uploadMeta.s3Key) ?? null,
-          url: optionalUploadString(uploadMeta.publicUrl) ?? null,
-        },
-        { height: uploadMeta.height, width: uploadMeta.width },
-      );
-
-      return id;
-    } catch (error: unknown) {
-      return this.handleProviderFailure(context, error, provider.failureLabel);
-    }
   }
 
   private async executeSingle(

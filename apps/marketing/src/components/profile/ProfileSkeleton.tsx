@@ -1,4 +1,4 @@
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import { Skeleton } from '@ui/primitives/skeleton';
 
 export default function ProfileSkeleton(): React.ReactElement {
   return (

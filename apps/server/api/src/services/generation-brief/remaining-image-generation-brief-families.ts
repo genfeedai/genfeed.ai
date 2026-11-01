@@ -2,8 +2,6 @@ import {
   FAL_FLUX_2_PRO_IMAGE_COMPILER_ID,
   FAL_FLUX_IMAGE_COMPILER_ID,
   FAL_NANO_BANANA_2_IMAGE_COMPILER_ID,
-  GENFEED_FLUX_IMAGE_COMPILER_ID,
-  GENFEED_PULID_IMAGE_COMPILER_ID,
   GPT_IMAGE_IMAGE_COMPILER_ID,
   GROK_IMAGINE_IMAGE_COMPILER_ID,
   HIGGSFIELD_SOUL_IMAGE_COMPILER_ID,
@@ -11,7 +9,6 @@ import {
   RECRAFT_IMAGE_COMPILER_ID,
   REMAINING_IMAGE_COMPILER_VERSION,
   SDXL_IMAGE_COMPILER_ID,
-  Z_IMAGE_TURBO_IMAGE_COMPILER_ID,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   buildRemainingImageCapabilityProfile,
@@ -263,92 +260,6 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
         modelLabel: 'Fal Nano Banana 2',
         referenceField: 'image_input',
         referenceFieldIsArray: true,
-      },
-    },
-    {
-      compilerId: GENFEED_FLUX_IMAGE_COMPILER_ID,
-      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
-      profiles: [
-        profile(
-          'genfeed-flux-dev-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-          0,
-        ),
-        profile(
-          'genfeed-flux2-dev-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
-          0,
-        ),
-        profile(
-          'genfeed-flux2-klein-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
-          0,
-        ),
-      ],
-      spec: {
-        aspectRatioField: 'aspect_ratio',
-        modelLabel: 'Genfeed FLUX',
-      },
-    },
-    {
-      compilerId: GENFEED_PULID_IMAGE_COMPILER_ID,
-      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
-      profiles: [
-        profile(
-          'genfeed-flux-dev-pulid-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
-          1,
-          {
-            nativeFields: ['id_image'],
-          },
-        ),
-        profile(
-          'genfeed-flux2-dev-pulid-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
-          1,
-          {
-            nativeFields: ['id_image'],
-          },
-        ),
-        profile(
-          'genfeed-flux2-dev-pulid-lora-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
-          1,
-          { nativeFields: ['id_image'] },
-        ),
-        profile(
-          'genfeed-flux2-dev-pulid-upscale-capability',
-          MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
-          1,
-          { defaultAspectRatio: '4:5', nativeFields: ['id_image'] },
-        ),
-      ],
-      requireReference: true,
-      spec: {
-        aspectRatioField: 'aspect_ratio',
-        modelLabel: 'Genfeed PuLID',
-        referenceField: 'id_image',
-      },
-    },
-    {
-      compilerId: Z_IMAGE_TURBO_IMAGE_COMPILER_ID,
-      compilerVersion: REMAINING_IMAGE_COMPILER_VERSION,
-      profiles: [
-        profile(
-          'z-image-turbo-capability',
-          MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
-          0,
-        ),
-        profile(
-          'z-image-turbo-lora-capability',
-          MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
-          0,
-          { defaultAspectRatio: '4:5' },
-        ),
-      ],
-      spec: {
-        aspectRatioField: 'aspect_ratio',
-        modelLabel: 'Z-Image Turbo',
       },
     },
   ];

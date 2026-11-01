@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Searchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import { History } from 'lucide-react';
@@ -85,13 +86,9 @@ export function WorkflowPromptPicker({ onSelect }: WorkflowPromptPickerProps) {
                 <Spinner className="size-6 text-primary" />
               </div>
             ) : hasError ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                {translate('error')}
-              </p>
+              <EmptyState title={translate('error')} />
             ) : visiblePrompts.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                {translate('empty')}
-              </p>
+              <EmptyState title={translate('empty')} />
             ) : (
               visiblePrompts.map((prompt) => (
                 <Button

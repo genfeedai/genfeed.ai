@@ -151,6 +151,8 @@ export interface RestyleRuleOptions {
   component: string;
   /** Module paths that export it, e.g. `@ui/primitives/badge`. */
   importPaths: readonly string[];
+  /** True when the component is the module's default export. */
+  isDefaultExport?: boolean;
   /** Whether fixed height and size classes are owned by the component. */
   isSizeOwned: boolean;
   /** Also flag a className read from a looked-up tone (`status.color`). */
@@ -172,7 +174,7 @@ export function scanRestyle(
   const localNames = importedLocalNames(
     source.sourceFile,
     options.importPaths,
-    options.component,
+    options.isDefaultExport ? 'default' : options.component,
   );
   if (localNames.size === 0) {
     return [];

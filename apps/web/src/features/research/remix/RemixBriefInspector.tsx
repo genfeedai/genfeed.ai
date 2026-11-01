@@ -28,6 +28,12 @@ import type { Voice } from '@models/ingredients/voice.model';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import {
@@ -641,19 +647,14 @@ export default function RemixBriefInspector(): ReactElement {
                   <p className="gen-label-sm text-muted-foreground">
                     {translate('source.patternTitle')}
                   </p>
-                  <dl className="mt-2 space-y-2">
+                  <DefinitionList className="mt-2" variant="properties">
                     {patternEntries.map(([key, value]) => (
-                      <div
-                        className="grid grid-cols-[5.5rem_1fr] gap-3 text-sm"
-                        key={key}
-                      >
-                        <dt className="text-muted-foreground">
-                          {formatLabel(key)}
-                        </dt>
-                        <dd className="text-foreground">{value}</dd>
-                      </div>
+                      <DefinitionRow key={key}>
+                        <DefinitionTerm>{formatLabel(key)}</DefinitionTerm>
+                        <DefinitionDetail>{value}</DefinitionDetail>
+                      </DefinitionRow>
                     ))}
-                  </dl>
+                  </DefinitionList>
                 </div>
               </section>
 

@@ -18,6 +18,7 @@ import {
 } from '@ui/primitives/dialog';
 import { EmptyState } from '@ui/primitives/empty-state';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
@@ -114,9 +115,9 @@ export function ContentLibraryPicker({
           aria-label="Library content"
         >
           {isLoading ? (
-            <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-              Loading library…
-            </p>
+            <div className="flex justify-center py-8">
+              <Spinner ariaLabel="Loading library" />
+            </div>
           ) : filteredItems.length === 0 ? (
             <EmptyState
               size={CardEmptySize.SM}

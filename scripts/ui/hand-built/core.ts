@@ -228,6 +228,9 @@ export function importedLocalNames(
     ) {
       continue;
     }
+    if (exportedName === 'default' && statement.importClause?.name) {
+      names.add(statement.importClause.name.text);
+    }
     const bindings = statement.importClause?.namedBindings;
     if (!bindings || !ts.isNamedImports(bindings)) {
       continue;

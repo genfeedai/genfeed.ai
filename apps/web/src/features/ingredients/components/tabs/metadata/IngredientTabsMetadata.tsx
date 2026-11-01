@@ -232,6 +232,7 @@ export default function IngredientTabsMetadata({
 
       <Button
         icon={
+          // ui-guard-allow:loading-spinner -- refresh icon rotates while refetching, not a loading placeholder
           <RefreshCw
             className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`}
           />

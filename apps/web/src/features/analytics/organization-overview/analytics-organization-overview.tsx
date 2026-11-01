@@ -25,10 +25,10 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { Avatar } from '@ui/primitives/avatar';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
