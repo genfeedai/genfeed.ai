@@ -75,7 +75,7 @@ describe('AgentChatSuggestionsBar', () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
-  it('aligns new-conversation actions to three equal columns once the pane is wide enough', () => {
+  it('shows new-conversation actions as one row of three equal tiles once the pane is wide enough', () => {
     render(
       <AgentChatSuggestionsBar
         isReadOnly={false}
@@ -87,10 +87,14 @@ describe('AgentChatSuggestionsBar', () => {
 
     expect(
       screen.getByRole('toolbar', { name: 'Prompt suggestions' }),
+    ).toHaveAttribute('data-variant', 'cards');
+    expect(
+      screen.getByRole('toolbar', { name: 'Prompt suggestions' }),
     ).toHaveClass(
       'grid',
       'grid-cols-1',
-      '@xl:grid-cols-3',
+      'sm:grid-cols-1',
+      '@lg:grid-cols-3',
       '[&>button]:w-full',
       '[&>button]:max-w-none',
     );
