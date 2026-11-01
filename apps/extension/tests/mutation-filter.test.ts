@@ -50,7 +50,10 @@ describe('observeAddedElements', () => {
   afterEach(() => vi.useRealTimers());
 
   it('scans once for a burst of timeline additions', async () => {
-    const onChange = vi.fn();
+    let scans = 0;
+    const onChange = () => {
+      scans += 1;
+    };
     const stop = observeAddedElements(document.body, onChange, 250);
 
     const timeline = byId('timeline') as Element;
@@ -58,15 +61,18 @@ describe('observeAddedElements', () => {
     timeline.append(document.createElement('p'));
     timeline.append(document.createElement('p'));
     await Promise.resolve();
-    expect(onChange).not.toHaveBeenCalled();
+    expect(scans).toBe(0);
     vi.advanceTimersByTime(250);
 
-    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(scans).toBe(1);
     stop();
   });
 
   it('does not scan while the person types in the editor', async () => {
-    const onChange = vi.fn();
+    let scans = 0;
+    const onChange = () => {
+      scans += 1;
+    };
     const stop = observeAddedElements(document.body, onChange, 250);
 
     document.querySelector('#editor-line')?.append(document.createElement('b'));
@@ -76,18 +82,21 @@ describe('observeAddedElements', () => {
     await Promise.resolve();
     vi.advanceTimersByTime(1000);
 
-    expect(onChange).not.toHaveBeenCalled();
+    expect(scans).toBe(0);
     stop();
   });
 
   it('does not scan after it is stopped', async () => {
-    const onChange = vi.fn();
+    let scans = 0;
+    const onChange = () => {
+      scans += 1;
+    };
     const stop = observeAddedElements(document.body, onChange, 250);
     document.querySelector('#timeline')?.append(document.createElement('p'));
     await Promise.resolve();
     stop();
     vi.advanceTimersByTime(1000);
 
-    expect(onChange).not.toHaveBeenCalled();
+    expect(scans).toBe(0);
   });
 });
