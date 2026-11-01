@@ -688,7 +688,7 @@ const channelCapabilities = [
     media: {
       animated: { supported: true },
       kinds: ['image', 'video', 'link'],
-      maxItems: 1,
+      maxItems: 10,
       minItems: 0,
     },
     platform: CredentialPlatform.FACEBOOK,

@@ -60,12 +60,6 @@ describe('carousel-validation', () => {
     it('returns undefined for unsupported platform', () => {
       expect(getCarouselLimits(unsupported)).toBeUndefined();
     });
-
-    it('has no carousel for a channel that posts one image', () => {
-      expect(
-        getCarouselLimits('facebook' as CredentialPlatform),
-      ).toBeUndefined();
-    });
   });
 
   describe('platformSupportsCarousel', () => {

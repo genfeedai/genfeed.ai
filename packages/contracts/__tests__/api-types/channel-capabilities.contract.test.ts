@@ -373,26 +373,6 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
-  test('rejects a second Facebook image the publisher would drop', () => {
-    const result = validateChannelTargetSettings({
-      caption: 'Slides',
-      media: [
-        { id: 'photo_1', kind: 'image' },
-        { id: 'photo_2', kind: 'image' },
-      ],
-      platform: CredentialPlatform.FACEBOOK,
-      publishMode: 'scheduled',
-    });
-
-    expect(result.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          code: 'channel_target.too_many_media_items',
-        }),
-      ]),
-    );
-  });
-
   test('marks hidden and planned channel stubs invalid for publishing', () => {
     expect(
       validateChannelTargetSettings({
