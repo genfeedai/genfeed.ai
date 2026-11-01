@@ -566,9 +566,7 @@ export class SocialInboxIngestionService {
       // message id. Walk newest-first until a page adds nothing new.
       let paginationToken: string | undefined;
       for (let page = 0; page < X_DM_MAX_PAGES; page++) {
-        let listing: Awaited<
-          ReturnType<TwitterService['listDirectMessages']>
-        >;
+        let listing: Awaited<ReturnType<TwitterService['listDirectMessages']>>;
         try {
           listing = await this.pollProvider(
             Platform.TWITTER,

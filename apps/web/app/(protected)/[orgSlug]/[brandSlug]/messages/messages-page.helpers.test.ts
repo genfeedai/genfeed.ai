@@ -1,6 +1,7 @@
 import { SocialConversationType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  getDirectMessageReconnectAccounts,
   getMessagesSyncFeedback,
   getMessagesSyncResultFeedback,
   parseMessagesInboxView,
@@ -201,5 +202,59 @@ describe('getMessagesSyncResultFeedback', () => {
         },
       ]).notice,
     ).toBe('X direct messages sync finished: 1 new message in 1 conversation.');
+  });
+});
+
+describe('getDirectMessageReconnectAccounts', () => {
+  const credentials = [
+    {
+      brandId: 'brand-1',
+      directMessageCapability: 'reconnect' as const,
+      externalHandle: 'genfeedai',
+      externalName: 'Genfeed',
+      id: 'credential-x-old',
+      label: 'X',
+      platform: 'twitter',
+    },
+    {
+      brandId: 'brand-1',
+      directMessageCapability: 'ok' as const,
+      externalHandle: 'shipshitdev',
+      externalName: 'Ship',
+      id: 'credential-x-new',
+      label: 'X',
+      platform: 'twitter',
+    },
+    {
+      brandId: 'brand-1',
+      directMessageCapability: 'unknown' as const,
+      externalHandle: 'legacy',
+      externalName: 'Legacy',
+      id: 'credential-x-uncaptured',
+      label: 'X',
+      platform: 'twitter',
+    },
+  ] as Parameters<typeof getDirectMessageReconnectAccounts>[0];
+
+  it.each(['all', SocialConversationType.DM] as const)(
+    'lists only X accounts known to lack dm.read on the %s surface',
+    (surface) => {
+      expect(getDirectMessageReconnectAccounts(credentials, surface)).toEqual([
+        {
+          brandId: 'brand-1',
+          credentialId: 'credential-x-old',
+          label: '@genfeedai',
+        },
+      ]);
+    },
+  );
+
+  it('stays quiet on the Comments surface', () => {
+    expect(
+      getDirectMessageReconnectAccounts(
+        credentials,
+        SocialConversationType.COMMENT,
+      ),
+    ).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import type { AssetCategory, CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
+  DirectMessageCapability,
   IArticle,
   IBrand,
   IBrandConversationStarter,
@@ -75,6 +76,8 @@ export interface BrandDetailSocialConnection {
   accountHealth?: AccountHealthSummary;
   avatarUrl?: string | null;
   credentialId: string;
+  /** DM read verdict from the stored grant; `reconnect` asks for a reconnect. */
+  directMessageCapability?: DirectMessageCapability;
   externalId?: string | null;
   handle?: string | null;
   /** Defaults to connected when omitted — legacy callers only ever built connected rows. */

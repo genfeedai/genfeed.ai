@@ -44,10 +44,11 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import DirectMessageReconnectNotice from '@/features/messages/components/DirectMessageReconnectNotice';
 import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type {
@@ -61,6 +62,7 @@ import {
 import {
   ALL_BRANDS_FILTER,
   formatMessageTime,
+  getDirectMessageReconnectAccounts,
   getMessageProvenanceItems,
   parseMessagesInboxView,
   parseMessagesSurface,
@@ -616,6 +618,31 @@ export default function MessagesPage() {
   const availableOAuthConnect = connectionBrandId
     ? handleOAuthConnect
     : undefined;
+  const dmReconnectAccounts = useMemo(
+    () =>
+      getDirectMessageReconnectAccounts(
+        connectedAccounts,
+        filters.conversationType,
+      ),
+    [connectedAccounts, filters.conversationType],
+  );
+  const [reconnectingCredentialId, setReconnectingCredentialId] = useState<
+    string | null
+  >(null);
+  const handleDmReconnect = useCallback(
+    (credentialId: string) => {
+      const account = dmReconnectAccounts.find(
+        (candidate) => candidate.credentialId === credentialId,
+      );
+      setReconnectingCredentialId(credentialId);
+      // The hook logs the failure; release the button so the user can retry.
+      handleOAuthConnect(Platform.TWITTER, {
+        brandId: account?.brandId,
+        credentialId,
+      }).catch(() => setReconnectingCredentialId(null));
+    },
+    [dmReconnectAccounts, handleOAuthConnect],
+  );
 
   const conversationNavPanel = (
     <MessagesConversationSidebar
@@ -693,6 +720,16 @@ export default function MessagesPage() {
               </Link>
             </Button>
           ) : null}
+        </div>
+      ) : null}
+      {dmReconnectAccounts.length > 0 ? (
+        <div className="mx-4 mt-3 shrink-0">
+          <DirectMessageReconnectNotice
+            accounts={dmReconnectAccounts}
+            isDisabled={!canWrite}
+            onReconnect={handleDmReconnect}
+            reconnectingCredentialId={reconnectingCredentialId}
+          />
         </div>
       ) : null}
       {workspaceNavPanel?.portalTargets.map((target, index) =>

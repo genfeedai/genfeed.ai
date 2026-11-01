@@ -86,3 +86,20 @@ export function getConnectionInitials(
 
   return initials || connection.platform.slice(0, 2).toUpperCase();
 }
+
+/**
+ * True for an X account whose stored grant was captured without DM access.
+ * Grants from before scope capture stay quiet: their DM access is unknown
+ * until a sync or a reconnect.
+ */
+export function needsDirectMessageReconnect(
+  connection: Pick<
+    BrandDetailSocialConnection,
+    'directMessageCapability' | 'platform'
+  >,
+): boolean {
+  return (
+    connection.platform === CredentialPlatform.TWITTER &&
+    connection.directMessageCapability === 'reconnect'
+  );
+}
