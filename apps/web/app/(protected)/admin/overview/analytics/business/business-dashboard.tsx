@@ -143,7 +143,10 @@ function DailySeriesChart({
               key={point.date}
               label={`${point.date}: ${formatter(value)}`}
             >
-              <div className="group relative flex-1">
+              <div
+                className="group relative flex-1"
+                data-testid="daily-chart-bar"
+              >
                 <div
                   className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
                   style={{ height: `${Math.max(height, 2)}%` }}
