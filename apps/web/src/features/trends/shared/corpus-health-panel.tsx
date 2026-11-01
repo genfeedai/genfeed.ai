@@ -62,7 +62,6 @@ export default function CorpusHealthPanel({
     <section aria-label={translate('health')} className="mb-4">
       <Card
         label={translate('health')}
-        bodyClassName="space-y-3"
         headerAction={
           <Badge
             variant={

@@ -1,3 +1,4 @@
+import { CardGap } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import type { PostSignupFallbackProps } from '@/features/onboarding/props/post-signup-fallback.props';
@@ -7,7 +8,7 @@ export default function PostSignupFallback({
   retryBrandOsHandoff,
 }: PostSignupFallbackProps) {
   return (
-    <Card className="mt-2" bodyClassName="gap-0 p-4">
+    <Card className="mt-2" gap={CardGap.NONE}>
       <p className="mb-3 text-xs text-muted-foreground">
         {retryBrandOsHandoff
           ? 'Your preview was not consumed. Retry the secure workspace handoff.'

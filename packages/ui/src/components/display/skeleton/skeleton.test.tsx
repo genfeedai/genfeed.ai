@@ -26,8 +26,10 @@ describe('SkeletonCard', () => {
     const card = screen.getByRole('status', { name: 'Loading card' });
     expect(card).toHaveAttribute('aria-busy', 'true');
     expect(card.childElementCount).toBe(0);
-    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
-    expect(card).toHaveClass('rounded-card', 'motion-reduce:animate-none');
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      1,
+    );
+    expect(card).toHaveClass('rounded-card', 'motion-reduce:before:hidden');
   });
 
   it('keeps media and text card footprints distinct without drawing fake content', () => {

@@ -27,6 +27,7 @@ import {
   approveStoryboardPlan,
   assertStoryboardEditable,
   editStoryboardPlan,
+  normalizeStoryboardSlideshow,
 } from '@api/collections/content-runs/services/storyboard-plan-state';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import {
@@ -39,11 +40,13 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
+  isStoryboardSlideshow,
   type StoryboardPlan,
   storyboardPlanSchema,
   updateStoryboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import {
+  type CreateStoryboardRun,
   controlStoryboardRunSchema,
   createStoryboardRunSchema,
   draftStoryboardPlanSchema,
@@ -88,6 +91,39 @@ function canonicalInput(value: unknown): string {
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([key, item]) => `${JSON.stringify(key)}:${canonicalInput(item)}`)
     .join(',')}}`;
+}
+
+/**
+ * The plan settings a new storyboard starts with: the member's own, or the
+ * defaults for its kind. A long-form talking head is landscape, a slideshow is
+ * a 4:5 feed post with no runtime, and short videos are vertical.
+ */
+function resolveStoryboardPlanSettings(
+  input: CreateStoryboardRun,
+  sourceSnapshot: object,
+  brandReferenceAssetIds: readonly string[],
+) {
+  const length =
+    input.source.kind === 'brief' ? input.source.length : undefined;
+  const isSlideshow = length === 'slideshow';
+  const settings = input.planSettings ?? {
+    videoModelKey: null,
+    format:
+      length === 'long_form'
+        ? ('16:9' as const)
+        : isSlideshow
+          ? ('4:5' as const)
+          : ('9:16' as const),
+    runtimeBudgetSeconds:
+      'durationSeconds' in sourceSnapshot
+        ? Number(sourceSnapshot.durationSeconds)
+        : null,
+    styleReferenceAssetIds: brandReferenceAssetIds.slice(0, 20),
+    cast: [],
+  };
+  return isSlideshow
+    ? { ...settings, kind: 'slideshow' as const, runtimeBudgetSeconds: null }
+    : settings;
 }
 
 @Injectable()
@@ -157,21 +193,13 @@ export class StoryboardRunsService {
             const isLongForm =
               input.source.kind === 'brief' &&
               input.source.length === 'long_form';
-            // A long-form talking-head video is landscape; short ones are vertical.
-            const settings = input.planSettings ?? {
-              videoModelKey: null,
-              format: isLongForm ? ('16:9' as const) : ('9:16' as const),
-              runtimeBudgetSeconds:
-                'durationSeconds' in sourceSnapshot
-                  ? sourceSnapshot.durationSeconds
-                  : null,
-              styleReferenceAssetIds: toBrandGenerationReferences(
-                context.brandKit,
-              )
-                .map((reference) => reference.assetId)
-                .slice(0, 20),
-              cast: [],
-            };
+            const settings = resolveStoryboardPlanSettings(
+              input,
+              sourceSnapshot,
+              toBrandGenerationReferences(context.brandKit).map(
+                (reference) => reference.assetId,
+              ),
+            );
             const seedImageAssetId =
               input.source.kind === 'brief'
                 ? input.source.seedImageAssetId
@@ -330,6 +358,21 @@ export class StoryboardRunsService {
       input.expectedRevision,
     );
     assertStoryboardEditable(config);
+    if (
+      isStoryboardSlideshow(config.plan) !== isStoryboardSlideshow(input.plan)
+    )
+      throw new BadRequestException(
+        'A storyboard cannot change between a video and a slideshow.',
+      );
+    if (isStoryboardSlideshow(input.plan)) {
+      // Slides are stills: no video model, durations or transitions apply.
+      const next = editStoryboardPlan(
+        config,
+        normalizeStoryboardSlideshow(input.plan),
+      );
+      await this.source.validatePlanAssets(organizationId, brandId, next.plan);
+      return this.store.save(organizationId, brandId, runId, config, next);
+    }
     if (input.plan.longForm) {
       // Long-form plans narrate over one presenter track; no video-model
       // durations apply, so timing comes from the narration itself.
@@ -393,6 +436,11 @@ export class StoryboardRunsService {
       throw new ConflictException(
         'This storyboard has no generated plan to restore.',
       );
+    if (isStoryboardSlideshow(config.plan)) {
+      const next = editStoryboardPlan(config, config.generatedPlan);
+      await this.source.validatePlanAssets(organizationId, brandId, next.plan);
+      return this.store.save(organizationId, brandId, runId, config, next);
+    }
     const capabilities = await this.capabilities.resolve(
       organizationId,
       brandId,
@@ -444,6 +492,33 @@ export class StoryboardRunsService {
       throw new BadRequestException(
         'Write a brief or give an instruction before drafting the plan.',
       );
+    if (isStoryboardSlideshow(config.plan)) {
+      const context = await this.planning.resolveBrandContext(
+        organizationId,
+        brandId,
+      );
+      const plan = await this.drafter.draftSlideshow({
+        brandId,
+        organizationId,
+        userId,
+        brand: {
+          name: context.brand.label,
+          description: context.brand.description ?? undefined,
+        },
+        brief: selector.brief,
+        current: config.plan,
+        instruction: input.instruction,
+        mode: isRevision ? 'revise' : 'draft',
+      });
+      return this.saveDraftedPlan(
+        organizationId,
+        brandId,
+        runId,
+        config,
+        plan,
+        isRevision,
+      );
+    }
     if (config.plan.longForm) {
       const context = await this.planning.resolveBrandContext(
         organizationId,
@@ -558,7 +633,7 @@ export class StoryboardRunsService {
       config.sourceSnapshot,
     );
     await this.source.validatePlanAssets(organizationId, brandId, config.plan);
-    if (config.plan.longForm)
+    if (config.plan.longForm || isStoryboardSlideshow(config.plan))
       return this.store.save(
         organizationId,
         brandId,

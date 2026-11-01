@@ -9,7 +9,8 @@ import { SendOnEnter } from '@ui/prompt-editor/send-on-enter.extension';
 export interface CreatePromptEditorExtensionsOptions {
   extraExtensions?: readonly AnyExtension[];
   onEnter?: () => boolean;
-  placeholder?: string;
+  /** A getter lets the placeholder follow prop changes after the editor exists. */
+  placeholder?: string | (() => string);
 }
 
 export function createPromptEditorPasteHandler() {
@@ -63,7 +64,8 @@ export function createPromptEditorExtensions({
       orderedList: false,
     }),
     Placeholder.configure({
-      placeholder: () => placeholder,
+      placeholder: () =>
+        typeof placeholder === 'function' ? placeholder() : placeholder,
     }),
     SendOnEnter.configure({
       onEnter: () => onEnter?.() ?? false,

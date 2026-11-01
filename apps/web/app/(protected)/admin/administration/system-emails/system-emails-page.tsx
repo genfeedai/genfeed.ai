@@ -1,5 +1,4 @@
 'use client';
-
 import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
 import SystemEmailRangeFilter from '@app/(protected)/admin/administration/system-emails/system-email-range-filter';
 import { useSystemEmailRange } from '@app/(protected)/admin/administration/system-emails/use-system-email-range';
@@ -15,7 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -25,6 +24,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -148,8 +148,8 @@ export default function SystemEmailsPage() {
           data-testid="system-emails-surface"
         >
           {visibleEmails.length === 0 ? (
-            <CardEmptyContent
-              label={
+            <EmptyState
+              title={
                 search
                   ? 'No system emails match your search'
                   : 'No system emails registered'

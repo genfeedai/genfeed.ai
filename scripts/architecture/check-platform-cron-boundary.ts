@@ -156,12 +156,6 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform model catalog maintenance.',
   },
   {
-    file: 'apps/server/workers/src/crons/llm-idle/cron.llm-idle.service.ts',
-    id: 'llm-idle-stop',
-    methodName: 'shutdownIfIdle',
-    reason: 'Platform GPU cost-control maintenance.',
-  },
-  {
     file: 'apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts',
     id: 'ingredients-timeout-health',
     methodName: 'checkStuckProcessingIngredients',

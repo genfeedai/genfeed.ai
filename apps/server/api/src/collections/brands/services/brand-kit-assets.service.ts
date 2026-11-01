@@ -41,6 +41,7 @@ const BRAND_KIT_ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
   'image/jpg',
   'image/png',
+  'image/svg+xml',
   'image/webp',
 ]);
 const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
@@ -48,8 +49,17 @@ const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
   '.jpeg',
   '.jpg',
   '.png',
+  '.svg',
   '.webp',
 ]);
+/**
+ * Sites often publish their logo only as an SVG. The files service rasterizes
+ * SVG uploads to PNG, so an imported SVG is stored, and recorded, as a PNG.
+ */
+const SVG_MIME_TYPE = 'image/svg+xml';
+const SVG_EXTENSION = '.svg';
+const SVG_STORED_MIME_TYPE = 'image/png';
+const SVG_STORED_EXTENSION = '.png';
 
 function toReferenceImageCategory(
   value: unknown,
@@ -391,7 +401,10 @@ export class BrandKitAssetsService {
         displayName: candidate.label,
         mimeType: validation.mimeType,
         origin: sourceUrl,
-        originalFileName: this.readFileName(validation.url),
+        originalFileName: this.readStoredFileName(
+          validation.url,
+          validation.isSvg,
+        ),
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
@@ -590,6 +603,7 @@ export class BrandKitAssetsService {
     candidate: IBrandKitAssetImportCandidate,
   ): {
     diagnostics: IBrandKitDiagnostic[];
+    isSvg: boolean;
     mimeType?: string;
     url: URL;
   } {
@@ -671,9 +685,16 @@ export class BrandKitAssetsService {
       }
     }
 
+    const isSvg =
+      normalizedMimeType === SVG_MIME_TYPE ||
+      (!normalizedMimeType &&
+        parsedUrl !== undefined &&
+        this.readExtension(parsedUrl) === SVG_EXTENSION);
+
     return {
       diagnostics,
-      mimeType: normalizedMimeType,
+      isSvg,
+      mimeType: isSvg ? SVG_STORED_MIME_TYPE : normalizedMimeType,
       url: parsedUrl ?? new URL('https://invalid.example'),
     };
   }
@@ -800,6 +821,16 @@ export class BrandKitAssetsService {
     const pathname = url.pathname.toLowerCase();
     const extensionStart = pathname.lastIndexOf('.');
     return extensionStart >= 0 ? pathname.slice(extensionStart) : '';
+  }
+
+  private readStoredFileName(url: URL, isSvg: boolean): string | undefined {
+    const filename = this.readFileName(url);
+    if (!filename || !isSvg) {
+      return filename;
+    }
+    return filename.toLowerCase().endsWith(SVG_EXTENSION)
+      ? `${filename.slice(0, -SVG_EXTENSION.length)}${SVG_STORED_EXTENSION}`
+      : filename;
   }
 
   private readFileName(url: URL): string | undefined {

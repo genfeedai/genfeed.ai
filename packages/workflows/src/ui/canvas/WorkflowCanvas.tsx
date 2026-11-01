@@ -25,11 +25,15 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from '@genfeedai/contracts/types';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuTrigger,
+} from '@genfeedai/ui/primitives/context-menu';
 import { CostModal } from '../components/CostModal';
-import { ContextMenu } from '../components/context-menu/ContextMenu';
+import { ContextMenuItems } from '../components/context-menu/ContextMenuItems';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
-import { NotificationToast } from '../components/NotificationToast';
 import { useAddCatalogNode } from '../hooks/useAddCatalogNode';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
@@ -46,6 +50,7 @@ import {
 import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
+import { useContextMenuStore } from '../stores/contextMenuStore';
 import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -431,9 +436,11 @@ function useWorkflowCanvasHandlers({
     [setSelectedNodeIds],
   );
 
+  // The handlers below only record what was right-clicked. They must not call
+  // `preventDefault`: the shared ContextMenu trigger around the canvas opens
+  // the menu (and suppresses the browser one) for the same event.
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      event.preventDefault();
       if (selectedNodeIds.length > 1 && selectedNodeIdLookup.has(node.id)) {
         openSelectionMenu(selectedNodeIds, event.clientX, event.clientY);
       } else {
@@ -445,7 +452,6 @@ function useWorkflowCanvasHandlers({
 
   const handleEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: WorkflowEdge) => {
-      event.preventDefault();
       openEdgeMenu(edge.id, event.clientX, event.clientY);
     },
     [openEdgeMenu],
@@ -453,7 +459,6 @@ function useWorkflowCanvasHandlers({
 
   const handlePaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
-      event.preventDefault();
       openPaneMenu(event.clientX, event.clientY);
     },
     [openPaneMenu],
@@ -461,7 +466,6 @@ function useWorkflowCanvasHandlers({
 
   const handleSelectionContextMenu = useCallback(
     (event: React.MouseEvent, selectedNodes: Node[]) => {
-      event.preventDefault();
       const nodeIds = selectedNodes.map((n) => n.id);
       openSelectionMenu(nodeIds, event.clientX, event.clientY);
     },
@@ -690,7 +694,6 @@ export function WorkflowCanvas({
 
   const {
     isOpen: isContextMenuOpen,
-    position: contextMenuPosition,
     menuItems: contextMenuItems,
     openNodeMenu,
     openEdgeMenu,
@@ -698,6 +701,48 @@ export function WorkflowCanvas({
     openSelectionMenu,
     close: closeContextMenu,
   } = useContextMenu();
+
+  // A touch long-press opens the Radix menu without a React Flow context-menu
+  // event, so remember the last pointer-down and fall back to the node or pane
+  // menu under it when the menu opens with nothing recorded.
+  const lastPointerRef = useRef<{
+    target: EventTarget | null;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleTriggerPointerDown = useCallback((event: React.PointerEvent) => {
+    lastPointerRef.current = {
+      target: event.target,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }, []);
+
+  const handleContextMenuOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        closeContextMenu();
+        return;
+      }
+      // Read the store, not the render value: a right-click records its target
+      // in the same event, just before Radix reports the open.
+      const pointer = lastPointerRef.current;
+      if (useContextMenuStore.getState().isOpen || !pointer) {
+        return;
+      }
+      const nodeId =
+        pointer.target instanceof Element
+          ? pointer.target.closest('.react-flow__node')?.getAttribute('data-id')
+          : null;
+      if (nodeId) {
+        openNodeMenu(nodeId, pointer.x, pointer.y);
+      } else {
+        openPaneMenu(pointer.x, pointer.y);
+      }
+    },
+    [closeContextMenu, openNodeMenu, openPaneMenu],
+  );
 
   useSelectionHighlight({
     getConnectedNodeIds,
@@ -765,94 +810,97 @@ export function WorkflowCanvas({
   });
 
   return (
-    <div
-      role="application"
-      className="size-full relative"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-    >
-      <ReactFlow<WorkflowNode, WorkflowEdge>
-        nodes={nodes}
-        edges={styledEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectEnd={handleConnectEnd}
-        onNodeClick={handleNodeClick}
-        onPaneClick={handlePaneClick}
-        onSelectionChange={handleSelectionChange}
-        onNodeContextMenu={handleNodeContextMenu}
-        onEdgeContextMenu={handleEdgeContextMenu}
-        onPaneContextMenu={handlePaneContextMenu}
-        onSelectionContextMenu={handleSelectionContextMenu}
-        onNodeDragStart={handleNodeDragStart}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
-        onEdgeClick={handleEdgeClick}
-        isValidConnection={checkValidConnection}
-        nodeTypes={nodeTypesProp ?? defaultNodeTypes}
-        edgeTypes={edgeTypesMap}
-        fitView
-        snapToGrid
-        snapGrid={[16, 16]}
-        minZoom={0.1}
-        maxZoom={4}
-        nodeDragThreshold={5}
-        nodeClickDistance={5}
-        connectionMode={ConnectionMode.Loose}
-        selectionMode={SelectionMode.Partial}
-        selectionOnDrag
-        panOnDrag={[1, 2]}
-        onMoveStart={handleMoveStart}
-        onMoveEnd={handleMoveEnd}
-        deleteKeyCode={['Backspace', 'Delete']}
-        defaultEdgeOptions={{
-          animated: false,
-          type: edgeStyle,
-        }}
-        edgesFocusable
-        edgesReconnectable
-        proOptions={{ hideAttribution: true }}
-        onlyRenderVisibleElements={nodes.length > 50}
-      >
-        <GroupOverlay />
-        <Background
-          variant={BackgroundVariant.Lines}
-          gap={24}
-          lineWidth={1}
-          color="hsl(var(--foreground) / 0.1)"
-        />
-        <Controls />
-        {showMinimap && (
-          <MiniMap
-            nodeStrokeWidth={0}
-            nodeColor={() => DEFAULT_NODE_COLOR}
-            zoomable
-            pannable
-            maskColor="hsl(var(--background) / 0.8)"
-            className={`!border-border !bg-transparent transition-opacity duration-300 ${
-              isMinimapVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          />
-        )}
-        <HelperLines draggingNodeId={draggingNodeId} />
-      </ReactFlow>
-      {isContextMenuOpen && (
-        <ContextMenu
-          x={contextMenuPosition.x}
-          y={contextMenuPosition.y}
-          items={contextMenuItems}
-          onClose={closeContextMenu}
-        />
-      )}
-      <MultiSelectToolbar onDownloadAsZip={onDownloadAsZip} />
-      <NodeDetailModal />
-      <ShortcutHelpModal />
-      <NodeSearch />
-      <ConnectionDropMenu />
-      <CostModal />
-      <NotificationToast />
-      <GlobalImageHistory />
-    </div>
+    <ContextMenu onOpenChange={handleContextMenuOpenChange}>
+      <ContextMenuTrigger asChild>
+        <div
+          role="application"
+          className="size-full relative"
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onPointerDown={handleTriggerPointerDown}
+        >
+          <ReactFlow<WorkflowNode, WorkflowEdge>
+            nodes={nodes}
+            edges={styledEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onConnectEnd={handleConnectEnd}
+            onNodeClick={handleNodeClick}
+            onPaneClick={handlePaneClick}
+            onSelectionChange={handleSelectionChange}
+            onNodeContextMenu={handleNodeContextMenu}
+            onEdgeContextMenu={handleEdgeContextMenu}
+            onPaneContextMenu={handlePaneContextMenu}
+            onSelectionContextMenu={handleSelectionContextMenu}
+            onNodeDragStart={handleNodeDragStart}
+            onNodeDrag={handleNodeDrag}
+            onNodeDragStop={handleNodeDragStop}
+            onEdgeClick={handleEdgeClick}
+            isValidConnection={checkValidConnection}
+            nodeTypes={nodeTypesProp ?? defaultNodeTypes}
+            edgeTypes={edgeTypesMap}
+            fitView
+            snapToGrid
+            snapGrid={[16, 16]}
+            minZoom={0.1}
+            maxZoom={4}
+            nodeDragThreshold={5}
+            nodeClickDistance={5}
+            connectionMode={ConnectionMode.Loose}
+            selectionMode={SelectionMode.Partial}
+            selectionOnDrag
+            panOnDrag={[1, 2]}
+            onMoveStart={handleMoveStart}
+            onMoveEnd={handleMoveEnd}
+            deleteKeyCode={['Backspace', 'Delete']}
+            defaultEdgeOptions={{
+              animated: false,
+              type: edgeStyle,
+            }}
+            edgesFocusable
+            edgesReconnectable
+            proOptions={{ hideAttribution: true }}
+            onlyRenderVisibleElements={nodes.length > 50}
+          >
+            <GroupOverlay />
+            <Background
+              variant={BackgroundVariant.Lines}
+              gap={24}
+              lineWidth={1}
+              color="hsl(var(--foreground) / 0.1)"
+            />
+            <Controls />
+            {showMinimap && (
+              <MiniMap
+                nodeStrokeWidth={0}
+                nodeColor={() => DEFAULT_NODE_COLOR}
+                zoomable
+                pannable
+                maskColor="hsl(var(--background) / 0.8)"
+                className={`!border-border !bg-transparent transition-opacity duration-300 ${
+                  isMinimapVisible
+                    ? 'opacity-100'
+                    : 'opacity-0 pointer-events-none'
+                }`}
+              />
+            )}
+            <HelperLines draggingNodeId={draggingNodeId} />
+          </ReactFlow>
+          <MultiSelectToolbar onDownloadAsZip={onDownloadAsZip} />
+          <NodeDetailModal />
+          <ShortcutHelpModal />
+          <NodeSearch />
+          <ConnectionDropMenu />
+          <CostModal />
+          <GlobalImageHistory />
+        </div>
+      </ContextMenuTrigger>
+      {isContextMenuOpen ? (
+        <ContextMenuContent>
+          <ContextMenuItems items={contextMenuItems} />
+        </ContextMenuContent>
+      ) : null}
+    </ContextMenu>
   );
 }

@@ -1,5 +1,11 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { EditorContent } from '@tiptap/react';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import type { WorkspaceTaskBrandFieldProps } from '@/features/workspace/props/workspace-task-brand-field.props';
 
@@ -29,9 +35,15 @@ export function WorkspaceTaskBrandField({
       {editor ? (
         <EditorContent editor={editor} />
       ) : (
-        <div className="min-h-9 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-          Type @ to target a brand.
-        </div>
+        <Card
+          variant={CardVariant.INSET}
+          padding={CardPadding.SM}
+          bodyClassName="min-h-9"
+        >
+          <div className="text-sm text-muted-foreground">
+            Type @ to target a brand.
+          </div>
+        </Card>
       )}
       <p className="text-xs text-muted-foreground">
         Targeting{' '}

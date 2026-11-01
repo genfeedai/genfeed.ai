@@ -3623,10 +3623,11 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'second',
         unitPriceUsd: 0.1,
         when: {},
+        isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/openai/sora-2',
-    verifiedAt: '2026-10-21T20:53:40.271Z',
+    verifiedAt: '2026-11-01T15:53:43.866Z',
   },
   {
     endpoint: 'openai/sora-2-pro',
@@ -3637,20 +3638,38 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'second',
         unitPriceUsd: 0.3,
         when: {
-          resolution: 'standard',
+          model_variant: 'sora-2-pro-standard',
         },
+        isPerOutput: true,
       },
       {
         component: 'output',
         unit: 'second',
         unitPriceUsd: 0.5,
         when: {
-          resolution: 'high',
+          model_variant: 'sora-2-pro-high',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'resolution',
+          valueMap: {
+            standard: 'sora-2-pro-standard',
+            high: 'sora-2-pro-high',
+          },
+          fieldType: 'string',
+          default: 'standard',
         },
       },
     ],
     sourceUrl: 'https://replicate.com/openai/sora-2-pro',
-    verifiedAt: '2026-10-21T20:53:40.271Z',
+    verifiedAt: '2026-11-01T15:53:49.500Z',
   },
   {
     endpoint: 'fal-ai/flux/dev',

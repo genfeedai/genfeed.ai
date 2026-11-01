@@ -119,6 +119,7 @@ export class TwitterController {
             'like.write',
             'users.read',
             'media.write',
+            'dm.read',
             'offline.access',
           ],
           state,

@@ -224,7 +224,6 @@ export default function OrganizationIdentityDefaultsCard() {
   return (
     <Card
       label={translate('organizationLabel')}
-      bodyClassName="gap-3 p-4"
       data-testid="org-identity-defaults-card"
     >
       <div className="space-y-3">

@@ -43,6 +43,7 @@ import { StoryboardPlanDraftService } from '@api/collections/content-runs/servic
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -52,6 +53,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -89,6 +91,7 @@ import { Module } from '@nestjs/common';
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
     StoryboardLongFormTranslationService,
+    StoryboardSlideshowPostService,
     BrandRemixSceneService,
     BrandRemixRunsService,
     ContentRunsService,
@@ -97,6 +100,7 @@ import { Module } from '@nestjs/common';
   imports: [
     PersonasCoreModule,
     PlatformSettingsModule,
+    PostsCoreModule,
     FileQueueModule,
     MediaUrlsModule,
     RouterModule,
@@ -139,6 +143,7 @@ import { Module } from '@nestjs/common';
     StoryboardLongFormAssemblyService,
     StoryboardLongFormEstimateService,
     StoryboardLongFormTranslationService,
+    StoryboardSlideshowPostService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
     BrandRemixSceneQuoteService,

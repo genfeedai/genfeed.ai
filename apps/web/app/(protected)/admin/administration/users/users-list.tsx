@@ -3,15 +3,16 @@
 import { PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
-import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { Users, VenetianMask } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -21,16 +22,11 @@ import { useAdminSearchParam } from '@/components/content/admin-filters/useAdmin
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { useImpersonateUser } from './use-impersonate-user';
-import UserAvatar from './user-avatar';
 import UserDetailPanel from './user-detail-panel';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
 
 const USER_SORT_KEYS = ['name', 'email', 'createdAt', 'lastActiveAt'];
-
-function formatUserDate(value: string | Date | null | undefined): string {
-  return formatDate(value, DATE_FORMATS.DISPLAY_DATETIME) || EMPTY_VALUE;
-}
 
 export default function UsersList() {
   const queryClient = useQueryClient();
@@ -87,7 +83,12 @@ export default function UsersList() {
           className="flex min-w-0 items-center gap-2.5 hover:underline"
           href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${u.id}`}
         >
-          <UserAvatar user={u} />
+          <Avatar
+            alt={getUserDisplayName(u) ?? u.email}
+            name={getUserDisplayName(u) ?? u.email}
+            size="md"
+            src={u.avatar}
+          />
           <span className="truncate">
             {getUserDisplayName(u) ?? EMPTY_VALUE}
           </span>
@@ -104,13 +105,13 @@ export default function UsersList() {
       header: translate('columns.joined'),
       key: 'createdAt',
       sortable: true,
-      render: (u: IUser) => formatUserDate(u.createdAt),
+      render: (u: IUser) => <TableDateCell value={u.createdAt} />,
     },
     {
       header: translate('columns.lastConnected'),
       key: 'lastActiveAt',
       sortable: true,
-      render: (u: IUser) => formatUserDate(u.lastActiveAt),
+      render: (u: IUser) => <TableDateCell value={u.lastActiveAt} />,
     },
   ];
 

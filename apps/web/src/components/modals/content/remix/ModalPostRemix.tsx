@@ -9,6 +9,7 @@ import {
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
@@ -89,10 +90,10 @@ export default function ModalPostRemix({
         </div>
 
         {post.status === PostStatus.PUBLIC && (
-          <div className="text-xs text-success bg-success/10 px-3 py-2">
+          <Alert size="sm" variant="success">
             Original post has {post.totalViews || 0} views -{' '}
             {post.totalLikes || 0} likes
-          </div>
+          </Alert>
         )}
 
         <FormControl label="Label">

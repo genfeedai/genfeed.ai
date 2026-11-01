@@ -3,6 +3,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
+  CardVariant,
   FONT_FAMILY_METADATA,
   FontFamily,
   resolveFontFamily,
@@ -18,6 +20,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -646,29 +649,28 @@ export default function BrandDetailManualKitCard({
           />
         </div>
 
-        <div className="rounded-md bg-card p-3 text-sm shadow-border">
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium">Attached assets</span>
-            <span className="text-muted-foreground">{attachedAssetCount}</span>
+        <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+          <div className="text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">Attached assets</span>
+              <span className="text-muted-foreground">
+                {attachedAssetCount}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
+              {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
+              {(brand.references ?? []).length > 0 ? (
+                <span>{brand.references?.length} references</span>
+              ) : null}
+              {attachedAssetCount === 0 ? (
+                <span>No assets attached</span>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
-            {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
-            {(brand.references ?? []).length > 0 ? (
-              <span>{brand.references?.length} references</span>
-            ) : null}
-            {attachedAssetCount === 0 ? <span>No assets attached</span> : null}
-          </div>
-        </div>
+        </Card>
 
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        ) : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
 
         <Button
           className="w-full"
@@ -683,8 +685,9 @@ export default function BrandDetailManualKitCard({
         />
 
         {draft ? (
-          <div
-            className="space-y-3 rounded-md bg-card p-3 shadow-border"
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
             data-testid="manual-kit-draft-review"
           >
             <div className="flex items-center justify-between gap-3">
@@ -731,11 +734,14 @@ export default function BrandDetailManualKitCard({
             </div>
 
             {draft.assetCandidates.length > 0 ? (
-              <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                <CircleCheck className="size-4" />
+              <Alert
+                icon={<CircleCheck className="size-4" />}
+                size="sm"
+                variant="note"
+              >
                 {draft.assetCandidates.length} asset source
                 {draft.assetCandidates.length === 1 ? '' : 's'} included
-              </div>
+              </Alert>
             ) : null}
 
             {draft.diagnostics.length > 0 ? (
@@ -759,7 +765,7 @@ export default function BrandDetailManualKitCard({
                 void handleApplyDraft();
               }}
             />
-          </div>
+          </Card>
         ) : null}
       </div>
     </Card>

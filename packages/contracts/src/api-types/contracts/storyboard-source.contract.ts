@@ -18,7 +18,7 @@ export const storyboardBriefSourceSchema = z
     kind: z.literal('brief'),
     /** Long-form briefs (a voice-note transcript) may run to 20,000 characters. */
     brief: z.string().trim().max(STORYBOARD_LONG_BRIEF_MAX_CHARACTERS),
-    length: z.enum(['short', 'long_form']).optional(),
+    length: z.enum(['short', 'long_form', 'slideshow']).optional(),
     seedImageAssetId: storyboardIdSchema.optional(),
     /** Set when the brief started as an agent draft (#7341); absent means the member wrote it. */
     author: z.enum(GENERATION_PROMPT_AUTHORS).optional(),

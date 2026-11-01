@@ -437,11 +437,11 @@ describe('AppLayout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
 
     const mobileRail = screen.getByTestId('mobile-app-rail');
-    const drawer = mobileRail.parentElement?.parentElement;
+    const drawer = screen.getByRole('dialog', { name: 'Navigation' });
 
-    // Clears the 48px fixed topbar that overlaps the top of the drawer.
+    // Clears the 48px fixed topbar band at the top of the drawer.
     expect(mobileRail).toHaveClass('pt-[var(--shell-topbar-height)]');
-    expect(drawer).toHaveClass('flex');
+    expect(drawer).toContainElement(mobileRail);
     // The drawer renders before the desktop rounded block, so the mobile menu
     // is the first menu-component, next to the rail.
     expect(
@@ -462,9 +462,51 @@ describe('AppLayout', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     expect(screen.getByTestId('mobile-app-rail')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close navigation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByTestId('mobile-app-rail')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
+  });
+
+  it('closes the mobile drawer on Escape', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Navigation' }), {
+      key: 'Escape',
+    });
+
+    expect(
+      screen.queryByRole('dialog', { name: 'Navigation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('returns focus to the navigation toggle when the mobile drawer closes', async () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    toggle.focus();
+    fireEvent.click(toggle);
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Navigation' }), {
+      key: 'Escape',
+    });
+
+    await waitFor(() => expect(toggle).toHaveFocus());
   });
 
   it('marks the workspace shell root without renaming the nav column', () => {

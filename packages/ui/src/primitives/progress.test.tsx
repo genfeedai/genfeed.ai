@@ -24,11 +24,44 @@ it('shows an indeterminate shared indicator without claiming a numeric value', (
   });
 });
 
-it('lets callers recolor the indicator without keeping the primary fill', () => {
+it.each([
+  ['destructive', 'bg-destructive'],
+  ['neutral', 'bg-foreground/60'],
+  ['success', 'bg-success'],
+  ['warning', 'bg-warning'],
+])(
+  'paints the %s tone on the indicator instead of the primary fill',
+  (tone, fill) => {
+    render(
+      <Progress
+        aria-label="Usage"
+        tone={tone as 'destructive' | 'neutral' | 'success' | 'warning'}
+        value={25}
+      />,
+    );
+    const indicator = screen.getByRole('progressbar').firstElementChild;
+    expect(indicator).toHaveClass(fill);
+    expect(indicator).not.toHaveClass('bg-primary');
+  },
+);
+
+it.each([
+  ['xs', 'h-1'],
+  ['sm', 'h-1.5'],
+  ['md', 'h-2'],
+  ['lg', 'h-2.5'],
+])('sizes the %s bar to %s', (size, height) => {
   render(
-    <Progress value={25} aria-label="Usage" indicatorClassName="bg-success" />,
+    <Progress
+      aria-label="Usage"
+      size={size as 'xs' | 'sm' | 'md' | 'lg'}
+      value={25}
+    />,
   );
-  const indicator = screen.getByRole('progressbar').firstElementChild;
-  expect(indicator).toHaveClass('bg-success');
-  expect(indicator).not.toHaveClass('bg-primary');
+  expect(screen.getByRole('progressbar')).toHaveClass(height);
+});
+
+it('defaults to the medium primary bar', () => {
+  render(<Progress aria-label="Usage" value={25} />);
+  expect(screen.getByRole('progressbar')).toHaveClass('h-2', 'bg-primary/20');
 });

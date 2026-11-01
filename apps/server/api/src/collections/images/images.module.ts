@@ -62,6 +62,7 @@ import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfie
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
+import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
 import { MediaGenerationReceiptsModule } from '@api/services/media-generation-receipts/media-generation-receipts.module';
@@ -116,6 +117,7 @@ import { Module } from '@nestjs/common';
     AssetsModule,
     ConfigModule,
     ComfyUIModule,
+    ManagedInferenceRuntimeModule,
     FailedGenerationModule,
     FileQueueModule,
     FilesClientModule,

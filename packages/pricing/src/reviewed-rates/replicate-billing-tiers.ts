@@ -331,6 +331,51 @@ function nullCriterionTitles(tiers: unknown[]): Set<string> {
   return titles;
 }
 
+/**
+ * A model variant every remaining tier names the same way is the model's only
+ * variant (sora-2 once its own-key tier is dropped), so it picks no price and
+ * needs no resolver entry. A second variant makes the values differ and fails
+ * the mapping again until a resolver entry exists.
+ */
+function uniformModelVariantTitles(
+  tiers: unknown[],
+  endpoint?: string,
+): Set<string> {
+  const resolved =
+    endpoint && variantOwn(REPLICATE_VARIANT_SELECTORS, endpoint)
+      ? (REPLICATE_VARIANT_SELECTORS[endpoint] ?? [])
+      : [];
+  const valuesByTitle = new Map<string, Set<unknown>>();
+  const tiersByTitle = new Map<string, number>();
+  for (const tier of tiers) {
+    if (!isJsonObject(tier) || !Array.isArray(tier.criteria)) continue;
+    const titles = new Set<string>();
+    for (const criterion of tier.criteria) {
+      if (!isJsonObject(criterion) || typeof criterion.title !== 'string')
+        continue;
+      const title = words(criterion.title);
+      titles.add(title);
+      const values = valuesByTitle.get(title) ?? new Set<unknown>();
+      values.add(
+        `${String(criterion.type)}:${JSON.stringify(criterion.value)}`,
+      );
+      valuesByTitle.set(title, values);
+    }
+    for (const title of titles)
+      tiersByTitle.set(title, (tiersByTitle.get(title) ?? 0) + 1);
+  }
+  const uniform = new Set<string>();
+  for (const [title, values] of valuesByTitle)
+    if (
+      values.size === 1 &&
+      tiersByTitle.get(title) === tiers.length &&
+      title === 'model variant' &&
+      !resolved.some((entry) => words(entry.criterionTitle) === title)
+    )
+      uniform.add(title);
+  return uniform;
+}
+
 export function mapReplicateBillingTiers(
   allTiers: unknown[],
   inputProperties: Record<string, unknown>,
@@ -339,7 +384,10 @@ export function mapReplicateBillingTiers(
   const tiers = allTiers.filter((tier) => !isUnreachableTier(tier, endpoint));
   if (tiers.length === 0)
     return { reason: 'no_billing_tiers', status: 'failed' };
-  const ignoredTitles = nullCriterionTitles(tiers);
+  const ignoredTitles = new Set([
+    ...nullCriterionTitles(tiers),
+    ...uniformModelVariantTitles(tiers, endpoint),
+  ]);
   const rates: ReviewedProviderRate[] = [];
   const selectorKeys = new Set<string>();
   const variantRules = new Map<string, ReviewedVariantRule>();

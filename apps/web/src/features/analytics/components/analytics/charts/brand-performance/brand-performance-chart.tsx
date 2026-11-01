@@ -1,19 +1,18 @@
 'use client';
-
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
-  ChartLoadingOverlay,
   chartAxisStroke,
   chartAxisTick,
   chartGridStroke,
@@ -98,7 +97,7 @@ export function BrandPerformanceChart({
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
-      <Card className={className} bodyClassName="gap-3 p-4">
+      <Card className={className}>
         {!isEmpty ? (
           <div className="mb-4 flex flex-wrap gap-2">
             {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(
@@ -128,13 +127,10 @@ export function BrandPerformanceChart({
         ) : null}
 
         <div className="relative" style={{ height }}>
-          {isLoading && <ChartLoadingOverlay />}
+          {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <CardEmptyContent
-              className="absolute inset-0 py-0"
-              label="No brand performance yet"
-            />
+            <EmptyState isFill title="No brand performance yet" />
           ) : null}
 
           {!isEmpty ? (

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   useConfirmModal,
   useGalleryModal,
@@ -12,13 +11,14 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import {
+  isStoryboardSlideshow,
   type StoryboardShot,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Clapperboard, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -37,6 +37,7 @@ import StoryboardRuntimeRail from '@/features/studio/storyboard/components/Story
 import StoryboardSaveIndicator from '@/features/studio/storyboard/components/StoryboardSaveIndicator';
 import StoryboardShotCard from '@/features/studio/storyboard/components/StoryboardShotCard';
 import StoryboardShotJoint from '@/features/studio/storyboard/components/StoryboardShotJoint';
+import StoryboardSlideshowBoard from '@/features/studio/storyboard/components/StoryboardSlideshowBoard';
 import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@/features/studio/storyboard/hooks/use-storyboard-autosave';
 import { useStoryboardVoices } from '@/features/studio/storyboard/hooks/use-storyboard-voices';
@@ -54,6 +55,7 @@ import {
   storyboardAssetLabel,
   storyboardLongFormApprovalProblems,
   storyboardShotsNeedingStills,
+  storyboardSlideshowApprovalProblems,
 } from '@/features/studio/storyboard/utils/storyboard-plan';
 import {
   snapStoryboardDuration,
@@ -80,6 +82,7 @@ export default function StoryboardPlanEditor({
   quoteStills,
   generateStills,
   longForm,
+  slideshow,
   capabilities,
   capabilityError,
   refreshCapabilities,
@@ -94,6 +97,9 @@ export default function StoryboardPlanEditor({
     'pages.studioStoryboard.workspace',
   );
   const translateLongForm = useTranslations('pages.studioStoryboard.longForm');
+  const translateSlideshow = useTranslations(
+    'pages.studioStoryboard.slideshow',
+  );
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
   const {
@@ -204,12 +210,22 @@ export default function StoryboardPlanEditor({
     ],
   );
   const isLongForm = Boolean(plan.longForm);
-  const problems = isLongForm
-    ? storyboardLongFormApprovalProblems(plan, {
-        noScript: translateLongForm('problemNoScript'),
-        presenter: translateLongForm('problemPresenter'),
-      })
-    : storyboardApprovalProblems(plan);
+  const isSlideshow = isStoryboardSlideshow(plan);
+  const slideshowProblems = (value: StoryboardEditablePlan) =>
+    storyboardSlideshowApprovalProblems(value, {
+      count: translateSlideshow('problemCount'),
+      description: (ordinal) =>
+        translateSlideshow('problemDescription', { ordinal }),
+      image: (ordinal) => translateSlideshow('problemImage', { ordinal }),
+    });
+  const problems = isSlideshow
+    ? slideshowProblems(plan)
+    : isLongForm
+      ? storyboardLongFormApprovalProblems(plan, {
+          noScript: translateLongForm('problemNoScript'),
+          presenter: translateLongForm('problemPresenter'),
+        })
+      : storyboardApprovalProblems(plan);
   for (const member of plan.cast)
     if (
       member.voiceId &&
@@ -217,7 +233,7 @@ export default function StoryboardPlanEditor({
         !voices.some((voice) => voice.id === member.voiceId))
     )
       problems.push(translate('voiceUnavailableFor', { name: member.name }));
-  if (!isLongForm && !supportedDurations.length)
+  if (!isLongForm && !isSlideshow && !supportedDurations.length)
     problems.push(translate('capabilitiesUnavailable'));
   const approved =
     autosave.status === 'saved' &&
@@ -296,9 +312,16 @@ export default function StoryboardPlanEditor({
       const quote = await quoteStills(revision, shotIds);
       const count = quote.items.length;
       NotificationsService.getInstance().info(
-        quote.billingMode === 'byok'
-          ? translate('stillQuoteByok', { count })
-          : translate('stillQuoteMessage', { count, credits: quote.total }),
+        isSlideshow
+          ? quote.billingMode === 'byok'
+            ? translateSlideshow('quoteByok', { count })
+            : translateSlideshow('quoteCredits', {
+                count,
+                credits: quote.total,
+              })
+          : quote.billingMode === 'byok'
+            ? translate('stillQuoteByok', { count })
+            : translate('stillQuoteMessage', { count, credits: quote.total }),
       );
       await generateStills(quote);
     });
@@ -453,13 +476,15 @@ export default function StoryboardPlanEditor({
         className="flex flex-1 flex-col"
         bodyClassName="flex flex-1 flex-col"
         leading={
-          <StoryboardRuntimeRail
-            budgetSeconds={plan.runtimeBudgetSeconds}
-            formatLabel={plan.format}
-            shots={plan.shots}
-            selectedShotId={selectedShotId}
-            onSelectShot={selectShot}
-          />
+          isSlideshow ? undefined : (
+            <StoryboardRuntimeRail
+              budgetSeconds={plan.runtimeBudgetSeconds}
+              formatLabel={plan.format}
+              shots={plan.shots}
+              selectedShotId={selectedShotId}
+              onSelectShot={selectShot}
+            />
+          )
         }
         iconActions={
           <>
@@ -510,7 +535,9 @@ export default function StoryboardPlanEditor({
                 void perform((revision, saved) => {
                   const blockers = saved.longForm
                     ? []
-                    : storyboardApprovalProblems(saved);
+                    : isStoryboardSlideshow(saved)
+                      ? slideshowProblems(saved)
+                      : storyboardApprovalProblems(saved);
                   if (blockers.length) throw new Error(blockers.join(' '));
                   return approvePlan(revision);
                 })
@@ -522,6 +549,7 @@ export default function StoryboardPlanEditor({
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
           {notices}
           {!isLongForm &&
+          !isSlideshow &&
           (capabilityError || currentCapabilities?.status === 'unavailable') ? (
             <div
               role="status"
@@ -557,6 +585,67 @@ export default function StoryboardPlanEditor({
               <Skeleton className="h-56 w-full" />
               <Skeleton className="h-56 w-full" />
             </div>
+          ) : isSlideshow && hasShots ? (
+            <>
+              <StoryboardSlideshowBoard
+                slides={plan.shots}
+                format={plan.format}
+                isApproved={approved}
+                isDisabled={isDisabled}
+                slideImages={Object.fromEntries(
+                  plan.shots.flatMap((shot) =>
+                    shot.stillAssetId && shot.stillFreshness !== 'generating'
+                      ? [
+                          [
+                            shot.stillAssetId,
+                            assets[`image:${shot.stillAssetId}`]?.cdnUrl ??
+                              undefined,
+                          ],
+                        ]
+                      : [],
+                  ),
+                )}
+                onPatchSlide={(slideId, patch) =>
+                  edit(editStoryboardShot(plan, slideId, patch))
+                }
+                onMoveSlide={(slideId, offset) =>
+                  edit(reorderStoryboardShots(plan, slideId, offset))
+                }
+                onRemoveSlide={(slideId) =>
+                  edit(removeStoryboardShot(plan, slideId))
+                }
+                onAddSlide={() =>
+                  edit(
+                    insertStoryboardShot(plan, plan.shots.length, {
+                      id: crypto.randomUUID(),
+                      action: '',
+                      onScreenSpeaker: false,
+                      durationSeconds: null,
+                      stillFreshness: 'missing',
+                      transition: 'cut',
+                    }),
+                  )
+                }
+                onDrawImages={requestStills}
+                onPerform={(action) =>
+                  void perform((revision) => action(revision))
+                }
+                actions={slideshow}
+              />
+              {problems.length ? (
+                <div
+                  role="status"
+                  className="space-y-1 text-xs text-muted-foreground"
+                >
+                  <p>{translate('beforeApproving')}</p>
+                  <ul className="list-disc pl-4">
+                    {problems.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
           ) : isLongForm && hasShots ? (
             <>
               <StoryboardLongFormBoard
@@ -724,9 +813,9 @@ export default function StoryboardPlanEditor({
               ) : null}
             </>
           ) : (
-            <CardEmptyContent
+            <EmptyState
               icon={Clapperboard}
-              label={translateDraft('emptyTitle')}
+              title={translateDraft('emptyTitle')}
               actions={
                 <div className="mt-1 flex flex-wrap justify-center gap-2">
                   {sourceBrief && onDraftFromBrief ? (
@@ -737,7 +826,7 @@ export default function StoryboardPlanEditor({
                       onClick={onDraftFromBrief}
                     />
                   ) : null}
-                  {isLongForm ? null : (
+                  {isLongForm || isSlideshow ? null : (
                     <Button
                       label={translate('addShot')}
                       icon={<Plus className="size-4" />}
@@ -794,6 +883,7 @@ export default function StoryboardPlanEditor({
           details={
             <StoryboardDetailsPanel
               isDisabled={isDisabled}
+              isSlideshow={isSlideshow}
               isTimingDisabled={timingDisabled}
               modelCapabilities={currentCapabilities}
               onChange={edit}
@@ -824,6 +914,7 @@ export default function StoryboardPlanEditor({
             />
           }
           selectedShotId={selectedShotId}
+          isSlideshow={isSlideshow}
           shots={inspectorShots}
           totalSeconds={usedSeconds}
         />

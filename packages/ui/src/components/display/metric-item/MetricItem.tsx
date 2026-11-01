@@ -3,9 +3,9 @@ import type { MetricItemProps } from '@genfeedai/props/ui/display/metric-item.pr
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 
 /**
- * Unframed label/value pair for dense tables and inline lists.
+ * Unframed value/label pair for dense tables and inline lists: the value
+ * first, the label under it, like {@link MetricCard}.
  * For framed tiles use {@link MetricCard}.
- * Type scale matches MetricCard label/value for consistency.
  */
 export default function MetricItem({
   analyticsMetric,
@@ -15,7 +15,10 @@ export default function MetricItem({
 }: MetricItemProps) {
   return (
     <div className={cn(className)}>
-      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </p>
+      <p className="mt-1 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
         {analyticsMetric ? (
           <AnalyticsMetricLabel metric={analyticsMetric}>
             {label}
@@ -23,9 +26,6 @@ export default function MetricItem({
         ) : (
           label
         )}
-      </p>
-      <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-        {value}
       </p>
     </div>
   );

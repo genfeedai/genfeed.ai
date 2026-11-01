@@ -369,11 +369,12 @@ export class StoryboardStillsService {
     targetIds: readonly string[],
   ): Promise<StoryboardStillQuote> {
     const { plan } = config;
-    const modelKey = DRAFT_GENERATION_CONFIG.draftModelKey;
     const stills = targetIds.map((shotId) => ({
       shotId,
       ...storyboardStillInput(plan, shotId),
     }));
+    const modelKey =
+      stills[0]?.modelKey ?? DRAFT_GENERATION_CONFIG.draftModelKey;
     const estimate = await this.estimate.estimate({
       organizationId,
       category: 'image',
@@ -390,7 +391,7 @@ export class StoryboardStillsService {
       estimate.modelKey !== modelKey
     )
       throw new ConflictException(
-        'The sketch model is unavailable or has no valid price.',
+        'The still model is unavailable or has no valid price.',
       );
     const isByok = await this.byok.isByokActiveForProvider(
       organizationId,

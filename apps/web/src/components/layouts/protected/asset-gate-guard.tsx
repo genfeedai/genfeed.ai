@@ -1,7 +1,12 @@
 'use client';
 
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
@@ -58,7 +63,9 @@ export default function AssetGateGuard({ children }: LayoutProps) {
       <Card
         variant={CardVariant.DEFAULT}
         className="max-w-md"
-        bodyClassName="items-center gap-5 p-8 text-center"
+        padding={CardPadding.XL}
+        gap={CardGap.LG}
+        isCentered
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Lock className="h-6 w-6" aria-hidden="true" />

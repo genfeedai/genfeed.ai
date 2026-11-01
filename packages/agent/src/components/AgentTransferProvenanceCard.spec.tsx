@@ -1,4 +1,8 @@
 import { AgentThreadOpenProvider } from '@genfeedai/agent/components/AgentThreadOpenContext';
+import {
+  type AgentThreadResolution,
+  AgentThreadResolutionProvider,
+} from '@genfeedai/agent/components/AgentThreadResolutionContext';
 import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -127,5 +131,81 @@ describe('AgentTransferProvenanceCard', () => {
     render(<AgentTransferProvenanceCard action={makeAction()} />);
 
     expect(screen.queryByTestId('agent-transfer-open-thread')).toBeNull();
+  });
+
+  describe('resolving the thread it sent work to', () => {
+    function makeResolution(
+      overrides: Partial<AgentThreadResolution> = {},
+    ): AgentThreadResolution {
+      return {
+        isPending: () => false,
+        isResolved: () => false,
+        reopenThread: vi.fn(),
+        resolveThread: vi.fn(),
+        ...overrides,
+      };
+    }
+
+    it('resolves the destination thread from the card', () => {
+      const resolution = makeResolution();
+      render(
+        <AgentThreadResolutionProvider value={resolution}>
+          <AgentTransferProvenanceCard action={makeAction()} />
+        </AgentThreadResolutionProvider>,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Resolve' }));
+
+      expect(resolution.resolveThread).toHaveBeenCalledWith('destination-1');
+      expect(screen.queryByTestId('agent-transfer-resolved')).toBeNull();
+    });
+
+    it('shows a resolved thread as resolved and offers to reopen it', () => {
+      const resolution = makeResolution({
+        isResolved: (threadId) => threadId === 'destination-1',
+      });
+      render(
+        <AgentThreadResolutionProvider value={resolution}>
+          <AgentTransferProvenanceCard action={makeAction()} />
+        </AgentThreadResolutionProvider>,
+      );
+
+      expect(screen.getByTestId('agent-transfer-resolved')).toHaveTextContent(
+        'Resolved',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Reopen' }));
+
+      expect(resolution.reopenThread).toHaveBeenCalledWith('destination-1');
+    });
+
+    it('disables the action while the change is in flight', () => {
+      render(
+        <AgentThreadResolutionProvider
+          value={makeResolution({ isPending: () => true })}
+        >
+          <AgentTransferProvenanceCard action={makeAction()} />
+        </AgentThreadResolutionProvider>,
+      );
+
+      expect(screen.getByRole('button', { name: 'Resolve' })).toBeDisabled();
+    });
+
+    it('offers nothing on a card received from another thread', () => {
+      render(
+        <AgentThreadResolutionProvider value={makeResolution()}>
+          <AgentTransferProvenanceCard
+            action={makeAction({ direction: 'inbound' })}
+          />
+        </AgentThreadResolutionProvider>,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Resolve' })).toBeNull();
+    });
+
+    it('offers nothing where the surface keeps no resolved state', () => {
+      render(<AgentTransferProvenanceCard action={makeAction()} />);
+
+      expect(screen.queryByRole('button', { name: 'Resolve' })).toBeNull();
+    });
   });
 });

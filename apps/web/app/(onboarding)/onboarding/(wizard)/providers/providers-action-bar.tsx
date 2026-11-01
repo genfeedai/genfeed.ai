@@ -1,4 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -41,7 +46,9 @@ export default function ProvidersActionBar({
     <>
       <Card
         className="provider-card opacity-0"
-        bodyClassName="flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6"
+        padding={CardPadding.LG}
+        gap={CardGap.LG}
+        bodyClassName="md:flex-row md:items-center md:justify-between"
       >
         <div className="text-sm text-muted-foreground">{guidance}</div>
 

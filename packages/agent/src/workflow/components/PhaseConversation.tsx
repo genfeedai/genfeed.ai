@@ -1,4 +1,12 @@
+import {
+  CardEmptySize,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Bot, User } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useAgentWorkflowStore } from '../store';
@@ -39,6 +47,7 @@ function MessageBubble({
         )}
       </span>
       <div>
+        {/* ui-guard-allow:notice-tone-box -- chat bubble, not a notice */}
         <div
           className={cn(
             'px-3 py-2 rounded-xl text-sm text-foreground/80',
@@ -108,20 +117,21 @@ function PhaseConversationInner() {
   }, []);
 
   return (
-    <div
+    <Card
       ref={scrollRef}
-      className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-card p-3"
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      gap={CardGap.LG}
+      className="max-h-[400px] overflow-y-auto"
     >
       {messages.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          No messages yet
-        </p>
+        <EmptyState size={CardEmptySize.SM} title="No messages yet" />
       ) : (
         WORKFLOW_PHASES.map((phase) => (
           <PhaseSection key={phase} phase={phase} />
         ))
       )}
-    </div>
+    </Card>
   );
 }
 

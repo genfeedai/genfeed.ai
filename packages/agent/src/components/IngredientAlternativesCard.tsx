@@ -15,7 +15,7 @@ import {
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import Spinner from '@ui/primitives/spinner';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { Expand, Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
@@ -161,11 +161,7 @@ export function IngredientAlternativesCard({
                     : 'border-border hover:border-primary/50 hover:bg-accent'
                 } ${isDimmed ? 'opacity-40' : ''}`}
               >
-                {isGeneratingThis && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                    <Spinner className="size-5 text-primary" />
-                  </div>
-                )}
+                {isGeneratingThis && <LoadingOverlay message="Generating…" />}
                 <Button
                   ariaLabel={`Generate ${alt.label}`}
                   className="block w-full text-left"

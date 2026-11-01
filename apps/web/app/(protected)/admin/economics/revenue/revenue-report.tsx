@@ -7,6 +7,7 @@ import type {
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
@@ -19,7 +20,6 @@ import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
-  formatLedgerTimestamp,
   formatUsd,
   formatUsdAxis,
 } from '../economics-report.util';
@@ -126,11 +126,8 @@ export default function EconomicsRevenueReport() {
     {
       header: translate('revenue.columns.date'),
       key: 'occurredAt',
-      render: (row) => (
-        <span className="tabular-nums">
-          {formatLedgerTimestamp(row.occurredAt)}
-        </span>
-      ),
+      // The ledger reads in UTC, like the report's date range.
+      render: (row) => <TableDateCell timeZone="UTC" value={row.occurredAt} />,
     },
     {
       header: translate('revenue.columns.organization'),

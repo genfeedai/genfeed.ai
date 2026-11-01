@@ -1,18 +1,19 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   SocialSourceType,
 } from '@genfeedai/contracts';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import Card from '@ui/card/Card';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Text } from '@ui/typography/text';
 import {
   AtSign,
@@ -160,9 +161,6 @@ function FollowingDeckPost({
   const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
   const hasDistinctTitle = Boolean(item.title && item.title !== item.text);
   const body = item.text || (hasDistinctTitle ? undefined : item.title);
-  const initials = (displayName || item.authorHandle || item.platform)
-    .slice(0, 2)
-    .toUpperCase();
 
   const handleActivate = useCallback(() => {
     onCursor(item.key);
@@ -184,11 +182,13 @@ function FollowingDeckPost({
   }, [item.remixSelector, remixSurface]);
 
   return (
-    <article
+    <Card
+      as="article"
       aria-current={isCursored ? 'true' : undefined}
-      className={`group relative flex flex-col gap-3 rounded-card bg-card p-3 shadow-border transition-[box-shadow,background-color] hover:bg-hover ${
-        isCursored ? 'ring-1 ring-inset ring-primary/50' : ''
-      } ${isSelected ? 'bg-accent' : ''}`}
+      isInteractive
+      isSelected={isCursored || isSelected}
+      padding={CardPadding.SM}
+      className="group"
       data-testid="following-deck-post"
     >
       <Button
@@ -200,12 +200,11 @@ function FollowingDeckPost({
       />
 
       <header className="relative flex items-start gap-3">
-        <Avatar className="size-9">
-          {avatarUrl ? <AvatarImage alt="" src={avatarUrl} /> : null}
-          <AvatarFallback className="text-xs font-semibold text-foreground/70">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <Avatar
+          name={displayName || item.authorHandle || item.platform}
+          size="lg"
+          src={avatarUrl}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <Text as="p" className="truncate" size="sm" weight="semibold">
@@ -325,7 +324,7 @@ function FollowingDeckPost({
           ) : null}
         </span>
       </footer>
-    </article>
+    </Card>
   );
 }
 
@@ -378,7 +377,7 @@ function FollowingDeckColumnView({
             />
           ))
         ) : (
-          <CardEmptyContent label={translate('columnEmpty')} />
+          <EmptyState title={translate('columnEmpty')} />
         )}
       </div>
     </section>
@@ -422,7 +421,8 @@ export default function FollowingDeck({
   if (columns.length === 0) {
     return (
       <>
-        <CardEmpty
+        <EmptyState
+          surface="card"
           actions={
             <Button
               icon={<AtSign className="size-3.5" />}
@@ -433,7 +433,7 @@ export default function FollowingDeck({
             />
           }
           icon={AtSign}
-          label={translate('emptyTitle')}
+          title={translate('emptyTitle')}
         />
         {followModal}
       </>

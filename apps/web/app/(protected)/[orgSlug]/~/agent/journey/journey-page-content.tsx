@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IOnboardingJourneyMissionState,
@@ -8,6 +8,8 @@ import {
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
 } from '@genfeedai/contracts/types';
 import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -68,7 +70,7 @@ export default function JourneyPageContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
+      <Card variant={CardVariant.DEFAULT} padding={CardPadding.XL}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="sr-only">{translate('title')}</h1>
           <Button
@@ -83,42 +85,31 @@ export default function JourneyPageContent() {
           </Button>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('progress')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading ? '-' : `${completionPercent}%`}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('availableToUnlock')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading ? '-' : remainingJourneyCredits}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('journeyUnlocked')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading
-                ? '-'
-                : `${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('journeyTotal')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {ONBOARDING_JOURNEY_TOTAL_CREDITS}
-            </p>
-          </div>
-        </div>
+        <MetricCardGrid className="mt-6" columns={4}>
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('progress')}
+            value={`${completionPercent}%`}
+          />
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('availableToUnlock')}
+            value={remainingJourneyCredits}
+          />
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('journeyUnlocked')}
+            value={`${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
+          />
+          <MetricCard
+            appearance="inset"
+            label={translate('journeyTotal')}
+            value={ONBOARDING_JOURNEY_TOTAL_CREDITS}
+          />
+        </MetricCardGrid>
       </Card>
 
       {isLoading ? (
@@ -133,13 +124,11 @@ export default function JourneyPageContent() {
             const isRecommended = mission.id === recommendedMissionId;
 
             return (
-              <div
+              <Card
                 key={mission.id}
-                className={`rounded-2xl border p-5 ${
-                  isRecommended
-                    ? 'border-primary/40 bg-primary/5'
-                    : 'border-border bg-card'
-                }`}
+                variant={CardVariant.BORDERED}
+                padding={CardPadding.LG}
+                isSelected={isRecommended}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-2xl">
@@ -190,7 +179,7 @@ export default function JourneyPageContent() {
                     </Link>
                   </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

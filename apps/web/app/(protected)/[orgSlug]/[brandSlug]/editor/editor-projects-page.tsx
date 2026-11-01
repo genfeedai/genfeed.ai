@@ -1,8 +1,9 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
   CardVariant,
   formatEnumLabel,
   ViewType,
@@ -17,7 +18,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -36,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -54,7 +55,6 @@ import {
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
-
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const COLLECTION_SURFACE = 'studio.editor';
@@ -318,7 +318,8 @@ export default function EditorProjectsPage() {
   function renderProjectCard(project: IEditorProject) {
     return (
       <Card
-        bodyClassName="gap-0 p-0"
+        padding={CardPadding.NONE}
+        gap={CardGap.NONE}
         className="h-full overflow-hidden"
         data-testid={`editor-project-card-${project.id}`}
         variant={CardVariant.DEFAULT}
@@ -460,11 +461,16 @@ export default function EditorProjectsPage() {
           <AutoPagination showTotal totalLabel="projects" />
         </div>
       ) : search ? (
-        <CardEmpty icon={Film} label={translate('emptySearch')} />
-      ) : (
-        <CardEmpty
+        <EmptyState
+          surface="card"
           icon={Film}
-          label={translate('emptyTitle')}
+          title={translate('emptySearch')}
+        />
+      ) : (
+        <EmptyState
+          surface="card"
+          icon={Film}
+          title={translate('emptyTitle')}
           actions={emptyProjectButton}
         />
       )}

@@ -47,6 +47,12 @@ import { Test, type TestingModule } from '@nestjs/testing';
 // Mock setImmediate for testing async callbacks
 vi.useFakeTimers();
 
+// Unit specs share workers (`isolate: false`), so fake timers left on here
+// would stall any later spec that waits on a real timer.
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 const sharedId = testId('id');
 
 describe('WebhooksService', () => {
@@ -144,6 +150,7 @@ describe('WebhooksService', () => {
   };
 
   const mockStoryboardContextFind = vi.fn();
+  const mockNotificationOwnerFind = vi.fn();
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -294,6 +301,7 @@ describe('WebhooksService', () => {
             ),
             notifyBotGatewayFailureIfNeeded: vi.fn(),
             findStoryboardContext: mockStoryboardContextFind,
+            findNotificationOwner: mockNotificationOwnerFind,
             notifyBotGatewayIfNeeded: vi.fn(),
             triggerAutoEvaluationIfEnabled: vi.fn(),
           },
@@ -1384,6 +1392,20 @@ describe('WebhooksService', () => {
         expect.objectContaining({ id: mockIngredientId }),
       );
       expect(dispatchedPayload()).toMatchObject({ storyboard });
+    });
+
+    it('names the account and its credits left on the notification', async () => {
+      mockStoryboardContextFind.mockResolvedValue(null);
+      const owner = {
+        creditBalance: 13,
+        organizationLabel: 'Acme',
+        userEmail: 'owner@example.com',
+      };
+      mockNotificationOwnerFind.mockResolvedValue(owner);
+
+      await notify();
+
+      expect(dispatchedPayload()).toMatchObject({ ingredient: { owner } });
     });
 
     it('keeps the ordinary channel path for other generations', async () => {

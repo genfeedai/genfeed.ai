@@ -1,11 +1,16 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -81,7 +86,8 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
 
   if (brandChoices.length === 0) {
     return (
-      <CardEmpty
+      <EmptyState
+        surface="card"
         actions={
           <Button
             asChild
@@ -94,7 +100,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
         className="mx-auto max-w-xl"
         description="Create or connect a brand first, then open Discovery to explore trends and ads for that brand."
         icon={TrendingUp}
-        label="Discovery needs a brand"
+        title="Discovery needs a brand"
       />
     );
   }
@@ -117,8 +123,9 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
               <Card
                 variant={CardVariant.DEFAULT}
                 label={brand.label}
-                bodyClassName="min-h-14 justify-center py-3 text-sm font-semibold"
-                className="transition-colors hover:bg-foreground/5"
+                padding={CardPadding.SM}
+                bodyClassName="min-h-14 justify-center"
+                isInteractive
               />
             </Link>
           </li>

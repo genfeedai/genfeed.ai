@@ -8,6 +8,7 @@ import type { SocialReplyCampaignTransition } from '@services/social/reply-campa
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -234,16 +235,12 @@ function ReplyCampaignsContent({
   return (
     <div className="space-y-6">
       {error ? (
-        <p
-          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-          data-testid="reply-campaigns-error"
-          role="alert"
-        >
+        <Alert data-testid="reply-campaigns-error" variant="destructive">
           {error}
-        </p>
+        </Alert>
       ) : null}
 
-      <Card label="New reply drip" bodyClassName="gap-3 p-4">
+      <Card label="New reply drip">
         <Input
           label="Name"
           onChange={(event) => {
@@ -379,7 +376,7 @@ function ReplyCampaignsContent({
         </div>
       </Card>
 
-      <Card label="Reply drips" bodyClassName="gap-3 p-4">
+      <Card label="Reply drips">
         {campaigns.length === 0 && !isLoading ? (
           <p className="text-xs text-gray-800">
             No reply drips yet. Sync messages so open conversations are

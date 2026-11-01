@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetImportStatus,
@@ -10,6 +15,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -197,7 +203,6 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
       }
       data-testid="brand-kit-review-card"
       label={translate('title')}
-      bodyClassName="gap-3 p-4"
     >
       <div
         aria-busy={isScanning || isApplying || isImportingAssets}
@@ -235,36 +240,32 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
           onChange={(event) => setSocialUrls(event.target.value)}
         />
 
-        {error ? (
-          <div
-            className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {error}
-          </div>
-        ) : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
 
         {draft ? (
-          <div
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
             aria-live="polite"
-            className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
             role="status"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium">
-                {formatReadinessScore(draft.readiness.score)}
-              </span>
-              <Badge variant="secondary">{draft.readiness.status}</Badge>
-            </div>
-            {draft.readiness.missingFields.length > 0 ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <EvidenceLabel kind="missing" />
-                <p className="text-xs text-muted-foreground">
-                  {formatMissingFields(draft.readiness.missingFields)}
-                </p>
+            <div className="text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium">
+                  {formatReadinessScore(draft.readiness.score)}
+                </span>
+                <Badge variant="secondary">{draft.readiness.status}</Badge>
               </div>
-            ) : null}
-          </div>
+              {draft.readiness.missingFields.length > 0 ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <EvidenceLabel kind="missing" />
+                  <p className="text-xs text-muted-foreground">
+                    {formatMissingFields(draft.readiness.missingFields)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </Card>
         ) : null}
 
         {draft?.evidence.length ? (
@@ -349,13 +350,16 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
             ) : null}
 
             {applyResult ? (
-              <div
+              <Card
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
                 aria-live="polite"
-                className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
                 role="status"
               >
-                {formatAppliedFieldsSummary(applyResult)}
-              </div>
+                <div className="text-sm">
+                  {formatAppliedFieldsSummary(applyResult)}
+                </div>
+              </Card>
             ) : null}
           </div>
         ) : (

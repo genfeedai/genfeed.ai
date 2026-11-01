@@ -11,7 +11,6 @@ export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
 export { AgentIconStrip } from '@genfeedai/agent/components/AgentIconStrip';
 export { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
-export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 export { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
@@ -26,6 +25,11 @@ export {
   AgentThreadOpenProvider,
   useAgentThreadOpen,
 } from '@genfeedai/agent/components/AgentThreadOpenContext';
+export {
+  type AgentThreadResolution,
+  AgentThreadResolutionProvider,
+  useAgentThreadResolution,
+} from '@genfeedai/agent/components/AgentThreadResolutionContext';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 // Block renderers
 export {

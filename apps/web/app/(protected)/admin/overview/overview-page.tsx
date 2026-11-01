@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -13,6 +17,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -97,9 +102,10 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
             ))}
           </div>
         ) : data.length === 0 ? (
-          <div className="text-muted-foreground text-sm text-center py-8">
-            No organization data available
-          </div>
+          <EmptyState
+            size={CardEmptySize.SM}
+            title="No organization data available"
+          />
         ) : (
           data.map((org) => (
             <div
@@ -227,10 +233,12 @@ function QuickActionsGrid() {
           >
             <Card
               label={card.label}
-              bodyClassName="flex h-full flex-col justify-between p-6"
+              padding={CardPadding.XL}
+              bodyClassName="flex h-full flex-col justify-between"
               icon={card.icon}
               iconWrapperClassName={cn('p-3', card.color)}
-              className="h-full text-left transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-border-strong"
+              isInteractive
+              className="h-full text-left group-hover:-translate-y-0.5"
               data-testid="admin-overview-quick-action"
             >
               <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">

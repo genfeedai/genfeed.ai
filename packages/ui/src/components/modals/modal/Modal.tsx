@@ -1,5 +1,6 @@
 'use client';
 
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   closeModal,
@@ -8,6 +9,7 @@ import {
   subscribeModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import Card from '@ui/card/Card';
 import {
   Dialog,
   DialogBody,
@@ -113,18 +115,23 @@ export default function Modal({
             {title && <DialogTitle>{title}</DialogTitle>}
 
             {error && (
-              <div
-                className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground"
+              <Card
+                variant={CardVariant.BORDERED}
+                padding={CardPadding.SM}
+                className="mt-4"
+                bodyClassName="flex-row items-center"
                 role={isError ? 'alert' : undefined}
               >
-                <TriangleAlert
-                  className={cn(
-                    'size-5 shrink-0',
-                    isError ? 'text-warning' : 'text-muted-foreground',
-                  )}
-                />
-                <span>{error}</span>
-              </div>
+                <div className="text-sm font-medium text-foreground">
+                  <TriangleAlert
+                    className={cn(
+                      'size-5 shrink-0',
+                      isError ? 'text-warning' : 'text-muted-foreground',
+                    )}
+                  />
+                  <span>{error}</span>
+                </div>
+              </Card>
             )}
           </DialogHeader>
         )}

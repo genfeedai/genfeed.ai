@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
@@ -341,7 +341,7 @@ function DesktopLocalProviderSettingsPanel({
     );
 
     return isCard ? (
-      <Card bodyClassName="p-5">{inactiveContent}</Card>
+      <Card padding={CardPadding.LG}>{inactiveContent}</Card>
     ) : (
       <div className="border-t border-border p-3">{inactiveContent}</div>
     );
@@ -451,7 +451,7 @@ function DesktopLocalProviderSettingsPanel({
   );
 
   if (isCard) {
-    return <Card bodyClassName="p-5">{content}</Card>;
+    return <Card padding={CardPadding.LG}>{content}</Card>;
   }
 
   return <div className="border-t border-border p-3">{content}</div>;

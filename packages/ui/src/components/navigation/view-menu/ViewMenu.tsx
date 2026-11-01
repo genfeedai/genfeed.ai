@@ -19,12 +19,16 @@ import { useTranslations } from 'next-intl';
  * How a page lays out its results (grid, list, table, canvas, kanban). A view
  * is secondary chrome, so it is one ghost button showing the active layout's
  * icon; the other layouts sit in its menu. Lives in the subbar after Filters
- * and before the primary action.
+ * and before the primary action. Views are never tabs.
+ *
+ * `trigger="label"` names the active option instead (Day, Week, Month), for
+ * views that share one icon family and are only told apart by name.
  */
-export default function ViewMenu<TView extends ViewType>({
+export default function ViewMenu<TView extends string = ViewType>({
   options,
   activeView,
   onChange,
+  trigger = 'icon',
   className,
 }: ViewMenuProps<TView>) {
   const translate = useTranslations('ui.viewMenu');
@@ -43,11 +47,12 @@ export default function ViewMenu<TView extends ViewType>({
             'h-8 shrink-0 gap-1 px-2 text-xs [&_svg]:size-3.5',
             className,
           )}
-          icon={active.icon}
+          icon={trigger === 'icon' ? active.icon : undefined}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
+          {trigger === 'label' ? <span>{active.label}</span> : null}
           <ChevronDown aria-hidden="true" className="!size-3 opacity-60" />
         </Button>
       </DropdownMenuTrigger>

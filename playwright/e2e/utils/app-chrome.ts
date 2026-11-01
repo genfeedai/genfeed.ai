@@ -99,7 +99,10 @@ export async function expectNoAccountCredits(page: Page): Promise<void> {
   await expect(page.getByRole('menu')).toHaveCount(0);
 
   if (isPhoneViewport(page)) {
-    await page.getByRole('button', { name: 'Close navigation menu' }).click();
+    await page
+      .getByRole('dialog', { name: 'Navigation' })
+      .getByRole('button', { name: 'Close' })
+      .click();
     await expect(page.getByTestId('mobile-app-rail')).toHaveCount(0);
   }
 }

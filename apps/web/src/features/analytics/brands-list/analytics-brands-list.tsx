@@ -26,12 +26,12 @@ import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
-import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 
 export interface AnalyticsBrandsListProps {
@@ -238,7 +238,13 @@ export default function AnalyticsBrandsList({
             key: 'name',
             render: (brand) => (
               <div className="flex items-center gap-3">
-                <BrandAvatar logoUrl={brand.logo} name={brand.name} size="lg" />
+                <Avatar
+                  alt={brand.name}
+                  name={brand.name}
+                  shape="square"
+                  size="lg"
+                  src={brand.logo}
+                />
                 <div>
                   <div className="font-medium">{brand.name}</div>
                   <div className="text-xs text-foreground/60">

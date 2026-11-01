@@ -93,6 +93,39 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.assertPostsTabActive();
   });
 
+  test('keeps every calendar control in the sub bar, with views as a dropdown', async ({
+    authenticatedPage,
+  }) => {
+    const calendarPage = new CalendarPage(authenticatedPage);
+
+    await mockCalendarPosts(authenticatedPage);
+    await calendarPage.gotoPosts();
+
+    // One bar holds the period navigation, filters, views and actions; nothing
+    // sits between it and the grid.
+    const subbar = authenticatedPage.getByTestId('section-topbar');
+    await expect(subbar).toHaveCount(1);
+    await expect(
+      subbar.getByRole('button', { name: 'Previous period' }),
+    ).toBeVisible();
+    await expect(subbar.getByRole('button', { name: 'Today' })).toBeVisible();
+    await expect(
+      subbar.getByRole('button', { name: 'New cadence' }),
+    ).toBeVisible();
+    await expect(
+      subbar.getByRole('button', { name: 'View: Week' }),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByRole('tab')).toHaveCount(0);
+
+    await calendarPage.switchToMonthView();
+
+    // The page switcher is gone: Calendar, Posts and Approvals are sidebar pages.
+    await calendarPage.viewMenuTrigger.click();
+    await expect(
+      authenticatedPage.getByRole('menuitemradio', { name: 'Approvals' }),
+    ).toHaveCount(0);
+  });
+
   test('should show named posts as calendar events on their scheduled day', async ({
     authenticatedPage,
   }) => {

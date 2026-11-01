@@ -164,7 +164,7 @@ export default function SettingsProfilePage() {
       : DEFAULT_THEME;
   return (
     <div className="space-y-4">
-      <Card label="Profile Information" bodyClassName="gap-3 p-4">
+      <Card label="Profile Information">
         <div className="space-y-3">
           <div>
             <p className="text-sm text-muted-foreground">
@@ -186,11 +186,7 @@ export default function SettingsProfilePage() {
         </div>
       </Card>
 
-      <Card
-        id={PERSONAL_SETTINGS_ANCHOR.LANGUAGE}
-        label="Language"
-        bodyClassName="gap-3 p-4"
-      >
+      <Card id={PERSONAL_SETTINGS_ANCHOR.LANGUAGE} label="Language">
         {/* The preference is saved; the app interface currently uses a static locale. */}
         <Select
           disabled={isSaving}
@@ -217,11 +213,7 @@ export default function SettingsProfilePage() {
         </Select>
       </Card>
 
-      <Card
-        id={PERSONAL_SETTINGS_ANCHOR.APPEARANCE}
-        label="Appearance"
-        bodyClassName="gap-3 p-4"
-      >
+      <Card id={PERSONAL_SETTINGS_ANCHOR.APPEARANCE} label="Appearance">
         <Select
           disabled={isSaving}
           onValueChange={handleThemeChange}
@@ -249,10 +241,7 @@ export default function SettingsProfilePage() {
 
       <SettingsRailCard />
 
-      <Card
-        label={translate('settings.profile.agentMode.label')}
-        bodyClassName="gap-3 p-4"
-      >
+      <Card label={translate('settings.profile.agentMode.label')}>
         <Select
           disabled={isSaving}
           onValueChange={(value) => {

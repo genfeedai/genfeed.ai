@@ -124,10 +124,8 @@ export default function CreditsMenuSection({
       {!isLoadingState && !isUnavailable && planLimit > 0 ? (
         <div className="px-2 pb-2">
           <Progress
-            className="h-1 bg-foreground/10"
-            indicatorClassName={
-              isCritical ? 'bg-destructive' : 'bg-foreground/40'
-            }
+            size="xs"
+            tone={isCritical ? 'destructive' : 'neutral'}
             value={Math.min(planUsagePercent, 100)}
           />
         </div>
@@ -160,6 +158,7 @@ export default function CreditsMenuSection({
         </>
       ) : null}
 
+      {/* ui-guard-allow:notice-tone-box -- tinted credits panel in the topbar menu that wraps the balance rows, not a notice */}
       <div
         className={cn(
           'flex flex-col gap-2 p-2 pt-1',

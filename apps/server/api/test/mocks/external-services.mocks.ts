@@ -163,6 +163,7 @@ export const createMockComfyUIService = () => ({
   generateImage: vi
     .fn()
     .mockResolvedValue({ imageBuffer: Buffer.from('mock-comfyui-image') }),
+  isConfigured: vi.fn().mockReturnValue(true),
 });
 
 export const createMockKlingAIImageService = () => ({

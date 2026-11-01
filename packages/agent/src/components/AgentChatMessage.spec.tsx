@@ -378,9 +378,8 @@ describe('AgentChatMessage', () => {
 
     expect(surface).toBeTruthy();
     const card = screen.getByTestId('agent-user-prompt');
-    expect(card).toHaveClass('bg-accent');
+    expect(card).toHaveClass('bg-tertiary');
     expect(card).toHaveClass('rounded-card');
-    expect(card).toHaveClass('shadow-border');
     expect(card).not.toHaveClass('rounded-xl');
     expect(surface).toContainElement(card);
     expect(surface?.parentElement).toHaveClass('sticky');
@@ -463,7 +462,7 @@ describe('AgentChatMessage', () => {
 
     const surface = container.querySelector('[data-message-role="user"]');
     const card = screen.getByTestId('agent-user-prompt');
-    expect(card).toHaveClass('shadow-border');
+    expect(card.className).not.toContain(SCROLL_FOCUS_SURFACE_CLASS);
     expect(surface?.className).not.toContain(SCROLL_FOCUS_SURFACE_CLASS);
   });
 

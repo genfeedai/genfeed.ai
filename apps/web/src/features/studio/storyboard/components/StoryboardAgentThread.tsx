@@ -14,6 +14,7 @@ export default function StoryboardAgentThread({
   error,
   hasShots,
   isDisabled,
+  isSlideshow = false,
   onRetry,
   onSubmit,
   requests,
@@ -35,7 +36,7 @@ export default function StoryboardAgentThread({
             {!canCompose
               ? translate('unavailable')
               : hasShots
-                ? translate('emptyChanges')
+                ? translate(isSlideshow ? 'emptySlides' : 'emptyChanges')
                 : translate('emptyBrief')}
           </p>
         ) : null}
@@ -68,6 +69,7 @@ export default function StoryboardAgentThread({
         <div className="shrink-0 px-4 pb-4">
           <StoryboardPromptBar
             error={error}
+            isSlideshow={isSlideshow}
             hasShots={hasShots}
             isDisabled={isDisabled}
             onRetry={onRetry}

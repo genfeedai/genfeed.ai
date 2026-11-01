@@ -1,4 +1,6 @@
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import type { ReactNode } from 'react';
 
 const EMPTY_ARRAY: never[] = [];
@@ -30,11 +32,11 @@ export default function EditorialPoster({
   title,
 }: EditorialPosterProps): React.ReactElement {
   return (
-    <article
-      className={cn(
-        'relative overflow-hidden rounded-card bg-background p-8 shadow-border sm:p-10 lg:p-12',
-        className,
-      )}
+    <Card
+      as="article"
+      padding={CardPadding.XL}
+      gap={CardGap.NONE}
+      className={cn('relative overflow-hidden', className)}
       data-testid={testId}
     >
       <div className="pointer-events-none absolute inset-0 opacity-40 mix-blend-screen">
@@ -94,6 +96,6 @@ export default function EditorialPoster({
           ) : null}
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
@@ -67,11 +71,12 @@ function DeskLightCard({
 
   return (
     <Card
-      bodyClassName="flex-1 gap-0 p-0"
-      className={cn(
-        'flex flex-col hover:shadow-border-strong',
-        isCursored && 'ring-1 ring-inset ring-primary/50',
-      )}
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+      bodyClassName="flex-1"
+      isInteractive
+      isSelected={isCursored}
+      className="flex flex-col"
       data-testid={`desk-light-card-${item.key}`}
     >
       {/* The cursor target and the checkbox are siblings, never nested. */}

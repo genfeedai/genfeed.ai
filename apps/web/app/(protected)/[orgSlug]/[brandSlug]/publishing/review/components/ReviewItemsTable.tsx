@@ -2,14 +2,12 @@ import { ComponentSize, TurboRunItemStatus } from '@genfeedai/contracts';
 import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
@@ -236,15 +234,10 @@ export default function ReviewItemsTable({
         header: translateReview('table.schedule'),
         key: 'scheduledDate',
         render: (item) => (
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {item.scheduledDate
-              ? formatDateInTimezone(
-                  item.scheduledDate,
-                  browserTimezone,
-                  'short',
-                )
-              : '—'}
-          </span>
+          <TableDateCell
+            timeZone={browserTimezone}
+            value={item.scheduledDate}
+          />
         ),
       },
     ],

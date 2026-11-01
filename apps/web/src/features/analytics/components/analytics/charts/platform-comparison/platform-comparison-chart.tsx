@@ -8,10 +8,10 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import {
-  ChartLoadingOverlay,
   chartAxisStroke,
   chartAxisTick,
   chartGridStroke,
@@ -115,7 +115,7 @@ export function PlatformComparisonChart({
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
-        {isLoading && <ChartLoadingOverlay />}
+        {isLoading && <LoadingOverlay tone="veil" />}
 
         {isEmpty && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center text-foreground/50">

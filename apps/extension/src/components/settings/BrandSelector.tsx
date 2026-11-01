@@ -1,14 +1,13 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
-  SWITCHER_AVATAR_CLASSNAME,
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_LABEL_CLASSNAME,
   SWITCHER_TRIGGER_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { ChevronsUpDown } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -57,12 +56,12 @@ export function BrandSelector(): ReactElement {
             isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
           )}
         >
-          <SwitcherAvatar
+          <Avatar
             alt={label}
-            imageUrl={selected?.logoUrl}
-            letter={label.charAt(0).toUpperCase()}
-            fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
-            imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
+            name={label}
+            shape="square"
+            size="xs"
+            src={selected?.logoUrl}
           />
           <span className={SWITCHER_LABEL_CLASSNAME}>{label}</span>
           <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} aria-hidden />

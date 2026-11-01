@@ -591,10 +591,10 @@ test.describe('Agent Chat', () => {
     });
     await expect(analyticsHeading).toBeVisible();
     // `Card` (`packages/ui/src/components/card/Card.tsx`) always renders its
-    // root with a literal 'rounded-card' class -- the nearest such ancestor
+    // root with a `data-card-index` attribute -- the nearest such ancestor
     // is this action's card.
     const analyticsCard = analyticsHeading.locator(
-      'xpath=ancestor::*[contains(concat(" ", @class, " "), " rounded-card ")][1]',
+      'xpath=ancestor::*[@data-card-index][1]',
     );
     await expect(analyticsCard.getByText('12.4K')).toBeVisible();
     await expect(analyticsCard.getByText('8.2%').first()).toBeVisible();

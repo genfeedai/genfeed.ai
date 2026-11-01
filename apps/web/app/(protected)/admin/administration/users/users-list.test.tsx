@@ -355,7 +355,7 @@ describe('UsersList', () => {
 
     expect(screen.getByTestId('user-3-name')).toHaveTextContent('—');
     expect(screen.getByTestId('user-3-name')).not.toHaveTextContent('No name');
-    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent('—');
+    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent('-');
     expect(screen.queryByText('Source')).not.toBeInTheDocument();
   });
 

@@ -11,6 +11,11 @@ import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlay
 import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
+import {
   ChevronLeft,
   ChevronRight,
   Download,
@@ -133,7 +138,7 @@ function NodeDetailHeader({
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-medium text-foreground">{nodeLabel}</h2>
+        <DialogTitle className="text-lg font-medium">{nodeLabel}</DialogTitle>
         <Badge casing="normal" size="lg" variant="secondary">
           {nodeTypeLabel}
         </Badge>
@@ -151,6 +156,7 @@ function NodeDetailHeader({
           </Button>
         )}
         <Button
+          ariaLabel="Close"
           withWrapper={false}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
@@ -468,9 +474,7 @@ export function NodeDetailModal() {
   const handleModalKeyDown = useEffectEvent((e: KeyboardEvent) => {
     if (activeModal !== 'nodeDetail') return;
 
-    if (e.key === 'Escape') {
-      closeNodeDetailModal();
-    }
+    // Escape is handled by the shared Dialog.
     if (e.key === '+' || e.key === '=') {
       dispatchPreview({ type: 'zoomIn' });
     }
@@ -542,22 +546,20 @@ export function NodeDetailModal() {
   const nodeData = node.data as WorkflowNodeData;
 
   return (
-    <>
-      {/* Backdrop */}
-      <Button
-        withWrapper={false}
-        type="button"
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.ICON}
-        className={
-          'fixed inset-0 z-50 size-full bg-black/80 p-0 hover:bg-black/80' /* design-system-allow-content-color */
+    <Dialog
+      open
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          closeNodeDetailModal();
         }
-        onClick={closeNodeDetailModal}
-        aria-label="Close node detail preview"
-      />
-
-      {/* Modal */}
-      <div className="fixed inset-4 z-50 flex flex-col bg-card border border-border shadow-xl overflow-hidden">
+      }}
+    >
+      <DialogContent
+        aria-describedby={undefined}
+        className="gap-0 overflow-hidden p-0"
+        showCloseButton={false}
+        size="full"
+      >
         <NodeDetailHeader
           displayUrl={displayUrl}
           nodeLabel={nodeData.label}
@@ -587,7 +589,7 @@ export function NodeDetailModal() {
             zoomLevel={zoomLevel}
           />
         </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

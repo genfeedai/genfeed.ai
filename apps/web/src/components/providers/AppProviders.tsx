@@ -7,12 +7,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@ui/primitives/toaster';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import { ThemeStorageBootstrapScript } from '@ui/theme/ThemeBootstrapScript';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import { useState } from 'react';
-import { Toaster } from 'sonner';
 import { makeQueryClient } from '@/components/providers/query-client';
 import ThemeCookieSync from '@/components/providers/ThemeCookieSync';
 import FormModEnterSubmit from './FormModEnterSubmit';
@@ -38,14 +38,7 @@ const LazyReactQueryDevtools =
 function AppToaster() {
   const { theme } = useTheme();
 
-  return (
-    <Toaster
-      richColors
-      closeButton
-      position="top-right"
-      theme={isThemePreference(theme) ? theme : DEFAULT_THEME}
-    />
-  );
+  return <Toaster theme={isThemePreference(theme) ? theme : DEFAULT_THEME} />;
 }
 
 export default function AppProviders({

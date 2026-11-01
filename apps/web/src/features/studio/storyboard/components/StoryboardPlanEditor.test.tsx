@@ -253,6 +253,102 @@ async function openTab(name: RegExp) {
   );
 }
 
+const slideshowRun = {
+  ...run,
+  config: {
+    ...run.config,
+    plan: {
+      ...run.config.plan,
+      kind: 'slideshow' as const,
+      format: '4:5' as const,
+      runtimeBudgetSeconds: null,
+      shots: [1, 2].map((ordinal) => ({
+        id: `slide-${ordinal}`,
+        ordinal,
+        sectionLabel: `Habit ${ordinal}`,
+        action: `Habit ${ordinal} on a desk`,
+        durationSeconds: null,
+        onScreenSpeaker: false,
+        stillFreshness: 'fresh' as const,
+        stillAssetId: `image-${ordinal}`,
+        transition: 'cut' as const,
+      })),
+    },
+  },
+} satisfies StoryboardRun;
+
+describe('slideshow storyboard editor', () => {
+  beforeAll(async () => {
+    await preloadButtonTooltip();
+  });
+  beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', MockResizeObserver);
+    modal.openConfirm.mockReset();
+    modal.info.mockReset();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('shows slides with no shot timing, and approves once every slide has a fresh image', async () => {
+    const approve = vi.fn().mockResolvedValue(slideshowRun);
+    renderEditor({ run: slideshowRun, approvePlan: approve });
+
+    expect(screen.getByRole('list', { name: 'Slides' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add shot' })).toBeNull();
+    expect(screen.queryByTestId('animatic')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve storyboard' }));
+    await waitFor(() => expect(approve).toHaveBeenCalledWith(1));
+  });
+
+  it('blocks approval and says which slide needs an image', () => {
+    const missing = {
+      ...slideshowRun,
+      config: {
+        ...slideshowRun.config,
+        plan: {
+          ...slideshowRun.config.plan,
+          shots: slideshowRun.config.plan.shots.map((shot, index) =>
+            index === 1
+              ? {
+                  ...shot,
+                  stillAssetId: undefined,
+                  stillFreshness: 'missing' as const,
+                }
+              : shot,
+          ),
+        },
+      },
+    } satisfies StoryboardRun;
+    renderEditor({ run: missing });
+
+    expect(
+      screen.getByRole('button', { name: 'Approve storyboard' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText('Slide 2: draw a fresh image.'),
+    ).toBeInTheDocument();
+  });
+
+  it('prices the slide images as slide images, not sketch stills', async () => {
+    const quote = {
+      billingMode: 'platform' as const,
+      inputHash: 'a'.repeat(64),
+      items: [{ shotId: 'slide-1' }, { shotId: 'slide-2' }],
+      revision: 1,
+      total: 8,
+    };
+    const quoteStills = vi.fn().mockResolvedValue(quote);
+    const generateStills = vi.fn().mockResolvedValue(slideshowRun);
+    renderEditor({ run: slideshowRun, quoteStills, generateStills });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Redraw image' })[0]);
+
+    await waitFor(() => expect(generateStills).toHaveBeenCalledWith(quote));
+    expect(modal.info).toHaveBeenCalledWith(
+      '2 slide images for 8 credits. You are charged only for images that render.',
+    );
+  });
+});
+
 describe('persisted storyboard plan editor', () => {
   beforeAll(async () => {
     // Tooltip buttons swap their DOM node once the tooltip loads; settle that first.

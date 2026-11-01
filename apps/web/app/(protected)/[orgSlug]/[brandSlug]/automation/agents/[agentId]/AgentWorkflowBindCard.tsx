@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
@@ -155,7 +155,7 @@ export default function AgentWorkflowBindCard({
   const currentTemplate = strategy.preferredWorkflowTemplateId;
 
   return (
-    <Card className="space-y-4 p-4">
+    <Card gap={CardGap.LG}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <h3 className="text-sm font-semibold text-foreground">

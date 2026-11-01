@@ -1,4 +1,5 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -112,13 +113,11 @@ export default function BrandKitReviewAssets({
       </div>
 
       {assetImportResult ? (
-        <div
-          aria-live="polite"
-          className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
-          role="status"
-        >
-          {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}
-        </div>
+        <Card padding={CardPadding.SM} aria-live="polite" role="status">
+          <div className="text-sm">
+            {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}
+          </div>
+        </Card>
       ) : null}
     </Collapsible>
   );

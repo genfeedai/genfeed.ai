@@ -122,7 +122,7 @@ export default function ComparisonPage({
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card label="Why Genfeed" bodyClassName="text-center">
+        <Card label="Why Genfeed" isCentered>
           <ul className="space-y-2 mb-6 text-left max-w-md mx-auto">
             {competitor.genfeedAdvantages.map((advantage: string) => (
               <li key={advantage} className="flex items-start gap-2">

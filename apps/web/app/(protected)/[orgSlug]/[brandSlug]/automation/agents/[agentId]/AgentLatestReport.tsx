@@ -1,5 +1,6 @@
 'use client';
 
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { useTranslations } from 'next-intl';
@@ -35,7 +36,7 @@ export default function AgentLatestReport({ agentId }: AgentLatestReportProps) {
           {detail('loadingReport')}
         </p>
       ) : report ? (
-        <Card bodyClassName="flex flex-col gap-2 px-4 py-3 text-sm">
+        <Card padding={CardPadding.SM} gap={CardGap.SM}>
           <p className="text-xs text-muted-foreground">
             {detail(
               report.reportType === 'daily'

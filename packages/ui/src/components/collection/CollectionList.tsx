@@ -1,3 +1,4 @@
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionListProps } from '@genfeedai/props/ui/collection/collection.props';
 import Card from '@ui/card/Card';
@@ -13,7 +14,8 @@ export default function CollectionList({
 }: CollectionListProps) {
   return (
     <Card
-      bodyClassName="gap-0 p-0"
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
       className={cn('overflow-hidden', className)}
       data-testid={dataTestId}
     >

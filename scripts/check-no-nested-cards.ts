@@ -125,7 +125,8 @@ function collectViolations(
   function visit(node: ts.Node, cardDepth: number) {
     if (ts.isJsxElement(node)) {
       const tagName = getTagName(node.openingElement.tagName);
-      const isCardSurface = isCardSurfaceTag(tagName);
+      const isCardSurface =
+        isCardSurfaceTag(tagName) && !isInsetCard(node.openingElement);
 
       checkNode({
         cardDepth,
@@ -147,7 +148,7 @@ function collectViolations(
 
     if (ts.isJsxSelfClosingElement(node)) {
       const tagName = getTagName(node.tagName);
-      const isCardSurface = isCardSurfaceTag(tagName);
+      const isCardSurface = isCardSurfaceTag(tagName) && !isInsetCard(node);
 
       checkNode({
         cardDepth,
@@ -238,6 +239,37 @@ function isCardSurfaceTag(tagName: string): boolean {
   return (
     CARD_SURFACE_COMPONENTS.has(tagName) &&
     !ICON_COMPONENT_PREFIXES.some((prefix) => tagName.startsWith(prefix))
+  );
+}
+
+/**
+ * An inset Card is a recessed panel, not a raised surface: it may sit inside a
+ * card (and hold cards) without counting as a nested card.
+ */
+function isInsetCard(
+  element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+): boolean {
+  const tagName = getTagName(element.tagName);
+  // `<Card variant={CardVariant.INSET}>` and `<MetricCard appearance="inset">`
+  // are recessed panels, not card surfaces.
+  const insetProp =
+    tagName === 'Card'
+      ? { name: 'variant', value: 'CardVariant.INSET' }
+      : tagName === 'MetricCard'
+        ? { name: 'appearance', value: "'inset'" }
+        : null;
+  if (!insetProp) {
+    return false;
+  }
+
+  return element.attributes.properties.some(
+    (property) =>
+      ts.isJsxAttribute(property) &&
+      property.name.text === insetProp.name &&
+      property.initializer
+        ?.getText()
+        .replaceAll('"', "'")
+        .includes(insetProp.value) === true,
   );
 }
 

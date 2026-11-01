@@ -14,7 +14,6 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
       {topPlatforms.map((platformData) => (
         <Card
           key={platformData.platform}
-          className="backdrop-blur"
           data-testid={`hook-platform-${platformData.platform}`}
         >
           <div className="space-y-4 p-4">

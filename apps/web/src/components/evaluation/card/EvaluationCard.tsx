@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   EvaluationSeverity,
   IngredientCategory,
   Status,
@@ -10,7 +11,10 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import type { ProgressTone } from '@ui/primitives';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { ArrowUp, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -19,20 +23,20 @@ import type { EvaluationCardProps } from '@/props/components/evaluation-card.pro
 
 const SCORE_THRESHOLDS = [
   {
-    bar: 'bg-success',
+    tone: 'success',
     bg: 'bg-success/20 text-success',
     min: 90,
     text: 'text-success',
   },
-  { bar: 'bg-info', bg: 'bg-info/20 text-info', min: 70, text: 'text-info' },
+  { tone: 'info', bg: 'bg-info/20 text-info', min: 70, text: 'text-info' },
   {
-    bar: 'bg-warning',
+    tone: 'warning',
     bg: 'bg-warning/20 text-warning',
     min: 50,
     text: 'text-warning',
   },
   {
-    bar: 'bg-destructive',
+    tone: 'destructive',
     bg: 'bg-destructive/20 text-destructive',
     min: 0,
     text: 'text-destructive',
@@ -42,11 +46,11 @@ const SCORE_THRESHOLDS = [
 function getScoreColors(score: number): {
   text: string;
   bg: string;
-  bar: string;
+  tone: ProgressTone;
 } {
   const threshold =
     SCORE_THRESHOLDS.find((t) => score >= t.min) ?? SCORE_THRESHOLDS[3];
-  return { bar: threshold.bar, bg: threshold.bg, text: threshold.text };
+  return { bg: threshold.bg, text: threshold.text, tone: threshold.tone };
 }
 
 const FACTOR_LABELS: Record<string, string> = {
@@ -120,12 +124,13 @@ function ScoreSection({
             <span className="text-xs w-28 text-foreground/60">
               {formatFactorLabel(key)}
             </span>
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn('h-full', getScoreColors(value as number).bar)}
-                style={{ width: `${value}%` }}
-              />
-            </div>
+            <Progress
+              aria-label={formatFactorLabel(key)}
+              className="flex-1"
+              size="sm"
+              tone={getScoreColors(value as number).tone}
+              value={value as number}
+            />
             <span className="text-xs w-8 text-right font-medium">
               {String(value)}
             </span>
@@ -342,10 +347,10 @@ export default function EvaluationCard({
     <Card
       label="Quality Evaluation"
       headerAction={getHeaderAction()}
-      bodyClassName={
+      gap={
         !evaluation || evaluationData?.status !== Status.COMPLETED
           ? undefined
-          : 'space-y-4'
+          : CardGap.LG
       }
     >
       <EvaluationCardContent
@@ -489,30 +494,28 @@ function EvaluationCardContent({
   return (
     <div className="space-y-4">
       {lowestScores.length > 0 && lowestScores[0][1] < 50 && (
-        <div className="p-2 bg-warning/10 border border-warning/20 text-sm">
-          <span className="font-medium text-warning">Focus:</span>{' '}
-          <span className="text-foreground/70">
-            {lowestScores
-              .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
-              .join(', ')}
-          </span>
-        </div>
+        <Alert size="sm" variant="warning">
+          <span className="font-medium">Focus:</span>{' '}
+          {lowestScores
+            .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
+            .join(', ')}
+        </Alert>
       )}
 
       {flags?.isFlagged && (
-        <div
-          className={cn(
-            'p-2 text-sm',
+        <Alert
+          size="sm"
+          variant={
             flags.severity === EvaluationSeverity.CRITICAL
-              ? 'bg-destructive/10 border border-destructive/20 text-destructive'
+              ? 'destructive'
               : flags.severity === EvaluationSeverity.WARNING
-                ? 'bg-warning/10 border border-warning/20 text-warning'
-                : 'bg-info/10 border border-info/20 text-info',
-          )}
+                ? 'warning'
+                : 'info'
+          }
         >
           <span className="font-medium capitalize">{flags.severity}:</span>{' '}
           {flags.reasons.join(', ')}
-        </div>
+        </Alert>
       )}
 
       <div className="space-y-3">

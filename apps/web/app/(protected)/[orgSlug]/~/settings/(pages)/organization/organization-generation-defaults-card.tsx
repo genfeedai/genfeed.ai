@@ -96,7 +96,7 @@ export default function OrganizationGenerationDefaultsCard() {
   ]);
 
   return (
-    <Card label="Generation Defaults" bodyClassName="gap-3 p-4">
+    <Card label="Generation Defaults">
       <div className="space-y-4">
         <OrganizationGenerationDefaultsTextSection
           enabledModelIds={enabledModelIds}

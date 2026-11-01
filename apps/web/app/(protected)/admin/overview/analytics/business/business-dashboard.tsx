@@ -1,5 +1,5 @@
 'use client';
-
+import { CardGap } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -8,11 +8,11 @@ import {
 } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
 import { Alert } from '@ui/primitives/alert';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 import type {
   ComparisonCardProps,
@@ -43,10 +43,10 @@ function LeaderTable({
   valueLabel,
 }: LeaderTableProps) {
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       ) : (
         <Table<LeaderTableProps['leaders'][number]>
           ariaLabel={title}
@@ -88,7 +88,7 @@ function ComparisonCard({
   difference,
 }: ComparisonCardProps) {
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex items-end justify-between gap-4">
         <div>
@@ -120,9 +120,9 @@ function DailySeriesChart({
 }: DailySeriesChartProps) {
   if (data.length === 0) {
     return (
-      <Card bodyClassName="gap-0 p-4">
+      <Card gap={CardGap.NONE}>
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       </Card>
     );
   }
@@ -131,7 +131,7 @@ function DailySeriesChart({
   const maxValue = Math.max(...values, 1);
 
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex h-32 items-end gap-px">
         {data.map((point) => {
@@ -162,7 +162,7 @@ function DailySeriesChart({
 function ProjectionCard({ projections }: ProjectionCardProps) {
   if (projections.insufficientData) {
     return (
-      <Card bodyClassName="gap-0 p-4">
+      <Card gap={CardGap.NONE}>
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           30-Day Projections
         </h3>
@@ -175,7 +175,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
   }
 
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-1 text-sm font-semibold text-foreground">
         30-Day Projections
       </h3>
@@ -324,7 +324,7 @@ export default function BusinessDashboard() {
         <>
           {/* Category Breakdown */}
           {data.ingredients.categoryBreakdown.length > 0 && (
-            <Card bodyClassName="gap-0 p-4">
+            <Card gap={CardGap.NONE}>
               <h3 className="mb-3 text-sm font-semibold text-foreground">
                 Ingredient Category Breakdown
               </h3>

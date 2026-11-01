@@ -1,8 +1,8 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   Platform,
   PostStatus,
 } from '@genfeedai/contracts';
@@ -21,7 +21,6 @@ import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -31,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -167,7 +167,7 @@ const PostsGrid = memo(
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
     if (posts.length === 0) {
-      return <CardEmpty label={EMPTY_STATES.POSTS_FOUND} />;
+      return <EmptyState surface="card" title={EMPTY_STATES.POSTS_FOUND} />;
     }
 
     return (
@@ -246,11 +246,11 @@ const PostsGrid = memo(
             return (
               <Card
                 key={post.id}
-                className="group text-left hover:shadow-border-strong"
+                isInteractive
+                className="group text-left"
+                gap={view === 'list' ? CardGap.MD : CardGap.NONE}
                 bodyClassName={
-                  view === 'list'
-                    ? 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center'
-                    : 'gap-0 p-4'
+                  view === 'list' ? 'sm:flex-row sm:items-center' : undefined
                 }
               >
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-3">

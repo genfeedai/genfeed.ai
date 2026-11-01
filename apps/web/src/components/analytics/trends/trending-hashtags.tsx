@@ -70,10 +70,7 @@ export function TrendingHashtags({
                 <Card
                   key={hashtag.id}
                   variant={CardVariant.DEFAULT}
-                  className={
-                    onHashtagClick ? 'hover:shadow-border-strong' : undefined
-                  }
-                  bodyClassName="p-4"
+                  isInteractive={Boolean(onHashtagClick)}
                 >
                   {onHashtagClick ? (
                     <Button

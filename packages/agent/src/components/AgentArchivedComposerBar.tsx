@@ -6,7 +6,7 @@ import { useConversationComposerShell } from '@genfeedai/agent/components/Conver
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { ArchiveRestore } from 'lucide-react';
@@ -66,14 +66,11 @@ export function AgentArchivedComposerBar({
         bodyClassName="flex min-w-0 flex-col gap-2"
         data-testid="agent-archived-composer-bar"
       >
-        <Alert variant="warning" className="border-0 bg-transparent p-0">
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <p className="min-w-0 text-sm leading-5 text-foreground">
-              {message}
-            </p>
+        <Alert variant="warning">
+          <AlertDescription>{message}</AlertDescription>
+          <AlertActions>
             <Button
               ariaLabel="Unarchive thread"
-              className="shrink-0 self-start sm:self-center"
               icon={<ArchiveRestore className="size-4" />}
               isDisabled={isUnarchiving}
               isLoading={isUnarchiving}
@@ -84,15 +81,15 @@ export function AgentArchivedComposerBar({
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
             />
-          </div>
+          </AlertActions>
         </Alert>
         <AgentThreadUpdateNotice
           failure={isMissingThread ? 'missing-thread' : null}
         />
         {error ? (
-          <p className="text-xs text-destructive" role="alert">
+          <Alert size="sm" variant="destructive">
             {error}
-          </p>
+          </Alert>
         ) : null}
       </PromptBarComposer>
     </PromptBarContainer>

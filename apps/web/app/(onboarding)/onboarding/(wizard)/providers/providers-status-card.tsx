@@ -1,3 +1,4 @@
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Sparkles } from 'lucide-react';
@@ -10,7 +11,11 @@ export default function ProvidersStatusCard({
   const translate = useTranslations('pages.onboarding.providers');
 
   return (
-    <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
+    <Card
+      className="provider-card opacity-0"
+      padding={CardPadding.LG}
+      gap={CardGap.NONE}
+    >
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-foreground">
           Default access

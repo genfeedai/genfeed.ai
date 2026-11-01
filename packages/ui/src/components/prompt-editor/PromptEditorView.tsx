@@ -36,8 +36,7 @@ function PromptEditorView({
     onSubmitRef.current = onSubmit;
     onValueChangeRef.current = onValueChange;
     onDocumentChangeRef.current = onDocumentChange;
-    placeholderRef.current = placeholder;
-  }, [onDocumentChange, onSubmit, onValueChange, placeholder]);
+  }, [onDocumentChange, onSubmit, onValueChange]);
 
   const handlePaste = useRef(createPromptEditorPasteHandler()).current;
   const appliedSeedIdRef = useRef<string | null>(null);
@@ -65,13 +64,23 @@ function PromptEditorView({
         onSubmitRef.current?.();
         return true;
       },
-      placeholder,
+      placeholder: () => placeholderRef.current,
     }),
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
   });
 
   const editor = injectedEditor ?? ownedEditor;
+
+  // The extension reads the placeholder through a ref; a no-op transaction
+  // redraws the empty-state decoration when the prop changes.
+  useEffect(() => {
+    placeholderRef.current = placeholder;
+    if (!editor || injectedEditor || editor.isDestroyed) {
+      return;
+    }
+    editor.view.dispatch(editor.state.tr);
+  }, [editor, injectedEditor, placeholder]);
 
   useEffect(() => {
     if (!editor || injectedEditor) {

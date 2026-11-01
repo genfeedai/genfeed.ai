@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { Progress } from '@ui/primitives/progress';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -173,21 +174,14 @@ export default function ClipperInputForm({
                 </p>
               ) : null}
               {isSubmitting && uploadProgress > 0 ? (
-                <div
-                  aria-label={t('uploadProgressAria', {
-                    progress: uploadProgress,
-                  })}
-                  aria-valuemax={100}
-                  aria-valuemin={0}
-                  aria-valuenow={uploadProgress}
-                  role="progressbar"
-                >
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-[width]"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
+                <div>
+                  <Progress
+                    aria-label={t('uploadProgressAria', {
+                      progress: uploadProgress,
+                    })}
+                    size="sm"
+                    value={uploadProgress}
+                  />
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t('uploadingSource', { progress: uploadProgress })}
                   </p>

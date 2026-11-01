@@ -12,6 +12,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { Alert } from '@ui/primitives/alert';
 import { ReactFlowProvider } from '@xyflow/react';
 import type { WorkflowSeed } from '@/features/automation/props/workflow-new-page.props';
 import '@xyflow/react/dist/style.css';
@@ -367,9 +368,14 @@ export default function WorkflowNewPageClient() {
 
           <WorkflowAgentLayout>
             {cloudError && (
-              <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+              <Alert
+                className="shrink-0"
+                data-testid="workflow-cloud-error"
+                size="sm"
+                variant="destructive"
+              >
                 {cloudError}
-              </div>
+              </Alert>
             )}
 
             {isLoading ? (

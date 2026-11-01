@@ -1,6 +1,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   CardVariant,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -14,7 +15,6 @@ import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflo
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -22,6 +22,7 @@ import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -102,7 +103,7 @@ function WorkflowExecutionCard({
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      bodyClassName="gap-2 p-4"
+      gap={CardGap.SM}
       data-testid="workflow-execution-card"
     >
       <div className="flex items-start justify-between gap-3">
@@ -196,7 +197,7 @@ export function DashboardAgentCards({
               'agent-run-skeleton-2',
               'agent-run-skeleton-3',
             ].map((key) => (
-              <Card key={key} variant={CardVariant.DEFAULT} bodyClassName="p-4">
+              <Card key={key} variant={CardVariant.DEFAULT}>
                 <WorkspaceTaskRowsSkeleton rows={1} />
               </Card>
             ))
@@ -359,7 +360,7 @@ export function DashboardRecentActivity({
           })}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentActivity.empty')} />
+        <EmptyState title={translate('recentActivity.empty')} />
       )}
     </WorkspaceSurface>
   );
@@ -435,7 +436,7 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentTasks.empty')} />
+        <EmptyState title={translate('recentTasks.empty')} />
       )}
     </WorkspaceSurface>
   );

@@ -1,8 +1,8 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -20,18 +20,15 @@ export default function AgentModelLockNotice({
   const { orgHref } = useOrgUrl();
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-1 rounded border border-border bg-muted/40 px-3 py-2',
-        className,
-      )}
+    <Alert
+      className={className}
       data-testid="agent-model-lock-notice"
+      icon={<Lock className="size-4" />}
+      size="sm"
+      variant="note"
     >
-      <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-        <Lock aria-hidden="true" className="size-3.5 text-muted-foreground" />
-        {lockedModelLabel}
-      </p>
-      <p className="text-xs text-muted-foreground">
+      <AlertTitle>{lockedModelLabel}</AlertTitle>
+      <AlertDescription>
         {translate.rich('freePlan', {
           model: lockedModelLabel,
           upgrade: (chunks) => (
@@ -43,7 +40,7 @@ export default function AgentModelLockNotice({
             </Link>
           ),
         })}
-      </p>
-    </div>
+      </AlertDescription>
+    </Alert>
   );
 }

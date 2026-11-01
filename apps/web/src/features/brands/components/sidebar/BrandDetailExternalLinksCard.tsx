@@ -1,10 +1,15 @@
 'use client';
-
-import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  LinkCategory,
+} from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -63,7 +68,7 @@ export default function BrandDetailExternalLinksCard({
     >
       <div className="flex flex-col gap-3">
         {social ? (
-          <div className="rounded-md bg-card/50 px-3 py-2.5">
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
             <p className={SECTION_LABEL_CLASSNAME}>Accounts</p>
             <p className="mt-1 text-sm text-foreground/90">
               {formatConnected(
@@ -71,7 +76,7 @@ export default function BrandDetailExternalLinksCard({
                 social.connectedAdAccountCount,
               )}
             </p>
-          </div>
+          </Card>
         ) : null}
 
         <div className="space-y-2">
@@ -103,7 +108,7 @@ export default function BrandDetailExternalLinksCard({
               </div>
             ))
           ) : (
-            <CardEmptyContent label="No website links yet." />
+            <EmptyState title="No website links yet." />
           )}
 
           <Button

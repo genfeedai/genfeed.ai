@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import type {
   DesktopServerKind,
   IDesktopSelfHostedServerConfig,
@@ -157,7 +157,7 @@ export default function DesktopServerSettings() {
       state?.selfHosted?.apiEndpoint === selfHosted.apiEndpoint.trim());
 
   return (
-    <Card bodyClassName="p-5">
+    <Card padding={CardPadding.LG}>
       <div className="text-sm font-medium text-foreground/90">
         {translate('title')}
       </div>

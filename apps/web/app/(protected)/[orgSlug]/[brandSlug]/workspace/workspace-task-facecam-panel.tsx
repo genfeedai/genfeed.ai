@@ -1,4 +1,4 @@
-import { CardVariant } from '@genfeedai/contracts';
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Label } from '@ui/primitives/label';
@@ -24,7 +24,7 @@ export function WorkspaceTaskFacecamPanel({
   voices,
 }: WorkspaceTaskFacecamPanelProps) {
   return (
-    <Card variant={CardVariant.DEFAULT} bodyClassName="space-y-3 p-3">
+    <Card variant={CardVariant.DEFAULT} padding={CardPadding.SM}>
       <div className="flex items-center justify-between">
         <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/60">
           Facecam settings

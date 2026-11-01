@@ -27,7 +27,7 @@ type AnalyticsOverviewHeroProps = {
 };
 
 /**
- * Warming-up status strip only. First-run is a page-level EmptyStateCard.
+ * Warming-up status strip only. First-run is a page-level card EmptyState.
  * Page identity lives in the shell breadcrumb — no in-page H1.
  * Metrics live in KPISection MetricCards.
  */

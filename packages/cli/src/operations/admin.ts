@@ -1,6 +1,7 @@
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
+  BrandKitFieldKey,
   IHarnessActivationReport,
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
@@ -175,9 +176,19 @@ export interface WarmupAccountInput {
   websiteUrl?: string;
 }
 
+export interface WarmupContextDecisions {
+  draftId?: string;
+  fields: Partial<
+    Record<BrandKitFieldKey, { action: 'accept' | 'reject' | 'preserve'; value?: unknown }>
+  >;
+}
+
 export interface WarmupPrepareInput {
   action: string;
   amount?: number;
+  assetCandidateId?: string;
+  contextDecisions?: WarmupContextDecisions;
+  prompt?: string;
   publicProfileUrl?: string;
   reason?: string;
   sourceUrl?: string;

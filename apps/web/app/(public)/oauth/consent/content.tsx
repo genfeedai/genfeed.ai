@@ -454,7 +454,7 @@ export default function OAuthConsentContent() {
             <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-6">
                 <Card
-                  bodyClassName="flex-row items-start gap-3 p-4"
+                  bodyClassName="flex-row items-start"
                   variant={CardVariant.BORDERED}
                 >
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">

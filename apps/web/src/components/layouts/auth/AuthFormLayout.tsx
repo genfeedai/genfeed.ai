@@ -85,6 +85,7 @@ export default function AuthFormLayout({
           data-desktop-drag="true"
         >
           <div className="flex w-full flex-col items-center justify-center lg:px-10 lg:py-10">
+            {/* ui-guard-allow:card-restyle -- on desktop the form drops its card chrome to sit on the split-screen background */}
             <Card
               className={cn(
                 isWide ? 'w-full max-w-3xl' : 'w-full max-w-md',
@@ -106,6 +107,7 @@ export default function AuthFormLayout({
         className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground"
         data-desktop-drag="true"
       >
+        {/* ui-guard-allow:card-restyle -- auth form is padded wider than any card size on larger screens */}
         <Card
           className={isWide ? 'w-full max-w-3xl' : 'w-full max-w-md'}
           bodyClassName="gap-0 p-6 sm:p-10"

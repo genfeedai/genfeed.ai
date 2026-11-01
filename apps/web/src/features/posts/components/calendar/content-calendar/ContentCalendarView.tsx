@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   buildDayViewRows,
   formatClockTime,
@@ -10,7 +15,7 @@ import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-ic
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import type {
@@ -339,6 +344,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   views = DEFAULT_VIEWS,
   filterControls,
   embedded = false,
+  onToolbarChange,
   modal,
   emptyState,
   isLoading = false,
@@ -704,6 +710,61 @@ export default function ContentCalendarView<T extends CalendarItem>({
     ],
   );
 
+  const navigation = useMemo(
+    () => (
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          tooltip="Previous period"
+          aria-label="Previous period"
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          onClick={() => calendarRef.current?.prev()}
+        >
+          <ChevronLeft className="size-3.5" />
+        </Button>
+        <Button
+          tooltip="Next period"
+          aria-label="Next period"
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          onClick={() => calendarRef.current?.next()}
+        >
+          <ChevronRight className="size-3.5" />
+        </Button>
+        <h2 className="whitespace-nowrap text-sm font-medium">{dateTitle}</h2>
+        <Button
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          onClick={() => calendarRef.current?.today()}
+        >
+          {translate('today')}
+        </Button>
+      </div>
+    ),
+    [dateTitle, translate],
+  );
+
+  // Views are a dropdown, never tabs.
+  const viewMenu = useMemo(
+    () => (
+      <ViewMenu
+        activeView={activeView}
+        onChange={(value) => calendarRef.current?.changeView(toViewId(value))}
+        options={views.map((view) => ({
+          icon: null,
+          label: translate(`views.${view}`),
+          type: view,
+        }))}
+        trigger="label"
+      />
+    ),
+    [activeView, translate, views],
+  );
+
+  useEffect(() => {
+    onToolbarChange?.({ navigation, viewMenu });
+  }, [navigation, onToolbarChange, viewMenu]);
+
   return (
     <>
       {channelIconIds.length > 0 && (
@@ -716,67 +777,30 @@ export default function ContentCalendarView<T extends CalendarItem>({
         </div>
       )}
 
-      <SectionTopbar
-        title="Calendar"
-        titleVisibility="sr-only"
-        className={
-          embedded
-            ? 'mb-4 overflow-x-auto border-0 [&>div]:min-w-max [&>div]:px-0 [&>div]:pt-0'
-            : 'overflow-x-auto [&>div]:min-w-max'
-        }
-        leading={
-          <div className="flex items-center gap-2">
-            <Button
-              tooltip="Previous period"
-              aria-label="Previous period"
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              onClick={() => calendarRef.current?.prev()}
-            >
-              <ChevronLeft className="size-3.5" />
-            </Button>
-            <Button
-              tooltip="Next period"
-              aria-label="Next period"
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              onClick={() => calendarRef.current?.next()}
-            >
-              <ChevronRight className="size-3.5" />
-            </Button>
-            <h2 className="text-sm font-medium">{dateTitle}</h2>
-            <Button
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              onClick={() => calendarRef.current?.today()}
-            >
-              {translate('today')}
-            </Button>
-          </div>
-        }
-        actions={filterControls}
-        tabs={
-          views.length > 1 && (
-            <Tabs
-              ariaLabel="Calendar view"
-              className="mb-0"
-              fullWidth={false}
-              activeTab={activeView}
-              onTabChange={(value) =>
-                calendarRef.current?.changeView(
-                  toViewId(value as CalendarViewKey),
-                )
-              }
-              items={views.map((view) => ({
-                id: view,
-                label: view.charAt(0).toUpperCase() + view.slice(1),
-              }))}
-            />
-          )
-        }
-      />
+      {onToolbarChange ? null : (
+        <SectionTopbar
+          title="Calendar"
+          titleVisibility="sr-only"
+          className={
+            embedded
+              ? 'mb-4 overflow-x-auto border-0 [&>div]:min-w-max [&>div]:px-0 [&>div]:pt-0'
+              : 'overflow-x-auto [&>div]:min-w-max'
+          }
+          leading={navigation}
+          actions={
+            <div className="flex shrink-0 items-center justify-end gap-2">
+              {filterControls}
+              {viewMenu}
+            </div>
+          }
+        />
+      )}
       <div className={embedded ? undefined : 'px-5 py-5 sm:px-6 sm:py-6'}>
-        <Card className="w-full border border-border" bodyClassName="p-0">
+        <Card
+          variant={CardVariant.BORDERED}
+          className="w-full"
+          padding={CardPadding.NONE}
+        >
           {isLoading ? (
             <div
               className="fullcalendar-container p-6"

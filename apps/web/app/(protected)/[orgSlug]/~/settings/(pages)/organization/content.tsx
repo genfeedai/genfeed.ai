@@ -63,7 +63,7 @@ export default function SettingsOrganizationPage() {
     <div className="space-y-4">
       <OrganizationIdentityCard organizationId={organizationId} />
 
-      <Card label="Language" bodyClassName="gap-3 p-4">
+      <Card label="Language">
         <Select
           disabled={isSaving}
           onValueChange={handleDefaultLocaleChange}

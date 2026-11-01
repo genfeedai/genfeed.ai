@@ -1,9 +1,15 @@
-import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardTone,
+} from '@genfeedai/contracts';
 import { CardVariant } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
-import type { MouseEvent, ReactNode } from 'react';
+import type { HTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
 
 export { CardVariant };
 
@@ -12,18 +18,39 @@ export interface BadgeFormatProps {
   className?: string;
 }
 
-export interface CardProps {
+export interface CardProps
+  extends Omit<
+    HTMLAttributes<HTMLElement>,
+    'children' | 'className' | 'id' | 'onClick' | 'title'
+  > {
+  ref?: Ref<HTMLElement>;
   /** One skeleton inside the frame while initial data is pending. */
   isLoading?: boolean;
   loadingLabel?: string;
   index?: number;
   variant?: CardVariant;
+  /** Body padding. Defaults to `CardPadding.MD`. */
+  padding?: CardPadding;
+  /** Space between header, children and actions. Defaults to `CardGap.MD`. */
+  gap?: CardGap;
+  /** Element the surface renders as, for lists and landmarks. Defaults to `div`. */
+  as?: 'div' | 'section' | 'article' | 'aside' | 'li';
+  /** Coloured rule on the leading edge, for a section that reports a state. */
+  tone?: CardTone;
+  /** Centres the body content horizontally and its text. */
+  isCentered?: boolean;
+  /** Marks the card as the chosen one of a set (outlined in the primary colour). */
+  isSelected?: boolean;
+  /** Hover feedback for a card that is wrapped by a link rather than owning `onClick`. */
+  isInteractive?: boolean;
   children?: ReactNode;
   actions?: ReactNode;
   headerAction?: ReactNode;
   figure?: string;
   overlay?: string;
+  /** Layout and position only (width, margin, overflow). Look comes from props. */
   className?: string;
+  /** Layout only (flex direction, alignment, height). Padding and gap come from props. */
   bodyClassName?: string;
   icon?: IconComponent | ReactNode;
   iconWrapperClassName?: string;

@@ -398,7 +398,7 @@ export default function PublishingOverviewPage() {
       isLoading: isMetricsLoading,
       label: 'Failed items',
       value: reviewPulse.failed,
-      valueClassName: reviewPulse.failed > 0 ? 'text-destructive' : undefined,
+      tone: reviewPulse.failed > 0 ? ('destructive' as const) : undefined,
     },
   ];
 

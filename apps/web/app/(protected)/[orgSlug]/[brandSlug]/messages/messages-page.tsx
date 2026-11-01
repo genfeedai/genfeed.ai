@@ -31,6 +31,7 @@ import { SocialMessagesService } from '@services/social/messages.service';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -44,10 +45,11 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import DirectMessageReconnectNotice from '@/features/messages/components/DirectMessageReconnectNotice';
 import { usePlatformOAuthConnect } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type {
@@ -61,6 +63,7 @@ import {
 import {
   ALL_BRANDS_FILTER,
   formatMessageTime,
+  getDirectMessageReconnectAccounts,
   getMessageProvenanceItems,
   parseMessagesInboxView,
   parseMessagesSurface,
@@ -611,6 +614,31 @@ export default function MessagesPage() {
   const availableOAuthConnect = connectionBrandId
     ? handleOAuthConnect
     : undefined;
+  const dmReconnectAccounts = useMemo(
+    () =>
+      getDirectMessageReconnectAccounts(
+        connectedAccounts,
+        filters.conversationType,
+      ),
+    [connectedAccounts, filters.conversationType],
+  );
+  const [reconnectingCredentialId, setReconnectingCredentialId] = useState<
+    string | null
+  >(null);
+  const handleDmReconnect = useCallback(
+    (credentialId: string) => {
+      const account = dmReconnectAccounts.find(
+        (candidate) => candidate.credentialId === credentialId,
+      );
+      setReconnectingCredentialId(credentialId);
+      // The hook logs the failure; release the button so the user can retry.
+      handleOAuthConnect(Platform.TWITTER, {
+        brandId: account?.brandId,
+        credentialId,
+      }).catch(() => setReconnectingCredentialId(null));
+    },
+    [dmReconnectAccounts, handleOAuthConnect],
+  );
 
   const conversationNavPanel = (
     <MessagesConversationSidebar
@@ -690,27 +718,30 @@ export default function MessagesPage() {
           ) : null}
         </div>
       ) : null}
+      {dmReconnectAccounts.length > 0 ? (
+        <div className="mx-4 mt-3 shrink-0">
+          <DirectMessageReconnectNotice
+            accounts={dmReconnectAccounts}
+            isDisabled={!canWrite}
+            onReconnect={handleDmReconnect}
+            reconnectingCredentialId={reconnectingCredentialId}
+          />
+        </div>
+      ) : null}
       {workspaceNavPanel?.portalTargets.map((target, index) =>
         createPortal(conversationNavPanel, target, `messages-nav-${index}`),
       )}
       {isComposerVisible ? null : (
         <>
           {error ? (
-            <div
-              className="mx-4 mt-3 shrink-0 rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
+            <Alert className="mx-4 mt-3 shrink-0" variant="destructive">
               {error}
-            </div>
+            </Alert>
           ) : null}
           {notice ? (
-            <div
-              aria-live="polite"
-              className="mx-4 mt-3 shrink-0 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
-              role="status"
-            >
+            <Alert className="mx-4 mt-3 shrink-0" variant="success">
               {notice}
-            </div>
+            </Alert>
           ) : null}
         </>
       )}

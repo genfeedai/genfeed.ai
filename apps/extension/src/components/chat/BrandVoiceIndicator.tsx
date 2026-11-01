@@ -1,3 +1,4 @@
+import { Avatar } from '@ui/primitives/avatar';
 import type { ReactElement } from 'react';
 
 import { useBrandStore } from '~store/use-brand-store';
@@ -19,9 +20,7 @@ export function BrandVoiceIndicator(): ReactElement | null {
 
   return (
     <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
-      <div className="size-4 shrink-0 rounded-full bg-primary/20 text-center text-2xs leading-4 text-primary">
-        {activeBrand.label.charAt(0).toUpperCase()}
-      </div>
+      <Avatar name={activeBrand.label} size="2xs" />
       <span className="truncate text-xs font-medium text-foreground">
         {activeBrand.label}
       </span>

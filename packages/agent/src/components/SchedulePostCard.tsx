@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -24,7 +25,7 @@ import {
 } from '@ui/primitives/select';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
-import { Calendar, Check, Clock, DollarSign } from 'lucide-react';
+import { Calendar, Clock, DollarSign } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
@@ -353,19 +354,14 @@ export function SchedulePostCard({
         ? selectedTargets.length
         : selectedPlatforms.size || 1;
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4">
-        <div className="flex items-center gap-2 text-success">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            {action.title || translate('scheduled', { count })}
-          </span>
-        </div>
+      <Alert className="my-2" variant="success">
+        <AlertTitle>
+          {action.title || translate('scheduled', { count })}
+        </AlertTitle>
         {action.description ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {action.description}
-          </p>
+          <AlertDescription>{action.description}</AlertDescription>
         ) : null}
-      </div>
+      </Alert>
     );
   }
 
@@ -505,19 +501,16 @@ export function SchedulePostCard({
                         signatures={signatures}
                       />
                       {blockers.length > 0 ? (
-                        <div className="space-y-1 border border-destructive/20 bg-destructive/5 p-2">
-                          <p className="text-2xs font-medium uppercase tracking-wider text-destructive">
-                            {translate('cannotSchedule')}
-                          </p>
+                        <Alert size="sm" variant="destructive">
+                          <AlertTitle>{translate('cannotSchedule')}</AlertTitle>
                           {blockers.map((blocker) => (
-                            <p
+                            <AlertDescription
                               key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
-                              className="text-xs text-destructive"
                             >
                               {blocker.message}
-                            </p>
+                            </AlertDescription>
                           ))}
-                        </div>
+                        </Alert>
                       ) : null}
                     </>
                   ) : null}

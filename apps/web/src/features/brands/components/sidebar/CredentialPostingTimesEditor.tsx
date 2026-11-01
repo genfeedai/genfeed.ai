@@ -1,6 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   formatClockTime,
   parseClockTime,
@@ -11,6 +17,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -98,8 +105,12 @@ export default function CredentialPostingTimesEditor({
           {times.map((time) => {
             const label = formatClockTime(time);
             return (
-              <li
-                className="flex items-center justify-between gap-2 rounded-md bg-background px-2 py-1"
+              <Card
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
+                gap={CardGap.SM}
+                as="li"
+                bodyClassName="flex-row items-center justify-between"
                 data-testid="posting-time-row"
                 key={label}
               >
@@ -120,7 +131,7 @@ export default function CredentialPostingTimesEditor({
                 >
                   {translate('remove')}
                 </Button>
-              </li>
+              </Card>
             );
           })}
         </ul>

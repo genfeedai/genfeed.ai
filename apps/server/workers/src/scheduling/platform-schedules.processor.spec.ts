@@ -29,7 +29,6 @@ describe('PlatformSchedulesProcessor', () => {
     checkStuckProcessingIngredients: handler(),
     refreshMissingMetadataDimensions: handler(),
   };
-  const llmIdle = { shutdownIfIdle: handler() };
   const mediaPerception = { queueDuePerceptions: handler() };
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
@@ -146,7 +145,6 @@ describe('PlatformSchedulesProcessor', () => {
         PLATFORM_SCHEDULED_TASKS.INGREDIENT_PROCESSING_RECONCILE,
         ingredients.checkStuckProcessingIngredients,
       ],
-      [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN, llmIdle.shutdownIfIdle],
       [
         PLATFORM_SCHEDULED_TASKS.MEDIA_DELIVERY_RECOVERY,
         mediaDeliveryRecovery.recoverMedia,
@@ -261,7 +259,6 @@ describe('PlatformSchedulesProcessor', () => {
       engagement as never,
       falModels as never,
       ingredients as never,
-      llmIdle as never,
       mediaPerception as never,
       modelDeprecation as never,
       replicateModels as never,

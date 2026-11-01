@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap } from '@genfeedai/contracts';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -41,7 +41,7 @@ export default function ClipperSourcePreview({
   const contentType = source?.artifact?.contentType ?? source?.contentType;
   const title = name || source?.filename || t('source');
   return (
-    <Card bodyClassName="space-y-4 p-4" data-testid="clipper-source-preview">
+    <Card gap={CardGap.LG} data-testid="clipper-source-preview">
       <h2 className="break-words text-base font-semibold">{title}</h2>
       {youtubeId && playingUrl === sourceVideoUrl ? (
         <iframe

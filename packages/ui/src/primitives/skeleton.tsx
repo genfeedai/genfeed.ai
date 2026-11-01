@@ -8,12 +8,16 @@ function Skeleton({ className, ...props }: ComponentPropsWithoutRef<'output'>) {
     <output
       aria-busy="true"
       className={cn(
-        'relative block overflow-hidden animate-pulse rounded-md bg-muted',
+        'relative block overflow-hidden rounded-md bg-foreground/5',
+        // One sweep of light across the block. It animates `transform`, so it
+        // never repaints the page, and it is hidden under reduced motion,
+        // leaving the static placeholder.
         'before:absolute before:inset-0',
-        'before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent',
-        'before:animate-shimmer',
+        'before:bg-gradient-to-r before:from-transparent before:via-foreground/10 before:to-transparent',
+        'before:animate-skeleton motion-reduce:before:hidden',
         className,
       )}
+      data-slot="skeleton"
       {...props}
     />
   );

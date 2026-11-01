@@ -1,3 +1,5 @@
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -27,12 +29,12 @@ export default function HomeProduct(): React.ReactElement {
             </Text>
           </div>
 
-          <div
-            className="rounded-xl bg-card p-3 shadow-border-strong sm:p-4"
+          <Card
+            padding={CardPadding.SM}
             data-reveal="up"
             data-testid="home-product-workspace"
           >
-            <div className="rounded-lg border border-foreground/5 bg-background p-4 sm:p-5">
+            <Card variant={CardVariant.INSET}>
               <div className="flex items-center justify-between border-b border-foreground/5 pb-4">
                 <div>
                   <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/60">
@@ -72,8 +74,8 @@ export default function HomeProduct(): React.ReactElement {
                   </figure>
                 ))}
               </div>
-            </div>
-          </div>
+            </Card>
+          </Card>
         </div>
       </div>
     </section>

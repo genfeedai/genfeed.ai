@@ -1,11 +1,15 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { IngredientNotificationOwnerService } from '@api/endpoints/webhooks/services/ingredient-notification-owner.service';
 import { StoryboardNotificationContextService } from '@api/endpoints/webhooks/services/storyboard-notification-context.service';
 import { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
-import type { IStoryboardNotificationContext } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredientNotificationOwner,
+  IStoryboardNotificationContext,
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -24,6 +28,8 @@ export class PostProcessingOrchestratorService {
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
     @Optional()
     private readonly storyboardContext?: StoryboardNotificationContextService,
+    @Optional()
+    private readonly notificationOwner?: IngredientNotificationOwnerService,
   ) {}
 
   /**
@@ -56,6 +62,13 @@ export class PostProcessingOrchestratorService {
     ingredient: Parameters<StoryboardNotificationContextService['find']>[0],
   ): Promise<IStoryboardNotificationContext | null> {
     return (await this.storyboardContext?.find(ingredient)) ?? null;
+  }
+
+  /** Who ran a generation and what their wallet holds, for the operator card. */
+  async findNotificationOwner(
+    ingredient: Parameters<IngredientNotificationOwnerService['find']>[0],
+  ): Promise<IIngredientNotificationOwner | undefined> {
+    return this.notificationOwner?.find(ingredient);
   }
 
   /**

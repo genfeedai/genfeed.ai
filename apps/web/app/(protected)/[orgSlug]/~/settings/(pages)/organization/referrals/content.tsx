@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, ReferralRewardStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ReferralRewardStatus,
+} from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReferralsService } from '@services/billing/referrals.service';
@@ -64,7 +69,7 @@ export default function SettingsReferralsPage() {
     return (
       <div className="flex flex-col gap-4 pb-10">
         <h1 className="sr-only">{translate('title')}</h1>
-        <Card label={translate('title')} bodyClassName="gap-4 p-4">
+        <Card label={translate('title')} gap={CardGap.LG}>
           <Alert
             variant="destructive"
             icon={<TriangleAlert className="size-4" aria-hidden="true" />}
@@ -101,7 +106,11 @@ export default function SettingsReferralsPage() {
     <div className="flex flex-col gap-4 pb-10">
       <h1 className="sr-only">{translate('title')}</h1>
 
-      <Card label={translate('title')} bodyClassName="gap-5 p-5">
+      <Card
+        label={translate('title')}
+        padding={CardPadding.LG}
+        gap={CardGap.LG}
+      >
         <div className="flex items-start gap-4">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Gift className="size-5" aria-hidden="true" />
@@ -153,7 +162,7 @@ export default function SettingsReferralsPage() {
       </Card>
 
       {data?.recentRewards.length ? (
-        <Card label={translate('recentRewards')} bodyClassName="p-0">
+        <Card label={translate('recentRewards')} padding={CardPadding.NONE}>
           <div className="divide-y divide-border">
             {data.recentRewards.slice(0, 10).map((reward) => (
               <div

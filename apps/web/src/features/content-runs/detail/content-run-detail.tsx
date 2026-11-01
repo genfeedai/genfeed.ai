@@ -1,6 +1,10 @@
 'use client';
-
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ContentRunAnalyticsSummary,
@@ -15,11 +19,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ChartColumn,
   CircleCheck,
@@ -195,7 +200,7 @@ function Section({
 }) {
   return (
     <section>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <div className="mb-4 flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/80 shadow-border">
             {icon}
@@ -221,7 +226,7 @@ function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
 
 function BriefSection({ brief }: { brief?: ContentRunBrief }) {
   if (!brief) {
-    return <CardEmptyContent label="No brief has been attached to this run." />;
+    return <EmptyState title="No brief has been attached to this run." />;
   }
 
   return (
@@ -256,7 +261,7 @@ function BriefSection({ brief }: { brief?: ContentRunBrief }) {
 
 function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   if (!variants?.length) {
-    return <CardEmptyContent label="No remix variants have been stored yet." />;
+    return <EmptyState title="No remix variants have been stored yet." />;
   }
 
   return (
@@ -292,9 +297,7 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
 
 function PublishSection({ publish }: { publish?: ContentRunPublishContext }) {
   if (!publish) {
-    return (
-      <CardEmptyContent label="No publish context has been captured yet." />
-    );
+    return <EmptyState title="No publish context has been captured yet." />;
   }
 
   return (
@@ -329,9 +332,7 @@ function AnalyticsSection({
   analytics?: ContentRunAnalyticsSummary;
 }) {
   if (!analytics) {
-    return (
-      <CardEmptyContent label="No analytics summary has been synced yet." />
-    );
+    return <EmptyState title="No analytics summary has been synced yet." />;
   }
 
   return (
@@ -388,7 +389,7 @@ function RecommendationsSection({
 }) {
   if (!recommendations?.length) {
     return (
-      <CardEmptyContent label="No recommended actions have been generated yet." />
+      <EmptyState title="No recommended actions have been generated yet." />
     );
   }
 
@@ -425,7 +426,7 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Lifecycle</h2>
         <div className="mt-4 space-y-3">
           {steps.map((step) => (
@@ -476,7 +477,7 @@ function NavigationPanel({
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Actions and Views</h2>
         <div className="mt-4 grid gap-2">
           <Button
@@ -572,9 +573,9 @@ export default function ContentRunDetailPage({
   if (state === 'loading' || state === 'idle') {
     return (
       <Container>
-        <div className="rounded-lg bg-muted p-8 text-sm text-foreground/60 shadow-border">
-          Loading content run…
-        </div>
+        <Card padding={CardPadding.XL}>
+          <div className="text-sm text-foreground/60">Loading content run…</div>
+        </Card>
       </Container>
     );
   }
@@ -582,9 +583,7 @@ export default function ContentRunDetailPage({
   if (state === 'error' || !run) {
     return (
       <Container>
-        <div className="rounded-lg bg-destructive/10 p-8 text-sm text-destructive shadow-border">
-          Content run could not be loaded.
-        </div>
+        <Alert variant="destructive">Content run could not be loaded.</Alert>
       </Container>
     );
   }
@@ -593,7 +592,7 @@ export default function ContentRunDetailPage({
     <Container>
       <div className="flex flex-col gap-6">
         <header>
-          <Card bodyClassName="gap-0 p-5">
+          <Card padding={CardPadding.LG} gap={CardGap.NONE}>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{run.status ?? 'unknown'}</Badge>
               <Badge variant="secondary">
@@ -674,9 +673,7 @@ export default function ContentRunDetailPage({
           <div className="grid content-start gap-5">
             <TimelinePanel run={run} />
             {remixError ? (
-              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive shadow-border">
-                {remixError}
-              </div>
+              <Alert variant="destructive">{remixError}</Alert>
             ) : null}
             <NavigationPanel
               isRemixing={isRemixing}

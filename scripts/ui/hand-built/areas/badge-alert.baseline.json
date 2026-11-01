@@ -1,17 +1,4 @@
 {
-  "files": {
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorLockedBanner.tsx": {
-      "alert-restyle": 1
-    },
-    "apps/web/src/components/modals/gallery/ModalGalleryHeader.tsx": {
-      "alert-restyle": 1
-    },
-    "packages/agent/src/components/AgentArchivedComposerBar.tsx": {
-      "alert-restyle": 1
-    },
-    "packages/agent/src/components/AgentComposerStatusStack.tsx": {
-      "alert-restyle": 1
-    }
-  },
+  "files": {},
   "version": 1
 }

@@ -3,6 +3,7 @@
 import {
   BrandOsRevisionStatus,
   ButtonVariant,
+  CardGap,
   MemberRole,
 } from '@genfeedai/contracts';
 import { brandGenerationRulesV1Schema } from '@genfeedai/contracts/api-types/contracts';
@@ -614,7 +615,7 @@ export default function BrandOsSettingsCard({
     exportState.revisionId !== exportState.publishedRevisionId;
 
   const review = (
-    <Card label={t('title')} bodyClassName="gap-4 p-4">
+    <Card label={t('title')} gap={CardGap.LG}>
       <div
         aria-busy={loading || busy}
         className="space-y-4"

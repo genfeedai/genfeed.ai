@@ -1,5 +1,6 @@
-import { SocialConversationType } from '@genfeedai/contracts';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import type {
+  ICredential,
   IPaginatedResponse,
   SocialActionProvenance,
   SocialAutomationState,
@@ -7,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { BadgeVariant } from '@ui/primitives/badge.variants';
+import type { DirectMessageReconnectAccount } from '@/features/messages/props/direct-message-reconnect-notice.props';
 import type {
   MessagesSyncFeedback,
   MessagesSyncJob,
@@ -326,4 +328,40 @@ export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
   }
 
   return items;
+}
+
+/**
+ * X accounts in the inbox scope whose stored grant has no DM scope, so the
+ * DM sync skips them. Hidden on the Comments surface, where DMs never show.
+ */
+export function getDirectMessageReconnectAccounts(
+  credentials: readonly Pick<
+    ICredential,
+    | 'brandId'
+    | 'directMessageCapability'
+    | 'externalHandle'
+    | 'externalName'
+    | 'id'
+    | 'label'
+    | 'platform'
+  >[],
+  surface: MessagesSurface,
+): DirectMessageReconnectAccount[] {
+  if (surface === SocialConversationType.COMMENT) {
+    return [];
+  }
+
+  return credentials
+    .filter(
+      (credential) =>
+        String(credential.platform).toLowerCase() === Platform.TWITTER &&
+        credential.directMessageCapability === 'reconnect',
+    )
+    .map((credential) => ({
+      brandId: credential.brandId ?? undefined,
+      credentialId: credential.id,
+      label: credential.externalHandle
+        ? `@${credential.externalHandle.replace(/^@/, '')}`
+        : credential.label || credential.externalName || 'X',
+    }));
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, Platform } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, Platform } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -104,7 +104,7 @@ export default function LivestreamChatBotPage({
           twitchLastPostedAt={twitchStatus?.lastPostedAt}
         />
 
-        <Card className="p-6">
+        <Card padding={CardPadding.XL}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">

@@ -12,7 +12,7 @@ export {
   AccordionTrigger,
 } from './accordion';
 export { Alert, AlertDescription, AlertTitle } from './alert';
-export { Avatar, AvatarFallback, AvatarImage } from './avatar';
+export { Avatar } from './avatar';
 export { Badge, type BadgeProps } from './badge';
 export { type BadgeStatus, getBadgeStatus } from './badge.status';
 export { type BadgeVariant, badgeVariants } from './badge.variants';
@@ -109,6 +109,7 @@ export {
   default as DropzoneField,
 } from './dropzone-field';
 export { EditableText, type EditableTextProps } from './editable-text';
+export { EmptyState } from './empty-state';
 export {
   default as Field,
   type FieldElementProps,
@@ -147,7 +148,8 @@ export {
 } from './popover';
 export { Pre, type PreProps } from './pre';
 export { preVariants } from './pre.variants';
-export { Progress } from './progress';
+export { Progress, type ProgressProps } from './progress';
+export type { ProgressTone } from './progress.variants';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { default as RangeField, type RangeFieldProps } from './range-field';
 export { ScrollArea, ScrollBar } from './scroll-area';
@@ -167,6 +169,7 @@ export {
 export { Separator } from './separator';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
+export { Stepper, type StepperProps, type StepperStep } from './stepper';
 export { Switch } from './switch';
 export {
   Table,

@@ -1,9 +1,11 @@
 'use client';
-
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -11,6 +13,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
@@ -281,9 +284,9 @@ function WorkflowTemplatesPageContent() {
               return (
                 <Card
                   key={tile.id}
-                  className={cn(isSelected && 'shadow-border-strong')}
-                  bodyClassName="gap-1"
+                  gap={CardGap.SM}
                   isPressed={isSelected}
+                  isSelected={isSelected}
                   label={tile.label}
                   onClick={() =>
                     dispatch({ type: 'SET_CATEGORY', category: tile.id })
@@ -312,8 +315,10 @@ function WorkflowTemplatesPageContent() {
         >
           {hasLoadFailure && !isAllLoading ? (
             <div role="alert">
-              <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
-                {renderLoadError(failedSources)}
+              <Card padding={CardPadding.SM}>
+                <p className="text-sm text-muted-foreground">
+                  {renderLoadError(failedSources)}
+                </p>
               </Card>
             </div>
           ) : null}
@@ -343,7 +348,7 @@ function WorkflowTemplatesPageContent() {
         </CollectionSection>
 
         {isCatalogEmpty ? (
-          <CardEmptyContent label={translate('emptyCatalog')} />
+          <EmptyState title={translate('emptyCatalog')} />
         ) : null}
       </div>
       <WorkflowTemplateDetailsPanel

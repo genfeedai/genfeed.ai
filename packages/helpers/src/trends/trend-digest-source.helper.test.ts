@@ -30,6 +30,40 @@ const sound: RawTrendSound = {
   viralityScore: 88,
 };
 
+describe('buildTrendDigestItems brand digest', () => {
+  it('breaks a tie on views when every score is saturated at 100', () => {
+    const items = buildTrendDigestItems(
+      {
+        hashtags: [],
+        sounds: [],
+        videos: [
+          { ...video, title: 'Fewer views', viewCount: 10, viralScore: 100 },
+          { ...video, title: 'More views', viewCount: 900, viralScore: 100 },
+        ],
+      },
+      { minViralScore: 70 },
+    );
+
+    expect(items.map((item) => item.topic)).toEqual([
+      'More views',
+      'Fewer views',
+    ]);
+  });
+
+  it('keeps the niche terms a video matched', () => {
+    const [item] = buildTrendDigestItems(
+      {
+        hashtags: [],
+        sounds: [],
+        videos: [{ ...video, matchedTerms: ['ai video', 'ugc'] }],
+      },
+      { minViralScore: 70 },
+    );
+
+    expect(item.matchedTerms).toEqual(['ai video', 'ugc']);
+  });
+});
+
 describe('buildTrendDigestItems', () => {
   it('maps the stored document fields the ingest actually writes', () => {
     const [item] = buildTrendDigestItems(

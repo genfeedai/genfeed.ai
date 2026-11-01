@@ -84,6 +84,39 @@ describe('PromptEditorView', () => {
     );
   });
 
+  it('shows the new placeholder when the prop changes after mount', async () => {
+    const { container, rerender } = render(
+      <PromptEditorView
+        ariaLabel="Brief"
+        placeholder="Describe the video"
+        value=""
+      />,
+    );
+    await screen.findByRole('textbox', { name: 'Brief' });
+    await waitFor(() =>
+      expect(
+        container
+          .querySelector('[data-placeholder]')
+          ?.getAttribute('data-placeholder'),
+      ).toBe('Describe the video'),
+    );
+
+    rerender(
+      <PromptEditorView
+        ariaLabel="Brief"
+        placeholder="Describe the idea"
+        value=""
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        container
+          .querySelector('[data-placeholder]')
+          ?.getAttribute('data-placeholder'),
+      ).toBe('Describe the idea'),
+    );
+  });
+
   it('serializes typed content to plain text', async () => {
     const onValueChange = vi.fn();
 

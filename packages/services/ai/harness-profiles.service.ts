@@ -58,4 +58,38 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
     }>('/promote-winners', params);
     return response.data;
   }
+
+  /**
+   * Short brand rules suggested by a correction. Saves nothing; the user
+   * accepts a rule with {@link saveRules}.
+   */
+  public async proposeRules(
+    params: {
+      brandId: string;
+      edited?: string;
+      original?: string;
+      reason?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    const response = await this.instance.post<{ proposals: string[] }>(
+      '/rule-proposals',
+      params,
+      { signal },
+    );
+    return response.data.proposals;
+  }
+
+  /** Saves rules the user accepted to the brand's content rules. */
+  public async saveRules(params: {
+    brandId: string;
+    rules: string[];
+  }): Promise<{ added: string[]; guardrails: string[]; profileId: string }> {
+    const response = await this.instance.post<{
+      added: string[];
+      guardrails: string[];
+      profileId: string;
+    }>('/rules', params);
+    return response.data;
+  }
 }

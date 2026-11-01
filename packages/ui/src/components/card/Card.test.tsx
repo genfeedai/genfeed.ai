@@ -1,4 +1,9 @@
-import { CardVariant } from '@genfeedai/contracts';
+import {
+  CardGap,
+  CardPadding,
+  CardTone,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Card from '@ui/card/Card';
@@ -203,4 +208,73 @@ it('never adds a skeleton to a static card', () => {
   render(<Card label="Quick actions">Create a post</Card>);
   expect(screen.getByText('Create a post')).toBeVisible();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+describe('Card looks', () => {
+  it.each([
+    [CardPadding.NONE, 'p-0'],
+    [CardPadding.SM, 'p-3'],
+    [CardPadding.MD, 'p-4'],
+    [CardPadding.LG, 'p-5'],
+    [CardPadding.XL, 'p-6'],
+  ])('pads the body for padding %s', (padding, expected) => {
+    render(<Card padding={padding}>Body text</Card>);
+    expect(screen.getByText('Body text')).toHaveClass(expected);
+  });
+
+  it.each([
+    [CardGap.NONE, 'gap-0'],
+    [CardGap.SM, 'gap-2'],
+    [CardGap.MD, 'gap-3'],
+    [CardGap.LG, 'gap-4'],
+  ])('spaces the body for gap %s', (gap, expected) => {
+    render(<Card gap={gap}>Body text</Card>);
+    expect(screen.getByText('Body text')).toHaveClass(expected);
+  });
+
+  it('pads and spaces the body by default like a medium card', () => {
+    render(<Card>Body text</Card>);
+    expect(screen.getByText('Body text')).toHaveClass('p-4', 'gap-3');
+  });
+
+  it('renders the inset variant as a borderless recessed panel', () => {
+    const { container } = render(
+      <Card variant={CardVariant.INSET}>Body text</Card>,
+    );
+    expect(container.firstChild).toHaveClass('bg-tertiary');
+    expect(container.firstChild).not.toHaveClass('shadow-border');
+    expect(container.firstChild).not.toHaveClass('border');
+  });
+
+  it('renders as the requested element and forwards aria attributes', () => {
+    render(
+      <Card as="article" aria-label="Summary" role="group">
+        Body text
+      </Card>,
+    );
+    expect(screen.getByRole('group', { name: 'Summary' }).tagName).toBe(
+      'ARTICLE',
+    );
+  });
+
+  it('outlines a selected card and rules a toned card', () => {
+    const { container, rerender } = render(<Card isSelected>Body text</Card>);
+    expect(container.firstChild).toHaveClass('ring-primary/50');
+    rerender(<Card tone={CardTone.WARNING}>Body text</Card>);
+    expect(container.firstChild).toHaveClass('border-l-warning/40');
+  });
+
+  it('gives a linked card hover feedback without making it a button', () => {
+    const { container } = render(<Card isInteractive>Body text</Card>);
+    expect(container.firstChild).toHaveClass('hover:shadow-border-strong');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('centres the body content on request', () => {
+    render(<Card isCentered>Body text</Card>);
+    expect(screen.getByText('Body text')).toHaveClass(
+      'items-center',
+      'text-center',
+    );
+  });
 });

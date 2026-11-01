@@ -3,6 +3,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { Progress } from '@ui/primitives/progress';
 import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -20,12 +21,12 @@ export function CreditsBalanceCard({
   const usagePercent = action.usagePercent ?? 0;
   const usageLabel = action.usageLabel ?? `${usagePercent}% used`;
 
-  const barColor =
+  const barTone =
     usagePercent >= 90
-      ? 'bg-destructive'
+      ? 'destructive'
       : usagePercent >= 70
-        ? 'bg-warning'
-        : 'bg-success';
+        ? 'warning'
+        : 'success';
 
   return (
     <div className="my-2 border border-border bg-background p-4">
@@ -42,14 +43,12 @@ export function CreditsBalanceCard({
         </p>
       )}
 
-      {/* Balance number */}
-      <div className="mb-3 text-center">
-        <span className="text-3xl font-bold text-foreground">
-          {balance.toLocaleString()}
-        </span>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          credits remaining
-        </p>
+      <div className="mb-3">
+        <MetricCard
+          appearance="inset"
+          label="credits remaining"
+          value={balance.toLocaleString()}
+        />
       </div>
 
       {/* Usage bar */}
@@ -57,11 +56,7 @@ export function CreditsBalanceCard({
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>{usageLabel}</span>
         </div>
-        <Progress
-          className="bg-muted"
-          indicatorClassName={barColor}
-          value={Math.min(usagePercent, 100)}
-        />
+        <Progress tone={barTone} value={Math.min(usagePercent, 100)} />
       </div>
 
       {/* Buy Credits CTA */}

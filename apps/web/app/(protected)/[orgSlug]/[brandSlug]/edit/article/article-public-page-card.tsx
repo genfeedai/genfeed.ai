@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ArticlesService } from '@services/content/articles.service';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -59,7 +59,7 @@ export default function ArticlePublicPageCard({
 
   if (!isHostedOnWebsite || !publicUrl) {
     return (
-      <Card bodyClassName="space-y-2">
+      <Card gap={CardGap.SM}>
         <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
           {translate('title')}
         </h3>
@@ -69,7 +69,7 @@ export default function ArticlePublicPageCard({
   }
 
   return (
-    <Card bodyClassName="space-y-3">
+    <Card>
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground/60 uppercase tracking-wider">
           {translate('title')}

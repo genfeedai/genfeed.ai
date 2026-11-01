@@ -229,6 +229,56 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('mobile drawer is a dialog: focus stays inside, Escape and the scrim close it, focus returns to the toggle', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 812, width: 375 });
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const toggle = authenticatedPage.getByRole('button', {
+      name: 'Open navigation menu',
+    });
+    const drawer = authenticatedPage.getByRole('dialog', {
+      name: 'Navigation',
+    });
+
+    await toggle.click();
+    await expect(drawer).toBeVisible();
+
+    // Tabbing more times than the drawer has controls never leaves it.
+    for (let press = 0; press < 12; press += 1) {
+      await authenticatedPage.keyboard.press('Tab');
+      await expect
+        .poll(() =>
+          drawer.evaluate((element) =>
+            element.contains(document.activeElement),
+          ),
+        )
+        .toBe(true);
+    }
+
+    // Focus can rest on a rail link whose tooltip opened on focus. Escape
+    // dismisses the topmost layer first, so the tooltip may take one press and
+    // the drawer the next. Press until the drawer is gone.
+    await expect(async () => {
+      await authenticatedPage.keyboard.press('Escape');
+      await expect(drawer).toBeHidden({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
+    await expect(toggle).toBeFocused();
+
+    // A tap on the scrim, right of the 85vw panel, dismisses it too.
+    await toggle.click();
+    await expect(drawer).toBeVisible();
+    await authenticatedPage.mouse.click(372, 500);
+    await expect(drawer).toBeHidden();
+    await expect(toggle).toBeFocused();
+
+    await assertHealthy(authenticatedPage);
+  });
+
   for (const width of [320, 360, 1280]) {
     test(`long organization and brand names keep topbar controls reachable at ${width}px`, async ({
       authenticatedPage,

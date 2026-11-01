@@ -8,7 +8,6 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientCategory,
-  IngredientFormat,
   ModalEnum,
   Platform,
   PostFormat,
@@ -105,13 +104,6 @@ type ModalVisibilityProps = {
 export interface ModalBotProps {
   bot?: IBot | null;
   onConfirm: () => void;
-}
-
-export interface ModalVideoProps extends ModalSelectProps<IVideo> {
-  availableVideos: IVideo[];
-  isLoadingVideos: boolean;
-  selectedFrameIndex: number | null;
-  format?: IngredientFormat;
 }
 
 export interface ModalGalleryProps {

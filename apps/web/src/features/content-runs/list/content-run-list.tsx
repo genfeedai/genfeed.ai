@@ -1,6 +1,9 @@
 'use client';
-
-import { ButtonVariant, ContentRunStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  ContentRunStatus,
+} from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -14,13 +17,14 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -179,7 +183,7 @@ export default function ContentRunListPage() {
         <div className="space-y-4">
           {data.length ? (
             <>
-              <Card bodyClassName="p-0">
+              <Card padding={CardPadding.NONE}>
                 <div className="divide-y divide-border">
                   {data.map((run) => (
                     <ContentRunRow
@@ -195,9 +199,10 @@ export default function ContentRunListPage() {
               <AutoPagination showTotal totalLabel="runs" />
             </>
           ) : (
-            <CardEmpty
+            <EmptyState
+              surface="card"
               icon={Sparkles}
-              label={
+              title={
                 search
                   ? translate('emptySearchTitle')
                   : status === ALL_STATUSES

@@ -289,7 +289,7 @@ describe('ReleasePostsList selection from the release URL param', () => {
     );
   });
 
-  it('offers calendar and approvals as routes beside the display modes', async () => {
+  it('offers only the Posts display modes, never the sidebar pages', async () => {
     searchParams = new URLSearchParams('');
     render(
       <ReleasePostsList
@@ -303,11 +303,10 @@ describe('ReleasePostsList selection from the release URL param', () => {
     expect(viewMenuTrigger('list')).toBeInTheDocument();
     await userEvent.click(viewMenuTrigger());
     expect(
-      await screen.findByRole('menuitemradio', { name: 'calendar' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', { name: 'approvals' }),
-    ).toBeInTheDocument();
+      (await screen.findAllByRole('menuitemradio')).map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(['list', 'board', 'grid']);
   });
 
   it.each([false, true])(
