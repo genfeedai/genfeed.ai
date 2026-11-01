@@ -61,7 +61,7 @@ describe('AgentOutputShell', () => {
     const agentPane = screen.getByTestId('agent-output-agent-pane');
     expect(within(agentPane).getByText('Shell conversation')).toBeVisible();
     expect(screen.getByText('Board')).toBeVisible();
-    expect(screen.queryAllByRole('tab')).toHaveLength(2);
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
     expect(
       within(screen.getByTestId('agent-output-output-pane')).queryByRole('tab'),
     ).toBeNull();
