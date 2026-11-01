@@ -240,7 +240,7 @@ function ReplyCampaignsContent({
         </Alert>
       ) : null}
 
-      <Card label="New reply drip" bodyClassName="gap-3 p-4">
+      <Card label="New reply drip">
         <Input
           label="Name"
           onChange={(event) => {
@@ -376,7 +376,7 @@ function ReplyCampaignsContent({
         </div>
       </Card>
 
-      <Card label="Reply drips" bodyClassName="gap-3 p-4">
+      <Card label="Reply drips">
         {campaigns.length === 0 && !isLoading ? (
           <p className="text-xs text-gray-800">
             No reply drips yet. Sync messages so open conversations are

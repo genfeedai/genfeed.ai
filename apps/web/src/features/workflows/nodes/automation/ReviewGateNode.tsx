@@ -10,6 +10,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
@@ -20,7 +21,6 @@ import {
   SelectableButton,
 } from '@/features/workflows/components/ui/button';
 import {
-  NodeCard,
   NodeDescription,
   NodeHeader,
 } from '@/features/workflows/components/ui/card';
@@ -237,7 +237,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
     isPending && hasReviewInput && Boolean(data.approvalId);
 
   return (
-    <NodeCard minWidth="300px">
+    <Card className="min-w-[300px]">
       <NodeHeader
         icon={<ShieldCheckIcon className="size-4" />}
         title="Review Gate"
@@ -385,7 +385,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
           {data.error}
         </Alert>
       )}
-    </NodeCard>
+    </Card>
   );
 }
 

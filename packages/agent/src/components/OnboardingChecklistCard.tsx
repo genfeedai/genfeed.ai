@@ -77,7 +77,7 @@ export function OnboardingChecklistCard({
           </span>
           <span>{progressPercent}%</span>
         </div>
-        <Progress className="bg-muted" value={progressPercent} />
+        <Progress value={progressPercent} />
       </div>
 
       {/* Checklist items */}

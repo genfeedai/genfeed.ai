@@ -71,11 +71,6 @@ vi.mock('@ui/primitives/input', () => ({
   Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 describe('AgentAuthClaimPage', () => {
   const originalFetch = globalThis.fetch;
 

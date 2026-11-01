@@ -157,10 +157,7 @@ export default function TrendingTopicsSection({
       {examples.length ? (
         <CollectionGrid maxColumns={3}>
           {examples.map(({ source, topic }) => (
-            <Card
-              key={`${source.platform}:${source.sourceUrl}`}
-              bodyClassName="space-y-3 p-4"
-            >
+            <Card key={`${source.platform}:${source.sourceUrl}`}>
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <PlatformBadge
                   platform={source.platform}

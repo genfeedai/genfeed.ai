@@ -1,6 +1,8 @@
 'use client';
 
+import { CardGap } from '@genfeedai/contracts';
 import type { AgentProfilePlatformOverrideProps } from '@props/pages/brand-detail.props';
+import Card from '@ui/card/Card';
 import AgentProfilePlatformOverrideFields from './AgentProfilePlatformOverrideFields';
 import AgentProfilePlatformOverrideWideFields from './AgentProfilePlatformOverrideWideFields';
 
@@ -15,7 +17,7 @@ export default function AgentProfilePlatformOverride({
   showHeader = true,
 }: AgentProfilePlatformOverrideProps) {
   return (
-    <div className="space-y-4 rounded-lg bg-card p-4 shadow-border">
+    <Card gap={CardGap.LG}>
       {showHeader ? (
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-sm font-medium">{label}</h4>
@@ -41,6 +43,6 @@ export default function AgentProfilePlatformOverride({
           platformValue={platformValue}
         />
       </div>
-    </div>
+    </Card>
   );
 }

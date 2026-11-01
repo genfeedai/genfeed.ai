@@ -140,7 +140,7 @@ export function AgentChatInput({
   knowledgeSection,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
-  const isDock = density === 'dock';
+  const _isDock = density === 'dock';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
   const {

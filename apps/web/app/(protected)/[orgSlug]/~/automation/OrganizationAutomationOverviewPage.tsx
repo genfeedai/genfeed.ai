@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import {
   APP_DISPLAY_LABELS,
   APP_ROUTES,
@@ -158,7 +158,8 @@ function OrganizationAutomationBrandCard({
 
   return (
     <Card
-      bodyClassName="flex h-full flex-col justify-between gap-4"
+      gap={CardGap.LG}
+      bodyClassName="flex h-full flex-col justify-between"
       className="h-full"
       data-testid="organization-automation-brand-card"
     >

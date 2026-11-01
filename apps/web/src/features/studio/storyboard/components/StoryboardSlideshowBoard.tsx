@@ -1,7 +1,12 @@
 'use client';
 
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { STORYBOARD_SLIDESHOW_LIMITS } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -76,7 +81,7 @@ export default function StoryboardSlideshowBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card variant={CardVariant.BORDERED} bodyClassName="gap-3 p-4">
+      <Card variant={CardVariant.BORDERED}>
         <h2 className="text-sm font-semibold">{translate('title')}</h2>
         <p className="text-sm text-muted-foreground">
           {translate('swipeHint')}
@@ -112,7 +117,7 @@ export default function StoryboardSlideshowBoard({
           const isSlideDrawing = slide.stillFreshness === 'generating';
           return (
             <li key={slide.id}>
-              <Card variant={CardVariant.BORDERED} bodyClassName="gap-3 p-3">
+              <Card variant={CardVariant.BORDERED} padding={CardPadding.SM}>
                 <div className="flex items-center gap-2">
                   <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
                     {String(slide.ordinal).padStart(2, '0')}
@@ -133,12 +138,12 @@ export default function StoryboardSlideshowBoard({
                   />
                 </div>
                 {isSlideDrawing ? (
-                  <div
+                  <Card
                     aria-busy="true"
-                    className={cn(
-                      'flex items-center justify-center rounded-md border border-border bg-muted p-2',
-                      SLIDE_ASPECT_CLASSES[format],
-                    )}
+                    variant={CardVariant.INSET}
+                    padding={CardPadding.SM}
+                    className={SLIDE_ASPECT_CLASSES[format]}
+                    bodyClassName="items-center justify-center"
                   >
                     <GenerationStatus
                       status="generating"
@@ -146,7 +151,7 @@ export default function StoryboardSlideshowBoard({
                       compact
                       isStacked
                     />
-                  </div>
+                  </Card>
                 ) : url ? (
                   <AgentMediaArtifactPreview
                     displayMode="featured"
@@ -259,7 +264,7 @@ export default function StoryboardSlideshowBoard({
         tooltip={isFull ? translate('maxSlides') : undefined}
         onClick={onAddSlide}
       />
-      <Card variant={CardVariant.BORDERED} bodyClassName="gap-3 p-4">
+      <Card variant={CardVariant.BORDERED}>
         <h2 className="text-sm font-semibold">{translate('postTitle')}</h2>
         <p className="text-sm text-muted-foreground">
           {isApproved ? translate('postHint') : translate('postNeedsApproval')}

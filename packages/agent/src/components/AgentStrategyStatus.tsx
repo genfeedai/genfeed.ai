@@ -8,7 +8,8 @@ import {
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useCallback, useRef, useState } from 'react';
+import { Progress } from '@ui/primitives/progress';
+import { type ReactElement, useCallback, useId, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
   apiService: AgentStrategyApiService;
@@ -62,6 +63,8 @@ export function AgentStrategyStatus({
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
   const abortRef = useRef<AbortController | null>(null);
+  const dailyLabelId = useId();
+  const weeklyLabelId = useId();
   const [isToggling, setIsToggling] = useState(false);
 
   const handleToggleEnabled = useCallback(async () => {
@@ -190,39 +193,39 @@ export function AgentStrategyStatus({
       {/* Daily budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-2xs text-muted-foreground">Daily credits</p>
+          <p className="text-2xs text-muted-foreground" id={dailyLabelId}>
+            Daily credits
+          </p>
           <p className="text-2xs text-muted-foreground">
             {formatCreditCost(strategy.creditsUsedToday)} /{' '}
             {formatCreditBalanceExact(strategy.dailyCreditBudget)}
           </p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className={`h-1.5 rounded-full transition-all ${
-              dailyPercent >= 90 ? 'bg-destructive' : 'bg-primary'
-            }`}
-            style={{ width: `${dailyPercent}%` }}
-          />
-        </div>
+        <Progress
+          aria-labelledby={dailyLabelId}
+          size="sm"
+          tone={dailyPercent >= 90 ? 'destructive' : 'primary'}
+          value={dailyPercent}
+        />
       </div>
 
       {/* Weekly budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-2xs text-muted-foreground">Weekly credits</p>
+          <p className="text-2xs text-muted-foreground" id={weeklyLabelId}>
+            Weekly credits
+          </p>
           <p className="text-2xs text-muted-foreground">
             {formatCreditCost(strategy.creditsUsedThisWeek)} /{' '}
             {formatCreditBalanceExact(strategy.weeklyCreditBudget)}
           </p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className={`h-1.5 rounded-full transition-all ${
-              weeklyPercent >= 90 ? 'bg-destructive' : 'bg-primary'
-            }`}
-            style={{ width: `${weeklyPercent}%` }}
-          />
-        </div>
+        <Progress
+          aria-labelledby={weeklyLabelId}
+          size="sm"
+          tone={weeklyPercent >= 90 ? 'destructive' : 'primary'}
+          value={weeklyPercent}
+        />
       </div>
 
       {/* Consecutive failures warning */}

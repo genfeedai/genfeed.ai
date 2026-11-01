@@ -1,4 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
   ReplyVariantTone,
@@ -7,6 +12,7 @@ import type {
   ActionRecovery,
   ActionRouting,
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
+import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -392,9 +398,11 @@ export function ReplyPage({
 
         <ul className="flex flex-col gap-2">
           {result.variants.map((variant, index) => (
-            <li
+            <Card
+              variant={CardVariant.BORDERED}
+              padding={CardPadding.SM}
+              as="li"
               key={variant}
-              className="rounded-xl border border-border bg-card p-3"
             >
               <p className="mb-2 whitespace-pre-wrap text-sm text-foreground">
                 {variant}
@@ -435,7 +443,7 @@ export function ReplyPage({
                   {feedback.message}
                 </p>
               ) : null}
-            </li>
+            </Card>
           ))}
         </ul>
 

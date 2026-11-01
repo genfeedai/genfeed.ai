@@ -1,7 +1,9 @@
 'use client';
 
+import { CardPadding } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import Card from '@ui/card/Card';
 import { Label } from '@ui/primitives/label';
 import {
   Select,
@@ -66,8 +68,9 @@ export default function BrandIdentityVoiceField({
         </SelectContent>
       </Select>
       {previewVoice ? (
-        <div
-          className="mt-3 rounded-md bg-card p-3 shadow-border"
+        <Card
+          padding={CardPadding.SM}
+          className="mt-3"
           data-testid="brand-default-voice-preview"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -89,7 +92,7 @@ export default function BrandIdentityVoiceField({
               label={getVoiceName(previewVoice)}
             />
           </div>
-        </div>
+        </Card>
       ) : null}
     </div>
   );

@@ -94,7 +94,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
   };
   const contentType = post.contentType === 'reel' ? 'video' : post.contentType;
   return (
-    <Card bodyClassName="space-y-3 p-4">
+    <Card>
       <div className="flex items-center gap-2">
         <Avatar className="size-8">
           <AvatarImage src={post.authorAvatarUrl ?? undefined} />

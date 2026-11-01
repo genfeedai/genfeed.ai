@@ -1,7 +1,13 @@
 'use client';
 
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
@@ -95,8 +101,9 @@ export default function StoryboardShotCard({
     >
       <Card
         variant={CardVariant.BORDERED}
-        bodyClassName="gap-0 p-0"
-        className={cn(isSelected && 'border-border-strong')}
+        padding={CardPadding.NONE}
+        gap={CardGap.NONE}
+        isSelected={isSelected}
       >
         <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
           <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
@@ -151,12 +158,12 @@ export default function StoryboardShotCard({
         <div className="grid gap-4 p-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
           <div className="flex min-w-0 flex-col gap-2">
             {isStillGenerating ? (
-              <div
+              <Card
                 aria-busy="true"
-                className={cn(
-                  'flex items-center justify-center rounded-md border border-border bg-muted p-2',
-                  STILL_ASPECT_CLASSES[format],
-                )}
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
+                className={STILL_ASPECT_CLASSES[format]}
+                bodyClassName="items-center justify-center"
               >
                 <GenerationStatus
                   status="generating"
@@ -164,7 +171,7 @@ export default function StoryboardShotCard({
                   compact
                   isStacked
                 />
-              </div>
+              </Card>
             ) : still ? (
               <AgentMediaArtifactPreview
                 displayMode="featured"

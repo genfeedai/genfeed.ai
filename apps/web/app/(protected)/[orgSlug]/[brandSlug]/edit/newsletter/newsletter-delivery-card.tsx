@@ -1,5 +1,10 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   isNewsletterDeliveryPlatform,
@@ -14,6 +19,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -151,7 +157,7 @@ export default function NewsletterDeliveryCard({
   ]);
 
   return (
-    <div className="space-y-4 rounded-lg bg-tertiary p-4">
+    <Card variant={CardVariant.INSET} gap={CardGap.LG}>
       <div className="space-y-1">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
           {translate('title')}
@@ -291,6 +297,6 @@ export default function NewsletterDeliveryCard({
         value={newsletter.externalUrl}
         onSave={onSaveExternalUrl}
       />
-    </div>
+    </Card>
   );
 }

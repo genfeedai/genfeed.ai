@@ -1,3 +1,4 @@
+import { CardTone, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -16,7 +17,6 @@ export default function SettingsProgressChecklistCard({
     <Card
       id={PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}
       label="Setup checklist"
-      bodyClassName="gap-3 p-4"
       headerAction={
         <Badge variant="outline">
           {completedCount}/{totalCount} complete
@@ -25,21 +25,16 @@ export default function SettingsProgressChecklistCard({
     >
       <Progress
         aria-label={`${completedCount} of ${totalCount} complete`}
-        className="bg-muted"
         value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0}
       />
 
       <div className="space-y-3">
         {steps.map((step) => (
-          // ui-guard-allow:notice-tone-box -- checklist row whose done state is tinted, not a notice
-          <div
+          <Card
             key={step.key}
-            className={cn(
-              'flex items-center justify-between gap-3 rounded-2xl border px-4 py-4',
-              step.isCompleted
-                ? 'border-success/20 bg-success/5'
-                : 'border-border bg-card',
-            )}
+            variant={CardVariant.INSET}
+            tone={step.isCompleted ? CardTone.SUCCESS : undefined}
+            bodyClassName="flex-row items-center justify-between"
           >
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground">
@@ -62,7 +57,7 @@ export default function SettingsProgressChecklistCard({
               {step.isCompleted ? 'Review' : 'Complete'}
               <ArrowUpRight className="size-3.5" />
             </Link>
-          </div>
+          </Card>
         ))}
       </div>
     </Card>

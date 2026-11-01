@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, ContentRunStatus } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  ContentRunStatus,
+} from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -179,7 +183,7 @@ export default function ContentRunListPage() {
         <div className="space-y-4">
           {data.length ? (
             <>
-              <Card bodyClassName="p-0">
+              <Card padding={CardPadding.NONE}>
                 <div className="divide-y divide-border">
                   {data.map((run) => (
                     <ContentRunRow

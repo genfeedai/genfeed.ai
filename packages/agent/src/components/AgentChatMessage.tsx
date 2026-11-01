@@ -19,7 +19,12 @@ import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
 } from '@genfeedai/agent/utils/should-render-completion-summary';
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';
@@ -434,14 +439,16 @@ function UserPromptCard({
   }
 
   return (
-    // Accent is the nested-fill step above the card plane: on the dark
-    // canvas a bg-card prompt is 1.09:1 and disappears into the page.
+    // Inset is the recessed step above the card plane: on the dark canvas a
+    // bg-card prompt is 1.09:1 and disappears into the page.
     <Card
-      bodyClassName="gap-0 px-3 py-2.5 text-sm leading-6 text-foreground"
-      className="w-full bg-accent"
+      variant={CardVariant.INSET}
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
+      className="w-full"
       data-testid="agent-user-prompt"
     >
-      {children}
+      <div className="text-sm leading-6 text-foreground">{children}</div>
     </Card>
   );
 }

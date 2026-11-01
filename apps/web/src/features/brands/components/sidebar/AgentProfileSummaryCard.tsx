@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 
@@ -16,12 +16,12 @@ type AgentProfileSummaryCardProps = {
 
 function SummaryItem({ label, value }: SummaryItemData) {
   return (
-    <div className="rounded-md bg-card/50 px-3 py-2.5">
+    <Card padding={CardPadding.SM}>
       <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-1 text-sm text-foreground/90">{value}</p>
-    </div>
+    </Card>
   );
 }
 

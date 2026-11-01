@@ -7,7 +7,13 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -65,9 +71,10 @@ function GenericOAuthConnectCard({
 
   return (
     <Card
-      variant={CardVariant.BORDERED}
-      className="mt-2 bg-background"
-      bodyClassName="gap-0 p-3"
+      variant={CardVariant.INSET}
+      className="mt-2"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
     >
       <p className="mb-2 text-sm font-medium text-foreground">
         {action.title || 'Choose an integration'}
@@ -140,9 +147,10 @@ export function OAuthConnectCard({
 
   return (
     <Card
-      variant={CardVariant.BORDERED}
-      className="mt-2 bg-background"
-      bodyClassName="gap-0 p-3"
+      variant={CardVariant.INSET}
+      className="mt-2"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
     >
       <p className="text-sm font-medium text-foreground">{title}</p>
       {action.description ? (

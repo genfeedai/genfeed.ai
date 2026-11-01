@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import type {
   SeoCheck,
   SeoDimension,
@@ -404,8 +404,8 @@ export default function SeoScorecard({
     <Card
       label={translate('title')}
       headerAction={headerAction}
-      className={cn('bg-card', className)}
-      bodyClassName="space-y-4"
+      className={className}
+      gap={CardGap.LG}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">

@@ -175,6 +175,20 @@ jobs:
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
         run: vercel build --prod --token="${VERCEL_TOKEN}"
 
+      # /serwist/[path] must be prerendered. When it is not, Next leaves it
+      # dynamic and every request compiles the worker inside the Vercel
+      # function, which returns 500 in production (v0.2.20, #8829).
+      - name: Require prerendered service worker
+        if: ${{ matrix.label == 'app' && env.VERCEL_PROJECT_ID != '' }}
+        run: |
+          set -euo pipefail
+          for file in sw.js.body sw.js.meta sw.js.map.body sw.js.map.meta; do
+            if [ ! -s "apps/web/.next/server/app/serwist/${file}" ]; then
+              echo "::error::apps/web/.next/server/app/serwist/${file} is missing. /serwist/[path] was not prerendered, so the service worker would return 500."
+              exit 1
+            fi
+          done
+
       - name: Deploy ${{ matrix.label }}
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
         id: deploy
@@ -189,3 +203,21 @@ jobs:
           LABEL: ${{ matrix.label }}
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         run: echo "${LABEL} -> ${DEPLOY_URL}"
+
+      - name: Verify the service worker is served
+        if: ${{ matrix.label == 'app' && env.VERCEL_PROJECT_ID != '' }}
+        run: |
+          set -euo pipefail
+          url="https://app.${DOMAIN}/serwist/sw.js"
+          for attempt in 1 2 3 4 5 6; do
+            headers="$(curl -sS -o /dev/null -D - --max-time 20 "${url}" || true)"
+            status="$(printf '%s' "${headers}" | awk 'toupper($1) ~ /^HTTP/ {code=$2} END {print code}')"
+            if [ "${status}" = "200" ] && printf '%s' "${headers}" | grep -qi '^content-type: *\(application\|text\)/javascript'; then
+              echo "${url} -> 200 JavaScript"
+              exit 0
+            fi
+            echo "attempt ${attempt}: ${url} -> ${status:-no response}"
+            sleep 10
+          done
+          echo "::error::${url} did not return 200 JavaScript after deploy."
+          exit 1

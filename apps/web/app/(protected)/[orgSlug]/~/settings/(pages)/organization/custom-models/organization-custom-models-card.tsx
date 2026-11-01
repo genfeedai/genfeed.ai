@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  MemberRole,
+} from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
@@ -56,7 +61,7 @@ export default function OrganizationCustomModelsCard() {
 
   if (!isFleetConnected) {
     return (
-      <Card label={translate('cta.title')} bodyClassName="gap-4 p-4">
+      <Card label={translate('cta.title')} gap={CardGap.LG}>
         <ul className="space-y-2">
           {CTA_POINT_KEYS.map((key) => (
             <li
@@ -84,7 +89,7 @@ export default function OrganizationCustomModelsCard() {
   }
 
   return (
-    <Card label={translate('title')} bodyClassName="gap-3 p-4">
+    <Card label={translate('title')}>
       <Switch
         label={translate('nsfw.label')}
         description={translate('nsfw.description')}

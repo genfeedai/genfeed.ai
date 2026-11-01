@@ -57,7 +57,7 @@ export function PlatformBreakdownChart({
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
-      <Card className={className} bodyClassName="gap-3 p-4">
+      <Card className={className}>
         <div className="relative" style={{ height }}>
           {isLoading && <LoadingOverlay tone="veil" />}
 

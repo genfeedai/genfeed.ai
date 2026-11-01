@@ -30,7 +30,7 @@ export default function ProductFinalCTA({
 
   return (
     <section className="max-w-4xl mx-auto pb-20">
-      <Card bodyClassName="text-center">
+      <Card isCentered>
         <Heading size="2xl" className="mb-4">
           Ready to Get Started with {name}?
         </Heading>

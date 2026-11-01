@@ -184,7 +184,7 @@ function buildAgentPolicyPayload(
 /** Loading placeholder for a card whose fields are not yet safe to render or edit. */
 function SettingsCardSkeleton() {
   return (
-    <Card bodyClassName="gap-3 p-4">
+    <Card>
       <div className="space-y-3">
         <Skeleton className="h-9 w-full" />
         <Skeleton className="h-9 w-full" />

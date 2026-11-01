@@ -3,6 +3,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
+  CardVariant,
   FONT_FAMILY_METADATA,
   FontFamily,
   resolveFontFamily,
@@ -647,20 +649,26 @@ export default function BrandDetailManualKitCard({
           />
         </div>
 
-        <div className="rounded-md bg-card p-3 text-sm shadow-border">
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium">Attached assets</span>
-            <span className="text-muted-foreground">{attachedAssetCount}</span>
+        <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+          <div className="text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">Attached assets</span>
+              <span className="text-muted-foreground">
+                {attachedAssetCount}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
+              {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
+              {(brand.references ?? []).length > 0 ? (
+                <span>{brand.references?.length} references</span>
+              ) : null}
+              {attachedAssetCount === 0 ? (
+                <span>No assets attached</span>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
-            {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
-            {(brand.references ?? []).length > 0 ? (
-              <span>{brand.references?.length} references</span>
-            ) : null}
-            {attachedAssetCount === 0 ? <span>No assets attached</span> : null}
-          </div>
-        </div>
+        </Card>
 
         {error ? <Alert variant="destructive">{error}</Alert> : null}
 
@@ -677,8 +685,9 @@ export default function BrandDetailManualKitCard({
         />
 
         {draft ? (
-          <div
-            className="space-y-3 rounded-md bg-card p-3 shadow-border"
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
             data-testid="manual-kit-draft-review"
           >
             <div className="flex items-center justify-between gap-3">
@@ -756,7 +765,7 @@ export default function BrandDetailManualKitCard({
                 void handleApplyDraft();
               }}
             />
-          </div>
+          </Card>
         ) : null}
       </div>
     </Card>

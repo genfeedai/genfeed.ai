@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -18,6 +23,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
 import {
@@ -192,22 +198,14 @@ export default function DiscoveryTrendTurnover() {
             ]}
           />
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('flow.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('flow.title')}>
             <Text size="sm" color="subtle-60">
               {translate('flow.description')}
             </Text>
             <TrendFlowChart data={data?.timeline ?? []} isLoading={isLoading} />
           </Card>
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('breakdown.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('breakdown.title')}>
             <Table<TrendTurnoverPlatformStats>
               items={data?.byPlatform ?? []}
               isLoading={isLoading}
@@ -271,11 +269,7 @@ export default function DiscoveryTrendTurnover() {
             />
           </Card>
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('volatility.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('volatility.title')}>
             <Text size="sm" color="subtle-60">
               {translate('volatility.description')}
             </Text>
@@ -292,12 +286,11 @@ export default function DiscoveryTrendTurnover() {
                         {item.turnoverRate}%
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-tertiary overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-[width] duration-500"
-                        style={{ width: `${item.turnoverRate}%` }}
-                      />
-                    </div>
+                    <Progress
+                      aria-label={`${item.platform} ${item.turnoverRate}%`}
+                      size="sm"
+                      value={item.turnoverRate}
+                    />
                   </div>
                 );
               })}

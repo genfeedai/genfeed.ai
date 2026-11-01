@@ -1,4 +1,5 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
@@ -51,16 +52,26 @@ export function AgentChatSuggestionsBar({
         {normalized.slice(0, 4).map((action) => (
           <Card
             key={action.id}
-            bodyClassName="h-full p-3 [&>div]:flex-col [&>div]:gap-2"
-            className="min-h-28 min-w-0 normal-case"
-            description={action.description}
-            icon={action.icon ?? <BotMessageSquare className="size-4" />}
-            iconWrapperClassName="text-muted-foreground"
+            aria-label={action.label}
+            padding={CardPadding.SM}
+            gap={CardGap.SM}
+            bodyClassName="h-full"
+            className="min-h-28 min-w-0"
             isDisabled={isReadOnly}
-            isLabelWrapped
-            label={action.label}
             onClick={() => onSend(action.prompt)}
-          />
+          >
+            <span className="text-muted-foreground">
+              {action.icon ?? <BotMessageSquare className="size-4" />}
+            </span>
+            <span className="break-words text-sm font-semibold tracking-[-0.01em]">
+              {action.label}
+            </span>
+            {action.description ? (
+              <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                {action.description}
+              </span>
+            ) : null}
+          </Card>
         ))}
       </div>
     );

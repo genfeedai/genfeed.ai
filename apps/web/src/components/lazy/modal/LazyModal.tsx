@@ -41,7 +41,6 @@ import type {
   ModalTrainingProps,
   ModalTrimProps,
   ModalUploadProps,
-  ModalVideoProps,
 } from '@genfeedai/props/modals/modal.props';
 import type { ModalPostRepurposeProps } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import dynamic from 'next/dynamic';
@@ -85,11 +84,6 @@ export const LazyModalImageToVideo = dynamic(
     import('@/components/modals/ingredients/image-to-video/ModalImageToVideo'),
   { ssr: false },
 ) as ComponentType<ModalImageToVideoProps>;
-
-export const LazyModalVideo = dynamic(
-  () => import('@/components/modals/ingredients/video/ModalVideo'),
-  { ssr: false },
-) as ComponentType<ModalVideoProps>;
 
 // Element modals
 export const LazyModalBlacklist = dynamic(

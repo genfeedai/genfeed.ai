@@ -5223,6 +5223,13 @@ function crunReportContract(mediaKind) {
     titles: entry.passedTitles,
   };
 }
+test('committed Crun flow specs match the pinned hashes before allocation', async () => {
+  const repo = await realpath(new URL('../..', import.meta.url));
+  await verifyFrozenSources(repo, [
+    CRUN_SOURCE_CONTRACT.image,
+    CRUN_SOURCE_CONTRACT.video,
+  ]);
+});
 test('Crun source qualification freezes the exact independent image18/video23 inventories', () => {
   assert.deepEqual(CRUN_SOURCE_CONTRACT, FROZEN_CRUN);
   assert.equal(Object.isFrozen(CRUN_SOURCE_CONTRACT), true);

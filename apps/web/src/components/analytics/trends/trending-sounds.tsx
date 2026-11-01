@@ -66,11 +66,7 @@ export function TrendingSounds({
         <>
           <CollectionGrid data-testid="trending-sounds-grid" maxColumns={3}>
             {sortedSounds.slice(0, 9).map((sound, index) => (
-              <Card
-                key={sound.id}
-                variant={CardVariant.DEFAULT}
-                bodyClassName="p-4"
-              >
+              <Card key={sound.id} variant={CardVariant.DEFAULT}>
                 <div className="relative">
                   {onSoundClick && (
                     <Button

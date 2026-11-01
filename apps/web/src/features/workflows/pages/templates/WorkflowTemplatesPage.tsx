@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
@@ -281,9 +285,9 @@ function WorkflowTemplatesPageContent() {
               return (
                 <Card
                   key={tile.id}
-                  className={cn(isSelected && 'shadow-border-strong')}
-                  bodyClassName="gap-1"
+                  gap={CardGap.SM}
                   isPressed={isSelected}
+                  isSelected={isSelected}
                   label={tile.label}
                   onClick={() =>
                     dispatch({ type: 'SET_CATEGORY', category: tile.id })
@@ -312,8 +316,10 @@ function WorkflowTemplatesPageContent() {
         >
           {hasLoadFailure && !isAllLoading ? (
             <div role="alert">
-              <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
-                {renderLoadError(failedSources)}
+              <Card padding={CardPadding.SM}>
+                <p className="text-sm text-muted-foreground">
+                  {renderLoadError(failedSources)}
+                </p>
               </Card>
             </div>
           ) : null}

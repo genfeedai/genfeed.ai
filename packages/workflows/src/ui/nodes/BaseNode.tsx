@@ -15,6 +15,7 @@ import {
   AlertDescription,
 } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Progress } from '@genfeedai/ui/primitives/progress';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import {
   Handle,
@@ -423,12 +424,11 @@ function BaseNodeContent({
         {nodeData.status === 'processing' &&
           nodeData.progress !== undefined && (
             <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${nodeData.progress}%` }}
-                />
-              </div>
+              <Progress
+                aria-label={`${nodeData.label ?? 'Node'} progress`}
+                size="sm"
+                value={nodeData.progress}
+              />
               <span className="mt-1 text-xs text-muted-foreground">
                 {nodeData.progress}%
               </span>

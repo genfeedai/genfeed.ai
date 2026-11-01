@@ -147,7 +147,8 @@ export {
 } from './popover';
 export { Pre, type PreProps } from './pre';
 export { preVariants } from './pre.variants';
-export { Progress } from './progress';
+export { Progress, type ProgressProps } from './progress';
+export type { ProgressTone } from './progress.variants';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { default as RangeField, type RangeFieldProps } from './range-field';
 export { ScrollArea, ScrollBar } from './scroll-area';
@@ -167,6 +168,7 @@ export {
 export { Separator } from './separator';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
+export { Stepper, type StepperProps, type StepperStep } from './stepper';
 export { Switch } from './switch';
 export {
   Table,

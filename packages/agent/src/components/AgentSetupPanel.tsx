@@ -2,7 +2,13 @@
 
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
@@ -50,7 +56,12 @@ function ConnectedAccountChip({
   const label = getConnectionLabel(connection);
 
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-md bg-card px-2.5 py-1.5 shadow-border">
+    <Card
+      padding={CardPadding.SM}
+      gap={CardGap.SM}
+      className="min-w-0"
+      bodyClassName="flex-row items-center"
+    >
       <span className="relative shrink-0">
         <Avatar className="size-8 bg-background shadow-border">
           {connection.avatarUrl ? (
@@ -84,7 +95,7 @@ function ConnectedAccountChip({
           </span>
         ) : null}
       </span>
-    </div>
+    </Card>
   );
 }
 
@@ -131,7 +142,8 @@ export function AgentSetupPanel({
         <BrandCompletenessCard brand={brand ?? {}} />
 
         <Card
-          bodyClassName="gap-0 p-3 sm:p-3"
+          padding={CardPadding.SM}
+          gap={CardGap.NONE}
           data-testid="agent-setup-social-card"
         >
           <div className="mb-2 flex items-center justify-between">

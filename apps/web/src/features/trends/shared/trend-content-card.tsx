@@ -1,8 +1,13 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -315,11 +320,10 @@ export default function TrendContentCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-0"
-      className={cn(
-        'hover:shadow-border-strong',
-        isSelected && 'ring-1 ring-inset ring-primary/50',
-      )}
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+      isInteractive
+      isSelected={isSelected}
     >
       {previewMediaUrl ? (
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">

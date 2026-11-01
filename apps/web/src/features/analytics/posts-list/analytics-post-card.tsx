@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
+import { CardGap, CardPadding, ComponentSize } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -96,7 +96,8 @@ function AnalyticsPostCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-0"
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
       className="group h-full w-full overflow-hidden"
       data-testid="analytics-post-card"
       onClick={() => onSelectPost(item.postId)}

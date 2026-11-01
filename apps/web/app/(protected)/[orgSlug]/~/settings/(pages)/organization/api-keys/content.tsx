@@ -4,7 +4,12 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
@@ -446,7 +451,6 @@ function AuthorizedApiKeysContent({
       {isReady ? (
         <Card
           label={translate('card.title')}
-          bodyClassName="gap-3 p-4"
           headerAction={
             <Button
               variant={SECONDARY_BUTTON_VARIANT}
@@ -593,16 +597,15 @@ function AuthorizedApiKeysContent({
                   selectedCount > 0 && !isFullySelected;
 
                 return (
-                  <div
+                  <Card
                     key={option.label}
-                    className={cn(
-                      'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
-                      isFullySelected
-                        ? 'border-foreground/20 bg-foreground/5'
-                        : isPartiallySelected
-                          ? 'border-border bg-muted/20'
-                          : 'border-border',
-                    )}
+                    variant={
+                      isPartiallySelected
+                        ? CardVariant.INSET
+                        : CardVariant.BORDERED
+                    }
+                    isSelected={isFullySelected}
+                    padding={CardPadding.SM}
                   >
                     <Checkbox
                       checked={
@@ -615,7 +618,7 @@ function AuthorizedApiKeysContent({
                       label={option.label}
                       onCheckedChange={() => handleScopeToggle(option.scopes)}
                     />
-                  </div>
+                  </Card>
                 );
               })}
             </div>

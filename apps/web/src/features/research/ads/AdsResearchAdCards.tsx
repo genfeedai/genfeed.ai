@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import {
   AdsChannel,
   type AdsResearchItem,
@@ -8,6 +13,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableColumn } from '@props/ui/display/table.props';
+import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -97,14 +103,16 @@ export function AdGridCard({
             </div>
           </div>
 
-          <div className="rounded-md bg-tertiary px-3 py-2 text-right">
-            <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {getMetricLabel(metric)}
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+            <div className="text-right">
+              <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+                {getMetricLabel(metric)}
+              </div>
+              <div className="text-lg font-semibold text-foreground">
+                {formatMetric(metricValue)}
+              </div>
             </div>
-            <div className="text-lg font-semibold text-foreground">
-              {formatMetric(metricValue)}
-            </div>
-          </div>
+          </Card>
         </div>
 
         <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/80">

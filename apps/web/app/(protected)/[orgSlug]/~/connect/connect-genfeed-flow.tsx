@@ -6,7 +6,7 @@ import {
   getDeployment,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type {
   ConnectGenfeedAuthMethod,
@@ -440,7 +440,7 @@ export default function ConnectGenfeedFlow() {
         ))}
       </ol>
 
-      <Card bodyClassName="p-5" label={translate('clientTitle')}>
+      <Card padding={CardPadding.LG} label={translate('clientTitle')}>
         <Tabs
           activeTab={client}
           ariaLabel={translate('clientLabel')}
@@ -475,7 +475,7 @@ export default function ConnectGenfeedFlow() {
 
       {authMethod === 'oauth' ? (
         <Card
-          bodyClassName="p-5"
+          padding={CardPadding.LG}
           label={translate('browserTitle')}
           description={translate('endpointDescription', { endpoint })}
         >
@@ -561,7 +561,7 @@ export default function ConnectGenfeedFlow() {
       ) : (
         <>
           <Card
-            bodyClassName="p-5"
+            padding={CardPadding.LG}
             label={translate('keyTitle')}
             description={translate('keyDescription')}
           >
@@ -669,7 +669,7 @@ export default function ConnectGenfeedFlow() {
           </Card>
 
           <Card
-            bodyClassName="p-5"
+            padding={CardPadding.LG}
             label={translate('configurationTitle')}
             description={translate('endpointDescription', { endpoint })}
           >
@@ -751,7 +751,7 @@ export default function ConnectGenfeedFlow() {
           </Card>
 
           <Card
-            bodyClassName="p-5"
+            padding={CardPadding.LG}
             label={translate('verificationTitle')}
             description={translate('verificationDescription')}
           >
@@ -848,7 +848,7 @@ export default function ConnectGenfeedFlow() {
 
           {verification?.status === 'connected' ? (
             <Card
-              bodyClassName="p-5"
+              padding={CardPadding.LG}
               label={translate('firstActionTitle')}
               description={
                 verification.publishing.isReady

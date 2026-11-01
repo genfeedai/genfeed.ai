@@ -1,4 +1,10 @@
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, X } from 'lucide-react';
@@ -23,8 +29,9 @@ export default function ReviewInboxBulkBar({
   return (
     <Card
       // Card body defaults to flex-col — force a single horizontal row.
-      bodyClassName="flex flex-row flex-wrap items-center justify-between gap-2 !p-3"
-      className="bg-card"
+      padding={CardPadding.SM}
+      gap={CardGap.SM}
+      bodyClassName="flex flex-row flex-wrap items-center justify-between"
       variant={CardVariant.DEFAULT}
     >
       <p className="flex shrink-0 flex-wrap items-center gap-x-3 text-xs text-foreground/70">

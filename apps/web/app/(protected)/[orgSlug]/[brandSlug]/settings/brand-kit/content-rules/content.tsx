@@ -284,7 +284,7 @@ export default function BrandContentRulesPage() {
 
   if (!brand) {
     return (
-      <Card bodyClassName="gap-3 p-4">
+      <Card>
         <p className="text-sm text-muted-foreground">
           {translate('brandMissing')}
         </p>

@@ -143,7 +143,7 @@ export default function IngredientTabsTags({
   return (
     <div className="space-y-4">
       {/* Current Tags */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Current Tags</h3>
 
         {tags.length === 0 ? (
@@ -192,7 +192,7 @@ export default function IngredientTabsTags({
       />
 
       {/* Add Tags Section */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Add Tags</h3>
 
         {/* Create New Tag */}
@@ -280,7 +280,7 @@ export default function IngredientTabsTags({
       </Card>
 
       {/* Tag Statistics */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Tag Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 bg-tertiary">

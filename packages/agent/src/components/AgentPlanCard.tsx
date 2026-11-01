@@ -5,9 +5,10 @@ import {
   getProposedPlanSteps,
   hasProposedPlanBody,
 } from '@genfeedai/agent/utils/proposed-plan.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type { AgentUiActionOutcome } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -77,9 +78,11 @@ export function AgentPlanCard({
   const trimmedNote = revisionNote.trim();
 
   return (
-    <section
+    <Card
+      variant={CardVariant.BORDERED}
+      as="section"
+      className="my-3 min-w-0"
       aria-label={translate('title')}
-      className="my-3 min-w-0 rounded-lg border border-border bg-card p-4"
       data-testid="agent-plan-card"
     >
       <div className="flex items-center justify-between gap-3">
@@ -200,6 +203,6 @@ export function AgentPlanCard({
           {footerMessage}
         </p>
       ) : null}
-    </section>
+    </Card>
   );
 }

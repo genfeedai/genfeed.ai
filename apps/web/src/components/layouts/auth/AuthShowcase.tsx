@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { Pause, Play } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
@@ -207,19 +208,12 @@ export default function AuthShowcase({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
               >
-                <span
+                <Progress
                   aria-hidden="true"
-                  className={
-                    'block h-0.5 overflow-hidden rounded-full bg-white/20' /* design-system-allow-content-color -- caption over showcase media */
-                  }
-                >
-                  <span
-                    className={
-                      'block h-full origin-left rounded-full bg-white transition-transform duration-300 ease-linear' /* design-system-allow-content-color -- caption over showcase media */
-                    }
-                    style={{ transform: `scaleX(${fill})` }}
-                  />
-                </span>
+                  size="xs"
+                  tone="overlay"
+                  value={fill * 100}
+                />
                 <span
                   aria-hidden="true"
                   className={cn(

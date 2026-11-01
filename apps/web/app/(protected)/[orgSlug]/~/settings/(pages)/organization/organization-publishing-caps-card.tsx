@@ -128,7 +128,7 @@ export default function OrganizationPublishingCapsCard() {
   ]);
 
   return (
-    <Card label={translate('cardLabel')} bodyClassName="gap-3 p-4">
+    <Card label={translate('cardLabel')}>
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
           {PUBLISHING_CAP_FIELDS.map((field) => (

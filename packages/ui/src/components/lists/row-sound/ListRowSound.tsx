@@ -1,7 +1,13 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ListRowSoundProps } from '@genfeedai/props/content/list.props';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { CONTENT_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Pause, Play } from 'lucide-react';
@@ -74,14 +80,13 @@ export default function ListRowSound({
   };
   return (
     <li>
-      <div
-        className={cn(
-          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl bg-card px-4 py-3 shadow-border transition-colors duration-200 lg:grid-cols-[auto_minmax(0,1fr)_auto]',
-          'hover:bg-tertiary hover:shadow-border-strong',
-          (isActive ?? isSelected) && 'bg-accent shadow-border-strong',
-          onRowClick && 'cursor-pointer',
-          className,
-        )}
+      <Card
+        isInteractive
+        isSelected={isActive ?? isSelected}
+        padding={CardPadding.SM}
+        gap={CardGap.LG}
+        className={cn('group', onRowClick && 'cursor-pointer', className)}
+        bodyClassName="grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center lg:grid-cols-[auto_minmax(0,1fr)_auto]"
       >
         <div className="flex min-w-0 items-center gap-3">
           {leading ?? (
@@ -152,7 +157,7 @@ export default function ListRowSound({
             {actions}
           </div>
         ) : null}
-      </div>
+      </Card>
     </li>
   );
 }
