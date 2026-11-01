@@ -30,11 +30,12 @@ import {
   resolveAgentConnectionBrand,
   resolveConnectionAgent,
 } from '@ui/feedback/connection-success/connection-brand';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
+import { Tabs } from '@ui/primitives/tabs';
 import {
   ArrowRight,
   CircleCheck,
@@ -572,46 +573,48 @@ export default function ConnectGenfeedFlow() {
             ) : (
               <div className="space-y-3">
                 {apiKeys.length > 0 ? (
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <OptionTileGroup
+                    ariaLabel={translate('keyTitle')}
+                    className="sm:grid-cols-2"
+                    columns={1}
+                    onValueChange={(keyId) => {
+                      const apiKey = apiKeys.find(
+                        (entry) => entry.id === keyId,
+                      );
+                      if (apiKey) {
+                        handleSelectKey(apiKey);
+                      }
+                    }}
+                    value={selectedKeyId || undefined}
+                  >
                     {apiKeys.map((apiKey) => {
                       const isSelected = apiKey.id === selectedKeyId;
                       const isScoped = hasRequiredMcpScopes(apiKey);
 
                       return (
-                        <Button
-                          aria-pressed={isSelected}
-                          className="h-auto min-h-16 justify-between px-3 py-2 text-left"
-                          key={apiKey.id}
-                          onClick={() => handleSelectKey(apiKey)}
-                          variant={
-                            isSelected
-                              ? ButtonVariant.DEFAULT
-                              : ButtonVariant.SECONDARY
+                        <OptionTile
+                          description={
+                            isScoped
+                              ? translate('scopesReady')
+                              : translate('scopesMissing')
                           }
-                          withWrapper={false}
-                        >
-                          <span>
-                            <span className="block text-sm font-medium">
-                              {apiKey.label ?? translate('unnamedKey')}
-                            </span>
-                            <span className="mt-1 block text-xs opacity-70">
-                              {isScoped
-                                ? translate('scopesReady')
-                                : translate('scopesMissing')}
-                            </span>
-                          </span>
-                          {isSelected ? (
-                            <CircleCheck
-                              aria-hidden="true"
-                              className="size-5"
-                            />
-                          ) : (
-                            <Key aria-hidden="true" className="size-5" />
-                          )}
-                        </Button>
+                          key={apiKey.id}
+                          title={apiKey.label ?? translate('unnamedKey')}
+                          trailing={
+                            isSelected ? (
+                              <CircleCheck
+                                aria-hidden="true"
+                                className="size-5"
+                              />
+                            ) : (
+                              <Key aria-hidden="true" className="size-5" />
+                            )
+                          }
+                          value={apiKey.id}
+                        />
                       );
                     })}
-                  </div>
+                  </OptionTileGroup>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     {translate('emptyKeys')}

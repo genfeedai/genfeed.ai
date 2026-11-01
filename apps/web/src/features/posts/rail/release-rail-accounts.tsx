@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -8,8 +7,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -65,47 +63,44 @@ export default function ReleaseRailAccounts({
     return null;
   }
 
+  const options = accounts.map((account) => {
+    const PlatformIcon =
+      getPlatformIconComponent(account.platform) ?? ExternalLink;
+    const label = account.handle || account.label;
+
+    return {
+      ariaLabel: translate('accounts.ariaToggle', { account: label }),
+      icon: <PlatformIcon className="size-3.5 shrink-0" />,
+      label: (
+        <>
+          <span className="max-w-32 truncate">{label}</span>
+          {isAccountAtRisk(account) ? <Badge variant="warning">!</Badge> : null}
+        </>
+      ),
+      tooltip: isAccountAtRisk(account)
+        ? translate('accounts.needsReconnect')
+        : undefined,
+      value: account.credentialId,
+    };
+  });
+
   return (
-    <div
-      aria-label={translate('accounts.label')}
-      className="flex flex-wrap items-center gap-1.5"
-      role="group"
-    >
-      {accounts.map((account) => {
-        const PlatformIcon =
-          getPlatformIconComponent(account.platform) ?? ExternalLink;
-        const isSelected = selectedCredentialIds.includes(account.credentialId);
-        const isAtRisk = isAccountAtRisk(account);
-        const label = account.handle || account.label;
-
-        const chip = (
-          <Button
-            aria-pressed={isSelected}
-            ariaLabel={translate('accounts.ariaToggle', { account: label })}
-            className="gap-1.5"
-            onClick={() => onToggle(account.credentialId)}
-            size={ButtonSize.SM}
-            variant={isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <PlatformIcon className="size-3.5 shrink-0" />
-            <span className="max-w-32 truncate">{label}</span>
-            {isAtRisk ? <Badge variant="warning">!</Badge> : null}
-          </Button>
-        );
-
-        return (
-          <span key={account.credentialId}>
-            {isAtRisk ? (
-              <SimpleTooltip label={translate('accounts.needsReconnect')}>
-                {chip}
-              </SimpleTooltip>
-            ) : (
-              chip
-            )}
-          </span>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      appearance="chip"
+      ariaLabel={translate('accounts.label')}
+      onValueChange={(nextIds) => {
+        const changed = [
+          ...nextIds.filter((id) => !selectedCredentialIds.includes(id)),
+          ...selectedCredentialIds.filter((id) => !nextIds.includes(id)),
+        ];
+        for (const credentialId of changed) {
+          onToggle(credentialId);
+        }
+      }}
+      options={options}
+      size="sm"
+      type="multiple"
+      value={selectedCredentialIds}
+    />
   );
 }

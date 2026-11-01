@@ -18,6 +18,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -237,21 +238,15 @@ export default function TurboProjectPage({ projectId }: TurboProjectPageProps) {
           </div>
         )}
         {notice && <p role="status">{notice}</p>}
-        <div className="flex flex-wrap gap-2" hidden={isFreshIdeasDraft}>
-          {steps.map((step) => (
-            <Button
-              key={step}
-              variant={
-                project.step === step
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              onClick={() => void update({ step })}
-            >
-              {t(step)}
-            </Button>
-          ))}
-        </div>
+        {isFreshIdeasDraft ? null : (
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={t('stepsLabel')}
+            onValueChange={(step) => void update({ step })}
+            options={steps.map((step) => ({ label: t(step), value: step }))}
+            value={project.step}
+          />
+        )}
         {ideas && !isIdeasEnabled && <p role="alert">{t('ideasDisabled')}</p>}
         {ideas && !readiness.ready && (
           <CollectionSection title={t('readiness')}>

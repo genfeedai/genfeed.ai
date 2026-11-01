@@ -9,6 +9,7 @@ import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -198,23 +199,24 @@ export default function InstagramAccountSelector({
       )}
 
       {!isLoading && availableAccounts.length > 0 && (
-        <div className="max-h-72 space-y-2 overflow-y-auto">
+        <OptionTileGroup
+          ariaLabel={translate('title')}
+          className="max-h-72 overflow-y-auto"
+          columns={1}
+          onValueChange={(accountId) => {
+            const account = availableAccounts.find(
+              (entry) => entry.id === accountId,
+            );
+            if (account) {
+              setSelectedAccount(account);
+            }
+          }}
+          value={selectedAccount?.id}
+        >
           {availableAccounts.map((account) => (
-            <Button
-              key={account.id}
-              aria-pressed={selectedAccount?.id === account.id}
-              className={`w-full p-3 transition-[box-shadow,background-color] ${
-                selectedAccount?.id === account.id
-                  ? 'shadow-border-strong bg-primary/10'
-                  : 'hover:bg-hover'
-              }`}
-              onClick={() => setSelectedAccount(account)}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              <div className="flex items-center gap-2">
-                {account.image ? (
+            <OptionTile
+              icon={
+                account.image ? (
                   <Image
                     src={account.image}
                     alt={account.label}
@@ -231,27 +233,30 @@ export default function InstagramAccountSelector({
                       }
                     />
                   </div>
-                )}
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{account.label}</p>
-                    {account.isAlreadyConnected && (
-                      <Badge variant="info">
-                        {translate('alreadyConnected')}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    @{account.username}
-                  </p>
-                </div>
-                {selectedAccount?.id === account.id && (
-                  <CircleCheck className="text-primary text-xl" />
-                )}
-              </div>
-            </Button>
+                )
+              }
+              key={account.id}
+              value={account.id}
+            >
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="flex items-center gap-2">
+                  <span className="font-medium">{account.label}</span>
+                  {account.isAlreadyConnected && (
+                    <Badge variant="info">
+                      {translate('alreadyConnected')}
+                    </Badge>
+                  )}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  @{account.username}
+                </span>
+              </span>
+              {selectedAccount?.id === account.id && (
+                <CircleCheck className="text-primary text-xl" />
+              )}
+            </OptionTile>
           ))}
-        </div>
+        </OptionTileGroup>
       )}
 
       {!isLoading && availableAccounts.length > 0 && (

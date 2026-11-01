@@ -212,7 +212,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {

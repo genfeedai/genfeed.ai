@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
   workflowId: 'workflow-1' as string | null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@genfeedai/workflows/ui/stores', () => {
   const useWorkflowStore = vi.fn(
     (
@@ -74,23 +78,6 @@ vi.mock('@/features/workflows/components/ui/button', () => ({
     variant?: string;
   }) => (
     <button data-variant={variant} type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-  SelectableButton: ({
-    children,
-    onClick,
-    selected,
-  }: {
-    children?: ReactNode;
-    onClick?: () => void;
-    selected?: boolean;
-  }) => (
-    <button
-      data-selected={String(Boolean(selected))}
-      type="button"
-      onClick={onClick}
-    >
       {children}
     </button>
   ),

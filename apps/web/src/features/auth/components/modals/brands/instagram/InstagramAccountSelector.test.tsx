@@ -130,7 +130,7 @@ describe('InstagramAccountSelector', () => {
     // incumbent (see InstagramConnectionResolverService.resolveAuthorizedAccount).
     const heldAccountButton = screen
       .getByText('Genfeed AI')
-      .closest('button') as HTMLElement;
+      .closest('[role="radio"]') as HTMLElement;
     expect(heldAccountButton).not.toBeDisabled();
   });
 
@@ -248,13 +248,13 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    const last = await screen.findByRole('button', { name: /Account 24/ });
+    const last = await screen.findByRole('radio', { name: /Account 24/ });
     expect(last.parentElement).toHaveClass('overflow-y-auto');
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
     expect(screen.getByText('Use this account')).toBeVisible();
   });
 
-  it('exposes the actual selected account as pressed', async () => {
+  it('exposes the actual selected account as checked', async () => {
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,
     );
@@ -264,15 +264,15 @@ describe('InstagramAccountSelector', () => {
         onConnected={vi.fn()}
       />,
     );
-    const first = await screen.findByRole('button', { name: /Genfeed AI/ });
-    const second = screen.getByRole('button', { name: /Genfeed Studio/ });
-    expect(first).toHaveAttribute('aria-pressed', 'false');
-    expect(second).toHaveAttribute('aria-pressed', 'false');
+    const first = await screen.findByRole('radio', { name: /Genfeed AI/ });
+    const second = screen.getByRole('radio', { name: /Genfeed Studio/ });
+    expect(first).toHaveAttribute('aria-checked', 'false');
+    expect(second).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(first);
-    expect(first).toHaveAttribute('aria-pressed', 'true');
+    expect(first).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(second);
-    expect(first).toHaveAttribute('aria-pressed', 'false');
-    expect(second).toHaveAttribute('aria-pressed', 'true');
+    expect(first).toHaveAttribute('aria-checked', 'false');
+    expect(second).toHaveAttribute('aria-checked', 'true');
   });
 
   it('confirms the selection through the select-account endpoint, never the generic PATCH', async () => {
@@ -293,7 +293,7 @@ describe('InstagramAccountSelector', () => {
     // server tracks the operator's actual click rather than merely matching
     // whatever the component happens to default to.
     const account = await screen.findByText('Genfeed Studio');
-    fireEvent.click(account.closest('button') as HTMLElement);
+    fireEvent.click(account.closest('[role="radio"]') as HTMLElement);
 
     const confirmButton = await screen.findByText('Use this account');
     await waitFor(() => expect(confirmButton).not.toBeDisabled());
@@ -327,7 +327,7 @@ describe('InstagramAccountSelector', () => {
     );
 
     const account = await screen.findByText('Genfeed AI');
-    fireEvent.click(account.closest('button') as HTMLElement);
+    fireEvent.click(account.closest('[role="radio"]') as HTMLElement);
 
     const confirmButton = screen.getByText('Use this account');
     await waitFor(() => expect(confirmButton).not.toBeDisabled());

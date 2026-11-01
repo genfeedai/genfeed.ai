@@ -28,6 +28,7 @@ import { isServiceOperationError } from '@services/core/operation-error';
 import AppTable from '@ui/display/table/Table';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -36,6 +37,8 @@ import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-know
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';
+
+const ALL_SPACES = 'all';
 
 const PURPOSE_KEY: Record<string, string> = {
   BRAND_TRUTH: 'brandTruth',
@@ -512,27 +515,21 @@ export default function KnowledgeSourcesList({
   return (
     <div className="space-y-4">
       {spaces.length > 0 ? (
-        <nav aria-label={translate('spaces')} className="flex flex-wrap gap-2">
-          <Button
-            label={translate('allSources')}
-            onClick={() => setSelectedSpaceId(null)}
-            variant={
-              selectedSpaceId ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-            }
-          />
-          {spaces.map((space) => (
-            <Button
-              key={space.id}
-              label={space.isInbox ? translate('inbox') : space.title}
-              onClick={() => setSelectedSpaceId(space.id)}
-              variant={
-                selectedSpaceId === space.id
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-            />
-          ))}
-        </nav>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('spaces')}
+          onValueChange={(spaceId) =>
+            setSelectedSpaceId(spaceId === ALL_SPACES ? null : spaceId)
+          }
+          options={[
+            { label: translate('allSources'), value: ALL_SPACES },
+            ...spaces.map((space) => ({
+              label: space.isInbox ? translate('inbox') : space.title,
+              value: space.id,
+            })),
+          ]}
+          value={selectedSpaceId ?? ALL_SPACES}
+        />
       ) : null}
 
       {(selectionError || isInvalidSelection) && !isLoading ? (

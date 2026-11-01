@@ -30,6 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import {
   Clipboard,
@@ -555,37 +556,31 @@ function AuthorizedApiKeysContent({
               <span className="mb-1.5 block text-xs text-muted-foreground">
                 {translate('fields.scopePreset')}
               </span>
-              <div className="flex flex-wrap gap-2">
-                {PRODUCT_API_KEY_PRESETS.map((preset) => {
-                  const isActive = scopesExactlyMatch(
-                    productForm.selectedScopes,
-                    preset.scopes,
+              <SegmentedControl
+                appearance="chip"
+                ariaLabel={translate('fields.scopePreset')}
+                onValueChange={(labelKey) => {
+                  const preset = PRODUCT_API_KEY_PRESETS.find(
+                    (entry) => entry.labelKey === labelKey,
                   );
-
-                  return (
-                    <Button
-                      key={preset.labelKey}
-                      type="button"
-                      size={ButtonSize.SM}
-                      withWrapper={false}
-                      textTransform="none"
-                      aria-pressed={isActive}
-                      variant={
-                        isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-                      }
-                      className={cn(
-                        'h-8 rounded-md border px-3 text-xs font-medium',
-                        isActive
-                          ? 'border-foreground/20 bg-foreground/10 text-foreground'
-                          : 'border-border text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
-                      )}
-                      onClick={() => handlePresetSelect(preset.scopes)}
-                    >
-                      {translate(preset.labelKey)}
-                    </Button>
-                  );
-                })}
-              </div>
+                  if (preset) {
+                    handlePresetSelect(preset.scopes);
+                  }
+                }}
+                options={PRODUCT_API_KEY_PRESETS.map((preset) => ({
+                  label: translate(preset.labelKey),
+                  value: preset.labelKey,
+                }))}
+                size="sm"
+                value={
+                  PRODUCT_API_KEY_PRESETS.find((preset) =>
+                    scopesExactlyMatch(
+                      productForm.selectedScopes,
+                      preset.scopes,
+                    ),
+                  )?.labelKey
+                }
+              />
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {API_KEY_SCOPE_OPTIONS.map((option) => {

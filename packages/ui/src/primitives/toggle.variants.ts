@@ -1,4 +1,5 @@
 import { cva } from 'class-variance-authority';
+import { chipItemClassName } from './segmented-control.variants';
 
 /**
  * Toggle / segmented control variants.
@@ -22,9 +23,15 @@ export const toggleVariants = cva(
       },
       variant: {
         default: 'bg-transparent',
+        chip: `rounded-full ${chipItemClassName}`,
         outline:
           'border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground',
       },
     },
+    compoundVariants: [
+      { className: 'px-3 text-xs', size: 'sm', variant: 'chip' },
+      { className: 'px-3', size: 'default', variant: 'chip' },
+      { className: 'px-4', size: 'lg', variant: 'chip' },
+    ],
   },
 );

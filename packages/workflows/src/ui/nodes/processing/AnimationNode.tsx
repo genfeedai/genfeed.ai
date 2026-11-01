@@ -9,6 +9,7 @@ import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Label } from '@genfeedai/ui/primitives/label';
+import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Expand, RefreshCw, WandSparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 import { useRequiredInputs } from '../../hooks/useRequiredInputs';
 import { CubicBezierEditor } from '../../lib/CubicBezierEditor';
@@ -46,6 +48,7 @@ const PRESET_OPTIONS: { value: EasingPreset; label: string }[] = [
 ];
 
 function AnimationNodeComponent(props: NodeProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const { id, type, data } = props;
   const nodeData = data as AnimationNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
@@ -113,42 +116,18 @@ function AnimationNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Curve Type Toggle */}
-        <div className="flex gap-1 p-1 bg-background rounded">
-          <Button
-            withWrapper={false}
-            variant={
-              nodeData.curveType === 'preset'
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.GHOST
-            }
-            size={ButtonSize.SM}
-            onClick={() => handleCurveTypeChange('preset')}
-            className={`flex-1 text-xs h-auto py-1 px-2 ${
-              nodeData.curveType === 'preset'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground hover:bg-border'
-            }`}
-          >
-            Preset
-          </Button>
-          <Button
-            withWrapper={false}
-            variant={
-              nodeData.curveType === 'custom'
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.GHOST
-            }
-            size={ButtonSize.SM}
-            onClick={() => handleCurveTypeChange('custom')}
-            className={`flex-1 text-xs h-auto py-1 px-2 ${
-              nodeData.curveType === 'custom'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'text-muted-foreground hover:bg-border'
-            }`}
-          >
-            Custom
-          </Button>
-        </div>
+        <SegmentedControl
+          ariaLabel={selectionLabels('curveType')}
+          className="nodrag"
+          isFullWidth
+          onValueChange={handleCurveTypeChange}
+          options={[
+            { label: 'Preset', value: 'preset' },
+            { label: 'Custom', value: 'custom' },
+          ]}
+          size="sm"
+          value={nodeData.curveType}
+        />
 
         {/* Preset Selector */}
         {nodeData.curveType === 'preset' && (

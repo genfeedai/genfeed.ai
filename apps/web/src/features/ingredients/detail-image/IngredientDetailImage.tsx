@@ -2,10 +2,14 @@
 
 import type { IEvaluation } from '@genfeedai/client/models';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IImage, IMetadata, ITag } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IMetadata,
+  ITag,
+  TabItem,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';

@@ -581,7 +581,7 @@ describe('KnowledgeSourcesList', () => {
     });
     renderList();
     expect(screen.getByText('Source a')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Inbox' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Inbox' }));
     expect(screen.queryByText('Source a')).toBeNull();
     expect(screen.getByTestId('detail')).toHaveTextContent('Source offpage');
     expect(mocks.useKnowledgeLibrary).toHaveBeenLastCalledWith({

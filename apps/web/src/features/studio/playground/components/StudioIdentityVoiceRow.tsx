@@ -7,6 +7,7 @@ import { useAudioPreview } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
+import { Toggle } from '@ui/primitives/toggle';
 import { Check, Pause, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -106,21 +107,20 @@ export default function StudioIdentityVoiceRow({
           </span>
         )}
       </div>
-      <Button
-        aria-pressed={isSelected}
-        ariaLabel={translate(
+      <Toggle
+        aria-label={translate(
           isSelected ? 'identityVoiceSelected' : 'identityUseVoice',
           { label: name },
         )}
-        className="min-w-20"
-        icon={isSelected ? <Check className="size-3.5" /> : undefined}
-        isDisabled={isDisabled}
-        label={translate(isSelected ? 'identityUsing' : 'identityUse')}
-        onClick={onSelect}
-        size={ButtonSize.SM}
-        variant={isSelected ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
-        withWrapper={false}
-      />
+        disabled={isDisabled}
+        onPressedChange={onSelect}
+        pressed={isSelected}
+        size="sm"
+        variant="outline"
+      >
+        {isSelected ? <Check /> : null}
+        {translate(isSelected ? 'identityUsing' : 'identityUse')}
+      </Toggle>
     </div>
   );
 }

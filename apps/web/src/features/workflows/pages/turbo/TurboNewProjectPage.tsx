@@ -15,6 +15,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import {
   Select,
   SelectContent,
@@ -198,51 +199,45 @@ export default function TurboNewProjectPage() {
       <div className="flex max-w-2xl flex-col gap-6">
         <fieldset>
           <legend className="mb-2 text-sm font-medium">{t('source')}</legend>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              aria-label={t('fromIdeas')}
-              aria-pressed={kind === TurboProjectKind.IDEAS}
+          <OptionTileGroup
+            ariaLabel={t('source')}
+            className="sm:grid-cols-2"
+            columns={1}
+            onValueChange={(nextKind) => {
+              setKind(nextKind);
+              setError(null);
+            }}
+            value={kind}
+          >
+            <OptionTile
+              ariaLabel={t('fromIdeas')}
+              description={t('ideasDescription')}
+              icon={
+                <Lightbulb
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0"
+                />
+              }
               isDisabled={!isIdeasEnabled || busy}
-              onClick={() => {
-                setKind(TurboProjectKind.IDEAS);
-                setError(null);
-              }}
-              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.IDEAS ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-primary/60'}`}
-            >
-              <Lightbulb
-                aria-hidden="true"
-                className="mt-0.5 size-4 shrink-0"
-              />
-              <span className="min-w-0 whitespace-normal">
-                <span className="block font-medium">{t('fromIdeas')}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  {t('ideasDescription')}
-                </span>
-              </span>
-            </Button>
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              aria-label={t('fromWorkflow')}
-              aria-pressed={kind === TurboProjectKind.WORKFLOW}
+              size="lg"
+              title={t('fromIdeas')}
+              value={TurboProjectKind.IDEAS}
+            />
+            <OptionTile
+              ariaLabel={t('fromWorkflow')}
+              description={t('workflowDescription')}
+              icon={
+                <Workflow
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0"
+                />
+              }
               isDisabled={!isWorkflowEnabled || busy}
-              onClick={() => {
-                setKind(TurboProjectKind.WORKFLOW);
-                setError(null);
-              }}
-              className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left ${kind === TurboProjectKind.WORKFLOW ? 'border-primary bg-primary/10' : 'border-border bg-muted hover:border-primary/60'}`}
-            >
-              <Workflow aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              <span className="min-w-0 whitespace-normal">
-                <span className="block font-medium">{t('fromWorkflow')}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  {t('workflowDescription')}
-                </span>
-              </span>
-            </Button>
-          </div>
+              size="lg"
+              title={t('fromWorkflow')}
+              value={TurboProjectKind.WORKFLOW}
+            />
+          </OptionTileGroup>
         </fieldset>
         {!isWorkflowEnabled && (
           <p className="text-sm text-muted-foreground">

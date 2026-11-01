@@ -127,6 +127,15 @@ export { Kbd, type KbdProps } from './kbd';
 export { kbdVariants } from './kbd.variants';
 export { Label } from './label';
 export {
+  OptionTile,
+  OptionTileGroup,
+  type OptionTileProps,
+} from './option-tile';
+export {
+  optionTileGroupVariants,
+  optionTileVariants,
+} from './option-tile.variants';
+export {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -154,6 +163,15 @@ export { default as RangeField, type RangeFieldProps } from './range-field';
 export { ScrollArea, ScrollBar } from './scroll-area';
 export { default as Searchbar, type SearchbarProps } from './searchbar';
 export {
+  SegmentedControl,
+  type SegmentedControlOption,
+  type SegmentedControlProps,
+} from './segmented-control';
+export {
+  segmentedItemVariants,
+  segmentedListVariants,
+} from './segmented-control.variants';
+export {
   Select,
   SelectContent,
   SelectGroup,
@@ -180,11 +198,14 @@ export {
   TableHeader,
   TableRow,
 } from './table';
-export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export {
-  getTabsListClassName,
-  getTabsTriggerClassName,
-} from './tabs.styles';
+  PanelTabs,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsRoot,
+  TabsTrigger,
+} from './tabs';
 export {
   default as TagsEditable,
   type TagsEditableProps,

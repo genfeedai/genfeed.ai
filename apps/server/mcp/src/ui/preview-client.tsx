@@ -457,6 +457,7 @@ function SummaryCard({
         actions={
           item.actions?.length
             ? item.actions.map((action) => (
+                // ui-guard-allow:selection-button -- action button showing a state, not a choice group
                 <Button
                   key={`${action.kind}-${action.brandId}`}
                   variant={

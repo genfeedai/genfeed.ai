@@ -143,7 +143,7 @@ describe('Studio identity catalog recovery', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       identities.error as string,
     );
-    expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: 'Saved photo' })).toBeEnabled();
     await user.click(screen.getByRole('tab', { name: /^Voice/ }));
     await user.click(screen.getByRole('button', { name: 'Use Saved voice' }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith({
@@ -170,7 +170,7 @@ describe('Studio identity catalog recovery', () => {
     expect(
       screen.queryByRole('button', { name: 'Use Saved voice' }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Saved photo' }));
+    await user.click(screen.getByRole('radio', { name: 'Saved photo' }));
     expect(onChange).toHaveBeenLastCalledWith({
       avatarRef: undefined,
       avatarPhotoUrl: 'https://assets.test/photo.jpg',
@@ -320,7 +320,7 @@ describe('Studio identity catalog recovery', () => {
         />,
       );
       await openPicker(user);
-      await user.click(screen.getByRole('button', { name: 'Dante (Photo)' }));
+      await user.click(screen.getByRole('radio', { name: 'Dante (Photo)' }));
       expect(onChange).toHaveBeenCalledExactlyOnceWith({
         avatarRef: undefined,
         avatarPhotoUrl: 'https://assets.test/Dante.jpg',
@@ -358,16 +358,16 @@ describe('Studio identity catalog recovery', () => {
       );
       await openPicker(user);
       expect(
-        screen.getByRole('button', { name: 'Dante (Public preset)' }),
+        screen.getByRole('radio', { name: 'Dante (Public preset)' }),
       ).toBeVisible();
 
-      await user.click(screen.getByRole('button', { name: 'Female' }));
+      await user.click(screen.getByRole('radio', { name: 'Female' }));
 
       expect(
-        screen.getByRole('button', { name: 'Elowen (Public preset)' }),
+        screen.getByRole('radio', { name: 'Elowen (Public preset)' }),
       ).toBeVisible();
       expect(
-        screen.queryByRole('button', { name: 'Dante (Public preset)' }),
+        screen.queryByRole('radio', { name: 'Dante (Public preset)' }),
       ).not.toBeInTheDocument();
     });
 
@@ -391,7 +391,7 @@ describe('Studio identity catalog recovery', () => {
       await openPicker(user);
       expect(loadMoreAvatars).not.toHaveBeenCalled();
 
-      await user.click(screen.getByRole('button', { name: 'Female' }));
+      await user.click(screen.getByRole('radio', { name: 'Female' }));
 
       expect(loadMoreAvatars).toHaveBeenCalled();
     });
@@ -416,7 +416,7 @@ describe('Studio identity catalog recovery', () => {
         />,
       );
       await openPicker(user);
-      await user.click(screen.getByRole('button', { name: 'Female' }));
+      await user.click(screen.getByRole('radio', { name: 'Female' }));
 
       for (let index = 0; index < 10; index += 1) {
         rerender(
@@ -480,7 +480,7 @@ describe('Studio identity catalog recovery', () => {
       />,
     );
     await openPicker(user);
-    expect(screen.getByRole('button', { name: 'Not ready' })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Not ready' })).toBeDisabled();
     await user.click(screen.getByRole('tab', { name: /^Voice/ }));
     view.rerender(
       <StudioIdentityFields
@@ -578,7 +578,7 @@ describe('Studio identity catalog recovery', () => {
       />,
     );
     await openPicker(user);
-    expect(screen.getByRole('button', { name: 'Saved photo' })).toBeEnabled();
+    expect(screen.getByRole('radio', { name: 'Saved photo' })).toBeEnabled();
     expect(
       screen.getByRole('button', { name: 'Retry HeyGen identities' }),
     ).toBeDisabled();

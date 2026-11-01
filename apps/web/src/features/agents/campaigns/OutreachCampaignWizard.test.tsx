@@ -66,13 +66,13 @@ describe('OutreachCampaignWizard', () => {
     const user = userEvent.setup();
     render(<OutreachCampaignWizard />);
 
-    const twitter = screen.getByRole('button', { name: /Twitter \/ X/i });
-    const reddit = screen.getByRole('button', { name: /^Reddit/i });
-    const instagram = screen.getByRole('button', { name: /^Instagram/i });
-    const scheduled = screen.getByRole('button', { name: /Scheduled Blast/i });
-    const dm = screen.getByRole('button', { name: /DM Outreach/i });
+    const twitter = screen.getByRole('radio', { name: /Twitter \/ X/i });
+    const reddit = screen.getByRole('radio', { name: /^Reddit/i });
+    const instagram = screen.getByRole('radio', { name: /^Instagram/i });
+    const scheduled = screen.getByRole('radio', { name: /Scheduled Blast/i });
+    const dm = screen.getByRole('radio', { name: /DM Outreach/i });
 
-    expect(twitter).toHaveAttribute('aria-pressed', 'true');
+    expect(twitter).toHaveAttribute('aria-checked', 'true');
     expect(twitter).not.toHaveAttribute('aria-disabled');
     expect(reddit).toHaveAttribute('aria-disabled', 'true');
     expect(instagram).toHaveAttribute('aria-disabled', 'true');
@@ -82,19 +82,20 @@ describe('OutreachCampaignWizard', () => {
     );
 
     await user.click(reddit);
-    expect(twitter).toHaveAttribute('aria-pressed', 'true');
-    expect(reddit).not.toHaveAttribute('aria-pressed', 'true');
+    expect(twitter).toHaveAttribute('aria-checked', 'true');
+    expect(reddit).not.toHaveAttribute('aria-checked', 'true');
 
     await user.click(dm);
-    expect(dm).toHaveAttribute('aria-pressed', 'true');
-    expect(
-      screen.getByRole('button', { name: /^Manual/i }),
-    ).not.toHaveAttribute('aria-pressed', 'true');
+    expect(dm).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: /^Manual/i })).not.toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   it('keeps unavailable platform choices keyboard-accessible', () => {
     render(<OutreachCampaignWizard />);
-    const reddit = screen.getByRole('button', { name: /^Reddit/i });
+    const reddit = screen.getByRole('radio', { name: /^Reddit/i });
 
     expect(reddit).not.toBeDisabled();
     reddit.focus();
@@ -105,10 +106,10 @@ describe('OutreachCampaignWizard', () => {
     render(<OutreachCampaignWizard />);
 
     expect(
-      screen.getByRole('button', { name: /Twitter \/ X/i }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /^Manual/i })).toHaveAttribute(
-      'aria-pressed',
+      screen.getByRole('radio', { name: /Twitter \/ X/i }),
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: /^Manual/i })).toHaveAttribute(
+      'aria-checked',
       'true',
     );
     expect(screen.getByRole('button', { name: /Next/i })).not.toBeDisabled();
@@ -118,10 +119,10 @@ describe('OutreachCampaignWizard', () => {
     const user = userEvent.setup();
     render(<OutreachCampaignWizard />);
 
-    await user.click(screen.getByRole('button', { name: /Scheduled Blast/i }));
+    await user.click(screen.getByRole('radio', { name: /Scheduled Blast/i }));
     expect(
-      screen.getByRole('button', { name: /Scheduled Blast/i }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      screen.getByRole('radio', { name: /Scheduled Blast/i }),
+    ).toHaveAttribute('aria-checked', 'true');
 
     await user.click(screen.getByRole('button', { name: /Next/i }));
 

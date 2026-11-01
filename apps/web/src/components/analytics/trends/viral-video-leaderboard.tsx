@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import { Timeframe } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
@@ -9,7 +9,7 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -30,6 +30,7 @@ export function ViralVideoLeaderboard({
   onVideoClick,
   className = '',
 }: ViralVideoLeaderboardProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const translate = useTranslations('ui.analyticsTrends');
   if (isLoading) {
     return (
@@ -82,21 +83,13 @@ export function ViralVideoLeaderboard({
         </div>
 
         {onTimeframeChange && (
-          <div className="flex gap-1 bg-background/50 p-1">
-            {TIMEFRAME_OPTIONS.map((option) => (
-              <Button
-                key={option.value}
-                label={option.label}
-                onClick={() => onTimeframeChange(option.value)}
-                className={`px-3 py-1.5 text-sm transition-colors ${
-                  timeframe === option.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
-                }`}
-                variant={ButtonVariant.UNSTYLED}
-              />
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel={selectionLabels('timeframe')}
+            onValueChange={onTimeframeChange}
+            options={TIMEFRAME_OPTIONS}
+            size="sm"
+            value={timeframe}
+          />
         )}
       </div>
 

@@ -18,6 +18,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Spinner from '@ui/primitives/spinner';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -262,6 +263,7 @@ function ClipperProjectControls({
   voiceId,
   youtubeUrl,
 }: ReturnType<typeof useStudioClipperPage>) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const t = useTranslations('pages.studioClipper');
   if (isHydrating) {
     return (
@@ -478,30 +480,23 @@ function ClipperProjectControls({
                         : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <OptionTileGroup
+                  ariaLabel={selectionLabels('avatarProvider')}
+                  columns={4}
+                  onValueChange={setAvatarProvider}
+                  value={avatarProvider}
+                >
                   {PROVIDER_OPTIONS.map((opt) => (
-                    <Button
-                      key={opt.value}
-                      variant={ButtonVariant.UNSTYLED}
+                    <OptionTile
+                      description={opt.description}
                       isDisabled={opt.disabled}
-                      onClick={() => setAvatarProvider(opt.value)}
-                      className={`relative rounded-lg border px-3 py-2 text-left transition-colors ${
-                        avatarProvider === opt.value
-                          ? 'border-primary bg-primary/10'
-                          : opt.disabled
-                            ? 'cursor-not-allowed border-border bg-muted/20 opacity-50'
-                            : 'border-border bg-muted hover:border-primary/60'
-                      }`}
-                    >
-                      <div className="text-xs font-medium text-foreground">
-                        {opt.label}
-                      </div>
-                      <div className="text-2xs text-muted-foreground">
-                        {opt.description}
-                      </div>
-                    </Button>
+                      key={opt.value}
+                      size="sm"
+                      title={opt.label}
+                      value={opt.value}
+                    />
                   ))}
-                </div>
+                </OptionTileGroup>
               </Card>
             ) : null}
 

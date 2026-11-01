@@ -129,7 +129,7 @@ vi.mock('@ui/cards/brand-completeness-card/BrandCompletenessCard', () => ({
   default: () => <p>Completeness</p>,
 }));
 vi.mock('@ui/layout/container/Container', async () => {
-  const { default: Tabs } = await import('@ui/navigation/tabs/Tabs');
+  const { Tabs } = await import('@ui/primitives/tabs');
   return {
     default: ({
       children,

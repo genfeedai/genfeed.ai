@@ -15,9 +15,9 @@ import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-ic
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { Tabs } from '@ui/primitives/tabs';
 import type {
   CalendarOptions,
   DatesSetInfo,

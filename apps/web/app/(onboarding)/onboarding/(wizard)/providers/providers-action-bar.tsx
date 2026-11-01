@@ -111,6 +111,7 @@ export default function ProvidersActionBar({
 
           <div className="relative w-full md:w-auto">
             {selectedMode === 'cloud' ? <CurrentBadge /> : null}
+            {/* ui-guard-allow:selection-button -- primary call to action for the current surface, not a choice group */}
             <Button
               variant={
                 surface === 'saas' ? ButtonVariant.DEFAULT : ButtonVariant.GHOST

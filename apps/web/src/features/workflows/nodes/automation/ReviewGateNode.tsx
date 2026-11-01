@@ -12,14 +12,13 @@ import {
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import type { NodeProps } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
-import {
-  NodeButton,
-  SelectableButton,
-} from '@/features/workflows/components/ui/button';
+import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
   NodeDescription,
   NodeHeader,
@@ -105,6 +104,7 @@ const CHANNEL_CONFIG: Record<
 };
 
 function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const { id } = props;
   const data = coerceNodeData<ReviewGateNodeData>(
     props.data,
@@ -113,15 +113,11 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const { getService } = useNodeExecution();
 
-  const handleNotifyChannelToggle = useCallback(
-    (channel: NotificationChannel) => {
-      const current = data.notifyChannels || [];
-      const updated = current.includes(channel)
-        ? current.filter((c) => c !== channel)
-        : [...current, channel];
-      updateNodeData(id, { notifyChannels: updated });
+  const handleNotifyChannelsChange = useCallback(
+    (channels: NotificationChannel[]) => {
+      updateNodeData(id, { notifyChannels: channels });
     },
-    [id, data.notifyChannels, updateNodeData],
+    [id, updateNodeData],
   );
 
   const handleInputChange = useCallback(
@@ -266,23 +262,19 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {isPending && (
         <div className="space-y-2">
           <span className="text-xs text-muted-foreground">Notify via</span>
-          <div className="flex gap-2">
-            {(
-              Object.entries(CHANNEL_CONFIG) as [
-                NotificationChannel,
-                (typeof CHANNEL_CONFIG)[NotificationChannel],
-              ][]
-            ).map(([channel, config]) => (
-              <SelectableButton
-                key={channel}
-                selected={data.notifyChannels?.includes(channel) ?? false}
-                onClick={() => handleNotifyChannelToggle(channel)}
-                icon={config.icon}
-              >
-                {config.label}
-              </SelectableButton>
-            ))}
-          </div>
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={selectionLabels('notifyVia')}
+            onValueChange={handleNotifyChannelsChange}
+            options={Object.values(NotificationChannel).map((channel) => ({
+              icon: CHANNEL_CONFIG[channel].icon,
+              label: CHANNEL_CONFIG[channel].label,
+              value: channel,
+            }))}
+            size="sm"
+            type="multiple"
+            value={data.notifyChannels ?? []}
+          />
 
           {data.notifyChannels?.includes(NotificationChannel.EMAIL) && (
             <NodeInput

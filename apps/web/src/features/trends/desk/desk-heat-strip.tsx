@@ -1,10 +1,9 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
-import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
@@ -97,18 +96,13 @@ export default function DeskHeatStrip({
 
         const isActive = activePlatforms.has(platform);
         return (
-          <Button
+          <Toggle
             aria-label={platform}
             key={platform}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-              isActive
-                ? 'border-primary/60 bg-primary/10 text-primary'
-                : 'gen-glass-subtle border-border text-foreground/70 hover:text-foreground'
-            }`}
-            onClick={() => onTogglePlatform(platform)}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
+            onPressedChange={() => onTogglePlatform(platform)}
+            pressed={isActive}
+            size="sm"
+            variant="chip"
           >
             {getPlatformIcon(platform, 'size-3.5')}
             <span className="text-muted-foreground">{count}</span>
@@ -120,7 +114,7 @@ export default function DeskHeatStrip({
                 })}
               </span>
             ) : null}
-          </Button>
+          </Toggle>
         );
       })}
     </div>
