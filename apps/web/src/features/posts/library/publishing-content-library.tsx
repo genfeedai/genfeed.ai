@@ -1,5 +1,4 @@
 'use client';
-
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -38,7 +37,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
@@ -46,6 +44,7 @@ import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -670,11 +669,11 @@ export default function PublishingContentLibrary() {
   }, [isFetching, setIsRefreshing]);
 
   const emptyState = error ? (
-    <CardEmptyContent icon={Files} label="Posts unavailable" />
+    <EmptyState icon={Files} title="Posts unavailable" />
   ) : (
-    <CardEmptyContent
+    <EmptyState
       icon={Files}
-      label={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
+      title={hasActiveFilters ? 'No matching posts' : 'No posts yet'}
     />
   );
 

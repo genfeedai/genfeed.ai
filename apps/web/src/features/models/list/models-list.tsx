@@ -1,5 +1,4 @@
 'use client';
-
 import {
   type ModelsToolbar,
   usePublishModelsToolbar,
@@ -10,9 +9,9 @@ import type {
   TableAction,
   TableRowSidebar,
 } from '@props/ui/display/table.props';
-import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -22,7 +21,6 @@ import ModelDetailPanel from '@/features/models/components/models/ModelDetailPan
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
 import type { ModelCategoryGroupKey } from './components/models-catalog-overview.helpers';
-
 import { useModelsList } from './useModelsList';
 
 export default function ModelsList({

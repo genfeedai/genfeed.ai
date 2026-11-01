@@ -83,6 +83,13 @@ const checks = [
     required: true,
   },
   {
+    // Blocks hand-built empty states and className restyles of EmptyState.
+    // Baseline: scripts/ui/hand-built/empty-states.baseline.json (empty).
+    command: ['bun', 'run', 'scripts/ui/hand-built/empty-states.ts'],
+    name: 'Empty states (shared EmptyState, no hand-built blocks or restyles)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,

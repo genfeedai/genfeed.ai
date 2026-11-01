@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -7,7 +6,6 @@ import {
   CardPadding,
 } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -15,6 +13,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import { Suspense, useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
@@ -349,7 +348,7 @@ function WorkflowTemplatesPageContent() {
         </CollectionSection>
 
         {isCatalogEmpty ? (
-          <CardEmptyContent label={translate('emptyCatalog')} />
+          <EmptyState title={translate('emptyCatalog')} />
         ) : null}
       </div>
       <WorkflowTemplateDetailsPanel

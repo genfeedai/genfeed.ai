@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { LIFECYCLE_SYSTEM_EMAILS } from '@genfeedai/contracts/constants';
 import type {
@@ -11,11 +10,11 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { logger } from '@services/core/logger.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
@@ -174,7 +173,7 @@ export default function SystemEmailPerformance({
             />
           </Alert>
         ) : !report || report.rows.length === 0 ? (
-          <CardEmptyContent label={translate('empty')} />
+          <EmptyState title={translate('empty')} />
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">

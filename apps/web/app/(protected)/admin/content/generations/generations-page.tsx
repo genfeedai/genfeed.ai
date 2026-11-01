@@ -1,5 +1,4 @@
 'use client';
-
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
@@ -9,11 +8,11 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -321,13 +320,13 @@ function GenerationsPageContent() {
           ))
         ) : hasError ? (
           <div role="alert">
-            <CardEmptyContent
-              label={t('loadError')}
+            <EmptyState
+              title={t('loadError')}
               action={{ label: t('retry'), onClick: reload }}
             />
           </div>
         ) : generations.length === 0 ? (
-          <CardEmptyContent label={t('empty')} />
+          <EmptyState title={t('empty')} />
         ) : (
           <>
             {generations.map((generation) => (

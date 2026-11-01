@@ -124,7 +124,7 @@ export function SkeletonTable({
   columns = 4,
   className,
 }: SkeletonTableProps) {
-  // Same card chrome as CardEmpty / AppTable so loading → empty/list does not clip.
+  // Same card chrome as the card EmptyState / AppTable so loading → empty/list does not clip.
   // ui-guard-allow:hand-built-card -- Card imports this module for its own loading state, so Card cannot be used here without a cycle.
   return (
     <div

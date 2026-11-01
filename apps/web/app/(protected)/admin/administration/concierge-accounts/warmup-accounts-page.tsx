@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -11,12 +10,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -759,7 +758,7 @@ function WarmupAccountList({
   }
 
   if (accounts.length === 0) {
-    return <CardEmpty label={translate('empty')} />;
+    return <EmptyState surface="card" title={translate('empty')} />;
   }
 
   return (
@@ -816,7 +815,7 @@ function WarmupAccountDetail({
   if (!account) {
     return (
       <div className="shadow-border bg-card p-5">
-        <CardEmpty label={translate('selectAccount')} />
+        <EmptyState surface="card" title={translate('selectAccount')} />
       </div>
     );
   }

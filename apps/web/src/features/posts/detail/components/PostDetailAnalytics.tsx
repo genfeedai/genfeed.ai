@@ -1,10 +1,9 @@
 'use client';
-
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { EmptyState } from '@ui/primitives/empty-state';
 
 export interface PostDetailAnalyticsProps {
   stats: AnalyticsStat[];
@@ -30,7 +29,13 @@ export default function PostDetailAnalytics({
       return null;
     }
 
-    return <CardEmpty label={emptyStateLabel} className={className} />;
+    return (
+      <EmptyState
+        surface="card"
+        title={emptyStateLabel}
+        className={className}
+      />
+    );
   }
 
   if (variant === 'inline') {

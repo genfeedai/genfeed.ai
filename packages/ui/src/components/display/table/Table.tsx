@@ -1,5 +1,4 @@
 'use client';
-
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
@@ -10,11 +9,11 @@ import type {
   TableRowLink,
   TableSortDirection,
 } from '@genfeedai/props/ui/display/table.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { TableRowActionsCell } from '@ui/display/table/TableRowActionsCell';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -431,12 +430,7 @@ export default function AppTable<T>({
           )}
           data-testid="table-empty"
         >
-          {emptyState ?? (
-            <CardEmptyContent
-              label={emptyLabel}
-              className="min-h-[12rem] w-full"
-            />
-          )}
+          {emptyState ?? <EmptyState title={emptyLabel} className="w-full" />}
         </div>
       </TableSectionWrapper>
     );

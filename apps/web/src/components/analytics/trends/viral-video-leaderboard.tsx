@@ -1,15 +1,14 @@
 'use client';
-
 import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -49,10 +48,10 @@ export function ViralVideoLeaderboard({
 
   if (videos.length === 0) {
     return (
-      <CardEmptyContent
+      <EmptyState
         className={className}
         icon={Flame}
-        label="No viral videos found"
+        title="No viral videos found"
         description="Check back later for trending content"
       />
     );
