@@ -160,6 +160,51 @@ function platformLabel(platform: string): string {
   return PLATFORM_LABELS[platform.toLowerCase()] ?? platform;
 }
 
+/** Logo tiles live in the web app's public folder (apps/web/public/assets/email/platforms). */
+const PLATFORM_LOGO_FILES: Record<string, string> = {
+  instagram: 'instagram',
+  linkedin: 'linkedin',
+  pinterest: 'pinterest',
+  reddit: 'reddit',
+  tiktok: 'tiktok',
+  twitter: 'x',
+  youtube: 'youtube',
+};
+
+/** Each platform's own colour, used as the top edge of its cards. */
+const PLATFORM_ACCENTS: Record<string, string> = {
+  instagram: '#DD2A7B',
+  linkedin: '#0A66C2',
+  pinterest: '#E60023',
+  reddit: '#FF4500',
+  tiktok: '#25F4EE',
+  twitter: '#EDEDED',
+  youtube: '#FF0000',
+};
+
+function platformAccent(platform: string): string {
+  return PLATFORM_ACCENTS[platform.toLowerCase()] ?? COLORS.border;
+}
+
+/**
+ * The platform's logo tile, then its name. Mail clients take only hosted
+ * raster images, so the tile is a PNG served from the app; without an app URL
+ * the name stands alone.
+ */
+function platformBadgeHtml(
+  platform: string,
+  appUrl: string,
+  size: number,
+): string {
+  const file = PLATFORM_LOGO_FILES[platform.toLowerCase()];
+  const base = safeUrl(appUrl);
+  const logo =
+    file && base
+      ? `<img src="${escapeTrendHtml(`${base.replace(/\/$/, '')}/assets/email/platforms/${file}.png`)}" alt="" width="${size}" height="${size}" style="border:0;border-radius:${Math.round(size / 4)}px;display:inline-block;height:${size}px;margin-right:8px;vertical-align:middle;width:${size}px;">`
+      : '';
+  return `${logo}<span style="vertical-align:middle;">${escapeTrendHtml(platformLabel(platform))}</span>`;
+}
+
 /** Drafts shown under "Ready to post today". */
 const DIGEST_DRAFT_LIMIT = 3;
 
@@ -201,8 +246,8 @@ function linked(
     : inner;
 }
 
-function metaHtml(trend: TrendDigestItem): string {
-  const parts = [escapeTrendHtml(platformLabel(trend.platform))];
+function metaHtml(trend: TrendDigestItem, appUrl: string): string {
+  const parts = [platformBadgeHtml(trend.platform, appUrl, 20)];
   if (trend.usageCount) {
     parts.push(`${formatTrendCount(trend.usageCount)} views`);
   }
@@ -234,7 +279,7 @@ function thumbnailHtml(trend: TrendDigestItem, width: number): string {
 }
 
 /** A post from X, LinkedIn or another platform, drawn as a card. Mail clients cannot run embed scripts. */
-function postCardHtml(post: TrendDigestSourcePost): string {
+function postCardHtml(post: TrendDigestSourcePost, appUrl: string): string {
   const url = safeUrl(post.url);
   const stats = [
     post.views ? `${formatTrendCount(post.views)} views` : null,
@@ -242,8 +287,8 @@ function postCardHtml(post: TrendDigestSourcePost): string {
   ].filter((part): part is string => part !== null);
   const text = post.text?.trim();
   return `
-    <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:12px;">
-      <div style="color:${COLORS.text};font-size:13px;font-weight:600;line-height:20px;">${escapeTrendHtml(post.authorHandle ?? platformLabel(post.platform))}<span style="color:${COLORS.mute};font-weight:400;"> &middot; ${escapeTrendHtml(platformLabel(post.platform))}</span></div>
+    <div style="border:1px solid ${COLORS.border};border-radius:8px;border-top:3px solid ${platformAccent(post.platform)};padding:12px;">
+      <div style="color:${COLORS.text};font-size:13px;font-weight:600;line-height:28px;">${platformBadgeHtml(post.platform, appUrl, 28)}${post.authorHandle ? `<span style="color:${COLORS.mute};font-weight:400;"> &middot; ${escapeTrendHtml(post.authorHandle)}</span>` : ''}</div>
       ${text ? `<div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:4px;">${escapeTrendHtml(text.length > 280 ? `${text.slice(0, 277)}...` : text)}</div>` : ''}
       <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:6px;">${[...stats.map(escapeTrendHtml), linked(url, 'View post', COLORS.sub)].join(' &middot; ')}</div>
     </div>`;
@@ -283,7 +328,7 @@ function leadHtml(trend: TrendDigestItem, appUrl: string): string {
           eyebrowHtml('Lead story', COLORS.pop),
           thumbnailHtml(trend, 462),
           `<div style="color:${COLORS.text};font-size:20px;font-weight:600;line-height:26px;">${linked(safeUrl(trend.url), escapeTrendHtml(trend.topic))}</div>`,
-          metaHtml(trend),
+          metaHtml(trend, appUrl),
           chipsHtml(trend.matchedTerms),
           trend.angle
             ? `<div style="color:${COLORS.sub};font-size:14px;line-height:21px;">${escapeTrendHtml(trend.angle)}</div>`
@@ -296,29 +341,33 @@ function leadHtml(trend: TrendDigestItem, appUrl: string): string {
     </div>`;
 }
 
-function draftHtml(trend: TrendDigestItem): string {
+function draftHtml(trend: TrendDigestItem, appUrl: string): string {
   const idea = trend.postIdea;
   if (!idea) {
     return '';
   }
   return `
-    <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:14px;">
-      ${eyebrowHtml(`${platformLabel(trend.platform)} · ${idea.format}`)}
+    <div style="border:1px solid ${COLORS.border};border-radius:8px;border-top:3px solid ${platformAccent(trend.platform)};padding:14px;">
+      <div style="color:${COLORS.mute};font-size:12px;line-height:20px;">${platformBadgeHtml(trend.platform, appUrl, 20)} &middot; ${escapeTrendHtml(idea.format)}</div>
       <div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:6px;white-space:pre-line;">${escapeTrendHtml(`${idea.hook}\n\n${idea.caption}`)}</div>
       <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:8px;">From: ${escapeTrendHtml(trend.topic)}</div>
     </div>`;
 }
 
-function moreRowHtml(trend: TrendDigestItem, hasDraft: boolean): string {
+function moreRowHtml(
+  trend: TrendDigestItem,
+  hasDraft: boolean,
+  appUrl: string,
+): string {
   const url = safeUrl(trend.url);
   const thumb = thumbnailHtml(trend, 112);
   const post = trend.posts?.[0];
   const text = stack(
     [
       `<div style="color:${COLORS.text};font-size:15px;font-weight:600;line-height:21px;">${linked(url, escapeTrendHtml(trend.topic))}</div>`,
-      metaHtml(trend),
+      metaHtml(trend, appUrl),
       chipsHtml(trend.matchedTerms),
-      post ? postCardHtml(post) : '',
+      post ? postCardHtml(post, appUrl) : '',
       trend.angle
         ? `<div style="color:${COLORS.sub};font-size:13px;line-height:19px;">${escapeTrendHtml(trend.angle)}</div>`
         : '',
@@ -380,14 +429,17 @@ export function buildTrendDigestHtml(
   if (drafts.length > 0) {
     sections.push(
       `<div style="margin-top:24px;">${stack(
-        [eyebrowHtml('Ready to post today'), ...drafts.map(draftHtml)],
+        [
+          eyebrowHtml('Ready to post today'),
+          ...drafts.map((draft) => draftHtml(draft, appUrl)),
+        ],
         10,
       )}</div>`,
     );
   }
   if (rest.length > 0) {
     sections.push(
-      `<div style="margin-top:24px;">${eyebrowHtml('Also moving in your niche')}<div style="margin-top:8px;">${rest.map((trend) => moreRowHtml(trend, drafts.includes(trend))).join('')}</div></div>`,
+      `<div style="margin-top:24px;">${eyebrowHtml('Also moving in your niche')}<div style="margin-top:8px;">${rest.map((trend) => moreRowHtml(trend, drafts.includes(trend), appUrl)).join('')}</div></div>`,
     );
   }
 

@@ -178,6 +178,31 @@ describe('buildTrendDigestHtml', () => {
     );
   });
 
+  it('brands each card with the platform logo served from the app', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      appUrl: 'https://app.genfeed.ai',
+      minViralScore: 70,
+    });
+
+    expect(html).toContain(
+      'src="https://app.genfeed.ai/assets/email/platforms/tiktok.png"',
+    );
+    expect(html).toContain(
+      'src="https://app.genfeed.ai/assets/email/platforms/x.png"',
+    );
+    expect(html).toContain('border-top:3px solid #EDEDED');
+  });
+
+  it('shows the platform name without a logo when there is no app url', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      appUrl: '',
+      minViralScore: 70,
+    });
+
+    expect(html).not.toContain('/assets/email/platforms/');
+    expect(html).toContain('>X</span>');
+  });
+
   it('never prints a score badge', () => {
     const html = buildTrendDigestHtml([leadTrend], { minViralScore: 70 });
 
