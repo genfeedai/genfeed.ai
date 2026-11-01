@@ -38,7 +38,6 @@ import StoryboardAgentBriefs from '@/features/studio/storyboard/components/Story
 import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
 import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
-import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard-pitches';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
