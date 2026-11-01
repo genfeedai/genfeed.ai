@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 
 const MAX_TEXT_LENGTH = 10_000;
+const MAX_REASON_LENGTH = 2_000;
 
 export class ProposeBrandRulesDto {
   @IsString()
@@ -28,10 +29,10 @@ export class ProposeBrandRulesDto {
   @MaxLength(MAX_TEXT_LENGTH)
   edited?: string;
 
-  /** Why the user rejected the draft. */
+  /** Why the user rejected the draft; only a short reason becomes a rule. */
   @IsOptional()
   @IsString()
-  @MaxLength(MAX_BRAND_RULE_LENGTH)
+  @MaxLength(MAX_REASON_LENGTH)
   reason?: string;
 }
 

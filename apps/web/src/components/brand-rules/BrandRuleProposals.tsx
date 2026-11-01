@@ -13,19 +13,23 @@ const PROPOSE_DEBOUNCE_MS = 1000;
 
 export interface BrandRuleProposalsProps {
   /** The text the model wrote; null when the post was not generated here. */
-  original: string | null;
+  original?: string | null;
   /** The text as it stands now, including the user's edits. */
-  edited: string;
+  edited?: string;
+  /** Why the user is turning a draft down, in their words. */
+  reason?: string;
 }
 
 /**
- * After the user edits a generated draft, suggests the change as a short brand
- * rule ("Never use X", "Prefer Y over X"). A rule is saved only when the user
- * accepts it; dismissing it saves nothing.
+ * Turns a correction into short brand rules ("Never use X", "Prefer Y over X"):
+ * the user's edit to a generated draft, or the reason they give for turning one
+ * down. A rule is saved only when the user accepts it; dismissing it saves
+ * nothing.
  */
 export default function BrandRuleProposals({
-  original,
-  edited,
+  original = null,
+  edited = '',
+  reason = '',
 }: BrandRuleProposalsProps) {
   const { brandId } = useBrand();
   const translate = useTranslations('ui.brandRuleProposals');
@@ -46,7 +50,9 @@ export default function BrandRuleProposals({
   getServiceRef.current = getService;
 
   useEffect(() => {
-    if (!original || !brandId || edited.trim() === original.trim()) {
+    const hasEdit = Boolean(original) && edited.trim() !== original?.trim();
+    const hasReason = reason.trim().length > 0;
+    if (!brandId || (!hasEdit && !hasReason)) {
       setProposals([]);
       return;
     }
@@ -55,7 +61,11 @@ export default function BrandRuleProposals({
       try {
         const service = await getServiceRef.current();
         const next = await service.proposeRules(
-          { brandId, edited, original },
+          {
+            brandId,
+            ...(hasEdit ? { edited, original: original ?? undefined } : {}),
+            ...(hasReason ? { reason } : {}),
+          },
           controller.signal,
         );
         if (!controller.signal.aborted) setProposals(next);
@@ -69,7 +79,7 @@ export default function BrandRuleProposals({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [brandId, edited, original]);
+  }, [brandId, edited, original, reason]);
 
   const pending = proposals.filter((rule) => !resolved.includes(rule));
 

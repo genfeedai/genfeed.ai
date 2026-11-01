@@ -44,7 +44,7 @@ describe('HarnessReviewFeedbackService', () => {
     );
   });
 
-  it('appends a rejected excerpt to examples.avoid and records feedback metadata', async () => {
+  it('records a rejected excerpt in the audit trail without touching what generation reads', async () => {
     const profile = createProfile();
     harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
     harnessProfilesService.update.mockResolvedValue(profile);
@@ -64,10 +64,8 @@ describe('HarnessReviewFeedbackService', () => {
       harnessProfilesService.update.mock.calls[0];
     expect(profileId).toBe('profile-1');
     expect(organizationId).toBe('org-1');
-    // The reviewer's reason travels with the excerpt into later prompts.
-    expect(dto.examples.avoid).toEqual([
-      'This post says something off-brand. — because Too salesy',
-    ]);
+    // Generation reads examples.avoid; a rejection must not edit it.
+    expect(dto).not.toHaveProperty('examples');
     expect(dto.avoidFeedback).toHaveLength(1);
     expect(dto.avoidFeedback[0]).toMatchObject({
       content: 'This post says something off-brand.',
@@ -78,7 +76,7 @@ describe('HarnessReviewFeedbackService', () => {
     expect(typeof dto.avoidFeedback[0].addedAt).toBe('string');
   });
 
-  it('appends request_changes feedback the same way as rejections', async () => {
+  it('records request_changes the same way as rejections', async () => {
     const profile = createProfile();
     harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
     harnessProfilesService.update.mockResolvedValue(profile);
@@ -261,7 +259,10 @@ describe('HarnessReviewFeedbackService', () => {
     );
     const [profileId, dto] = harnessProfilesService.update.mock.calls[0];
     expect(profileId).toBe('profile-new');
-    expect(dto.examples.avoid).toEqual(['Off-brand copy — because Too salesy']);
+    expect(dto.avoidFeedback[0]).toMatchObject({
+      content: 'Off-brand copy',
+      reason: 'Too salesy',
+    });
   });
 
   it('caps a long reason and keeps an entry without one as the bare excerpt', async () => {
@@ -282,38 +283,6 @@ describe('HarnessReviewFeedbackService', () => {
     const [, dto] = harnessProfilesService.update.mock.calls[0];
     expect(dto.avoidFeedback[0].reason.length).toBeLessThanOrEqual(240);
     expect(dto.avoidFeedback[0].reason.endsWith('…')).toBe(true);
-  });
-
-  it('re-renders an earlier entry that has a reason instead of keeping it as a human string', async () => {
-    const profile = createProfile({
-      avoidFeedback: [
-        {
-          addedAt: '2026-08-01T00:00:00.000Z',
-          content: 'Old rejected draft.',
-          isAutoAdded: true,
-          reason: 'Wrong audience',
-          source: 'turbo_run_item:old',
-        },
-      ],
-      examples: { avoid: ['Old rejected draft.'], good: [] },
-    });
-    harnessProfilesService.getActiveForBrand.mockResolvedValue(profile);
-    harnessProfilesService.update.mockResolvedValue(profile);
-
-    await service.recordReviewDecision({
-      brandId: 'brand-1',
-      content: 'New rejected draft.',
-      decision: ReviewDecision.REJECTED,
-      organizationId: 'org-1',
-      sourceId: 'item-new',
-      sourceType: 'turbo_run_item',
-    });
-
-    const [, dto] = harnessProfilesService.update.mock.calls[0];
-    expect(dto.examples.avoid).toEqual([
-      'Old rejected draft. — because Wrong audience',
-      'New rejected draft.',
-    ]);
   });
 
   it('dedupes by source stamp instead of writing a duplicate entry', async () => {
@@ -364,7 +333,7 @@ describe('HarnessReviewFeedbackService', () => {
     expect(dto.avoidFeedback[0].content.endsWith('…')).toBe(true);
   });
 
-  it('preserves pre-existing human-curated avoid strings untouched', async () => {
+  it('leaves pre-existing avoid strings untouched', async () => {
     const profile = createProfile({
       examples: { avoid: ['Never use this tagline.'], good: [] },
     });
@@ -381,10 +350,7 @@ describe('HarnessReviewFeedbackService', () => {
     });
 
     const [, dto] = harnessProfilesService.update.mock.calls[0];
-    expect(dto.examples.avoid).toEqual([
-      'Never use this tagline.',
-      'A rejected generated caption.',
-    ]);
+    expect(dto).not.toHaveProperty('examples');
   });
 
   it('caps auto-added feedback at 20 entries, evicting the oldest auto-added ones first', async () => {

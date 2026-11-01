@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import BrandRuleProposals from '@/components/modals/content/post/BrandRuleProposals';
+import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('next-intl', async () => {
   const { createTranslateFromCatalog } = await import(
     '@ui/tests/next-intl.stub'
   );
-  const { default: ui } = await import('../../../../../messages/en/ui.json');
+  const { default: ui } = await import('../../../messages/en/ui.json');
   return { useTranslations: createTranslateFromCatalog({ ui }) };
 });
 
@@ -82,6 +82,27 @@ describe('BrandRuleProposals', () => {
 
     expect(screen.queryByText('Never use "truly".')).toBeNull();
     expect(mocks.saveRules).not.toHaveBeenCalled();
+  });
+
+  it('offers a rejection reason as a rule without needing an edit', async () => {
+    mocks.proposeRules.mockResolvedValue(['Too salesy.']);
+    render(<BrandRuleProposals reason="Too salesy" />);
+
+    expect(
+      await screen.findByText('Too salesy.', undefined, SLOW),
+    ).toBeTruthy();
+    expect(mocks.proposeRules).toHaveBeenCalledWith(
+      { brandId: 'brand-1', reason: 'Too salesy' },
+      expect.anything(),
+    );
+  });
+
+  it('suggests nothing for a blank reason', async () => {
+    render(<BrandRuleProposals reason="   " />);
+
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(mocks.proposeRules).not.toHaveBeenCalled();
   });
 
   it('suggests nothing while the text is as the model wrote it', async () => {

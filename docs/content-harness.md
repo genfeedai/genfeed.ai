@@ -190,30 +190,34 @@ At brief time, `appliedPacks` tells you which packs actually contributed, and
 `HarnessGenerationService` logs it as an operator-only receipt: pack ids and
 versions, not content.
 
-## Review rejection to anti-example
+## Review rejection to suggested brand rule
 
-When a human reviewer rejects generated content, the harness remembers what to
-avoid. `HarnessReviewFeedbackService.recordReviewDecision` is called from the
-turbo-run review flow (`sourceType: 'turbo_run_item'`) and from workflow review
-gates (`sourceType: 'workflow_review_gate'`).
+A rejection never rewrites what generation reads. The reviewer decides, in the
+review panel, whether it becomes a brand rule.
 
-- Only `rejected` and `request_changes` do anything. `approved` and `unset` are
-  deliberate no-ops.
-- It does nothing if the content has no brand, the content is empty, or the brand
-  has no harness profile.
-- The rejected content is cut to 480 characters and appended to the active
-  profile's `examples.avoid`, together with an `avoidFeedback` entry that holds the
-  source stamp, the reviewer's reason, a timestamp and `isAutoAdded: true`.
+- While a reviewer types the reason for a rejection or a change request, the
+  panel suggests it as a short brand rule (`POST /harness-profiles/rule-proposals`).
+  **Save rule** appends it to the active profile's `guardrails`
+  (`POST /harness-profiles/rules`); **Dismiss** saves nothing. The same card
+  appears under the post field when a user edits a generated draft, with "Never
+  use X" and "Prefer Y over X" derived from the words they changed.
+- `HarnessReviewFeedbackService.recordReviewDecision` is called from the
+  turbo-run review flow (`sourceType: 'turbo_run_item'`) and from workflow review
+  gates (`sourceType: 'workflow_review_gate'`). Only `rejected` and
+  `request_changes` write an `avoidFeedback` audit entry; `approved` is recorded
+  as a positive example and `unset` is a no-op.
+- The audit entry holds the content (cut to 480 characters), the reviewer's reason,
+  the source stamp, a timestamp and `isAutoAdded: true`. It feeds the learning
+  signals and evals and is not read when generating, so it does not touch
+  `examples.avoid`. A brand with no harness profile gets one so the record is kept.
 - The same review decision is recorded once. A second call with the same
   `sourceType:sourceId` is ignored.
 - At most 20 `avoidFeedback` entries are kept. The oldest auto-added entries are
-  evicted first. Anti-examples that an operator wrote, or that came from a seed,
-  are never evicted and never counted against the cap.
+  evicted first; entries an operator wrote are never evicted or counted.
 - Failures are logged and swallowed, so a feedback write can never fail the review
   action that triggered it.
 
-On the next generation the stored anti-example reaches the brief as an
-`anti_example` source from the profile contribution.
+On the next generation a saved rule reaches the brief as a profile guardrail.
 
 ## Winner promotion
 

@@ -3,6 +3,7 @@ import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 import type { ReviewDecisionPanelProps } from '@/features/posts/props/review-decision-panel.props';
 import type { ReviewPanelItem } from '@/props/publishing/review-panel-item.props';
 
@@ -74,6 +75,8 @@ export default function ReviewDecisionPanel({
         aria-label={translate('decision.notes')}
         className="min-h-20 w-full rounded-md"
       />
+
+      {isReady ? <BrandRuleProposals reason={feedback} /> : null}
 
       {isReady ? (
         <div className="flex flex-col gap-2">
