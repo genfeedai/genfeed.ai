@@ -65,6 +65,8 @@ export const ALLOWLIST = {
   sharedMediaFiles: new Set<string>([
     // Stands in for next/image in the MCP card bundle.
     'apps/server/mcp/src/ui/next-image.tsx',
+    // Stands in for next/image in the browser extension, which Next does not build.
+    'apps/extension/src/components/ui/NextImage.tsx',
     'packages/ui/src/components/display/video-player/VideoPlayer.tsx',
   ]),
   /**

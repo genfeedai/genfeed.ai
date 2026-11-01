@@ -134,7 +134,9 @@ describe('ReplyPage', () => {
 
     expect(screen.queryByRole('region', { name: 'Replying to' })).toBeNull();
     expect(
-      screen.getByLabelText('Open a post to reply to it, or paste one here'),
+      screen.getByLabelText(
+        'Open a post on X to reply to it, or paste one here',
+      ),
     ).toBeTruthy();
   });
 

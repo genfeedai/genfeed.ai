@@ -99,6 +99,15 @@ beforeEach(() => {
 });
 
 describe('SidePanel', () => {
+  it('opens on Reply, not on the agent', async () => {
+    auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
+    render(<SidePanel />);
+
+    expect((await screen.findByText('Composer ready')).dataset.mode).toBe(
+      'reply',
+    );
+  });
+
   it('validates the stored credential against the API even if the React session is unavailable', async () => {
     auth.getAuthContext.mockResolvedValue({ organization: { id: 'org-1' } });
     render(<SidePanel />);
