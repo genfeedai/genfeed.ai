@@ -206,7 +206,9 @@ describe('TrendDetail', () => {
     // KPI tile while the request is in flight.
     const metricCards = screen.getAllByTestId('metric-card');
     expect(metricCards.length).toBeGreaterThan(0);
-    expect(metricCards[0].querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+    expect(
+      metricCards[0].querySelector('[data-slot="skeleton"]'),
+    ).toBeInTheDocument();
   });
 
   it('surfaces a failure and notifies the user', async () => {
