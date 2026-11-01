@@ -1,5 +1,6 @@
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 export type StoryboardPresetFormat = '9:16' | '16:9' | '1:1';
 
@@ -80,6 +81,15 @@ export interface StoryboardPitchCardsProps {
   /** Pitch whose brief is currently in the composer, highlighted as selected. */
   activePitchId?: StoryboardPitchId;
   isDisabled?: boolean;
+  /** One card per row, for a narrow agent column. */
+  isStacked?: boolean;
   kind: StoryboardPitchKind;
   onSelect: (pitch: StoryboardPitch) => void;
+}
+
+export interface StoryboardCreateProps {
+  /** Page actions shown in the result column's header on the agent layout. */
+  actions?: ReactNode;
+  /** Page label shown in the result column's header on the agent layout. */
+  label?: string;
 }

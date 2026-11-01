@@ -1,3 +1,4 @@
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
@@ -10,6 +11,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardCreate from './StoryboardCreate';
@@ -42,7 +44,11 @@ vi.mock(
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/${mocks.brandId}${path}` }),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org/brand-a/storyboard/new',
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mocks.push }),
+}));
 vi.mock('@/features/studio/storyboard/hooks/use-create-storyboard', () => ({
   useCreateStoryboard: () => ({
     create: mocks.create,
@@ -284,6 +290,35 @@ describe('Storyboard shared composer', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remix a video' }));
     expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
+  });
+  it('pitches in the agent column and leaves the result on the right', () => {
+    render(
+      <AgentOutputHostContext
+        value={{
+          agent: <p>Shell conversation</p>,
+          contextPanel: <p>Shell context</p>,
+          onNewThread: vi.fn(),
+          onOpenFullPage: vi.fn(),
+          threadsPanel: <p>Shell threads</p>,
+        }}
+      >
+        <StoryboardCreate />
+      </AgentOutputHostContext>,
+    );
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+    const outputPane = screen.getByTestId('agent-output-output-pane');
+
+    expect(within(agentPane).getByLabelText('Brief')).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('button', { name: 'Slideshow' }),
+    ).toBeInTheDocument();
+    expect(within(outputPane).queryByLabelText('Brief')).toBeNull();
+    expect(
+      within(outputPane).getByText(
+        'Your storyboard shows up here once you save the idea.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);

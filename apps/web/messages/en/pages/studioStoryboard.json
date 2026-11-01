@@ -59,6 +59,8 @@
     "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
     "remixTitle": "Remix a video",
     "removeAsset": "Remove {title}",
+    "result": "Storyboard",
+    "resultEmpty": "Your storyboard shows up here once you save the idea.",
     "retrySaving": "Retry saving storyboard",
     "runtimeBudget": "Runtime budget (seconds)",
     "secondsUnit": "s",

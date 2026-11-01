@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -13,24 +14,28 @@ import StoryboardCreate from '@/features/studio/storyboard/components/Storyboard
 export default function StoryboardWorkspace() {
   const translate = useTranslations('pages.studioStoryboard');
   const { href } = useOrgUrl();
+  const hasAgentColumn = Boolean(useAgentOutputHost());
+  const actions = (
+    <div className="flex flex-wrap gap-2">
+      <Button asChild variant={ButtonVariant.SECONDARY}>
+        <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
+          {translate('workspace.browseDiscovery')}
+        </Link>
+      </Button>
+      <Button asChild variant={ButtonVariant.SECONDARY}>
+        <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>
+          {translate('runs.all')}
+        </Link>
+      </Button>
+    </div>
+  );
+  const label = translate('workspace.newTitle');
+  // On the agent layout the form is the chat and the page chrome frames the result.
+  if (hasAgentColumn) {
+    return <StoryboardCreate actions={actions} label={label} />;
+  }
   return (
-    <Container
-      label={translate('workspace.newTitle')}
-      right={
-        <div className="flex flex-wrap gap-2">
-          <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
-              {translate('workspace.browseDiscovery')}
-            </Link>
-          </Button>
-          <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>
-              {translate('runs.all')}
-            </Link>
-          </Button>
-        </div>
-      }
-    >
+    <Container label={label} right={actions}>
       <div className="mx-auto w-full max-w-7xl space-y-4">
         <StoryboardCreate />
       </div>

@@ -12,6 +12,7 @@ import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard
 export default function StoryboardPitchCards({
   activePitchId,
   isDisabled = false,
+  isStacked = false,
   kind,
   onSelect,
 }: StoryboardPitchCardsProps): ReactElement {
@@ -20,7 +21,7 @@ export default function StoryboardPitchCards({
   return (
     <div
       aria-label={translate('groupAria')}
-      className="grid gap-3 sm:grid-cols-3"
+      className={cn('grid gap-3', isStacked ? 'grid-cols-1' : 'sm:grid-cols-3')}
       data-testid="storyboard-pitch-cards"
       role="group"
     >
