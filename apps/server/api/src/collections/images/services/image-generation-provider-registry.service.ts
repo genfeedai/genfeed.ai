@@ -9,7 +9,6 @@ import type {
 import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { CrunImageGenerationProviderAdapter } from '@api/collections/images/services/providers/crun-image-generation-provider.adapter';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -29,7 +28,6 @@ export class ImageGenerationProviderRegistryService {
   private readonly adapters: readonly ImageGenerationProviderAdapter[];
 
   constructor(
-    genfeedAiAdapter: GenfeedAiImageGenerationProviderAdapter,
     klingAiAdapter: KlingAiImageGenerationProviderAdapter,
     falAdapter: FalImageGenerationProviderAdapter,
     leonardoAdapter: LeonardoImageGenerationProviderAdapter,
@@ -40,7 +38,6 @@ export class ImageGenerationProviderRegistryService {
     private readonly crunAdapter?: CrunImageGenerationProviderAdapter,
   ) {
     this.adapters = [
-      genfeedAiAdapter,
       klingAiAdapter,
       higgsFieldAdapter,
       falAdapter,

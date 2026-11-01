@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest';
 
 describe('resolveImageGenerationProvider', () => {
   it.each([
-    ['genfeed-ai/org/model', 'genfeedai'],
     [MODEL_KEYS.KLINGAI_V2, 'klingai'],
     [MODEL_KEYS.HIGGSFIELD_SOUL, 'higgsfield'],
     [MODEL_KEYS.FAL_FLUX_DEV, 'fal'],

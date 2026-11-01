@@ -1,12 +1,4 @@
-export type ImageDispatchExecutePath =
-  | 'batch'
-  | 'inline'
-  | 'sequential'
-  | 'single';
-
-function isInlineCompletion(completionKind: string): boolean {
-  return completionKind === 'inline';
-}
+export type ImageDispatchExecutePath = 'batch' | 'sequential' | 'single';
 
 function isSingleOutput(outputs: number): boolean {
   return outputs <= 1;
@@ -27,14 +19,9 @@ function resolveMultiOutputStrategy(
 }
 
 export function resolveImageDispatchExecutePath(input: {
-  completionKind: string;
   outputStrategy?: string;
   outputs: number;
 }): ImageDispatchExecutePath {
-  if (isInlineCompletion(input.completionKind)) {
-    return 'inline';
-  }
-
   if (isSingleOutput(input.outputs)) {
     return 'single';
   }
