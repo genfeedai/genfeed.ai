@@ -80,19 +80,25 @@ export function usePostDetailMedia({
       const uniqueIngredients = selected.filter(
         (ing, index, self) => index === self.findIndex((i) => i.id === ing.id),
       );
+      // TikTok and YouTube posts follow the media chosen: photos stay a photo post,
+      // anything else is a video, and no media is plain text.
+      const isPhotoSelection =
+        uniqueIngredients.length > 0 &&
+        uniqueIngredients.every(
+          (ing) => ing.category === IngredientCategory.IMAGE,
+        );
+      const savedCategory = !uniqueIngredients.length
+        ? PostCategory.TEXT
+        : isPhotoSelection && platform === CredentialPlatform.TIKTOK
+          ? PostCategory.IMAGE
+          : PostCategory.VIDEO;
 
       setIsSavingIngredients(true);
       try {
         const service = await getPostsService();
         await service.patch(targetPostId, {
           ingredients: uniqueIngredients.map((ing) => ing.id),
-          ...(isVideoPlatform
-            ? {
-                category: uniqueIngredients.length
-                  ? PostCategory.VIDEO
-                  : PostCategory.TEXT,
-              }
-            : {}),
+          ...(isVideoPlatform ? { category: savedCategory } : {}),
         });
 
         if (isParentPost) {
@@ -100,13 +106,7 @@ export function usePostDetailMedia({
           setPost((prevPost) => ({
             ...(prevPost || (post as IPost)),
             ingredients: uniqueIngredients,
-            ...(isVideoPlatform
-              ? {
-                  category: uniqueIngredients.length
-                    ? PostCategory.VIDEO
-                    : PostCategory.TEXT,
-                }
-              : {}),
+            ...(isVideoPlatform ? { category: savedCategory } : {}),
           }));
         } else {
           handleUpdateChild(targetPostId, {

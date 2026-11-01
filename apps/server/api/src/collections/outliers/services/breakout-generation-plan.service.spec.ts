@@ -381,6 +381,8 @@ describe('actual pricing and native-admitted breakout planning', () => {
     it.each([
       ['image', Platform.INSTAGRAM, 1, 'image'],
       ['carousel', Platform.INSTAGRAM, 3, 'image'],
+      ['carousel', Platform.LINKEDIN, 3, 'image'],
+      ['carousel', Platform.TIKTOK, 3, 'image'],
       ['video', Platform.YOUTUBE, 1, 'video'],
       ['short', Platform.TIKTOK, 1, 'video'],
     ] as const)(
@@ -475,7 +477,7 @@ describe('actual pricing and native-admitted breakout planning', () => {
 
     it.each([
       ['image', Platform.YOUTUBE, 'format_unsupported_for_platform'],
-      ['carousel', Platform.LINKEDIN, 'format_unsupported_for_platform'],
+      ['image', Platform.TIKTOK, 'format_unsupported_for_platform'],
       ['short', Platform.LINKEDIN, 'format_unsupported_for_platform'],
       ['video', Platform.FACEBOOK, 'platform_publishing_unavailable'],
     ] as const)(

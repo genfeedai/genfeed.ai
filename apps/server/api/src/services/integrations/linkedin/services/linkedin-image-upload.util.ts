@@ -124,6 +124,15 @@ async function uploadLinkedInRestImage(
 }
 
 /**
+ * The Posts API reads `commentary` as "little text", where these characters are
+ * reserved and cut the text short unless they carry a backslash. `#` and `@`
+ * stay literal so hashtags in a caption keep working.
+ */
+export function escapeLinkedInCommentary(caption: string): string {
+  return caption.replace(/[\\|{}[\]()<>*_~]/g, (character) => `\\${character}`);
+}
+
+/**
  * Publish one post holding several images, in the order given. Multi-image
  * posts exist only on the versioned Posts API, which takes `urn:li:image` ids
  * from the Images API, so this does not share the legacy asset upload.
@@ -177,7 +186,7 @@ export async function createLinkedInMultiImagePost(
       `${LINKEDIN_REST_BASE_URL}/posts`,
       {
         author: authorUrn,
-        commentary: caption,
+        commentary: escapeLinkedInCommentary(caption),
         content: { multiImage: { images: imageUrns.map((id) => ({ id })) } },
         distribution: {
           feedDistribution: 'MAIN_FEED',

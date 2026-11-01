@@ -1,4 +1,8 @@
-import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
+} from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -230,6 +234,38 @@ describe('usePostDetailMedia', () => {
     expect(mockSetIsSavingIngredients).toHaveBeenNthCalledWith(1, true);
     expect(mockSetIsSavingIngredients).toHaveBeenLastCalledWith(false);
   });
+
+  it.each([
+    [CredentialPlatform.TIKTOK, IngredientCategory.IMAGE, PostCategory.IMAGE],
+    [CredentialPlatform.TIKTOK, IngredientCategory.VIDEO, PostCategory.VIDEO],
+    [CredentialPlatform.YOUTUBE, IngredientCategory.VIDEO, PostCategory.VIDEO],
+  ])(
+    'saves a %s post holding %s media as category %s',
+    async (platform, mediaCategory, expectedCategory) => {
+      const { result } = renderHook(() =>
+        usePostDetailMedia({
+          ...baseProps,
+          post: { ...PARENT_POST, credential: undefined, platform },
+        }),
+      );
+      act(() => {
+        result.current.handleSelectMedia('post-1', []);
+      });
+      const options = mockOpenGallery.mock.calls[0][0] as GalleryOptions;
+
+      await act(async () => {
+        await options.onSelect([
+          { category: mediaCategory, id: 'ing-1' },
+          { category: mediaCategory, id: 'ing-2' },
+        ] as unknown as Array<{ id: string }>);
+      });
+
+      expect(mockServicePatch).toHaveBeenCalledWith('post-1', {
+        category: expectedCategory,
+        ingredients: ['ing-1', 'ing-2'],
+      });
+    },
+  );
 
   it('saves the slides in the order the user arranged them', async () => {
     const { result } = renderHook(() => usePostDetailMedia(baseProps));

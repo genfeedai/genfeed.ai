@@ -423,6 +423,27 @@ describe('LinkedInService', () => {
       });
     });
 
+    it.each([
+      ['Slide 1 (of 3) #tips', 'Slide 1 \\(of 3\\) #tips'],
+      ['Save_this | a*b ~c', 'Save\\_this \\| a\\*b \\~c'],
+      ['[link] {x} <y>', '\\[link\\] \\{x\\} \\<y\\>'],
+    ])(
+      'escapes reserved characters in the caption %s',
+      async (caption, expected) => {
+        await service.uploadImages(
+          'org',
+          'brand',
+          imageUrls,
+          caption,
+          { visibility: 'CONNECTIONS' },
+          'credential',
+        );
+
+        const [, postBody] = mockHttpService.post.mock.calls.at(-1) ?? [];
+        expect(postBody.commentary).toBe(expected);
+      },
+    );
+
     it.each([[1], [21]])(
       'refuses %i image(s) before any upload',
       async (count) => {
