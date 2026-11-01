@@ -353,7 +353,6 @@ const createImageGenerationService = () => {
   );
 
   return {
-    comfyUIService,
     falService,
     klingAIService,
     promptsService,
@@ -368,7 +367,6 @@ describe('Generation completes with a fake AI provider (zero network, real routi
       service,
       falService,
       replicateService,
-      comfyUIService,
       klingAIService,
       promptsService,
     } = createImageGenerationService();
@@ -382,7 +380,6 @@ describe('Generation completes with a fake AI provider (zero network, real routi
     expect(response).toHaveProperty('data');
     expect(falService.generateImage).toHaveBeenCalledTimes(1);
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
-    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
     // The text the model was sent is kept next to the prompt's slots.
     expect(promptsService.patch).toHaveBeenCalledWith(
