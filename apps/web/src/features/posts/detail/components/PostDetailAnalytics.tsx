@@ -2,8 +2,9 @@
 
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 
 export interface PostDetailAnalyticsProps {
   stats: AnalyticsStat[];
@@ -47,16 +48,15 @@ export default function PostDetailAnalytics({
   }
 
   return (
-    <div className={cn('grid grid-cols-2 md:grid-cols-3 gap-4', className)}>
+    <MetricCardGrid className={className} columns={3}>
       {stats.map((stat) => (
-        <Card key={stat.label}>
-          <div className={cn('mb-2', stat.accent)}>
-            <stat.icon size={16} />
-          </div>
-          <p className="text-sm text-foreground/70 mb-1">{stat.label}</p>
-          <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-        </Card>
+        <MetricCard
+          key={stat.label}
+          icon={stat.icon}
+          label={stat.label}
+          value={stat.value}
+        />
       ))}
-    </div>
+    </MetricCardGrid>
   );
 }

@@ -1,8 +1,8 @@
 /**
- * Cards and panels: blocks hand-built card surfaces and restyles of the shared
- * `Card`.
+ * Cards and panels: blocks hand-built card surfaces, restyles of the shared
+ * `Card`, and hand-built stat tiles.
  *
- * Two rules:
+ * Three rules:
  *
  *  - `hand-built-card`: a raw `div`/`section`/`article`/`aside`/`li` whose
  *    classes combine a card surface (bg-card, bg-muted, bg-tertiary,
@@ -12,10 +12,16 @@
  *    padding, background, border, radius, shadow or typography. Layout classes
  *    (width, height, flex, margin, position, overflow) stay allowed. A look
  *    that is missing becomes a prop on Card, not a class at the call site.
+ *  - `hand-built-stat`: a big bold dynamic number (text-2xl and up) sitting
+ *    next to a small label (a `dt`, a text-xs/2xs/sm element or a small
+ *    `Text`). Use `@ui/cards/metric-card/MetricCard`, which renders the value
+ *    first and the label under it (`appearance="inset"` inside a card).
+ *    Marketing and mobile apps own their own display type and are skipped.
  *
  * Escape hatch (one line above the element or on the attribute):
  *   // ui-guard-allow:hand-built-card -- <reason>
  *   // ui-guard-allow:card-restyle -- <reason>
+ *   // ui-guard-allow:hand-built-stat -- <reason>
  *
  * Baseline: scripts/ui/hand-built/cards.baseline.json maps a file to the count
  * of known violations. It only ratchets down and is empty at the end of the
@@ -28,7 +34,10 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../../architecture/parse-source-file';
 
-export type CardsGuardRule = 'hand-built-card' | 'card-restyle';
+export type CardsGuardRule =
+  | 'hand-built-card'
+  | 'card-restyle'
+  | 'hand-built-stat';
 
 export interface CardsGuardViolation {
   detail: string;
@@ -67,6 +76,25 @@ const RESTYLE_TOKEN =
   /^!?(p[xytblrse]?-|bg-|border($|-)|rounded|shadow|ring|text-(?!left$|right$)|font-|leading-|tracking-|backdrop-|space-[xy]-|gap-|divide-|outline|transition|duration|ease-)/;
 
 const ALLOW_MARKER = 'ui-guard-allow:';
+
+// Hand-built stat tiles: a big bold value next to a small label.
+const STAT_SKIPPED_PREFIXES = ['apps/marketing/', 'apps/mobile/'];
+const HEADING_ELEMENTS = new Set([
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'Heading',
+]);
+const STAT_VALUE_SIZE = /^text-(2xl|3xl|4xl|5xl)$/;
+const STAT_VALUE_WEIGHT = /^font-(semibold|bold)$/;
+const STAT_LABEL_SIZE = /^text-(2xs|xs|sm)$/;
+const STAT_LABEL_TONE =
+  /^(text-muted-foreground|text-foreground\/\d+|uppercase)$/;
+const SMALL_TEXT_SIZE = /^["'{\s]*(xs|sm)["'}\s]*$/;
+const MUTED_TEXT_COLOR = /^["'{\s]*muted["'}\s]*$/;
 
 function stripVariants(token: string): string {
   const parts = token.split(':');
@@ -132,6 +160,90 @@ function attributesOf(
   return element.attributes.properties.filter((property) =>
     ts.isJsxAttribute(property),
   ) as ts.JsxAttribute[];
+}
+
+function plainClassTokens(
+  element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+): string[] {
+  const classAttribute = attributesOf(element).find(
+    (attribute) => attribute.name.getText() === 'className',
+  );
+  return classAttribute
+    ? tokensOf(classAttribute).filter((token) => !token.includes(':'))
+    : [];
+}
+
+function openingOf(
+  node: ts.Node,
+): ts.JsxOpeningElement | ts.JsxSelfClosingElement | null {
+  if (ts.isJsxElement(node)) {
+    return node.openingElement;
+  }
+  return ts.isJsxSelfClosingElement(node) ? node : null;
+}
+
+/** A small muted caption: a `dt`, a muted xs/sm `Text`, or muted small type. */
+function isSmallLabel(node: ts.Node): boolean {
+  const opening = openingOf(node);
+  if (!opening) {
+    return false;
+  }
+  const tagName = opening.tagName.getText();
+  if (tagName === 'dt') {
+    return true;
+  }
+  if (tagName === 'Text') {
+    const attributeText = (name: string): string =>
+      attributesOf(opening)
+        .find((attribute) => attribute.name.getText() === name)
+        ?.initializer?.getText() ?? '';
+    return (
+      SMALL_TEXT_SIZE.test(attributeText('size')) &&
+      MUTED_TEXT_COLOR.test(attributeText('color'))
+    );
+  }
+  const tokens = plainClassTokens(opening);
+  return (
+    tokens.some((token) => STAT_LABEL_SIZE.test(token)) &&
+    tokens.some((token) => STAT_LABEL_TONE.test(token))
+  );
+}
+
+function isHandBuiltStat(node: ts.JsxElement): boolean {
+  const opening = node.openingElement;
+  if (HEADING_ELEMENTS.has(opening.tagName.getText())) {
+    return false;
+  }
+  const tokens = plainClassTokens(opening);
+  if (
+    !tokens.some((token) => STAT_VALUE_SIZE.test(token)) ||
+    !tokens.some((token) => STAT_VALUE_WEIGHT.test(token)) ||
+    !node.children.some((child) => ts.isJsxExpression(child))
+  ) {
+    return false;
+  }
+  // `{isLoading ? <Skeleton /> : <p>{value}</p>}` sits in the parent as a
+  // JSX expression, so climb to it before looking at the siblings.
+  let slot: ts.Node = node;
+  while (
+    ts.isParenthesizedExpression(slot.parent) ||
+    ts.isConditionalExpression(slot.parent) ||
+    ts.isBinaryExpression(slot.parent) ||
+    ts.isJsxExpression(slot.parent)
+  ) {
+    slot = slot.parent;
+  }
+  const parent = slot.parent;
+  if (!ts.isJsxElement(parent) && !ts.isJsxFragment(parent)) {
+    return false;
+  }
+  const siblings = parent.children.filter(
+    (child) => !ts.isJsxText(child) || child.text.trim().length > 0,
+  );
+  const index = siblings.indexOf(slot as ts.JsxChild);
+  return [siblings[index - 1], siblings[index + 1]].some(
+    (sibling) => sibling !== undefined && isSmallLabel(sibling),
+  );
 }
 
 function scanContent(
@@ -218,9 +330,27 @@ function scanContent(
     }
   };
 
+  const isStatScope = !STAT_SKIPPED_PREFIXES.some((prefix) =>
+    relativePath.startsWith(prefix),
+  );
+
   const visit = (node: ts.Node): void => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       inspect(node);
+    }
+    if (
+      isStatScope &&
+      ts.isJsxElement(node) &&
+      isHandBuiltStat(node) &&
+      !isAllowed(sourceFile, 'hand-built-stat', node.openingElement)
+    ) {
+      violations.push({
+        detail: `<${node.openingElement.tagName.getText()}> ${plainClassTokens(node.openingElement).join(' ')}`,
+        file: relativePath,
+        line:
+          sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+        rule: 'hand-built-stat',
+      });
     }
     ts.forEachChild(node, visit);
   };
@@ -310,7 +440,7 @@ if (isMainModule()) {
 
   if (failures.length > 0) {
     logger.error(
-      'Hand-built card surface or Card restyle found. Use Card props (variant, padding, gap, as, tone, isSelected, isInteractive) and put layout classes only on the call site. To keep a one-off, add `// ui-guard-allow:<rule> -- reason`.',
+      'Hand-built card surface, Card restyle or stat tile found. Use Card props (variant, padding, gap, as, tone, isSelected, isInteractive) and put layout classes only on the call site. Stat tiles use MetricCard (value first, label under it; appearance="inset" inside a card). To keep a one-off, add `// ui-guard-allow:<rule> -- reason`.',
     );
     for (const failure of failures) {
       logger.error(`- ${failure}`);
@@ -327,5 +457,5 @@ if (isMainModule()) {
   if (failures.length > 0 || stale.length > 0) {
     process.exit(1);
   }
-  logger.log('No hand-built card surfaces or Card restyles found.');
+  logger.log('No hand-built card surfaces, Card restyles or stat tiles found.');
 }

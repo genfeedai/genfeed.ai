@@ -24,7 +24,7 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
@@ -146,31 +146,14 @@ function OrganizationMetricStrip({
     <section aria-label="Organization metrics">
       <DashboardGrid>
         {metrics.map((metric) => (
-          <Card key={metric.label}>
-            {isLoading ? (
-              <Skeleton variant="text" height={32} className="w-16" />
-            ) : (
-              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                {metric.value}
-              </div>
-            )}
-            <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/60">
-              {metric.analyticsMetric ? (
-                <AnalyticsMetricLabel metric={metric.analyticsMetric}>
-                  {metric.label}
-                </AnalyticsMetricLabel>
-              ) : (
-                metric.label
-              )}
-            </p>
-            {isLoading ? (
-              <Skeleton variant="text" height={12} className="mt-2 w-28" />
-            ) : (
-              <p className="mt-1.5 text-2xs text-muted-foreground">
-                {metric.accent}
-              </p>
-            )}
-          </Card>
+          <MetricCard
+            key={metric.label}
+            analyticsMetric={metric.analyticsMetric}
+            description={metric.accent}
+            isLoading={isLoading}
+            label={metric.label}
+            value={metric.value}
+          />
         ))}
       </DashboardGrid>
     </section>

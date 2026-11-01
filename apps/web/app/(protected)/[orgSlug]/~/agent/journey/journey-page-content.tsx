@@ -8,6 +8,8 @@ import {
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
 } from '@genfeedai/contracts/types';
 import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -83,42 +85,31 @@ export default function JourneyPageContent() {
           </Button>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('progress')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading ? '-' : `${completionPercent}%`}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('availableToUnlock')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading ? '-' : remainingJourneyCredits}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('journeyUnlocked')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {isLoading
-                ? '-'
-                : `${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              {translate('journeyTotal')}
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {ONBOARDING_JOURNEY_TOTAL_CREDITS}
-            </p>
-          </div>
-        </div>
+        <MetricCardGrid className="mt-6" columns={4}>
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('progress')}
+            value={`${completionPercent}%`}
+          />
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('availableToUnlock')}
+            value={remainingJourneyCredits}
+          />
+          <MetricCard
+            appearance="inset"
+            isLoading={isLoading}
+            label={translate('journeyUnlocked')}
+            value={`${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
+          />
+          <MetricCard
+            appearance="inset"
+            label={translate('journeyTotal')}
+            value={ONBOARDING_JOURNEY_TOTAL_CREDITS}
+          />
+        </MetricCardGrid>
       </Card>
 
       {isLoading ? (
