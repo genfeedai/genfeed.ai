@@ -2,8 +2,9 @@
 
 import type { AgentWorkObjectEditorProps } from '@genfeedai/agent/components/agent-work-objects.types';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -125,9 +126,11 @@ export function AgentWorkObjectEditor({
   }
 
   return (
-    <div
+    <Card
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      className="my-3 min-w-0"
       ref={rootRef}
-      className="my-3 min-w-0 space-y-3 rounded-lg border border-border bg-card p-3"
       data-work-object-viewed={object.viewedInSession}
       data-work-object-id={object.id}
     >
@@ -264,6 +267,6 @@ export function AgentWorkObjectEditor({
           )}
         </p>
       ) : null}
-    </div>
+    </Card>
   );
 }

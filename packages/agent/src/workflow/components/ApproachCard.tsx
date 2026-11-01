@@ -1,4 +1,4 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { CardGap } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Check, Minus, Plus, Star } from 'lucide-react';
 import { memo } from 'react';
@@ -21,11 +21,10 @@ function ApproachCardInner({
     <Card
       onClick={() => !disabled && onSelect(approach.id)}
       isDisabled={disabled}
-      bodyClassName="gap-0 p-4"
-      className={cn(
-        'w-full',
-        isSelected ? 'bg-info/10 shadow-border-strong' : 'hover:bg-hover',
-      )}
+      gap={CardGap.NONE}
+      isPressed={isSelected}
+      isSelected={isSelected}
+      className="w-full"
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <h3 className="text-sm font-semibold text-foreground/90">

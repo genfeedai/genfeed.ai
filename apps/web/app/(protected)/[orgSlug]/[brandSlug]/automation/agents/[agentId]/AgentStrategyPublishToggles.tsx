@@ -1,5 +1,6 @@
 'use client';
 
+import { CardGap } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
@@ -81,7 +82,7 @@ export default function AgentStrategyPublishToggles({
   const isSaving = pending !== null;
 
   return (
-    <Card className="space-y-4 p-4" label={translate('title')} labelAs="h3">
+    <Card gap={CardGap.LG} label={translate('title')} labelAs="h3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-3 text-sm text-foreground">
           <Checkbox

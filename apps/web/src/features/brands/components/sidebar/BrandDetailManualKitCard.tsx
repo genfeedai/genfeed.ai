@@ -3,6 +3,9 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
   FONT_FAMILY_METADATA,
   FontFamily,
   resolveFontFamily,
@@ -646,20 +649,26 @@ export default function BrandDetailManualKitCard({
           />
         </div>
 
-        <div className="rounded-md bg-card p-3 text-sm shadow-border">
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium">Attached assets</span>
-            <span className="text-muted-foreground">{attachedAssetCount}</span>
+        <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+          <div className="text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">Attached assets</span>
+              <span className="text-muted-foreground">
+                {attachedAssetCount}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
+              {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
+              {(brand.references ?? []).length > 0 ? (
+                <span>{brand.references?.length} references</span>
+              ) : null}
+              {attachedAssetCount === 0 ? (
+                <span>No assets attached</span>
+              ) : null}
+            </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {brand.logo || brand.logoUrl ? <span>Logo</span> : null}
-            {brand.banner || brand.bannerUrl ? <span>Banner</span> : null}
-            {(brand.references ?? []).length > 0 ? (
-              <span>{brand.references?.length} references</span>
-            ) : null}
-            {attachedAssetCount === 0 ? <span>No assets attached</span> : null}
-          </div>
-        </div>
+        </Card>
 
         {error ? (
           <p
@@ -683,8 +692,9 @@ export default function BrandDetailManualKitCard({
         />
 
         {draft ? (
-          <div
-            className="space-y-3 rounded-md bg-card p-3 shadow-border"
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
             data-testid="manual-kit-draft-review"
           >
             <div className="flex items-center justify-between gap-3">
@@ -731,11 +741,18 @@ export default function BrandDetailManualKitCard({
             </div>
 
             {draft.assetCandidates.length > 0 ? (
-              <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                <CircleCheck className="size-4" />
-                {draft.assetCandidates.length} asset source
-                {draft.assetCandidates.length === 1 ? '' : 's'} included
-              </div>
+              <Card
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
+                gap={CardGap.SM}
+                bodyClassName="flex-row items-center"
+              >
+                <div className="text-xs text-muted-foreground">
+                  <CircleCheck className="size-4" />
+                  {draft.assetCandidates.length} asset source
+                  {draft.assetCandidates.length === 1 ? '' : 's'} included
+                </div>
+              </Card>
             ) : null}
 
             {draft.diagnostics.length > 0 ? (
@@ -759,7 +776,7 @@ export default function BrandDetailManualKitCard({
                 void handleApplyDraft();
               }}
             />
-          </div>
+          </Card>
         ) : null}
       </div>
     </Card>

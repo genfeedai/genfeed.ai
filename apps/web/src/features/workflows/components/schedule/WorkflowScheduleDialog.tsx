@@ -1,9 +1,15 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -228,7 +234,11 @@ export function WorkflowScheduleDialog({
               </div>
             ) : null}
 
-            <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">
+            <Card
+              padding={CardPadding.SM}
+              gap={CardGap.LG}
+              bodyClassName="flex-row items-start justify-between"
+            >
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium text-foreground">
                   {translate('recurring.title')}
@@ -243,7 +253,7 @@ export function WorkflowScheduleDialog({
                 checked={isEnabled}
                 onCheckedChange={setIsEnabled}
               />
-            </div>
+            </Card>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">

@@ -2,7 +2,13 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
-import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  MemberRole,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   isOrganizationModuleOffered,
@@ -270,7 +276,9 @@ function OrganizationModuleTile({
 
   return (
     <Card
-      bodyClassName="flex h-full flex-col gap-0 p-0"
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+      bodyClassName="flex h-full flex-col"
       className="h-full"
       data-shown={isShown && !isSubscriptionRequired}
       data-testid={`module-card-${moduleId}`}

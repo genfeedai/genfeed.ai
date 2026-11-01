@@ -2,6 +2,8 @@
 
 import {
   ButtonVariant,
+  CardGap,
+  CardPadding,
   CardVariant,
   SocialSourceType,
 } from '@genfeedai/contracts';
@@ -85,7 +87,11 @@ export default function GeneratePlanDialog({
         </DialogHeader>
 
         {dataset && !isLoadingSummary ? (
-          <Card variant={CardVariant.BORDERED} bodyClassName="gap-2 p-3">
+          <Card
+            variant={CardVariant.BORDERED}
+            padding={CardPadding.SM}
+            gap={CardGap.SM}
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm text-foreground/70">
                 {translateDataset('summaryLine', {

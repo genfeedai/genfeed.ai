@@ -1,4 +1,5 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -84,7 +85,7 @@ export default function BrandKitReviewFields({
 
                 return (
                   <Collapsible key={key}>
-                    <div className="rounded-md bg-card p-3 shadow-border">
+                    <Card padding={CardPadding.SM}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
@@ -221,7 +222,7 @@ export default function BrandKitReviewFields({
 
                         <SourceEvidenceRows evidence={field.evidence} />
                       </CollapsibleContent>
-                    </div>
+                    </Card>
                   </Collapsible>
                 );
               })}

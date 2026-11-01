@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   CardVariant,
   ModalEnum,
 } from '@genfeedai/contracts';
@@ -57,11 +58,7 @@ function ErrorSection({
   const showBody = onToggle ? isExpanded : true;
 
   return (
-    <Card
-      variant={CardVariant.DEFAULT}
-      className="rounded-lg border border-border bg-card hover:border-border"
-      bodyClassName="gap-0 p-4"
-    >
+    <Card variant={CardVariant.BORDERED} gap={CardGap.NONE}>
       <div className="flex items-center gap-2">
         {onToggle ? (
           <Button

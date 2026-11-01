@@ -1,5 +1,6 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -51,14 +52,13 @@ export default function NoticeBanner({
 
   return (
     <div className="@container w-full">
-      <div
+      <Card
         role="alert"
         data-testid={testId}
-        className={cn(
-          'flex w-full flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm',
-          'items-stretch @2xl:flex-row @2xl:items-center @2xl:justify-between',
-          className,
-        )}
+        variant={CardVariant.BORDERED}
+        padding={CardPadding.SM}
+        className={cn('w-full', className)}
+        bodyClassName="items-stretch @2xl:flex-row @2xl:items-center @2xl:justify-between"
       >
         <div className="flex min-w-0 items-start gap-3 @2xl:items-center">
           <div
@@ -103,7 +103,7 @@ export default function NoticeBanner({
             ) : null}
           </div>
         ) : null}
-      </div>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import {
   ButtonVariant,
+  CardVariant,
   ModalEnum,
   type QualityTier,
   SubscriptionTier,
@@ -16,6 +17,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import Card from '@ui/card/Card';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
@@ -202,14 +204,10 @@ function PlanUpgradePrompt({
         )}
       >
         {plans.map(({ isRecommended, tier }) => (
-          <div
+          <Card
             key={tier}
-            className={cn(
-              'flex flex-col gap-3 rounded-lg p-4',
-              isRecommended
-                ? 'bg-primary/10 shadow-border-strong'
-                : 'bg-background-secondary shadow-border',
-            )}
+            variant={CardVariant.INSET}
+            isSelected={isRecommended}
           >
             <div>
               <div
@@ -265,7 +263,7 @@ function PlanUpgradePrompt({
                 );
               })}
             </ul>
-          </div>
+          </Card>
         ))}
       </div>
 

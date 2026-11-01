@@ -55,8 +55,8 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
 
   return (
     <Card
-      className={`shadow-lg hover:shadow-xl transition-all duration-300 group ${className}`}
-      bodyClassName="p-4"
+      isInteractive
+      className={`group ${className}`}
       actions={
         externalUrl ? (
           <a

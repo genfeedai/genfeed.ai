@@ -13,6 +13,8 @@ import {
   AgentThreadMode,
   ButtonSize,
   ButtonVariant,
+  CardPadding,
+  CardVariant,
 } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -23,6 +25,7 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -139,7 +142,7 @@ export function AgentChatInput({
   knowledgeSection,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
-  const isDock = density === 'dock';
+  const _isDock = density === 'dock';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
   const {
@@ -216,13 +219,17 @@ export function AgentChatInput({
       <AgentChatInputStyles />
 
       {actionFeedback ? (
-        <div
+        <Card
+          variant={CardVariant.BORDERED}
+          padding={CardPadding.SM}
+          className="mb-2"
           aria-live="polite"
-          className="mb-2 rounded-lg border border-border bg-card/90 px-3 py-2 text-xs leading-5 text-foreground/80 shadow-border"
           role="status"
         >
-          {actionFeedback}
-        </div>
+          <div className="text-xs leading-5 text-foreground/80">
+            {actionFeedback}
+          </div>
+        </Card>
       ) : null}
 
       <PromptBarComposer

@@ -122,7 +122,7 @@ export default function AdvancedRoutingCard({
   const autoOption = translate('autoOption');
 
   return (
-    <Card label={translate('cardLabel')} bodyClassName="gap-3 p-4">
+    <Card label={translate('cardLabel')}>
       <div className="space-y-3">
         <Switch
           label={translate('exposeLabel')}

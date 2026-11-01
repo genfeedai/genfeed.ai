@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  VoiceProvider,
+} from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -108,9 +113,11 @@ export default function UploadVoiceCloneSection({
       </div>
 
       {recordedFile ? (
-        <div className="rounded-lg bg-tertiary p-3 text-sm text-muted-foreground shadow-border">
-          Recorded sample ready: {recordedFile.name}
-        </div>
+        <Card padding={CardPadding.SM}>
+          <div className="text-sm text-muted-foreground">
+            Recorded sample ready: {recordedFile.name}
+          </div>
+        </Card>
       ) : null}
       {recordingError ? (
         <div className="text-xs text-destructive">{recordingError}</div>

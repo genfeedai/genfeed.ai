@@ -49,7 +49,7 @@ export default function PostDetailAnalytics({
   return (
     <div className={cn('grid grid-cols-2 md:grid-cols-3 gap-4', className)}>
       {stats.map((stat) => (
-        <Card key={stat.label} className="p-4">
+        <Card key={stat.label}>
           <div className={cn('mb-2', stat.accent)}>
             <stat.icon size={16} />
           </div>

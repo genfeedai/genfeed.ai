@@ -1,3 +1,4 @@
+import { CardVariant } from '@genfeedai/contracts';
 import type { Article } from '@models/content/article.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
@@ -64,7 +65,11 @@ export default function ArticlesList({
                 href={`/articles/${article.slug || article.id}`}
                 className="group block"
               >
-                <Card className="h-full border border-foreground/10 transition-all hover:shadow-lg">
+                <Card
+                  isInteractive
+                  variant={CardVariant.BORDERED}
+                  className="h-full"
+                >
                   <ArticleCover
                     category={article.category}
                     className="mb-4 aspect-[16/9]"

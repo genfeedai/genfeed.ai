@@ -119,11 +119,6 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 function oauthParams(overrides: Record<string, string> = {}) {
   return new URLSearchParams({
     client_id: 'oauth_client',

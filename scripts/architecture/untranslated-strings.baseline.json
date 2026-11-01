@@ -423,7 +423,6 @@
     "packages/ui/src/components/badges/ComingSoonBadge.tsx": 1,
     "apps/web/src/components/banners/production-data/ProductionDataBanner.tsx": 1,
     "packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx": 2,
-    "packages/ui/src/components/card/Card.tsx": 1,
     "packages/ui/src/components/card/empty/CardEmpty.tsx": 3,
     "packages/ui/src/components/cards/brand-completeness-card/BrandCompletenessCard.tsx": 3,
     "apps/web/src/components/command-palette/command-palette/CommandPaletteView.tsx": 7,

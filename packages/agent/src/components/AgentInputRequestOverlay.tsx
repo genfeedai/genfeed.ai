@@ -1,6 +1,12 @@
 import type { AgentInputRequestOverlayProps } from '@genfeedai/agent/components/agent-input-request-overlay.types';
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -99,14 +105,20 @@ export function AgentInputRequestOverlay({
             : 'absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm' /* design-system-allow-content-color */
       }
     >
-      <div
-        className={cn(
-          'w-full border border-border bg-card shadow-border',
+      <Card
+        variant={CardVariant.BORDERED}
+        padding={
           isComposer
-            ? 'max-h-[min(50dvh,24rem)] overflow-y-auto rounded-lg p-3'
+            ? CardPadding.SM
             : variant === 'inline'
-              ? 'rounded-lg p-4'
-              : 'max-w-4xl p-6 shadow-ambient-lg',
+              ? CardPadding.MD
+              : CardPadding.XL
+        }
+        gap={CardGap.NONE}
+        className={cn(
+          'w-full',
+          isComposer && 'max-h-[min(50dvh,24rem)] overflow-y-auto',
+          !isComposer && variant !== 'inline' && 'max-w-4xl',
         )}
       >
         <div className={isInline ? 'mb-3' : 'mb-4'}>
@@ -300,7 +312,7 @@ export function AgentInputRequestOverlay({
             </Button>
           </div>
         ) : null}
-      </div>
+      </Card>
     </div>
   );
 }

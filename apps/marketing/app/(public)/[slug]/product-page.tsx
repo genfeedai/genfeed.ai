@@ -152,7 +152,8 @@ export default function ProductPage({ product }: { product: Product }) {
             {relatedProducts.map((relatedProduct) => (
               <Link key={relatedProduct.slug} href={`/${relatedProduct.slug}`}>
                 <Card
-                  className="hover:shadow-2xl transition-shadow h-full"
+                  isInteractive
+                  className="h-full"
                   label={relatedProduct.name}
                   description={relatedProduct.tagline}
                   actions={

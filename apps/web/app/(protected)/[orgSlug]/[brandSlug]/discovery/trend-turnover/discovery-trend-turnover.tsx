@@ -4,6 +4,7 @@ import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
+  CardGap,
   ComponentSize,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -197,22 +198,14 @@ export default function DiscoveryTrendTurnover() {
             ]}
           />
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('flow.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('flow.title')}>
             <Text size="sm" color="subtle-60">
               {translate('flow.description')}
             </Text>
             <TrendFlowChart data={data?.timeline ?? []} isLoading={isLoading} />
           </Card>
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('breakdown.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('breakdown.title')}>
             <Table<TrendTurnoverPlatformStats>
               items={data?.byPlatform ?? []}
               isLoading={isLoading}
@@ -276,11 +269,7 @@ export default function DiscoveryTrendTurnover() {
             />
           </Card>
 
-          <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-4"
-            label={translate('volatility.title')}
-          >
+          <Card gap={CardGap.LG} label={translate('volatility.title')}>
             <Text size="sm" color="subtle-60">
               {translate('volatility.description')}
             </Text>

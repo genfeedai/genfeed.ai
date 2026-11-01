@@ -1,10 +1,16 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
 } from '@genfeedai/contracts/interfaces';
+import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
 
@@ -75,9 +81,10 @@ function SchemaFields({
       ) : (
         <div className="space-y-2">
           {properties.map(([name, property]) => (
-            <div
+            <Card
+              variant={CardVariant.INSET}
+              padding={CardPadding.SM}
               key={name}
-              className="rounded-md border border-border bg-muted/50 p-2"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <code className="text-xs text-foreground">{name}</code>
@@ -95,7 +102,7 @@ function SchemaFields({
                   {property.description}
                 </p>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}

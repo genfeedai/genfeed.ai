@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import type { BrandCompletenessGroup } from '@genfeedai/helpers';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -124,7 +124,8 @@ export default function BrandCompletenessCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-3 sm:p-3"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
       data-testid="brand-completeness-card"
     >
       {/* Header */}

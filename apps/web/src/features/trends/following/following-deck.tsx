@@ -3,11 +3,13 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   SocialSourceType,
 } from '@genfeedai/contracts';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import Card from '@ui/card/Card';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -184,11 +186,13 @@ function FollowingDeckPost({
   }, [item.remixSelector, remixSurface]);
 
   return (
-    <article
+    <Card
+      as="article"
       aria-current={isCursored ? 'true' : undefined}
-      className={`group relative flex flex-col gap-3 rounded-card bg-card p-3 shadow-border transition-[box-shadow,background-color] hover:bg-hover ${
-        isCursored ? 'ring-1 ring-inset ring-primary/50' : ''
-      } ${isSelected ? 'bg-accent' : ''}`}
+      isInteractive
+      isSelected={isCursored || isSelected}
+      padding={CardPadding.SM}
+      className="group"
       data-testid="following-deck-post"
     >
       <Button
@@ -325,7 +329,7 @@ function FollowingDeckPost({
           ) : null}
         </span>
       </footer>
-    </article>
+    </Card>
   );
 }
 

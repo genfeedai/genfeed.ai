@@ -1,8 +1,14 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   LibraryAsset,
 } from '@genfeedai/contracts/interfaces';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { PenLine, Shuffle } from 'lucide-react';
@@ -110,14 +116,14 @@ export function ChatContainer({
               </p>
             </div>
             {initialContent ? (
-              <div className="rounded-lg border border-border bg-card p-3">
+              <Card variant={CardVariant.BORDERED} padding={CardPadding.SM}>
                 <p className="mb-2 text-2xs font-medium text-muted-foreground">
                   From this page
                 </p>
                 <p className="line-clamp-4 text-xs leading-5">
                   {initialContent}
                 </p>
-              </div>
+              </Card>
             ) : null}
             <ChatActionChips
               onChipClick={setSuggestedPrompt}

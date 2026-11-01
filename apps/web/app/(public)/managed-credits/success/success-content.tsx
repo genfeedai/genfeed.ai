@@ -1,11 +1,17 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
 import {
   isManagedCreditsTransientError,
   ManagedCreditsService,
 } from '@services/billing/managed-credits.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import {
@@ -19,7 +25,6 @@ import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
-import { Card, CardContent } from '@/components/ui/card';
 import type {
   CopyTarget,
   SuccessState,
@@ -205,60 +210,58 @@ function ManagedCreditsSuccessContentInner() {
           </p>
         </div>
 
-        <Card className="shadow-border border-transparent">
-          <CardContent className="p-8">
-            {state.isLoading ? (
-              <StepDisplay
-                icon={<Spinner size={ComponentSize.LG} />}
-                title="Provisioning checkout"
-                description="Waiting for Stripe to finish credit and key provisioning..."
-              />
-            ) : null}
+        <Card padding={CardPadding.XL}>
+          {state.isLoading ? (
+            <StepDisplay
+              icon={<Spinner size={ComponentSize.LG} />}
+              title="Provisioning checkout"
+              description="Waiting for Stripe to finish credit and key provisioning..."
+            />
+          ) : null}
 
-            {!state.isLoading && state.error ? (
-              <StepDisplay
-                icon={<TriangleAlert className="size-8 text-warning" />}
-                title="Provisioning result not ready"
-                description={state.error}
-              />
-            ) : null}
+          {!state.isLoading && state.error ? (
+            <StepDisplay
+              icon={<TriangleAlert className="size-8 text-warning" />}
+              title="Provisioning result not ready"
+              description={state.error}
+            />
+          ) : null}
 
-            {!state.isLoading && hasRecoverableExistingKey ? (
+          {!state.isLoading && hasRecoverableExistingKey ? (
+            <StepDisplay
+              icon={<CircleCheck className="size-8 text-success" />}
+              title="Credits added"
+              description="This account already has a managed API key, so the secret cannot be shown again. Use your existing key or create a new one in Genfeed Cloud."
+            />
+          ) : null}
+
+          {!state.isLoading && apiKey ? (
+            <div className="space-y-6">
               <StepDisplay
                 icon={<CircleCheck className="size-8 text-success" />}
                 title="Credits added"
-                description="This account already has a managed API key, so the secret cannot be shown again. Use your existing key or create a new one in Genfeed Cloud."
+                description={`Provisioned for ${state.result?.email ?? 'your account'}. Copy this key now and store it in your local environment.`}
               />
-            ) : null}
 
-            {!state.isLoading && apiKey ? (
-              <div className="space-y-6">
-                <StepDisplay
-                  icon={<CircleCheck className="size-8 text-success" />}
-                  title="Credits added"
-                  description={`Provisioned for ${state.result?.email ?? 'your account'}. Copy this key now and store it in your local environment.`}
-                />
+              <KeyBlock
+                copied={copiedTarget === 'api-key'}
+                label="GENFEED_API_KEY"
+                value={apiKey}
+                onCopy={() => copyValue('api-key', apiKey)}
+              />
 
-                <KeyBlock
-                  copied={copiedTarget === 'api-key'}
-                  label="GENFEED_API_KEY"
-                  value={apiKey}
-                  onCopy={() => copyValue('api-key', apiKey)}
-                />
+              <KeyBlock
+                copied={copiedTarget === 'env'}
+                label="Local .env values"
+                value={envSnippet}
+                onCopy={() => copyValue('env', envSnippet)}
+              />
 
-                <KeyBlock
-                  copied={copiedTarget === 'env'}
-                  label="Local .env values"
-                  value={envSnippet}
-                  onCopy={() => copyValue('env', envSnippet)}
-                />
-
-                {state.copyError ? (
-                  <p className="text-sm text-warning">{state.copyError}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </CardContent>
+              {state.copyError ? (
+                <p className="text-sm text-warning">{state.copyError}</p>
+              ) : null}
+            </div>
+          ) : null}
         </Card>
       </div>
     </AuthFormLayout>

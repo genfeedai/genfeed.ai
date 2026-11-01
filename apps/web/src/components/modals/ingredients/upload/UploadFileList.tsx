@@ -1,8 +1,9 @@
 'use client';
 
-import { UploadStatus } from '@genfeedai/contracts';
+import { CardPadding, UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Progress } from '@ui/primitives/progress';
 import {
   Check,
@@ -76,8 +77,10 @@ export default function UploadFileList({
         const isCompleted = status === UploadStatus.COMPLETED;
 
         return (
-          <li
-            className="flex items-center gap-3 rounded-lg bg-background-secondary p-2 shadow-border"
+          <Card
+            padding={CardPadding.SM}
+            as="li"
+            bodyClassName="flex-row items-center"
             key={`${file.name}-${file.size}-${file.lastModified}`}
           >
             <UploadFileThumb file={file} />
@@ -133,7 +136,7 @@ export default function UploadFileList({
                 />
               ) : null}
             </div>
-          </li>
+          </Card>
         );
       })}
     </ul>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -22,7 +22,7 @@ export default function GenerationRow({
     generation.compiled || generation.enhanced || generation.original;
 
   return (
-    <Card bodyClassName="p-0" className="hover:bg-muted/40">
+    <Card padding={CardPadding.NONE} isInteractive>
       <Button
         ariaLabel={t('open', { id: generation.id })}
         className="grid w-full grid-cols-[72px_minmax(0,1fr)] items-start gap-3 p-3 text-left sm:grid-cols-[104px_minmax(0,1fr)_auto] sm:gap-4"

@@ -47,12 +47,10 @@ const checks = [
     required: true,
   },
   {
-    // Repo-wide scan (no file args) — blocks hand-rolled card surfaces that
-    // bypass the shared Card. Baseline lives in the script's allowlist so this
-    // is green on master; new violations fail. Also runs in pre-commit via
-    // lint-staged.
-    command: ['bash', 'scripts/lint-no-bespoke-card.sh'],
-    name: 'Bespoke card surfaces',
+    // Blocks hand-built card surfaces and className restyles of the shared Card.
+    // Baseline: scripts/ui/hand-built/cards.baseline.json (empty).
+    command: ['bun', 'run', 'scripts/ui/hand-built/cards.ts'],
+    name: 'Cards and panels (shared Card, no hand-built surfaces or restyles)',
     required: true,
   },
   {

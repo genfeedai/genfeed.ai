@@ -1,6 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IDesktopBootstrap,
@@ -257,7 +263,7 @@ export default function LocalDesktopContent() {
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
               <div className="space-y-6">
-                <Card bodyClassName="space-y-4 p-5">
+                <Card padding={CardPadding.LG} gap={CardGap.LG}>
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h2 className="text-base font-semibold">
@@ -304,7 +310,7 @@ export default function LocalDesktopContent() {
                   ) : null}
                 </Card>
 
-                <Card bodyClassName="space-y-4 p-5">
+                <Card padding={CardPadding.LG} gap={CardGap.LG}>
                   <div>
                     <h2 className="flex items-center gap-2 text-base font-semibold">
                       <Sparkles aria-hidden="true" className="size-4" />

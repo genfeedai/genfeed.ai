@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { WARMUP_MAX_MONITORED_TARGETS } from '@genfeedai/contracts/constants';
 import type {
   IReplyTarget,
@@ -137,7 +137,7 @@ export default function RepliesWarmupTargets({
   }
 
   return (
-    <Card label={translate('title')} bodyClassName="gap-4 p-4">
+    <Card label={translate('title')} gap={CardGap.LG}>
       <div className="flex flex-wrap items-end gap-2">
         <Input
           aria-label={translate('queryLabel')}

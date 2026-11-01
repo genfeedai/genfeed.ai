@@ -1,5 +1,11 @@
 import '@mcp/ui/preview-runtime';
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+  formatPlatformLabel,
+} from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
   McpCard,
@@ -682,7 +688,6 @@ function CardPreview({
         label={title}
         labelAs="h2"
         isLabelWrapped
-        bodyClassName="gap-3"
         headerAction={
           !isMedia && current.status ? (
             <Badge variant="outline" className="status">
@@ -1112,14 +1117,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   <Card
                     labelAs="h2"
                     isLabelWrapped
+                    isSelected={day.date === localDayKey(new Date())}
                     className={
-                      day.date === localDayKey(new Date())
-                        ? 'ring-1 ring-primary/50'
-                        : day.posts.length
-                          ? undefined
-                          : 'opacity-80'
+                      day.date !== localDayKey(new Date()) && !day.posts.length
+                        ? 'opacity-80'
+                        : undefined
                     }
-                    bodyClassName="min-h-24 gap-2"
+                    gap={CardGap.SM}
+                    bodyClassName="min-h-24"
                     headerAction={
                       day.date === localDayKey(new Date()) ? (
                         <Badge variant="outline">Today</Badge>
@@ -1133,8 +1138,11 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   >
                     {day.posts.length ? (
                       day.posts.map((post) => (
-                        <div
-                          className="slot space-y-1 rounded-lg bg-muted/40 p-2"
+                        <Card
+                          variant={CardVariant.INSET}
+                          padding={CardPadding.SM}
+                          gap={CardGap.SM}
+                          className="slot"
                           key={post.id || `${post.date}-${post.description}`}
                         >
                           <div className="flex flex-wrap items-center gap-2">
@@ -1148,7 +1156,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                           <Text as="p" size="sm" className="line-clamp-3">
                             {post.description || post.title}
                           </Text>
-                        </div>
+                        </Card>
                       ))
                     ) : (
                       <Text

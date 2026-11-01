@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   CardVariant,
   ComponentSize,
   formatPlatformLabel,
@@ -446,7 +447,7 @@ export default function FollowSourceModal({
 
         <div className="min-h-40 space-y-3">
           {postReference ? (
-            <Card bodyClassName="space-y-3" variant={CardVariant.DEFAULT}>
+            <Card variant={CardVariant.DEFAULT}>
               <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                 {getPlatformIcon(postReference.platform, 'h-4 w-4')}
                 <span className="font-medium">
@@ -655,14 +656,14 @@ export default function FollowSourceModal({
                           {rowBody}
                         </div>
                       ) : (
-                        <div
-                          className={[
-                            'flex w-full items-start gap-3 rounded-card border border-border px-3 py-3 text-left opacity-80',
-                            'bg-card/40',
-                          ].join(' ')}
+                        <Card
+                          variant={CardVariant.BORDERED}
+                          padding={CardPadding.SM}
+                          className="opacity-80"
+                          bodyClassName="flex-row items-start"
                         >
                           {rowBody}
-                        </div>
+                        </Card>
                       )}
                     </li>
                   );

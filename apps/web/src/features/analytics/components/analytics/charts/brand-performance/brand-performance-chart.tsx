@@ -98,7 +98,7 @@ export function BrandPerformanceChart({
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
-      <Card className={className} bodyClassName="gap-3 p-4">
+      <Card className={className}>
         {!isEmpty ? (
           <div className="mb-4 flex flex-wrap gap-2">
             {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(

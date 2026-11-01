@@ -3,7 +3,13 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics-period';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
@@ -152,7 +158,11 @@ export function AnalyticsSnapshotCard({
   const analyticsHref = orgHref('/analytics/overview');
 
   return (
-    <Card className="my-2 isolate" bodyClassName="gap-0 p-0">
+    <Card
+      className="my-2 isolate"
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+    >
       <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
         <ChartColumn className="size-5 shrink-0 text-primary" />
         <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">
@@ -223,9 +233,10 @@ export function AnalyticsSnapshotCard({
           ) : null}
           <div className="grid grid-cols-2 gap-3">
             {metrics.map((metric) => (
-              <div
+              <Card
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
                 key={metric.label}
-                className="rounded-md border border-border/60 bg-tertiary p-3"
               >
                 <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
                   {metric.icon}
@@ -253,7 +264,7 @@ export function AnalyticsSnapshotCard({
                     </span>
                   ) : null}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
           <div className="flex flex-wrap gap-2">

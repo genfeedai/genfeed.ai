@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   getSystemWorkflowMetadata,
@@ -485,7 +485,7 @@ export default function WorkflowsPage() {
             }
             data-testid="admin-featured-workflows"
           >
-            <Card bodyClassName="p-0">
+            <Card padding={CardPadding.NONE}>
               {pins.map((pin, index) => (
                 <ListRow
                   key={pin.id}

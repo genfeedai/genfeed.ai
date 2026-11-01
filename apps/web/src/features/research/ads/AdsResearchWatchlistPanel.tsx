@@ -4,6 +4,8 @@ import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
+  CardPadding,
+  CardVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
 import {
@@ -112,7 +114,12 @@ function AdvertiserRow({
   const lastRun = advertiser.lastSuccessfulAt || advertiser.lastAttemptedAt;
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-md bg-tertiary px-3 py-2">
+    <Card
+      variant={CardVariant.INSET}
+      padding={CardPadding.SM}
+      as="li"
+      bodyClassName="flex-row items-center justify-between"
+    >
       <div className="min-w-0 space-y-0.5">
         <div className="truncate text-sm font-medium text-foreground">
           {advertiser.advertiserName || advertiser.advertiserHandle}
@@ -160,7 +167,7 @@ function AdvertiserRow({
           onClick={() => onRemove(advertiser.id)}
         />
       </div>
-    </li>
+    </Card>
   );
 }
 
@@ -208,7 +215,7 @@ export function AdsResearchWatchlistPanel({
   const blockedPlatforms = readiness.filter((entry) => !entry.available);
 
   return (
-    <Card className="mb-4 bg-card/40" bodyClassName="gap-3 p-4">
+    <Card className="mb-4">
       <div className="space-y-1">
         <div className="text-sm font-semibold text-foreground">
           {translate('title')}

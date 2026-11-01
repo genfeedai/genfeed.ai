@@ -1,6 +1,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardVariant,
   SourcePostActionType,
 } from '@genfeedai/contracts';
 import type {
@@ -117,7 +119,7 @@ function StateCard({
   onRetry?: () => void;
 }) {
   return (
-    <Card className="border-border bg-muted/40">
+    <Card variant={CardVariant.BORDERED}>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground" role="status">
           {message}
@@ -354,7 +356,7 @@ export default function SocialIntelligenceInbox({
                 const contentActionDisabled = coverage.partial && !confirmed;
                 return (
                   <Card
-                    bodyClassName="gap-4"
+                    gap={CardGap.LG}
                     key={theme.id}
                     label={theme.label}
                     description={`${evidence.length} evidence item${evidence.length === 1 ? '' : 's'}`}

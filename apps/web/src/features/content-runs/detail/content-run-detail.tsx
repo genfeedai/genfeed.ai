@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ContentRunAnalyticsSummary,
@@ -199,7 +204,7 @@ function Section({
 }) {
   return (
     <section>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <div className="mb-4 flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/80 shadow-border">
             {icon}
@@ -425,7 +430,7 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Lifecycle</h2>
         <div className="mt-4 space-y-3">
           {steps.map((step) => (
@@ -476,7 +481,7 @@ function NavigationPanel({
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Actions and Views</h2>
         <div className="mt-4 grid gap-2">
           <Button
@@ -572,9 +577,9 @@ export default function ContentRunDetailPage({
   if (state === 'loading' || state === 'idle') {
     return (
       <Container>
-        <div className="rounded-lg bg-muted p-8 text-sm text-foreground/60 shadow-border">
-          Loading content run…
-        </div>
+        <Card padding={CardPadding.XL}>
+          <div className="text-sm text-foreground/60">Loading content run…</div>
+        </Card>
       </Container>
     );
   }
@@ -593,7 +598,7 @@ export default function ContentRunDetailPage({
     <Container>
       <div className="flex flex-col gap-6">
         <header>
-          <Card bodyClassName="gap-0 p-5">
+          <Card padding={CardPadding.LG} gap={CardGap.NONE}>
             <div className="flex flex-wrap items-center gap-2">
               <Pill>{run.status ?? 'unknown'}</Pill>
               <Pill>{run.skillSlug ?? 'content-run'}</Pill>

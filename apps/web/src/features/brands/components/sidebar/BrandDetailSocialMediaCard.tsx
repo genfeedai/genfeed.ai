@@ -4,6 +4,8 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
+  CardVariant,
   type CredentialPlatform,
 } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
@@ -897,9 +899,11 @@ export default function BrandDetailSocialMediaCard({
             ))}
           </div>
         ) : (
-          <div className="rounded-md bg-card/50 px-3 py-3 text-xs text-muted-foreground">
-            {translate('empty')}
-          </div>
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+            <div className="text-xs text-muted-foreground">
+              {translate('empty')}
+            </div>
+          </Card>
         )}
 
         {accountHealthSection ? (

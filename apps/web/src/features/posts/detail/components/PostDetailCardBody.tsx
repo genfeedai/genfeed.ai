@@ -1,6 +1,6 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/contracts';
+import { CardGap, CardPadding, PostStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
@@ -72,7 +72,7 @@ export default function PostDetailCardBody({
   const isTweetOverLimit = tweetLength > tweetLimit;
 
   return (
-    <Card bodyClassName="gap-0 p-0">
+    <Card padding={CardPadding.NONE} gap={CardGap.NONE}>
       <div className="flex items-start gap-3 p-4">
         {isThread ? (
           <div className="flex flex-col items-center">
