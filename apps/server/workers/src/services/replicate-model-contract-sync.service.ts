@@ -8,7 +8,11 @@ export type { ReplicateContractPricing } from '@workers/services/replicate-model
 export { REPLICATE_BILLING_SOURCE } from '@workers/services/replicate-model-contract.util';
 
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  isRuntimeBilledBrandVisionModel,
+  ModelCategory,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import type { ReviewedProviderPricing } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -221,8 +225,16 @@ export class ReplicateModelContractSyncService {
     });
 
     // An active model with no reviewed price is red: tell ops whether its
-    // rates were read (ready to approve) or why they could not be.
-    if (model.isActive)
+    // rates were read (ready to approve) or why they could not be. A model
+    // Replicate bills by GPU runtime has no list price on its page by design;
+    // its hardware rate lives on the registry row, so that is not an outage.
+    if (
+      model.isActive &&
+      !(
+        candidate.billingFailure === 'no_billing_config' &&
+        isRuntimeBilledBrandVisionModel(modelKey)
+      )
+    )
       return {
         drifted: false,
         quarantined,

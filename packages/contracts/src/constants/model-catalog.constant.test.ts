@@ -731,6 +731,9 @@ describe('model version lifecycle', () => {
       MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+      MODEL_KEYS.FAL_SEEDANCE_2_0,
+      MODEL_KEYS.FAL_ELEVEN_LABS_TTS,
+      MODEL_KEYS.FAL_STABLE_VIDEO,
     ])
       expect(byKey.get(key)?.lifecycle, key).toBe(ModelLifecycle.RETIRED);
   });

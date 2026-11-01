@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { ModelProvider } from '@genfeedai/contracts';
+import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -69,6 +69,7 @@ export class CronFalModelWatcherService {
           isActive: true,
           isFree: true,
           key: true,
+          lifecycle: true,
           provider: true,
           reviewedProviderContractVersion: true,
         },
@@ -78,8 +79,12 @@ export class CronFalModelWatcherService {
           provider: ModelProvider.FAL,
         },
       });
+      // A retired row is never offered or priced, and fal may no longer serve
+      // its endpoint, so it neither refreshes nor alerts.
       const registryModels = new Map<string, FalSyncModelRecord>(
-        registryRows.map((row) => [row.endpoint || row.key, row] as const),
+        registryRows
+          .filter((row) => row.lifecycle !== ModelLifecycle.RETIRED)
+          .map((row) => [row.endpoint || row.key, row] as const),
       );
 
       this.logger.log(
@@ -141,6 +146,7 @@ export class CronFalModelWatcherService {
           endpoint,
           'model_fetch_failed',
           summary.timestamp,
+          Boolean(registryModel.reviewedProviderContractVersion),
         );
       }
 
@@ -238,6 +244,7 @@ export class CronFalModelWatcherService {
     modelKey: string,
     code: string,
     now: Date,
+    hasApprovedRate = true,
   ): Promise<void> {
     try {
       await dispatchModelPricingUnavailableAlert(
@@ -245,7 +252,9 @@ export class CronFalModelWatcherService {
         {
           modelKey,
           provider: ModelProvider.FAL,
-          reason: `The fal price refresh failed (${code}); the last approved rate keeps charging.`,
+          reason: hasApprovedRate
+            ? `The fal price refresh failed (${code}); the last approved rate keeps charging.`
+            : `The fal price refresh failed (${code}); this model has no approved rate yet.`,
         },
         now,
       );

@@ -53,6 +53,12 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
   'google/veo-3.1-fast': veo,
   'openai/gpt-image-1.5': gpt,
   'openai/gpt-image-2': gpt,
+  'openai/sora-2-pro': [
+    field('resolution', {
+      standard: 'sora-2-pro-standard',
+      high: 'sora-2-pro-high',
+    }),
+  ],
   'openai/gpt-image-2.5-flare': gpt25,
   'openai/gpt-image-2.5-sunburst': gpt25,
   'ideogram-ai/ideogram-character': [
@@ -234,6 +240,14 @@ export const REPLICATE_UNREACHABLE_BILLING_TIERS: Readonly<
   // Replicate's own fallback route; `resolution` accepts only 1K, 2K and 4K.
   'google/nano-banana-pro': [
     { criterionTitle: 'target resolution', values: ['fallback'] },
+  ],
+  // Replicate lists a tier, with no price, for a caller who pays OpenAI through
+  // their own key. It is reachable only with `openai_api_key`, which we never send.
+  'openai/sora-2': [
+    { criterionTitle: 'model variant', values: ['sora-2-own-key'] },
+  ],
+  'openai/sora-2-pro': [
+    { criterionTitle: 'model variant', values: ['sora-2-pro-own-key'] },
   ],
 };
 
