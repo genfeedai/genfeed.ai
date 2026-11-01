@@ -18,6 +18,8 @@ export interface BrandRuleProposalsProps {
   edited?: string;
   /** Why the user is turning a draft down, in their words. */
   reason?: string;
+  /** Tells the parent while a rule is being saved, so it can hold other writes. */
+  onSavingChange?: (isSaving: boolean) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export default function BrandRuleProposals({
   original = null,
   edited = '',
   reason = '',
+  onSavingChange,
 }: BrandRuleProposalsProps) {
   const { brandId } = useBrand();
   const translate = useTranslations('ui.brandRuleProposals');
@@ -49,13 +52,19 @@ export default function BrandRuleProposals({
   const getServiceRef = useRef(getService);
   getServiceRef.current = getService;
 
+  const onSavingChangeRef = useRef(onSavingChange);
+  onSavingChangeRef.current = onSavingChange;
+  useEffect(() => {
+    onSavingChangeRef.current?.(isSaving);
+  }, [isSaving]);
+
   useEffect(() => {
     const hasEdit = Boolean(original) && edited.trim() !== original?.trim();
     const hasReason = reason.trim().length > 0;
-    if (!brandId || (!hasEdit && !hasReason)) {
-      setProposals([]);
-      return;
-    }
+    // A suggestion belongs to the text it was made from; drop it as soon as that
+    // text changes, so a slow or failed lookup never leaves a stale rule to save.
+    setProposals([]);
+    if (!brandId || (!hasEdit && !hasReason)) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {

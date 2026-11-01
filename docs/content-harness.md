@@ -204,16 +204,20 @@ review panel, whether it becomes a brand rule.
 - `HarnessReviewFeedbackService.recordReviewDecision` is called from the
   turbo-run review flow (`sourceType: 'turbo_run_item'`) and from workflow review
   gates (`sourceType: 'workflow_review_gate'`). Only `rejected` and
-  `request_changes` write an `avoidFeedback` audit entry; `approved` is recorded
-  as a positive example and `unset` is a no-op.
+  `request_changes` write an `avoidFeedback` audit entry; `unset` is a no-op.
+  `approved` is recorded as a positive example when the turbo-run flow calls it;
+  workflow review gates only call it for rejections, so a gate approval adds no
+  positive example.
 - The audit entry holds the content (cut to 480 characters), the reviewer's reason,
   the source stamp, a timestamp and `isAutoAdded: true`. It feeds the learning
   signals and evals and is not read when generating, so it does not touch
   `examples.avoid`. A brand with no harness profile gets one so the record is kept.
 - The same review decision is recorded once. A second call with the same
   `sourceType:sourceId` is ignored.
-- At most 20 `avoidFeedback` entries are kept. The oldest auto-added entries are
-  evicted first; entries an operator wrote are never evicted or counted.
+- The cap is 20 `avoidFeedback` entries. Entries an operator wrote count toward
+  it but are never evicted, so only the oldest auto-added entries are dropped: if
+  the operator entries alone fill the cap, each new auto-added entry is dropped
+  straight away, and the total can exceed 20.
 - Failures are logged and swallowed, so a feedback write can never fail the review
   action that triggered it.
 
