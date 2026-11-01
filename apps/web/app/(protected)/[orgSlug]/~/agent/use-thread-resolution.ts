@@ -1,27 +1,15 @@
 'use client';
 
-import {
-  type AgentApiService,
-  type AgentThread,
-  type AgentThreadResolution,
-  useAgentChatStore,
-} from '@genfeedai/agent';
+import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  ThreadResolutionApi,
+  ThreadResolutionState,
+} from '@/features/agents/props/thread-resolution.props';
 
 const RESOLVED_LIST_LIMIT = 50;
-
-type ThreadResolutionApi = Pick<
-  AgentApiService,
-  'archiveThread' | 'getThreads' | 'unarchiveThread'
->;
-
-export interface ThreadResolutionState extends AgentThreadResolution {
-  /** Threads the operator marked done, newest first. Never the master. */
-  resolvedThreads: readonly AgentThread[];
-  pendingThreadIds: ReadonlySet<string>;
-}
 
 /**
  * Which threads are resolved, for the master workspace: the Threads panel and
