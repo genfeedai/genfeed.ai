@@ -37,18 +37,17 @@ function createStore(brandOrganizations: Record<string, string>) {
       ),
     },
     profile: {
-      create: vi.fn(
-        async ({ data }: { data: Omit<StoredProfile, 'id'> }) => {
-          const row = { ...data, id: `profile-${rows.length + 1}` };
-          rows.push(row);
-          return row;
-        },
-      ),
+      create: vi.fn(async ({ data }: { data: Omit<StoredProfile, 'id'> }) => {
+        const row = { ...data, id: `profile-${rows.length + 1}` };
+        rows.push(row);
+        return row;
+      }),
       findFirst: vi.fn(
         async ({ where }: { where: { id: string; organizationId: string } }) =>
           rows.find(
             (row) =>
-              row.id === where.id && row.organizationId === where.organizationId,
+              row.id === where.id &&
+              row.organizationId === where.organizationId,
           ) ?? null,
       ),
       findMany: vi.fn(
@@ -75,7 +74,12 @@ function createStore(brandOrganizations: Record<string, string>) {
 }
 
 describe('HarnessProfilesService.saveAcceptedRules', () => {
-  const logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
   let store: ReturnType<typeof createStore>;
   let service: HarnessProfilesService;
 
