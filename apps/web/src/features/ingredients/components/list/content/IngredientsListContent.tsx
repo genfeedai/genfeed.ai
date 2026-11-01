@@ -4,7 +4,6 @@ import { useContextSidebar } from '@genfeedai/contexts/ui/context-sidebar-contex
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
-  ComponentSize,
   categoryToString,
   formatEnumLabel,
   IngredientCategory,
@@ -41,13 +40,14 @@ import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.u
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
@@ -512,9 +512,7 @@ export default function IngredientsListContent({
             <div className="flex flex-wrap items-center gap-1.5">
               <LibraryAssetTypeBadge category={ingredient.category} />
               {formatLabel ? (
-                <Badge size={ComponentSize.SM} variant="slate">
-                  {formatLabel}
-                </Badge>
+                <Badge variant="secondary">{formatLabel}</Badge>
               ) : null}
             </div>
           );

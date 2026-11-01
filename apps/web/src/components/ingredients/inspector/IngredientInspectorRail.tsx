@@ -3,7 +3,6 @@
 import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
   ButtonVariant,
-  ComponentSize,
   IngredientCategory,
   IngredientLineageDirection,
   IngredientOrigin,
@@ -36,8 +35,8 @@ import {
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { format } from 'date-fns';
@@ -57,16 +56,16 @@ import { useIngredientGenerationCost } from './use-ingredient-generation-cost';
 
 const SHELF_VARIANTS: Record<
   LibraryShelf,
-  'info' | 'warning' | 'success' | 'error' | 'slate'
+  'info' | 'warning' | 'success' | 'destructive' | 'secondary'
 > = {
-  [LibraryShelf.REFERENCES]: 'slate',
+  [LibraryShelf.REFERENCES]: 'secondary',
   [LibraryShelf.GENERATING]: 'info',
-  [LibraryShelf.UNSORTED]: 'slate',
+  [LibraryShelf.UNSORTED]: 'secondary',
   [LibraryShelf.NEEDS_REVIEW]: 'warning',
   [LibraryShelf.APPROVED]: 'success',
-  [LibraryShelf.REJECTED]: 'error',
-  [LibraryShelf.FAILED]: 'error',
-  [LibraryShelf.ARCHIVED]: 'slate',
+  [LibraryShelf.REJECTED]: 'destructive',
+  [LibraryShelf.FAILED]: 'destructive',
+  [LibraryShelf.ARCHIVED]: 'secondary',
 };
 
 const CREDITS_FORMAT = new Intl.NumberFormat('en-US', {
@@ -266,11 +265,7 @@ export default function IngredientInspectorRail({
           {ingredient.metadataLabel || translate('untitled')}
         </h3>
         {shelf ? (
-          <Badge
-            className="w-fit"
-            size={ComponentSize.SM}
-            variant={SHELF_VARIANTS[shelf]}
-          >
+          <Badge className="w-fit" variant={SHELF_VARIANTS[shelf]}>
             {LIBRARY_SHELF_LABELS[shelf]}
           </Badge>
         ) : null}

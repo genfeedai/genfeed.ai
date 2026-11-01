@@ -157,10 +157,7 @@ export function AgentOAuthConnectMenu({
         </div>
 
         {error ? (
-          <AgentErrorMessage
-            className="mx-2 mb-2 rounded-lg border-red-400/20 bg-destructive/10 text-xs text-destructive"
-            message={error}
-          />
+          <AgentErrorMessage className="mx-2 mb-2" message={error} />
         ) : null}
 
         <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">

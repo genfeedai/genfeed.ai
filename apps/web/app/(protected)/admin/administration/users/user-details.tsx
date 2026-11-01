@@ -7,7 +7,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ClipboardService } from '@services/core/clipboard.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DefinitionDetail,

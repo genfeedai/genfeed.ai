@@ -1,7 +1,7 @@
 'use client';
 
 import type { DropdownFieldTab } from './dropdown-field.types';
-import { Tabs, TabsList, TabsTrigger } from './tabs';
+import { TabsList, TabsRoot, TabsTrigger } from './tabs';
 
 type DropdownTabBarProps = {
   tabs: DropdownFieldTab[];
@@ -20,7 +20,7 @@ export default function DropdownTabBar({
 
   return (
     <div className="mb-2 border-b border-border px-3 pb-2">
-      <Tabs value={activeTab} onValueChange={onTabChange}>
+      <TabsRoot value={activeTab} onValueChange={onTabChange}>
         <TabsList aria-label="Option category" className="ml-auto">
           {tabs.map((tab) => (
             <TabsTrigger
@@ -32,7 +32,7 @@ export default function DropdownTabBar({
             </TabsTrigger>
           ))}
         </TabsList>
-      </Tabs>
+      </TabsRoot>
     </div>
   );
 }

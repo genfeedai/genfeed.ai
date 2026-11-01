@@ -5,10 +5,10 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
+import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
 import Image from 'next/image';
@@ -208,25 +208,22 @@ export default function ReviewItemsTable({
           );
           return (
             <span className="flex flex-wrap items-center gap-1.5">
-              <Badge
-                size={ComponentSize.SM}
-                status={getReviewItemBadgeStatus(item)}
-              >
+              <Badge status={getReviewItemBadgeStatus(item)}>
                 {formatReviewItemStatus(item, translateReview)}
               </Badge>
               {performanceLabel ? (
-                <span
-                  className={cn(
-                    'inline-flex items-center rounded-md border px-1.5 py-0.5 text-2xs font-medium',
+                <Badge
+                  casing="normal"
+                  variant={
                     performanceSignal === 'winning'
-                      ? 'border-success/20 bg-success/10 text-success'
+                      ? 'success'
                       : performanceSignal === 'underperforming'
-                        ? 'border-destructive/20 bg-destructive/10 text-destructive'
-                        : 'border-warning/20 bg-warning/10 text-warning',
-                  )}
+                        ? 'destructive'
+                        : 'warning'
+                  }
                 >
                   {performanceLabel}
-                </span>
+                </Badge>
               ) : null}
             </span>
           );

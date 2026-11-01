@@ -12,7 +12,8 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -59,12 +60,6 @@ const FORMAT_OPTIONS = [
   { Icon: FileSpreadsheet, hintKey: 'xlsxHint', label: 'XLSX', value: 'xlsx' },
 ] as const;
 
-const FIELD_CHIP_CLASS =
-  'h-8 rounded-full bg-background-secondary px-3 text-xs shadow-border data-[state=on]:bg-primary/10 data-[state=on]:text-primary';
-
-const FORMAT_TILE_CLASS =
-  'h-auto justify-start gap-3 rounded-lg bg-background-secondary p-3 shadow-border data-[state=on]:bg-primary/10 data-[state=on]:shadow-border-strong';
-
 const ALL_FIELDS = availableFields.map((field) => field.value as ExportField);
 
 export default function ModalExport({
@@ -102,35 +97,30 @@ export default function ModalExport({
   return (
     <Modal id={ModalEnum.EXPORT} size="md" title={translate('title')}>
       <div className="flex flex-col gap-5">
-        <ToggleGroup
-          aria-label={translate('formatLabel')}
-          className="grid grid-cols-2 gap-2"
+        <OptionTileGroup
+          ariaLabel={translate('formatLabel')}
+          columns={2}
           onValueChange={(value) => {
             if (value === 'csv' || value === 'xlsx') {
               form.setValue('format', value, { shouldValidate: true });
             }
           }}
-          type="single"
           value={format}
         >
           {FORMAT_OPTIONS.map(({ Icon, hintKey, label, value }) => (
-            <ToggleGroupItem
-              className={FORMAT_TILE_CLASS}
-              key={value}
-              value={value}
-            >
-              <span className="flex size-8 items-center justify-center rounded-md bg-background-tertiary text-muted-foreground">
-                <Icon aria-hidden="true" className="size-4" />
-              </span>
-              <span className="flex flex-col items-start">
-                <span className="text-sm font-medium">{label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {translate(hintKey)}
+            <OptionTile
+              description={translate(hintKey)}
+              icon={
+                <span className="flex size-8 items-center justify-center rounded-md bg-background-tertiary text-muted-foreground">
+                  <Icon aria-hidden="true" className="size-4" />
                 </span>
-              </span>
-            </ToggleGroupItem>
+              }
+              key={value}
+              title={label}
+              value={value}
+            />
           ))}
-        </ToggleGroup>
+        </OptionTileGroup>
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -149,23 +139,16 @@ export default function ModalExport({
               {isEverySelected ? translate('clearAll') : translate('selectAll')}
             </Button>
           </div>
-          <ToggleGroup
-            aria-label={translate('fieldsLabel')}
-            className="max-h-64 flex-wrap justify-start gap-1.5 overflow-y-auto"
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={translate('fieldsLabel')}
+            className="max-h-64 overflow-y-auto"
             onValueChange={(fields) => updateFields(fields as ExportField[])}
+            options={availableFields}
+            size="sm"
             type="multiple"
             value={selectedFields}
-          >
-            {availableFields.map((field) => (
-              <ToggleGroupItem
-                className={FIELD_CHIP_CLASS}
-                key={field.value}
-                value={field.value}
-              >
-                {field.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          />
         </div>
       </div>
 

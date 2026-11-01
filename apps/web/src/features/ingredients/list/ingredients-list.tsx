@@ -5,7 +5,6 @@ import { useIngredientsHeaderContext } from '@contexts/content/ingredients-heade
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import {
-  AlertCategory,
   ButtonVariant,
   FleetReviewStatus,
   IngredientCategory,
@@ -27,7 +26,7 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -292,7 +291,7 @@ export default function IngredientsList({
       {isRecoveryView ? null : selectionChrome}
 
       {isUsingCache && (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">

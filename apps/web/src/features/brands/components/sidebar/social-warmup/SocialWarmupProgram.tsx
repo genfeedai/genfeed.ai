@@ -18,13 +18,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import Card from '@ui/card/Card';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { Tabs } from '@ui/primitives/tabs';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSocialWarmupEnrollment } from '@/features/brands/hooks/use-social-warmup-enrollment/use-social-warmup-enrollment';
@@ -246,7 +246,7 @@ export default function SocialWarmupProgram({
 
   if (enrollError || error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" icon={false}>
         <AlertTitle>{translate('programTitle')}</AlertTitle>
         <AlertDescription className="space-y-3">
           <p>{enrollError ?? translate('enrollError')}</p>
@@ -268,7 +268,7 @@ export default function SocialWarmupProgram({
 
   if (data && !enrolledBlueprint) {
     return (
-      <Alert variant="warning">
+      <Alert variant="warning" icon={false}>
         <AlertTitle>{translate('programTitle')}</AlertTitle>
         <AlertDescription>{translate('blueprintMissing')}</AlertDescription>
       </Alert>
@@ -367,13 +367,13 @@ export default function SocialWarmupProgram({
       </p>
 
       {signalsError ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" icon={false}>
           <AlertDescription>{signalsError}</AlertDescription>
         </Alert>
       ) : null}
 
       {health?.override.isActive ? (
-        <Alert variant="info">
+        <Alert variant="info" icon={false}>
           <AlertTitle>{translate('overrideActive')}</AlertTitle>
           <AlertDescription>
             {health.override.reason}
@@ -385,7 +385,7 @@ export default function SocialWarmupProgram({
       ) : null}
 
       {health?.holdPublishing || model.unresolvedChecks.length > 0 ? (
-        <Alert variant="warning">
+        <Alert variant="warning" icon={false}>
           <AlertTitle>
             {health?.holdPublishing
               ? translate('holdTitle')

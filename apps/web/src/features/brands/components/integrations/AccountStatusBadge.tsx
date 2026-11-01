@@ -1,9 +1,9 @@
 'use client';
 
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
-import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
 import type { AccountStatusBadgeProps } from '@props/pages/brand-integrations.props';
-import Badge from '@ui/display/badge/Badge';
+import type { BadgeProps } from '@ui/primitives/badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import {
   getAccountConnectionStatus,

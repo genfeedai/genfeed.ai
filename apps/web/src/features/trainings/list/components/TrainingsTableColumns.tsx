@@ -10,7 +10,7 @@ import type {
 import { Code } from '@genfeedai/ui';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Switch } from '@ui/primitives/switch';
 
 export type BuildTrainingsTableColumnsParams = {

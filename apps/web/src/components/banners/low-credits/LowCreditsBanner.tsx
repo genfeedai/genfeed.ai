@@ -5,6 +5,7 @@ import {
   shouldShowCreditsNav,
 } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   formatCreditBalanceExact,
@@ -12,12 +13,18 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
 import { TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import NoticeBanner from '@/components/banners/notice-banner/NoticeBanner';
 import { useTopbarBalances } from '@/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
@@ -186,49 +193,68 @@ function LowCreditsContent({
   const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Buy credits';
   const isInline = variant === 'inline';
 
+  const content = (
+    <>
+      <AlertTitle className="flex flex-wrap items-center gap-2">
+        {title}
+        {balanceLabel ? (
+          <Badge variant="secondary">{balanceLabel}</Badge>
+        ) : null}
+      </AlertTitle>
+      <AlertDescription>{description}</AlertDescription>
+      <AlertActions>
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
+        >
+          <Link href={ctaHref}>
+            {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
+          </Link>
+        </Button>
+
+        {isTrialUsedUp ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          >
+            <Link href={plansHref}>{translate('seePlans')}</Link>
+          </Button>
+        ) : null}
+      </AlertActions>
+    </>
+  );
+  const alertClassName = cn('mx-auto', !isInline && 'max-w-6xl');
+  const alertVariant = isCritical ? 'destructive' : 'warning';
+  const alertIcon = <TriangleAlert className="size-5" />;
+
   return (
     <div
       className={cn('w-full', isInline ? '' : 'px-4 pt-3')}
       data-testid={isInline ? 'library-credit-notice' : 'shell-credit-notice'}
     >
-      <NoticeBanner
-        className={cn('mx-auto', !isInline && 'max-w-6xl')}
-        tone={isCritical ? 'destructive' : 'warning'}
-        icon={<TriangleAlert />}
-        title={title}
-        badge={
-          balanceLabel ? (
-            <Badge
-              className="whitespace-nowrap tabular-nums"
-              variant="secondary"
-            >
-              {balanceLabel}
-            </Badge>
-          ) : null
-        }
-        description={description}
-        dismissLabel="Dismiss low credits banner"
-        onDismiss={isTrialUsedUp ? undefined : handleDismiss}
-        actions={
-          <>
-            <Link
-              href={ctaHref}
-              className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 @2xl:flex-none"
-            >
-              {isTrialUsedUp ? translate('buyCredits') : ctaLabel}
-            </Link>
-
-            {isTrialUsedUp ? (
-              <Link
-                href={plansHref}
-                className="inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-border-strong px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent @2xl:flex-none"
-              >
-                {translate('seePlans')}
-              </Link>
-            ) : null}
-          </>
-        }
-      />
+      {isTrialUsedUp ? (
+        <Alert
+          className={alertClassName}
+          icon={alertIcon}
+          variant={alertVariant}
+        >
+          {content}
+        </Alert>
+      ) : (
+        <Alert
+          className={alertClassName}
+          closeLabel="Dismiss low credits banner"
+          icon={alertIcon}
+          onClose={handleDismiss}
+          variant={alertVariant}
+        >
+          {content}
+        </Alert>
+      )}
     </div>
   );
 }

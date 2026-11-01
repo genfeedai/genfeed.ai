@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Hash } from 'lucide-react';
 import type { RefObject } from 'react';
@@ -30,9 +31,12 @@ export default function DropdownTagsTrigger({
   const buttonContent: React.ReactNode = showLabel ? (
     <span>{tagCountLabel}</span>
   ) : hasSelectedTags ? (
-    <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-2xs font-bold text-primary-foreground bg-primary rounded-full border-2 border-background shadow-lg z-10 tabular-nums">
-      {selectedTagCount}
-    </span>
+    <Badge
+      className="absolute -top-0.5 -right-0.5 z-10"
+      isSolid
+      shape="pill"
+      value={selectedTagCount}
+    />
   ) : null;
 
   return (

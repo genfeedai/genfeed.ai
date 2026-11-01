@@ -11,9 +11,9 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Badge } from '@ui/primitives/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { BrainCircuit } from 'lucide-react';
 import { useTranslations } from 'next-intl';

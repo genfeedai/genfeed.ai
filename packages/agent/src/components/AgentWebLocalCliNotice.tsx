@@ -1,9 +1,9 @@
 'use client';
 
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { buildDesktopThreadLink } from '@genfeedai/contracts/desktop';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Monitor, Server } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -50,7 +50,7 @@ export function AgentWebLocalCliNotice({
     <Alert
       className="w-full"
       icon={<Monitor className="size-4" />}
-      type={AlertCategory.WARNING}
+      variant="warning"
     >
       <div
         className="flex min-w-0 flex-col gap-2"

@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  Platform,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { Platform, TargetExecutionState } from '@genfeedai/contracts';
 import { CHANNEL_CAPABILITIES } from '@genfeedai/contracts/api-types/contracts';
 import { getPostVisibilityOptions } from '@genfeedai/helpers/content/posts.helper';
 import {
@@ -12,7 +8,7 @@ import {
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
@@ -51,7 +47,7 @@ export default function ModalPostSimpleFields({
   return (
     <div className="space-y-4">
       {hasFormErrors(form.formState.errors) && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="space-y-1">
             {parseFormErrors(form.formState.errors).map((error) => (
               <div key={error}>{error}</div>

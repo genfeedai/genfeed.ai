@@ -16,8 +16,6 @@ import {
   AgentThreadMode,
   ButtonSize,
   ButtonVariant,
-  CardPadding,
-  CardVariant,
 } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -28,7 +26,7 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -226,17 +224,9 @@ export function AgentChatInput({
       <AgentChatInputStyles />
 
       {actionFeedback ? (
-        <Card
-          variant={CardVariant.BORDERED}
-          padding={CardPadding.SM}
-          className="mb-2"
-          aria-live="polite"
-          role="status"
-        >
-          <div className="text-xs leading-5 text-foreground/80">
-            {actionFeedback}
-          </div>
-        </Card>
+        <Alert className="mb-2" role="status" size="sm" variant="note">
+          {actionFeedback}
+        </Alert>
       ) : null}
 
       <PromptBarComposer

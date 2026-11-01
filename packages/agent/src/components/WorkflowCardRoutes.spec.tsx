@@ -54,7 +54,7 @@ describe('Workflow card route handoffs', () => {
       <WorkflowTriggerCard action={triggerAction} apiService={apiService} />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Workflow One' }));
+    await user.click(screen.getByRole('radio', { name: 'Workflow One' }));
     await user.click(screen.getByRole('button', { name: /run workflow/i }));
 
     expect(

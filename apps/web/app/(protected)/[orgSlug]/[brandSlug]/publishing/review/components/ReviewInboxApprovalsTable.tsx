@@ -1,14 +1,13 @@
-import { ComponentSize } from '@genfeedai/contracts';
 import type {
   IReviewInboxItem,
   ReviewInboxItemSource,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { BadgeProps } from '@props/ui/display/badge.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { Avatar } from '@ui/primitives/avatar';
+import type { BadgeProps } from '@ui/primitives/badge';
+import { Badge } from '@ui/primitives/badge';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -21,9 +20,9 @@ const SOURCE_BADGE_VARIANTS: Record<
   ReviewInboxItemSource,
   NonNullable<BadgeProps['variant']>
 > = {
-  agent: 'purple',
-  mcp_client: 'amber',
-  workflow: 'blue',
+  agent: 'default',
+  mcp_client: 'warning',
+  workflow: 'info',
 };
 
 /**
@@ -111,7 +110,7 @@ export default function ReviewInboxApprovalsTable({
         key: 'estimatedCredits',
         render: (item) =>
           item.estimatedCredits !== null ? (
-            <Badge size={ComponentSize.SM} variant="outline">
+            <Badge variant="outline">
               {translate('credits', { count: item.estimatedCredits })}
             </Badge>
           ) : (
@@ -126,10 +125,7 @@ export default function ReviewInboxApprovalsTable({
         key: 'requestedAt',
         render: (item) => (
           <span className="flex min-w-0 flex-col items-start gap-1">
-            <Badge
-              size={ComponentSize.SM}
-              variant={SOURCE_BADGE_VARIANTS[item.source]}
-            >
+            <Badge variant={SOURCE_BADGE_VARIANTS[item.source]}>
               {translate(REVIEW_INBOX_SOURCE_MESSAGE_KEYS[item.source])}
             </Badge>
             {item.requestedByLabel ? (

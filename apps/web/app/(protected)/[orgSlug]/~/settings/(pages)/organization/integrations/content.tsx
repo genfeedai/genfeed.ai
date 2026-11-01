@@ -244,8 +244,7 @@ export default function SettingsIntegrationsPage() {
       ) : null}
 
       {isReady && !canAddKey ? (
-        <Alert>
-          <Lock className="size-4" aria-hidden="true" />
+        <Alert icon={<Lock className="size-4" aria-hidden="true" />}>
           <AlertTitle>{translate('byokUpgrade.title')}</AlertTitle>
           <AlertDescription>
             <p>{translate('byokUpgrade.description')}</p>

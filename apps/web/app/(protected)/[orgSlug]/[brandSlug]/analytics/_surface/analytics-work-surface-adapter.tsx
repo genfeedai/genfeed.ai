@@ -20,6 +20,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Download, LinkIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -80,14 +81,16 @@ function AnalyticsComposerQueryChip({
   readonly reference: AnalyticsQueryReference;
 }) {
   return (
-    <span
-      className="ml-2 inline-flex max-w-56 items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-2xs text-foreground/80"
+    <Badge
+      casing="normal"
+      className="ml-2 max-w-56"
+      icon={<LinkIcon />}
+      variant="outline"
       data-testid="analytics-composer-query-reference"
       title={`${reference.route} · ${reference.dateRange.startDate} to ${reference.dateRange.endDate}`}
     >
-      <LinkIcon aria-hidden="true" className="size-3.5 shrink-0" />
       <span className="truncate">Visible analytics query</span>
-    </span>
+    </Badge>
   );
 }
 

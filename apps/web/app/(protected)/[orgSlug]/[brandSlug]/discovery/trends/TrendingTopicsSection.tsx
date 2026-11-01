@@ -4,9 +4,10 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -24,14 +25,14 @@ function getGrowthRateClass(rate: number): string {
   return '';
 }
 
-function getViralityBadgeClass(score: number): string {
+function getViralityBadgeProps(score: number): {
+  isSolid: boolean;
+  variant: BadgeVariant;
+} {
   if (score >= 70) {
-    return 'bg-primary text-primary-foreground';
+    return { isSolid: true, variant: 'default' };
   }
-  if (score >= 40) {
-    return 'bg-muted text-foreground';
-  }
-  return 'bg-muted text-muted-foreground';
+  return { isSolid: false, variant: 'secondary' };
 }
 
 export default function TrendingTopicsSection({
@@ -147,7 +148,7 @@ export default function TrendingTopicsSection({
               render: (item) => (
                 <Badge
                   value={item.viralityScore}
-                  className={getViralityBadgeClass(item.viralityScore)}
+                  {...getViralityBadgeProps(item.viralityScore)}
                 />
               ),
             },

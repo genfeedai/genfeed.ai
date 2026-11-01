@@ -9,13 +9,13 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
-import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Gift, TriangleAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -218,8 +218,10 @@ export default function ReferralRewardsList() {
       isRefreshing={isFetching && !isLoading}
     >
       {error ? (
-        <Alert variant="destructive">
-          <TriangleAlert className="size-4" aria-hidden="true" />
+        <Alert
+          variant="destructive"
+          icon={<TriangleAlert className="size-4" aria-hidden="true" />}
+        >
           <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
           <AlertDescription>
             <p>{translate('adminLoadErrorDescription')}</p>

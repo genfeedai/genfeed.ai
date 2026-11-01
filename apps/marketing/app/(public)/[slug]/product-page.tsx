@@ -1,7 +1,7 @@
 import { getRelatedProducts, type Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';

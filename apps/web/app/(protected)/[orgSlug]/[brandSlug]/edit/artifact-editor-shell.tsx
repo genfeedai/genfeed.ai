@@ -1,4 +1,4 @@
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { ArtifactEditorShellProps } from '@/props/content/artifact-editor.props';
 
 /**

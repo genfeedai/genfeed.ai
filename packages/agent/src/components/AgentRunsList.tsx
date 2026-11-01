@@ -1,9 +1,8 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
@@ -45,7 +44,6 @@ function RunRow({
         {run.threadTitle}
       </span>
       <Badge
-        size={ComponentSize.SM}
         status={
           run.runtimeState === 'failed' || run.runtimeState === 'interrupted'
             ? 'failed'

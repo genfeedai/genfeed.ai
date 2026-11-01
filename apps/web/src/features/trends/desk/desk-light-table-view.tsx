@@ -12,7 +12,7 @@ import type { CollectionOverflowAction } from '@props/ui/collection/collection.p
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
@@ -100,13 +100,13 @@ function DeskLightCard({
           >
             <DeskMediaPreview item={item} isActive={isPreviewActive} />
             {isVideo ? (
-              <span
-                className={
-                  'absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-white' /* design-system-allow-content-color */
-                }
+              <Badge
+                className="absolute right-2 top-2"
+                shape="pill"
+                variant="overlay"
               >
                 {translateCard('videoBadge')}
-              </span>
+              </Badge>
             ) : null}
           </div>
 
@@ -116,7 +116,7 @@ function DeskLightCard({
               <span className="truncate text-sm text-foreground/80">
                 {item.authorHandle ? `@${item.authorHandle}` : item.platform}
               </span>
-              <Badge className="ml-auto" variant="ghost">
+              <Badge className="ml-auto" variant="secondary">
                 {item.source}
               </Badge>
             </div>

@@ -6,9 +6,9 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import { Copy, Play } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -105,9 +105,13 @@ function AnalyticsPostCard({
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         <AnalyticsPostMedia item={item} />
 
-        <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground backdrop-blur">
-          #{item.rank}
-        </span>
+        <Badge
+          className="absolute left-2 top-2"
+          shape="pill"
+          size="lg"
+          value={`#${item.rank}`}
+          variant="overlay"
+        />
 
         {hasMedia ? (
           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-background/80 p-1.5 backdrop-blur">

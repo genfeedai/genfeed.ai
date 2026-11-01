@@ -1,10 +1,10 @@
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
-import { getModelCategoryBadgeClass } from '@genfeedai/helpers/ui/model-badge.helper';
+import { getModelCategoryBadgeColors } from '@genfeedai/helpers/ui/model-badge.helper';
 import { Braces, FileText, Film, Image, Mic2, Music } from 'lucide-react';
 
-export { getModelCategoryBadgeClass };
+export { getModelCategoryBadgeColors };
 
 export type ModelCategoryGroupKey =
   | 'image'

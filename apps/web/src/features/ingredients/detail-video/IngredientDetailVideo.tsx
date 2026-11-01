@@ -7,10 +7,9 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/contracts';
-import type { IVideo } from '@genfeedai/contracts/interfaces';
+import type { IVideo, TabItem } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';

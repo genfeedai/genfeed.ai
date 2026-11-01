@@ -14,9 +14,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { Tabs } from '@ui/primitives/tabs';
 import { ChartColumn, Eye, Heart, MessageCircle } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 

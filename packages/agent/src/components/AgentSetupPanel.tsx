@@ -13,6 +13,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Alert } from '@ui/primitives/alert';
 import { Avatar } from '@ui/primitives/avatar';
 import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -143,17 +144,14 @@ export function AgentSetupPanel({
               ))}
             </div>
           ) : (
-            <Card
-              padding={CardPadding.SM}
-              gap={CardGap.SM}
+            <Alert
               className="mb-3"
-              bodyClassName="flex-row items-center"
+              icon={<LayoutGrid className="size-4" />}
+              size="sm"
+              variant="note"
             >
-              <div className="text-2xs text-muted-foreground">
-                <LayoutGrid className="size-4 shrink-0 text-muted-foreground" />
-                No channels connected yet.
-              </div>
-            </Card>
+              No channels connected yet.
+            </Alert>
           )}
 
           <AgentOAuthConnectMenu

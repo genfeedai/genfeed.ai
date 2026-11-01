@@ -47,6 +47,7 @@ function MessageBubble({
         )}
       </span>
       <div>
+        {/* ui-guard-allow:notice-tone-box -- chat bubble, not a notice */}
         <div
           className={cn(
             'px-3 py-2 rounded-xl text-sm text-foreground/80',

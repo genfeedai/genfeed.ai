@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   formatEnumLabel,
@@ -12,8 +11,8 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
@@ -139,7 +138,7 @@ export default function IngredientTabsMetadata({
                 const tagLabel =
                   typeof tag === 'string' ? tag : tag.label || tag.id;
                 return (
-                  <Badge key={tagKey} variant="ghost">
+                  <Badge key={tagKey} variant="secondary">
                     {tagLabel}
                   </Badge>
                 );
@@ -211,7 +210,7 @@ export default function IngredientTabsMetadata({
     <div className="space-y-6">
       {/* Alert when metadata is zero or unknown */}
       {hasInvalidMetadata && (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <p>
             Some metadata values are missing or zero. Please refresh the data to
             update the metadata information.

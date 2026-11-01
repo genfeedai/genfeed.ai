@@ -25,6 +25,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import Field from '@ui/primitives/field';
@@ -383,9 +384,9 @@ export default function StoryboardLongFormBoard({
               gap={CardGap.NONE}
             >
               <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
-                <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                <Badge isMono size="lg" variant="outline">
                   {String(segment.ordinal).padStart(2, '0')}
-                </span>
+                </Badge>
                 <EditableText
                   ariaLabel={translate('segmentNameFor', {
                     ordinal: segment.ordinal,

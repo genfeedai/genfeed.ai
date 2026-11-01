@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonVariant,
-  CampaignPlatform,
-  CampaignType,
-} from '@genfeedai/contracts';
+import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
 import {
   evaluateOutreachCapability,
   isOutreachPairExecutable,
@@ -14,9 +10,9 @@ import {
   RedditIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId } from 'react';
+import type { ReactNode } from 'react';
 
 const platformOptions = [
   {
@@ -72,43 +68,52 @@ export default function OutreachCampaignWizardStep1({
   onPlatformChange,
   onTypeChange,
 }: Props) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const translate = useTranslations('pages.outreachCampaign');
 
   return (
     <div className="space-y-6">
       <div>
         <p className="mb-2 text-sm font-medium">Platform</p>
-        <div className="grid grid-cols-2 gap-4">
+        <OptionTileGroup
+          ariaLabel={selectionLabels('platform')}
+          columns={2}
+          onValueChange={onPlatformChange}
+          value={platform}
+        >
           {platformOptions.map((option) => (
             <OutreachCapabilityOption
-              key={option.value}
               campaignType={campaignType}
               icon={option.icon}
-              isSelected={platform === option.value}
+              key={option.value}
               label={option.label}
               platform={option.value}
-              onSelect={() => onPlatformChange(option.value)}
+              value={option.value}
             />
           ))}
-        </div>
+        </OptionTileGroup>
       </div>
 
       <div>
         <p className="mb-2 text-sm font-medium">{translate('sequenceType')}</p>
-        <div className="space-y-3">
+        <OptionTileGroup
+          ariaLabel={translate('sequenceType')}
+          columns={1}
+          onValueChange={onTypeChange}
+          value={campaignType}
+        >
           {typeOptions.map((option) => (
             <OutreachCapabilityOption
-              key={option.value}
               campaignType={option.value}
               description={option.description}
-              isSelected={campaignType === option.value}
+              key={option.value}
               label={option.label}
               layout="stack"
               platform={platform}
-              onSelect={() => onTypeChange(option.value)}
+              value={option.value}
             />
           ))}
-        </div>
+        </OptionTileGroup>
       </div>
     </div>
   );
@@ -118,60 +123,31 @@ function OutreachCapabilityOption({
   campaignType,
   description,
   icon,
-  isSelected,
   label,
   layout = 'row',
-  onSelect,
   platform,
+  value,
 }: {
   campaignType: CampaignType;
   description?: string;
   icon?: ReactNode;
-  isSelected: boolean;
   label: string;
   layout?: 'row' | 'stack';
-  onSelect: () => void;
   platform: CampaignPlatform;
+  value: string;
 }) {
-  const reasonId = useId();
-  const evaluation = evaluateOutreachCapability({
-    campaignType,
-    platform,
-  });
+  const evaluation = evaluateOutreachCapability({ campaignType, platform });
   const isUnavailable = !isOutreachPairExecutable(evaluation);
   const reason = isUnavailable ? evaluation.ui.body : undefined;
 
   return (
-    <Button
-      aria-describedby={isUnavailable ? reasonId : undefined}
-      aria-disabled={isUnavailable || undefined}
-      aria-pressed={isSelected}
-      className={`flex items-start gap-3 border p-4 transition-colors ${
-        layout === 'stack' ? 'w-full flex-col' : 'items-center'
-      } ${
-        isSelected
-          ? 'border-primary bg-primary/10'
-          : 'border-border hover:border-primary/50'
-      } ${isUnavailable ? 'cursor-not-allowed opacity-50' : ''}`}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => {
-        if (isUnavailable) {
-          return;
-        }
-        onSelect();
-      }}
-    >
-      {icon ? <span className="text-2xl">{icon}</span> : null}
-      <span className="font-medium">{label}</span>
-      {reason || description ? (
-        <span
-          className="text-sm text-foreground/60"
-          id={isUnavailable ? reasonId : undefined}
-        >
-          {reason ?? description}
-        </span>
-      ) : null}
-    </Button>
+    <OptionTile
+      description={reason ?? description}
+      icon={icon ? <span className="text-2xl">{icon}</span> : undefined}
+      isUnavailable={isUnavailable}
+      layout={layout}
+      title={label}
+      value={value}
+    />
   );
 }

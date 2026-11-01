@@ -28,6 +28,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import Image from 'next/image';
@@ -292,11 +293,9 @@ function AgentChatMessageInner({
               </div>
             )}
             {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-              <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
-                <div className="text-xs text-muted-foreground">
-                  Results are ready below.
-                </div>
-              </Card>
+              <Alert size="sm" variant="note">
+                Results are ready below.
+              </Alert>
             ) : null}
             {shouldRenderMessageContent && shouldTruncateContent && (
               <Button

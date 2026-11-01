@@ -35,7 +35,7 @@ describe('getLibraryAssetType', () => {
 
     expect(video).toEqual(videoEdit);
     expect(video?.label).toBe('Video');
-    expect(video?.badgeVariant).toBe('video');
+    expect(video?.badgeVariant).toBe('default');
   });
 
   it('maps IMAGE and IMAGE_EDIT to Image', () => {

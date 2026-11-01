@@ -495,15 +495,15 @@ it('keeps same-platform accounts separately selectable and preserves selection w
   const { rerender } = render(
     <PlatformPreview targets={[first, second]} activePlatform="twitter" />,
   );
-  fireEvent.click(screen.getByRole('button', { name: /@second/ }));
+  fireEvent.click(screen.getByRole('radio', { name: /@second/ }));
   expect(screen.getByText('Second account draft')).toBeInTheDocument();
   expect(screen.queryByText('First account draft')).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /@second/ })).toHaveAttribute(
-    'aria-pressed',
+  expect(screen.getByRole('radio', { name: /@second/ })).toHaveAttribute(
+    'aria-checked',
     'true',
   );
-  expect(screen.getByRole('button', { name: /@first/ })).toHaveAttribute(
-    'aria-pressed',
+  expect(screen.getByRole('radio', { name: /@first/ })).toHaveAttribute(
+    'aria-checked',
     'false',
   );
   rerender(

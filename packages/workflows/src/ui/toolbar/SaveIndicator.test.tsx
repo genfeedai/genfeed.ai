@@ -56,8 +56,6 @@ describe('SaveIndicator', () => {
   it('pill variant renders the pill classes', () => {
     useWorkflowStore.setState({ isSaving: true });
     render(<SaveIndicator variant="pill" />);
-    expect(screen.getByText('Saving…').parentElement?.className).toContain(
-      'rounded-full',
-    );
+    expect(screen.getByText('Saving…')).toHaveClass('rounded-full');
   });
 });

@@ -183,7 +183,6 @@ function SeoChecks({ checks }: { checks: SeoCheck[] }) {
               key={check.id}
               variant={getCheckVariant(state)}
               title={check.note}
-              className="gap-1.5"
             >
               {getCheckIcon(state)}
               {check.label}

@@ -1,18 +1,17 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
 import type { GenerationBrandMode } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type { BrandModeBadgeProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 const BRAND_MODE_VARIANTS: Record<
   GenerationBrandMode,
-  'success' | 'warning' | 'slate'
+  'success' | 'warning' | 'secondary'
 > = {
   approved_brand: 'success',
   provisional_brand: 'warning',
-  raw: 'slate',
+  raw: 'secondary',
 };
 
 /**
@@ -31,11 +30,7 @@ export default function BrandModeBadge({
   }
 
   return (
-    <Badge
-      className={className}
-      size={ComponentSize.SM}
-      variant={BRAND_MODE_VARIANTS[brandMode]}
-    >
+    <Badge className={className} variant={BRAND_MODE_VARIANTS[brandMode]}>
       {translate(brandMode)}
     </Badge>
   );

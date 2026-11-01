@@ -1,13 +1,27 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import EvaluationBadge from '@/features/posts/components/evaluation/badge/EvaluationBadge';
 import type { PostEvaluationProps } from '@/features/posts/props/post-evaluation.props';
 import { useEvaluation } from '@/hooks/ui/evaluation/use-evaluation/use-evaluation';
+
+function getScoreTone(score: number): { label: string; variant: BadgeVariant } {
+  if (score >= 90) {
+    return { label: 'Excellent', variant: 'success' };
+  }
+  if (score >= 70) {
+    return { label: 'Good', variant: 'info' };
+  }
+  if (score >= 50) {
+    return { label: 'Average', variant: 'warning' };
+  }
+  return { label: 'Needs Work', variant: 'destructive' };
+}
 
 export default function EvalCell({
   post,
@@ -25,7 +39,17 @@ export default function EvalCell({
   const score = evaluation?.data.overallScore ?? post.evalScore;
 
   if (score != null && presentation !== 'menu') {
-    return <EvaluationBadge score={score} size={ComponentSize.XS} />;
+    const { label, variant } = getScoreTone(score);
+    return (
+      <Badge
+        casing="normal"
+        isSolid
+        title={`Quality Score: ${score}/100 - ${label}`}
+        variant={variant}
+      >
+        {score}
+      </Badge>
+    );
   }
 
   const handleEvaluate = async () => {

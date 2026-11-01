@@ -1,6 +1,5 @@
 import type { ModelSchema } from '@genfeedai/client/schemas';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   type ModelCategory,
@@ -15,13 +14,13 @@ import {
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
+  getModelCategoryBadgeColors,
+  getModelProviderBadgeColors,
   getModelProviderLabel,
 } from '@genfeedai/helpers/ui/model-badge.helper';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -76,7 +75,7 @@ export default function ModalModelFormContent({
   return (
     <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(form.formState.errors) && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="space-y-1">
             {parseFormErrors(form.formState.errors).map((error) => (
               <div key={error}>{error}</div>
@@ -136,7 +135,8 @@ export default function ModalModelFormContent({
               {modelProviders.map((provider) => (
                 <SelectItem key={provider} value={provider}>
                   <Badge
-                    className={`border ${getModelProviderBadgeClass(provider)}`}
+                    colors={getModelProviderBadgeColors(provider)}
+                    variant="custom"
                   >
                     {getModelProviderLabel(provider)}
                   </Badge>
@@ -165,7 +165,8 @@ export default function ModalModelFormContent({
               {modelCategories.map((category) => (
                 <SelectItem key={category} value={category}>
                   <Badge
-                    className={`border ${getModelCategoryBadgeClass(category)}`}
+                    colors={getModelCategoryBadgeColors(category)}
+                    variant="custom"
                   >
                     {category}
                   </Badge>

@@ -3,7 +3,6 @@ import {
   articleModalSchema,
 } from '@genfeedai/client/schemas';
 import {
-  AlertCategory,
   ArticleCategory,
   ButtonVariant,
   ComponentSize,
@@ -21,9 +20,9 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -237,7 +236,7 @@ export default function ModalArticle({
     <Modal id={ModalEnum.ARTICLE} title="Create New Article">
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

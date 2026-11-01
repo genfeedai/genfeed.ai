@@ -164,7 +164,7 @@ export default function SystemEmailPerformance({
             <SkeletonCard showImage={false} />
           </div>
         ) : state === 'error' ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" icon={false}>
             <AlertDescription>{translate('loadFailed')}</AlertDescription>
             <Button
               label={translate('retry')}

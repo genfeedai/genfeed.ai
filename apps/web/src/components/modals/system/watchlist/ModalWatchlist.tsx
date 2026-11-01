@@ -4,7 +4,6 @@ import {
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   ButtonVariant,
   ModalEnum,
   PageScope,
@@ -16,9 +15,9 @@ import {
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { WatchlistService } from '@genfeedai/services/analytics/watchlist.service';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -107,7 +106,7 @@ export default function ModalWatchlist({
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

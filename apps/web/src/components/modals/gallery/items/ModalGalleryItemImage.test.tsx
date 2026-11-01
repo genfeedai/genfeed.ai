@@ -28,11 +28,11 @@ vi.mock('@ui/masonry/image/MasonryImage', () => ({
   ),
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({
     value,
   }: import('react').ComponentProps<
-    typeof import('@ui/display/badge/Badge').default
+    typeof import('@ui/primitives/badge').Badge
   >) => <span data-testid="format-badge">{value}</span>,
 }));
 
