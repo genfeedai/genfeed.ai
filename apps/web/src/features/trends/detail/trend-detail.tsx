@@ -259,8 +259,9 @@ export default function TrendDetail({
                   {trend.metadata.hashtags.map((hashtag) => (
                     <Badge
                       key={hashtag}
+                      casing="normal"
                       value={hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
-                      className="border border-border bg-transparent"
+                      variant="outline"
                     />
                   ))}
                 </div>

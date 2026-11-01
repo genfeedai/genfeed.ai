@@ -1,3 +1,4 @@
+import { Model } from '@genfeedai/client/models';
 import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { ModalEnum, ModelCategory, ModelProvider } from '@genfeedai/contracts';
@@ -7,7 +8,6 @@ import type {
   IModelProviderContracts,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { Model } from '@genfeedai/models/ai/model.model';
 import type { ModalModelProps } from '@genfeedai/props/modals/modal.props';
 import { ModelsService } from '@genfeedai/services/ai/models.service';
 import { useQuery } from '@tanstack/react-query';

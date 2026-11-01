@@ -118,10 +118,7 @@ function StylesListContent({
       render: (style: IElementStyle) => (
         <div className="flex flex-wrap gap-2">
           {style.models?.map((model) => (
-            <Badge
-              key={model}
-              className={`border border-border bg-transparent ${model ? 'text-primary' : 'text-warning'}`}
-            >
+            <Badge casing="normal" key={model} variant="outline">
               {model}
             </Badge>
           ))}

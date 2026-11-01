@@ -100,13 +100,13 @@ function DeskLightCard({
           >
             <DeskMediaPreview item={item} isActive={isPreviewActive} />
             {isVideo ? (
-              <span
-                className={
-                  'absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-white' /* design-system-allow-content-color */
-                }
+              <Badge
+                className="absolute right-2 top-2"
+                shape="pill"
+                variant="overlay"
               >
                 {translateCard('videoBadge')}
-              </span>
+              </Badge>
             ) : null}
           </div>
 

@@ -18,9 +18,9 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
-import { Plus, Tag, X } from 'lucide-react';
+import { Plus, Tag } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
+import { resolveLibraryTagColors } from '@/components/tags/library-tag-picker/library-tag-colors.util';
 import { LIBRARY_TAGS_QUERY_KEY } from '@/components/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@/features/ingredients/components/tags/manager/TagsManager';
 import type { ExtendedIngredientTabsTagsProps } from '@/features/ingredients/props/ingredient-tabs.props';
@@ -154,19 +154,18 @@ export default function IngredientTabsTags({
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <Badge key={tag.id} size="lg" style={libraryTagStyle(tag)}>
-                <Tag className="size-3" />
-                <span>{tag.label}</span>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={() => handleRemoveTag(tag.id)}
-                  isDisabled={isUpdating}
-                  className="ml-1 hover:opacity-70 transition-opacity"
-                  ariaLabel={`Remove tag ${tag.label}`}
-                >
-                  <X className="size-3" />
-                </Button>
+              <Badge
+                casing="normal"
+                colors={resolveLibraryTagColors(tag) ?? undefined}
+                icon={<Tag />}
+                isRemoveDisabled={isUpdating}
+                key={tag.id}
+                onRemove={() => handleRemoveTag(tag.id)}
+                removeLabel={`Remove tag ${tag.label}`}
+                size="lg"
+                variant={resolveLibraryTagColors(tag) ? 'custom' : 'secondary'}
+              >
+                {tag.label}
               </Badge>
             ))}
           </div>

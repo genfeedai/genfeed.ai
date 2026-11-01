@@ -106,6 +106,46 @@ export function collectConstantClassStrings(
   return constants;
 }
 
+/**
+ * A className that comes from a looked-up tone (`statusConfig.color`,
+ * `getBadgeClass(x)`, `badgeTone`) is a restyle the literal scan cannot read.
+ * A bare `className` pass-through is not.
+ */
+const TONE_NAME = /(Class|ClassName|Classes|Color|Colour|Tone)$/;
+const TONE_PROPERTY = new Set(['className', 'color', 'colour', 'tone']);
+
+function isToneName(name: string): boolean {
+  return name !== 'className' && name !== 'classes' && TONE_NAME.test(name);
+}
+
+function hasLookedUpTone(node: ts.Node): boolean {
+  if (ts.isIdentifier(node)) {
+    return isToneName(node.text);
+  }
+  if (ts.isPropertyAccessExpression(node)) {
+    const object = node.expression.getText();
+    const isPassThrough =
+      node.name.text === 'className' &&
+      (object === 'props' || object === 'rest' || object === 'restProps');
+    return (
+      !isPassThrough &&
+      (TONE_PROPERTY.has(node.name.text) || isToneName(node.name.text))
+    );
+  }
+  if (ts.isCallExpression(node)) {
+    const callee = ts.isIdentifier(node.expression) ? node.expression.text : '';
+    if (callee !== 'cn' && callee !== 'clsx' && isToneName(callee)) {
+      return true;
+    }
+    return node.arguments.some(hasLookedUpTone);
+  }
+  let isFound = false;
+  ts.forEachChild(node, (child) => {
+    isFound = isFound || hasLookedUpTone(child);
+  });
+  return isFound;
+}
+
 export interface RestyleRuleOptions {
   /** Exported component name, e.g. `Badge`. */
   component: string;
@@ -113,6 +153,8 @@ export interface RestyleRuleOptions {
   importPaths: readonly string[];
   /** Whether fixed height and size classes are owned by the component. */
   isSizeOwned: boolean;
+  /** Also flag a className read from a looked-up tone (`status.color`). */
+  isToneLookupFlagged?: boolean;
   /** Rule id, also the key in the baseline and in `ui-guard-allow:<rule>`. */
   rule: string;
 }
@@ -157,6 +199,19 @@ export function scanRestyle(
       const owned = ownedClasses(strings.join(' '), {
         isSizeOwned: options.isSizeOwned,
       });
+      for (const attribute of node.attributes.properties) {
+        if (
+          options.isToneLookupFlagged &&
+          ts.isJsxAttribute(attribute) &&
+          attribute.name.getText(source.sourceFile) === 'className' &&
+          attribute.initializer &&
+          ts.isJsxExpression(attribute.initializer) &&
+          attribute.initializer.expression &&
+          hasLookedUpTone(attribute.initializer.expression)
+        ) {
+          owned.push('(looked-up tone)');
+        }
+      }
       if (owned.length > 0 && !isAllowed(source, node, options.rule)) {
         findings.push({
           detail: `<${options.component}> restyled with className: ${[...new Set(owned)].join(' ')}. Pick a variant or size, or add one to the shared component.`,

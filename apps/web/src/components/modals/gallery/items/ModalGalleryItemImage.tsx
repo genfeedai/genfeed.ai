@@ -28,12 +28,7 @@ export default function ModalGalleryItemImage({
 
       {imageFormat && (
         <div className="absolute top-2 left-2 z-10">
-          <Badge
-            className={
-              'bg-black/70 text-white shadow-lg backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
-            }
-            value={getFormatLabel(imageFormat)}
-          />
+          <Badge value={getFormatLabel(imageFormat)} variant="overlay" />
         </div>
       )}
 

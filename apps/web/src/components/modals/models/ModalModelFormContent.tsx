@@ -14,8 +14,8 @@ import {
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
+  getModelCategoryBadgeColors,
+  getModelProviderBadgeColors,
   getModelProviderLabel,
 } from '@genfeedai/helpers/ui/model-badge.helper';
 import ModalActions from '@ui/modals/actions/ModalActions';
@@ -135,7 +135,8 @@ export default function ModalModelFormContent({
               {modelProviders.map((provider) => (
                 <SelectItem key={provider} value={provider}>
                   <Badge
-                    className={`border ${getModelProviderBadgeClass(provider)}`}
+                    colors={getModelProviderBadgeColors(provider)}
+                    variant="custom"
                   >
                     {getModelProviderLabel(provider)}
                   </Badge>
@@ -164,7 +165,8 @@ export default function ModalModelFormContent({
               {modelCategories.map((category) => (
                 <SelectItem key={category} value={category}>
                   <Badge
-                    className={`border ${getModelCategoryBadgeClass(category)}`}
+                    colors={getModelCategoryBadgeColors(category)}
+                    variant="custom"
                   >
                     {category}
                   </Badge>

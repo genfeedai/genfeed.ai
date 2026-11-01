@@ -480,10 +480,15 @@ export default function SummaryContent() {
             Back
           </Button>
 
-          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-muted px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-            <Sparkles className="size-3" />
+          <Badge
+            className="step-badge shrink-0"
+            icon={<Sparkles />}
+            shape="pill"
+            size="xl"
+            variant="outline"
+          >
             Step 3 of 3
-          </div>
+          </Badge>
         </div>
       </div>
     </div>
