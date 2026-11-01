@@ -11,9 +11,10 @@ export default {
     `bun scripts/ui/control-guard.ts ${files.join(' ')}`,
   // Hand-built card surfaces and Card restyles (whole-repo scan, about 2s).
   // Avatars: restyled Avatar, hand-built letter or picture circles, private
-  // initials helpers.
+  // initials helpers. View tabs: views and filters are sub bar dropdowns.
   '*.tsx': (files) => [
     'bun scripts/ui/hand-built/cards.ts',
     `bun scripts/ui/hand-built/avatars.ts ${files.join(' ')}`,
+    `bun scripts/ui/hand-built/view-tabs.ts ${files.join(' ')}`,
   ],
 };

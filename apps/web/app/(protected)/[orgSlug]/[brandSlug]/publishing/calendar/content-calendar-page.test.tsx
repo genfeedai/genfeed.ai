@@ -1,3 +1,4 @@
+import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -468,6 +469,43 @@ async function renderLoaded() {
   });
 }
 
+interface CapturedSubbar {
+  exportNode: ReactNode;
+  filtersNode: ReactNode;
+  scheduleActionsNode: ReactNode;
+}
+
+function renderEmbedded(): CapturedSubbar {
+  const subbar: CapturedSubbar = {
+    exportNode: null,
+    filtersNode: null,
+    scheduleActionsNode: null,
+  };
+  const noop = () => {};
+  render(
+    <PostsLayoutContext.Provider
+      value={{
+        setExportNode: (node) => {
+          subbar.exportNode = node;
+        },
+        setFiltersNode: (node) => {
+          subbar.filtersNode = node;
+        },
+        setIsRefreshing: noop,
+        setLeadingNode: noop,
+        setRefresh: noop,
+        setScheduleActionsNode: (node) => {
+          subbar.scheduleActionsNode = node;
+        },
+        setViewToggleNode: noop,
+      }}
+    >
+      <ContentCalendarPage embedded />
+    </PostsLayoutContext.Provider>,
+  );
+  return subbar;
+}
+
 describe('ContentCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -582,10 +620,27 @@ describe('ContentCalendarPage', () => {
   });
 
   it('uses the parent article modal for the embedded publishing calendar', async () => {
-    render(<ContentCalendarPage embedded />);
+    const subbar = renderEmbedded();
     expect(articleModal.mount).not.toHaveBeenCalled();
+    render(subbar.exportNode);
     fireEvent.click(screen.getByRole('button', { name: 'New article' }));
     expect(articleModal.open).toHaveBeenCalledWith('modal-article');
+  });
+
+  it('mounts the calendar controls in the sub bar, not above the grid', async () => {
+    const subbar = renderEmbedded();
+
+    expect(latestCalendarProps().filterControls).toBeUndefined();
+    render(
+      <>
+        {subbar.filtersNode}
+        {subbar.scheduleActionsNode}
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'New cadence' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Filter scheduled' }),
+    ).toBeVisible();
   });
 
   it('sends an article to its dedicated editor rather than the release drawer', async () => {

@@ -210,6 +210,12 @@
     "skip": "Skip",
     "write": "Write",
     "today": "Today",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "list": "List"
+    },
     "filters": "Filters",
     "activeFilterCount": "{count, plural, one {# active filter} other {# active filters}}",
     "noFilterOptions": "No options available",

@@ -98,7 +98,10 @@ export interface ReleasePostsListProps extends ContentProps {
 }
 
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
-const VIEW_MODE_TO_VIEW_TYPE: Record<PublishingPostsViewMode, ViewType> = {
+const VIEW_MODE_TO_VIEW_TYPE: Record<
+  PublishingPostsViewMode,
+  ViewType.GRID | ViewType.KANBAN | ViewType.LIST
+> = {
   board: ViewType.KANBAN,
   grid: ViewType.GRID,
   list: ViewType.LIST,
