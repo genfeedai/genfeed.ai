@@ -171,7 +171,6 @@ export default function FeaturesPage(): React.ReactElement {
                   asChild
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.PUBLIC}
-                  className="tracking-[0.3em]"
                 >
                   <Link href="/pricing">View Plans</Link>
                 </Button>
@@ -179,7 +178,6 @@ export default function FeaturesPage(): React.ReactElement {
                   asChild
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.PUBLIC}
-                  className="tracking-[0.3em]"
                 >
                   <Link href="/agent">See How It Works</Link>
                 </Button>

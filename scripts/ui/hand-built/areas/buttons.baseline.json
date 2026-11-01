@@ -3,9 +3,6 @@
     "apps/extension/src/components/chat/ChatActionChips.tsx": {
       "button-restyle": 2
     },
-    "apps/extension/src/components/chat/ContentPreview.tsx": {
-      "button-restyle": 3
-    },
     "apps/extension/src/components/create/CreatePanel.tsx": {
       "button-restyle": 1,
       "unstyled-look": 1
@@ -22,14 +19,8 @@
     "apps/extension/src/components/settings/BrandSelector.tsx": {
       "unstyled-look": 1
     },
-    "apps/extension/src/components/settings/ConnectedAccounts.tsx": {
-      "button-restyle": 1
-    },
     "apps/extension/src/components/settings/OrganizationSelector.tsx": {
       "unstyled-look": 1
-    },
-    "apps/extension/src/popup.tsx": {
-      "button-restyle": 1
     },
     "apps/marketing/app/(content)/articles/[slug]/article-content.tsx": {
       "button-restyle": 1
@@ -45,9 +36,6 @@
     },
     "apps/marketing/app/(public)/[slug]/product-pricing-cta.tsx": {
       "button-restyle": 3
-    },
-    "apps/marketing/app/(public)/features/features-page.tsx": {
-      "button-restyle": 2
     },
     "apps/marketing/app/(public)/skills/install-command.tsx": {
       "unstyled-look": 1
@@ -72,24 +60,6 @@
     },
     "apps/marketing/src/ui/workflow-builder/nodes/TweetInputNode.tsx": {
       "unstyled-look": 3
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/_expert/corpus-source-list.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/_expert/expert-step-actions.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/_expert/first-system-item-row.tsx": {
-      "button-restyle": 5
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/corpus/corpus-content.tsx": {
-      "button-restyle": 2
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/first-system/first-system-content.tsx": {
-      "button-restyle": 3
-    },
-    "apps/web/app/(onboarding)/onboarding/(wizard)/positioning/positioning-content.tsx": {
-      "button-restyle": 5
     },
     "apps/web/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": {
       "button-restyle": 3
@@ -195,9 +165,6 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/content.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": {
       "button-restyle": 2
     },
@@ -206,15 +173,6 @@
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-card.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-inspector-body.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx": {
-      "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-toolbar.tsx": {
       "button-restyle": 2
@@ -304,7 +262,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": {
-      "button-restyle": 2,
+      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/src/components/menus/shared/CollapsibleGroup.tsx": {
@@ -327,12 +285,6 @@
     },
     "apps/web/src/components/menus/user-dropdown/UserDropdown.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/components/modals/content/post/ModalPostPlatformCard.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/src/components/modals/content/post/ModalPostPlatformTitleField.tsx": {
-      "button-restyle": 1
     },
     "apps/web/src/components/modals/content/remix/ModalPostRemix.tsx": {
       "button-restyle": 2
@@ -435,12 +387,6 @@
     },
     "apps/web/src/features/analytics/components/insights/insight-list-card/InsightListCard.tsx": {
       "unstyled-look": 1
-    },
-    "apps/web/src/features/analytics/overview/analytics-agent-dashboard.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/src/features/analytics/platform-detail/analytics-platform-detail.tsx": {
-      "button-restyle": 1
     },
     "apps/web/src/features/brands/components/banner/BrandDetailBanner.tsx": {
       "button-restyle": 2
@@ -787,9 +733,6 @@
     "packages/agent/src/workflow/components/VerificationPanel.tsx": {
       "unstyled-look": 1
     },
-    "packages/contexts/providers/api-status/api-status.provider.tsx": {
-      "button-restyle": 1
-    },
     "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": {
       "button-restyle": 1
     },
@@ -816,9 +759,6 @@
     },
     "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": {
       "button-restyle": 2
-    },
-    "packages/workflows/src/ui/nodes/NodeErrorBoundary.tsx": {
-      "button-restyle": 1
     },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
       "button-restyle": 2

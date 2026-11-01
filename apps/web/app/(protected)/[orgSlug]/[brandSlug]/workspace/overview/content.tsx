@@ -66,7 +66,6 @@ export default function WorkspaceOverviewContent() {
           onClick={() => {
             void resetLayout();
           }}
-          className="uppercase tracking-wide"
         >
           Reset to default
         </Button>

@@ -125,7 +125,6 @@ function PopupContent() {
             type="button"
             variant={ButtonVariant.DEFAULT}
             onClick={handleOpenSidePanel}
-            className="px-6 py-3"
           >
             <svg
               aria-hidden="true"

@@ -46,7 +46,6 @@ export default function ModalPostPlatformTitleField({
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="gap-2"
           onClick={() =>
             handleGenerateContent(config.credentialId, config.platform, 'title')
           }
