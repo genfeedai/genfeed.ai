@@ -6068,4 +6068,177 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  // Replicate billingConfig captured 2026-11-01: a priceless own-key tier now
+  // sits beside the priced tier.
+  'openai/sora-2': {
+    sourceUrl: 'https://replicate.com/openai/sora-2',
+    inputProperties: {
+      prompt: { type: 'string', title: 'Prompt' },
+      seconds: {
+        enum: [4, 8, 12],
+        type: 'integer',
+        title: 'seconds',
+        default: 4,
+      },
+      aspect_ratio: {
+        enum: ['portrait', 'landscape'],
+        type: 'string',
+        title: 'aspect_ratio',
+        default: 'portrait',
+      },
+      openai_api_key: {
+        type: 'string',
+        title: 'Openai Api Key',
+        format: 'password',
+        nullable: true,
+        writeOnly: true,
+      },
+      input_reference: {
+        type: 'string',
+        title: 'Input Reference',
+        format: 'uri',
+        nullable: true,
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'sora-2-own-key',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'sora-2-own-key',
+          },
+        ],
+        description: 'You pay OpenAI directly via your API key.',
+        prices: [],
+        title: 'OpenAI (own key)',
+      },
+      {
+        criteria: [
+          {
+            description: 'sora-2',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'sora-2',
+          },
+        ],
+        description: 'Charged per second of generated video.',
+        prices: [
+          {
+            description: 'or 10 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.10',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard quality',
+      },
+    ],
+  },
+  'openai/sora-2-pro': {
+    sourceUrl: 'https://replicate.com/openai/sora-2-pro',
+    inputProperties: {
+      prompt: { type: 'string', title: 'Prompt' },
+      seconds: {
+        enum: [4, 8, 12],
+        type: 'integer',
+        title: 'seconds',
+        default: 4,
+      },
+      aspect_ratio: {
+        enum: ['portrait', 'landscape'],
+        type: 'string',
+        title: 'aspect_ratio',
+        default: 'portrait',
+      },
+      openai_api_key: {
+        type: 'string',
+        title: 'Openai Api Key',
+        format: 'password',
+        nullable: true,
+        writeOnly: true,
+      },
+      input_reference: {
+        type: 'string',
+        title: 'Input Reference',
+        format: 'uri',
+        nullable: true,
+      },
+      resolution: {
+        enum: ['standard', 'high'],
+        type: 'string',
+        title: 'resolution',
+        default: 'standard',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'sora-2-pro-own-key',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'sora-2-pro-own-key',
+          },
+        ],
+        description: 'You pay OpenAI directly via your API key.',
+        prices: [],
+        title: 'OpenAI (own key)',
+      },
+      {
+        criteria: [
+          {
+            description: 'sora-2-pro-standard',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'sora-2-pro-standard',
+          },
+        ],
+        description:
+          '1280x720 landscape or 720x1280 portrait. Charged per second of generated video.',
+        prices: [
+          {
+            description: 'or around 33 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.30',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Standard quality (720p)',
+      },
+      {
+        criteria: [
+          {
+            description: 'sora-2-pro-high',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'sora-2-pro-high',
+          },
+        ],
+        description:
+          '1792x1024 landscape or 1024x1792 portrait. Charged per second of generated video.',
+        prices: [
+          {
+            description: 'or 20 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.50',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'High quality (1024p)',
+      },
+    ],
+  },
 };

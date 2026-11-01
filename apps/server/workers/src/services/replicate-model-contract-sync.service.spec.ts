@@ -290,6 +290,31 @@ describe('ReplicateModelContractSyncService', () => {
     });
   });
 
+  it('does not raise a price-missing alert for a model Replicate bills by GPU runtime', async () => {
+    const { model, service } = harness();
+    const result = await service.synchronizeModel(
+      {
+        ...registryModel(),
+        endpoint: 'adirik/owlvit-base-patch32',
+        key: 'adirik/owlvit-base-patch32',
+        pricingType: PricingType.PER_SECOND,
+        providerCostUsd: 0.000225,
+      },
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.TEXT,
+      {
+        ...pricing(0.000225),
+        billing: { reason: 'no_billing_config', status: 'unavailable' },
+        pricingType: PricingType.PER_SECOND,
+      },
+    );
+
+    expect(result.refreshFailure).toBeUndefined();
+    expect(model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+    });
+  });
+
   it('keeps a stable version while only the verification date moves', async () => {
     const first = harness();
     const second = harness();
