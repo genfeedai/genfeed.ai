@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import BrandRuleProposals from '@/components/modals/content/post/BrandRuleProposals';
+import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('next-intl', async () => {
   const { createTranslateFromCatalog } = await import(
     '@ui/tests/next-intl.stub'
   );
-  const { default: ui } = await import('../../../../../messages/en/ui.json');
+  const { default: ui } = await import('../../../messages/en/ui.json');
   return { useTranslations: createTranslateFromCatalog({ ui }) };
 });
 
@@ -84,6 +84,27 @@ describe('BrandRuleProposals', () => {
     expect(mocks.saveRules).not.toHaveBeenCalled();
   });
 
+  it('offers a rejection reason as a rule without needing an edit', async () => {
+    mocks.proposeRules.mockResolvedValue(['Too salesy.']);
+    render(<BrandRuleProposals reason="Too salesy" />);
+
+    expect(
+      await screen.findByText('Too salesy.', undefined, SLOW),
+    ).toBeTruthy();
+    expect(mocks.proposeRules).toHaveBeenCalledWith(
+      { brandId: 'brand-1', reason: 'Too salesy' },
+      expect.anything(),
+    );
+  });
+
+  it('suggests nothing for a blank reason', async () => {
+    render(<BrandRuleProposals reason="   " />);
+
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    expect(mocks.proposeRules).not.toHaveBeenCalled();
+  });
+
   it('suggests nothing while the text is as the model wrote it', async () => {
     render(
       <BrandRuleProposals
@@ -127,5 +148,48 @@ describe('BrandRuleProposals', () => {
       ),
     );
     expect(screen.getByRole('button', { name: 'Save rule' })).toBeTruthy();
+  });
+
+  it('drops the old suggestion as soon as the reason changes, even if the new lookup fails', async () => {
+    mocks.proposeRules.mockResolvedValueOnce(['Too salesy.']);
+    const { rerender } = render(<BrandRuleProposals reason="Too salesy" />);
+    expect(
+      await screen.findByText('Too salesy.', undefined, SLOW),
+    ).toBeTruthy();
+
+    mocks.proposeRules.mockRejectedValue(new Error('reason too long'));
+    rerender(<BrandRuleProposals reason="Too salesy and far too long" />);
+
+    expect(screen.queryByText('Too salesy.')).toBeNull();
+    await waitFor(
+      () => expect(mocks.proposeRules).toHaveBeenCalledTimes(2),
+      SLOW,
+    );
+    expect(screen.queryByRole('button', { name: 'Save rule' })).toBeNull();
+  });
+
+  it('tells the parent while a rule is being saved', async () => {
+    let finishSave: (value: unknown) => void = () => undefined;
+    mocks.saveRules.mockReturnValue(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      }),
+    );
+    const onSavingChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <BrandRuleProposals
+        reason="Too salesy"
+        onSavingChange={onSavingChange}
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Save rule' }, SLOW),
+    );
+    await waitFor(() => expect(onSavingChange).toHaveBeenLastCalledWith(true));
+
+    finishSave({ added: [], guardrails: [], profileId: 'profile-1' });
+    await waitFor(() => expect(onSavingChange).toHaveBeenLastCalledWith(false));
   });
 });
