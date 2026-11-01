@@ -1,64 +1,56 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
+import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
+import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import type { StoryboardPresetCardsProps } from '@/features/studio/props/storyboard-presets.props';
-import StoryboardPresetThumbnail from '@/features/studio/storyboard/components/StoryboardPresetThumbnail';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 
-/** Compact preset cards for the create page: a click prefills, never submits. */
+/**
+ * Preset starting points in the same pill style as the main Agent's
+ * suggestions: a click prefills the composer, never submits.
+ */
 export default function StoryboardPresetCards({
-  activePresetId,
   isDisabled = false,
   onSelect,
 }: StoryboardPresetCardsProps): ReactElement {
   const translate = useTranslations('pages.studioStoryboard.presets');
+  const suggestions: PromptBarSuggestionItem[] = STORYBOARD_PRESETS.map(
+    (preset) => {
+      const Icon = preset.icon;
+      return {
+        description: `${preset.format} · ${translate('runtime', {
+          seconds: preset.runtimeBudgetSeconds,
+        })}`,
+        icon: <Icon />,
+        id: preset.id,
+        label: translate(`items.${preset.id}.title`),
+        prompt: preset.brief,
+      };
+    },
+  );
 
   return (
     <div
       aria-label={translate('chipsAria')}
-      className="flex flex-col gap-1.5"
+      className="@container w-full min-w-0"
       data-testid="storyboard-preset-cards"
       role="group"
     >
-      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {STORYBOARD_PRESETS.map((preset) => {
-          const title = translate(`items.${preset.id}.title`);
-          const isActive = activePresetId === preset.id;
-          return (
-            <Button
-              aria-pressed={isActive}
-              ariaLabel={translate('prefillAria', { title })}
-              className={cn(
-                'w-44 shrink-0 normal-case snap-start flex-col items-stretch gap-0 overflow-hidden rounded-card bg-card text-left text-card-foreground shadow-border transition-[box-shadow] duration-150 hover:shadow-border-strong sm:w-52',
-                isActive && 'ring-2 ring-primary',
-                isDisabled && 'cursor-not-allowed opacity-60',
-              )}
-              data-testid="storyboard-preset-card"
-              isDisabled={isDisabled}
-              key={preset.id}
-              onClick={() => onSelect(preset)}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              <StoryboardPresetThumbnail src={preset.thumbnailSrc} />
-              <span className="flex flex-col gap-0.5 p-2.5">
-                <span className="truncate text-sm font-medium">{title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {preset.format}
-                  {' · '}
-                  {translate('runtime', {
-                    seconds: preset.runtimeBudgetSeconds,
-                  })}
-                </span>
-              </span>
-            </Button>
+      <PromptBarSuggestions
+        className="grid grid-cols-1 @md:grid-cols-2 @3xl:grid-cols-4 [&>button]:w-full [&>button]:max-w-none"
+        isDisabled={isDisabled}
+        maxSuggestions={STORYBOARD_PRESETS.length}
+        onSuggestionSelect={(item) => {
+          const preset = STORYBOARD_PRESETS.find(
+            (candidate) => candidate.id === item.id,
           );
-        })}
-      </div>
+          if (preset) onSelect(preset);
+        }}
+        suggestions={suggestions}
+        variant="chips"
+      />
     </div>
   );
 }

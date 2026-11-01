@@ -39,7 +39,6 @@ export default function StoryboardAgentThread({
     ? (isSlideshow ? SLIDESHOW_STARTER_IDS : VIDEO_STARTER_IDS).map((id) => {
         const prompt = translate(`starters.${kind}.${id}.prompt`);
         return {
-          description: prompt,
           id,
           label: translate(`starters.${kind}.${id}.title`),
           prompt,

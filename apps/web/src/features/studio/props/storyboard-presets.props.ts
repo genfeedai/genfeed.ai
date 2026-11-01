@@ -35,8 +35,6 @@ export interface StoryboardPresetGridProps {
 }
 
 export interface StoryboardPresetCardsProps {
-  /** Preset whose brief is currently in the composer, highlighted as selected. */
-  activePresetId?: StoryboardPresetId;
   isDisabled?: boolean;
   onSelect: (preset: StoryboardPreset) => void;
 }
@@ -77,8 +75,6 @@ export interface StoryboardPitch {
 }
 
 export interface StoryboardPitchCardsProps {
-  /** Pitch whose brief is currently in the composer, highlighted as selected. */
-  activePitchId?: StoryboardPitchId;
   isDisabled?: boolean;
   kind: StoryboardPitchKind;
   onSelect: (pitch: StoryboardPitch) => void;
