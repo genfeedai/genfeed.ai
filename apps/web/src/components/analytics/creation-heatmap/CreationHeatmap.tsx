@@ -88,6 +88,11 @@ export default function CreationHeatmap({
                 label={translate('cellTitle', { count, day: cell.dayKey })}
               >
                 <div
+                  role="img"
+                  aria-label={translate('cellTitle', {
+                    count,
+                    day: cell.dayKey,
+                  })}
                   className={cn(
                     'size-3.5 rounded-sm transition-colors',
                     isLoading
