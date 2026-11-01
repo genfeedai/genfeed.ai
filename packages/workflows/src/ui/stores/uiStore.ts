@@ -43,9 +43,6 @@ interface UIStore {
   nodeDetailActiveTab: NodeDetailTab;
   nodeDetailStartIndex: number;
 
-  // Notifications
-  notifications: Notification[];
-
   // Actions
   toggleMinimap: () => void;
   toggleAIGenerator: () => void;
@@ -65,38 +62,10 @@ interface UIStore {
   ) => void;
   closeNodeDetailModal: () => void;
   setNodeDetailTab: (tab: NodeDetailTab) => void;
-  addNotification: (notification: Omit<Notification, 'id'>) => void;
-  removeNotification: (id: string) => void;
 }
-
-interface Notification {
-  id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  title: string;
-  message?: string;
-  duration?: number;
-}
-
-let notificationId = 0;
 
 export const useUIStore = create<UIStore>((set) => ({
   activeModal: null,
-
-  addNotification: (notification) => {
-    const id = `notification-${++notificationId}`;
-    set((state) => ({
-      notifications: [...state.notifications, { ...notification, id }],
-    }));
-
-    // Auto-remove after duration
-    if (notification.duration !== 0) {
-      setTimeout(() => {
-        set((state) => ({
-          notifications: state.notifications.filter((n) => n.id !== id),
-        }));
-      }, notification.duration ?? 5000);
-    }
-  },
 
   closeConnectionDropMenu: () => {
     set({ connectionDropMenu: null });
@@ -119,7 +88,6 @@ export const useUIStore = create<UIStore>((set) => ({
   nodeDetailActiveTab: 'preview',
   nodeDetailNodeId: null,
   nodeDetailStartIndex: 0,
-  notifications: [],
 
   openConnectionDropMenu: (params) => {
     set({ connectionDropMenu: params });
@@ -136,12 +104,6 @@ export const useUIStore = create<UIStore>((set) => ({
       nodeDetailNodeId: nodeId,
       nodeDetailStartIndex: startIndex,
     });
-  },
-
-  removeNotification: (id) => {
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
-    }));
   },
 
   selectEdge: (edgeId) => {

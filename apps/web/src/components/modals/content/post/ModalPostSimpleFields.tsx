@@ -15,7 +15,9 @@ import { SelectField } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
+import BrandRuleProposals from '@/components/modals/content/post/BrandRuleProposals';
 import ModalPostDestinations from '@/components/modals/content/post/ModalPostDestinations';
 import PostDraftGenerator from '@/components/modals/content/post/PostDraftGenerator';
 
@@ -35,6 +37,13 @@ export default function ModalPostSimpleFields({
 }: ModalPostSimpleFieldsProps) {
   const translate = useTranslations('ui.postDraft');
   const composerTranslate = useTranslations('ui.postComposer');
+  // The text the model wrote, tied to the channel and format it was written for
+  // so a different channel never compares its draft with another's.
+  const generatorKey = `${selectedPlatform}-${form.watch('format')}`;
+  const [generated, setGenerated] = useState<{
+    key: string;
+    text: string;
+  } | null>(null);
   return (
     <div className="space-y-4">
       {hasFormErrors(form.formState.errors) && (
@@ -119,6 +128,7 @@ export default function ModalPostSimpleFields({
             format={form.watch('format')}
             isDisabled={isSubmitting}
             onGenerate={(description, draft) => {
+              setGenerated({ key: generatorKey, text: description });
               form.setValue('description', description, {
                 shouldDirty: true,
                 shouldValidate: true,
@@ -194,6 +204,11 @@ export default function ModalPostSimpleFields({
                 />
               )}
             </FormControl>
+
+            <BrandRuleProposals
+              original={generated?.key === generatorKey ? generated.text : null}
+              edited={form.watch('description') || ''}
+            />
 
             {composer?.hasXTarget ? (
               <div className="space-y-1">

@@ -8,7 +8,14 @@ import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
-import { act, render, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { createRef, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const socketMocks = vi.hoisted(() => ({
@@ -223,5 +230,71 @@ describe('useAgentCliTerminal', () => {
     } finally {
       delete (window as DesktopWindow).genfeedDesktop;
     }
+  });
+});
+
+function SelectionHarness({
+  isSearchOpen = false,
+}: {
+  isSearchOpen?: boolean;
+}) {
+  const [sent, setSent] = useState('nothing');
+
+  return (
+    <>
+      <output aria-label="Sent selection">{sent}</output>
+      <AgentCliTerminalBody
+        containerRef={createRef<HTMLDivElement>()}
+        isSearchOpen={isSearchOpen}
+        onSendSelection={setSent}
+      />
+    </>
+  );
+}
+
+describe('AgentCliTerminalBody context menu', () => {
+  it('offers to send the selection on right-click and closes on Escape', () => {
+    globalThis.ResizeObserver = class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    };
+    render(<SelectionHarness />);
+
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Genfeed terminal' }),
+    );
+    expect(
+      screen.getByRole('menuitem', { name: 'Send selection to agent' }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('sends the current selection when the item is chosen', () => {
+    vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => 'ls -la',
+    } as Selection);
+    render(<SelectionHarness />);
+
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Genfeed terminal' }),
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Send selection to agent' }),
+    );
+
+    expect(screen.getByLabelText('Sent selection')).toHaveTextContent('ls -la');
+  });
+
+  it('leaves the native context menu on the search input', () => {
+    render(<SelectionHarness isSearchOpen />);
+
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Terminal search' }),
+    );
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

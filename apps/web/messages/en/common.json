@@ -2140,6 +2140,12 @@
       "readOnly": "Read only",
       "review": "Review"
     },
+    "dmReconnect": {
+      "action": "Reconnect X",
+      "actionForAccount": "Reconnect {account}",
+      "description": "{count, plural, one {This X account was connected before Genfeed asked for DM access. Reconnect it to sync direct messages.} other {These X accounts were connected before Genfeed asked for DM access. Reconnect them to sync direct messages.}}",
+      "title": "Reconnect X to enable DMs"
+    },
     "empty": {
       "chooseBrandToConnect": "Choose a brand in the conversation filters before connecting an account.",
       "noMessages": "No messages in this thread yet."

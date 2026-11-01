@@ -69,6 +69,46 @@ describe('HarnessProfilesService', () => {
     expect(http.patch).toHaveBeenCalledWith('/harness_1', { label: 'H2' });
     expect(result.id).toBe('harness_1');
   });
+
+  it('proposeRules returns the suggested rules for an edit', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse({ proposals: ['Never use "truly".'] }),
+    );
+
+    const result = await service.proposeRules({
+      brandId: 'brand_1',
+      edited: 'Live.',
+      original: 'Truly live.',
+    });
+
+    expect(http.post).toHaveBeenCalledWith(
+      '/rule-proposals',
+      { brandId: 'brand_1', edited: 'Live.', original: 'Truly live.' },
+      { signal: undefined },
+    );
+    expect(result).toEqual(['Never use "truly".']);
+  });
+
+  it('saveRules POSTs only the rules the user accepted', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse({
+        added: ['Never use "truly".'],
+        guardrails: ['Never use "truly".'],
+        profileId: 'harness_1',
+      }),
+    );
+
+    const result = await service.saveRules({
+      brandId: 'brand_1',
+      rules: ['Never use "truly".'],
+    });
+
+    expect(http.post).toHaveBeenCalledWith('/rules', {
+      brandId: 'brand_1',
+      rules: ['Never use "truly".'],
+    });
+    expect(result.added).toEqual(['Never use "truly".']);
+  });
 });
 
 describe('TrainingsService', () => {

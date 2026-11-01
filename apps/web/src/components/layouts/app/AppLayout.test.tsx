@@ -488,6 +488,27 @@ describe('AppLayout', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('returns focus to the navigation toggle when the mobile drawer closes', async () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    toggle.focus();
+    fireEvent.click(toggle);
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Navigation' }), {
+      key: 'Escape',
+    });
+
+    await waitFor(() => expect(toggle).toHaveFocus());
+  });
+
   it('marks the workspace shell root without renaming the nav column', () => {
     render(
       <AppLayout isWorkspaceShell menuComponent={<MenuComponent />}>
