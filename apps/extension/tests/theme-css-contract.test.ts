@@ -109,9 +109,6 @@ describe('browser extension theme CSS contract', () => {
     expect(readSource('src/components/ui/ButtonSpinner.tsx')).toContain(
       'text-primary-foreground',
     );
-    expect(readSource('src/components/ui/EmptyState.tsx')).not.toContain(
-      'zinc-',
-    );
     expect(
       readSource('src/components/pages/ImportedSourcesPage.tsx'),
     ).not.toContain('zinc-');

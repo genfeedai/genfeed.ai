@@ -34,6 +34,9 @@ const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
 // outbound DM path has no X provider, so an X DM can never be sent.
 export const TWITTER_DM_REASON =
   'Sending X direct messages is not supported yet';
+// Reading X DMs needs the `dm.read` scope. Accounts connected before it was
+// requested keep their old grant until they reconnect.
+export const X_DM_RECONNECT_REASON = 'Reconnect X to enable DMs';
 
 export { LINKEDIN_DM_NOT_IMPLEMENTED_REASON, LINKEDIN_DM_UNAVAILABLE_REASON };
 

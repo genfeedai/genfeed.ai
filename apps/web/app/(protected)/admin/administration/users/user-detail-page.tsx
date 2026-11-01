@@ -8,13 +8,13 @@ import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Users, VenetianMask } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { readRouteParam } from '@/lib/route-params';
 import { useImpersonateUser } from './use-impersonate-user';
-import UserAvatar from './user-avatar';
 import UserDetails from './user-details';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 
@@ -74,7 +74,12 @@ export default function UserDetailPage() {
       {user ? (
         <div className="space-y-4">
           <div className="flex min-w-0 items-center gap-3">
-            <UserAvatar className="size-10" user={user} />
+            <Avatar
+              alt={displayName || user.email}
+              name={displayName || user.email}
+              size="lg"
+              src={user.avatar}
+            />
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-lg font-semibold">
                 {displayName || user.email || EMPTY_VALUE}

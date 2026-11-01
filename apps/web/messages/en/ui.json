@@ -906,6 +906,14 @@
       "triggerWord": "Trigger word"
     }
   },
+  "brandRuleProposals": {
+    "title": "Save this as a brand rule?",
+    "hint": "Future drafts for this brand will follow it. You can change it later in your content rules.",
+    "save": "Save rule",
+    "dismiss": "Dismiss",
+    "saved": "Saved to your content rules: {rule}",
+    "failed": "Could not save the rule. Please try again."
+  },
   "selectionGroups": {
     "activityRange": "Activity range",
     "avatarProvider": "Avatar provider",

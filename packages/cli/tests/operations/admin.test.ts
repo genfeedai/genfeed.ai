@@ -512,5 +512,39 @@ describe('operations/admin', () => {
         reason: 'Setup',
       });
     });
+
+    it('sends the reviewed asset candidate and prompt with starter-content', async () => {
+      adminPost.mockResolvedValue({ data: { id: 'warm-1', type: 'warmup-accounts' } });
+
+      await prepareWarmupAccount('warm-1', {
+        action: 'starter-content',
+        assetCandidateId: 'banner:2',
+        prompt: 'Bold launch visual',
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/warmup-accounts/warm-1/prepare', {
+        action: 'starter-content',
+        assetCandidateId: 'banner:2',
+        prompt: 'Bold launch visual',
+      });
+    });
+
+    it('sends per-field context decisions with apply-context', async () => {
+      adminPost.mockResolvedValue({ data: { id: 'warm-1', type: 'warmup-accounts' } });
+
+      await prepareWarmupAccount('warm-1', {
+        action: 'apply-context',
+        contextDecisions: {
+          fields: { description: { action: 'accept', value: 'Public description' } },
+        },
+      });
+
+      expect(adminPost).toHaveBeenCalledWith('/admin/warmup-accounts/warm-1/prepare', {
+        action: 'apply-context',
+        contextDecisions: {
+          fields: { description: { action: 'accept', value: 'Public description' } },
+        },
+      });
+    });
   });
 });

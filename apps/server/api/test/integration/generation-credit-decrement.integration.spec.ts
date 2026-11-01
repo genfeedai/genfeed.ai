@@ -194,6 +194,10 @@ const createImageGenerationService = () => {
   };
   const replicateService = createMockReplicateService();
   const comfyUIService = createMockComfyUIService();
+  const managedInferenceRuntimeService = {
+    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
+  };
+  const mediaUrlService = {};
   const klingAIService = createMockKlingAIImageService();
   const falService = createMockFalService();
   const higgsFieldService = {
@@ -262,7 +266,11 @@ const createImageGenerationService = () => {
   } as unknown as LoggerService;
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
+    new GenfeedAiImageGenerationProviderAdapter(
+      managedInferenceRuntimeService as never,
+      comfyUIService as never,
+      mediaUrlService as never,
+    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),

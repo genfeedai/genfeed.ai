@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -17,12 +16,12 @@ import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.help
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
 import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -371,7 +370,7 @@ export default function AccountGrid({
   }
 
   if (lanes.length === 0) {
-    return <CardEmpty label={translate('emptyLabel')} />;
+    return <EmptyState surface="card" title={translate('emptyLabel')} />;
   }
 
   return (

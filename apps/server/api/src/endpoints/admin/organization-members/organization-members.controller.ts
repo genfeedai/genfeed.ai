@@ -5,6 +5,7 @@ import {
   AdminOrganizationMembersService,
 } from '@api/endpoints/admin/organization-members/organization-members.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -53,6 +54,11 @@ export class AdminOrganizationMembersController {
       );
     }
 
-    return { data: await this.members.addMember(organizationId, parsed.data) };
+    // The caller's own tenant is the operator organization, so the
+    // organization-scoped Member queries need the path organization as the
+    // tenant, as the other admin organization routes do.
+    return runWithTenantContext({ organizationId }, async () => ({
+      data: await this.members.addMember(organizationId, parsed.data),
+    }));
   }
 }

@@ -1,12 +1,11 @@
 'use client';
-
 import { Platform } from '@genfeedai/contracts';
 import {
   formatChartDate,
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { EmptyState } from '@ui/primitives/empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
@@ -143,9 +142,9 @@ export function PlatformTimeSeriesChart({
         {isLoading && <LoadingOverlay tone="veil" />}
 
         {isEmpty && !isLoading ? (
-          <CardEmptyContent
-            className="absolute inset-0 py-0"
-            label={
+          <EmptyState
+            isFill
+            title={
               hasConnectedPlatforms
                 ? 'No performance trends yet'
                 : 'No connected platforms yet'

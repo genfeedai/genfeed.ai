@@ -30,11 +30,10 @@ import { CardBoundary } from '@mcp/ui/card-boundary';
 import uiMessages from '@preview-messages/ui';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -53,6 +52,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
 import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
@@ -391,14 +391,6 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
     );
   return null;
 }
-function initials(value: string) {
-  const letters = value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase());
-  return letters.join('') || '?';
-}
 function SummaryCard({
   item,
   bridge,
@@ -426,19 +418,13 @@ function SummaryCard({
         bodyClassName="h-full"
         icon={
           hasIdentity ? (
-            <Avatar className="size-11 rounded-xl">
-              {avatarUrl && (
-                <AvatarImage
-                  src={avatarUrl}
-                  alt=""
-                  className="rounded-xl object-cover"
-                  onLoadingStatusChange={() => bridge.resize()}
-                />
-              )}
-              <AvatarFallback className="rounded-xl text-sm font-semibold">
-                {initials(item.title)}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar
+              name={item.title}
+              onLoadingStatusChange={() => bridge.resize()}
+              shape="square"
+              size="lg"
+              src={avatarUrl}
+            />
           ) : undefined
         }
         label={item.title}
@@ -1077,7 +1063,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           />
         )}
         {emptyMessage ? (
-          <CardEmptyContent label={emptyMessage} />
+          <EmptyState title={emptyMessage} />
         ) : (
           <Text
             as="p"

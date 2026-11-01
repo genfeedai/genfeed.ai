@@ -55,14 +55,13 @@ export default function KPISection({
           className={item.className}
           description={item.description}
           icon={item.icon}
-          iconClassName={item.iconClassName}
           isLoading={isLoading}
           label={item.label}
           size={size}
+          tone={item.tone}
           trend={item.trend}
           trendLabel={item.trendLabel}
           value={item.value}
-          valueClassName={item.valueClassName}
         />
       ))}
     </MetricCardGrid>

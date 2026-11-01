@@ -192,6 +192,7 @@ export class WarmupPreparationService {
         scope.brandId,
         scope.organizationId,
         decisions,
+        actorUserId,
       );
       if (!result.appliedFields.length || result.status === 'blocked')
         throw new BadRequestException('No accepted brand context was applied');

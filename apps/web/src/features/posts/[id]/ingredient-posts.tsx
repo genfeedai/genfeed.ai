@@ -8,12 +8,12 @@ import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,7 +31,7 @@ export default function IngredientPosts({
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
       <Container>
-        <CardEmpty label="Ingredient not found" />
+        <EmptyState surface="card" title="Ingredient not found" />
       </Container>
     );
   }
@@ -107,7 +107,7 @@ export default function IngredientPosts({
       </div>
 
       {posts.length === 0 ? (
-        <CardEmpty label={EMPTY_STATES.POSTS_YET} />
+        <EmptyState surface="card" title={EMPTY_STATES.POSTS_YET} />
       ) : (
         <div className="@container space-y-4">
           <h2 className="text-2xl font-bold">Posts using this ingredient</h2>

@@ -164,6 +164,46 @@ describe('getBetterAuthServerToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('stops at a fetch cut off by the end of its prerender', async () => {
+    const prerenderEnded = Object.assign(
+      new Error(
+        'During prerendering, fetch() rejects when the prerender is complete.',
+      ),
+      { digest: 'HANGING_PROMISE_REJECTION' },
+    );
+    const fetchMock = vi.fn(async () => {
+      throw prerenderEnded;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const onFailure = vi.fn();
+
+    await expect(
+      getBetterAuthServerToken('session=abc', { onFailure }),
+    ).resolves.toBeNull();
+
+    expect(onFailure.mock.calls.map(([failure]) => failure)).toEqual([
+      { attempt: 1, reason: 'prerender-ended' },
+    ]);
+  });
+
+  it('asks for itself when the shared request it joined was cut off by its prerender', async () => {
+    const prerenderEnded = Object.assign(new Error('prerender complete'), {
+      digest: 'HANGING_PROMISE_REJECTION',
+    });
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => settleLater(prerenderEnded))
+      .mockImplementationOnce(async () => Response.json({ token: 'jwt' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      Promise.all([
+        getBetterAuthServerToken('session=abc'),
+        getBetterAuthServerToken('session=abc'),
+      ]),
+    ).resolves.toEqual([null, 'jwt']);
+  });
+
   it('asks for itself when the shared request it joined failed on the network', async () => {
     const fetchMock = vi
       .fn()

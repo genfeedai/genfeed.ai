@@ -1,19 +1,8 @@
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { useTranslations } from 'next-intl';
 import type { ReviewHistoryPanelProps } from '@/features/posts/props/review-history-panel.props';
-
-function getReviewerInitials(displayName: string): string {
-  const initials = displayName
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || '?';
-}
 
 export default function ReviewHistoryPanel({
   browserTimezone,
@@ -53,22 +42,18 @@ export default function ReviewHistoryPanel({
               </p>
             ) : null}
             <div className="flex items-center gap-2">
-              <Avatar className="size-7 bg-card">
-                {event.reviewer?.avatar ? (
-                  <AvatarImage
-                    alt={translate('history.avatarAlt', {
-                      name: event.reviewer.displayName,
-                    })}
-                    className="object-cover"
-                    src={event.reviewer.avatar}
-                  />
-                ) : null}
-                <AvatarFallback className="text-2xs font-semibold text-muted-foreground">
-                  {event.reviewer
-                    ? getReviewerInitials(event.reviewer.displayName)
-                    : '?'}
-                </AvatarFallback>
-              </Avatar>
+              <Avatar
+                alt={
+                  event.reviewer
+                    ? translate('history.avatarAlt', {
+                        name: event.reviewer.displayName,
+                      })
+                    : undefined
+                }
+                name={event.reviewer?.displayName}
+                size="md"
+                src={event.reviewer?.avatar}
+              />
               {event.reviewer ? (
                 <p className="min-w-0 text-xs text-muted-foreground">
                   <span className="font-medium text-foreground/80">

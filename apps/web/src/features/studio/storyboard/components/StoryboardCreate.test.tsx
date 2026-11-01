@@ -262,6 +262,29 @@ describe('Storyboard shared composer', () => {
       }),
     );
   });
+  it('offers three slideshow ideas that fill the brief without saving', () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    expect(
+      screen.getAllByRole('button', { name: /^Start from the .* idea$/ }),
+    ).toHaveLength(3);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Start from the Quick tips idea' }),
+    );
+    expect(screen.getByLabelText('Brief')).toHaveDisplayValue(
+      /^Five small habits that make a big difference\./,
+    );
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('offers long-video ideas and none for a remix', () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    expect(
+      screen.getByRole('button', { name: 'Start from the Voice note idea' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remix a video' }));
+    expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
+  });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
     fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));

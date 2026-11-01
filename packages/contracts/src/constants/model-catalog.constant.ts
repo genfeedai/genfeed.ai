@@ -215,6 +215,25 @@ const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
   [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]:
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+  // fal lists Stable Video Diffusion as `fal-ai/stable-video` with status
+  // `deprecated` (checked 2026-11-01); the stored `-diffusion` id is not served.
+  [MODEL_KEYS.FAL_STABLE_VIDEO]: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+};
+
+/**
+ * fal moved these models to new endpoint ids, so the stored key answers 404
+ * (checked 2026-11-01). The key stays and the refresh reads the live endpoint.
+ */
+const FAL_MOVED_ENDPOINTS: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.FAL_ELEVEN_LABS_TTS]: 'fal-ai/elevenlabs/tts/multilingual-v2',
+  [MODEL_KEYS.FAL_SEEDANCE_2_0]: 'bytedance/seedance-2.0/text-to-video',
+  [MODEL_KEYS.FAL_GPT_IMAGE_2]: 'openai/gpt-image-2',
+  [MODEL_KEYS.FAL_RECRAFT_V4_PRO]: 'fal-ai/recraft/v4/pro/text-to-image',
+  // fal splits these by mode. Only the text endpoint is registered, so an
+  // image-to-video request is refused as an alternative and stays on Replicate.
+  [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]:
+    'fal-ai/kling-video/v3/pro/text-to-video',
+  [MODEL_KEYS.FAL_PIXVERSE_V6]: 'fal-ai/pixverse/v6/text-to-video',
 };
 
 /**
@@ -293,6 +312,8 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     };
 
     if (curated && 'endpoint' in curated) entry.endpoint = curated.endpoint;
+    const movedEndpoint = FAL_MOVED_ENDPOINTS[key];
+    if (movedEndpoint && !entry.endpoint) entry.endpoint = movedEndpoint;
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
     }

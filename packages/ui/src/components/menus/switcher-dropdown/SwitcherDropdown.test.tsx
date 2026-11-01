@@ -95,10 +95,11 @@ describe('SwitcherDropdown', () => {
     renderDropdown();
     fireEvent.click(screen.getByText('Open'));
 
-    const avatar = screen.getAllByRole('option')[0]?.querySelector('.size-5');
+    const avatar = screen
+      .getAllByRole('option')[0]
+      ?.querySelector('[data-shape]');
 
-    expect(avatar).toHaveClass('rounded-md');
-    expect(avatar).not.toHaveClass('rounded-full');
+    expect(avatar).toHaveAttribute('data-shape', 'square');
   });
 
   it('selects the highlighted item via arrow-down + Enter (cmdk keyboard nav)', () => {

@@ -80,11 +80,11 @@ describe('Alert', () => {
     expect(screen.getByTestId('custom-alert-icon')).toHaveClass('size-7');
   });
 
-  it('uses the default 20px severity icon when no icon is supplied', () => {
+  it('uses the default 16px severity icon when no icon is supplied', () => {
     const { container } = render(<Alert variant="warning">Default icon</Alert>);
 
     expect(container.querySelector('[data-slot="alert-icon"]')).toHaveClass(
-      '[&>svg]:size-5',
+      '[&>svg]:size-4',
     );
   });
 
@@ -110,7 +110,7 @@ describe('Alert', () => {
     );
 
     expect(screen.getByText('A title that may wrap')).toHaveClass(
-      'font-medium',
+      'font-semibold',
     );
     expect(screen.getByText('A title that may wrap')).not.toHaveClass(
       'line-clamp-1',
@@ -156,7 +156,7 @@ describe('Alert', () => {
     );
 
     expect(container.querySelector('[data-slot="alert-icon"]')).toHaveClass(
-      '[&>svg]:size-4',
+      '[&>svg]:size-3.5',
     );
     expect(screen.getByRole('alert')).toHaveClass('text-xs');
   });

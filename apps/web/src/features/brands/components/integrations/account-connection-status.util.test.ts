@@ -3,9 +3,9 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import { describe, expect, it } from 'vitest';
 import {
   getAccountConnectionStatus,
-  getConnectionInitials,
   getConnectionLabel,
   isAccessTokenExpired,
+  needsDirectMessageReconnect,
 } from './account-connection-status.util';
 
 function buildConnection(
@@ -96,22 +96,21 @@ describe('getConnectionLabel', () => {
   });
 });
 
-describe('getConnectionInitials', () => {
-  it('builds initials from up to two words in the label', () => {
-    expect(
-      getConnectionInitials(buildConnection({ name: 'Acme Studio' })),
-    ).toBe('AS');
-  });
-
-  it('takes a single initial from a one-word label, such as the platform fallback', () => {
-    expect(
-      getConnectionInitials(
-        buildConnection({
-          handle: undefined,
-          label: undefined,
-          name: undefined,
-        }),
-      ),
-    ).toBe('X');
-  });
+describe('needsDirectMessageReconnect', () => {
+  it.each([
+    [CredentialPlatform.TWITTER, 'reconnect', true],
+    [CredentialPlatform.TWITTER, 'ok', false],
+    [CredentialPlatform.TWITTER, 'unknown', false],
+    [CredentialPlatform.TWITTER, undefined, false],
+    [CredentialPlatform.LINKEDIN, 'reconnect', false],
+  ] as const)(
+    '%s with %s → %s',
+    (platform, directMessageCapability, expected) => {
+      expect(
+        needsDirectMessageReconnect(
+          buildConnection({ directMessageCapability, platform }),
+        ),
+      ).toBe(expected);
+    },
+  );
 });

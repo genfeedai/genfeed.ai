@@ -36,6 +36,19 @@ function metricCard(dashboardPage: DashboardPage, label: string): Locator {
     .filter({ hasText: label });
 }
 
+/** Stat tiles read number first: the value sits above its label. */
+async function expectValueAboveLabel(
+  card: Locator,
+  value: string,
+  label: string,
+): Promise<void> {
+  const valueBox = await card.getByText(value, { exact: true }).boundingBox();
+  const labelBox = await card.getByText(label, { exact: true }).boundingBox();
+  expect(valueBox).not.toBeNull();
+  expect(labelBox).not.toBeNull();
+  expect(valueBox?.y ?? 0).toBeLessThan(labelBox?.y ?? 0);
+}
+
 async function expectSeededMetrics(
   dashboardPage: DashboardPage,
 ): Promise<void> {
@@ -46,6 +59,8 @@ async function expectSeededMetrics(
   await expect(ready).toContainText('2');
   await expect(pending).not.toHaveAttribute('aria-busy', 'true');
   await expect(pending).toContainText('3');
+  await expectValueAboveLabel(ready, '2', 'Ready to review');
+  await expectValueAboveLabel(pending, '3', 'Pending posts');
 }
 
 /** Registers `handler` for `pattern` and records every request it sees. */

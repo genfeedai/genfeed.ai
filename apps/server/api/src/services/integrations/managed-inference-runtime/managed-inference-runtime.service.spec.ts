@@ -1,4 +1,5 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -66,6 +67,7 @@ describe('ManagedInferenceRuntimeService', () => {
           provide: SERVER_TOKENS.customerInstances,
           useValue: customerInstancesService,
         },
+        PollUntilService,
       ],
     }).compile();
 
@@ -84,6 +86,69 @@ describe('ManagedInferenceRuntimeService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('generateImage', () => {
+    const request = {
+      model: 'genfeed-ai/flux2-klein',
+      organizationId: 'org-1',
+      prompt: 'a product shot',
+    };
+
+    it.each([
+      ['genfeed-ai/flux2-klein', 'http://images.fleet.local/generate/image'],
+      [
+        'genfeed-ai/flux2-dev-pulid-lora',
+        'http://images.fleet.local/generate/pulid',
+      ],
+    ])('sends %s to %s and returns the job result', async (model, endpoint) => {
+      await createModule({ GPU_INTERNAL_API_KEY: 'runtime-key' });
+      mockedAxiosPost.mockResolvedValueOnce({
+        data: { jobId: 'job-1', status: 'queued' },
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: {
+          jobId: 'job-1',
+          resultUrl: 'https://cdn.genfeed.ai/ingredients/images/job-1.png',
+          status: 'completed',
+        },
+      });
+
+      await expect(
+        service.generateImage({ ...request, model }),
+      ).resolves.toEqual({
+        jobId: 'job-1',
+        resultUrl: 'https://cdn.genfeed.ai/ingredients/images/job-1.png',
+      });
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({ model, prompt: 'a product shot' }),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer runtime-key' },
+        }),
+      );
+    });
+
+    it('rejects with the runtime error when the job fails', async () => {
+      mockedAxiosPost.mockResolvedValueOnce({
+        data: { jobId: 'job-2', status: 'queued' },
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: { error: 'ComfyUI is offline', jobId: 'job-2', status: 'failed' },
+      });
+
+      await expect(service.generateImage(request)).rejects.toThrow(
+        'Images runtime job job-2 failed: ComfyUI is offline',
+      );
+    });
+
+    it('rejects when no images runtime is configured', async () => {
+      await createModule({ GPU_IMAGES_URL: '' });
+
+      await expect(service.generateImage(request)).rejects.toThrow(
+        'The Genfeed images runtime is not configured',
+      );
+    });
   });
 
   // getInstanceUrl

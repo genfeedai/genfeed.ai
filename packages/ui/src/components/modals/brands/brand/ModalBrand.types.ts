@@ -134,6 +134,7 @@ export function credentialToSocialConnection(
     accountHealth: credential.accountHealth,
     avatarUrl: credential.externalAvatar,
     credentialId: credential.id,
+    directMessageCapability: credential.directMessageCapability,
     externalId: credential.externalId,
     handle: credential.externalHandle,
     isConnected: credential.isConnected,

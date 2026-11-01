@@ -21,7 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -96,12 +96,11 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
   return (
     <Card>
       <div className="flex items-center gap-2">
-        <Avatar className="size-8">
-          <AvatarImage src={post.authorAvatarUrl ?? undefined} />
-          <AvatarFallback>
-            {(post.authorDisplayName || post.authorHandle || '?').slice(0, 2)}
-          </AvatarFallback>
-        </Avatar>
+        <Avatar
+          name={post.authorDisplayName || post.authorHandle}
+          size="md"
+          src={post.authorAvatarUrl}
+        />
         <div className="min-w-0 text-sm">
           <p className="truncate font-medium">
             {post.authorDisplayName || post.authorHandle}

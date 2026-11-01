@@ -967,6 +967,63 @@ describe('Table', () => {
       expect(screen.queryByText('Detail of First item')).toBeNull();
     });
 
+    it('keeps the rows and the open sidebar while a sort reloads the page', () => {
+      function renderLoading(items: typeof rows, isLoading: boolean) {
+        return (
+          <ContextSidebarProvider>
+            <ContextSidebarOutlet testId="rail" />
+            <Table
+              ariaLabel="Items"
+              columns={[{ header: 'Name', key: 'name' }]}
+              getRowKey={(item) => item.id}
+              isLoading={isLoading}
+              items={items}
+              rowSidebar={{
+                getId: (item) => item.id,
+                getTitle: (item) => item.name,
+                kind: 'asset',
+                render: (item) => <p>{`Detail of ${item.name}`}</p>,
+              }}
+            />
+          </ContextSidebarProvider>
+        );
+      }
+      const { rerender } = render(renderLoading(rows, false));
+      fireEvent.click(screen.getByText('First item'));
+
+      rerender(renderLoading([], true));
+
+      expect(screen.getByRole('table', { name: 'Items' })).toHaveAttribute(
+        'aria-busy',
+        'true',
+      );
+      expect(screen.getByText('Second item')).toBeInTheDocument();
+      expect(screen.getByTestId('rail')).toHaveTextContent(
+        'Detail of First item',
+      );
+
+      rerender(renderLoading([{ id: 'c', name: 'Third item' }], false));
+
+      expect(screen.getByText('Third item')).toBeInTheDocument();
+      expect(screen.queryByText('Second item')).toBeNull();
+      expect(screen.getByTestId('rail')).toHaveTextContent(
+        'Detail of First item',
+      );
+    });
+
+    it('shows the skeleton only for the first load', () => {
+      render(
+        <Table
+          ariaLabel="Items"
+          columns={[{ header: 'Name', key: 'name' }]}
+          isLoading
+          items={[]}
+        />,
+      );
+
+      expect(screen.queryByRole('table', { name: 'Items' })).toBeNull();
+    });
+
     it('keeps the name a link while the rest of the row opens the sidebar', () => {
       renderSidebarTable();
 

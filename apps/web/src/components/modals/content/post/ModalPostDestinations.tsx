@@ -6,7 +6,7 @@ import type {
   ModalPostDestinationsProps,
 } from '@genfeedai/props/modals/modal.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import FormControl from '@ui/primitives/field';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Separator } from '@ui/primitives/separator';
@@ -81,28 +81,18 @@ export default function ModalPostDestinations({
                 <OptionTile
                   ariaLabel={label}
                   icon={
-                    <span className="relative shrink-0">
-                      <Avatar className="size-10 bg-card">
-                        {credential.externalAvatar ? (
-                          <AvatarImage
-                            src={credential.externalAvatar}
-                            alt=""
-                            className="object-cover"
-                          />
-                        ) : null}
-                        <AvatarFallback className="text-xs font-semibold text-foreground/70">
-                          {label.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="absolute -bottom-0.5 -right-0.5 flex rounded-full bg-background p-0.5">
+                    <Avatar
+                      badge={
                         <PlatformBadge
                           platform={credential.platform}
                           showLabel={false}
                           variant="solid"
-                          className="size-4.5 justify-center rounded-full p-0 [&_svg]:size-3"
                         />
-                      </span>
-                    </span>
+                      }
+                      name={label}
+                      size="lg"
+                      src={credential.externalAvatar}
+                    />
                   }
                   key={credential.id}
                   value={credential.id}

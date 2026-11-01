@@ -48,18 +48,20 @@
   animation: fade-in-up 0.5s ease-out forwards;
 }
 
-/* Shimmer animation for skeleton loading (enhanced) */
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
+/* Skeleton sweep: the one loading-placeholder motion, used by the shared
+   Skeleton primitive as `before:animate-skeleton`. Declared in @theme so
+   Tailwind generates the utility and its keyframes. */
+@theme {
+  --animate-skeleton: skeleton-sweep 1.6s ease-in-out infinite;
 
-.animate-shimmer {
-  animation: shimmer 1.5s ease-in-out infinite;
+  @keyframes skeleton-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }
 
 /* Cursor-style text shimmer for busy/status labels. One element, animates

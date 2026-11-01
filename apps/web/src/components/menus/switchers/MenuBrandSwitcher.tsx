@@ -9,10 +9,8 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
-  SWITCHER_AVATAR_CLASSNAME,
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
   SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
@@ -22,6 +20,7 @@ import {
   SWITCHER_TRIGGER_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ChevronsUpDown, Settings, UserRound, X } from 'lucide-react';
@@ -125,13 +124,17 @@ export default function MenuBrandSwitcher({
   ];
 
   const brandAvatar = (
-    <SwitcherAvatar
+    <Avatar
       alt={selectedBrand?.label ?? 'Brand'}
-      fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
-      imageUrl={selectedBrand?.logoUrl || undefined}
-      imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
-      letter={selectedBrandLabel.charAt(0).toUpperCase()}
-      onImageError={onLogoError}
+      name={selectedBrandLabel}
+      onLoadingStatusChange={(status) => {
+        if (status === 'error') {
+          onLogoError?.();
+        }
+      }}
+      shape="square"
+      size="xs"
+      src={selectedBrand?.logoUrl}
     />
   );
 

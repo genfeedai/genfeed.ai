@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CardEmptySize, IngredientStatus } from '..';
+import { IngredientStatus } from '..';
 import {
   GALLERY_CONTAINER_PADDING,
   GALLERY_DEFAULT_SORT,
   GALLERY_DEFAULT_STATUSES,
   GALLERY_EMPTY_MESSAGES,
-  GALLERY_EMPTY_SIZE,
   GALLERY_GRID_CLASS,
   GALLERY_MENU_ITEMS,
   type GalleryType,
@@ -18,10 +17,6 @@ describe('gallery.constant', () => {
 
   it('GALLERY_CONTAINER_PADDING contains padding', () => {
     expect(GALLERY_CONTAINER_PADDING).toContain('p-');
-  });
-
-  it('GALLERY_EMPTY_SIZE is CardEmptySize.LG', () => {
-    expect(GALLERY_EMPTY_SIZE).toBe(CardEmptySize.LG);
   });
 
   it('GALLERY_DEFAULT_SORT sorts by createdAt desc', () => {

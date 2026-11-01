@@ -1,8 +1,5 @@
 {
   "files": {
-    "apps/marketing/app/(content)/articles/[slug]/article-detail.tsx": {
-      "badge-restyle": 1
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookAnalysisSection.tsx": {
       "badge-restyle": 1
     },
@@ -37,12 +34,6 @@
       "badge-restyle": 1
     },
     "apps/web/src/features/activities/components/ActivityStatusCell.tsx": {
-      "badge-restyle": 1
-    },
-    "apps/web/src/features/analytics/top-videos/brand-top-videos-section.tsx": {
-      "badge-restyle": 1
-    },
-    "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
       "badge-restyle": 1
     },
     "apps/web/src/features/models/components/models/ModelDetailPanel.tsx": {

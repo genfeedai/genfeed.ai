@@ -1,14 +1,13 @@
 'use client';
-
 import {
   useAnalyticsToolbar,
   useOptionalAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { FlaskConical } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -210,7 +209,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       )}
 
       {!isLoading && !error && patterns.length === 0 && (
-        <CardEmptyContent icon={FlaskConical} label="No patterns found" />
+        <EmptyState icon={FlaskConical} title="No patterns found" />
       )}
 
       {!isLoading && !error && patterns.length > 0 && (

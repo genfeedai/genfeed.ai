@@ -1,6 +1,7 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
+  DirectMessageCapability,
   IBrand,
   IClockTime,
   ICredential,
@@ -29,6 +30,7 @@ export class BaseCredential extends BaseEntity implements ICredential {
   declare public postingTimes?: IClockTime[];
   declare public accessTokenExpiry?: string | null;
   declare public needsAccountSelection?: boolean;
+  declare public directMessageCapability?: DirectMessageCapability;
   declare public isConnected: boolean;
 
   constructor(data: Partial<ICredential> = {}) {

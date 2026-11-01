@@ -14,7 +14,7 @@ import {
   getPreviewStatus,
 } from '@ui/posts/platform-preview/platform-preview.helpers';
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
@@ -98,18 +98,13 @@ export default function PreviewShell({
 export function AuthorAvatar({ target }: PlatformPreviewRendererProps) {
   const translate = useTranslations('ui.platformPreview');
   return (
-    <Avatar className="size-10 shrink-0">
-      {target.author?.avatarUrl ? (
-        <AvatarImage
-          src={target.author.avatarUrl}
-          alt={translate('avatarAlt', { name: getAuthorName(target) })}
-          referrerPolicy="no-referrer"
-        />
-      ) : null}
-      <AvatarFallback>
-        {getAuthorName(target).slice(0, 1).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
+    <Avatar
+      alt={translate('avatarAlt', { name: getAuthorName(target) })}
+      name={getAuthorName(target)}
+      referrerPolicy="no-referrer"
+      size="lg"
+      src={target.author?.avatarUrl}
+    />
   );
 }
 

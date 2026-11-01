@@ -1,12 +1,11 @@
 'use client';
-
 import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { Lightbulb, X } from 'lucide-react';
@@ -50,7 +49,7 @@ const InsightListCard = memo(function InsightListCard({
   if (insights.length === 0) {
     return (
       <Card data-testid="insight-list-card" className={className}>
-        <CardEmptyContent icon={Lightbulb} label={translate('emptyTitle')} />
+        <EmptyState icon={Lightbulb} title={translate('emptyTitle')} />
       </Card>
     );
   }

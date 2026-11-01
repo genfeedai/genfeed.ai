@@ -43,15 +43,12 @@ export type RecordReviewDecisionParams = {
  * Feeds human review decisions on generated content back into the brand's
  * harness profile so future generations avoid repeating rejected patterns.
  *
- * `rejected` / `request_changes` append a normalized anti-example to the
- * active harness profile's `examples.avoid` list, tracked via a parallel
- * `avoidFeedback` audit trail (source stamp, reason, timestamp) so the cap/
- * eviction logic can tell auto-added entries apart from operator/seed
- * anti-examples and never evict the latter.
- *
- * The reviewer's reason is rendered next to the excerpt in `examples.avoid`
- * ("<excerpt> — because <reason>") so it reaches later prompts, and a brand
- * with no active harness profile gets one so the feedback is not dropped.
+ * `rejected` / `request_changes` are recorded in the active harness profile's
+ * `avoidFeedback` audit trail (excerpt, reason, source stamp, timestamp). That
+ * trail feeds the learning signals and evals but is never read when generating,
+ * so a rejection does not change future drafts on its own: the review panel
+ * suggests a short brand rule and the reviewer saves it, or not. A brand with
+ * no active harness profile gets one so the record is not dropped.
  *
  * `approved` appends the approved draft to `examples.good`, newest first,
  * tracked via a parallel `goodFeedback` trail and capped at
@@ -207,30 +204,16 @@ export class HarnessReviewFeedbackService {
       AVOID_FEEDBACK_CAP,
     );
 
-    // Avoid strings never tracked by a feedback entry predate this pipeline
-    // (operator/seed-curated) — keep them untouched and uncapped.
-    const humanAvoid = (profile.examples?.avoid ?? []).filter(
-      (item) =>
-        !existingFeedback.some(
-          (fb) => fb.content === item || renderAvoidEntry(fb) === item,
-        ),
-    );
-    const nextAvoid = dedupeAvoidList([
-      ...humanAvoid,
-      ...cappedFeedback.map(renderAvoidEntry),
-    ]);
-
+    // Only the audit trail is written. What generation reads (`examples.avoid`,
+    // `guardrails`) changes when the reviewer accepts a suggested brand rule.
     await harnessProfilesService.update(
       profile.id,
-      {
-        avoidFeedback: cappedFeedback,
-        examples: { avoid: nextAvoid },
-      },
+      { avoidFeedback: cappedFeedback },
       params.organizationId,
     );
 
     this.logger.log(
-      `${this.constructorName} recorded avoid example from review decision`,
+      `${this.constructorName} recorded rejection from review decision`,
       {
         brandId: params.brandId,
         decision: params.decision,
@@ -302,13 +285,6 @@ export class HarnessReviewFeedbackService {
     }
     return resolveOptionalProvider(this.moduleRef, HarnessProfilesService);
   }
-}
-
-/** The anti-example line a later prompt sees: the excerpt plus why it was turned down. */
-function renderAvoidEntry(entry: IHarnessAvoidFeedbackEntry): string {
-  return entry.reason
-    ? `${entry.content} — because ${entry.reason}`
-    : entry.content;
 }
 
 function truncateExcerpt(value: string, maxLength: number): string {

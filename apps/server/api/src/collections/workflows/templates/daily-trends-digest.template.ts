@@ -33,7 +33,7 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
           creditCost: TREND_DIGEST_CREDIT_COST,
           minViralScore: 70,
           platforms: ['tiktok', 'instagram', 'youtube', 'twitter'],
-          topN: 5,
+          topN: 8,
         },
         label: 'Assemble Trend Digest',
       },

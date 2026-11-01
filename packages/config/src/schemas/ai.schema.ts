@@ -160,7 +160,7 @@ export const newsApiSchema = {
  */
 export const fleetSchema = {
   FLEET_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
-  FLEET_COMFYUI_URL: Joi.string().uri().optional().allow(''),
+  COMFYUI_URL: Joi.string().uri().optional().allow(''),
   FLEET_S3_BUCKET: Joi.string().optional().default('fleet.genfeed.ai'),
 };
 
@@ -169,7 +169,7 @@ export const fleetSchema = {
  */
 export const gpuFleetSchema = {
   GPU_IMAGES_URL: Joi.string().uri().optional(),
-  GPU_LLM_INSTANCE_ID: Joi.string().optional(),
+  GPU_INTERNAL_API_KEY: Joi.string().optional().allow(''),
   GPU_LLM_URL: Joi.string().uri().optional(),
   GPU_VIDEOS_URL: Joi.string().uri().optional(),
   GPU_VOICES_URL: Joi.string().uri().optional(),

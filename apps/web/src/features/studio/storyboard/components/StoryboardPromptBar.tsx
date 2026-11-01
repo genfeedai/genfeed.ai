@@ -16,6 +16,7 @@ export default function StoryboardPromptBar({
   error,
   hasShots,
   isDisabled,
+  isSlideshow = false,
   onRetry,
   onSubmit,
   variant = 'page',
@@ -49,7 +50,9 @@ export default function StoryboardPromptBar({
         }}
         placeholder={
           hasShots
-            ? translate('changesPlaceholder')
+            ? translate(
+                isSlideshow ? 'slidesPlaceholder' : 'changesPlaceholder',
+              )
             : translate('briefPlaceholder')
         }
       />

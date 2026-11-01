@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  PageScope,
-  PostStatus,
-} from '@genfeedai/contracts';
+import { PageScope, PostStatus } from '@genfeedai/contracts';
 import { ACCOUNT_GENERATION_POST_SOURCE } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -53,7 +48,6 @@ export function buildPostsTableActions({
         isVisible: (post: IPost) => !!post.platformUrl,
         onClick: onOpenPlatformUrl,
         tooltip: 'View',
-        variant: ButtonVariant.SECONDARY,
       },
     ];
   }
@@ -65,9 +59,7 @@ export function buildPostsTableActions({
             icon: () => <Sparkles />,
             isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
             onClick: onRewriteWithAgent,
-            size: ButtonSize.SM,
             tooltip: 'Rewrite caption with agent',
-            variant: ButtonVariant.SECONDARY,
           } satisfies TableAction<IPost>,
         ]
       : []),
@@ -77,9 +69,7 @@ export function buildPostsTableActions({
             icon: () => <CalendarClock />,
             isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
             onClick: onSuggestScheduleWithAgent,
-            size: ButtonSize.SM,
             tooltip: 'Suggest schedule with agent',
-            variant: ButtonVariant.SECONDARY,
           } satisfies TableAction<IPost>,
         ]
       : []),
@@ -87,12 +77,10 @@ export function buildPostsTableActions({
       icon: () => <RefreshCw />,
       isVisible: (post: IPost) => post.status === PostStatus.FAILED,
       onClick: onRetry,
-      size: ButtonSize.SM,
       tooltip: (post: IPost) =>
         post.source === ACCOUNT_GENERATION_POST_SOURCE
           ? 'Retry generation'
           : 'Retry publishing',
-      variant: ButtonVariant.SECONDARY,
     },
     {
       icon: () => <Eye />,
@@ -101,9 +89,7 @@ export function buildPostsTableActions({
         return hasIngredient && post.status !== PostStatus.PUBLIC;
       },
       onClick: onViewIngredient,
-      size: ButtonSize.SM,
       tooltip: 'View Ingredient',
-      variant: ButtonVariant.SECONDARY,
     },
     {
       icon: () => <Pencil />,
@@ -118,9 +104,7 @@ export function buildPostsTableActions({
         return editableStatuses.includes(post.status as PostStatus);
       },
       onClick: onEdit,
-      size: ButtonSize.SM,
       tooltip: 'Edit Post',
-      variant: ButtonVariant.DEFAULT,
     },
     {
       icon: () => <Trash2 />,
@@ -129,17 +113,14 @@ export function buildPostsTableActions({
         return post.status !== PostStatus.PUBLIC;
       },
       onClick: (post: IPost) => onDelete(post),
-      size: ButtonSize.SM,
       tooltip: 'Delete',
-      variant: ButtonVariant.DESTRUCTIVE,
+      tone: 'destructive',
     },
     {
       icon: () => <Copy />,
       isVisible: (post: IPost) => post.status === PostStatus.PUBLIC,
       onClick: onRemix,
-      size: ButtonSize.SM,
       tooltip: 'Create Remix',
-      variant: ButtonVariant.DEFAULT,
     },
     {
       icon: () => <Repeat2 />,
@@ -147,16 +128,13 @@ export function buildPostsTableActions({
       // standalone would strand a fragment, so only root posts offer it.
       isVisible: (post: IPost) => !post.parent,
       onClick: onRepurpose,
-      size: ButtonSize.SM,
       tooltip: 'Repurpose to another channel',
-      variant: ButtonVariant.DEFAULT,
     },
     {
       icon: () => <ExternalLink />,
       isVisible: (post: IPost) => !!post.platformUrl,
       onClick: onOpenPlatformUrl,
       tooltip: 'View',
-      variant: ButtonVariant.SECONDARY,
     },
   ];
 }

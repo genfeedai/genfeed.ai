@@ -42,6 +42,7 @@ function setup(description: string) {
     {} as never,
     {} as never,
     niche as never,
+    {} as never,
   );
   return { service, brands, videos, preferences, niche };
 }

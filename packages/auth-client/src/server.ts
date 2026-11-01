@@ -14,7 +14,7 @@ interface BetterAuthTokenResponse {
 export interface BetterAuthServerTokenFailure {
   attempt: number;
   error?: string;
-  reason: 'http' | 'missing-token' | 'network';
+  reason: 'http' | 'missing-token' | 'network' | 'prerender-ended';
   status?: number;
 }
 
@@ -25,6 +25,22 @@ export interface BetterAuthServerTokenOptions {
 }
 
 const TOKEN_ATTEMPTS = 2;
+
+/**
+ * Digest Next.js puts on the rejection of a fetch still pending when the
+ * prerender or prefetch that started it ends. It says nothing about the
+ * session or the API, and asking again inside the same render rejects again.
+ */
+const NEXT_HANGING_PROMISE_REJECTION = 'HANGING_PROMISE_REJECTION';
+
+function isPrerenderEndedError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    error.digest === NEXT_HANGING_PROMISE_REJECTION
+  );
+}
 
 // Every protected render, prefetch and server action asks for the same session's
 // token, and the `/token` route is rate limited per client. Share one answer
@@ -141,6 +157,9 @@ async function requestToken(
       ? data.token
       : { attempt, reason: 'missing-token', status: response.status };
   } catch (error) {
+    if (isPrerenderEndedError(error)) {
+      return { attempt, reason: 'prerender-ended' };
+    }
     return {
       attempt,
       error: error instanceof Error ? error.message : String(error),
@@ -226,6 +245,11 @@ async function fetchServerToken(
     }
 
     options.onFailure?.(result);
+    if (result.reason === 'prerender-ended') {
+      // Callers that joined from a live request still deserve a token.
+      entry.hasTransientFailure = true;
+      return null;
+    }
     if (!isRetryable(result)) {
       return null;
     }

@@ -31,6 +31,7 @@
   "disconnectAccountError": "Failed to disconnect account",
   "disconnectAccountDescription": "{account} stops publishing for this brand. Other accounts on {platform} are untouched, and you can reconnect it later.",
   "disconnectNamed": "Disconnect {account}",
+  "dmReconnectBadge": "DMs need reconnect",
   "empty": "No social accounts connected yet.",
   "emptyAccountsTitle": "No accounts connected yet",
   "expires": " · expires {time}",
