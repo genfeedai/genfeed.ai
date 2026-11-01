@@ -5,6 +5,7 @@ import {
 import type { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
   it('refuses a reference image on a text-to-video endpoint instead of dropping it', () => {
@@ -29,7 +30,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         ...params,
         imageUrl: 'https://cdn.test/start.png',
       }),
-    ).toThrow('text-to-video only');
+    ).toThrow(BadRequestException);
   });
   it('uses the provider fixed image aspect before validating or pricing a Seedance request', () => {
     expect(

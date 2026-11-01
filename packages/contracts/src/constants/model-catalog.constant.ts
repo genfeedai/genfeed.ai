@@ -231,7 +231,8 @@ const FAL_MOVED_ENDPOINTS: Readonly<Record<string, string>> = {
   [MODEL_KEYS.FAL_RECRAFT_V4_PRO]: 'fal-ai/recraft/v4/pro/text-to-image',
   // fal splits these by mode. Only the text endpoint is registered, so an
   // image-to-video request is refused as an alternative and stays on Replicate.
-  [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]: 'fal-ai/kling-video/v3/pro/text-to-video',
+  [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]:
+    'fal-ai/kling-video/v3/pro/text-to-video',
   [MODEL_KEYS.FAL_PIXVERSE_V6]: 'fal-ai/pixverse/v6/text-to-video',
 };
 
