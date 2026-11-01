@@ -105,7 +105,6 @@ export class CreateTrainingDto {
   readonly provider?: string;
 
   @ApiProperty({
-    default: 'genfeed-ai/z-image-turbo',
     description: 'Base model for training',
     required: false,
   })

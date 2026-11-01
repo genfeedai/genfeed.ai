@@ -1,5 +1,4 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';

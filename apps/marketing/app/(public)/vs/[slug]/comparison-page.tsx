@@ -54,14 +54,12 @@ export default function ComparisonPage({
       </section>
 
       <section className="max-w-5xl mx-auto pb-20">
-        <Table className="table table-zebra w-full">
+        <Table isStriped size="md">
           <TableHeader>
             <TableRow>
-              <TableHead className="text-lg">Feature</TableHead>
-              <TableHead className="text-lg text-center">
-                {competitor.name}
-              </TableHead>
-              <TableHead className="text-lg text-center bg-primary/10">
+              <TableHead>Feature</TableHead>
+              <TableHead align="center">{competitor.name}</TableHead>
+              <TableHead align="center" tone="highlight">
                 Genfeed
               </TableHead>
             </TableRow>
@@ -70,11 +68,13 @@ export default function ComparisonPage({
             {competitor.comparisonTable.map(
               (row: (typeof competitor.comparisonTable)[0]) => (
                 <TableRow key={row.feature}>
-                  <TableCell className="font-semibold">{row.feature}</TableCell>
-                  <TableCell className="text-center">
+                  <TableHead scope="row" variant="row">
+                    {row.feature}
+                  </TableHead>
+                  <TableCell align="center">
                     <ComparisonCell value={row.competitor} />
                   </TableCell>
-                  <TableCell className="text-center bg-primary/5">
+                  <TableCell align="center" tone="highlight">
                     <ComparisonCell value={row.genfeed} isBold />
                   </TableCell>
                 </TableRow>

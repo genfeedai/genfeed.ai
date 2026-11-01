@@ -780,10 +780,7 @@ describe('model version lifecycle', () => {
   });
 
   it('points every Legacy or Retired row at a non-retired model of its category', () => {
-    for (const catalog of [
-      UNIFIED_MODEL_CATALOG,
-      getModelCatalogForDeployment(true, { isCloud: true }),
-    ]) {
+    for (const catalog of [UNIFIED_MODEL_CATALOG]) {
       const keys = new Map(catalog.map((entry) => [entry.key, entry]));
       for (const entry of catalog) {
         if (!entry.succeededBy) continue;
@@ -797,25 +794,21 @@ describe('model version lifecycle', () => {
     }
   });
 
-  it('retires Genfeed fleet deployments on Cloud only', () => {
-    const fleetKeys = Object.values(MODEL_KEYS).filter((key) =>
-      key.startsWith('genfeed-ai/'),
-    );
-    const mediaFleetKeys = fleetKeys.filter((key) => byKey.has(key));
-    expect(mediaFleetKeys.length).toBeGreaterThan(0);
-    const cloud = new Map(
-      getModelCatalogForDeployment(true, { isCloud: true }).map((entry) => [
-        entry.key,
-        entry,
-      ]),
-    );
-    for (const key of mediaFleetKeys) {
-      expect(cloud.get(key), key).toMatchObject({
-        isActive: false,
-        isPublic: false,
-        lifecycle: ModelLifecycle.RETIRED,
-      });
-      expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
-    }
+  it.each([
+    MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+    MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
+    MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
+    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+  ])('retires the Genfeed fleet model %s on every deployment', (key) => {
+    expect(byKey.get(key)).toMatchObject({
+      isActive: false,
+      isPublic: false,
+      lifecycle: ModelLifecycle.RETIRED,
+    });
   });
 });

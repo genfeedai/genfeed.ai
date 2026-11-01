@@ -629,7 +629,7 @@ export class DefaultRecurringContentService {
       case 'image':
         return {
           ...sharedConfig,
-          model: 'genfeed-ai/flux2-dev',
+          model: 'black-forest-labs/flux-2-pro',
           prompt: `Create a branded social image concept for ${params.brandLabel}.`,
           style: 'brand-campaign',
         };

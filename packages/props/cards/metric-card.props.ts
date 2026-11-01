@@ -3,7 +3,10 @@ import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { AnalyticsMetricVariant } from '@props/analytics/analytics-metric-definition.props';
 import type { ReactNode } from 'react';
 
-export type MetricCardSize = 'sm' | 'md' | 'lg';
+export type MetricCardSize = 'xs' | 'sm' | 'md' | 'lg';
+
+/** Horizontal alignment of the value and label inside the tile. */
+export type MetricCardAlign = 'start' | 'center';
 
 /**
  * How the metric paints:
@@ -31,6 +34,11 @@ export type MetricCardTone =
 export type MetricCardProps = {
   analyticsMetric?: AnalyticsQueryMetric;
   analyticsMetricVariant?: AnalyticsMetricVariant;
+  /**
+   * Align the value and label to the start or the centre of the tile.
+   * @default 'start'
+   */
+  align?: MetricCardAlign;
   /**
    * Visual state. Prefer this over inventing a second metric component.
    * @default 'tile'

@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { StatusDot } from '@ui/primitives/status-dot';
 import {
   hoverConcealClassName,
   hoverRevealClassName,
@@ -90,10 +90,10 @@ function agentThreadListRowClassName(options: {
   );
 }
 
-const THREAD_STATUS_DOT_CLASS = {
-  failed: 'bg-destructive',
-  running: 'animate-pulse bg-info motion-reduce:animate-none',
-  warning: 'bg-warning',
+const THREAD_STATUS_DOT_TONE = {
+  failed: 'destructive',
+  running: 'info',
+  warning: 'warning',
 } as const;
 
 function ThreadActivityIndicator({
@@ -102,18 +102,13 @@ function ThreadActivityIndicator({
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
 }): ReactElement {
   return (
-    <SimpleTooltip label={statusMeta.label}>
-      <span
-        aria-label={statusMeta.label}
-        className={cn(
-          'size-2 shrink-0 rounded-full',
-          THREAD_STATUS_DOT_CLASS[statusMeta.tone],
-        )}
-        role="status"
-      >
-        <span className="sr-only">{statusMeta.label}</span>
-      </span>
-    </SimpleTooltip>
+    <StatusDot
+      aria-label={statusMeta.label}
+      isPulsing={statusMeta.tone === 'running'}
+      role="status"
+      title={statusMeta.label}
+      tone={THREAD_STATUS_DOT_TONE[statusMeta.tone]}
+    />
   );
 }
 

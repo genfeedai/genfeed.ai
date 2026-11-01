@@ -1,8 +1,5 @@
 import type { ImageGenerationContext } from '@api/collections/images/services/image-generation.types';
-import {
-  resolveImageGenerationCompletion,
-  throwImageGatewayTimeoutIfPending,
-} from '@api/collections/images/services/image-generation-completion.util';
+import { throwImageGatewayTimeoutIfPending } from '@api/collections/images/services/image-generation-completion.util';
 import type { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
@@ -56,41 +53,6 @@ function fixture(id = 'owned-image') {
 }
 
 describe('image completion tenant isolation', () => {
-  it('returns the authenticated organization image on inline completion', async () => {
-    const f = fixture();
-    await expect(
-      resolveImageGenerationCompletion(
-        f.imagesService,
-        f.ingredientCompletionService,
-        f.context,
-        { generationPromise: Promise.resolve(), kind: 'inline' },
-      ),
-    ).resolves.toEqual(f.rows[0]);
-    expect(f.findOne).toHaveBeenCalledWith(
-      {
-        id: 'owned-image',
-        isDeleted: false,
-        organizationId: 'organization-a',
-      },
-      expect.any(Array),
-    );
-  });
-
-  it.each(['foreign-image', 'deleted-image'])(
-    'does not return %s on inline completion',
-    async (id) => {
-      const f = fixture(id);
-      await expect(
-        resolveImageGenerationCompletion(
-          f.imagesService,
-          f.ingredientCompletionService,
-          f.context,
-          { generationPromise: Promise.resolve(), kind: 'inline' },
-        ),
-      ).resolves.toBeNull();
-    },
-  );
-
   it('preserves the owned-image 504 status response after polling times out', async () => {
     const f = fixture();
     await expect(

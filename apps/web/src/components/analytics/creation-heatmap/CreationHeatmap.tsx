@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -82,6 +83,16 @@ export default function CreationHeatmap({
 
             const count = calendar[cell.dayKey]?.count ?? 0;
 
+            if (isLoading) {
+              return (
+                <Skeleton
+                  key={cell.dayKey}
+                  aria-hidden="true"
+                  className="size-3.5 rounded-sm"
+                />
+              );
+            }
+
             return (
               <SimpleTooltip
                 key={cell.dayKey}
@@ -95,9 +106,7 @@ export default function CreationHeatmap({
                   })}
                   className={cn(
                     'size-3.5 rounded-sm transition-colors',
-                    isLoading
-                      ? 'animate-pulse bg-foreground/10'
-                      : INTENSITY_CLASSES[getIntensityLevel(count)],
+                    INTENSITY_CLASSES[getIntensityLevel(count)],
                   )}
                 />
               </SimpleTooltip>

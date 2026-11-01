@@ -282,10 +282,11 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
           iconButtonClass,
           requiresReferences &&
             references.length === 0 &&
-            '!bg-warning/20 !border-warning !text-warning animate-pulse',
+            '!bg-warning/20 !border-warning !text-warning',
           references.length > 0 && 'p-0 overflow-hidden',
         )}
         onClick={openStartFrameGallery}
+        isPulsing={requiresReferences && references.length === 0}
         isDisabled={isStartFrameDisabled}
         tooltip={startFrameTooltip}
         data-testid="reference-button"

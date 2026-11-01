@@ -5,6 +5,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { StatusDot } from '@ui/primitives/status-dot';
 import { ArrowLeft, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -116,21 +117,17 @@ export default function BotToggle({
 
         {/* ui-guard-allow:notice-tone-box -- bot status panel tinted by on/off state, not a notice */}
         <div
-          className={cn('mt-4 p-4', isEnabled ? 'bg-green-500/10' : 'bg-muted')}
+          className={cn('mt-4 p-4', isEnabled ? 'bg-success/10' : 'bg-muted')}
         >
           <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                'w-2 h-2 rounded-full',
-                isEnabled
-                  ? 'bg-green-500 animate-pulse'
-                  : 'bg-muted-foreground',
-              )}
+            <StatusDot
+              isPulsing={isEnabled}
+              tone={isEnabled ? 'success' : 'muted'}
             />
             <span
               className={cn(
                 'text-sm font-medium',
-                isEnabled ? 'text-green-500' : 'text-muted-foreground',
+                isEnabled ? 'text-success' : 'text-muted-foreground',
               )}
             >
               {isEnabled ? 'Online' : 'Offline'}
