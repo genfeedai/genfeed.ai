@@ -3,7 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
-import type { TableAction } from '@genfeedai/props/ui/display/table.props';
+import type {
+  TableAction,
+  TableActionTone,
+} from '@genfeedai/props/ui/display/table.props';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import Link from 'next/link';
@@ -17,15 +20,24 @@ interface TableRowActionsCellProps<T> {
   onActionClick: (action: TableAction<T>, item: T) => void;
 }
 
+const ACTION_TONE_CLASS_NAMES: Record<TableActionTone, string> = {
+  default: '',
+  destructive:
+    'text-destructive hover:bg-destructive/10 hover:text-destructive',
+  success: 'text-success hover:bg-success/10 hover:text-success',
+};
+
 /**
  * The row's actions, laid over the row instead of living in a column of their
  * own, so they never need a horizontal scroll to reach.
  *
  * On a hover-capable pointer the cell has no width: a sticky zero-width cell
- * pins to the right edge of the scrollport and the cluster floats over the
- * row's right end, revealed on row hover or keyboard focus inside the row.
- * Where the pointer cannot hover the cluster stays visible in that same sticky
- * cell, as a narrow column, so touch keeps 44px targets.
+ * pins to the right edge of the scrollport and a row of ghost icons floats
+ * over the row's right end, revealed on row hover or keyboard focus inside the
+ * row. A gradient in the row's own colour fades out the cell content it
+ * covers, so text never shows through the icons. Where the pointer cannot
+ * hover the icons stay visible in that same sticky cell, as a narrow column,
+ * so touch keeps 44px targets.
  *
  * The row (`tr.group`) owns the hover; this cell only reacts to it.
  */
@@ -41,8 +53,11 @@ export function TableRowActionsCell<T>({
       <div
         className={cn(
           'flex items-center justify-end gap-1 px-2',
-          '[@media(hover:hover)]:absolute [@media(hover:hover)]:right-2 [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:-translate-y-1/2',
-          '[@media(hover:hover)]:rounded-md [@media(hover:hover)]:border [@media(hover:hover)]:border-border [@media(hover:hover)]:bg-card [@media(hover:hover)]:p-0.5 [@media(hover:hover)]:shadow-sm',
+          '[@media(hover:hover)]:absolute [@media(hover:hover)]:inset-y-0 [@media(hover:hover)]:right-0 [@media(hover:hover)]:isolate [@media(hover:hover)]:pl-12',
+          // Fade: the card at rest, plus the row's hover tint while hovered,
+          // so the cluster blends into the row it sits on.
+          '[@media(hover:hover)]:bg-[linear-gradient(to_right,transparent,hsl(var(--card))_2.5rem)]',
+          "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:content-[''] group-hover:before:bg-[linear-gradient(to_right,transparent,hsl(var(--accent)/0.6)_2.5rem)]",
           hoverRevealClassName(),
         )}
         data-table-row-actions
@@ -79,6 +94,7 @@ export function TableRowActionsCell<T>({
             // control otherwise. Cap glyph size so bare lucide icons don't
             // render at 24px.
             'inline-flex size-8 items-center justify-center p-0 [@media(hover:none)]:size-11 [&_svg]:size-3.5',
+            ACTION_TONE_CLASS_NAMES[action.tone ?? 'default'],
             action.className,
             action.getClassName?.(item),
           );

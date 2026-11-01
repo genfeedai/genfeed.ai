@@ -362,8 +362,7 @@
         "request": "What will happen",
         "preview": "Preview",
         "cost": "Cost",
-        "requested": "Requested",
-        "decision": "Decision"
+        "requested": "Requested"
       },
       "sources": {
         "agent": "Agent",

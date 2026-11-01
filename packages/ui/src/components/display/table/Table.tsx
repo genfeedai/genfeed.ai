@@ -106,7 +106,7 @@ function TableCellContent<T>({
 }
 
 export default function AppTable<T>({
-  items = EMPTY_ARRAY,
+  items: incomingItems = EMPTY_ARRAY,
   isLoading = false,
   error,
   columns,
@@ -148,10 +148,31 @@ export default function AppTable<T>({
   const dragStartX = useRef(0);
   const dragStartScrollLeft = useRef(0);
   const didDrag = useRef(false);
+  // A reload (sort, filter, page) keeps the rows on screen until the new ones
+  // arrive. Swapping the table for its skeleton would unmount the row sidebar
+  // and make the page jump; the skeleton is for the first load only.
+  const settledItemsRef = useRef<T[]>(incomingItems);
+  if (!isLoading || incomingItems.length > 0) {
+    settledItemsRef.current = incomingItems;
+  }
+  const items = settledItemsRef.current;
+  const isRefreshing = isLoading && items.length > 0;
   const [sidebarRowId, setSidebarRowId] = useState<string | null>(null);
-  const sidebarItem =
+  // The open record stays open when a reload moves it off the visible rows.
+  const sidebarItemRef = useRef<T | null>(null);
+  const visibleSidebarItem =
     rowSidebar && sidebarRowId !== null
       ? (items.find((item) => rowSidebar.getId(item) === sidebarRowId) ?? null)
+      : null;
+  if (visibleSidebarItem !== null || sidebarRowId === null) {
+    sidebarItemRef.current = visibleSidebarItem;
+  }
+  const sidebarItem =
+    rowSidebar &&
+    sidebarRowId !== null &&
+    sidebarItemRef.current !== null &&
+    rowSidebar.getId(sidebarItemRef.current) === sidebarRowId
+      ? sidebarItemRef.current
       : null;
   const onActivateRow = rowSidebar
     ? (item: T) => setSidebarRowId(rowSidebar.getId(item))
@@ -359,7 +380,7 @@ export default function AppTable<T>({
     [onSortChange, sortDirection, sortKey],
   );
 
-  if (isLoading) {
+  if (isLoading && !isRefreshing) {
     // Shared list loading contract: table skeleton in the same card chrome as
     // empty/list so height does not clip when the fetch settles.
     // SkeletonTable already owns the card shell — do not wrap it again.
@@ -476,6 +497,7 @@ export default function AppTable<T>({
           }
         >
           <table
+            aria-busy={isRefreshing || undefined}
             aria-label={ariaLabel}
             className={cn(
               'w-full caption-bottom border-collapse',

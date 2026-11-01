@@ -180,12 +180,16 @@ interface TableActionBase<T> {
   className?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** Colours the glyph for a decision: `success` (approve), `destructive` (reject). */
+  tone?: TableActionTone;
 
   getClassName?: (item: T) => string;
   isDisabled?: (item: T) => boolean;
   isVisible?: (item: T) => boolean;
   tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }
+
+export type TableActionTone = 'default' | 'success' | 'destructive';
 
 /** Row action that acts in place. */
 export interface TableButtonAction<T> extends TableActionBase<T> {
