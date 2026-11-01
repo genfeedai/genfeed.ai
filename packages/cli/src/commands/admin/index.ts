@@ -36,6 +36,7 @@ import {
   readOrganizationBrand,
   readOrganizationsReport,
   readPricingReport,
+  readPublishPipeline,
   readSystemBrand,
   readTrainingsReport,
   scanOrganizationBrand,
@@ -541,6 +542,33 @@ async function runOnboardingFunnel(options: { days: number; isJson: boolean }): 
     formatFunnelBucket(emailClass, report.byEmailClass[emailClass]);
   }
   print(chalk.dim('\nInternal organizations are not excluded; use --json and filter by id.'));
+}
+
+function formatCounts(counts: Record<string, number>): string {
+  const entries = Object.entries(counts).sort(([, a], [, b]) => b - a);
+  return entries.length > 0 ? entries.map(([key, count]) => `${key} ${count}`).join(', ') : 'none';
+}
+
+async function runPublishPipeline(options: { days: number; isJson: boolean }): Promise<void> {
+  const report = await readPublishPipeline(options.days);
+  if (options.isJson) {
+    printJson(report);
+    return;
+  }
+
+  const { counts } = report;
+  print(formatHeader(`Publish approvals, last ${report.windowDays} days\n`));
+  print(formatLabel('Approvals', String(counts.total)));
+  print(formatLabel('By approval status', formatCounts(counts.byApprovalStatus)));
+  print(formatLabel('By post status', formatCounts(counts.byPostStatus)));
+  print(formatLabel('Overdue, not executed', String(counts.overdue)));
+  print(formatLabel('Invalidated', String(counts.invalidated)));
+  print(formatLabel('With an error', String(counts.withError)));
+  print(
+    chalk.dim(
+      `\nShowing the ${report.items.length} newest of ${counts.total}; use --json for the rows.`
+    )
+  );
 }
 
 async function runHarnessActivation(options: {
@@ -1262,6 +1290,25 @@ export const adminCommand = new Command('admin')
             throw new GenfeedError('--days must be a whole number from 1 to 90');
           }
           await runOnboardingFunnel({ days, isJson: wantsJson(command) });
+        } catch (error) {
+          handleError(error);
+        }
+      })
+  )
+  .addCommand(
+    new Command('publish-pipeline')
+      .description(
+        'Show what became of items approved for publishing: approvals and their posts, by status'
+      )
+      .option('--days <days>', 'How many days back to include (1-30)', '3')
+      .option('--json', 'Output as JSON')
+      .action(async (options: { days: string }, command: Command) => {
+        try {
+          const days = Number.parseInt(options.days, 10);
+          if (!Number.isInteger(days) || days < 1 || days > 30) {
+            throw new GenfeedError('--days must be a whole number from 1 to 30');
+          }
+          await runPublishPipeline({ days, isJson: wantsJson(command) });
         } catch (error) {
           handleError(error);
         }

@@ -6,4 +6,5 @@ export * from './harness-activation-report.interface';
 export * from './onboarding-funnel.interface';
 export * from './organization-apps-report.interface';
 export * from './organizations-report.interface';
+export * from './publish-pipeline.interface';
 export * from './warmup-accounts.interface';
