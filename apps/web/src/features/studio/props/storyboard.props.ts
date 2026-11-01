@@ -299,6 +299,11 @@ export type StoryboardDraftPageProps = Pick<
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
 };
 
+export interface StoryboardPromptPrefill {
+  readonly content: string;
+  readonly nonce: number;
+}
+
 export interface StoryboardPromptBarProps {
   readonly error?: string;
   readonly hasShots: boolean;
@@ -308,6 +313,8 @@ export interface StoryboardPromptBarProps {
   readonly onRetry: () => void;
   /** Handles the request; failures are reported back through `error`. */
   readonly onSubmit: (text: string) => void | Promise<void>;
+  /** Fills the composer and focuses it, without sending, on each new `nonce`. */
+  readonly prefill?: StoryboardPromptPrefill;
   /** `pane` sits in flow at the foot of the agent column instead of the page. */
   readonly variant?: 'page' | 'pane';
 }
@@ -320,8 +327,16 @@ export interface StoryboardAgentRequest {
   readonly text: string;
 }
 
+/** First-time example pitches shown while the agent column is still empty. */
+export interface StoryboardStarterCardsProps {
+  readonly isDisabled: boolean;
+  readonly isSlideshow: boolean;
+  /** Receives the example's full prompt; the host decides what to do with it. */
+  readonly onSelect: (prompt: string) => void;
+}
+
 export interface StoryboardAgentThreadProps
-  extends Omit<StoryboardPromptBarProps, 'variant'> {
+  extends Omit<StoryboardPromptBarProps, 'prefill' | 'variant'> {
   /** The source is a brief on a plan that is not in production yet. */
   readonly canCompose: boolean;
   readonly requests: readonly StoryboardAgentRequest[];

@@ -19,6 +19,7 @@ export default function StoryboardPromptBar({
   isSlideshow = false,
   onRetry,
   onSubmit,
+  prefill,
   variant = 'page',
 }: StoryboardPromptBarProps) {
   const translate = useTranslations('pages.studioStoryboard.promptBar');
@@ -55,6 +56,7 @@ export default function StoryboardPromptBar({
               )
             : translate('briefPlaceholder')
         }
+        prefill={prefill}
       />
     </PromptBarContainer>
   );

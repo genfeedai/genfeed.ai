@@ -2,7 +2,10 @@ import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentC
 import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
-import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
+import {
+  type AgentChatInputPrefill,
+  useAgentChatInput,
+} from '@genfeedai/agent/components/useAgentChatInput';
 import type {
   ConversationComposerGenerationMode,
   ConversationComposerSendOptions,
@@ -75,6 +78,8 @@ interface AgentChatInputProps {
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  /** Fills the draft and focuses the editor without sending (starter cards). */
+  prefill?: AgentChatInputPrefill;
   apiService?: AgentApiService;
   showStop?: boolean;
   attachments?: AttachmentItem[];
@@ -123,6 +128,7 @@ export function AgentChatInput({
   onStop,
   disabled,
   placeholder,
+  prefill,
   apiService,
   showStop = false,
   attachments = EMPTY_CHAT_ATTACHMENTS,
@@ -187,6 +193,7 @@ export function AgentChatInput({
     onSend,
     onStop,
     placeholder,
+    prefill,
     removeAttachment,
   });
 

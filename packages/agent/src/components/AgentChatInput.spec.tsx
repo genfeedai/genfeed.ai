@@ -195,6 +195,35 @@ describe('AgentChatInput', () => {
     expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
   });
 
+  it('fills the draft from a prefill and does not send it', async () => {
+    const onSend = vi.fn();
+
+    const { rerender } = render(
+      <AgentChatInput
+        onSend={onSend}
+        prefill={{ content: 'A pitch for a sneaker drop', nonce: 1 }}
+      />,
+    );
+
+    const editor = await screen.findByRole('textbox');
+    await waitFor(() => {
+      expect(editor).toHaveTextContent('A pitch for a sneaker drop');
+    });
+    expect(onSend).not.toHaveBeenCalled();
+
+    rerender(
+      <AgentChatInput
+        onSend={onSend}
+        prefill={{ content: 'A second pitch', nonce: 2 }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(editor).toHaveTextContent('A second pitch');
+    });
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
   it('keeps the editor writable while a run is active', async () => {
     render(
       <AgentChatInput

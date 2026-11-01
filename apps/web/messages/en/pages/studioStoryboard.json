@@ -516,6 +516,38 @@
     "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
     "emptySlides": "Ask for a change, like rewording slide 3, and the board updates.",
     "failed": "That did not change the board.",
+    "starters": {
+      "apply": "Use this idea: {title}",
+      "slideshow": {
+        "beforeAfter": {
+          "prompt": "A 5-slide before and after story: the problem, what changed, the result, and how to get it.",
+          "title": "Before and after"
+        },
+        "mythBusting": {
+          "prompt": "A 6-slide carousel that busts three common myths in my niche, with one myth and its fix per slide.",
+          "title": "Myth busting"
+        },
+        "tips": {
+          "prompt": "A 6-slide carousel with five practical tips for my audience, one tip per slide, and a call to action on the last slide.",
+          "title": "Tips carousel"
+        }
+      },
+      "title": "Not sure where to start? Try one",
+      "video": {
+        "founderStory": {
+          "prompt": "A 30-second founder story: why I started, the turning point, and where we are going next.",
+          "title": "Founder story"
+        },
+        "howTo": {
+          "prompt": "A 15-second how-to that shows one tip in three steps, with a punchy hook in the first second.",
+          "title": "Quick how-to"
+        },
+        "productTeaser": {
+          "prompt": "A 20-second teaser for a product launch: open on the problem, reveal the product, and end on a clear call to action.",
+          "title": "Product teaser"
+        }
+      }
+    },
     "title": "Storyboard agent",
     "unavailable": "Change requests are not available for this storyboard.",
     "working": "Working on the board"

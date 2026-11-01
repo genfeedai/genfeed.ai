@@ -1,8 +1,13 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { StoryboardAgentThreadProps } from '@/features/studio/props/storyboard.props';
+import { useState } from 'react';
+import type {
+  StoryboardAgentThreadProps,
+  StoryboardPromptPrefill,
+} from '@/features/studio/props/storyboard.props';
 import StoryboardPromptBar from '@/features/studio/storyboard/components/StoryboardPromptBar';
+import StoryboardStarterCards from '@/features/studio/storyboard/components/StoryboardStarterCards';
 
 /**
  * The agent column of a storyboard run: what was asked of the board and how
@@ -20,6 +25,8 @@ export default function StoryboardAgentThread({
   requests,
 }: StoryboardAgentThreadProps) {
   const translate = useTranslations('pages.studioStoryboard.agentThread');
+  const [prefill, setPrefill] = useState<StoryboardPromptPrefill>();
+  const showStarters = requests.length === 0 && canCompose && !hasShots;
 
   return (
     <div
@@ -39,6 +46,18 @@ export default function StoryboardAgentThread({
                 ? translate(isSlideshow ? 'emptySlides' : 'emptyChanges')
                 : translate('emptyBrief')}
           </p>
+        ) : null}
+        {showStarters ? (
+          <StoryboardStarterCards
+            isDisabled={isDisabled}
+            isSlideshow={isSlideshow}
+            onSelect={(content) =>
+              setPrefill((current) => ({
+                content,
+                nonce: (current?.nonce ?? 0) + 1,
+              }))
+            }
+          />
         ) : null}
         {requests.map((request) => (
           <div className="flex flex-col gap-2" key={request.id}>
@@ -74,6 +93,7 @@ export default function StoryboardAgentThread({
             isDisabled={isDisabled}
             onRetry={onRetry}
             onSubmit={onSubmit}
+            prefill={prefill}
             variant="pane"
           />
         </div>
