@@ -2,10 +2,11 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
+import { failingImageUrls } from '../../../../tests/image-loading.stub';
 
 const mockPush = vi.fn();
 const mockGetMyOrganizations = vi.fn();
@@ -210,7 +211,9 @@ describe('OrganizationSwitcher', () => {
     vi.clearAllMocks();
   });
 
-  it('falls back to the initial-letter avatar when the active org logo fails to load', () => {
+  it('falls back to the initial-letter avatar when the active org logo fails to load', async () => {
+    const logoUrl = 'https://cdn.test/logos/acme.png?Signature=expired';
+    failingImageUrls.add(logoUrl);
     mockOrganizations = [
       {
         brand: null,
@@ -218,19 +221,35 @@ describe('OrganizationSwitcher', () => {
         isActive: true,
         isOwner: true,
         label: 'Acme Org',
-        logoUrl: 'https://cdn.test/logos/acme.png?Signature=expired',
+        logoUrl,
         slug: 'acme-org',
       },
     ] as typeof mockOrganizations;
     renderSwitcher();
 
-    const logo = screen.getByAltText('Acme Org');
-    fireEvent.error(logo);
-
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('organization-switcher-trigger'),
+      ).toHaveTextContent('A');
+    });
     expect(screen.queryByAltText('Acme Org')).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId('organization-switcher-trigger'),
-    ).toHaveTextContent('A');
+  });
+
+  it('shows the active org logo when it loads', async () => {
+    mockOrganizations = [
+      {
+        brand: null,
+        id: 'org_1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme Org',
+        logoUrl: 'https://cdn.test/logos/acme.png?Signature=fresh',
+        slug: 'acme-org',
+      },
+    ] as typeof mockOrganizations;
+    renderSwitcher();
+
+    expect(await screen.findByAltText('Acme Org')).toBeInTheDocument();
   });
 
   it('loads organizations and exposes contextual row settings action', async () => {

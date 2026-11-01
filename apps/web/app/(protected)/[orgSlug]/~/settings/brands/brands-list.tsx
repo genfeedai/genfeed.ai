@@ -12,7 +12,6 @@ import {
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
@@ -31,6 +30,7 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowRightLeft,
@@ -39,7 +39,6 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -230,21 +229,13 @@ function BrandsListContent() {
         // The table links this name to the brand settings page (`getRowLink`).
         render: (brand: Brand) => (
           <div className="flex items-center gap-2.5">
-            {brand.logoUrl ? (
-              <Image
-                alt={brand.label}
-                className="size-6 rounded-md object-cover outline-media"
-                src={brand.logoUrl}
-                sizes="24px"
-                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                width={24}
-                height={24}
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
-                {brand.label.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              alt={brand.label}
+              name={brand.label}
+              shape="square"
+              size="sm"
+              src={brand.logoUrl}
+            />
             <span className="font-medium">{brand.label}</span>
           </div>
         ),

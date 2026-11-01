@@ -7,10 +7,10 @@ import type { CredentialInstagram } from '@genfeedai/models/auth/credential.mode
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type { InstagramAccountSelectorProps } from '@/features/auth/props/instagram-account-selector.props';
@@ -214,24 +214,13 @@ export default function InstagramAccountSelector({
               withWrapper={false}
             >
               <div className="flex items-center gap-2">
-                {account.image ? (
-                  <Image
-                    src={account.image}
-                    alt={account.label}
-                    className="size-10 flex-shrink-0 rounded-full object-cover outline-media"
-                    width={40}
-                    height={40}
-                    sizes="40px"
-                  />
-                ) : (
-                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-platform-instagram">
-                    <InstagramIcon
-                      className={
-                        'text-lg text-white' /* design-system-allow-content-color -- platform mark */
-                      }
-                    />
-                  </div>
-                )}
+                <Avatar
+                  alt={account.label}
+                  fallback={<InstagramIcon className="size-5" />}
+                  name={account.label}
+                  size="lg"
+                  src={account.image}
+                />
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{account.label}</p>

@@ -1,8 +1,8 @@
 import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import Image from 'next/image';
-import { type ReactElement, useState } from 'react';
+import { Avatar } from '@ui/primitives/avatar';
+import type { ReactElement } from 'react';
 import type { PagePost } from '~types/extension';
 
 interface PostCardProps {
@@ -19,9 +19,6 @@ export default function PostCard({
   post,
 }: PostCardProps): ReactElement {
   const name = post.authorName || post.authorHandle || 'Post';
-  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
-  const hasAvatar =
-    Boolean(post.avatarUrl) && failedAvatarUrl !== post.avatarUrl;
   return (
     <Card
       as="article"
@@ -30,23 +27,7 @@ export default function PostCard({
       className={className}
       bodyClassName="flex-row"
     >
-      {post.avatarUrl && hasAvatar ? (
-        <Image
-          src={post.avatarUrl}
-          onError={() => setFailedAvatarUrl(post.avatarUrl ?? null)}
-          width={40}
-          height={40}
-          alt=""
-          className="size-10 shrink-0 rounded-full"
-        />
-      ) : (
-        <div
-          aria-hidden="true"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground"
-        >
-          {name.replace(/^@/, '').charAt(0).toUpperCase()}
-        </div>
-      )}
+      <Avatar aria-hidden="true" name={name} size="lg" src={post.avatarUrl} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-1 text-sm">
           <span className="truncate font-semibold text-foreground">{name}</span>

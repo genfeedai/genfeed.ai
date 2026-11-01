@@ -23,6 +23,14 @@ const checks = [
     required: true,
   },
   {
+    // Avatars are the shared Avatar: no restyling it with classes, no
+    // hand-built letter or picture circles, no private initials helpers.
+    // Escape hatch: `// ui-guard-allow:<rule> -- reason`.
+    command: ['bun', 'run', 'scripts/ui/hand-built/avatars.ts'],
+    name: 'Hand-built avatars (shared Avatar, getInitials)',
+    required: true,
+  },
+  {
     // Progress bars and step circles come from Progress (size, tone) and
     // Stepper; hand-built fills, className restyles and indicatorClassName fail.
     command: ['bun', 'run', 'scripts/ui/hand-built/progress.ts'],

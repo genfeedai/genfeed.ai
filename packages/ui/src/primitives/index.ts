@@ -12,7 +12,7 @@ export {
   AccordionTrigger,
 } from './accordion';
 export { Alert, AlertDescription, AlertTitle } from './alert';
-export { Avatar, AvatarFallback, AvatarImage } from './avatar';
+export { Avatar } from './avatar';
 export { Badge, type BadgeProps } from './badge';
 export { badgeVariants } from './badge.variants';
 export {

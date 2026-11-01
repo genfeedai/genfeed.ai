@@ -20,7 +20,7 @@ import { ServicesService } from '@services/external/services.service';
 import Card from '@ui/card/Card';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
@@ -50,15 +50,6 @@ function getConnectionLabel(
   platform?: string,
 ): string {
   return name || handle || platform || 'Account';
-}
-
-function getInitials(label: string, platform: string): string {
-  const initials = label
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-  return initials || platform.slice(0, 2).toUpperCase();
 }
 
 function formatRefreshTime(value: string | null): string | null {
@@ -302,18 +293,12 @@ export default function SocialWarmupProgram({
     <section className="space-y-4" aria-label={translate('programTitle')}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar className="size-10 bg-background shadow-border">
-            {connection.avatarUrl ? (
-              <AvatarImage
-                alt={`${label} profile picture`}
-                className="object-cover"
-                src={connection.avatarUrl}
-              />
-            ) : null}
-            <AvatarFallback className="text-xs font-semibold text-foreground/70">
-              {getInitials(label, platform)}
-            </AvatarFallback>
-          </Avatar>
+          <Avatar
+            alt={`${label} profile picture`}
+            name={label}
+            size="lg"
+            src={connection.avatarUrl}
+          />
           <div className="min-w-0">
             <h3 className="truncate text-sm font-medium">{label}</h3>
             <p className="truncate text-xs text-muted-foreground">

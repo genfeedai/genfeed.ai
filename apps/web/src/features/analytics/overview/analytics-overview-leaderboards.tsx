@@ -21,9 +21,9 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Avatar } from '@ui/primitives/avatar';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { Newspaper, Sparkles, Users } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -83,19 +83,13 @@ export default function AnalyticsOverviewLeaderboards({
             href={`${scopedBasePath}/organizations/${item.organization.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
-            {item.organization.logo ? (
-              <Image
-                src={item.organization.logo}
-                alt={item.organization.name || 'Org'}
-                width={24}
-                height={24}
-                className="size-6 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-full bg-muted text-xs">
-                {(item.organization.name || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              alt={item.organization.name || 'Org'}
+              name={item.organization.name}
+              shape="square"
+              size="sm"
+              src={item.organization.logo}
+            />
             <span className="max-w-32 truncate font-medium">
               {item.organization.name || 'Unknown'}
             </span>
@@ -152,19 +146,13 @@ export default function AnalyticsOverviewLeaderboards({
             href={`${scopedBasePath}/brands/${item.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
-            {item.logo ? (
-              <Image
-                src={item.logo}
-                alt={item.name || 'Brand'}
-                width={24}
-                height={24}
-                className="size-6 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-full bg-muted text-xs">
-                {(item.name || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              alt={item.name || 'Brand'}
+              name={item.name}
+              shape="square"
+              size="sm"
+              src={item.logo}
+            />
             <span className="max-w-32 truncate font-medium">
               {item.name || 'Unknown'}
             </span>

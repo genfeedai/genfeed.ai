@@ -10,5 +10,10 @@ export default {
   '*.{ts,tsx,jsx}': (files) =>
     `bun scripts/ui/control-guard.ts ${files.join(' ')}`,
   // Hand-built card surfaces and Card restyles (whole-repo scan, about 2s).
-  '*.tsx': () => 'bun scripts/ui/hand-built/cards.ts',
+  // Avatars: restyled Avatar, hand-built letter or picture circles, private
+  // initials helpers.
+  '*.tsx': (files) => [
+    'bun scripts/ui/hand-built/cards.ts',
+    `bun scripts/ui/hand-built/avatars.ts ${files.join(' ')}`,
+  ],
 };

@@ -7,7 +7,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import Tabs from '@ui/navigation/tabs/Tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -278,18 +278,12 @@ export default function StudioIdentityFields({
   const isComplete = missingMessage === null;
 
   const avatarThumbnail = (
-    <Avatar className="size-5 shrink-0 rounded-md">
-      {selectedAvatarOption?.preview ? (
-        <AvatarImage
-          src={selectedAvatarOption.preview}
-          alt=""
-          className="object-cover"
-        />
-      ) : null}
-      <AvatarFallback className="rounded-md">
-        <UserRound className="size-3" />
-      </AvatarFallback>
-    </Avatar>
+    <Avatar
+      fallback={<UserRound className="size-3" />}
+      shape="square"
+      size="xs"
+      src={selectedAvatarOption?.preview}
+    />
   );
 
   const voiceList = (
@@ -360,18 +354,13 @@ export default function StudioIdentityFields({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Avatar className="aspect-square h-auto w-full rounded-md">
-              {option.preview ? (
-                <AvatarImage
-                  src={option.preview}
-                  alt=""
-                  className="object-cover"
-                />
-              ) : null}
-              <AvatarFallback className="rounded-md">
-                <UserRound className="size-8" />
-              </AvatarFallback>
-            </Avatar>
+            <Avatar
+              className="aspect-square"
+              fallback={<UserRound className="size-8" />}
+              shape="square"
+              size="fill"
+              src={option.preview}
+            />
             {option.value === avatarValue ? (
               <span className="absolute right-3 top-3 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
                 <Check className="size-3" />
@@ -594,24 +583,15 @@ export default function StudioIdentityFields({
                 'avatar',
                 translate('identityTabAvatar'),
                 avatarName,
-                <Avatar className="aspect-[4/3] h-auto w-full rounded-md">
-                  {selectedAvatarOption?.preview ? (
-                    <AvatarImage
-                      src={selectedAvatarOption.preview}
-                      alt=""
-                      className="object-cover"
-                    />
-                  ) : null}
-                  <AvatarFallback
-                    className={cn(
-                      'rounded-md',
-                      !hasAvatar &&
-                        'border border-dashed border-muted-foreground/40 bg-transparent',
-                    )}
-                  >
+                <Avatar
+                  className="aspect-[4/3]"
+                  fallback={
                     <UserRound className="size-6 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>,
+                  }
+                  shape="square"
+                  size="fill"
+                  src={selectedAvatarOption?.preview}
+                />,
               )}
               {pairingSlot(
                 'voice',

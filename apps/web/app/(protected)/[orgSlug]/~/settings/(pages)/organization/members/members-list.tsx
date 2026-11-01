@@ -32,7 +32,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
@@ -161,14 +161,12 @@ function MembersListContent() {
         const displayName = hasName ? name : member.userEmail || 'Unknown';
         return (
           <div className="flex min-w-0 items-center gap-2.5">
-            <Avatar className="size-7 shrink-0">
-              {member.user?.avatar ? (
-                <AvatarImage alt={displayName} src={member.user.avatar} />
-              ) : null}
-              <AvatarFallback className="text-2xs font-semibold">
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar
+              alt={displayName}
+              name={displayName}
+              size="md"
+              src={member.user?.avatar}
+            />
             <div className="min-w-0">
               <p className="truncate font-medium">{displayName}</p>
               {hasName && member.userEmail ? (

@@ -24,6 +24,7 @@ import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -38,7 +39,6 @@ import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import { Download, Plus, Search, UserPlus } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
@@ -583,13 +583,11 @@ export default function FollowSourceModal({
                       )}
 
                       {avatarUrl ? (
-                        <Image
+                        <Avatar
                           alt={candidate.displayName || `@${candidate.handle}`}
-                          className="size-10 shrink-0 rounded-full object-cover"
-                          height={40}
+                          name={candidate.displayName || candidate.handle}
+                          size="lg"
                           src={avatarUrl}
-                          unoptimized
-                          width={40}
                         />
                       ) : null}
 

@@ -1,11 +1,6 @@
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
-export interface AdminUserAvatarProps {
-  user: IUser;
-  className?: string;
-}
-
 export interface AdminUserEmailProps {
   email?: string | null;
 }

@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { Users, VenetianMask } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -21,7 +22,6 @@ import { useAdminSearchParam } from '@/components/content/admin-filters/useAdmin
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { useImpersonateUser } from './use-impersonate-user';
-import UserAvatar from './user-avatar';
 import UserDetailPanel from './user-detail-panel';
 import { EMPTY_VALUE, getUserDisplayName } from './user-display.helpers';
 import UserEmail from './user-email';
@@ -87,7 +87,12 @@ export default function UsersList() {
           className="flex min-w-0 items-center gap-2.5 hover:underline"
           href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${u.id}`}
         >
-          <UserAvatar user={u} />
+          <Avatar
+            alt={getUserDisplayName(u) ?? u.email}
+            name={getUserDisplayName(u) ?? u.email}
+            size="md"
+            src={u.avatar}
+          />
           <span className="truncate">
             {getUserDisplayName(u) ?? EMPTY_VALUE}
           </span>

@@ -22,7 +22,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
@@ -30,10 +29,10 @@ import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { Building2, Plus } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -45,7 +44,6 @@ import type {
   OrgLandingBrandFact,
   OrgLandingBrandFactsProps,
   OrgLandingBrandItemProps,
-  OrgLandingBrandLogoProps,
 } from '@/props/pages/org-landing.props';
 
 /** Up to this many brands the picker leads with logo cards; above it, a list. */
@@ -59,36 +57,6 @@ function hasCompletedOnboarding(user: IUser): boolean {
   return (
     user.isOnboardingCompleted === true ||
     ONBOARDING_STEPS.every((step) => completedSteps.includes(step))
-  );
-}
-
-function BrandLogo({ brand, className }: OrgLandingBrandLogoProps) {
-  if (brand.logoUrl) {
-    return (
-      <Image
-        alt={brand.label}
-        className={cn(
-          'shrink-0 rounded-lg object-cover outline-media',
-          className,
-        )}
-        height={40}
-        sizes="40px"
-        src={brand.logoUrl}
-        unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-        width={40}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-lg border border-border',
-        className,
-      )}
-    >
-      <Building2 className="size-5 text-muted-foreground" />
-    </div>
   );
 }
 
@@ -142,7 +110,13 @@ function BrandCard({ brand, href }: OrgLandingBrandItemProps) {
     <Link className="block h-full" data-testid="org-brand-card" href={href}>
       <Card isInteractive className="h-full">
         <div className="flex items-center gap-3">
-          <BrandLogo brand={brand} className="size-10" />
+          <Avatar
+            alt={brand.label}
+            name={brand.label}
+            shape="square"
+            size="lg"
+            src={brand.logoUrl}
+          />
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-foreground">
               {brand.label}
@@ -161,7 +135,15 @@ function BrandRow({ brand, href }: OrgLandingBrandItemProps) {
       data-testid="org-brand-row"
       density="compact"
       href={href}
-      leading={<BrandLogo brand={brand} className="size-8" />}
+      leading={
+        <Avatar
+          alt={brand.label}
+          name={brand.label}
+          shape="square"
+          size="md"
+          src={brand.logoUrl}
+        />
+      }
       meta={<BrandFacts brand={brand} />}
       title={brand.label}
     />

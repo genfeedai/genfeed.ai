@@ -7,6 +7,7 @@ import type { Video } from '@models/ingredients/video.model';
 import type { Brand } from '@models/organization/brand.model';
 import type { Link as LinkModel } from '@models/social/link.model';
 import NotFoundPage from '@ui/error/not-found/not-found-page';
+import { Avatar } from '@ui/primitives/avatar';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileFooter from '@web-components/profile/ProfileFooter';
@@ -69,23 +70,18 @@ function ProfileContent({
         )}
 
         {brand.logoUrl && (
-          <div
-            className={cn(
-              'size-24 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-primary/50 bg-zinc-950',
+          <Avatar
+            alt={`${brand.label} logo`}
+            className={
               brand.bannerUrl
                 ? 'absolute left-1/2 -translate-x-1/2 -bottom-12'
-                : 'mx-auto',
-            )}
-          >
-            <Image
-              src={brand.logoUrl}
-              alt={`${brand.label} logo`}
-              className="w-full h-full object-cover"
-              width={96}
-              height={96}
-              priority
-            />
-          </div>
+                : 'mx-auto'
+            }
+            name={brand.label}
+            shape="square"
+            size="2xl"
+            src={brand.logoUrl}
+          />
         )}
       </div>
 
