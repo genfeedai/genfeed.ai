@@ -29,6 +29,32 @@ test.describe('Output-first onboarding', () => {
     expect(draftRequests).toHaveLength(1);
   });
 
+  test('offers an optional account connection before the scan', async ({
+    onboardingPage: page,
+  }) => {
+    const { draftRequests } = await setupOnboardingFirstDraftsMocks(page);
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Connect your accounts (optional)' }),
+    ).toBeVisible();
+    for (const platform of ['twitter', 'instagram', 'tiktok', 'linkedin'])
+      await expect(page.getByTestId(`connect-card-${platform}`)).toBeVisible();
+    await expect(page.getByTestId('connect-card-youtube')).toHaveCount(0);
+    await page.route('https://mock-oauth.example.com/**', (route) =>
+      route.fulfill({ body: '<html></html>', contentType: 'text/html' }),
+    );
+    const connectRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().includes('/services/twitter/connect'),
+    );
+    await page.getByRole('button', { name: 'Connect X' }).click();
+    expect((await connectRequest).postDataJSON()).toMatchObject({
+      brandId: expect.any(String),
+    });
+    expect(draftRequests).toHaveLength(0);
+  });
+
   test('finishes onto the drafts that were just reviewed', async ({
     onboardingPage: page,
   }) => {

@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
   ensureFromPost: vi.fn(),
   scheduleTarget: vi.fn(),
   connectPlatform: vi.fn(),
+  connectOptions: vi.fn(),
   search: new URLSearchParams(),
   steps: ['brand'] as string[],
 }));
@@ -106,7 +107,12 @@ vi.mock('@services/content/release-groups.service', () => ({
 }));
 vi.mock(
   '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
-  () => ({ usePlatformOAuthConnect: () => mocks.connectPlatform }),
+  () => ({
+    usePlatformOAuthConnect: (options: unknown) => {
+      mocks.connectOptions(options);
+      return mocks.connectPlatform;
+    },
+  }),
 );
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
@@ -236,6 +242,42 @@ describe('FirstDraftsOnboarding', () => {
       'acme.co',
       expect.any(AbortSignal),
     );
+  });
+
+  it('offers an optional account connection on the brand step without blocking the scan', async () => {
+    render(<FirstDraftsOnboarding />);
+    await screen.findByRole('textbox');
+    expect(
+      screen.getByRole('heading', { name: 'Connect your accounts (optional)' }),
+    ).toBeInTheDocument();
+    await screen.findByTestId('connect-card-instagram');
+    for (const platform of ['tiktok', 'twitter', 'linkedin'])
+      expect(
+        screen.getByTestId(`connect-card-${platform}`),
+      ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /youtube/i }),
+    ).not.toBeInTheDocument();
+    expect(mocks.connectOptions).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      returnTo: '/onboarding/brand',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Connect Instagram' }));
+    await waitFor(() =>
+      expect(mocks.connectPlatform).toHaveBeenCalledWith('instagram'),
+    );
+    expect(mocks.scanBrand).not.toHaveBeenCalled();
+    expect(mocks.generateDrafts).not.toHaveBeenCalled();
+  });
+
+  it('shows an account connected before the scan as connected', async () => {
+    mocks.listReadiness.mockResolvedValue([
+      { providerKey: 'twitter', credentialId: 'cred-1', canSchedule: true },
+    ]);
+    render(<FirstDraftsOnboarding />);
+    expect(
+      await screen.findByRole('button', { name: 'X connected' }),
+    ).toBeDisabled();
   });
 
   it('navigates through saved steps while completed generation stays disabled', async () => {

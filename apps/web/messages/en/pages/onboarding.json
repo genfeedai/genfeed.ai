@@ -178,7 +178,11 @@
       "label": "Website or social profile",
       "placeholder": "yourbrand.com or a social profile",
       "submit": "Submit brand link",
-      "noWebsite": "I don't have a link yet"
+      "noWebsite": "I don't have a link yet",
+      "connect": {
+        "title": "Connect your accounts (optional)",
+        "description": "Connecting imports your recent posts so Genfeed can learn how you sound. You can skip this and connect later."
+      }
     },
     "working": {
       "scanning": "Reading your brand…",
