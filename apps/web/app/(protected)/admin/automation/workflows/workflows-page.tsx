@@ -308,7 +308,7 @@ export default function WorkflowsPage() {
       icon: <Trash2 />,
       onClick: handleDelete,
       tooltip: translate('actions.delete'),
-      variant: ButtonVariant.DESTRUCTIVE,
+      tone: 'destructive',
     },
   ];
 
