@@ -718,6 +718,23 @@ describe('PostDraftGenerationService', () => {
       expect(lines).toContain(`2. "${'x'.repeat(280)}"`);
     });
 
+    it("quotes the brand's own writing in the prompt, after the request, when the caller has some", async () => {
+      mockBrandedText.generate.mockResolvedValue(saved);
+      mockPrisma.post.findMany.mockResolvedValue([]);
+
+      await service.generateDraftText(dto, identity, undefined, {
+        voiceEvidence: 'Voice evidence:\n[1] (original, twitter)\nshipped it.',
+      });
+
+      const lines = promptOf().split('\n');
+      expect(lines[2]).toBe('Request: Launch day');
+      expect(lines.slice(3)).toEqual([
+        'Voice evidence:',
+        '[1] (original, twitter)',
+        'shipped it.',
+      ]);
+    });
+
     it('keeps the list per request key so a retry of the same request sends the same prompt', async () => {
       mockBrandedText.generate.mockResolvedValue(saved);
       mockPrisma.post.findMany.mockResolvedValue([{ description: 'Post A' }]);
