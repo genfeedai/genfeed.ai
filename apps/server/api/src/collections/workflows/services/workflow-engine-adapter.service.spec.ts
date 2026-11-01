@@ -2007,26 +2007,34 @@ describe('WorkflowEngineAdapterService', () => {
     });
   });
 
-  describe('buildDigestTrends platform filter', () => {
-    const makeTrends = () => ({
-      getViralVideos: vi.fn().mockResolvedValue([
+  describe('buildDigestTrends brand scope', () => {
+    const brand = { id: 'brand-1', label: 'Genfeed' };
+    const makeSources = () => ({
+      brand,
+      topics: [],
+      videos: [
         {
+          matchedTerms: ['ai video'],
           platform: 'youtube',
-          title: 'YT vid',
-          url: 'u1',
-          views: 100,
+          title: 'AI video ads beat studio shoots',
+          videoUrl: 'u1',
+          viewCount: 100,
           viralScore: 90,
         },
         {
+          matchedTerms: ['ugc'],
           platform: 'tiktok',
-          title: 'TT vid',
-          url: 'u2',
-          views: 100,
+          title: 'UGC with AI actors',
+          videoUrl: 'u2',
+          viewCount: 100,
           viralScore: 80,
         },
-      ]),
-      getTrendingHashtags: vi.fn().mockResolvedValue([]),
-      getTrendingSounds: vi.fn().mockResolvedValue([]),
+      ],
+    });
+    const makeTrends = (sources: unknown = makeSources()) => ({
+      generateDigestAngles: vi.fn().mockResolvedValue(new Map()),
+      getBrandDigestSources: vi.fn().mockResolvedValue(sources),
+      getViralVideos: vi.fn(),
     });
 
     it('keeps only entries on the configured platforms', async () => {
@@ -2035,6 +2043,7 @@ describe('WorkflowEngineAdapterService', () => {
         10,
         0,
         ['youtube'],
+        'org-1',
       );
 
       expect(result).toHaveLength(1);
@@ -2047,52 +2056,98 @@ describe('WorkflowEngineAdapterService', () => {
         10,
         0,
         [],
+        'org-1',
       );
 
       expect(result).toHaveLength(2);
     });
 
-    it('includes topic-corpus rows from get_trends that clear the viral gate', async () => {
-      const trends = {
-        ...makeTrends(),
-        getTrends: vi.fn().mockResolvedValue([
+    it('sends nothing, and never reads the global chart, when the org has no brand niche', async () => {
+      const trends = makeTrends(null);
+
+      const result = await service.collectDigestTrends(
+        asTrendsService(trends),
+        10,
+        0,
+        [],
+        'org-1',
+      );
+
+      expect(result).toEqual({ sourceTopicCount: 0, trends: [] });
+      expect(trends.getViralVideos).not.toHaveBeenCalled();
+    });
+
+    it('carries the brand label, matched niche terms and the post idea for each topic', async () => {
+      const trends = makeTrends();
+      trends.generateDigestAngles.mockResolvedValue(
+        new Map([
+          [
+            0,
+            {
+              angle: 'Your buyers compare AI and studio output.',
+              caption: 'Left: two days. Right: four minutes.',
+              format: 'Video · 30s',
+              hook: 'We made the same ad twice.',
+              index: 0,
+            },
+          ],
+        ]),
+      );
+
+      const lookup = await service.collectDigestTrends(
+        asTrendsService(trends),
+        10,
+        0,
+        [],
+        'org-1',
+      );
+
+      expect(lookup.brandLabel).toBe('Genfeed');
+      expect(lookup.trends[0]).toMatchObject({
+        angle: 'Your buyers compare AI and studio output.',
+        matchedTerms: ['ai video'],
+        postIdea: {
+          caption: 'Left: two days. Right: four minutes.',
+          format: 'Video · 30s',
+          hook: 'We made the same ad twice.',
+        },
+        topic: 'AI video ads beat studio shoots',
+      });
+      expect(lookup.trends[1].postIdea).toBeUndefined();
+    });
+
+    it('includes brand topic rows that clear the viral gate', async () => {
+      const trends = makeTrends({
+        brand,
+        topics: [
           {
-            platform: 'youtube',
+            matchedTerms: ['ai video'],
+            mentions: 1200,
+            platform: 'tiktok',
             topic: 'Launch thread',
             viralityScore: 88,
           },
           {
-            data: { score: 40 },
+            matchedTerms: [],
+            mentions: 10,
             platform: 'tiktok',
             topic: 'Quiet week',
+            viralityScore: 40,
           },
-          {
-            data: { name: 'Nested name', score: 93 },
-            platform: 'tiktok',
-          },
-        ]),
-        getViralVideos: vi.fn().mockResolvedValue([]),
-      };
+        ],
+        videos: [],
+      });
 
       const result = await service.buildDigestTrends(
         asTrendsService(trends),
         10,
         70,
-        ['youtube', 'tiktok'],
+        ['tiktok'],
         'org-1',
       );
 
-      expect(trends.getTrends).toHaveBeenCalledWith(
-        'org-1',
-        undefined,
-        undefined,
-        { allowFetchIfMissing: false },
-      );
-      expect(result.map((item) => item.topic)).toEqual([
-        'Nested name',
-        'Launch thread',
-      ]);
-      expect(result.map((item) => item.type)).toEqual(['topic', 'topic']);
+      expect(result.map((item) => item.topic)).toEqual(['Launch thread']);
+      expect(result[0].type).toBe('topic');
     });
   });
 });

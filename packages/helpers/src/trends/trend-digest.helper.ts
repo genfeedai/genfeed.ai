@@ -16,6 +16,24 @@ import {
 
 export type TrendDigestItemType = 'video' | 'hashtag' | 'sound' | 'topic';
 
+/** A post the reader can make from a trend. */
+export interface TrendDigestPostIdea {
+  /** Content format, e.g. "Video · 30s" or "Thread · 5 posts". */
+  format: string;
+  hook: string;
+  caption: string;
+}
+
+/** A real post behind a trend, shown as a card in the email. */
+export interface TrendDigestSourcePost {
+  authorHandle?: string;
+  likes?: number;
+  platform: string;
+  text?: string;
+  url: string;
+  views?: number;
+}
+
 export interface TrendDigestItem {
   platform: string;
   topic: string;
@@ -23,6 +41,15 @@ export interface TrendDigestItem {
   type: TrendDigestItemType;
   url?: string;
   usageCount?: number;
+  /** Why the trend fits the brand. Present when the digest is brand-scoped. */
+  angle?: string;
+  /** Brand niche terms the trend matched. */
+  matchedTerms?: string[];
+  postIdea?: TrendDigestPostIdea;
+  /** Video still. Only http(s) URLs are rendered. */
+  thumbnailUrl?: string;
+  /** Posts from X, LinkedIn and other platforms that carry the trend. */
+  posts?: TrendDigestSourcePost[];
 }
 
 export interface TrendDigestOptions {
@@ -32,6 +59,8 @@ export interface TrendDigestOptions {
   appUrl?: string;
   /** Heading text. Defaults to "Your Trend Summary". */
   headerTitle?: string;
+  /** Brand the topics were chosen for. Shown in the email intro. */
+  brandLabel?: string;
 }
 
 const DEFAULT_HEADER_TITLE = 'Your Trend Summary';
@@ -118,68 +147,19 @@ export function buildTrendDigestMessage(
   return lines.join('\n');
 }
 
-/** Branded HTML email body. */
-export function buildTrendDigestHtml(
-  trends: TrendDigestItem[],
-  options: TrendDigestOptions,
-): string {
-  const { minViralScore } = options;
-  const headerTitle = options.headerTitle ?? DEFAULT_HEADER_TITLE;
-  const appUrl = options.appUrl ?? '';
+/** Drafts shown under "Ready to post today". */
+const DIGEST_DRAFT_LIMIT = 3;
 
-  const videos = trends.filter((trend) => trend.type === 'video');
-  const hashtags = trends.filter((trend) => trend.type === 'hashtag');
-  const sounds = trends.filter((trend) => trend.type === 'sound');
-  const topics = trends.filter((trend) => trend.type === 'topic');
-
-  const sections: string[] = [
-    buildSystemEmailParagraph(`Filtered for viral score >= ${minViralScore}.`),
-  ];
-
-  if (videos.length > 0) {
-    sections.push(
-      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Viral Videos</h2>',
-    );
-    videos.slice(0, 5).forEach((video) => {
-      sections.push(buildTrendRow(video, 'views'));
-    });
-  }
-
-  if (hashtags.length > 0) {
-    sections.push(
-      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
-    );
-    hashtags.slice(0, 5).forEach((hashtag) => {
-      sections.push(buildTrendRow(hashtag, 'posts'));
-    });
-  }
-
-  if (sounds.length > 0) {
-    sections.push(
-      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
-    );
-    sounds.slice(0, 5).forEach((sound) => {
-      sections.push(buildTrendRow(sound, 'uses'));
-    });
-  }
-
-  if (topics.length > 0) {
-    sections.push(
-      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Topics</h2>',
-    );
-    topics.slice(0, 5).forEach((topic) => {
-      sections.push(buildTrendRow(topic, 'mentions'));
-    });
-  }
-
-  return buildSystemEmailHtml({
-    action: appUrl ? { label: 'Open Genfeed', url: appUrl } : undefined,
-    appUrl,
-    bodyHtml: sections.join(''),
-    preheader: `Trends filtered for viral score >= ${minViralScore}.`,
-    title: headerTitle,
-  });
-}
+const COLORS = {
+  border: '#333333',
+  card: '#0A0A0A',
+  chip: '#1C1C1C',
+  mute: '#949494',
+  pop: '#10B981',
+  soft: '#0F1F19',
+  sub: '#A1A1A1',
+  text: '#EDEDED',
+} as const;
 
 /** Row links are web sources only — narrower than the system-email allowlist. */
 function sanitizeTrendSourceUrl(value: string): string | null {
@@ -190,27 +170,209 @@ function sanitizeTrendSourceUrl(value: string): string | null {
   return /^https?:\/\//i.test(safe) ? safe : null;
 }
 
-function buildTrendRow(trend: TrendDigestItem, usageLabel: string): string {
-  const usage = trend.usageCount
-    ? `<span style="color:#949494;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
-    : '';
+function safeUrl(value: string | undefined): string | null {
+  return value ? sanitizeTrendSourceUrl(value) : null;
+}
 
-  // A trend the reader cannot open is a dead end, so the topic carries the
-  // link. Scraped URLs are caller-supplied, so they go through the shared
-  // scheme allowlist, narrowed further here: a trend's source is a web page,
-  // never a `mailto:` target, so only http(s) survives.
-  const topic = escapeTrendHtml(trend.topic);
-  const url = trend.url ? sanitizeTrendSourceUrl(trend.url) : null;
-  const title = url
-    ? `<a href="${escapeTrendHtml(url)}" style="color:#EDEDED;text-decoration:none;">${topic}</a>`
-    : topic;
+function eyebrowHtml(text: string, color: string = COLORS.mute): string {
+  return `<div style="color:${color};font-size:11px;letter-spacing:0.08em;line-height:16px;text-transform:uppercase;">${escapeTrendHtml(text)}</div>`;
+}
 
+function linked(url: string | null, inner: string, color = COLORS.text): string {
+  return url
+    ? `<a href="${escapeTrendHtml(url)}" style="color:${color};text-decoration:none;">${inner}</a>`
+    : inner;
+}
+
+function metaHtml(trend: TrendDigestItem): string {
+  const parts = [escapeTrendHtml(trend.platform)];
+  if (trend.usageCount) {
+    parts.push(`${formatTrendCount(trend.usageCount)} views`);
+  }
+  return `<div style="color:${COLORS.mute};font-size:12px;line-height:18px;">${parts.join(' &middot; ')}</div>`;
+}
+
+function chipsHtml(terms: string[] | undefined): string {
+  if (!terms?.length) {
+    return '';
+  }
+  return `<div style="line-height:24px;">${terms
+    .slice(0, 4)
+    .map(
+      (term) =>
+        `<span style="background:${COLORS.soft};border-radius:4px;color:${COLORS.pop};display:inline-block;font-size:12px;line-height:20px;margin:0 6px 0 0;padding:0 7px;">${escapeTrendHtml(term)}</span>`,
+    )
+    .join('')}</div>`;
+}
+
+/** The video still, linked to the source. Anything but an http(s) image is dropped. */
+function thumbnailHtml(trend: TrendDigestItem, width: number): string {
+  const src = safeUrl(trend.thumbnailUrl);
+  if (!src) {
+    return '';
+  }
+  const height = Math.round((width * 9) / 16);
+  const img = `<img src="${escapeTrendHtml(src)}" alt="${escapeTrendHtml(trend.topic)}" width="${width}" height="${height}" style="background:${COLORS.chip};border:0;border-radius:6px;display:block;height:auto;max-width:100%;width:${width}px;">`;
+  return linked(safeUrl(trend.url), img);
+}
+
+/** A post from X, LinkedIn or another platform, drawn as a card. Mail clients cannot run embed scripts. */
+function postCardHtml(post: TrendDigestSourcePost): string {
+  const url = safeUrl(post.url);
+  const stats = [
+    post.views ? `${formatTrendCount(post.views)} views` : null,
+    post.likes ? `${formatTrendCount(post.likes)} likes` : null,
+  ].filter((part): part is string => part !== null);
+  const text = post.text?.trim();
   return `
-    <div style="border-bottom:1px solid #333333;padding:10px 0;">
-      <div style="color:#EDEDED;font-size:14px;font-weight:700;line-height:20px;">${title}</div>
-      <div style="font-size:12px;line-height:18px;margin-top:4px;">
-        <span style="background:#10b981;border-radius:4px;color:#0A0A0A;display:inline-block;font-weight:700;padding:2px 6px;">Score: ${trend.viralScore}</span>
-        <span style="background:#2A2A2A;border-radius:4px;color:#A1A1A1;display:inline-block;margin-left:4px;padding:2px 6px;">${escapeTrendHtml(trend.platform)}</span>${usage}
-      </div>
+    <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:12px;">
+      <div style="color:${COLORS.text};font-size:13px;font-weight:600;line-height:20px;">${escapeTrendHtml(post.authorHandle ?? post.platform)}<span style="color:${COLORS.mute};font-weight:400;"> &middot; ${escapeTrendHtml(post.platform)}</span></div>
+      ${text ? `<div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:4px;">${escapeTrendHtml(text.length > 280 ? `${text.slice(0, 277)}...` : text)}</div>` : ''}
+      <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:6px;">${[...stats.map(escapeTrendHtml), linked(url, 'View post', COLORS.sub)].join(' &middot; ')}</div>
     </div>`;
+}
+
+function ideaHtml(trend: TrendDigestItem, background: string): string {
+  const idea = trend.postIdea;
+  if (!idea) {
+    return '';
+  }
+  return `
+    <div style="background:${background};border-radius:6px;padding:12px 14px;">
+      ${eyebrowHtml(`Post idea · ${idea.format}`, COLORS.pop)}
+      <div style="color:${COLORS.text};font-size:14px;font-weight:600;line-height:21px;margin-top:2px;">${escapeTrendHtml(idea.hook)}</div>
+      <div style="color:${COLORS.sub};font-size:14px;line-height:21px;">${escapeTrendHtml(idea.caption)}</div>
+    </div>`;
+}
+
+function stack(blocks: string[], gap: number): string {
+  return blocks
+    .filter((block) => block.trim().length > 0)
+    .map(
+      (block, index) =>
+        `<div style="margin-top:${index === 0 ? 0 : gap}px;">${block}</div>`,
+    )
+    .join('');
+}
+
+function leadHtml(trend: TrendDigestItem, appUrl: string): string {
+  const action = safeUrl(appUrl)
+    ? `<a href="${escapeTrendHtml(appUrl)}" style="background:${COLORS.text};border-radius:6px;color:#0A0A0A;display:inline-block;font-size:14px;font-weight:600;line-height:20px;padding:10px 16px;text-decoration:none;">Create this post</a>`
+    : '';
+  return `
+    <div style="background:${COLORS.soft};border-radius:8px;padding:16px;">
+      ${stack(
+        [
+          eyebrowHtml('Lead story', COLORS.pop),
+          thumbnailHtml(trend, 462),
+          `<div style="color:${COLORS.text};font-size:20px;font-weight:600;line-height:26px;">${linked(safeUrl(trend.url), escapeTrendHtml(trend.topic))}</div>`,
+          metaHtml(trend),
+          chipsHtml(trend.matchedTerms),
+          trend.angle
+            ? `<div style="color:${COLORS.sub};font-size:14px;line-height:21px;">${escapeTrendHtml(trend.angle)}</div>`
+            : '',
+          ideaHtml(trend, COLORS.card),
+          action,
+        ],
+        12,
+      )}
+    </div>`;
+}
+
+function draftHtml(trend: TrendDigestItem): string {
+  const idea = trend.postIdea;
+  if (!idea) {
+    return '';
+  }
+  return `
+    <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:14px;">
+      ${eyebrowHtml(`${trend.platform} · ${idea.format}`)}
+      <div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:6px;white-space:pre-line;">${escapeTrendHtml(`${idea.hook}\n\n${idea.caption}`)}</div>
+      <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:8px;">From: ${escapeTrendHtml(trend.topic)}</div>
+    </div>`;
+}
+
+function moreRowHtml(trend: TrendDigestItem): string {
+  const url = safeUrl(trend.url);
+  const thumb = thumbnailHtml(trend, 112);
+  const post = trend.posts?.[0];
+  const text = stack(
+    [
+      `<div style="color:${COLORS.text};font-size:15px;font-weight:600;line-height:21px;">${linked(url, escapeTrendHtml(trend.topic))}</div>`,
+      metaHtml(trend),
+      chipsHtml(trend.matchedTerms),
+      post ? postCardHtml(post) : '',
+      trend.angle
+        ? `<div style="color:${COLORS.sub};font-size:13px;line-height:19px;">${escapeTrendHtml(trend.angle)}</div>`
+        : '',
+      trend.postIdea
+        ? `<div style="color:${COLORS.sub};font-size:13px;line-height:19px;"><span style="color:${COLORS.text};font-weight:600;">${escapeTrendHtml(trend.postIdea.format)}</span> &middot; ${escapeTrendHtml(trend.postIdea.hook)}</div>`
+        : '',
+    ],
+    6,
+  );
+  // Small still beside the text; a post card takes the full row width instead.
+  const body =
+    thumb && !post
+      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr><td width="112" valign="top" style="padding-right:12px;">${thumb}</td><td valign="top">${text}</td></tr></table>`
+      : text;
+  return `<div style="border-top:1px solid ${COLORS.border};padding:14px 0;">${body}</div>`;
+}
+
+/** Email subject: lead with the posts the reader can make, not the count of trends. */
+export function buildTrendDigestSubject(trends: TrendDigestItem[]): string {
+  const drafts = trends
+    .filter((trend) => trend.postIdea)
+    .slice(0, DIGEST_DRAFT_LIMIT).length;
+  const topics = `${trends.length} ${trends.length === 1 ? 'topic' : 'topics'}`;
+  if (drafts > 0) {
+    return `${drafts} ${drafts === 1 ? 'post' : 'posts'} ready for today, from ${topics} in your niche`;
+  }
+  return `Your daily trends — ${topics}`;
+}
+
+/** Branded HTML email body: a lead story, drafts ready to post, then more topics. */
+export function buildTrendDigestHtml(
+  trends: TrendDigestItem[],
+  options: TrendDigestOptions,
+): string {
+  const headerTitle = options.headerTitle ?? DEFAULT_HEADER_TITLE;
+  const appUrl = options.appUrl ?? '';
+  const [lead, ...rest] = trends;
+  const drafts = trends
+    .filter((trend) => trend.postIdea)
+    .slice(0, DIGEST_DRAFT_LIMIT);
+  const topicCount = `${trends.length} ${trends.length === 1 ? 'topic' : 'topics'}`;
+  const intro = options.brandLabel
+    ? `${topicCount} moving in the ${options.brandLabel} niche${drafts.length > 0 ? `, ${drafts.length} ${drafts.length === 1 ? 'post' : 'posts'} ready for today` : ''}.`
+    : `${topicCount} trending today.`;
+
+  const sections: string[] = [buildSystemEmailParagraph(intro)];
+
+  if (lead) {
+    sections.push(leadHtml(lead, appUrl));
+  }
+  if (drafts.length > 0) {
+    sections.push(
+      `<div style="margin-top:24px;">${stack(
+        [eyebrowHtml('Ready to post today'), ...drafts.map(draftHtml)],
+        10,
+      )}</div>`,
+    );
+  }
+  if (rest.length > 0) {
+    sections.push(
+      `<div style="margin-top:24px;">${eyebrowHtml('Also moving in your niche')}<div style="margin-top:8px;">${rest.map(moreRowHtml).join('')}</div></div>`,
+    );
+  }
+
+  return buildSystemEmailHtml({
+    action: appUrl ? { label: 'Open Genfeed', url: appUrl } : undefined,
+    appUrl,
+    bodyHtml: sections.join(''),
+    preheader: lead
+      ? `${lead.topic}${lead.postIdea ? ` — ${lead.postIdea.hook}` : ''}`
+      : intro,
+    title: headerTitle,
+  });
 }

@@ -41,6 +41,7 @@ import {
   buildBrandNicheQueries,
   countNicheTermMatches,
   isWithinTimeframe,
+  matchedNicheTerms,
   rankBrandVideos,
 } from '@api/collections/trends/utils/brand-niche.util';
 import {
@@ -50,8 +51,27 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
+import type { TrendDigestAngle } from '@genfeedai/contracts/api-types/contracts';
+import type { TrendDigestSourcePost } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+/** Topics read from the corpus per digest before the score gate and the cap. */
+const DIGEST_TOPIC_POOL = 20;
+
+export interface BrandDigestSources {
+  brand: { description?: string; id: string; label: string };
+  topics: Array<{
+    matchedTerms: string[];
+    mentions: number;
+    platform: string;
+    posts: TrendDigestSourcePost[];
+    topic: string;
+    url?: string;
+    viralityScore: number;
+  }>;
+  videos: Array<TrendingVideoDocument & { matchedTerms: string[] }>;
+}
 
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
@@ -467,6 +487,18 @@ export class TrendsService {
     );
   }
 
+  generateDigestAngles(
+    trends: Array<{ matchedTerms?: string[]; platform: string; topic: string }>,
+    brand: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
+  ): Promise<Map<number, TrendDigestAngle>> {
+    return this.trendContentIdeasService.generateDigestAngles(
+      trends,
+      brand,
+      byokApiKeyOverride,
+    );
+  }
+
   /**
    * Mark expired trends as historical
    */
@@ -751,6 +783,107 @@ export class TrendsService {
       return true;
     });
     return rankBrandVideos(merged, queries).slice(0, options?.limit ?? 12);
+  }
+
+  /**
+   * What the daily digest is built from: the org's default brand and only the
+   * videos and topics that match that brand's niche. Returns null when the org
+   * has no brand or the brand has no niche to match, so the digest sends
+   * nothing instead of falling back to the global chart (mostly music).
+   */
+  async getBrandDigestSources(
+    organizationId: string,
+    options: { minViralScore: number },
+  ): Promise<BrandDigestSources | null> {
+    const brands = await this.brandsService.find({
+      isDeleted: false,
+      organizationId,
+    });
+    const brand =
+      brands.find((candidate) => candidate.isDefault) ??
+      [...brands].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      )[0];
+    if (!brand) return null;
+
+    const preferences = await this.trendPreferencesService.getPreferences(
+      organizationId,
+      brand.id,
+    );
+    const queries = buildBrandNicheQueries({
+      categories: preferences?.categories,
+      description: brand.description,
+      hashtags: preferences?.hashtags,
+      keywords: preferences?.keywords,
+    });
+    if (queries.length === 0) return null;
+
+    const [videos, corpus] = await Promise.all([
+      this.getBrandViralVideos(organizationId, brand.id, {
+        limit: 30,
+        minViralScore: options.minViralScore,
+      }),
+      this.getTrendsWithAccessControl(organizationId, brand.id, undefined, {
+        allowFetchIfMissing: false,
+        relevance: 'brand',
+      }),
+    ]);
+
+    return {
+      brand: {
+        description: brand.description ?? undefined,
+        id: brand.id,
+        label: brand.label,
+      },
+      topics: await Promise.all(
+        [...corpus.trends]
+          .sort((a, b) => b.viralityScore - a.viralityScore)
+          .slice(0, DIGEST_TOPIC_POOL)
+          .map(async (trend) => {
+            // Stored previews only: the digest never triggers a live fetch.
+            const discovery =
+              await this.trendSourcePreviewService.buildTrendDiscoveryItem(
+                trend,
+                organizationId,
+              );
+            return {
+              matchedTerms: matchedNicheTerms(
+                { hashtags: trend.metadata?.hashtags, title: trend.topic },
+                queries,
+              ),
+              mentions: trend.mentions,
+              platform: trend.platform,
+              posts: discovery.sourcePreview
+                .filter(
+                  (item) =>
+                    item.contentType !== 'video' && Boolean(item.sourceUrl),
+                )
+                .map((item) => ({
+                  authorHandle: item.authorHandle,
+                  likes: item.metrics?.likes,
+                  platform: item.platform,
+                  text: item.text ?? item.title,
+                  url: item.sourceUrl,
+                  views: item.metrics?.views,
+                })),
+              topic: trend.topic,
+              url: trend.metadata?.videoUrl ?? trend.metadata?.urls?.[0],
+              viralityScore: trend.viralityScore,
+            };
+          }),
+      ),
+      videos: videos.map((video) => {
+        const matched = matchedNicheTerms(video, queries);
+        const nicheQuery =
+          typeof video.nicheQuery === 'string' ? video.nicheQuery : undefined;
+        return {
+          ...video,
+          matchedTerms:
+            matched.length > 0 ? matched : nicheQuery ? [nicheQuery] : [],
+        };
+      }),
+    };
   }
 
   /**

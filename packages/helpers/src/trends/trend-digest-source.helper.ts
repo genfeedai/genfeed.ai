@@ -14,7 +14,10 @@
  */
 
 import { readRecordOrUndefined } from '@genfeedai/contracts/constants/type-guards.constant';
-import type { TrendDigestItem } from './trend-digest.helper';
+import type {
+  TrendDigestItem,
+  TrendDigestSourcePost,
+} from './trend-digest.helper';
 
 /** Structural view of a stored `trendingVideo.data` blob. */
 export interface RawTrendVideo {
@@ -30,6 +33,10 @@ export interface RawTrendVideo {
   viralityScore?: number;
   /** `get_trends` exposes the corpus score under this name. */
   score?: number;
+  /** Brand niche terms the video matched. Set by brand-scoped readers. */
+  matchedTerms?: string[];
+  thumbnailUrl?: string;
+  coverUrl?: string | null;
 }
 
 /** Structural view of a stored `trendingHashtag.data` blob. */
@@ -75,6 +82,10 @@ export interface RawTrendTopic {
   score?: number;
   metadata?: RawTrendTopicMetadata;
   data?: RawTrendTopicData;
+  /** Brand niche terms the topic matched. Set by brand-scoped readers. */
+  matchedTerms?: string[];
+  /** Posts that carry the topic. Set by brand-scoped readers. */
+  posts?: TrendDigestSourcePost[];
 }
 
 export interface RawTrendTopicMetadata {
@@ -186,6 +197,8 @@ function flattenTopic(topic: RawTrendTopic): RawTrendTopic {
     readRecordOrUndefined(data.metadata);
 
   return {
+    matchedTerms: topic.matchedTerms,
+    posts: topic.posts,
     mentions:
       sourceScore(topic.mentions) ?? readScore(data.mentions) ?? undefined,
     name: firstNonEmpty(topic.name, readText(data.name)),
@@ -228,9 +241,18 @@ function mapVideos(videos: RawTrendVideo[]): TrendDigestItem[] {
     if (!topic || score === null) {
       continue;
     }
+    const thumbnailUrl = firstNonEmpty(
+      video.thumbnailUrl,
+      video.coverUrl ?? undefined,
+    );
+    const thumbnail = thumbnailUrl ? { thumbnailUrl } : {};
 
     items.push({
+      ...(video.matchedTerms?.length
+        ? { matchedTerms: video.matchedTerms }
+        : {}),
       platform: video.platform || DEFAULT_VIDEO_PLATFORM,
+      ...thumbnail,
       topic,
       type: 'video',
       url: firstNonEmpty(video.videoUrl, video.playUrl),
@@ -311,6 +333,10 @@ function mapTopics(topics: readonly RawTrendTopic[]): TrendDigestItem[] {
     }
 
     items.push({
+      ...(topic.matchedTerms?.length
+        ? { matchedTerms: topic.matchedTerms }
+        : {}),
+      ...(topic.posts?.length ? { posts: topic.posts } : {}),
       platform: topic.platform || 'unspecified',
       topic: label,
       type: 'topic',
@@ -371,7 +397,13 @@ function rankDigestItems(
     .filter(
       (item) => allowed.size === 0 || allowed.has(item.platform.toLowerCase()),
     )
-    .sort((a, b) => b.viralScore - a.viralScore);
+    // Scores saturate at 100, so views break the tie instead of leaving the
+    // order to whichever source was read first.
+    .sort(
+      (a, b) =>
+        b.viralScore - a.viralScore ||
+        (b.usageCount ?? 0) - (a.usageCount ?? 0),
+    );
 
   return options.limit == null ? ranked : ranked.slice(0, options.limit);
 }
