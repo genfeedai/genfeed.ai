@@ -95,23 +95,27 @@ export function resolveBreakoutMediaFormat(
   const capability = getChannelCapability(platform);
   if (capability?.status !== 'supported')
     return { status: 'held', reason: 'platform_publishing_unavailable' };
-  const { kinds, maxItems } = capability.media;
+  const { images, kinds, maxItems } = capability.media;
   const capacity = maxItems ?? Number.POSITIVE_INFINITY;
+  // A post made only of images follows the channel's photo limits when it has any, so a
+  // channel that needs two photos (TikTok) never gets a lone image.
+  const imageMax = images?.maxItems ?? capacity;
+  const imageMin = images?.minItems ?? 1;
   const unsupported = {
     status: 'held',
     reason: 'format_unsupported_for_platform',
   } as const;
   switch (format) {
     case 'image':
-      return kinds.includes('image') && capacity >= 1
+      return kinds.includes('image') && imageMin <= 1 && imageMax >= 1
         ? { status: 'supported', plan: plan(format, 1) }
         : unsupported;
     case 'carousel': {
       // A carousel is two or more images in one post: the explicit carousel kind, or a channel
       // that carries several images.
       const carries = kinds.includes('carousel') || kinds.includes('image');
-      const parts = Math.min(BREAKOUT_CAROUSEL_PARTS, capacity);
-      return carries && parts >= 2
+      const parts = Math.min(BREAKOUT_CAROUSEL_PARTS, imageMax);
+      return carries && parts >= Math.max(2, imageMin)
         ? { status: 'supported', plan: plan(format, parts) }
         : unsupported;
     }

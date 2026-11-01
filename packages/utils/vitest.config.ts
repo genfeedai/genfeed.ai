@@ -24,6 +24,10 @@ export default defineConfig({
         replacement: CONSTANTS_SRC,
       },
       {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/api-types/$1'),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },

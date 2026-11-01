@@ -1,8 +1,32 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
-import {
-  CAROUSEL_LIMITS,
-  type CarouselLimit,
-} from '@genfeedai/contracts/constants';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+
+export interface CarouselLimit {
+  min: number;
+  max: number;
+  name: string;
+}
+
+/**
+ * Photo-carousel limits of a channel, read from the channel capability
+ * catalog (the single source of truth). A channel that takes one image at
+ * most has no carousel.
+ */
+function carouselLimitsFor(
+  platform: CredentialPlatform,
+): CarouselLimit | undefined {
+  const capability = getChannelCapability(platform);
+  const images = capability?.media.images;
+  if (!capability || !images || images.maxItems < 2) {
+    return undefined;
+  }
+
+  return {
+    max: images.maxItems,
+    min: Math.max(2, images.minItems),
+    name: capability.label,
+  };
+}
 
 /**
  * Validates if the ingredient count is valid for carousels on the given platforms.
@@ -14,7 +38,7 @@ export function validateCarouselCount(
   const errors: string[] = [];
 
   for (const platform of platforms) {
-    const limits = CAROUSEL_LIMITS[platform];
+    const limits = carouselLimitsFor(platform);
     if (!limits) {
       continue;
     }
@@ -36,7 +60,7 @@ export function validateCarouselCount(
 export function platformSupportsCarousel(
   platform: CredentialPlatform,
 ): boolean {
-  return platform in CAROUSEL_LIMITS;
+  return carouselLimitsFor(platform) !== undefined;
 }
 
 /**
@@ -45,7 +69,7 @@ export function platformSupportsCarousel(
 export function getCarouselLimits(
   platform: CredentialPlatform,
 ): CarouselLimit | undefined {
-  return CAROUSEL_LIMITS[platform];
+  return carouselLimitsFor(platform);
 }
 
 /**
@@ -56,7 +80,7 @@ export function filterValidPlatforms(
   count: number,
 ): CredentialPlatform[] {
   return platforms.filter((platform) => {
-    const limits = CAROUSEL_LIMITS[platform];
+    const limits = carouselLimitsFor(platform);
     if (!limits) {
       return false;
     }

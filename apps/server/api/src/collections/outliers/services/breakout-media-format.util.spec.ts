@@ -13,10 +13,10 @@ describe('breakout media format capability', () => {
   // The expected matrix mirrors the channel capability catalog the scheduler validates against.
   const supported: Record<string, BreakoutMediaFormat[]> = {
     youtube: ['video', 'short'],
-    tiktok: ['video', 'short'],
+    tiktok: ['carousel', 'video', 'short'],
     instagram: ['image', 'carousel', 'video', 'short'],
     twitter: ['image', 'carousel', 'video'],
-    linkedin: ['image', 'video'],
+    linkedin: ['image', 'carousel', 'video'],
     beehiiv: [],
     // Long-form blogs carry one featured image; Medium carries images inline only.
     ghost: ['image'],

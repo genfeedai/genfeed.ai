@@ -4,8 +4,11 @@ import {
   LinkedInService,
   resolveLinkedInVisibility,
 } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
+  MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -37,7 +40,7 @@ export class LinkedInPublisherService extends BasePublisherService {
   readonly supportsTextOnly = linkedInSupports('publish_post');
   readonly supportsImages = linkedInSupports('publish_post');
   readonly supportsVideos = linkedInSupports('publish_post');
-  readonly supportsCarousel = false;
+  readonly supportsCarousel = true; // Multi-image posts (2-20 images)
   readonly supportsThreads = linkedInSupports('publish_post'); // Supports TEXT children as first comments
 
   private getLinkedInPublishId(result: unknown): string | null {
@@ -60,6 +63,35 @@ export class LinkedInPublisherService extends BasePublisherService {
     private readonly postsService: PostsService,
   ) {
     super(configService, logger);
+  }
+
+  /**
+   * LinkedIn takes several images in one post, or a single video.
+   */
+  override validatePost(
+    context: PublishContext,
+    mediaInfo: MediaInfo,
+  ): PostValidationResult {
+    const baseValidation = super.validatePost(context, mediaInfo);
+    if (!baseValidation.valid) {
+      return baseValidation;
+    }
+
+    if (mediaInfo.isCarousel && !mediaInfo.isImagePost) {
+      return {
+        error: 'LinkedIn posts take a single video',
+        valid: false,
+      };
+    }
+
+    if (mediaInfo.ingredientIds.length > LINKEDIN_MULTI_IMAGE_LIMITS.max) {
+      return {
+        error: `LinkedIn multi-image posts support at most ${LINKEDIN_MULTI_IMAGE_LIMITS.max} images`,
+        valid: false,
+      };
+    }
+
+    return { valid: true };
   }
 
   /**
@@ -126,6 +158,18 @@ export class LinkedInPublisherService extends BasePublisherService {
           caption,
           context.settings,
           credential.id,
+        );
+        externalId = this.getLinkedInPublishId(result);
+      } else if (mediaInfo.isImagePost && mediaInfo.isCarousel) {
+        // Several images go out as one post, in slide order.
+        const result = await this.linkedInService.uploadImages(
+          organizationId,
+          brandId,
+          mediaInfo.mediaUrls,
+          caption,
+          context.settings,
+          credential.id,
+          'publisher',
         );
         externalId = this.getLinkedInPublishId(result);
       } else if (mediaInfo.isImagePost) {

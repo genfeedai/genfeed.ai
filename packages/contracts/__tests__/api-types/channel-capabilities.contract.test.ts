@@ -321,6 +321,58 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
+  test.each([
+    ['TikTok', CredentialPlatform.TIKTOK, 2, 35],
+    ['Instagram', CredentialPlatform.INSTAGRAM, 1, 10],
+    ['X', CredentialPlatform.TWITTER, 1, 4],
+    ['LinkedIn', CredentialPlatform.LINKEDIN, 1, 20],
+  ])(
+    'takes a %s photo carousel within its image limits',
+    (_name, platform, min, max) => {
+      const photos = (count: number) =>
+        Array.from({ length: count }, (_, index) => ({
+          id: `photo_${index}`,
+          kind: 'image' as const,
+        }));
+      const codes = (count: number) =>
+        validateChannelTargetSettings({
+          caption: 'Slides',
+          media: photos(count),
+          platform,
+          publishMode: 'scheduled',
+          settings: { placement: 'feed', privacyLevel: 'SELF_ONLY' },
+        }).errors.map((issue) => issue.code);
+
+      expect(codes(min)).not.toContain('channel_target.media_required');
+      expect(codes(min)).not.toContain('channel_target.too_many_media_items');
+      expect(codes(max)).not.toContain('channel_target.too_many_media_items');
+      expect(codes(max + 1)).toContain('channel_target.too_many_media_items');
+      if (min > 1) {
+        expect(codes(min - 1)).toContain('channel_target.media_required');
+      }
+    },
+  );
+
+  test('keeps a TikTok video on its own', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Clip',
+      media: [
+        { id: 'video_1', kind: 'video' },
+        { id: 'photo_1', kind: 'image' },
+      ],
+      platform: CredentialPlatform.TIKTOK,
+      publishMode: 'scheduled',
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.too_many_media_items',
+        }),
+      ]),
+    );
+  });
+
   test('marks hidden and planned channel stubs invalid for publishing', () => {
     expect(
       validateChannelTargetSettings({

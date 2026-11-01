@@ -7,6 +7,10 @@ import type {
   ServerLinkedInTrendResolver,
 } from '@api/services/integrations/linkedin/linkedin-trends.port';
 import {
+  createLinkedInMultiImagePost,
+  uploadLinkedInImageAsset,
+} from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
+import {
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
@@ -393,7 +397,8 @@ export class LinkedInService {
       const personURN = `urn:li:person:${userInfo.id}`;
 
       // Steps 1 and 2: register the asset, then upload the bytes
-      const assetId = await this.uploadImageAsset(
+      const assetId = await uploadLinkedInImageAsset(
+        this.uploadContext(),
         decryptedAccessToken,
         personURN,
         imageUrl,
@@ -444,6 +449,58 @@ export class LinkedInService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Publish one post holding several images, in the order given (2 to 20),
+   * through the versioned Images and Posts APIs.
+   *
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
+  public async uploadImages(
+    organizationId: string,
+    brandId: string,
+    imageUrls: readonly string[],
+    caption: string,
+    settings: ChannelTargetSettings = {},
+    credentialId?: string,
+    mediaSource: LinkedInMediaSource = 'external',
+  ): Promise<{ id: string | null }> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
+      if (!credential?.accessToken) {
+        throw new Error('LinkedIn credential not found or invalid');
+      }
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const userInfo = await this.getUserProfile(accessToken);
+      const id = await createLinkedInMultiImagePost(this.uploadContext(), {
+        accessToken,
+        authorUrn: `urn:li:person:${userInfo.id}`,
+        caption,
+        imageUrls,
+        mediaSource,
+        visibility: resolveLinkedInVisibility(settings),
+      });
+      this.loggerService.log(`${url} success`, { id });
+      return { id };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  private uploadContext() {
+    return {
+      httpService: this.httpService,
+      ingredientsEndpoint: this.configService.ingredientsEndpoint,
+    };
   }
 
   /**
@@ -823,67 +880,6 @@ export class LinkedInService {
   }
 
   /**
-   * Register a digital media asset and upload the image bytes behind it.
-   *
-   * Shared by feed shares and comment attachments: both reference the same
-   * `urn:li:digitalmediaAsset` once the upload completes.
-   */
-  private async uploadImageAsset(
-    accessToken: string,
-    ownerUrn: string,
-    imageUrl: string,
-    mediaSource: LinkedInMediaSource,
-  ): Promise<string> {
-    const registerResponse = await firstValueFrom(
-      this.httpService.post(
-        'https://api.linkedin.com/v2/assets?action=registerUpload',
-        {
-          registerUploadRequest: {
-            owner: ownerUrn,
-            recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-            serviceRelationships: [
-              {
-                identifier: 'urn:li:userGeneratedContent',
-                relationshipType: 'OWNER',
-              },
-            ],
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      ),
-    );
-
-    const assetId = registerResponse.data.value.asset;
-    const uploadUrl =
-      registerResponse.data.value.uploadMechanism[
-        'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
-      ].uploadUrl;
-
-    const image = await downloadLinkedInMedia(
-      imageUrl,
-      'image',
-      this.configService.ingredientsEndpoint,
-      mediaSource,
-    );
-
-    await firstValueFrom(
-      this.httpService.put(uploadUrl, image, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/octet-stream',
-        },
-      }),
-    );
-
-    return assetId;
-  }
-
-  /**
    * Post a comment on a LinkedIn post
    * @param organizationId The organization ID
    * @param brandId The brand ID
@@ -930,7 +926,8 @@ export class LinkedInService {
       // feed share does. Comments take one image; LinkedIn has no video
       // attachment on this endpoint.
       const commentAssetId = options.imageUrl
-        ? await this.uploadImageAsset(
+        ? await uploadLinkedInImageAsset(
+            this.uploadContext(),
             decryptedAccessToken,
             personURN,
             options.imageUrl,

@@ -158,8 +158,19 @@ export const channelAnimatedMediaCapabilitySchema = z
     'A channel that drops animation must declare its consequence.',
   );
 
+/**
+ * Item limits for a post made only of images (a photo carousel). They replace
+ * the channel-wide limits for such a post, so a channel can take one video or
+ * many photos. This is the single source of truth for carousel limits.
+ */
+export const channelImageSetCapabilitySchema = z.object({
+  maxItems: z.number().int().positive(),
+  minItems: z.number().int().positive(),
+});
+
 export const channelMediaCapabilitySchema = z.object({
   animated: channelAnimatedMediaCapabilitySchema,
+  images: channelImageSetCapabilitySchema.optional(),
   kinds: z.array(channelMediaKindSchema).min(1),
   maxItems: z.number().int().positive().optional(),
   minItems: z.number().int().min(0).optional(),
@@ -379,7 +390,8 @@ const channelCapabilities = [
           'Animated images are not accepted; upload the animation as a video.',
         supported: false,
       },
-      kinds: ['short_video', 'video'],
+      images: { maxItems: 35, minItems: 2 },
+      kinds: ['short_video', 'video', 'image', 'carousel'],
       maxItems: 1,
       minItems: 1,
     },
@@ -468,6 +480,7 @@ const channelCapabilities = [
           'Animated images publish as a single still frame; upload a video to keep motion.',
         supported: false,
       },
+      images: { maxItems: 10, minItems: 1 },
       kinds: ['image', 'video', 'short_video', 'carousel'],
       maxItems: 10,
       minItems: 1,
@@ -511,7 +524,8 @@ const channelCapabilities = [
     label: 'X (Twitter)',
     media: {
       animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
+      images: { maxItems: 4, minItems: 1 },
+      kinds: ['image', 'video', 'link', 'carousel'],
       maxItems: 4,
       minItems: 0,
     },
@@ -553,7 +567,8 @@ const channelCapabilities = [
     label: 'LinkedIn',
     media: {
       animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
+      images: { maxItems: 20, minItems: 1 },
+      kinds: ['image', 'video', 'link', 'carousel'],
       maxItems: 1,
       minItems: 0,
     },
@@ -823,8 +838,9 @@ const channelCapabilities = [
     label: 'Threads',
     media: {
       animated: { supported: true },
-      kinds: ['image', 'video', 'link'],
-      maxItems: 10,
+      images: { maxItems: 20, minItems: 1 },
+      kinds: ['image', 'video', 'link', 'carousel'],
+      maxItems: 20,
       minItems: 0,
     },
     platform: CredentialPlatform.THREADS,
@@ -1240,6 +1256,7 @@ function cloneChannelCapability(
     media: {
       ...capability.media,
       animated: { ...capability.media.animated },
+      images: capability.media.images && { ...capability.media.images },
       kinds: [...capability.media.kinds],
     },
     publishModes: [...capability.publishModes],
@@ -1314,27 +1331,28 @@ function validateMedia(
 ): ChannelValidationIssue[] {
   const media = input.media ?? [];
   const errors: ChannelValidationIssue[] = [];
+  // A post of only images follows the channel's photo limits when it has any.
+  const limits =
+    capability.media.images &&
+    media.length > 0 &&
+    media.every((item) => item.kind === 'image' || item.kind === 'carousel')
+      ? capability.media.images
+      : capability.media;
 
-  if (
-    typeof capability.media.minItems === 'number' &&
-    media.length < capability.media.minItems
-  ) {
+  if (typeof limits.minItems === 'number' && media.length < limits.minItems) {
     errors.push({
       code: 'channel_target.media_required',
       field: 'media',
-      message: `${capability.label} requires at least ${capability.media.minItems} media item(s).`,
+      message: `${capability.label} requires at least ${limits.minItems} media item(s).`,
       severity: 'error',
     });
   }
 
-  if (
-    typeof capability.media.maxItems === 'number' &&
-    media.length > capability.media.maxItems
-  ) {
+  if (typeof limits.maxItems === 'number' && media.length > limits.maxItems) {
     errors.push({
       code: 'channel_target.too_many_media_items',
       field: 'media',
-      message: `${capability.label} allows at most ${capability.media.maxItems} media item(s).`,
+      message: `${capability.label} allows at most ${limits.maxItems} media item(s).`,
       severity: 'error',
     });
   }
