@@ -9,23 +9,27 @@ import { Button } from './button';
  * The one alert. A grid of icon, content and optional dismiss; the tone comes
  * from `variant`. Title and description are slots inside the content column.
  */
-const alertVariants = cva(
-  'relative grid w-full items-center gap-3 rounded-lg border px-4 py-3 text-sm',
-  {
-    defaultVariants: {
-      variant: 'default',
+const alertVariants = cva('relative grid w-full items-center border', {
+  defaultVariants: {
+    size: 'default',
+    variant: 'default',
+  },
+  variants: {
+    size: {
+      default: 'gap-3 rounded-lg px-4 py-3 text-sm',
+      sm: 'gap-2 rounded-md px-2.5 py-1.5 text-xs',
     },
-    variants: {
-      variant: {
-        default: 'bg-muted border-border text-foreground',
-        destructive: 'bg-destructive/10 border-destructive/20 text-destructive',
-        info: 'border-info/20 bg-info/10 text-info',
-        success: 'border-success/20 bg-success/10 text-success',
-        warning: 'bg-warning/10 border-warning/20 text-warning',
-      },
+    variant: {
+      default: 'bg-muted border-border text-foreground',
+      destructive: 'bg-destructive/10 border-destructive/20 text-destructive',
+      info: 'border-info/20 bg-info/10 text-info',
+      /** A quiet aside: static muted copy on a faint wash, no icon, announced as a note. */
+      note: 'border-transparent bg-muted/50 text-muted-foreground',
+      success: 'border-success/20 bg-success/10 text-success',
+      warning: 'bg-warning/10 border-warning/20 text-warning',
     },
   },
-);
+});
 
 type AlertVariant = NonNullable<VariantProps<typeof alertVariants>['variant']>;
 
@@ -42,6 +46,10 @@ function getDefaultIcon(variant: AlertVariant): ReactNode {
     default:
       return undefined;
   }
+}
+
+function getIconSizeClass(size: 'default' | 'sm'): string {
+  return size === 'sm' ? '[&>svg]:size-4' : '[&>svg]:size-5';
 }
 
 type AlertDismissProps =
@@ -68,6 +76,7 @@ function Alert({
   closeLabel,
   icon,
   onClose,
+  size = 'default',
   variant = 'default',
   role,
   'aria-live': ariaLive,
@@ -76,9 +85,12 @@ function Alert({
   const resolvedVariant: AlertVariant = variant ?? 'default';
   const isAssertive =
     resolvedVariant === 'destructive' || resolvedVariant === 'warning';
-  const resolvedRole = role ?? (isAssertive ? 'alert' : 'status');
+  const isNote = resolvedVariant === 'note';
+  const resolvedRole =
+    role ?? (isAssertive ? 'alert' : isNote ? 'note' : 'status');
   const resolvedAriaLive =
-    ariaLive ?? (role === undefined && !isAssertive ? 'polite' : undefined);
+    ariaLive ??
+    (role === undefined && !isAssertive && !isNote ? 'polite' : undefined);
   const resolvedIcon = icon ?? getDefaultIcon(resolvedVariant);
   const hasIcon = resolvedIcon !== undefined && resolvedIcon !== false;
 
@@ -87,7 +99,7 @@ function Alert({
       aria-live={resolvedAriaLive}
       role={resolvedRole}
       className={cn(
-        alertVariants({ variant: resolvedVariant }),
+        alertVariants({ size, variant: resolvedVariant }),
         hasIcon
           ? 'grid-cols-[auto_minmax(0,1fr)_auto]'
           : 'grid-cols-[minmax(0,1fr)_auto]',
@@ -98,7 +110,10 @@ function Alert({
       {hasIcon && (
         <span
           aria-hidden="true"
-          className={cn('shrink-0', icon == null && '[&>svg]:size-5')}
+          className={cn(
+            'shrink-0',
+            icon == null && getIconSizeClass(size ?? 'default'),
+          )}
           data-slot="alert-icon"
         >
           {resolvedIcon}
@@ -110,7 +125,10 @@ function Alert({
       {onClose && (
         <Button
           ariaLabel={closeLabel}
-          className="size-7 shrink-0 text-current hover:text-current"
+          className={cn(
+            'shrink-0 text-current hover:text-current',
+            size === 'sm' ? 'size-5' : 'size-7',
+          )}
           icon={<X className="size-4" />}
           onClick={onClose}
           size={ButtonSize.ICON}
@@ -126,6 +144,7 @@ function AlertTitle({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
       className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      data-slot="alert-title"
       {...props}
     />
   );
@@ -137,10 +156,25 @@ function AlertDescription({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cn('text-sm [&_p]:leading-relaxed', className)}
+      className={cn('[&_p]:leading-relaxed', className)}
+      data-slot="alert-description"
       {...props}
     />
   );
 }
 
-export { Alert, AlertDescription, AlertTitle };
+/** Buttons and links that act on the notice, under its text. */
+function AlertActions({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn('mt-2 flex flex-wrap items-center gap-2', className)}
+      data-slot="alert-actions"
+      {...props}
+    />
+  );
+}
+
+export { Alert, AlertActions, AlertDescription, AlertTitle };

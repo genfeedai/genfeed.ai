@@ -114,6 +114,7 @@ export default function BotToggle({
           />
         </div>
 
+        {/* ui-guard-allow:notice-tone-box -- bot status panel tinted by on/off state, not a notice */}
         <div
           className={cn('mt-4 p-4', isEnabled ? 'bg-green-500/10' : 'bg-muted')}
         >

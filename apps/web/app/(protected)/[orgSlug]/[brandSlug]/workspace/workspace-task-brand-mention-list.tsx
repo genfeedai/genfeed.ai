@@ -44,6 +44,7 @@ export function WorkspaceBrandMentionList({
 
   if (items.length === 0) {
     return (
+      // ui-guard-allow:notice-note -- empty row of a floating mention menu, which needs its own elevation
       <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground shadow-dropdown">
         No brands found
       </div>

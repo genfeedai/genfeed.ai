@@ -4,6 +4,7 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -24,7 +25,7 @@ import {
 } from '@ui/primitives/select';
 import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
-import { CalendarClock, TriangleAlert } from 'lucide-react';
+import { CalendarClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -222,10 +223,9 @@ export function WorkflowScheduleDialog({
         ) : (
           <div className="space-y-4">
             {error ? (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                <p>{error}</p>
-              </div>
+              <Alert size="sm" variant="destructive">
+                {error}
+              </Alert>
             ) : null}
 
             <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">

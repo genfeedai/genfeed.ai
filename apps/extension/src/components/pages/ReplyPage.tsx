@@ -7,6 +7,7 @@ import type {
   ActionRecovery,
   ActionRouting,
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -455,12 +456,9 @@ export function ReplyPage({
   return (
     <div className="flex h-full flex-col gap-4">
       {error && (
-        <div
-          role="alert"
-          className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-        >
+        <Alert size="sm" variant="destructive">
           {error}
-        </div>
+        </Alert>
       )}
 
       <RecoveryActions

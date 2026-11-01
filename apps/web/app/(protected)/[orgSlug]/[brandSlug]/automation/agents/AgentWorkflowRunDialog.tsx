@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ImagesService } from '@services/ingredients/images.service';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -259,7 +260,7 @@ export default function AgentWorkflowRunDialog({
         </DialogHeader>
 
         <Form onSubmit={handleSubmit}>
-          <div className="rounded bg-foreground/5 px-3 py-2 text-xs text-foreground/70">
+          <Alert size="sm" variant="note">
             {isLoadingBinding ? (
               <span>{translate('loading')}</span>
             ) : (
@@ -291,7 +292,7 @@ export default function AgentWorkflowRunDialog({
                 )}
               </>
             )}
-          </div>
+          </Alert>
 
           <div className="space-y-1.5">
             <span className="text-sm font-medium text-foreground">

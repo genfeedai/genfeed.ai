@@ -31,6 +31,7 @@ import { SocialMessagesService } from '@services/social/messages.service';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -701,21 +702,14 @@ export default function MessagesPage() {
       {isComposerVisible ? null : (
         <>
           {error ? (
-            <div
-              className="mx-4 mt-3 shrink-0 rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
+            <Alert className="mx-4 mt-3 shrink-0" variant="destructive">
               {error}
-            </div>
+            </Alert>
           ) : null}
           {notice ? (
-            <div
-              aria-live="polite"
-              className="mx-4 mt-3 shrink-0 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
-              role="status"
-            >
+            <Alert className="mx-4 mt-3 shrink-0" variant="success">
               {notice}
-            </div>
+            </Alert>
           ) : null}
         </>
       )}

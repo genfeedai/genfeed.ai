@@ -14,6 +14,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -323,12 +324,9 @@ export default function SocialIntelligenceInbox({
     return (
       <div className="space-y-5">
         {inbox.partialReason ? (
-          <div
-            className="rounded-md border border-warning/20 bg-warning/5 p-3 text-sm text-warning"
-            role="status"
-          >
+          <Alert role="status" variant="warning">
             {inbox.partialReason}
-          </div>
+          </Alert>
         ) : null}
         {inbox.items.map((bundle) => (
           <section className="space-y-3" key={bundle.topic.id}>

@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
@@ -142,12 +143,9 @@ export default function ClipperProgressView({
         </p>
 
         {project.status === 'failed' && !isSourceFailed && project.error ? (
-          <p
-            role="status"
-            className="mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
+          <Alert className="mt-4" role="status" variant="destructive">
             {project.error}
-          </p>
+          </Alert>
         ) : null}
 
         {project.status !== 'completed' &&

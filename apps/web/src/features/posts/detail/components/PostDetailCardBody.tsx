@@ -7,6 +7,7 @@ import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-len
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
+import { Alert } from '@ui/primitives/alert';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
@@ -162,11 +163,9 @@ export default function PostDetailCardBody({
               carouselValidation &&
               !carouselValidation.valid &&
               localIngredients.length > 0 && (
-                <div className=" bg-destructive/10 p-2">
-                  <p className="text-xs text-destructive font-medium">
-                    {carouselValidation.errors.join('. ')}
-                  </p>
-                </div>
+                <Alert size="sm" variant="destructive">
+                  {carouselValidation.errors.join('. ')}
+                </Alert>
               )}
 
             {/* Per-tweet KPIs - shown for all scopes when analytics exist */}

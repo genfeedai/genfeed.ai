@@ -12,9 +12,6 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx": {
       "badge-restyle": 3
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorLockedBanner.tsx": {
-      "alert-restyle": 1
-    },
     "apps/web/app/(protected)/admin/configuration/elements/styles/styles-list.tsx": {
       "badge-restyle": 1
     },
@@ -29,9 +26,6 @@
     },
     "apps/web/src/components/evaluation/seo-scorecard/SeoScorecard.tsx": {
       "badge-restyle": 1
-    },
-    "apps/web/src/components/modals/gallery/ModalGalleryHeader.tsx": {
-      "alert-restyle": 1
     },
     "apps/web/src/components/modals/gallery/items/ModalGalleryItemImage.tsx": {
       "badge-restyle": 1
@@ -59,12 +53,6 @@
     },
     "apps/web/src/features/workflows/components/ui/badge/NodeBadge.tsx": {
       "badge-restyle": 1
-    },
-    "packages/agent/src/components/AgentArchivedComposerBar.tsx": {
-      "alert-restyle": 1
-    },
-    "packages/agent/src/components/AgentComposerStatusStack.tsx": {
-      "alert-restyle": 1
     }
   },
   "version": 1

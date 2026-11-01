@@ -3,6 +3,7 @@ import PromptBarComposer from '@ui/components/prompt-bars/components/shell/Promp
 import PromptBarSendButton from '@ui/components/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/components/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditorView from '@ui/components/prompt-editor/PromptEditorView';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
@@ -193,12 +194,11 @@ function PanelNotice({
     return null;
   }
 
-  const className =
-    tone === 'error'
-      ? 'border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive'
-      : 'border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary';
-
-  return <div className={className}>{children}</div>;
+  return (
+    <Alert size="sm" variant={tone === 'error' ? 'destructive' : 'info'}>
+      {children}
+    </Alert>
+  );
 }
 
 function WorkflowTemplatesSection({

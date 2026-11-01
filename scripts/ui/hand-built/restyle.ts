@@ -60,7 +60,7 @@ export function ownedClasses(
     });
 }
 
-function collectStrings(
+export function collectStrings(
   node: ts.Node,
   constants: Map<string, string[]>,
   out: string[],
@@ -84,7 +84,7 @@ function collectStrings(
   ts.forEachChild(node, (child) => collectStrings(child, constants, out));
 }
 
-function collectConstantClassStrings(
+export function collectConstantClassStrings(
   sourceFile: ts.SourceFile,
 ): Map<string, string[]> {
   const constants = new Map<string, string[]>();

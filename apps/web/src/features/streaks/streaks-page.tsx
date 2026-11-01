@@ -155,6 +155,7 @@ export default function StreaksPage() {
 
               <div className="space-y-3">
                 {milestoneStates.map((milestone) => (
+                  // ui-guard-allow:notice-tone-box -- milestone row whose state is tinted, not a notice
                   <div
                     key={milestone.days}
                     className={cn(

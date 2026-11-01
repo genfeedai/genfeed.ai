@@ -23,6 +23,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import KnowledgeCitationList from '@ui/knowledge/KnowledgeCitationList';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import Image from 'next/image';
@@ -287,9 +288,9 @@ function AgentChatMessageInner({
               </div>
             )}
             {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-              <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+              <Alert size="sm" variant="note">
                 Results are ready below.
-              </div>
+              </Alert>
             ) : null}
             {shouldRenderMessageContent && shouldTruncateContent && (
               <Button

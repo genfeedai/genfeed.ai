@@ -14,9 +14,10 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import ArticleCover from '@website/(content)/articles/article-cover';
-import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
@@ -240,13 +241,10 @@ export default function ArticleDetail({
         />
 
         {isPreview && (
-          <div className="mb-6 flex items-start gap-3 border border-yellow-500/20 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
-            <TriangleAlert className="size-4 flex-shrink-0 text-warning" />
-            <span className="text-sm text-foreground md:text-base">
-              You are viewing a preview of this article. This article may not be
-              published or publicly visible yet.
-            </span>
-          </div>
+          <Alert className="mb-6 md:mb-8" variant="warning">
+            You are viewing a preview of this article. This article may not be
+            published or publicly visible yet.
+          </Alert>
         )}
 
         <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-3">

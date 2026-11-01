@@ -1,6 +1,7 @@
 'use client';
 
 import type { BrandKitAssetGridProps } from '@props/pages/brand-detail.props';
+import { Alert } from '@ui/primitives/alert';
 import BrandKitAssetTile from './BrandKitAssetTile';
 
 /**
@@ -18,9 +19,9 @@ export default function BrandKitAssetGrid({
 }: BrandKitAssetGridProps) {
   if (assets.length === 0) {
     return (
-      <div className="min-h-12 rounded-md bg-card p-2 text-xs text-muted-foreground">
+      <Alert className="min-h-12" size="sm" variant="note">
         {emptyLabel}
-      </div>
+      </Alert>
     );
   }
 

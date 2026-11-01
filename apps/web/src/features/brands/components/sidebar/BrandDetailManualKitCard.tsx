@@ -18,6 +18,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -661,14 +662,7 @@ export default function BrandDetailManualKitCard({
           </div>
         </div>
 
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {error}
-          </p>
-        ) : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
 
         <Button
           className="w-full"
@@ -731,11 +725,14 @@ export default function BrandDetailManualKitCard({
             </div>
 
             {draft.assetCandidates.length > 0 ? (
-              <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                <CircleCheck className="size-4" />
+              <Alert
+                icon={<CircleCheck className="size-4" />}
+                size="sm"
+                variant="note"
+              >
                 {draft.assetCandidates.length} asset source
                 {draft.assetCandidates.length === 1 ? '' : 's'} included
-              </div>
+              </Alert>
             ) : null}
 
             {draft.diagnostics.length > 0 ? (

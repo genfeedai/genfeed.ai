@@ -86,8 +86,10 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
 }));
 
 vi.mock('@ui/primitives/alert', () => ({
-  Alert: function MockAlert(props: { children?: ReactNode }) {
-    return <div>{props.children}</div>;
+  Alert: function MockAlert(props: { children?: ReactNode; variant?: string }) {
+    const isAssertive =
+      props.variant === 'destructive' || props.variant === 'warning';
+    return <div role={isAssertive ? 'alert' : 'status'}>{props.children}</div>;
   },
 }));
 
@@ -1094,10 +1096,9 @@ describe('AgentChatContainer', () => {
         <AgentChatContainer apiService={apiService as never} isStreaming />,
       );
       fireEvent.click(screen.getByText('switchToHosted'));
-      expect(await screen.findByText('unavailable')).toHaveAttribute(
-        'role',
-        'alert',
-      );
+      expect(
+        (await screen.findByText('unavailable')).closest('[role="alert"]'),
+      ).toBeInTheDocument();
       expect(apiService.updateThread).toHaveBeenCalledTimes(1);
       expect(storeState.activeThreadId).toBe('thread-1');
       expect(sendStreaming).not.toHaveBeenCalled();
