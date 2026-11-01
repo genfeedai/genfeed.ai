@@ -412,11 +412,12 @@ test.describe('Tasks', () => {
       taskTitleLink(authenticatedPage, 'Analytics export is failing'),
     ).toBeVisible();
 
-    // The status filter is a facet of the shared Filters menu, scoped to the
-    // toolbar so it never collides with the per-row status/priority selects.
-    const toolbar = authenticatedPage.getByTestId('container-header-actions');
+    // The status filter is a facet of the shared Filters menu, which sits
+    // inside the search field next to the title rather than in the toolbar
+    // actions. The menu is the only Filters button on the page, so it never
+    // collides with the per-row status/priority selects.
     const chooseStatus = async (name: RegExp) => {
-      await chooseFilterOption(authenticatedPage, 'Status', name, toolbar);
+      await chooseFilterOption(authenticatedPage, 'Status', name);
     };
     await chooseStatus(/^Blocked/);
 
