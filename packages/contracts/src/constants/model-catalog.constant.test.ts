@@ -749,11 +749,19 @@ describe('model version lifecycle', () => {
     expect(byKey.get(MODEL_KEYS.FAL_RECRAFT_V4_PRO)).toMatchObject({
       endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
     });
+    expect(byKey.get(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO)).toMatchObject({
+      endpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_PIXVERSE_V6)).toMatchObject({
+      endpoint: 'fal-ai/pixverse/v6/text-to-video',
+    });
     for (const key of [
       MODEL_KEYS.FAL_SEEDANCE_2_0,
       MODEL_KEYS.FAL_ELEVEN_LABS_TTS,
       MODEL_KEYS.FAL_GPT_IMAGE_2,
       MODEL_KEYS.FAL_RECRAFT_V4_PRO,
+      MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
+      MODEL_KEYS.FAL_PIXVERSE_V6,
     ])
       expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
   });
