@@ -90,3 +90,9 @@ export interface FirstDraftCardProps {
 export interface FirstDraftsScheduleProps {
   brandId: string;
 }
+
+export interface ConnectPlatformsProps {
+  brandId: string;
+  /** App path the provider returns to once the account is connected. */
+  returnTo: string;
+}

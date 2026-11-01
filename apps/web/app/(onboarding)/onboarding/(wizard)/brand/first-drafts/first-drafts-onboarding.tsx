@@ -2,7 +2,10 @@
 import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboarding-progress';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { ONBOARDING_DRAFT_PLATFORMS } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  ONBOARDING_DRAFT_PLATFORMS,
+} from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Button } from '@ui/primitives/button';
@@ -22,6 +25,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import DesktopSidebar from '@/components/layouts/app/DesktopSidebar';
+import ConnectPlatforms from './connect-platforms';
 import ContextForm from './context-form';
 import DraftCard from './draft-card';
 import ScheduleStep from './schedule-step';
@@ -256,47 +260,72 @@ export default function FirstDraftsOnboarding() {
                   )}
               </div>
             ) : (
-              <Form
-                spacing="none"
-                className="mx-auto mt-8 max-w-xl"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  state.onStart();
-                }}
-              >
-                <h1 className="text-2xl font-semibold">{t('url.title')}</h1>
-                <p
-                  id="brand-link-help"
-                  className="mt-3 text-sm text-muted-foreground"
+              <div className="mx-auto mt-8 max-w-xl">
+                <Form
+                  spacing="none"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    state.onStart();
+                  }}
                 >
-                  {t('url.description')}
-                </p>
-                <div className="mt-6 flex items-center gap-2">
-                  <Input
-                    aria-label={t('url.label')}
-                    aria-describedby="brand-link-help"
-                    value={state.url}
-                    placeholder={t('url.placeholder')}
-                    autoComplete="url"
-                    className="min-w-0 flex-1"
-                    onChange={(event) => state.onUrlChange(event.target.value)}
-                  />
-                  <Button
-                    type="submit"
-                    ariaLabel={t('url.submit')}
-                    isDisabled={!state.url.trim()}
+                  <h1 className="text-2xl font-semibold">{t('url.title')}</h1>
+                  <p
+                    id="brand-link-help"
+                    className="mt-3 text-sm text-muted-foreground"
                   >
-                    <ArrowRight className="size-4" />
-                  </Button>
-                </div>
-                <Button
-                  className="mt-3"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  label={t('url.noWebsite')}
-                  onClick={state.onSkipLink}
-                />
-              </Form>
+                    {t('url.description')}
+                  </p>
+                  <div className="mt-6 flex items-center gap-2">
+                    <Input
+                      aria-label={t('url.label')}
+                      aria-describedby="brand-link-help"
+                      value={state.url}
+                      placeholder={t('url.placeholder')}
+                      autoComplete="url"
+                      className="min-w-0 flex-1"
+                      onChange={(event) =>
+                        state.onUrlChange(event.target.value)
+                      }
+                    />
+                    <Button
+                      type="submit"
+                      ariaLabel={t('url.submit')}
+                      isDisabled={!state.url.trim()}
+                    >
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    className="mt-3"
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    label={t('url.noWebsite')}
+                    onClick={state.onSkipLink}
+                  />
+                </Form>
+                {brandId && (
+                  <section
+                    aria-labelledby="connect-for-context-title"
+                    className="mt-10 flex flex-col gap-4"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <h2
+                        id="connect-for-context-title"
+                        className="text-sm font-semibold"
+                      >
+                        {t('url.connect.title')}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t('url.connect.description')}
+                      </p>
+                    </div>
+                    <ConnectPlatforms
+                      brandId={brandId}
+                      returnTo={APP_ROUTES.ONBOARDING.BRAND}
+                    />
+                  </section>
+                )}
+              </div>
             )}
             {state.error && (
               <p
