@@ -221,30 +221,38 @@ export class ReplicateModelContractSyncService {
       where: { id: model.id },
     });
 
-    // An active model with no reviewed price is red: tell ops whether its
-    // rates were read (ready to approve) or why they could not be. A model
-    // Replicate bills by GPU runtime has no list price on its page by design;
-    // its hardware rate lives on the registry row, so that is not an outage.
+    return {
+      drifted: false,
+      quarantined,
+      refreshFailure: this.priceMissingFailure(model, modelKey, candidate),
+      version: contract.version,
+    };
+  }
+
+  /**
+   * An active model with no reviewed price is red: tell ops whether its rates
+   * were read (ready to approve) or why they could not be. A model Replicate
+   * bills by GPU runtime has no list price on its page by design; its hardware
+   * rate lives on the registry row, so that is not an outage.
+   */
+  private priceMissingFailure(
+    model: ReplicateSyncModelRecord,
+    modelKey: string,
+    candidate: ReplicateCandidateContract,
+  ): ModelPricingUnavailableAlert | undefined {
+    if (!model.isActive) return undefined;
     if (
-      model.isActive &&
-      !(
-        candidate.billingFailure === 'no_billing_config' &&
-        isRuntimeBilledBrandVisionModel(modelKey)
-      )
+      candidate.billingFailure === 'no_billing_config' &&
+      isRuntimeBilledBrandVisionModel(modelKey)
     )
-      return {
-        drifted: false,
-        quarantined,
-        refreshFailure: {
-          modelKey,
-          provider: ModelProvider.REPLICATE,
-          reason: candidate.observed
-            ? 'Price missing: provider rates were read and are ready to approve in admin'
-            : `Price missing: provider rates could not be read (${candidate.billingFailure ?? 'no_billing_observation'})`,
-        },
-        version: contract.version,
-      };
-    return { drifted: false, quarantined, version: contract.version };
+      return undefined;
+    return {
+      modelKey,
+      provider: ModelProvider.REPLICATE,
+      reason: candidate.observed
+        ? 'Price missing: provider rates were read and are ready to approve in admin'
+        : `Price missing: provider rates could not be read (${candidate.billingFailure ?? 'no_billing_observation'})`,
+    };
   }
 
   /** The rates this refresh read, shaped like a contract's pricing. */
