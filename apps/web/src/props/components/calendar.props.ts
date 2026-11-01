@@ -157,11 +157,10 @@ export interface ContentCalendarProps<T extends CalendarItem> {
   embedded?: boolean;
   /**
    * Hands the calendar's navigation and view dropdown to the host's sub bar.
-   * When set, the calendar renders no toolbar of its own and `filterControls`
-   * is ignored: the host mounts its controls in the same sub bar.
+   * The calendar renders no toolbar of its own: page controls never sit in
+   * the content.
    */
-  onToolbarChange?: (toolbar: CalendarToolbar) => void;
-  filterControls?: ReactNode;
+  onToolbarChange: (toolbar: CalendarToolbar) => void;
   modal?: ReactNode;
   /**
    * While the host is still fetching the visible window, keep FullCalendar

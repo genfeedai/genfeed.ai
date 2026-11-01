@@ -82,7 +82,7 @@ export default function GenerationSetupCustomizePanel({
           {isModelOverridden ? (
             <Button
               ariaLabel={translate('resetModel')}
-              className="size-6 p-0 text-muted-foreground"
+              className="size-6 p-0"
               icon={<Undo2 className="size-3" />}
               onClick={() => {
                 if (isModelKeyOverridden) onResetField('modelKey');
@@ -144,7 +144,7 @@ export default function GenerationSetupCustomizePanel({
               </span>
               <Button
                 ariaLabel={translate('unpinPreset')}
-                className="size-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                className="size-6 shrink-0 p-0"
                 icon={<X className="size-3" />}
                 isDisabled={isDisabled}
                 onClick={onClearPreset}
@@ -156,7 +156,7 @@ export default function GenerationSetupCustomizePanel({
         ) : null}
         {resolvedSection === 'presets' && onResetAll ? (
           <Button
-            className="mb-2 w-full justify-start text-xs"
+            className="mb-2 w-full justify-start"
             icon={<RotateCcw aria-hidden="true" className="size-3.5" />}
             isDisabled={isDisabled}
             onClick={onResetAll}

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Tabs } from '@ui/primitives/tabs';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -160,11 +161,12 @@ function BrandPreviewSurface({
           <ul className="flex shrink-0 gap-1.5">
             {colors.map((color) => (
               <li key={color.key}>
-                <span
-                  className="block size-4 rounded-sm border border-border"
-                  style={{ backgroundColor: color.value }}
-                  title={color.value}
-                />
+                <SimpleTooltip label={color.value}>
+                  <span
+                    className="block size-4 rounded-sm border border-border"
+                    style={{ backgroundColor: color.value }}
+                  />
+                </SimpleTooltip>
               </li>
             ))}
           </ul>

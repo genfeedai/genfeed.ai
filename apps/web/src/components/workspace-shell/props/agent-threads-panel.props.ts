@@ -33,7 +33,5 @@ export interface AgentThreadLightViewProps {
   onResolve?: () => void;
   onBack: () => void;
   onOpenFullThread?: (threadId: string) => void;
-  /** The thread was started by the master conversation. */
-  isStartedByMaster?: boolean;
   thread: AgentThread;
 }

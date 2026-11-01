@@ -26,7 +26,10 @@ function buildHost(
   return {
     agent: <p>Shell conversation</p>,
     contextPanel: <p>Shell context</p>,
+    isContextOpen: false,
+    onCloseContext: vi.fn(),
     onNewThread: vi.fn(),
+    onOpenContext: vi.fn(),
     onOpenFullPage: vi.fn(),
     threadsPanel: <p>Shell threads</p>,
     ...overrides,
@@ -45,7 +48,7 @@ describe('AgentOutputShell', () => {
     expect(screen.queryByTestId('agent-output-layout')).toBeNull();
   });
 
-  it('hosts the shell conversation with Threads and Context beside the output', () => {
+  it('hosts the shell conversation beside the output, with no tab strip', () => {
     const host = buildHost();
     render(
       <AgentOutputHostContext value={host}>
@@ -57,17 +60,46 @@ describe('AgentOutputShell', () => {
 
     const agentPane = screen.getByTestId('agent-output-agent-pane');
     expect(within(agentPane).getByText('Shell conversation')).toBeVisible();
-    const outputPane = screen.getByTestId('agent-output-output-pane');
+    expect(screen.getByText('Board')).toBeVisible();
+    expect(screen.queryAllByRole('tab')).toHaveLength(2);
     expect(
-      within(outputPane)
-        .getAllByRole('tab')
-        .map((tab) => tab.textContent),
-    ).toEqual(['Shots', 'Threads', 'Context']);
+      within(screen.getByTestId('agent-output-output-pane')).queryByRole('tab'),
+    ).toBeNull();
 
     fireEvent.click(screen.getByTestId('agent-output-new-thread'));
     expect(host.onNewThread).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId('agent-output-full-page'));
     expect(host.onOpenFullPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows Context in the output pane when the topbar opens it', () => {
+    render(
+      <AgentOutputHostContext value={buildHost({ isContextOpen: true })}>
+        <AgentOutputShell>
+          <p>Board</p>
+        </AgentOutputShell>
+      </AgentOutputHostContext>,
+    );
+
+    expect(screen.getByText('Shell context')).toBeVisible();
+    expect(screen.getByText('Board')).not.toBeVisible();
+  });
+
+  it('opens Threads from the agent header and back to the output', () => {
+    render(
+      <AgentOutputHostContext value={buildHost()}>
+        <AgentOutputShell>
+          <p>Board</p>
+        </AgentOutputShell>
+      </AgentOutputHostContext>,
+    );
+
+    expect(screen.getByText('Shell threads')).not.toBeVisible();
+    fireEvent.click(screen.getByTestId('agent-output-threads-toggle'));
+    expect(screen.getByText('Shell threads')).toBeVisible();
+    expect(screen.getByText('Board')).not.toBeVisible();
+    fireEvent.click(screen.getByTestId('agent-output-threads-toggle'));
+    expect(screen.getByText('Board')).toBeVisible();
   });
 
   it('shows the page agent instead and drops the master thread tools', () => {
@@ -87,14 +119,15 @@ describe('AgentOutputShell', () => {
     expect(within(agentPane).getByText('Storyboard agent')).toBeVisible();
     expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
     expect(screen.queryByTestId('agent-output-new-thread')).toBeNull();
-    expect(screen.queryByRole('tab', { name: 'Threads' })).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Context' })).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-output-threads-toggle')).toBeNull();
+    expect(screen.queryByText('Shell threads')).toBeNull();
   });
 
   it('leaves the output showing when the page selects a record on its own', () => {
+    const host = buildHost();
     render(
       <ContextSidebarProvider>
-        <AgentOutputHostContext value={buildHost()}>
+        <AgentOutputHostContext value={host}>
           <AgentOutputShell>
             <p>Board</p>
           </AgentOutputShell>
@@ -112,17 +145,14 @@ describe('AgentOutputShell', () => {
       </ContextSidebarProvider>,
     );
 
-    expect(
-      within(screen.getByTestId('agent-output-output-pane')).getByRole('tab', {
-        name: 'Output',
-      }),
-    ).toHaveAttribute('data-state', 'active');
+    expect(host.onOpenContext).not.toHaveBeenCalled();
   });
 
-  it('brings a new selection forward in the Context tab', () => {
+  it('asks the host for Context when the operator picks a record', () => {
+    const host = buildHost();
     render(
       <ContextSidebarProvider>
-        <AgentOutputHostContext value={buildHost()}>
+        <AgentOutputHostContext value={host}>
           <AgentOutputShell>
             <p>Board</p>
           </AgentOutputShell>
@@ -140,16 +170,14 @@ describe('AgentOutputShell', () => {
       </ContextSidebarProvider>,
     );
 
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
+    expect(host.onOpenContext).toHaveBeenCalled();
   });
 
   it('ignores a selection carried over from the page the operator left', () => {
+    const host = buildHost();
     const view = render(
       <ContextSidebarProvider>
-        <AgentOutputHostContext value={buildHost()}>
+        <AgentOutputHostContext value={host}>
           <ContextSidebarPanel
             selection={{
               id: 'asset-1',
@@ -166,7 +194,7 @@ describe('AgentOutputShell', () => {
 
     view.rerender(
       <ContextSidebarProvider>
-        <AgentOutputHostContext value={buildHost()}>
+        <AgentOutputHostContext value={host}>
           <AgentOutputShell>
             <p>Board</p>
           </AgentOutputShell>
@@ -174,10 +202,6 @@ describe('AgentOutputShell', () => {
       </ContextSidebarProvider>,
     );
 
-    expect(
-      within(screen.getByTestId('agent-output-output-pane')).getByRole('tab', {
-        name: 'Output',
-      }),
-    ).toHaveAttribute('data-state', 'active');
+    expect(host.onOpenContext).not.toHaveBeenCalled();
   });
 });

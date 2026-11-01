@@ -10,6 +10,7 @@ import { Badge } from '@ui/primitives/badge';
 import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -66,9 +67,9 @@ function ViralityBadge({ score }: ViralityBadgeProps) {
   else if (score >= 40) color = 'text-warning';
 
   return (
-    <span className={`font-mono text-xs ${color}`} title="Virality score">
-      {score}
-    </span>
+    <SimpleTooltip label="Virality score">
+      <span className={`font-mono text-xs ${color}`}>{score}</span>
+    </SimpleTooltip>
   );
 }
 

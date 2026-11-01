@@ -1,6 +1,7 @@
 import type { IOrganization } from '@genfeedai/contracts/interfaces';
 import type { Preset } from '@models/elements/preset.model';
 import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
 export function PresetLabelCell({ preset }: { preset: Preset }) {
   return (
@@ -57,9 +58,9 @@ export function PresetDefaultsCell({ preset }: { preset: Preset }) {
           key={def}
           variant="outline"
         >
-          <span className="truncate" title={def}>
-            {def}
-          </span>
+          <SimpleTooltip label={def}>
+            <span className="truncate">{def}</span>
+          </SimpleTooltip>
         </Badge>
       ))}
     </div>

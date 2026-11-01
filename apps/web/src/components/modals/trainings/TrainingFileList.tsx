@@ -4,6 +4,7 @@ import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
 type FileStatusVariant = 'success' | 'destructive' | 'info' | 'secondary';
 
@@ -110,9 +111,9 @@ export default function TrainingFileList({
                 className="space-y-1 p-2 bg-tertiary/50"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate max-w-56 text-sm" title={f.name}>
-                    {f.name}
-                  </span>
+                  <SimpleTooltip label={f.name}>
+                    <span className="truncate max-w-56 text-sm">{f.name}</span>
+                  </SimpleTooltip>
 
                   <div className="flex items-center gap-2">
                     <Badge

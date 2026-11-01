@@ -625,7 +625,7 @@ export function AgentComposerStatusStack({
               ariaLabel={
                 isProgressExpanded ? 'Collapse progress' : 'Expand progress'
               }
-              className="size-6 shrink-0 p-0 text-muted-foreground"
+              className="size-6 shrink-0 p-0"
               icon={
                 isProgressExpanded ? (
                   <ChevronUp className="size-3.5" />

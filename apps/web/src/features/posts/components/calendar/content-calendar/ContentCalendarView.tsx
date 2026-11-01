@@ -14,7 +14,6 @@ import {
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -342,7 +341,6 @@ export default function ContentCalendarView<T extends CalendarItem>({
   onViewChange,
   initialView = 'week',
   views = DEFAULT_VIEWS,
-  filterControls,
   embedded = false,
   onToolbarChange,
   modal,
@@ -762,7 +760,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   );
 
   useEffect(() => {
-    onToolbarChange?.({ navigation, viewMenu });
+    onToolbarChange({ navigation, viewMenu });
   }, [navigation, onToolbarChange, viewMenu]);
 
   return (
@@ -777,24 +775,6 @@ export default function ContentCalendarView<T extends CalendarItem>({
         </div>
       )}
 
-      {onToolbarChange ? null : (
-        <SectionTopbar
-          title="Calendar"
-          titleVisibility="sr-only"
-          className={
-            embedded
-              ? 'mb-4 overflow-x-auto border-0 [&>div]:min-w-max [&>div]:px-0 [&>div]:pt-0'
-              : 'overflow-x-auto [&>div]:min-w-max'
-          }
-          leading={navigation}
-          actions={
-            <div className="flex shrink-0 items-center justify-end gap-2">
-              {filterControls}
-              {viewMenu}
-            </div>
-          }
-        />
-      )}
       <div className={embedded ? undefined : 'px-5 py-5 sm:px-6 sm:py-6'}>
         <Card
           variant={CardVariant.BORDERED}

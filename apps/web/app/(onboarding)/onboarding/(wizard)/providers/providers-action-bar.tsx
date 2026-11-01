@@ -142,7 +142,7 @@ export default function ProvidersActionBar({
           withWrapper={false}
           onClick={onBack}
           icon={<ArrowLeft className="size-4" />}
-          className="h-8 rounded-full border border-border bg-tertiary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
+          className="h-8 rounded-full border border-border bg-tertiary px-4 hover:border-border-strong hover:bg-hover"
         >
           Back
         </Button>

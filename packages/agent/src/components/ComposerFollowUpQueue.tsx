@@ -64,7 +64,7 @@ export function ComposerFollowUpQueue({
         </p>
         <Button
           ariaLabel={isExpanded ? translate('collapse') : translate('expand')}
-          className="size-7 shrink-0 p-0"
+          className="shrink-0"
           icon={
             isExpanded ? (
               <ChevronUp className="size-3.5" />
@@ -73,7 +73,7 @@ export function ComposerFollowUpQueue({
             )
           }
           onClick={() => setIsExpanded((current) => !current)}
-          size={ButtonSize.ICON}
+          size={ButtonSize.MICRO}
           tooltip={isExpanded ? translate('collapse') : translate('expand')}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
@@ -99,22 +99,22 @@ export function ComposerFollowUpQueue({
                 </p>
                 <Button
                   ariaLabel={translate('moveUp')}
-                  className="size-7 shrink-0 p-0"
+                  className="shrink-0"
                   icon={<ChevronUp className="size-3.5" />}
                   isDisabled={isActionDisabled || index === 0}
                   onClick={() => onMove(index, index - 1)}
-                  size={ButtonSize.ICON}
+                  size={ButtonSize.MICRO}
                   tooltip={translate('moveUp')}
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
                 />
                 <Button
                   ariaLabel={translate('moveDown')}
-                  className="size-7 shrink-0 p-0"
+                  className="shrink-0"
                   icon={<ChevronDown className="size-3.5" />}
                   isDisabled={isActionDisabled || index === queue.length - 1}
                   onClick={() => onMove(index, index + 1)}
-                  size={ButtonSize.ICON}
+                  size={ButtonSize.MICRO}
                   tooltip={translate('moveDown')}
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
@@ -122,11 +122,11 @@ export function ComposerFollowUpQueue({
                 {isFailed && onRetry ? (
                   <Button
                     ariaLabel={translate('retry')}
-                    className="size-7 shrink-0 p-0"
+                    className="shrink-0"
                     icon={<RefreshCw className="size-3.5" />}
                     isDisabled={isInterrupting}
                     onClick={() => onRetry(item.id)}
-                    size={ButtonSize.ICON}
+                    size={ButtonSize.MICRO}
                     tooltip={translate('retry')}
                     variant={ButtonVariant.GHOST}
                     withWrapper={false}
@@ -134,11 +134,11 @@ export function ComposerFollowUpQueue({
                 ) : (
                   <Button
                     ariaLabel={translate('sendNow')}
-                    className="size-7 shrink-0 p-0"
+                    className="shrink-0"
                     icon={<ArrowUp className="size-3.5" />}
                     isDisabled={isActionDisabled}
                     onClick={() => onSendNow(item.id)}
-                    size={ButtonSize.ICON}
+                    size={ButtonSize.MICRO}
                     tooltip={translate('sendNow')}
                     variant={ButtonVariant.GHOST}
                     withWrapper={false}
@@ -146,11 +146,11 @@ export function ComposerFollowUpQueue({
                 )}
                 <Button
                   ariaLabel={translate('remove')}
-                  className="size-7 shrink-0 p-0"
+                  className="shrink-0"
                   icon={<X className="size-3.5" />}
                   isDisabled={isSending}
                   onClick={() => onRemove(item.id)}
-                  size={ButtonSize.ICON}
+                  size={ButtonSize.MICRO}
                   tooltip={translate('remove')}
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}

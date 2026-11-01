@@ -31,6 +31,7 @@ import type { ExtensionMessage } from '~types/extension';
 
 import '~style.css';
 import Spinner from '@ui/primitives/spinner';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
 initializeErrorTracking('sidepanel');
 
@@ -305,10 +306,12 @@ function SidePanelContent() {
         className="gf-app flex h-screen min-w-0 flex-col bg-background text-foreground"
       >
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3">
-          <span className="flex shrink-0 items-center" title="Genfeed">
-            <GenfeedLogoIcon className="size-6" />
-            <span className="sr-only">Genfeed</span>
-          </span>
+          <SimpleTooltip label="Genfeed">
+            <span className="flex shrink-0 items-center">
+              <GenfeedLogoIcon className="size-6" />
+              <span className="sr-only">Genfeed</span>
+            </span>
+          </SimpleTooltip>
           <div className="grid min-w-0 flex-1 grid-cols-2 gap-1">
             <OrganizationSelector />
             <BrandSelector />

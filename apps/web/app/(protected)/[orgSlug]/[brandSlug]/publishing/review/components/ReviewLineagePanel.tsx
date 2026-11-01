@@ -88,7 +88,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       {item.workflowExecutionId ? (
         <Button
           asChild
-          className="h-8 px-0 text-xs"
+          className="h-8 px-0"
           variant={ButtonVariant.LINK}
           withWrapper={false}
         >
@@ -105,7 +105,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       {item.postId ? (
         <Button
           asChild
-          className="h-8 px-0 text-xs"
+          className="h-8 px-0"
           variant={ButtonVariant.LINK}
           withWrapper={false}
         >

@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import UsePatternButton from '@/features/analytics/performance-lab/UsePatternButton';
 import type {
   PatternCardProps,
@@ -115,13 +116,14 @@ export default function PatternCard({ pattern }: PatternCardProps) {
           </span>
           <ul className="space-y-1">
             {previewExamples.map((example) => (
-              <li
+              <SimpleTooltip
                 key={`${example.platform}-${example.text}`}
-                className="text-xs text-foreground/60 truncate"
-                title={example.text}
+                label={example.text}
               >
-                {example.text}
-              </li>
+                <li className="text-xs text-foreground/60 truncate">
+                  {example.text}
+                </li>
+              </SimpleTooltip>
             ))}
           </ul>
         </div>

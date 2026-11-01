@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
-import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -15,27 +20,28 @@ const labels = {
   expandAgent: 'Expand agent',
   expandOutput: 'Full size',
   output: 'Output',
-  views: 'Agent or output',
 };
 
 function Harness({
+  activeTabId = 'board',
+  hasAgentHeader = true,
   isOutputExpandable,
   mode,
 }: {
+  activeTabId?: string;
+  hasAgentHeader?: boolean;
   isOutputExpandable?: boolean;
   mode?: 'rail' | 'split';
 }) {
-  const [activeTabId, setActiveTabId] = useState('board');
   return (
     <AgentOutputLayout
       activeTabId={activeTabId}
       agent={<p>Agent transcript</p>}
-      agentHeader={<span>Run thread</span>}
+      agentHeader={hasAgentHeader ? <span>Run thread</span> : undefined}
       headerActions={<span>Page action</span>}
       isOutputExpandable={isOutputExpandable}
       labels={labels}
       mode={mode}
-      onTabChange={setActiveTabId}
       tabs={[
         { content: <p>Board content</p>, id: 'board', label: 'Board' },
         { content: <p>Threads content</p>, id: 'threads', label: 'Threads' },
@@ -62,14 +68,11 @@ describe('AgentOutputLayout', () => {
     expect(layout).toHaveAttribute('data-mode', 'split');
   });
 
-  it('switches tabs while keeping every tab mounted', () => {
-    render(<Harness />);
+  it('has no tab strip in the output pane and shows the chosen view', () => {
+    render(<Harness activeTabId="threads" />);
     const outputPane = screen.getByTestId('agent-output-output-pane');
 
-    fireEvent.mouseDown(
-      within(outputPane).getByRole('tab', { name: 'Threads' }),
-    );
-
+    expect(within(outputPane).queryByRole('tab')).toBeNull();
     expect(within(outputPane).getByText('Threads content')).toBeVisible();
     // The board stays in the tree, hidden, so its scroll and edits survive.
     const board = within(outputPane).getByText('Board content');
@@ -78,12 +81,26 @@ describe('AgentOutputLayout', () => {
     expect(board.parentElement).toHaveAttribute('hidden');
   });
 
-  it('shows one pane at a time on narrow screens without unmounting the other', () => {
+  it('renders no agent header when the page brings none', () => {
+    render(<Harness hasAgentHeader={false} />);
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+
+    expect(within(agentPane).queryByRole('banner')).toBeNull();
+    expect(within(agentPane).getByText('Agent transcript')).toBeVisible();
+  });
+
+  it('shows one pane at a time on narrow screens without unmounting the other', async () => {
+    const user = userEvent.setup();
     render(<Harness />);
     const layout = screen.getByTestId('agent-output-layout');
     expect(layout).toHaveAttribute('data-mobile-view', 'agent');
 
-    fireEvent.mouseDown(within(layout).getByRole('tab', { name: 'Output' }));
+    await user.click(
+      within(layout).getByRole('button', { name: 'View: Agent' }),
+    );
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Output' }),
+    );
 
     expect(layout).toHaveAttribute('data-mobile-view', 'output');
     expect(screen.getByTestId('agent-output-agent-pane')).toHaveClass(

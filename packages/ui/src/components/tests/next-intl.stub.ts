@@ -716,7 +716,6 @@ const UI_TEST_MESSAGES = {
         details: 'Details',
         preview: 'Preview',
       },
-      viewAria: 'Inspector view',
       tiktokSettings: 'TikTok settings',
       youtubeSettings: 'YouTube settings',
       tiktokReady: 'Ready',

@@ -105,12 +105,12 @@ describe('StreaksPage', () => {
       isLoading: false,
     } as Partial<ReturnType<typeof useStreak>>);
 
-    const { container } = render(<StreaksPage />);
+    render(<StreaksPage />);
 
-    expect(
-      container.querySelectorAll('[title$=" items"], [title$=" item"]'),
-    ).toHaveLength(90);
-    expect(container.querySelector(`[title="${today}: 5 items"]`)).toHaveClass(
+    expect(screen.getAllByRole('img', { name: /: \d+ items?$/ })).toHaveLength(
+      90,
+    );
+    expect(screen.getByRole('img', { name: `${today}: 5 items` })).toHaveClass(
       'bg-foreground/80',
     );
     expect(screen.getByText('Less')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { type ReactElement, useState } from 'react';
@@ -142,21 +142,21 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button
+            size={ButtonSize.XS}
             type="button"
             variant={ButtonVariant.SECONDARY}
             onClick={handleCopy}
-            className="rounded px-2.5 py-1 text-xs"
           >
             {copied ? 'Copied!' : 'Copy'}
           </Button>
 
           {composeBoxAvailable && insertStatus !== 'inserted' && (
             <Button
+              size={ButtonSize.XS}
               type="button"
               variant={ButtonVariant.DEFAULT}
               onClick={handleInsert}
               disabled={insertStatus === 'inserting'}
-              className="rounded px-2.5 py-1 text-xs"
             >
               {insertStatus === 'inserting' ? 'Inserting...' : 'Insert'}
             </Button>
@@ -184,11 +184,11 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             </Button>
           ) : null}
           <Button
+            size={ButtonSize.XS}
             type="button"
             variant={ButtonVariant.SECONDARY}
             onClick={handleRegenerate}
             isDisabled={isGenerating}
-            className="rounded px-2.5 py-1 text-xs"
           >
             Regenerate
           </Button>

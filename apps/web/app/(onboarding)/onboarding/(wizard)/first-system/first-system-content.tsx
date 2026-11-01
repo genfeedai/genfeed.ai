@@ -218,7 +218,6 @@ export default function FirstSystemContent() {
             icon={<Sparkles className="size-4" />}
             isLoading={isGenerating}
             onClick={handleGenerate}
-            className="rounded-none px-5"
           />
           {isGenerating ? (
             <p className="text-xs text-muted-foreground">
@@ -272,7 +271,6 @@ export default function FirstSystemContent() {
           icon={<ArrowRight className="size-4" />}
           isLoading={isEntering}
           onClick={handleEnterWorkspace}
-          className="rounded-none px-5"
         />
         {errorKey === 'generate' ? (
           <Button
@@ -281,7 +279,6 @@ export default function FirstSystemContent() {
             label={translate('common.retry')}
             isLoading={isGenerating}
             onClick={handleGenerate}
-            className="rounded-none px-5"
           />
         ) : null}
       </div>

@@ -45,7 +45,7 @@ export function AgentUiActionCard({
               <Button
                 key={`${action.id}-cta-${cta.label}`}
                 variant={ButtonVariant.SECONDARY}
-                className="h-auto px-2 py-1 text-xs"
+                className="h-auto px-2 py-1"
                 isDisabled
               >
                 {cta.label}

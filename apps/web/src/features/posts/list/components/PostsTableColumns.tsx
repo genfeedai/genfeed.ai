@@ -20,6 +20,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import EvalCell from './EvalCell';
 
@@ -204,12 +205,11 @@ export function buildPostsTableColumns({
           <div className="max-w-48">
             <Badge status={post.status}>{displayStatus}</Badge>
             {post.status === PostStatus.FAILED && post.targetError?.message && (
-              <p
-                className="mt-1 truncate text-xs text-destructive"
-                title={post.targetError.message}
-              >
-                {post.targetError.message}
-              </p>
+              <SimpleTooltip label={post.targetError.message}>
+                <p className="mt-1 truncate text-xs text-destructive">
+                  {post.targetError.message}
+                </p>
+              </SimpleTooltip>
             )}
           </div>
         );

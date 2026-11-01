@@ -131,7 +131,7 @@ export function EngagementOpportunityCard({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={handleSkip}
-          className="flex-1 bg-muted text-muted-foreground hover:bg-muted/80"
+          className="flex-1 bg-muted hover:bg-muted/80"
         >
           <FastForward className="size-3.5" />
           Skip
