@@ -4,7 +4,12 @@ import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-naviga
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Dialog, DialogContent, DialogTitle } from '@ui/primitives/dialog';
-import { cloneElement, type ReactElement, type ReactNode } from 'react';
+import {
+  cloneElement,
+  type ReactElement,
+  type ReactNode,
+  useRef,
+} from 'react';
 import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
@@ -33,6 +38,10 @@ export default function AppLayout({
   isWorkspaceShell = false,
   lockViewportHeight = false,
 }: AppLayoutProps) {
+  // Radix restores focus only to a DialogTrigger, and this drawer is opened
+  // from the topbar toggle instead, so remember the opener ourselves.
+  const drawerOpenerRef = useRef<HTMLElement | null>(null);
+
   const {
     desktopMenuContent,
     desktopSidebarCollapsedWidth,
@@ -158,6 +167,17 @@ export default function AppLayout({
           >
             <DialogContent
               aria-describedby={undefined}
+              onOpenAutoFocus={() => {
+                drawerOpenerRef.current =
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : null;
+              }}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                drawerOpenerRef.current?.focus();
+                drawerOpenerRef.current = null;
+              }}
               className="max-w-[85vw] flex-row border-r border-border bg-gray-100 p-0 md:hidden"
               placement="left"
               style={{
