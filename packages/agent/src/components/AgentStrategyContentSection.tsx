@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -96,20 +97,17 @@ export function AgentStrategyContentSection({
         {topics.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {topics.map((topic) => (
-              <span
+              <Badge
+                casing="normal"
                 key={topic}
-                className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs text-foreground"
+                onRemove={() => handleRemoveTopic(topic)}
+                removeLabel={`Remove ${topic}`}
+                shape="pill"
+                size="lg"
+                variant="secondary"
               >
                 {topic}
-                <Button
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.XS}
-                  onClick={() => handleRemoveTopic(topic)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  x
-                </Button>
-              </span>
+              </Badge>
             ))}
           </div>
         )}

@@ -1,3 +1,4 @@
+import { Badge } from '@ui/primitives/badge';
 import { CircleCheck, Key } from 'lucide-react';
 import type { ProvidersRowItemProps } from '@/features/onboarding/props/providers-row-item.props';
 
@@ -14,20 +15,16 @@ export default function ProvidersRowItem({
         <h3 className="text-base font-semibold text-foreground">{label}</h3>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
-      <div
-        className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
-          enabled
-            ? 'bg-hover text-foreground'
-            : 'bg-tertiary text-muted-foreground'
-        }`}
+      <Badge
+        casing="normal"
+        className="w-fit"
+        icon={enabled ? <CircleCheck /> : <Key />}
+        shape="pill"
+        size="lg"
+        variant={enabled ? 'success' : 'secondary'}
       >
-        {enabled ? (
-          <CircleCheck className="size-4" />
-        ) : (
-          <Key className="size-4" />
-        )}
         {enabled ? enabledLabel : disabledLabel}
-      </div>
+      </Badge>
     </div>
   );
 }

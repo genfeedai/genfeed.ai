@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import badgeAlert from './hand-built/areas/badge-alert';
+import badgeArea from './hand-built/areas/badge';
+import alertArea from './hand-built/areas/badge-alert';
 import selectionControls from './hand-built/areas/selection-controls';
 import {
   buildBaseline,
@@ -28,9 +29,10 @@ const BADGE_IMPORT = "import { Badge } from '@ui/primitives/badge';\n";
 const ALERT_IMPORT = "import { Alert } from '@ui/primitives/alert';\n";
 
 function scan(text: string, file = 'apps/web/src/Example.tsx') {
-  return badgeAlert
-    .scan(sourceOf(file, text))
-    .map((finding) => `${finding.rule}:${finding.line}`);
+  return [
+    ...badgeArea.scan(sourceOf(file, text)),
+    ...alertArea.scan(sourceOf(file, text)),
+  ].map((finding) => `${finding.rule}:${finding.line}`);
 }
 
 describe('badge and alert restyle guard', () => {
@@ -137,6 +139,88 @@ export const A = ({ x }: { x: boolean }) => (
     ['dark:md:text-xs', 'text-xs'],
   ])('strips variant prefixes from %s', (token, expected) => {
     expect(utilityOf(token)).toBe(expected);
+  });
+});
+
+describe('hand-built badge guard', () => {
+  it.each([
+    [
+      'a rounded-full pill span',
+      '<span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium" />',
+    ],
+    [
+      'a media overlay chip',
+      '<div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-2xs text-white" />',
+    ],
+    [
+      'a bordered mono tag',
+      '<span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs" />',
+    ],
+    [
+      'a pill whose tone is a template value',
+      '<span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs ${tone}`} />',
+    ],
+    [
+      'a count dot with a fixed height',
+      '<span className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 text-2xs" />',
+    ],
+  ])('flags %s', (_name, element) => {
+    expect(scan(`export const A = () => ${element};\n`)).toEqual([
+      'badge-hand-built:1',
+    ]);
+  });
+
+  it.each([
+    [
+      'a block-level alert box',
+      '<div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs" />',
+    ],
+    [
+      'padding without small text',
+      '<span className="rounded-md bg-muted px-3 py-2 text-sm" />',
+    ],
+    [
+      'layout only',
+      '<span className="absolute right-2 top-2 flex items-center" />',
+    ],
+    ['text with no shape', '<span className="px-2 py-0.5 text-xs" />'],
+  ])('allows %s', (_name, element) => {
+    expect(scan(`export const A = () => ${element};\n`)).toEqual([]);
+  });
+
+  it('flags a tone read from a lookup, which the literal scan cannot see', () => {
+    const text = `${BADGE_IMPORT}export const A = ({ status }: { status: { color: string } }) => (
+  <>
+    <Badge className={status.color} />
+    <Badge className={getToneClass(1)} />
+    <Badge className={className} />
+  </>
+);
+`;
+    expect(scan(text)).toEqual(['badge-restyle:4', 'badge-restyle:5']);
+  });
+
+  it('knows the workspace import path for Badge', () => {
+    expect(
+      scan(
+        'import { Badge } from \'@genfeedai/ui/primitives/badge\';\nexport const A = () => <Badge className="px-3" />;\n',
+      ),
+    ).toEqual(['badge-restyle:2']);
+  });
+
+  it('is silenced only by ui-guard-allow with a reason', () => {
+    const text =
+      '// ui-guard-allow:badge-hand-built -- member-chosen colour\nexport const A = () => <span className="rounded-full px-2 py-0.5 text-xs" />;\n';
+    expect(scan(text)).toEqual([]);
+  });
+
+  it('does not scan the shared package that defines the badge', () => {
+    expect(
+      scan(
+        'export const A = () => <span className="rounded-full px-2 py-0.5 text-xs" />;\n',
+        'packages/ui/src/primitives/badge.tsx',
+      ),
+    ).toEqual([]);
   });
 });
 

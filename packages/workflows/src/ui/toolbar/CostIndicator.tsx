@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
-import { statusBadge, statusIcon } from '@genfeedai/ui';
+import { statusIcon } from '@genfeedai/ui';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { DollarSign } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -39,12 +39,9 @@ export function CostIndicator() {
       <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>
       {isRunning && actualCost > 0 && (
-        <span
-          className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-2xs ${statusBadge.running}`}
-        >
-          <RunningIcon className="size-3" aria-hidden />
-          <span>{translate('running')}</span>
-        </span>
+        <Badge icon={<RunningIcon />} variant="info">
+          {translate('running')}
+        </Badge>
       )}
     </Button>
   );

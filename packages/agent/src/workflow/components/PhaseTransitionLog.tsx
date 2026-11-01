@@ -1,5 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowRight,
@@ -15,20 +17,23 @@ import { type GateTrigger, PHASE_LABELS } from '../types';
 
 const TRIGGER_CONFIG: Record<
   GateTrigger,
-  { icon: typeof Zap; label: string; color: string }
+  { icon: typeof Zap; label: string; color: string; variant: BadgeVariant }
 > = {
   force_advance: {
     color: 'text-warning',
+    variant: 'warning',
     icon: ArrowRight,
     label: 'Force advance',
   },
   gate_met: {
     color: 'text-success',
+    variant: 'success',
     icon: Zap,
     label: 'Gate met',
   },
   rollback: {
     color: 'text-destructive',
+    variant: 'destructive',
     icon: Undo2,
     label: 'Rollback',
   },
@@ -88,16 +93,13 @@ function PhaseTransitionLogInner() {
                 </span>
                 <ArrowRight className="size-3 text-foreground/20" />
                 <span className="text-foreground/70">{PHASE_LABELS[t.to]}</span>
-                <span
-                  className={cn(
-                    'ml-auto text-2xs font-medium px-1.5 py-0.5 rounded',
-                    config.color,
-                    'bg-current/10',
-                  )}
-                  style={{ backgroundColor: 'transparent' }}
+                <Badge
+                  casing="normal"
+                  className="ml-auto"
+                  variant={config.variant}
                 >
                   {config.label} · {t.actor}
-                </span>
+                </Badge>
               </div>
             );
           })}

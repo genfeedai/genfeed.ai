@@ -1,5 +1,7 @@
 import { AssetScope } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
@@ -169,19 +171,23 @@ export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
     return null;
   }
 
-  const bgColor = {
-    [AssetScope.USER]: 'bg-muted',
-    [AssetScope.BRAND]: 'bg-info/10',
-    [AssetScope.ORGANIZATION]: 'bg-success/10',
-    [AssetScope.PUBLIC]: 'bg-primary/10',
-  }[scope];
+  const variant = {
+    [AssetScope.USER]: 'secondary',
+    [AssetScope.BRAND]: 'info',
+    [AssetScope.ORGANIZATION]: 'success',
+    [AssetScope.PUBLIC]: 'default',
+  }[scope] as BadgeVariant;
 
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${bgColor} ${option.color} ${className}`}
+    <Badge
+      casing="normal"
+      className={className}
+      shape="pill"
+      size="lg"
+      variant={variant}
     >
-      <span>{option.label}</span>
-    </span>
+      {option.label}
+    </Badge>
   );
 }
 

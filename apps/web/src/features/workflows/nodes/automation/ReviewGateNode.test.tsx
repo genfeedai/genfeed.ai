@@ -57,16 +57,6 @@ vi.mock('@/components/ui/client-formatted-date', () => ({
   }) => <time>{value ?? fallback}</time>,
 }));
 
-vi.mock('@/features/workflows/components/ui/badge', () => ({
-  NodeBadge: ({
-    children,
-    variant,
-  }: {
-    children?: ReactNode;
-    variant: string;
-  }) => <span data-variant={variant}>{children}</span>,
-}));
-
 vi.mock('@/features/workflows/components/ui/button', () => ({
   NodeButton: ({
     children,

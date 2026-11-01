@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@ui/primitives/badge';
 import { Workflow } from 'lucide-react';
 import { useId, useMemo } from 'react';
 import type { WorkflowCardPreviewProps } from '@/features/workflows/props/workflow-card-preview.props';
@@ -130,9 +131,13 @@ export default function WorkflowGraphPreview({
           </g>
         ))}
       </svg>
-      <span className="absolute bottom-2 left-3 rounded bg-background/90 px-2 py-1 text-2xs text-muted-foreground">
+      <Badge
+        casing="normal"
+        className="absolute bottom-2 left-3"
+        variant="secondary"
+      >
         {graph.nodes.length} {graph.nodes.length === 1 ? 'step' : 'steps'}
-      </span>
+      </Badge>
     </>
   );
 }

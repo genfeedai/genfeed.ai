@@ -15,6 +15,7 @@ import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -128,19 +129,21 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                 <span className="text-sm text-muted-foreground">
                   {org.totalPosts.toLocaleString()} posts
                 </span>
-                <span
-                  className={cn(
-                    'px-2 py-0.5 rounded-full text-xs font-medium',
+                <Badge
+                  casing="normal"
+                  shape="pill"
+                  size="lg"
+                  variant={
                     org.growth > 0
-                      ? 'bg-success/10 text-success'
+                      ? 'success'
                       : org.growth < 0
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-muted text-muted-foreground',
-                  )}
+                        ? 'destructive'
+                        : 'secondary'
+                  }
                 >
                   {org.growth > 0 ? '+' : ''}
                   {org.growth}%
-                </span>
+                </Badge>
               </div>
             </div>
           ))

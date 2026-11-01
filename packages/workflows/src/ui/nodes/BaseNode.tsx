@@ -14,6 +14,7 @@ import {
   AlertActions,
   AlertDescription,
 } from '@genfeedai/ui/primitives/alert';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Progress } from '@genfeedai/ui/primitives/progress';
 import Spinner from '@genfeedai/ui/primitives/spinner';
@@ -441,9 +442,9 @@ function BaseNodeContent({
 
 function LockBadge() {
   return (
-    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-2xs font-bold text-background">
+    <Badge className="absolute -right-2 -top-2" variant="inverse">
       LOCKED
-    </div>
+    </Badge>
   );
 }
 
