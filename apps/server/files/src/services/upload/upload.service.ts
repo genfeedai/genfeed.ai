@@ -71,6 +71,13 @@ const createBadRequest = (message: string) => new BadRequestException(message);
 const CDN_ROOT_UPLOAD_TYPES = new Set(['banners', 'logos', 'references']);
 const REMOTE_DOWNLOAD_MAX_BYTES = 200 * 1024 * 1024;
 const REMOTE_DOWNLOAD_IDLE_TIMEOUT_MS = 60_000;
+const SVG_CONTENT_TYPE = 'image/svg+xml';
+// Rasterize SVG at up to 4x its nominal 72 dpi size so a small logo stays
+// crisp, but never past a longest side of 2048px so a huge viewBox cannot
+// produce an enormous PNG (or trip the pixel limit).
+const SVG_BASE_DENSITY = 72;
+const SVG_MAX_DENSITY = 288;
+const SVG_RASTER_MAX_SIDE = 2048;
 
 const createPayloadTooLarge = () =>
   new HttpException(
@@ -512,11 +519,33 @@ export class UploadService {
     const imageProcessingStart = Date.now();
     const originalSizeBytes = prepared.body?.length ?? prepared.size ?? 0;
     const quality = (await this.runtimeSettings.get()).imageCompressionQuality;
-    const processor = sharp(imageInput).rotate();
+    const isSvg = prepared.contentType === SVG_CONTENT_TYPE;
+    const processor = isSvg
+      ? sharp(imageInput, {
+          density: await this.resolveSvgDensity(imageInput),
+        }).resize({
+          fit: 'inside',
+          height: SVG_RASTER_MAX_SIDE,
+          width: SVG_RASTER_MAX_SIDE,
+          withoutEnlargement: true,
+        })
+      : sharp(imageInput).rotate();
     let body: Buffer;
     let contentType: string;
+    let width = prepared.width;
+    let height = prepared.height;
 
-    if (prepared.contentType.includes('png')) {
+    if (isSvg) {
+      // A vector has no JPEG-style background to flatten onto: keep the
+      // transparency and store a PNG every consumer can render.
+      const rendered = await processor
+        .png({ compressionLevel: 9 })
+        .toBuffer({ resolveWithObject: true });
+      body = rendered.data;
+      width = rendered.info.width;
+      height = rendered.info.height;
+      contentType = 'image/png';
+    } else if (prepared.contentType.includes('png')) {
       body = await processor.png({ compressionLevel: 9, quality }).toBuffer();
       contentType = 'image/png';
     } else if (prepared.contentType.includes('webp')) {
@@ -541,8 +570,29 @@ export class UploadService {
       body,
       contentType,
       filePath: undefined,
+      height,
       imageProcessingDuration,
+      width,
     };
+  }
+
+  /**
+   * The density to rasterize an SVG at: sharp reads the nominal size at 72 dpi,
+   * so scale up for sharpness but down for a very large drawing.
+   */
+  private async resolveSvgDensity(input: Buffer | string): Promise<number> {
+    const { height, width } = await sharp(input).metadata();
+    const longestSide = Math.max(width ?? 0, height ?? 0);
+    if (longestSide <= 0) {
+      return SVG_MAX_DENSITY;
+    }
+    return Math.max(
+      1,
+      Math.min(
+        SVG_MAX_DENSITY,
+        (SVG_BASE_DENSITY * SVG_RASTER_MAX_SIDE) / longestSide,
+      ),
+    );
   }
 
   async uploadToS3(
@@ -705,6 +755,8 @@ export class UploadService {
         return '.jpg';
       case 'image/png':
         return '.png';
+      case SVG_CONTENT_TYPE:
+        return '.svg';
       case 'image/webp':
         return '.webp';
       case 'video/mp4':
@@ -780,6 +832,8 @@ export class UploadService {
         return 'image/jpeg';
       case '.png':
         return 'image/png';
+      case '.svg':
+        return SVG_CONTENT_TYPE;
       case '.webp':
         return 'image/webp';
       case '.gif':
