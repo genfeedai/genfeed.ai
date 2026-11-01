@@ -120,6 +120,7 @@ function BrandPreviewSurface({
         <p className="text-sm leading-relaxed">{description}</p>
       ) : (
         <div className="space-y-2">
+          {/* ui-guard-allow:hand-built-stat -- font specimen of the brand heading face, not a metric */}
           <p
             className="text-2xl font-semibold leading-tight"
             style={previewFontStyle(fontFamily)}

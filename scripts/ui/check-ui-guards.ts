@@ -45,6 +45,13 @@ const checks = [
     required: true,
   },
   {
+    // Views and filters are dropdowns in the sub bar (ViewMenu, FilterMenu),
+    // never tab bars. Baseline: scripts/ui/hand-built/view-tabs.baseline.json.
+    command: ['bun', 'run', 'scripts/ui/hand-built/view-tabs.ts'],
+    name: 'View and filter tabs (ViewMenu / FilterMenu dropdowns)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,

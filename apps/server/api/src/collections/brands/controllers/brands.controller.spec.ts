@@ -706,6 +706,24 @@ describe('BrandsController', () => {
       expect(result.orderBy).toEqual({ createdAt: -1, id: -1, label: 1 });
     });
 
+    it('filters a superadmin brand query by the brand id, not a brandId column', () => {
+      const organizationId = 'borg00000000000000000001';
+      const brandId = 'bbrd00000000000000000001';
+      const superAdmin = { ...mockUser, isSuperAdmin: true } as unknown as User;
+
+      const result = controller.buildFindAllQuery(superAdmin, {
+        brandId,
+        isDeleted: false,
+        organizationId,
+      } as BaseQueryDto);
+
+      expect(result.where).toEqual({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
     it('scopes members to their session organization only', () => {
       const organizationId = (mockUser as AuthenticatedUser).organizationId;
       const query = {

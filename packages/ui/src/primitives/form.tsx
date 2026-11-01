@@ -36,4 +36,32 @@ function Form({ ref, className, spacing, ...props }: FormProps) {
   );
 }
 
-export { Form };
+/**
+ * Paired fields that read as one decision (start and end, format and landing)
+ * sit side by side and stack on narrow screens. The row owns the gap between
+ * its fields; the parent `Form` or dialog body owns the gap between rows.
+ */
+const formRowVariants = cva('grid grid-cols-1 gap-4', {
+  defaultVariants: { columns: 2 },
+  variants: {
+    columns: {
+      2: 'sm:grid-cols-2',
+      3: 'sm:grid-cols-3',
+    },
+  },
+});
+
+export type FormRowProps = ComponentPropsWithRef<'div'> &
+  VariantProps<typeof formRowVariants>;
+
+function FormRow({ ref, className, columns, ...props }: FormRowProps) {
+  return (
+    <div
+      ref={ref}
+      className={cn(formRowVariants({ columns }), className)}
+      {...props}
+    />
+  );
+}
+
+export { Form, FormRow };

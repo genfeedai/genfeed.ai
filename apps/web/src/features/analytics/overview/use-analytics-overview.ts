@@ -280,7 +280,6 @@ export function useAnalyticsOverview({
         analyticsMetric: 'engagementRate' as const,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
-        valueClassName: 'text-4xl',
       },
       {
         label: 'Active Platforms',

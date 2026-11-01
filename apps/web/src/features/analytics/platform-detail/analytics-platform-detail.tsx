@@ -154,21 +154,18 @@ export default function AnalyticsPlatformDetail({
         items={[
           {
             icon: Video,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'posts' as const,
             label: 'Total Posts',
             value: posts.length,
           },
           {
             icon: Eye,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Total Views',
             value: formatCompactNumberIntl(totalViews),
           },
           {
             icon: ChartColumn,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Avg Views/Post',
             analyticsMetricVariant: 'perPost' as const,
@@ -177,21 +174,18 @@ export default function AnalyticsPlatformDetail({
           {
             description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: Heart,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'engagement' as const,
             label: 'Total Engagement',
             value: formatCompactNumberIntl(totalEngagement),
           },
           {
             icon: Flame,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'engagementRate' as const,
             label: 'Engagement Rate',
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
             icon: Trophy,
-            iconClassName: 'bg-foreground/10 text-foreground',
             analyticsMetric: 'views' as const,
             label: 'Best Performing',
             value: bestPost
