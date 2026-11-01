@@ -36,7 +36,6 @@ describe('env-spec backend cloud flag', () => {
       'AWS_REGION',
       'AWS_SECRET_ACCESS_KEY',
       'FAL_API_KEY',
-      'GPU_LLM_INSTANCE_ID',
       'OPENROUTER_API_KEY',
       'REPLICATE_KEY',
     ];

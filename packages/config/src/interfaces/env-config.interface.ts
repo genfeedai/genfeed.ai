@@ -152,7 +152,6 @@ export interface IEnvConfig {
   GPU_VOICES_URL?: string;
   GPU_VIDEOS_URL?: string;
   GPU_LLM_URL?: string;
-  GPU_LLM_INSTANCE_ID?: string;
 
   ANTHROPIC_API_KEY?: string;
 

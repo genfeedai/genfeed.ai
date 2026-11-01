@@ -3,7 +3,6 @@ import { AnthropicService } from '@api/services/integrations/anthropic/services/
 import type { ILlmCompletionRoute } from '@api/services/integrations/llm/dto/llm-completion-route.dto';
 import type { LlmStructuredCompletionParams } from '@api/services/integrations/llm/dto/llm-structured-output.dto';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
-import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
 import {
   buildStructuredResponseFormat,
   runStructuredCompletion,
@@ -49,7 +48,6 @@ export class LlmDispatcherService {
     private readonly openAiOAuthService: OpenAiOAuthService,
     private readonly openRouterService: OpenRouterService,
     private readonly byokService: ByokService,
-    private readonly llmInstanceService: LlmInstanceService,
     private readonly llmCompletionTelemetryService: LlmCompletionTelemetryService,
   ) {}
 
@@ -650,8 +648,8 @@ export class LlmDispatcherService {
   }
 
   /**
-   * Streaming variant of {@link callLocalProvider}: warms the vLLM instance and
-   * streams from it, falling back to the cheapest OpenRouter model when GPU_LLM_URL is
+   * Streaming variant of {@link callLocalProvider}: streams from the configured
+   * vLLM server, falling back to the cheapest OpenRouter model when GPU_LLM_URL is
    * unset.
    */
   private async callLocalProviderStreaming(
@@ -675,8 +673,6 @@ export class LlmDispatcherService {
       `${this.constructorName}: Streaming ${params.model} → local vLLM at ${llmUrl}`,
     );
 
-    await this.llmInstanceService.ensureRunning();
-
     return this.openAiLlmService.streamChatCompletionAggregated(
       params,
       undefined,
@@ -686,8 +682,8 @@ export class LlmDispatcherService {
   }
 
   /**
-   * Route to local vLLM instance (OpenAI-compatible API).
-   * Starts the EC2 instance if stopped, waits for health, then calls vLLM.
+   * Route to the configured vLLM server (OpenAI-compatible API). Its host is
+   * run by the operator; Genfeed never starts or stops it.
    * Falls back to the cheapest catalogued model if GPU_LLM_URL is not configured.
    */
   private async callLocalProvider(
@@ -708,8 +704,6 @@ export class LlmDispatcherService {
     this.loggerService.log(
       `${this.constructorName}: Routing ${params.model} → local vLLM at ${llmUrl}`,
     );
-
-    await this.llmInstanceService.ensureRunning();
 
     return this.openAiLlmService.chatCompletion(
       params,
