@@ -11,7 +11,6 @@ import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCategoryLabel } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import {
   afterAll,
   afterEach,
@@ -202,17 +201,16 @@ describe('buildModelsTableColumns', () => {
 
   it.each(Object.values(ModelProvider))(
     'renders a named provider logo for %s',
-    async (provider) => {
+    (provider) => {
       renderColumn('Label', buildModel({ provider }), true);
 
       const logo = screen.getByRole('img', {
         name: getModelProviderLabel(provider),
       });
       expect(logo).toHaveAccessibleName();
-      await userEvent.hover(logo);
-      expect(await screen.findByRole('tooltip')).toHaveTextContent(
-        `${getModelProviderLabel(provider)} · Image`,
-      );
+      expect(
+        screen.getByTitle(`${getModelProviderLabel(provider)} · Image`),
+      ).toBeInTheDocument();
       expect(logo.querySelector('svg')).toHaveClass('size-4');
       expect(logo).not.toHaveClass('uppercase');
     },
@@ -240,7 +238,7 @@ describe('buildModelsTableColumns', () => {
     },
   );
 
-  it('marks the HeyGen avatar model without treating every HeyGen voice as an avatar', async () => {
+  it('marks the HeyGen avatar model without treating every HeyGen voice as an avatar', () => {
     renderColumn(
       'Label',
       buildModel({
@@ -259,11 +257,7 @@ describe('buildModelsTableColumns', () => {
     expect(
       screen.queryByRole('img', { name: 'Voice' }),
     ).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('img', { name: 'HeyGen' }));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'HeyGen · Avatar',
-    );
-    await userEvent.unhover(screen.getByRole('img', { name: 'HeyGen' }));
+    expect(screen.getByTitle('HeyGen · Avatar')).toBeInTheDocument();
 
     renderColumn(
       'Label',

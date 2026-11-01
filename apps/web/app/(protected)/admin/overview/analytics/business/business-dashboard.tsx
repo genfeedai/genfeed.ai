@@ -139,8 +139,11 @@ function DailySeriesChart({
           const value = (point[valueKey] as number) ?? 0;
           const height = (value / maxValue) * 100;
           return (
-            <SimpleTooltip label={`${point.date}: ${formatter(value)}`}>
-              <div key={point.date} className="group relative flex-1">
+            <SimpleTooltip
+              key={point.date}
+              label={`${point.date}: ${formatter(value)}`}
+            >
+              <div className="group relative flex-1">
                 <div
                   className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
                   style={{ height: `${Math.max(height, 2)}%` }}

@@ -58,9 +58,8 @@ export default function PublishingContentChannels({
           (channel === 'email' ? Mail : channel === 'web' ? Globe : Share2);
         const label = formatPublishingContentChannel(channel);
         return (
-          <SimpleTooltip label={label}>
+          <SimpleTooltip key={channel} label={label}>
             <span
-              key={channel}
               role="img"
               aria-label={label}
               className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background"

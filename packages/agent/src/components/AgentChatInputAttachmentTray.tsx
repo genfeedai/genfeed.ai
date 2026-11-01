@@ -71,10 +71,9 @@ export function AgentChatInputAttachmentTray({
           const status = attachmentStatusById[asset.id] ?? 'completed';
 
           return (
-            <SimpleTooltip label={assetName}>
+            <SimpleTooltip key={asset.id} label={assetName}>
               <div
                 aria-label={`${assetName}: ${status}`}
-                key={asset.id}
                 className={cn(
                   'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
                   isDisabled && 'opacity-60',
@@ -132,6 +131,7 @@ export function AgentChatInputAttachmentTray({
 
         {contentReferences.map((reference) => (
           <SimpleTooltip
+            key={`content:${reference.id}`}
             label={
               reference.isSkipped
                 ? `${reference.label}: Skipped — brand does not match or is unknown. Pick this post again.`
@@ -142,7 +142,6 @@ export function AgentChatInputAttachmentTray({
               aria-label={`${translate('referencedContent', {
                 label: reference.label,
               })}${reference.isSkipped ? ': Skipped' : ''}`}
-              key={`content:${reference.id}`}
               className={cn(
                 'group relative size-16 overflow-hidden rounded-md border border-border bg-card',
                 isDisabled && 'opacity-60',

@@ -228,7 +228,7 @@ describe('PublishingContentLibrary', () => {
     expect(screen.queryByText('Thread')).not.toBeInTheDocument();
   });
 
-  it('leads a post row with its target account avatar and a thread tag', async () => {
+  it('leads a post row with its target account avatar and a thread tag', () => {
     mocks.queryData = {
       ...collections,
       posts: [
@@ -251,8 +251,7 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(screen.getAllByText('Thread').length).toBeGreaterThan(0);
-    await userEvent.hover(screen.getByText('AC'));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('acme_x');
+    expect(screen.getByTitle('acme_x')).toBeInTheDocument();
   });
 
   it.each([
