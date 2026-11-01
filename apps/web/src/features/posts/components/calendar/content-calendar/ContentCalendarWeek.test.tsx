@@ -111,7 +111,7 @@ describe('ContentCalendar Week view with the real renderer', () => {
       ],
       onDatesChange: vi.fn(),
       onEventClick: vi.fn(),
-    } satisfies ContentCalendarProps<CalendarItem>;
+    } satisfies Omit<ContentCalendarProps<CalendarItem>, 'onToolbarChange'>;
     const { rerender } = render(
       <ContentCalendarView {...props} timezone="America/Los_Angeles" />,
     );
