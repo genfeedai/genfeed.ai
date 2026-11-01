@@ -197,7 +197,7 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
   await page
     .getByRole('button', { name: 'Start from the Quick tips idea' })
     .click();
-  await expect(page.getByLabel('Brief', { exact: true })).toHaveValue(
+  await expect(page.getByLabel('Brief', { exact: true })).toHaveText(
     /^Five small habits/,
   );
   await page
