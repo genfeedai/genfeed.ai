@@ -427,6 +427,11 @@ export default defineConfig({
     ],
     globals: true,
     include: ['src/**/*.spec.ts', 'scripts/**/*.spec.ts', 'test/**/*.spec.ts'],
+    // Workers are reused across spec files instead of re-spawned per file, so
+    // the NestJS/Prisma import graph is transformed once per worker. Spec files
+    // stay independent because `test/setup-unit.ts` resets the module registry,
+    // stubs and mocks before each file's own imports run.
+    isolate: false,
     name: '@genfeedai/api-unit',
     passWithNoTests: true,
     setupFiles: ['./test/setup-unit.ts'],
