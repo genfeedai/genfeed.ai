@@ -370,17 +370,16 @@ export default function ContentCalendarPage({
     [translate],
   );
 
-  // On the Publishing desk every control lives in the sub bar: the period
-  // navigation on the left, then filters, the view dropdown, the cadence
-  // actions and the primary action. Nothing sits above the grid.
+  // Every control lives in the host's sub bar (the Publishing desk or the
+  // campaign shell): the period navigation on the left, then filters, the view
+  // dropdown, the cadence actions and the primary action. Nothing sits above
+  // the grid.
   useEffect(() => {
-    if (!embedded) return;
     setFiltersNode(filterMenu);
     setScheduleActionsNode(cadenceActions);
     setExportNode(newArticleAction);
   }, [
     cadenceActions,
-    embedded,
     filterMenu,
     newArticleAction,
     setExportNode,
@@ -389,7 +388,6 @@ export default function ContentCalendarPage({
   ]);
 
   useEffect(() => {
-    if (!embedded) return;
     return () => {
       setLeadingNode(null);
       setViewToggleNode(null);
@@ -398,7 +396,6 @@ export default function ContentCalendarPage({
       setExportNode(null);
     };
   }, [
-    embedded,
     setExportNode,
     setFiltersNode,
     setLeadingNode,
@@ -412,15 +409,6 @@ export default function ContentCalendarPage({
       setViewToggleNode(viewMenu);
     },
     [setLeadingNode, setViewToggleNode],
-  );
-
-  // Outside the desk (a campaign's calendar) the calendar keeps its own bar.
-  const filterControls = embedded ? undefined : (
-    <>
-      {cadenceActions}
-      {filterMenu}
-      {newArticleAction}
-    </>
   );
 
   const modal = (
@@ -506,8 +494,7 @@ export default function ContentCalendarPage({
       getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}
       onEventDrop={handleEventDrop}
-      filterControls={filterControls}
-      onToolbarChange={embedded ? handleToolbarChange : undefined}
+      onToolbarChange={handleToolbarChange}
       modal={modal}
       isLoading={isLoading}
     />

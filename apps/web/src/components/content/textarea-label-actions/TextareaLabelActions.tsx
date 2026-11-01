@@ -57,7 +57,6 @@ export default function TextareaLabelActions({
             icon={<Undo2 className="size-3.5" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.MICRO}
-            className="text-muted-foreground"
             tooltip={undoTooltip}
             tooltipPosition="top"
             onClick={onUndo}

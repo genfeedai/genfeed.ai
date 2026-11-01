@@ -20,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   CircleAlert,
   CircleHelp,
@@ -121,9 +122,9 @@ function FailedIngredientRow({
             )}
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium" title={label}>
-              {label}
-            </span>
+            <SimpleTooltip label={label}>
+              <span className="truncate text-sm font-medium">{label}</span>
+            </SimpleTooltip>
             <span className="text-xs text-muted-foreground">
               {typeof source === 'object' ? t('reference') : t('savedRequest')}
               {createdAt && !Number.isNaN(createdAt.getTime())
@@ -142,12 +143,11 @@ function FailedIngredientRow({
           {hasRetried ? t('retryStarted') : t(`reasons.${recovery.reason}`)}
         </span>
       </div>
-      <span
-        className="hidden min-w-0 truncate self-center text-xs text-muted-foreground xl:block"
-        title={model || undefined}
-      >
-        {model || '—'}
-      </span>
+      <SimpleTooltip label={model || undefined}>
+        <span className="hidden min-w-0 truncate self-center text-xs text-muted-foreground xl:block">
+          {model || '—'}
+        </span>
+      </SimpleTooltip>
       <div className="flex shrink-0 items-center gap-2 lg:justify-end">
         <Button
           label={hasRetried ? t('started') : t(`actions.${recovery.action}`)}

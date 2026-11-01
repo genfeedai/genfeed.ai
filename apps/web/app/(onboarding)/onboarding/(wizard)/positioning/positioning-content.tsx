@@ -323,7 +323,6 @@ export default function PositioningContent() {
               isDisabled={!answer.trim()}
               isLoading={isSubmitting}
               onClick={handleSaveAnswer}
-              className="rounded-none px-5"
             />
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -331,7 +330,6 @@ export default function PositioningContent() {
               label={translate('positioning.skipQuestion')}
               isDisabled={isSubmitting}
               onClick={handleSkipQuestion}
-              className="rounded-none px-5"
             />
             {isKeepingGoing ? (
               <Button
@@ -340,7 +338,6 @@ export default function PositioningContent() {
                 label={translate('positioning.finish')}
                 isDisabled={isSubmitting}
                 onClick={handleScore}
-                className="rounded-none px-5"
               />
             ) : null}
           </div>
@@ -359,7 +356,6 @@ export default function PositioningContent() {
               label={translate('positioning.finish')}
               isLoading={isSubmitting}
               onClick={handleScore}
-              className="rounded-none px-5"
             />
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -367,7 +363,6 @@ export default function PositioningContent() {
               label={translate('positioning.keepGoing')}
               isDisabled={isSubmitting}
               onClick={handleKeepGoing}
-              className="rounded-none px-5"
             />
           </div>
         </div>

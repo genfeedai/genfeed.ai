@@ -1,3 +1,4 @@
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
@@ -43,7 +44,11 @@ vi.mock(
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/${mocks.brandId}${path}` }),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org/brand-a/storyboard/new',
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mocks.push }),
+}));
 vi.mock('@/features/studio/storyboard/hooks/use-create-storyboard', () => ({
   useCreateStoryboard: () => ({
     create: mocks.create,
@@ -114,15 +119,15 @@ function image(id: string, brandId = mocks.brandId, isDeleted = false) {
   });
 }
 
-/** Opens the prompt-bar source dropdown and picks a mode by its label. */
-async function chooseMode(name: string) {
-  fireEvent.pointerDown(screen.getByRole('button', { name: /^Create from:/ }), {
-    button: 0,
-    ctrlKey: false,
-  });
-  fireEvent.click(
-    await screen.findByRole('menuitemradio', { name: new RegExp(`^${name}`) }),
+/** Picks a source from the prompt bar's dropdown, like a person would. */
+function chooseSource(name: string) {
+  fireEvent.keyDown(
+    screen.getByRole('combobox', { name: 'Storyboard source' }),
+    {
+      key: 'ArrowDown',
+    },
   );
+  fireEvent.click(screen.getByRole('option', { name }));
 }
 
 describe('Storyboard shared composer', () => {
@@ -136,7 +141,9 @@ describe('Storyboard shared composer', () => {
   });
   it('prefills the brief, format and runtime from a preset without submitting', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
     expect(
       (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
     ).toContain('how-to tutorial');
@@ -185,7 +192,9 @@ describe('Storyboard shared composer', () => {
         }),
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
     expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');
@@ -220,7 +229,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Long video');
+    chooseSource('Long video');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -246,7 +255,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
+    chooseSource('Slideshow');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -270,11 +279,11 @@ describe('Storyboard shared composer', () => {
       }),
     );
   });
-  it('offers three slideshow ideas that fill the brief without saving', async () => {
+  it('offers three slideshow ideas that fill the brief without saving', () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
+    chooseSource('Slideshow');
     expect(
-      within(screen.getByRole('group', { name: 'Starter ideas' })).getAllByRole(
+      within(screen.getByTestId('storyboard-pitch-cards')).getAllByRole(
         'button',
       ),
     ).toHaveLength(3);
@@ -284,38 +293,54 @@ describe('Storyboard shared composer', () => {
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it('lists the four sources in the prompt-bar dropdown with the current one checked', async () => {
+  it('offers long-video ideas and none for a remix', () => {
     render(<StoryboardCreate />);
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: /^Create from:/ }),
-      {
-        button: 0,
-        ctrlKey: false,
-      },
-    );
-    const items = await screen.findAllByRole('menuitemradio');
-    expect(items.map((item) => item.textContent)).toEqual([
-      expect.stringMatching(/^From a brief/),
-      expect.stringMatching(/^Long video/),
-      expect.stringMatching(/^Slideshow/),
-      expect.stringMatching(/^Remix a video/),
-    ]);
-    expect(items[0]).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('button', { name: 'Slideshow' })).toBeNull();
-  });
-  it('offers long-video ideas and none for a remix', async () => {
-    render(<StoryboardCreate />);
-    await chooseMode('Long video');
+    chooseSource('Long video');
     expect(
       screen.getByRole('button', { name: 'Voice note' }),
     ).toBeInTheDocument();
-    await chooseMode('Remix a video');
-    expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
+    chooseSource('Remix a video');
+    expect(screen.queryByTestId('storyboard-pitch-cards')).toBeNull();
+  });
+  it('pitches in the agent column and leaves the result on the right', () => {
+    render(
+      <AgentOutputHostContext
+        value={{
+          agent: <p>Shell conversation</p>,
+          contextPanel: <p>Shell context</p>,
+          isContextOpen: false,
+          onCloseContext: vi.fn(),
+          onNewThread: vi.fn(),
+          onOpenContext: vi.fn(),
+          onOpenFullPage: vi.fn(),
+          threadsPanel: <p>Shell threads</p>,
+        }}
+      >
+        <StoryboardCreate />
+      </AgentOutputHostContext>,
+    );
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+    const outputPane = screen.getByTestId('agent-output-output-pane');
+
+    expect(within(agentPane).getByLabelText('Brief')).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('combobox', { name: 'Storyboard source' }),
+    ).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('heading', { name: 'Start a storyboard' }),
+    ).toBeInTheDocument();
+    expect(within(outputPane).queryByLabelText('Brief')).toBeNull();
+    expect(
+      within(outputPane).getByText(
+        'Your storyboard shows up here once you save the idea.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
-    await chooseMode('From a brief');
+    chooseSource('Slideshow');
+    chooseSource('From a brief');
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });

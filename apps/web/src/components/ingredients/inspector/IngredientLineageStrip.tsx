@@ -14,6 +14,7 @@ import {
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Film, ImageOff } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -23,7 +24,6 @@ import type {
   IngredientLineageItemProps,
   IngredientLineageStripProps,
 } from '@/props/content/ingredient.props';
-
 import { useIngredientLineage } from './use-ingredient-lineage';
 
 const SECTION_LABEL_KEYS: Record<
@@ -92,15 +92,16 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
           />
         )}
       </div>
-      <span
-        className={cn(
-          'truncate text-xs',
-          isTrashed ? 'italic text-muted-foreground' : 'text-foreground/80',
-        )}
-        title={label}
-      >
-        {label}
-      </span>
+      <SimpleTooltip label={label}>
+        <span
+          className={cn(
+            'truncate text-xs',
+            isTrashed ? 'italic text-muted-foreground' : 'text-foreground/80',
+          )}
+        >
+          {label}
+        </span>
+      </SimpleTooltip>
       <div className="flex flex-wrap items-center gap-1">
         {isTrashed ? null : (
           <LibraryAssetTypeBadge category={ingredient.category} />
@@ -162,7 +163,7 @@ export default function IngredientLineageStrip({
 
       {hasNext ? (
         <Button
-          className="w-fit text-xs"
+          className="w-fit"
           isLoading={isLoading}
           onClick={loadMore}
           type="button"

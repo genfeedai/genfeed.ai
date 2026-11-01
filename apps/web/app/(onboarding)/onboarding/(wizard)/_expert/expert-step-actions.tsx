@@ -26,7 +26,6 @@ export default function ExpertStepActions({
           isDisabled={isContinueDisabled}
           isLoading={isSubmitting}
           onClick={onContinue}
-          className="rounded-none px-5"
         />
         {onSkip ? (
           <Button
@@ -35,7 +34,6 @@ export default function ExpertStepActions({
             label={translate('skip')}
             isDisabled={isSubmitting}
             onClick={onSkip}
-            className="rounded-none px-5"
           />
         ) : null}
       </div>

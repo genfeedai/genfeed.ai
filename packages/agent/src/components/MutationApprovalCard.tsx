@@ -285,7 +285,7 @@ export function MutationApprovalCard({
               <Button
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
-                className="h-auto px-0 py-1 text-xs text-muted-foreground"
+                className="h-auto px-0 py-1"
                 aria-expanded={detailsOpen}
                 aria-controls={detailsId}
                 onClick={() => setDetailsOpen((open) => !open)}

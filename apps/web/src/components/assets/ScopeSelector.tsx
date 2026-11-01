@@ -4,6 +4,7 @@ import { Badge } from '@ui/primitives/badge';
 import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 import { Building2, Globe, Lock, Tag } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -214,12 +215,11 @@ export function ScopeIcon({
   }
 
   return (
-    <span
-      className={`${className}`}
-      title={showTooltip ? `${option.label}: ${option.description}` : undefined}
+    <SimpleTooltip
+      label={showTooltip ? `${option.label}: ${option.description}` : undefined}
     >
-      {option.label.charAt(0)}
-    </span>
+      <span className={`${className}`}>{option.label.charAt(0)}</span>
+    </SimpleTooltip>
   );
 }
 

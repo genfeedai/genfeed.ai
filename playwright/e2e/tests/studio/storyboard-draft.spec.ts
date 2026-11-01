@@ -52,10 +52,8 @@ const base = '/test-org/brand-1/storyboard';
  * layout also shows one pane at a time and opens on the agent.
  */
 async function showOutputPane(page: Page) {
-  const views = page.getByRole('tablist', {
-    exact: true,
-    name: 'Agent or output',
-  });
+  // Below xl the panes switch through one view dropdown, never tabs.
+  const views = page.getByRole('button', { exact: true, name: 'View: Agent' });
   const output = page.getByRole('tablist', { exact: true, name: 'Output' });
   // After a reload neither tablist exists yet, so isVisible() alone would skip
   // the Output click on a narrow viewport.
@@ -64,7 +62,10 @@ async function showOutputPane(page: Page) {
     // A click that lands before hydration after a reload is dropped, so retry
     // until the output pane is actually showing.
     await expect(async () => {
-      await views.getByRole('tab', { exact: true, name: 'Output' }).click();
+      await views.click();
+      await page
+        .getByRole('menuitemradio', { exact: true, name: 'Output' })
+        .click();
       await expect(output).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 15_000 });
   return output;

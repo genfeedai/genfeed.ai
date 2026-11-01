@@ -127,7 +127,7 @@ export function AgentRunFailureCard({
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
                 onClick={() => openModal(ModalEnum.CREDITS_REQUIRED)}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/20"
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-destructive hover:bg-destructive/20"
                 icon={<Coins className="size-3.5" />}
               >
                 {translate('getCredits')}
@@ -142,7 +142,7 @@ export function AgentRunFailureCard({
                 onClick={() => {
                   void onRetry();
                 }}
-                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-xs font-medium text-destructive hover:bg-destructive/20"
+                className="h-8 shrink-0 gap-1.5 self-start border-destructive/40 bg-destructive/20 px-3 text-destructive hover:bg-destructive/20"
                 icon={<RefreshCw className="size-3.5" />}
               >
                 Retry

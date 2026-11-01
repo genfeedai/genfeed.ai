@@ -276,7 +276,7 @@ export function AgentCompletionSummaryCard({
           <Button
             ariaLabel="Copy result summary"
             variant={ButtonVariant.GHOST}
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
             onClick={() => {
               if (!copyValue) {
                 return;
@@ -290,7 +290,7 @@ export function AgentCompletionSummaryCard({
           <Button
             ariaLabel="Retry result"
             variant={ButtonVariant.GHOST}
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
             onClick={() => {
               void onRetry?.();
             }}
@@ -300,7 +300,7 @@ export function AgentCompletionSummaryCard({
           <Button
             variant={ButtonVariant.GHOST}
             ariaLabel="Mark result helpful"
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
             onClick={() => setFeedbackState('positive')}
           >
             <ThumbsUp className="mr-1 size-3.5" />
@@ -309,7 +309,7 @@ export function AgentCompletionSummaryCard({
           <Button
             variant={ButtonVariant.GHOST}
             ariaLabel="Mark result not helpful"
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
             onClick={() => setFeedbackState('negative')}
           >
             <ThumbsDown className="mr-1 size-3.5" />

@@ -9,6 +9,7 @@ import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import type { RunHistoryListProps } from '@/features/automation/props/run-history-list.props';
@@ -51,13 +52,12 @@ export default function RunHistoryList({
               {getRunLabel(execution)}
             </p>
             {execution.error ? (
-              <p
-                className="truncate text-xs text-destructive"
-                title={execution.error}
-              >
-                {execution.failedNodeId ? `${execution.failedNodeId}: ` : ''}
-                {execution.error}
-              </p>
+              <SimpleTooltip label={execution.error}>
+                <p className="truncate text-xs text-destructive">
+                  {execution.failedNodeId ? `${execution.failedNodeId}: ` : ''}
+                  {execution.error}
+                </p>
+              </SimpleTooltip>
             ) : null}
           </div>
         ),
@@ -85,7 +85,9 @@ export default function RunHistoryList({
           if (credits.value <= 0) return '—';
           const formatted = credits.value.toLocaleString('en-US');
           return credits.isEstimate ? (
-            <span title={translate('creditsEstimated')}>~{formatted}</span>
+            <SimpleTooltip label={translate('creditsEstimated')}>
+              <span>~{formatted}</span>
+            </SimpleTooltip>
           ) : (
             formatted
           );

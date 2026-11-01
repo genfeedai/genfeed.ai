@@ -69,7 +69,7 @@ function ApprovalPanelInner() {
               )
             }
             isDisabled={isLocked}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-foreground/60 hover:text-foreground/80"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/60 hover:text-foreground/80"
           >
             <MessageSquare className="size-4" />
             Request changes

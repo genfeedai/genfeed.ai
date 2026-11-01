@@ -237,9 +237,8 @@ function OutputGallery({
         <Button
           withWrapper={false}
           variant={ButtonVariant.LINK}
-          size={ButtonSize.SM}
+          size={ButtonSize.INLINE}
           onClick={onDownloadAll}
-          className="h-auto p-0"
         >
           <Download className="size-3" />
           Download All
@@ -320,12 +319,10 @@ function OutputGallery({
           />
           <Button
             withWrapper={false}
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.OVERLAY}
             size={ButtonSize.ICON}
             onClick={onPreviewClose}
-            className={
-              'absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white' /* design-system-allow-content-color */
-            }
+            className="absolute top-1 right-1 size-5"
           >
             ×
           </Button>

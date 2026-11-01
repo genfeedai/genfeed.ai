@@ -24,7 +24,12 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Badge } from '@ui/primitives/badge';
-import { DefinitionDetail, DefinitionList, DefinitionRow, DefinitionTerm } from '@ui/primitives/definition-list';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';

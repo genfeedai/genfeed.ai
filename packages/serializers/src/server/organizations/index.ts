@@ -17,4 +17,5 @@ export * from '@serializers/server/organizations/organization-apps-report.serial
 export * from '@serializers/server/organizations/organization-settings.serializer';
 export * from '@serializers/server/organizations/organizations-report.serializer';
 export * from '@serializers/server/organizations/profile.serializer';
+export * from '@serializers/server/organizations/publish-pipeline.serializer';
 export * from './brand-font-asset.serializer';

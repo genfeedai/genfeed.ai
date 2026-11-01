@@ -697,7 +697,6 @@
       "details": "Details",
       "preview": "Preview"
     },
-    "viewAria": "Inspector view",
     "tiktokSettings": "TikTok settings",
     "youtubeSettings": "YouTube settings",
     "tiktokReady": "Ready",
@@ -920,6 +919,7 @@
     "chooseAction": "Choose action",
     "creditAmount": "Credit amount",
     "curveType": "Curve type",
+    "existingCaptions": "Existing captions",
     "generationMode": "Generation mode",
     "metrics": "Metrics",
     "notifyVia": "Notify via",

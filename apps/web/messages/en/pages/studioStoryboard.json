@@ -59,19 +59,16 @@
     "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
     "remixTitle": "Remix a video",
     "removeAsset": "Remove {title}",
+    "result": "Storyboard",
+    "resultEmpty": "Your storyboard shows up here once you save the idea.",
+    "heroDescription": "Pitch your idea, or start from one of these.",
+    "heroTitle": "Start a storyboard",
     "retrySaving": "Retry saving storyboard",
     "runtimeBudget": "Runtime budget (seconds)",
     "secondsUnit": "s",
     "save": "Save storyboard",
     "saving": "Saving…",
-    "modes": {
-      "brief": "Describe a short video and the agent plans the shots.",
-      "longForm": "Turn a long idea or a voice note into a longer video.",
-      "slideshow": "Make a swipeable carousel of slides.",
-      "video": "Re-cut one of your own videos."
-    },
-    "sourceAria": "Create from",
-    "sourceTriggerAria": "Create from: {source}",
+    "sourceAria": "Storyboard source",
     "startingImage": "Starting image",
     "title": "Create a storyboard",
     "uploadVideo": "Upload a video",
@@ -229,7 +226,6 @@
     "title": "Turn an idea into a storyboard"
   },
   "pitches": {
-    "groupAria": "Starter ideas",
     "items": {
       "explainer": {
         "description": "Correct a common mistake and show a better way.",
@@ -297,6 +293,7 @@
       }
     },
     "listAria": "Storyboard presets",
+    "prefillAria": "Use the {title} preset",
     "runtime": "{seconds}s",
     "seeAll": "See all presets",
     "selectBrand": "Choose a brand to start a storyboard from a preset.",

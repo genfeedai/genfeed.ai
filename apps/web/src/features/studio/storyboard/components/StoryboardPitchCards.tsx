@@ -8,8 +8,8 @@ import type { StoryboardPitchCardsProps } from '@/features/studio/props/storyboa
 import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard-pitches';
 
 /**
- * Three starter ideas for first-time users, in the same pill style as the
- * main Agent's suggestions: a click fills the brief, never submits.
+ * Three starter ideas for first-time users, in the same tiles as the main
+ * agent's "Start a chat" suggestions: a click fills the brief, never submits.
  */
 export default function StoryboardPitchCards({
   isDisabled = false,
@@ -31,20 +31,20 @@ export default function StoryboardPitchCards({
 
   return (
     <div
-      aria-label={translate('groupAria')}
       className="@container w-full min-w-0"
       data-testid="storyboard-pitch-cards"
-      role="group"
     >
       <PromptBarSuggestions
-        className="grid grid-cols-1 @xl:grid-cols-3 [&>button]:w-full [&>button]:max-w-none"
+        className="grid grid-cols-1 sm:grid-cols-1 @lg:grid-cols-3 [&>button]:w-full [&>button]:max-w-none"
         isDisabled={isDisabled}
-        onSuggestionSelect={(item) => {
-          const pitch = pitches.find((candidate) => candidate.id === item.id);
+        onSuggestionSelect={(suggestion) => {
+          const pitch = pitches.find(
+            (candidate) => candidate.id === suggestion.id,
+          );
           if (pitch) onSelect(pitch);
         }}
         suggestions={suggestions}
-        variant="chips"
+        variant="cards"
       />
     </div>
   );

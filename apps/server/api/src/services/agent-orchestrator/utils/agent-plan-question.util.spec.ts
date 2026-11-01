@@ -127,6 +127,25 @@ describe('parsePlanResponse', () => {
     });
   });
 
+  it('reads the JSON object after a line of prose', () => {
+    const reply =
+      'I\'ll check your review queue for pending drafts first.\n{"title":"Check review queue","summary":"Checking pending drafts","steps":[{"step":"Fetch review queue","status":"in_progress"}]}';
+    expect(parsePlanResponse(reply).parsed).toEqual({
+      steps: [{ status: 'in_progress', step: 'Fetch review queue' }],
+      summary: 'Checking pending drafts',
+      title: 'Check review queue',
+    });
+  });
+
+  it('reads fenced JSON after a line of prose', () => {
+    const reply = 'Here is the plan.\n```json\n{"summary":"Plan"}\n```';
+    expect(parsePlanResponse(reply).parsed).toEqual({ summary: 'Plan' });
+  });
+
+  it('keeps prose that only ends in braces as text', () => {
+    expect(parsePlanResponse('Use the {name} token').parsed).toBeNull();
+  });
+
   it('parses broken JSON to null', () => {
     expect(parsePlanResponse('{"a":').parsed).toBeNull();
   });

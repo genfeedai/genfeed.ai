@@ -1,7 +1,6 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ChangeEvent, ReactNode } from 'react';
-
 import Searchbar from '../primitives/searchbar';
 
 export interface ConversationSidebarFilter<TValue extends string> {
@@ -59,6 +58,7 @@ export function ConversationSidebarSection({
   return (
     <section aria-label={label}>
       <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+        {/* ui-guard-allow:native-title -- this file is exported from the @genfeedai/ui barrel, which public marketing pages import; a Radix tooltip here adds ~37 kB first-load JS to /skills */}
         <span className="min-w-0 truncate" title={label}>
           {label}
         </span>

@@ -108,7 +108,7 @@ export function OverviewContent({
                       onClick={card.onClick}
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
-                      className="w-full justify-center text-xs tracking-[0.08em]"
+                      className="w-full justify-center tracking-[0.08em]"
                       label={card.cta}
                     />
                   ) : (
