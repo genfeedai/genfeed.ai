@@ -1,4 +1,5 @@
 import {
+  buildDraftVoiceBlock,
   buildVoiceCorpus,
   buildVoiceEvidencePrompt,
   EMPTY_CORPUS_GUIDANCE,
@@ -244,5 +245,27 @@ describe('brand voice prompt evidence', () => {
       pickRepresentativeExemplars([...corpus.samples].reverse(), 2),
     );
     expect(pickRepresentativeExemplars(corpus.samples, 2)).toHaveLength(2);
+  });
+});
+
+describe('draft voice block', () => {
+  it('is null when the brand has no own writing', () => {
+    expect(buildDraftVoiceBlock([])).toBeNull();
+  });
+
+  it('quotes the brand posts verbatim and numbered, without asking for analysis', () => {
+    const corpus = buildVoiceCorpus([
+      candidate('own-1', 'shipped the new editor. no fluff.'),
+      candidate('own-2', 'Three things we learned from 1,000 launches', {
+        daysAgo: 2,
+      }),
+    ]);
+
+    const block = buildDraftVoiceBlock(pickPromptSamples(corpus.samples));
+
+    expect(block).toContain('[1] (original, twitter)');
+    expect(block).toContain('shipped the new editor. no fluff.');
+    expect(block).toContain('Three things we learned from 1,000 launches');
+    expect(block).toContain('Do not copy or quote them');
   });
 });

@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  buildDraftVoiceBlock,
+  pickPromptSamples,
+} from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { readOnboardingAnswersProgress } from '@api/collections/brands/utils/onboarding-answers-progress.util';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import type {
@@ -83,6 +88,9 @@ const PLATFORM_FORMAT_BRIEF: Record<
     'Write a short TikTok caption: one strong hook, a few concise lines, and no stage directions.',
 };
 
+/** Own posts quoted to the draft prompt: enough to show the voice, few enough to stay cheap. */
+const VOICE_EVIDENCE_SAMPLE_LIMIT = 6;
+
 const TONE_DIRECTION: Record<
   NonNullable<OnboardingDraftContextDto['tone']>,
   string
@@ -110,6 +118,7 @@ export class OnboardingFirstDraftsService {
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly runs: OnboardingDraftRunsService,
+    private readonly brandVoiceCorpusService: BrandVoiceCorpusService,
   ) {}
 
   /** Reads a public link and prefills the brand. Failures are reported, never thrown. */
@@ -204,12 +213,14 @@ export class OnboardingFirstDraftsService {
       dto.context,
     );
     const identity = { brandId, organizationId, userId };
+    const voiceEvidence = await this.readVoiceEvidence(brandId, organizationId);
 
     const xDraft = await this.generateDraft({
       direction,
       identity,
       platform: 'twitter',
       previousRequestKey: dto.previousRequestKey,
+      voiceEvidence,
       prompt: [
         'Introduce the brand with a useful, specific post grounded in its saved offering.',
         ...(direction ? [`Apply these requested changes: ${direction}`] : []),
@@ -271,6 +282,7 @@ export class OnboardingFirstDraftsService {
           direction,
           identity,
           platform,
+          voiceEvidence,
           prompt: [
             PLATFORM_FORMAT_BRIEF[platform],
             `Base it on the same idea as this X post: ${xDraft.text}`,
@@ -480,6 +492,40 @@ export class OnboardingFirstDraftsService {
       .join(' ');
   }
 
+  /**
+   * The brand's own writing, so the drafts sound like it: posts imported from a
+   * connected account plus anything it has published. Empty when there is none,
+   * and the drafts then rest on the brand kit alone. Best effort: a failed read
+   * must not stop the first drafts.
+   */
+  private async readVoiceEvidence(
+    brandId: string,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    try {
+      const corpus = await this.brandVoiceCorpusService.buildCorpus({
+        brandId,
+        organizationId,
+      });
+      // Replies are a different register from a standalone post, so they only
+      // stand in when the brand has no original posts at all.
+      const originals = corpus.samples.filter(
+        (sample) => sample.kind === 'original',
+      );
+      const samples = pickPromptSamples(
+        originals.length > 0 ? originals : corpus.samples,
+        VOICE_EVIDENCE_SAMPLE_LIMIT,
+      );
+      return buildDraftVoiceBlock(samples) ?? undefined;
+    } catch (error: unknown) {
+      this.loggerService.warn('Onboarding drafts skipped voice evidence', {
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
+  }
+
   /** Persists the answers on the brand so later generations keep using them. */
   private async saveContext(
     brand: { agentConfig?: unknown },
@@ -531,6 +577,7 @@ export class OnboardingFirstDraftsService {
     platform: OnboardingDraftPlatform;
     previousRequestKey?: string;
     prompt: string;
+    voiceEvidence?: string;
   }): Promise<IOnboardingFirstDraft> {
     const requestKey = randomUUID();
     const result = await this.postGenerationService.generateDraftText(
@@ -542,7 +589,11 @@ export class OnboardingFirstDraftsService {
       },
       input.identity,
       undefined,
-      { parentRequestId: input.previousRequestKey, surface: 'onboarding' },
+      {
+        parentRequestId: input.previousRequestKey,
+        surface: 'onboarding',
+        ...(input.voiceEvidence ? { voiceEvidence: input.voiceEvidence } : {}),
+      },
     );
     const text = result.description.trim();
     if (!text) throw new Error('The text generator returned no draft.');

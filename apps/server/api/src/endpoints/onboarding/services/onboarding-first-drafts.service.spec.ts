@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
@@ -45,6 +46,7 @@ describe('OnboardingFirstDraftsService', () => {
   const signupPrefill = { scanBrandUrl: vi.fn() };
   const gateway = { generateImage: vi.fn(), generateVideo: vi.fn() };
   const runs = { execute: vi.fn(), retryMedia: vi.fn() };
+  const voiceCorpus = { buildCorpus: vi.fn() };
 
   let service: OnboardingFirstDraftsService;
   let counter = 0;
@@ -84,7 +86,9 @@ describe('OnboardingFirstDraftsService', () => {
       signupPrefill as never,
       gateway as never,
       runs as never,
+      voiceCorpus as never,
     );
+    voiceCorpus.buildCorpus.mockResolvedValue({ samples: [] });
     runs.execute.mockImplementation(
       async (_user, _brand, _previous, generate) => generate(vi.fn()),
     );
@@ -173,6 +177,86 @@ describe('OnboardingFirstDraftsService', () => {
       for (const prompt of prompts.slice(1)) {
         expect(prompt).toContain('twitter draft');
       }
+    });
+
+    describe('imported posts', () => {
+      function importedPost(
+        id: string,
+        text: string,
+        kind: 'original' | 'reply',
+      ) {
+        return {
+          engagement: null,
+          id,
+          kind,
+          origin: 'own-account' as const,
+          platform: 'twitter',
+          publishedAt: '2026-10-20T10:00:00.000Z',
+          text,
+        };
+      }
+
+      it("quotes the brand's imported posts in every channel's draft", async () => {
+        voiceCorpus.buildCorpus.mockResolvedValue(
+          buildVoiceCorpus([
+            importedPost(
+              'src-1',
+              'shipped the new editor. no fluff.',
+              'original',
+            ),
+            importedPost('src-2', '@sam thanks, fixing it today', 'reply'),
+          ]),
+        );
+
+        await service.generate(user, 'brand_1', {});
+
+        expect(voiceCorpus.buildCorpus).toHaveBeenCalledTimes(1);
+        const evidence = postGeneration.generateDraftText.mock.calls.map(
+          ([, , , options]) => options.voiceEvidence as string,
+        );
+        expect(evidence).toHaveLength(4);
+        for (const block of evidence) {
+          expect(block).toContain('shipped the new editor. no fluff.');
+          expect(block).not.toContain('thanks, fixing it today');
+        }
+      });
+
+      it('falls back to replies when the account has no original posts', async () => {
+        voiceCorpus.buildCorpus.mockResolvedValue(
+          buildVoiceCorpus([
+            importedPost('src-2', '@sam thanks, fixing it today', 'reply'),
+          ]),
+        );
+
+        await service.generate(user, 'brand_1', {});
+
+        const [, , , options] = postGeneration.generateDraftText.mock.calls[0];
+        expect(options.voiceEvidence).toContain('thanks, fixing it today');
+      });
+
+      it('drafts from the brand kit alone when nothing was imported', async () => {
+        voiceCorpus.buildCorpus.mockResolvedValue(buildVoiceCorpus([]));
+
+        const result = await service.generate(user, 'brand_1', {});
+
+        expect(result.drafts).toHaveLength(4);
+        for (const [, , , options] of postGeneration.generateDraftText.mock
+          .calls) {
+          expect(options).not.toHaveProperty('voiceEvidence');
+        }
+      });
+
+      it('still drafts when the imported posts cannot be read', async () => {
+        voiceCorpus.buildCorpus.mockRejectedValue(new Error('db down'));
+
+        const result = await service.generate(user, 'brand_1', {});
+
+        expect(result.drafts).toHaveLength(4);
+        expect(logger.warn).toHaveBeenCalledWith(
+          'Onboarding drafts skipped voice evidence',
+          { brandId: 'brand_1', error: 'db down' },
+        );
+      });
     });
 
     it('saves the retry round context and links the regeneration', async () => {

@@ -45,6 +45,7 @@ import { Module } from '@nestjs/common';
     BrandOsRevisionsService,
     BrandOsScanService,
     BrandFontAssetsService,
+    BrandVoiceCorpusService,
     SystemBrandService,
   ],
   imports: [

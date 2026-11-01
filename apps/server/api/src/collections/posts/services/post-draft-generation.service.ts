@@ -47,6 +47,11 @@ export interface PostDraftGenerationOptions {
   /** Request key of the draft this one regenerates. */
   parentRequestId?: string;
   /**
+   * The brand's own writing, verbatim, to match in the draft. Quoted into the
+   * prompt after the request; the caller decides whether there is any.
+   */
+  voiceEvidence?: string;
+  /**
    * Called once for each provider call this request actually made (not for a
    * replay), so the caller can bill every paid call, including the over-limit
    * retry.
@@ -187,7 +192,7 @@ export class PostDraftGenerationService {
           originalPrompt: this.buildDraftPrompt(
             dto,
             limit,
-            [referencePost, recentPosts],
+            [options.voiceEvidence ?? null, referencePost, recentPosts],
             shortenTo,
           ),
           provider: 'openrouter',
