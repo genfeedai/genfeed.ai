@@ -743,9 +743,17 @@ describe('model version lifecycle', () => {
     expect(byKey.get(MODEL_KEYS.FAL_ELEVEN_LABS_TTS)).toMatchObject({
       endpoint: 'fal-ai/elevenlabs/tts/multilingual-v2',
     });
+    expect(byKey.get(MODEL_KEYS.FAL_GPT_IMAGE_2)).toMatchObject({
+      endpoint: 'openai/gpt-image-2',
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_RECRAFT_V4_PRO)).toMatchObject({
+      endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
+    });
     for (const key of [
       MODEL_KEYS.FAL_SEEDANCE_2_0,
       MODEL_KEYS.FAL_ELEVEN_LABS_TTS,
+      MODEL_KEYS.FAL_GPT_IMAGE_2,
+      MODEL_KEYS.FAL_RECRAFT_V4_PRO,
     ])
       expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
   });
