@@ -1,13 +1,12 @@
 'use client';
-
 import { TransformationCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useEffect, useState } from 'react';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import type { ExtendedIngredientTabsChildrenProps } from '@/props/content/ingredient.props';
@@ -55,7 +54,7 @@ export default function IngredientTabsChildren({
   return (
     <div className="space-y-6">
       {children.length === 0 ? (
-        <CardEmptyContent label="No child assets found" />
+        <EmptyState title="No child assets found" />
       ) : (
         captionedChildren.length > 0 && (
           <div className="space-y-3">

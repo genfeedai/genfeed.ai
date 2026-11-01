@@ -1,5 +1,4 @@
 'use client';
-
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -28,8 +27,8 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
-import { EmptyStateCard } from '@ui/feedback';
 import { Avatar } from '@ui/primitives/avatar';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -131,7 +130,8 @@ function OrganizationMetricStrip({
   // "Organization Metrics" page title.
   if (hasNoData) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={Building2}
         title="No organization activity yet"
         action={{

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -21,7 +20,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar } from '@ui/primitives/avatar';
@@ -35,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
@@ -512,7 +511,7 @@ export default function FollowSourceModal({
           !postReference &&
           hasSearched &&
           !candidates.length ? (
-            <CardEmptyContent label={translate('noAccounts')} />
+            <EmptyState title={translate('noAccounts')} />
           ) : null}
 
           {!isSearching && !postReference && candidates.length > 0 ? (
@@ -671,7 +670,7 @@ export default function FollowSourceModal({
           ) : null}
 
           {!isSearching && !postReference && !hasSearched ? (
-            <CardEmptyContent label={translate('emptyHint')} />
+            <EmptyState title={translate('emptyHint')} />
           ) : null}
         </div>
 

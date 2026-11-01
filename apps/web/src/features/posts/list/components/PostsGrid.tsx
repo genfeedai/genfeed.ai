@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -23,7 +22,6 @@ import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -33,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -165,7 +164,7 @@ const PostsGrid = memo(
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
     if (posts.length === 0) {
-      return <CardEmpty label={EMPTY_STATES.POSTS_FOUND} />;
+      return <EmptyState surface="card" title={EMPTY_STATES.POSTS_FOUND} />;
     }
 
     return (

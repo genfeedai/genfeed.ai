@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonVariant,
   CardPadding,
@@ -14,12 +13,12 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Bookmark, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -190,8 +189,8 @@ export function AdsResearchAdGrid({
 
   if (ads.length === 0 && !isLoading) {
     return (
-      <CardEmptyContent
-        label={
+      <EmptyState
+        title={
           search.trim()
             ? translate('emptySearch')
             : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')

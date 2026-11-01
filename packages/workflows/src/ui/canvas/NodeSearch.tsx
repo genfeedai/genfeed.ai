@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { Kbd } from '@genfeedai/ui';
@@ -11,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
+import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
@@ -147,11 +152,14 @@ export function NodeSearch() {
             className="max-h-[300px] overflow-y-auto space-y-1"
           >
             {filteredNodes.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                {search
-                  ? `No nodes found for "${search}"`
-                  : 'No nodes in workflow'}
-              </div>
+              <EmptyState
+                size={CardEmptySize.SM}
+                title={
+                  search
+                    ? `No nodes found for "${search}"`
+                    : 'No nodes in workflow'
+                }
+              />
             ) : (
               filteredNodes.map((node, index) => {
                 const nodeDef =

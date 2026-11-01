@@ -1,27 +1,51 @@
-import type { CardEmptySize, CardVariant } from '@genfeedai/contracts';
+import type { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { CardEmptyAction } from '@genfeedai/props/ui/cards/card-empty.props';
+import type { ReactNode } from 'react';
+
+export interface EmptyStateAction {
+  label: string;
+  onClick: () => void;
+  variant?: ButtonVariant;
+  ariaLabel?: string;
+}
 
 /**
- * Shared contract for the `EmptyState` primitive.
- *
- * Deliberately stricter than {@link CardEmptyProps}: an empty state must always
- * tell the user *what* is empty (`title`) and offer a concrete next step
- * (`action`). This prevents surfaces from shipping bare skeleton chrome — an
- * empty grid, pending placeholder cards, or zero-value tiles — as if it were
- * content. Optional `icon` adds context; the primitive delegates
- * rendering to `CardEmptyContent` (mapping `title` -> `label`).
+ * Where the empty state paints:
+ * - `none` (default) — bare content; the host card, table or panel owns the
+ *   surface.
+ * - `card` — standalone page or region empty with its own card chrome. Never
+ *   nest it inside another card or table.
  */
+export type EmptyStateSurface = 'none' | 'card';
+
 export interface EmptyStateProps {
-  /** Required headline describing what is empty, in the user's terms. */
-  title: string;
-  /** Required next step. An empty state must always offer an action. */
-  action: CardEmptyAction;
+  /** Headline describing what is empty, in the user's terms. */
+  title?: string;
+  /** One supporting sentence: why it is empty, or what to do next. */
+  description?: ReactNode;
   /** Optional leading icon; sized by `size`. */
   icon?: IconComponent;
-  iconClassName?: string;
-  className?: string;
+  /**
+   * Emoji or single character shown in the icon ring when there is no
+   * `icon` (agent-authored blocks send emoji, not components).
+   */
+  glyph?: string;
+  /** The next step, rendered as one button. */
+  action?: EmptyStateAction;
+  /**
+   * Custom action nodes (several CTAs or navigation links). Takes precedence
+   * over `action`.
+   */
+  actions?: ReactNode;
+  /** Scale of the icon, title and vertical padding. @default CardEmptySize.DEFAULT */
   size?: CardEmptySize;
-  /** Card visual variant — applies to the card-wrapped `EmptyStateCard` only. */
-  variant?: CardVariant;
+  /** @default 'none' */
+  surface?: EmptyStateSurface;
+  /**
+   * Fill the positioned parent (`absolute inset-0`, no vertical padding), for
+   * an empty chart or media frame.
+   */
+  isFill?: boolean;
+  /** Layout classes only (width, margin, position). */
+  className?: string;
 }

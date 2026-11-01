@@ -64,26 +64,6 @@ vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>Loading platform home</div>,
 }));
 
-vi.mock('@ui/card/EmptyState', () => ({
-  EmptyStateCard: ({
-    action,
-    description,
-    title,
-  }: {
-    action: { label: string; onClick: () => void };
-    description?: string;
-    title: string;
-  }) => (
-    <div>
-      <h2>{title}</h2>
-      <p>{description}</p>
-      <button type="button" onClick={action.onClick}>
-        {action.label}
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock('@/components/overview/OverviewLayout', () => ({
   default: ({
     cards,

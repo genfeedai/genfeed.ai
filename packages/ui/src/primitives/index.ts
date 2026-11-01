@@ -108,6 +108,7 @@ export {
   default as DropzoneField,
 } from './dropzone-field';
 export { EditableText, type EditableTextProps } from './editable-text';
+export { EmptyState } from './empty-state';
 export {
   default as Field,
   type FieldElementProps,

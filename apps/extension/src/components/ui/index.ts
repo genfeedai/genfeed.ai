@@ -1,5 +1,4 @@
 export { ButtonSpinner } from '~components/ui/ButtonSpinner';
-export { EmptyState } from '~components/ui/EmptyState';
 export {
   CloseIcon,
   CreateIcon,

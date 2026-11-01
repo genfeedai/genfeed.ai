@@ -1,12 +1,11 @@
 'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -24,7 +23,8 @@ export default function OrganizationAutomationBrandEmptyState({
   const translate = useTranslations('common.automation.brandEmpty');
 
   return (
-    <CardEmpty
+    <EmptyState
+      surface="card"
       actions={
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.SECONDARY}>
           <Link
@@ -40,7 +40,7 @@ export default function OrganizationAutomationBrandEmptyState({
       className="mx-auto max-w-xl"
       description={translate('description')}
       icon={Workflow}
-      label={translate('title')}
+      title={translate('title')}
     />
   );
 }

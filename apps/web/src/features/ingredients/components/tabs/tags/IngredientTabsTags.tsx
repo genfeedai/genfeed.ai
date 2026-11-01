@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -11,11 +10,11 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
@@ -249,8 +248,8 @@ export default function IngredientTabsTags({
                 <Spinner className="inline-block size-5" />
               </div>
             ) : filteredAvailableTags.length === 0 ? (
-              <CardEmptyContent
-                label={
+              <EmptyState
+                title={
                   searchQuery ? 'No matching tags found' : 'No available tags'
                 }
               />
