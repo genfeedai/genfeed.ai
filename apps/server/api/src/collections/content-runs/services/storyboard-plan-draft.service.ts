@@ -20,6 +20,12 @@ import {
   storyboardDraftOutputSchema,
   storyboardMaxShots,
 } from '@api/collections/content-runs/services/storyboard-plan-draft';
+import {
+  assembleStoryboardSlideshowDraft,
+  buildStoryboardSlideshowDraftMessages,
+  type StoryboardSlideshowDraftRequest,
+  storyboardSlideshowDraftOutputSchema,
+} from '@api/collections/content-runs/services/storyboard-slideshow-draft';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -55,10 +61,11 @@ export class StoryboardPlanDraftService {
    */
   private async resolveHarnessBrief(
     request: StoryboardDraftActor & { brief: string },
+    contentType: 'post' | 'video-script' = 'video-script',
   ): Promise<string> {
     const brief = await this.harness.resolveBrief({
       brandId: request.brandId,
-      contentType: 'video-script',
+      contentType,
       includeContentMemory: true,
       objective: 'retention',
       organizationId: request.organizationId,
@@ -119,6 +126,38 @@ export class StoryboardPlanDraftService {
         JSON.parse(response.choices[0]?.message.content ?? ''),
       );
       return assembleStoryboardDraft(request, output);
+    } catch (error: unknown) {
+      return this.fail(error);
+    }
+  }
+
+  /**
+   * Ask the model for a slideshow: ordered slide descriptions and the post
+   * caption (#8896). Same retry contract as `draft`: nothing is saved on
+   * failure.
+   */
+  async draftSlideshow(
+    request: StoryboardSlideshowDraftRequest,
+  ): Promise<StoryboardPlan> {
+    const harnessBrief = await this.resolveHarnessBrief(request, 'post');
+    try {
+      const response = await this.openrouter.chatCompletion({
+        model: LLM_DEFAULTS.productTextFallback,
+        max_tokens: 8192,
+        messages: buildStoryboardSlideshowDraftMessages(request, harnessBrief),
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'storyboard_slideshow_draft',
+            strict: true,
+            schema: z.toJSONSchema(storyboardSlideshowDraftOutputSchema),
+          },
+        },
+      });
+      const output = storyboardSlideshowDraftOutputSchema.parse(
+        JSON.parse(response.choices[0]?.message.content ?? ''),
+      );
+      return assembleStoryboardSlideshowDraft(request, output);
     } catch (error: unknown) {
       return this.fail(error);
     }

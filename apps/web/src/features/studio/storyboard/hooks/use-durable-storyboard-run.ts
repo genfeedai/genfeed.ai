@@ -621,6 +621,23 @@ export function useDurableStoryboardRun(runId: string) {
     },
     [brandId, runId, getService, scope],
   );
+  const createSlideshowPost = useCallback(
+    async (revision: number) => {
+      if (!brandId || activeScope.current !== scope)
+        throw new Error('Storyboard scope changed.');
+      const service = await getService();
+      try {
+        return await service.createStoryboardSlideshowPost(brandId, runId, {
+          expectedRevision: revision,
+        });
+      } catch (error) {
+        throw new Error(
+          getJsonApiErrorMessage(error, 'Could not make the draft post.'),
+        );
+      }
+    },
+    [brandId, runId, getService, scope],
+  );
   const currentRun = result.scope === scope ? result.run : null;
   const isGeneratingStills = Boolean(
     currentRun?.config.plan?.shots.some(
@@ -725,6 +742,7 @@ export function useDurableStoryboardRun(runId: string) {
     draftPlan,
     quoteStills,
     generateStills,
+    slideshow: { createPost: createSlideshowPost },
     longForm: {
       isDrawingCutaways,
       quoteCutaways,

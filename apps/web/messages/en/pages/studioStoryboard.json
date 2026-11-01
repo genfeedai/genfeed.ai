@@ -71,7 +71,10 @@
     "uploadedVideo": "Uploaded video",
     "longFormTitle": "Long video",
     "longFormPlaceholder": "Paste a voice-note transcript or dump your ideas. They become a script for one presenter, with B-roll.",
-    "longFormHint": "Up to 20,000 characters. You review the script, then draft a cheap animatic before the presenter render."
+    "longFormHint": "Up to 20,000 characters. You review the script, then draft a cheap animatic before the presenter render.",
+    "slideshowTitle": "Slideshow",
+    "slideshowPlaceholder": "Describe the idea. It becomes a set of swipeable photos.",
+    "slideshowHint": "2 to 12 slides at 4:5. You review the set, draw the images, then save one draft post."
   },
   "draft": {
     "draftFailed": "Could not draft the storyboard. Try again.",
@@ -539,5 +542,41 @@
     },
     "problemNoScript": "Draft the script first.",
     "problemPresenter": "Give the presenter an avatar image and a voice."
+  },
+  "slideshow": {
+    "title": "Slides",
+    "swipeHint": "Slides post in this order. Every slide uses the same style references, so the set looks like one series.",
+    "progress": "{ready} of {total} images ready",
+    "drawMissing": "Draw missing images",
+    "drawing": "Drawing images…",
+    "quoteCredits": "{count, plural, one {# slide image} other {# slide images}} for {credits, plural, one {# credit} other {# credits}}. You are charged only for images that render.",
+    "quoteByok": "{count, plural, one {# slide image} other {# slide images}} with your Replicate key. No credits are charged.",
+    "slide": "Slide {ordinal}",
+    "slideNameFor": "Name of slide {ordinal}",
+    "slideNamePlaceholder": "Name this slide",
+    "description": "What the viewer sees",
+    "imageAlt": "Image for slide {ordinal}",
+    "noImage": "No image yet",
+    "imageGenerating": "Drawing image…",
+    "imageFailed": "The image failed. Draw it again.",
+    "imageStale": "The description changed. Redraw the image.",
+    "drawImage": "Draw image",
+    "redrawImage": "Redraw image",
+    "moveEarlier": "Move slide {ordinal} earlier",
+    "moveLater": "Move slide {ordinal} later",
+    "remove": "Remove slide {ordinal}",
+    "addSlide": "Add slide",
+    "maxSlides": "A slideshow has at most 12 slides.",
+    "newSlideLabel": "New slide",
+    "postTitle": "Post",
+    "postNeedsApproval": "Approve the slides to save them as a draft post.",
+    "postHint": "Saves one draft post with the slides in order. Nothing is scheduled or published.",
+    "postSave": "Save as draft post",
+    "postSaved": "Draft post saved with {count, plural, one {# slide} other {# slides}}.",
+    "postExisting": "This version already has a draft post.",
+    "postOpen": "Open the post",
+    "problemCount": "Add 2 to 12 slides.",
+    "problemImage": "Slide {ordinal}: draw a fresh image.",
+    "problemDescription": "Slide {ordinal}: describe the image."
   }
 }

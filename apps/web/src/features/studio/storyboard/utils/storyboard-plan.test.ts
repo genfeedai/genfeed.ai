@@ -12,6 +12,7 @@ import {
   storyboardApprovalProblems,
   storyboardLongFormApprovalProblems,
   storyboardShotsNeedingStills,
+  storyboardSlideshowApprovalProblems,
 } from './storyboard-plan';
 
 const plan: StoryboardPlan = {
@@ -281,5 +282,67 @@ describe('long-form plan editing', () => {
       ),
     ).toEqual(['no script']);
     expect(storyboardLongFormApprovalProblems(plan, messages)).toEqual([]);
+  });
+});
+
+describe('storyboardSlideshowApprovalProblems', () => {
+  const messages = {
+    count: 'count',
+    description: (ordinal: number) => `describe ${ordinal}`,
+    image: (ordinal: number) => `image ${ordinal}`,
+  };
+  const slideshow = (shots: StoryboardPlan['shots']): StoryboardPlan => ({
+    ...plan,
+    kind: 'slideshow',
+    format: '4:5',
+    runtimeBudgetSeconds: null,
+    shots,
+  });
+  const slide = (
+    ordinal: number,
+    overrides: Partial<StoryboardPlan['shots'][number]> = {},
+  ): StoryboardPlan['shots'][number] => ({
+    id: `slide-${ordinal}`,
+    ordinal,
+    action: 'A calm desk',
+    durationSeconds: null,
+    onScreenSpeaker: false,
+    stillAssetId: `image-${ordinal}`,
+    stillFreshness: 'fresh',
+    transition: 'cut',
+    ...overrides,
+  });
+  it('is ready when 2 to 12 slides are described and drawn', () => {
+    expect(
+      storyboardSlideshowApprovalProblems(
+        slideshow([slide(1), slide(2)]),
+        messages,
+      ),
+    ).toEqual([]);
+  });
+  it('needs at least two slides', () => {
+    expect(
+      storyboardSlideshowApprovalProblems(slideshow([slide(1)]), messages),
+    ).toEqual(['count']);
+  });
+  it('names the slides that are blank or have no fresh image', () => {
+    expect(
+      storyboardSlideshowApprovalProblems(
+        slideshow([
+          slide(1, { action: ' ' }),
+          slide(2, { stillFreshness: 'stale' }),
+          slide(3, { stillAssetId: undefined, stillFreshness: 'missing' }),
+        ]),
+        messages,
+      ),
+    ).toEqual(['describe 1', 'image 2', 'image 3']);
+  });
+  it('does not ask for durations or a runtime budget', () => {
+    expect(
+      storyboardSlideshowApprovalProblems(
+        slideshow([slide(1), slide(2)]),
+        messages,
+      ).join(' '),
+    ).not.toMatch(/duration|runtime/i);
   });
 });

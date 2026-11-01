@@ -180,6 +180,7 @@ export default function StoryboardRunPage({
     quoteStills,
     generateStills,
     longForm,
+    slideshow,
   } = useDurableStoryboardRun(runId);
   const modelCapabilities = useStoryboardCapabilities(
     runId,
@@ -204,6 +205,7 @@ export default function StoryboardRunPage({
         quoteStills={quoteStills}
         generateStills={generateStills}
         longForm={longForm}
+        slideshow={slideshow}
         {...modelCapabilities}
       />
     );

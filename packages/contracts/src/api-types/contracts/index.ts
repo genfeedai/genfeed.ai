@@ -75,6 +75,7 @@ export * from './storyboard-run.contract';
 export * from './storyboard-run-capabilities.contract';
 export * from './storyboard-run-quote.contract';
 export * from './storyboard-run-summary.contract';
+export * from './storyboard-slideshow-tool.contract';
 export * from './storyboard-source.contract';
 export * from './storyboard-still.contract';
 export * from './studio-proposals.contract';

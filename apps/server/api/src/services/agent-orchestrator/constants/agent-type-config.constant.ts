@@ -99,11 +99,16 @@ const PREPARE_MEDIA_TOOLS: CuratedActionName[] = [
 const LONG_FORM_STORYBOARD_TOOLS: CuratedActionName[] = [
   'storyboard_long_form',
   'start_storyboard_long_form',
+  'storyboard_slideshow',
+  'start_storyboard_slideshow',
 ];
 
 const LONG_FORM_STORYBOARD_PROMPT = `
 ## Long-form presenter videos
 For a voice note, transcript or idea dump that should become a long talking-head video, use storyboard_long_form: create, draft_plan, edit_script, approve_plan, then estimate the whole video. Quote one stage at a time (animatic first, then cutaways, then presenter) and start it with start_storyboard_long_form using the quote's inputHash. reconcile picks up finished renders; assemble opens the animatic or final edit.
+
+## Slideshows
+For an idea that should become a swipeable photo post (Instagram, TikTok or LinkedIn carousel), use storyboard_slideshow: create (pass styleReferenceAssetIds and cast reference images to keep every slide consistent), draft_plan, edit_slides (text, order, removals), then quote the slide images and start them with start_storyboard_slideshow using the quote's inputHash. reconcile picks up finished images. Show the user all slides side by side, regenerate outliers with quote slideIds, approve_plan, then save_draft_post makes one draft post with the slides in order. Never schedule or publish it unless the user asks.
 `;
 
 const WORKFLOW_FIRST_PROMPT = `

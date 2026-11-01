@@ -1,9 +1,12 @@
 import {
   approveStoryboardPlan,
+  assertStoryboardSlideshowComplete,
   editStoryboardPlan,
+  normalizeStoryboardSlideshow,
   snapStoryboardDurations,
   storyboardShotPrompt,
 } from '@api/collections/content-runs/services/storyboard-plan-state';
+import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { describe, expect, it } from 'vitest';
 
@@ -235,5 +238,118 @@ describe('Shot cast image-conditioning freshness', () => {
     expect(
       editStoryboardPlan(config, imageChange).plan.shots[0].stillFreshness,
     ).toBe('stale');
+  });
+});
+
+function slideshowPlan(
+  overrides: Partial<StoryboardPlan> = {},
+): StoryboardPlan {
+  return {
+    kind: 'slideshow',
+    title: 'Five habits',
+    logline: 'Swipe for five habits.',
+    videoModelKey: null,
+    format: '4:5',
+    runtimeBudgetSeconds: null,
+    styleReferenceAssetIds: [],
+    cast: [],
+    shots: [1, 2, 3].map((ordinal) => ({
+      id: `slide-${ordinal}`,
+      ordinal,
+      action: `Habit ${ordinal}`,
+      onScreenSpeaker: false,
+      durationSeconds: null,
+      stillAssetId: `image-${ordinal}`,
+      stillFreshness: 'fresh' as const,
+      transition: 'cut' as const,
+    })),
+    ...overrides,
+  };
+}
+
+describe('Storyboard slideshow plans', () => {
+  it.each([
+    ['one slide', 1],
+    ['thirteen slides', 13],
+  ])('refuses %s', (_label, count) => {
+    const base = slideshowPlan();
+    const plan = {
+      ...base,
+      shots: Array.from({ length: count }, (_, index) => ({
+        ...base.shots[0],
+        id: `slide-${index + 1}`,
+        ordinal: index + 1,
+      })),
+    };
+
+    expect(() => assertStoryboardSlideshowComplete(plan)).toThrow(
+      'A slideshow needs 2–12 slides.',
+    );
+  });
+
+  it('names the slides still missing a fresh image', () => {
+    const base = slideshowPlan();
+    const plan = slideshowPlan({
+      shots: [
+        base.shots[0],
+        { ...base.shots[1], stillFreshness: 'stale' },
+        { ...base.shots[2], stillAssetId: undefined },
+      ],
+    });
+
+    expect(() => assertStoryboardSlideshowComplete(plan)).toThrow(
+      'Described slides with fresh images are required for slides 2, 3.',
+    );
+  });
+
+  it('accepts a described slideshow with a fresh image on every slide', () => {
+    expect(() =>
+      assertStoryboardSlideshowComplete(slideshowPlan()),
+    ).not.toThrow();
+  });
+
+  it('strips video-only fields when a slideshow is edited', () => {
+    const base = slideshowPlan();
+    const normalized = normalizeStoryboardSlideshow({
+      ...base,
+      runtimeBudgetSeconds: 30,
+      shots: base.shots.map((shot) => ({
+        ...shot,
+        dialogue: 'Hi',
+        durationSeconds: 5,
+        transition: 'stitch' as const,
+      })),
+    });
+
+    expect(normalized).toMatchObject({
+      kind: 'slideshow',
+      runtimeBudgetSeconds: null,
+      shots: [
+        { durationSeconds: null, transition: 'cut' },
+        { durationSeconds: null, transition: 'cut' },
+        { durationSeconds: null, transition: 'cut' },
+      ],
+    });
+    expect(normalized.shots[0].dialogue).toBeUndefined();
+  });
+
+  it('approves a complete slideshow at the current revision and refuses one with pending slides', () => {
+    const complete = { ...fixture(), plan: slideshowPlan() };
+    const pending = {
+      ...fixture(),
+      plan: slideshowPlan({
+        shots: slideshowPlan().shots.map((shot, index) =>
+          index === 0 ? { ...shot, stillFreshness: 'missing' as const } : shot,
+        ),
+      }),
+    };
+
+    expect(approveStoryboardPlan(complete)).toMatchObject({
+      approvedRevision: 1,
+      state: 'approved',
+    });
+    expect(() => approveStoryboardPlan(pending)).toThrow(
+      'Described slides with fresh images are required for slides 1.',
+    );
   });
 });
