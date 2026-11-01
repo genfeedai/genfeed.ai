@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
+import { AlertCategory, CardGap } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -44,7 +44,7 @@ function LeaderTable({
   valueLabel,
 }: LeaderTableProps) {
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
         <CardEmptyContent label="No data available" />
@@ -89,7 +89,7 @@ function ComparisonCard({
   difference,
 }: ComparisonCardProps) {
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex items-end justify-between gap-4">
         <div>
@@ -121,7 +121,7 @@ function DailySeriesChart({
 }: DailySeriesChartProps) {
   if (data.length === 0) {
     return (
-      <Card bodyClassName="gap-0 p-4">
+      <Card gap={CardGap.NONE}>
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
         <CardEmptyContent label="No data available" />
       </Card>
@@ -132,7 +132,7 @@ function DailySeriesChart({
   const maxValue = Math.max(...values, 1);
 
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       <div className="flex h-32 items-end gap-px">
         {data.map((point) => {
@@ -163,7 +163,7 @@ function DailySeriesChart({
 function ProjectionCard({ projections }: ProjectionCardProps) {
   if (projections.insufficientData) {
     return (
-      <Card bodyClassName="gap-0 p-4">
+      <Card gap={CardGap.NONE}>
         <h3 className="mb-2 text-sm font-semibold text-foreground">
           30-Day Projections
         </h3>
@@ -176,7 +176,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
   }
 
   return (
-    <Card bodyClassName="gap-0 p-4">
+    <Card gap={CardGap.NONE}>
       <h3 className="mb-1 text-sm font-semibold text-foreground">
         30-Day Projections
       </h3>
@@ -327,7 +327,7 @@ export default function BusinessDashboard() {
         <>
           {/* Category Breakdown */}
           {data.ingredients.categoryBreakdown.length > 0 && (
-            <Card bodyClassName="gap-0 p-4">
+            <Card gap={CardGap.NONE}>
               <h3 className="mb-3 text-sm font-semibold text-foreground">
                 Ingredient Category Breakdown
               </h3>

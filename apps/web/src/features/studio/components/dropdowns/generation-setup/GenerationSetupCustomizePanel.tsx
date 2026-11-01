@@ -1,7 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Pin, RotateCcw, Undo2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -119,25 +126,33 @@ export default function GenerationSetupCustomizePanel({
           />
         ) : null}
         {resolvedSection === 'presets' && setup.presetId && onClearPreset ? (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-md bg-muted/40 px-2 py-1 text-xs">
-            <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-              <Pin aria-hidden="true" className="size-3.5 shrink-0" />
-              <span className="truncate">
-                {translate('pinned', {
-                  label: pinnedPreset?.label ?? translate('presets'),
-                })}
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
+            gap={CardGap.SM}
+            className="mb-2"
+            bodyClassName="flex-row items-center justify-between"
+          >
+            <div className="text-xs">
+              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                <Pin aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  {translate('pinned', {
+                    label: pinnedPreset?.label ?? translate('presets'),
+                  })}
+                </span>
               </span>
-            </span>
-            <Button
-              ariaLabel={translate('unpinPreset')}
-              className="size-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-              icon={<X className="size-3" />}
-              isDisabled={isDisabled}
-              onClick={onClearPreset}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-            />
-          </div>
+              <Button
+                ariaLabel={translate('unpinPreset')}
+                className="size-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                icon={<X className="size-3" />}
+                isDisabled={isDisabled}
+                onClick={onClearPreset}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+              />
+            </div>
+          </Card>
         ) : null}
         {resolvedSection === 'presets' && onResetAll ? (
           <Button

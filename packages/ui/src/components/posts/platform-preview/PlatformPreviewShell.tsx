@@ -51,7 +51,6 @@ export default function PreviewShell({
               : eyebrow
         }
         className={className}
-        bodyClassName="gap-3"
         headerAction={
           isAccountHeader ? undefined : (
             <Badge

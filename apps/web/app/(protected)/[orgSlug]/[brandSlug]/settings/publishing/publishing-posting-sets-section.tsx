@@ -1,4 +1,9 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -193,7 +198,7 @@ export default function PublishingPostingSetsSection({
   );
 
   return (
-    <Card label="Posting sets" bodyClassName="gap-3 p-4">
+    <Card label="Posting sets">
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading posting sets…</p>
       ) : postingSets.length === 0 ? (
@@ -208,10 +213,7 @@ export default function PublishingPostingSetsSection({
             );
             const preview = previewBySetId[postingSet.id] ?? [];
             return (
-              <div
-                key={postingSet.id}
-                className="space-y-3 rounded-card bg-card/40 p-4 shadow-border"
-              >
+              <Card variant={CardVariant.INSET} key={postingSet.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">{postingSet.label}</p>
@@ -274,7 +276,7 @@ export default function PublishingPostingSetsSection({
                     ))}
                   </ul>
                 ) : null}
-              </div>
+              </Card>
             );
           })}
         </div>

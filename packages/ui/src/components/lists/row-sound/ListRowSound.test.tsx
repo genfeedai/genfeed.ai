@@ -53,10 +53,10 @@ describe('ListRowSound', () => {
       .getByText('Rachel')
       .closest('li')?.firstElementChild;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass(
+    expect(rootElement).toHaveClass('ring-primary/50');
+    expect(rootElement?.firstElementChild).toHaveClass(
       'grid-cols-[auto_minmax(0,1fr)]',
       'lg:grid-cols-[auto_minmax(0,1fr)_auto]',
-      'bg-accent',
     );
     expect(screen.getByText('Rachel')).toBeInTheDocument();
     expect(screen.getByText('Narration')).toBeInTheDocument();

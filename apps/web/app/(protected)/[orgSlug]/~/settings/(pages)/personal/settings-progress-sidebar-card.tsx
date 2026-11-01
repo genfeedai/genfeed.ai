@@ -14,7 +14,7 @@ export default function SettingsProgressSidebarCard({
   setVisibility,
 }: Props) {
   return (
-    <Card label="Sidebar module" bodyClassName="gap-3 p-4">
+    <Card label="Sidebar module">
       <InsetSurface tone="contrast">
         <Switch
           label="Show Progress in sidebar"

@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   EvaluationSeverity,
   IngredientCategory,
   Status,
@@ -345,10 +346,10 @@ export default function EvaluationCard({
     <Card
       label="Quality Evaluation"
       headerAction={getHeaderAction()}
-      bodyClassName={
+      gap={
         !evaluation || evaluationData?.status !== Status.COMPLETED
           ? undefined
-          : 'space-y-4'
+          : CardGap.LG
       }
     >
       <EvaluationCardContent

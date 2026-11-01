@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import {
@@ -16,6 +17,7 @@ import type { SocialWarmupProgramProps } from '@props/social/social-warmup-progr
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
+import Card from '@ui/card/Card';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -358,7 +360,7 @@ export default function SocialWarmupProgram({
       </div>
 
       {model.nextAction ? (
-        <div className="rounded-md bg-card px-3 py-2">
+        <Card padding={CardPadding.SM}>
           <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {translate('nextAction')}
           </p>
@@ -370,7 +372,7 @@ export default function SocialWarmupProgram({
           >
             {model.nextAction.title}
           </Button>
-        </div>
+        </Card>
       ) : null}
 
       <p className="text-xs text-muted-foreground">

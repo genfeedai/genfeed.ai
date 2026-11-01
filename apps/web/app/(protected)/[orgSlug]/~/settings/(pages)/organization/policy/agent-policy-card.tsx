@@ -21,7 +21,7 @@ export default function AgentPolicyCard({
   qualityTierOptions,
 }: AgentPolicyCardProps) {
   return (
-    <Card label="Autonomous Agent Policy" bodyClassName="gap-3 p-4">
+    <Card label="Autonomous Agent Policy">
       <div className="space-y-3">
         <div>
           <p className="text-sm font-medium">Default Quality Tier</p>

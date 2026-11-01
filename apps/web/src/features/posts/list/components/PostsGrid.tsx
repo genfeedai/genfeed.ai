@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   ComponentSize,
   Platform,
   PostStatus,
@@ -243,11 +244,11 @@ const PostsGrid = memo(
             return (
               <Card
                 key={post.id}
-                className="group text-left hover:shadow-border-strong"
+                isInteractive
+                className="group text-left"
+                gap={view === 'list' ? CardGap.MD : CardGap.NONE}
                 bodyClassName={
-                  view === 'list'
-                    ? 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center'
-                    : 'gap-0 p-4'
+                  view === 'list' ? 'sm:flex-row sm:items-center' : undefined
                 }
               >
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-3">

@@ -1,4 +1,4 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { buildClipperDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
@@ -177,10 +177,7 @@ export default function ClipperResultCard({
   }, [videoUrl, clip.title]);
 
   return (
-    <Card
-      className="group h-full transition-colors hover:bg-card"
-      bodyClassName="h-full gap-0 p-4"
-    >
+    <Card className="group h-full" gap={CardGap.NONE} bodyClassName="h-full">
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">

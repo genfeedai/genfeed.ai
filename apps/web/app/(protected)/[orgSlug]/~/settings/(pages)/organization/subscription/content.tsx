@@ -3,6 +3,8 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
+  CardGap,
+  CardPadding,
   formatEnumLabel,
   SubscriptionStatus,
   SubscriptionTier,
@@ -154,7 +156,8 @@ function SettingsSubscriptionContent() {
 
       <Card
         label="Current Plan"
-        bodyClassName="gap-5 p-5"
+        padding={CardPadding.LG}
+        gap={CardGap.LG}
         headerAction={
           <Button
             variant={ButtonVariant.DEFAULT}

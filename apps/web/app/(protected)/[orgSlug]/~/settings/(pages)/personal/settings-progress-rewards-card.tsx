@@ -25,7 +25,6 @@ export default function SettingsProgressRewardsCard({
     <Card
       label="Earned streak rewards"
       description="Badge milestones unlock at 30, 100, and 365 days."
-      bodyClassName="gap-3 p-4"
     >
       <div className="flex flex-wrap gap-2">
         {badgeMilestones.length > 0 ? (

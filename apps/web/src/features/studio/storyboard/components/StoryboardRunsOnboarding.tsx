@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
@@ -22,7 +22,7 @@ export default function StoryboardRunsOnboarding(): ReactElement {
 
   return (
     <div className="flex flex-col gap-8" data-testid="storyboard-onboarding">
-      <Card className="w-full" bodyClassName="gap-4 p-5">
+      <Card className="w-full" padding={CardPadding.LG} gap={CardGap.LG}>
         <div className="flex max-w-2xl flex-col gap-1.5">
           <h2 className="text-lg font-semibold tracking-[-0.01em]">
             {translate('title')}

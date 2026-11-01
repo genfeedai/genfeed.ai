@@ -5,7 +5,7 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   test: {
     environment: 'node',
-    include: ['*.test.ts'],
+    include: ['*.test.ts', 'hand-built/*.test.ts'],
     name: 'scripts/ui',
   },
 });

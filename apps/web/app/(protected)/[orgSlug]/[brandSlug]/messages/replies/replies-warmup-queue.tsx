@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import { ASSISTED_X_REPLY_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import type { IAssistedReplyUsage } from '@genfeedai/contracts/interfaces';
 import type { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
@@ -126,7 +126,7 @@ export default function RepliesWarmupQueue() {
   return (
     <Card
       label={translate('title')}
-      bodyClassName="gap-4 p-4"
+      gap={CardGap.LG}
       headerAction={
         usage ? (
           <Badge variant={isCapReached ? 'warning' : 'outline'}>

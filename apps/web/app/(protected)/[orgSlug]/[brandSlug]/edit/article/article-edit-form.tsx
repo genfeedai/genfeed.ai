@@ -1,4 +1,4 @@
-import { ArticleCategory } from '@genfeedai/contracts';
+import { ArticleCategory, CardGap } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
@@ -25,7 +25,7 @@ export default function ArticleEditForm({
   const translate = useTranslations('pages.articles.edit');
   return (
     <>
-      <Card bodyClassName="space-y-4">
+      <Card gap={CardGap.LG}>
         <FormControl label="Title">
           <Input
             name="articleTitle"

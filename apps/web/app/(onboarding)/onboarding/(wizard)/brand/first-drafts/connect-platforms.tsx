@@ -1,5 +1,10 @@
 'use client';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import {
   InstagramIcon,
   LinkedinIcon,
@@ -77,7 +82,8 @@ export default function ConnectPlatforms({
           return (
             <Card
               key={id}
-              bodyClassName="gap-5 p-5"
+              padding={CardPadding.LG}
+              gap={CardGap.LG}
               data-testid={`connect-card-${id}`}
             >
               <div className="flex items-center gap-3">

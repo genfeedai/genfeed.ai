@@ -1,4 +1,5 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardVariant } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -96,7 +97,7 @@ export default function NewsletterEditor({
   const translate = useTranslations('common.newsletterEditor');
 
   return (
-    <div className="space-y-4 rounded-lg bg-tertiary p-4">
+    <Card variant={CardVariant.INSET} gap={CardGap.LG}>
       <div className="grid gap-4 md:grid-cols-2">
         <Input
           placeholder="Newsletter label"
@@ -137,6 +138,6 @@ export default function NewsletterEditor({
           onChange={(event) => onEditorChange({ content: event.target.value })}
         />
       </div>
-    </div>
+    </Card>
   );
 }

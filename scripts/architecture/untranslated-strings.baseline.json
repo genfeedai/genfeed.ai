@@ -524,7 +524,6 @@
     "packages/ui/src/components/audio/preview-player/AudioPreviewPlayer.tsx": 1,
     "packages/ui/src/components/badges/ComingSoonBadge.tsx": 1,
     "packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx": 2,
-    "packages/ui/src/components/card/Card.tsx": 1,
     "packages/ui/src/components/card/empty/CardEmpty.tsx": 3,
     "packages/ui/src/components/cards/brand-completeness-card/BrandCompletenessCard.tsx": 3,
     "packages/ui/src/components/display/badge/Badge.tsx": 16,

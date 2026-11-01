@@ -3,6 +3,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
   CardVariant,
   formatEnumLabel,
   ViewType,
@@ -318,7 +320,8 @@ export default function EditorProjectsPage() {
   function renderProjectCard(project: IEditorProject) {
     return (
       <Card
-        bodyClassName="gap-0 p-0"
+        padding={CardPadding.NONE}
+        gap={CardGap.NONE}
         className="h-full overflow-hidden"
         data-testid={`editor-project-card-${project.id}`}
         variant={CardVariant.DEFAULT}

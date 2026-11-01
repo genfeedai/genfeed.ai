@@ -230,7 +230,7 @@ export default function ArticleDetail({
   if (!isLoading && error && !article) {
     return (
       <div className="container mx-auto p-6">
-        <Card bodyClassName="p-4">
+        <Card>
           <div className="text-destructive mb-4">{error}</div>
         </Card>
       </div>

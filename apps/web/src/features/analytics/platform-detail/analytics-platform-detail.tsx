@@ -211,10 +211,7 @@ export default function AnalyticsPlatformDetail({
         ]}
       />
 
-      <Card
-        label={`All ${platformLabel} Posts (${posts.length})`}
-        bodyClassName="gap-3 p-4 pb-0"
-      >
+      <Card label={`All ${platformLabel} Posts (${posts.length})`}>
         <div className="-mx-4 overflow-x-auto">
           <Table
             items={posts}

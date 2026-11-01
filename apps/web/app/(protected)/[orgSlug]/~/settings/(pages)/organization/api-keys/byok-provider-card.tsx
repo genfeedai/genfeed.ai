@@ -117,7 +117,6 @@ export default function ByokProviderCard({
     <>
       <Card
         key={providerStatus.provider}
-        bodyClassName="gap-3 p-4"
         data-testid={`provider-${providerStatus.provider}`}
       >
         <div className="flex items-start gap-3">

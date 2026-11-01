@@ -117,7 +117,7 @@ export default function AdsPublicDiscoveryPanel({
       : undefined;
   const countries = platform === 'tiktok' ? EUROPE : COUNTRIES;
   return (
-    <Card className="mb-4 bg-card/40" bodyClassName="gap-3 p-4">
+    <Card className="mb-4">
       <div className="space-y-1">
         <h2 className="text-sm font-semibold">{translate('title')}</h2>
         <p className="text-xs text-foreground/60">{translate('description')}</p>

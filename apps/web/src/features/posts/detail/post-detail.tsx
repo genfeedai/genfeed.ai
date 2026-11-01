@@ -499,7 +499,7 @@ export default function PostDetail({
   if (error) {
     return (
       <div className={wrapperClassName}>
-        <Card className="p-4">
+        <Card>
           <div className="text-destructive mb-4">{error}</div>
         </Card>
       </div>
@@ -511,7 +511,7 @@ export default function PostDetail({
   if (!isLoading && !post) {
     return (
       <div className={wrapperClassName}>
-        <Card className="p-4">
+        <Card>
           <div className="text-destructive mb-4">{translate('notFound')}</div>
           <Button
             asChild

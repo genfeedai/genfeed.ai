@@ -8,8 +8,9 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, ChevronDown, Clock3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -195,10 +196,7 @@ export function MutationApprovalCard({
       </p>
     );
   return (
-    <div
-      className="my-2 rounded-lg border border-border bg-card p-4"
-      aria-busy={isPending}
-    >
+    <Card variant={CardVariant.BORDERED} className="my-2" aria-busy={isPending}>
       <p className="whitespace-pre-wrap break-words text-sm font-medium text-foreground">
         {approval.summary}
       </p>
@@ -338,6 +336,6 @@ export function MutationApprovalCard({
               {translate(status === 'approved' ? 'approved' : 'declined')}
             </p>
           )}
-    </div>
+    </Card>
   );
 }

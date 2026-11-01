@@ -1,6 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
 import { Badge } from '@ui/primitives/badge';
@@ -81,7 +87,11 @@ export function WorkflowPickerOverlay({
         ) : (
           <div className="space-y-2">
             {visibleWorkflows.map((workflow) => (
-              <Card bodyClassName="gap-0 p-3" key={workflow.id}>
+              <Card
+                padding={CardPadding.SM}
+                gap={CardGap.NONE}
+                key={workflow.id}
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Zap className="size-5" />

@@ -32,7 +32,8 @@ export default function WorkflowLibraryCard({
   return (
     <Card
       bodyClassName="h-full justify-between"
-      className="group h-full hover:shadow-border-strong"
+      isInteractive
+      className="group h-full"
       data-testid="workflow-library-card"
       description={workflow.description || undefined}
       headerAction={

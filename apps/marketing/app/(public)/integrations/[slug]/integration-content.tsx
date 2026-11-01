@@ -89,7 +89,7 @@ export default function IntegrationContent({
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card bodyClassName="text-center">
+        <Card isCentered>
           <h2 className="text-3xl font-semibold text-primary mb-2">
             {integration.cta}
           </h2>

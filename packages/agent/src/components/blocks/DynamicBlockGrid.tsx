@@ -461,9 +461,11 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
       return <EmptyState block={block} />;
     default:
       return (
-        <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
-          Unknown block type
-        </div>
+        <Card variant={CardVariant.INSET}>
+          <div className="text-xs text-muted-foreground">
+            Unknown block type
+          </div>
+        </Card>
       );
   }
 }

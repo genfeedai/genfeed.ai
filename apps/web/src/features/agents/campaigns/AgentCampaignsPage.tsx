@@ -289,7 +289,7 @@ function CampaignCard({ campaign }: AgentCampaignItemProps) {
   const facts = useCampaignFacts(campaign);
 
   return (
-    <Card bodyClassName="gap-3 p-4" data-testid="campaign-card">
+    <Card data-testid="campaign-card">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <CampaignStatusBadge campaign={campaign} />

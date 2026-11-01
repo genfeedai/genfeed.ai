@@ -1,5 +1,6 @@
 'use client';
 
+import { CardGap } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -22,7 +23,7 @@ function UnknownWorkflowNodeComponent({
       : 'Unsupported workflow node';
 
   return (
-    <Card bodyClassName="gap-0" className="min-w-[220px]">
+    <Card gap={CardGap.NONE} className="min-w-[220px]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h3 className="truncate text-sm font-semibold text-foreground">
           {label}

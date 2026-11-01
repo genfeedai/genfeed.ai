@@ -1,9 +1,15 @@
 'use client';
 
-import { FONT_FAMILY_METADATA, resolveFontFamily } from '@genfeedai/contracts';
+import {
+  CardGap,
+  CardPadding,
+  FONT_FAMILY_METADATA,
+  resolveFontFamily,
+} from '@genfeedai/contracts';
 import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import Card from '@ui/card/Card';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Select,
@@ -87,8 +93,10 @@ function BrandPreviewSurface({
   template,
 }: BrandPreviewSurfaceProps) {
   return (
-    <div
-      className={`flex flex-col gap-4 rounded-card bg-card p-5 text-card-foreground shadow-border ${PREVIEW_FRAME_CLASS[template]}`}
+    <Card
+      padding={CardPadding.LG}
+      gap={CardGap.LG}
+      className={PREVIEW_FRAME_CLASS[template]}
       data-testid="brand-kit-preview-surface"
     >
       <div className="flex items-center gap-3">
@@ -161,7 +169,7 @@ function BrandPreviewSurface({
           </ul>
         ) : null}
       </div>
-    </div>
+    </Card>
   );
 }
 

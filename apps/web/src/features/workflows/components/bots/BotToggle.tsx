@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
@@ -97,7 +97,7 @@ export default function BotToggle({
         </div>
       </div>
 
-      <Card className="p-6">
+      <Card padding={CardPadding.XL}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Bot Status</h2>
@@ -138,7 +138,7 @@ export default function BotToggle({
         </div>
       </Card>
 
-      <Card className="p-6">
+      <Card padding={CardPadding.XL}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Configuration</h2>
           <Link

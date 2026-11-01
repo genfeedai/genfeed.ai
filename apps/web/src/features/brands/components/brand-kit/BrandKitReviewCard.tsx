@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetImportStatus,
@@ -197,7 +202,6 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
       }
       data-testid="brand-kit-review-card"
       label={translate('title')}
-      bodyClassName="gap-3 p-4"
     >
       <div
         aria-busy={isScanning || isApplying || isImportingAssets}
@@ -245,26 +249,29 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
         ) : null}
 
         {draft ? (
-          <div
+          <Card
+            variant={CardVariant.INSET}
+            padding={CardPadding.SM}
             aria-live="polite"
-            className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
             role="status"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium">
-                {formatReadinessScore(draft.readiness.score)}
-              </span>
-              <Badge variant="secondary">{draft.readiness.status}</Badge>
-            </div>
-            {draft.readiness.missingFields.length > 0 ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <EvidenceLabel kind="missing" />
-                <p className="text-xs text-muted-foreground">
-                  {formatMissingFields(draft.readiness.missingFields)}
-                </p>
+            <div className="text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium">
+                  {formatReadinessScore(draft.readiness.score)}
+                </span>
+                <Badge variant="secondary">{draft.readiness.status}</Badge>
               </div>
-            ) : null}
-          </div>
+              {draft.readiness.missingFields.length > 0 ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <EvidenceLabel kind="missing" />
+                  <p className="text-xs text-muted-foreground">
+                    {formatMissingFields(draft.readiness.missingFields)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </Card>
         ) : null}
 
         {draft?.evidence.length ? (
@@ -349,13 +356,16 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
             ) : null}
 
             {applyResult ? (
-              <div
+              <Card
+                variant={CardVariant.INSET}
+                padding={CardPadding.SM}
                 aria-live="polite"
-                className="rounded-md bg-card px-3 py-2 text-sm shadow-border"
                 role="status"
               >
-                {formatAppliedFieldsSummary(applyResult)}
-              </div>
+                <div className="text-sm">
+                  {formatAppliedFieldsSummary(applyResult)}
+                </div>
+              </Card>
             ) : null}
           </div>
         ) : (

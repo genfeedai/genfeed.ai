@@ -1,6 +1,12 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type AdPack,
@@ -12,6 +18,7 @@ import {
   type CampaignLaunchPrep,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -65,12 +72,13 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
         </div>
         <div className="space-y-2">
           {adPack.headlines.map((headline) => (
-            <div
+            <Card
+              variant={CardVariant.INSET}
+              padding={CardPadding.SM}
               key={headline}
-              className="rounded-md bg-tertiary px-3 py-2 text-sm text-foreground"
             >
-              {headline}
-            </div>
+              <div className="text-sm text-foreground">{headline}</div>
+            </Card>
           ))}
         </div>
       </div>
@@ -193,9 +201,14 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
         </div>
         <ul className="space-y-2 text-sm text-foreground/90">
           {prep.notes.map((note) => (
-            <li key={note} className="rounded-md bg-tertiary px-3 py-2">
+            <Card
+              variant={CardVariant.INSET}
+              padding={CardPadding.SM}
+              as="li"
+              key={note}
+            >
               {note}
-            </li>
+            </Card>
           ))}
         </ul>
       </div>
@@ -344,9 +357,10 @@ export function DetailSidebar({
               {detail.patternSummary && detail.patternSummary.length > 0 ? (
                 <div className="space-y-2">
                   {detail.patternSummary.map((pattern) => (
-                    <div
+                    <Card
+                      variant={CardVariant.INSET}
+                      padding={CardPadding.SM}
                       key={`${pattern.id}-${pattern.label}`}
-                      className="rounded-md bg-tertiary p-3"
                     >
                       <div className="mb-1 flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-foreground">
@@ -361,7 +375,7 @@ export function DetailSidebar({
                       <p className="text-xs leading-5 text-muted-foreground">
                         {pattern.summary}
                       </p>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               ) : (

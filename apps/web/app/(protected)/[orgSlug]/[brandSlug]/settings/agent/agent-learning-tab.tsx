@@ -322,7 +322,7 @@ function LearningStatus({
         <p>{translate('empty')}</p>
       ) : (
         accounts?.map((account) => (
-          <Card key={account.credentialId} bodyClassName="grid gap-3 p-4">
+          <Card key={account.credentialId} bodyClassName="grid">
             <h3>
               {translate('accountId')}: <span>{account.credentialId}</span>
             </h3>

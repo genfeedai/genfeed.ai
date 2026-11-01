@@ -1,7 +1,13 @@
 'use client';
 
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown, ChevronUp, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -41,10 +47,12 @@ export function ComposerFollowUpQueue({
         : 'idle';
 
   return (
-    <div
+    <Card
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      className="mb-1.5"
       aria-label={translate('count', { count: queue.length })}
       aria-live="polite"
-      className="mb-1.5 rounded-lg border border-border/70 bg-card/90 px-1.5 py-1"
       data-queue-state={queueState}
       data-testid="composer-follow-up-queue"
       role="region"
@@ -152,6 +160,6 @@ export function ComposerFollowUpQueue({
           })}
         </ol>
       ) : null}
-    </div>
+    </Card>
   );
 }

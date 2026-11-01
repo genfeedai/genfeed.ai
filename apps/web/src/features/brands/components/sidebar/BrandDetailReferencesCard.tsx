@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailReferencesCardProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -64,9 +69,11 @@ export default function BrandDetailReferencesCard({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div className="rounded-md bg-card/50 px-3 py-3 text-xs text-muted-foreground">
-            No reference assets yet.
-          </div>
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+            <div className="text-xs text-muted-foreground">
+              No reference assets yet.
+            </div>
+          </Card>
           <Button
             variant={ButtonVariant.DEFAULT}
             className="w-full gap-1.5 text-xs [&_svg]:size-3.5"

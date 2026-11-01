@@ -69,11 +69,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 describe('ManagedCreditsSuccessContent', () => {
   afterEach(() => {
     vi.useRealTimers();

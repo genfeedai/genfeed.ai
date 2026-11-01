@@ -1,6 +1,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
   CardVariant,
   TurboRewriteJobStatus,
 } from '@genfeedai/contracts';
@@ -27,8 +29,9 @@ export default function ReviewRewriteProgress({
 
   return (
     <Card
-      bodyClassName="flex flex-col gap-2 !p-3"
-      className="bg-card"
+      padding={CardPadding.SM}
+      gap={CardGap.SM}
+      bodyClassName="flex flex-col"
       variant={CardVariant.DEFAULT}
     >
       <div className="flex flex-row flex-wrap items-center justify-between gap-2">

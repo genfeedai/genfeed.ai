@@ -82,10 +82,7 @@ export default function TrendVideoGallery({
       ) : (
         <CollectionGrid maxColumns={3}>
           {videos.slice(0, 12).map((video) => (
-            <Card
-              key={video.id || `${video.platform}:${video.externalId}`}
-              bodyClassName="space-y-3 p-4"
-            >
+            <Card key={video.id || `${video.platform}:${video.externalId}`}>
               <SocialMediaPlayer
                 contentType="video"
                 mediaUrl={video.playUrl || video.videoUrl}

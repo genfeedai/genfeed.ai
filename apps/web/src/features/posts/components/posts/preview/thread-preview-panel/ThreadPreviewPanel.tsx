@@ -92,7 +92,7 @@ function PostPreviewItem({
       </div>
 
       <div className="flex-1">
-        <Card bodyClassName="p-4">
+        <Card>
           {textContent ? (
             <p className="whitespace-pre-wrap text-base text-foreground">
               {textContent}

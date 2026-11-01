@@ -1,6 +1,12 @@
 import type { AgentInputRequestOverlayProps } from '@genfeedai/agent/components/agent-input-request-overlay.types';
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -90,10 +96,13 @@ export function AgentInputRequestOverlay({
 
   return (
     <div className="w-full">
-      <div
+      <Card
+        variant={CardVariant.BORDERED}
+        padding={isComposer ? CardPadding.SM : CardPadding.MD}
+        gap={CardGap.NONE}
         className={cn(
-          'w-full rounded-lg border border-border bg-card shadow-border',
-          isComposer ? 'max-h-[min(50dvh,24rem)] overflow-y-auto p-3' : 'p-4',
+          'w-full',
+          isComposer && 'max-h-[min(50dvh,24rem)] overflow-y-auto',
         )}
       >
         <div className="mb-3">
@@ -265,7 +274,7 @@ export function AgentInputRequestOverlay({
             </Button>
           </div>
         ) : null}
-      </div>
+      </Card>
     </div>
   );
 }
