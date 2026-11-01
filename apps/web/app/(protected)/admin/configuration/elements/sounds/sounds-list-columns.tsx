@@ -1,6 +1,6 @@
-import { ComponentSize, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import type { ISound } from '@genfeedai/contracts/interfaces';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import type {
   SoundCellProps,
@@ -9,9 +9,7 @@ import type {
 
 export function SoundCategoryCell({ sound }: SoundCellProps) {
   return (
-    <Badge variant="outline" size={ComponentSize.SM}>
-      {(sound as ISound).category ?? 'Undefined'}
-    </Badge>
+    <Badge variant="outline">{(sound as ISound).category ?? 'Undefined'}</Badge>
   );
 }
 

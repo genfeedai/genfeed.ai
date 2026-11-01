@@ -1,15 +1,16 @@
 'use client';
 
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import type { PlatformComparisonMetricType } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { Button } from '@ui/primitives/button';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
   chartAxisStroke,
@@ -53,6 +54,7 @@ export function PlatformComparisonChart({
   height = 300,
   className = '',
 }: PlatformComparisonChartProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const [activeMetrics, setActiveMetrics] = useState<
     PlatformComparisonMetricType[]
   >([AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]);
@@ -74,44 +76,35 @@ export function PlatformComparisonChart({
 
   const isEmpty = !data || data.length === 0;
 
-  const toggleMetric = (metric: PlatformComparisonMetricType) => {
-    setActiveMetrics((previousMetrics) => {
-      if (!previousMetrics.includes(metric)) {
-        return [...previousMetrics, metric];
-      }
-
-      return previousMetrics.length > 1
-        ? previousMetrics.filter((m) => m !== metric)
-        : previousMetrics;
-    });
-  };
-
   return (
     <div className={className}>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {(Object.keys(METRIC_COLORS) as PlatformComparisonMetricType[]).map(
-          (metric) => (
-            <Button
-              type="button"
-              key={metric}
-              onClick={() => toggleMetric(metric)}
-              isDisabled={isLoading || isEmpty}
-              variant={ButtonVariant.UNSTYLED}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-[background-color,border-color,color] capitalize border ${
-                activeMetrics.includes(metric)
-                  ? 'border-border-strong bg-muted text-foreground'
-                  : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
-              } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+      <SegmentedControl
+        appearance="chip"
+        ariaLabel={selectionLabels('metrics')}
+        className="mb-4"
+        isDisabled={isLoading || isEmpty}
+        onValueChange={(metrics) => {
+          if (metrics.length > 0) {
+            setActiveMetrics(metrics);
+          }
+        }}
+        options={(
+          Object.keys(METRIC_COLORS) as PlatformComparisonMetricType[]
+        ).map((metric) => ({
+          label: (
+            <>
               <span
-                className="inline-block size-3 rounded-full mr-2"
+                className="inline-block size-3 rounded-full"
                 style={{ backgroundColor: METRIC_COLORS[metric] }}
               />
-              {metric}
-            </Button>
+              <span className="capitalize">{metric}</span>
+            </>
           ),
-        )}
-      </div>
+          value: metric,
+        }))}
+        type="multiple"
+        value={activeMetrics}
+      />
 
       {/* Chart */}
       <div className="relative" style={{ height }}>

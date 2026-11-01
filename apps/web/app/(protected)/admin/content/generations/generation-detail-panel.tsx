@@ -1,6 +1,7 @@
 'use client';
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
+import { Alert } from '@ui/primitives/alert';
 import {
   Collapsible,
   CollapsibleContent,
@@ -106,12 +107,7 @@ export default function GenerationDetailPanel({
         </div>
 
         {generation.error ? (
-          <p
-            className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-            role="alert"
-          >
-            {generation.error}
-          </p>
+          <Alert variant="destructive">{generation.error}</Alert>
         ) : null}
 
         <GenerationThumbnail generation={generation} sizes={480} />

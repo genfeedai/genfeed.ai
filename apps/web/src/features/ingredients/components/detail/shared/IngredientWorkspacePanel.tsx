@@ -1,7 +1,7 @@
 'use client';
 
-import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import type { TabItem } from '@genfeedai/contracts/interfaces';
+import { Tabs } from '@ui/primitives/tabs';
 import type { ReactNode } from 'react';
 
 interface IngredientWorkspacePanelProps {

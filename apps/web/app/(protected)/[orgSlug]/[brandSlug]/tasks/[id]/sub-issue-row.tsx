@@ -1,7 +1,7 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import type { SubIssueRowProps } from '@/features/tasks/props/sub-issue-row.props';
@@ -22,9 +22,7 @@ export function SubIssueRow({ issue, statusLabels }: SubIssueRowProps) {
         <span className="min-w-0 flex-1 truncate text-sm text-foreground">
           {issue.title}
         </span>
-        <Badge status={issue.status} size={ComponentSize.SM}>
-          {statusLabels[issue.status]}
-        </Badge>
+        <Badge status={issue.status}>{statusLabels[issue.status]}</Badge>
       </Link>
     </Button>
   );

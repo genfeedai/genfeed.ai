@@ -6,7 +6,7 @@ import { AgentStrategiesService } from '@services/automation/agent-strategies.se
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Progress } from '@ui/primitives/progress';
 import {

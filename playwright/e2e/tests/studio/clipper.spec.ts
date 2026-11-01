@@ -422,7 +422,7 @@ test.describe('Clip Factory', () => {
       MOCK_YOUTUBE_URL,
     );
     await expect(
-      authenticatedPage.getByRole('button', { name: /raw cut/i }),
+      authenticatedPage.getByRole('radio', { name: /raw cut/i }),
     ).toHaveCount(0);
   });
 
@@ -1131,7 +1131,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage
       .getByRole('button', { name: /import & transcribe/i })
       .click();
-    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
+    await authenticatedPage.getByRole('radio', { name: /raw cut/i }).click();
     await authenticatedPage
       .getByRole('button', { name: /generate 3 raw cuts/i })
       .click();

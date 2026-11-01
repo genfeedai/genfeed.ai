@@ -1,6 +1,6 @@
 'use client';
 
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import type { PublishingContentIdentityProps } from '@/features/posts/props/publishing-content-entry.props';
 import PublishingContentChannels from './publishing-content-channels';

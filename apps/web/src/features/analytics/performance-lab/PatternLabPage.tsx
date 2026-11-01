@@ -3,11 +3,10 @@ import {
   useAnalyticsToolbar,
   useOptionalAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
-import { AlertCategory } from '@genfeedai/contracts';
 import type { PatternType } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { FlaskConical } from 'lucide-react';
@@ -191,7 +190,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
   return (
     <div className={className}>
       {error && !isLoading && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="space-y-1">
             <div className="font-medium">Failed to load patterns</div>
             <div className="text-xs text-foreground/70">

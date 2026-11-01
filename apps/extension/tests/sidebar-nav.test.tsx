@@ -7,9 +7,9 @@ describe('SidebarNav', () => {
     render(<SidebarNav activeTab="reply" onTabChange={vi.fn()} />);
 
     const labels = screen
-      .getAllByRole('button')
-      .map((button) => button.getAttribute('aria-label'));
+      .getAllByRole('radio')
+      .map((radio) => radio.textContent);
 
-    expect(labels.slice(0, 3)).toEqual(['Reply', 'Create', 'Remix']);
+    expect(labels).toEqual(['Reply', 'Create', 'Remix']);
   });
 });

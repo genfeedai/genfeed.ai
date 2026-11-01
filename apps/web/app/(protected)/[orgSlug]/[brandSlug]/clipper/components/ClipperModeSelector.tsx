@@ -1,6 +1,6 @@
-import { ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { CircleUser, Film } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type {
   ClipperModeSelectorProps,
   ClipperResultMode,
@@ -32,53 +32,34 @@ export default function ClipperModeSelector({
   mode,
   onModeChange,
 }: ClipperModeSelectorProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-medium text-foreground">
         Generation mode
       </legend>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <OptionTileGroup
+        ariaLabel={selectionLabels('generationMode')}
+        className="sm:grid-cols-2"
+        columns={1}
+        onValueChange={onModeChange}
+        value={mode}
+      >
         {MODE_OPTIONS.map((option) => {
           const Icon = option.icon;
-          const isSelected = mode === option.value;
 
           return (
-            <Button
+            <OptionTile
+              description={option.description}
+              icon={<Icon aria-hidden="true" className="size-4" />}
               key={option.value}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              aria-pressed={isSelected}
-              onClick={() => onModeChange(option.value)}
-              className={`flex min-h-24 rounded-lg border p-4 text-left transition-colors ${
-                isSelected
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-muted hover:border-primary/60'
-              }`}
-            >
-              <span className="flex items-start gap-3">
-                <span
-                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
-                    isSelected ? 'bg-primary/10' : 'bg-muted'
-                  }`}
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className={`size-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-                  />
-                </span>
-                <span className="min-w-0 text-left">
-                  <span className="block text-sm font-medium text-foreground">
-                    {option.label}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                    {option.description}
-                  </span>
-                </span>
-              </span>
-            </Button>
+              size="lg"
+              title={option.label}
+              value={option.value}
+            />
           );
         })}
-      </div>
+      </OptionTileGroup>
     </fieldset>
   );
 }

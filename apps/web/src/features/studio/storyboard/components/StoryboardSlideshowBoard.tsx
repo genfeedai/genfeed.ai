@@ -14,6 +14,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import Field from '@ui/primitives/field';
@@ -119,9 +120,9 @@ export default function StoryboardSlideshowBoard({
             <li key={slide.id}>
               <Card variant={CardVariant.BORDERED} padding={CardPadding.SM}>
                 <div className="flex items-center gap-2">
-                  <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                  <Badge isMono variant="outline">
                     {String(slide.ordinal).padStart(2, '0')}
-                  </span>
+                  </Badge>
                   <EditableText
                     ariaLabel={translate('slideNameFor', {
                       ordinal: slide.ordinal,

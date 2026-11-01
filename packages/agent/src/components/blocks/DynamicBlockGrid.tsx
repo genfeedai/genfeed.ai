@@ -31,8 +31,10 @@ import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -61,43 +63,17 @@ function getColSpan(width?: AgentUIBlockWidth): string {
   }
 }
 
-function getAlertStyles(severity?: AlertBlock['severity']): {
-  border: string;
-  bg: string;
-  text: string;
-  icon: string;
-} {
-  switch (severity) {
-    case 'error':
-      return {
-        bg: 'bg-destructive/10',
-        border: 'border-red-500/20',
-        icon: '\u2716',
-        text: 'text-destructive',
-      };
-    case 'warning':
-      return {
-        bg: 'bg-warning/10',
-        border: 'border-yellow-500/20',
-        icon: '\u26A0',
-        text: 'text-warning',
-      };
-    case 'success':
-      return {
-        bg: 'bg-success/10',
-        border: 'border-green-500/20',
-        icon: '\u2714',
-        text: 'text-success',
-      };
-    default:
-      return {
-        bg: 'bg-info/10',
-        border: 'border-blue-500/20',
-        icon: '\u2139',
-        text: 'text-info',
-      };
-  }
-}
+type BlockTone = NonNullable<CalloutBlock['tone']>;
+
+const BLOCK_TONE_VARIANTS: Record<
+  BlockTone,
+  'destructive' | 'info' | 'success' | 'warning'
+> = {
+  error: 'destructive',
+  info: 'info',
+  success: 'success',
+  warning: 'warning',
+};
 
 function parseAnimatedValue(value: MetricCardBlock['value']): {
   canAnimate: boolean;
@@ -227,14 +203,21 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
             bodyClassName={topPostBodyClassName(isList)}
             variant={CardVariant.BORDERED}
           >
-            <div
-              className={`animate-pulse rounded bg-muted/70 ${
-                isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'
-              }`}
+            <Skeleton
+              aria-hidden="true"
+              className={isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'}
             />
             <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+              <Skeleton
+                aria-hidden="true"
+                className="h-4 w-2/3"
+                variant="text"
+              />
+              <Skeleton
+                aria-hidden="true"
+                className="h-3 w-1/2"
+                variant="text"
+              />
             </div>
           </Card>
         ))}
@@ -292,21 +275,11 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
 }
 
 function AlertBanner({ block }: { block: AlertBlock }): ReactElement {
-  const styles = getAlertStyles(block.severity);
   return (
-    <div
-      className={`flex items-start gap-3 rounded-lg border p-4 ${styles.border} ${styles.bg}`}
-    >
-      <span className={`text-lg ${styles.text}`}>{styles.icon}</span>
-      <div className="min-w-0 flex-1">
-        {block.title && (
-          <p className={`text-sm font-semibold ${styles.text}`}>
-            {block.title}
-          </p>
-        )}
-        <p className="text-sm text-foreground">{block.message}</p>
-      </div>
-    </div>
+    <Alert variant={BLOCK_TONE_VARIANTS[block.severity ?? 'info']}>
+      {block.title ? <AlertTitle>{block.title}</AlertTitle> : null}
+      <AlertDescription>{block.message}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -350,40 +323,11 @@ function BulletList({ block }: { block: BulletListBlock }): ReactElement {
   );
 }
 
-const CALLOUT_SEVERITY_STYLES: Record<
-  NonNullable<CalloutBlock['tone']>,
-  { border: string; bg: string; text: string }
-> = {
-  error: {
-    bg: 'bg-destructive/10',
-    border: 'border-red-500/20',
-    text: 'text-destructive',
-  },
-  info: {
-    bg: 'bg-info/10',
-    border: 'border-blue-500/20',
-    text: 'text-info',
-  },
-  success: {
-    bg: 'bg-success/10',
-    border: 'border-green-500/20',
-    text: 'text-success',
-  },
-  warning: {
-    bg: 'bg-warning/10',
-    border: 'border-yellow-500/20',
-    text: 'text-warning',
-  },
-};
-
 function Callout({ block }: { block: CalloutBlock }): ReactElement {
-  const tone = block.tone ?? 'info';
-  const styles = CALLOUT_SEVERITY_STYLES[tone];
-
   return (
-    <div className={`rounded-lg border p-3 ${styles.border} ${styles.bg}`}>
-      <p className={`text-sm ${styles.text}`}>{block.message}</p>
-    </div>
+    <Alert variant={BLOCK_TONE_VARIANTS[block.tone ?? 'info']}>
+      {block.message}
+    </Alert>
   );
 }
 
@@ -465,11 +409,9 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
       return <EmptyBlock block={block} />;
     default:
       return (
-        <Card variant={CardVariant.INSET}>
-          <div className="text-xs text-muted-foreground">
-            Unknown block type
-          </div>
-        </Card>
+        <Alert size="sm" variant="note">
+          Unknown block type
+        </Alert>
       );
   }
 }

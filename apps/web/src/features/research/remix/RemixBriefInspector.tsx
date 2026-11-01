@@ -3,7 +3,6 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
@@ -26,9 +25,15 @@ import type {
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
 import type { Voice } from '@models/ingredients/voice.model';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import {
@@ -288,16 +293,16 @@ export function buildRemixDraftEdits(
   };
 }
 
-function getReadinessAlertType(
+function getReadinessAlertVariant(
   state: BrandRemixRunView['readiness']['state'],
-): AlertCategory {
+): 'destructive' | 'success' | 'warning' {
   if (state === 'blocked') {
-    return AlertCategory.ERROR;
+    return 'destructive';
   }
   if (state === 'degraded') {
-    return AlertCategory.WARNING;
+    return 'warning';
   }
-  return AlertCategory.SUCCESS;
+  return 'success';
 }
 
 function formatLabel(value: string): string {
@@ -598,7 +603,7 @@ export default function RemixBriefInspector(): ReactElement {
           ) : null}
 
           {error ? (
-            <Alert type={AlertCategory.ERROR}>
+            <Alert variant="destructive">
               <div className="space-y-1">
                 <p className="font-medium">{translate('errors.title')}</p>
                 <p className="text-xs">{error}</p>
@@ -628,7 +633,7 @@ export default function RemixBriefInspector(): ReactElement {
             <div className="space-y-6">
               <section className="space-y-3 border-b border-border pb-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="ghost">
+                  <Badge variant="secondary">
                     {formatLabel(run.sourceSnapshot.platform)}
                   </Badge>
                   <Badge variant="secondary">
@@ -642,23 +647,18 @@ export default function RemixBriefInspector(): ReactElement {
                   <p className="gen-label-sm text-muted-foreground">
                     {translate('source.patternTitle')}
                   </p>
-                  <dl className="mt-2 space-y-2">
+                  <DefinitionList className="mt-2" variant="properties">
                     {patternEntries.map(([key, value]) => (
-                      <div
-                        className="grid grid-cols-[5.5rem_1fr] gap-3 text-sm"
-                        key={key}
-                      >
-                        <dt className="text-muted-foreground">
-                          {formatLabel(key)}
-                        </dt>
-                        <dd className="text-foreground">{value}</dd>
-                      </div>
+                      <DefinitionRow key={key}>
+                        <DefinitionTerm>{formatLabel(key)}</DefinitionTerm>
+                        <DefinitionDetail>{value}</DefinitionDetail>
+                      </DefinitionRow>
                     ))}
-                  </dl>
+                  </DefinitionList>
                 </div>
               </section>
 
-              <Alert type={getReadinessAlertType(run.readiness.state)}>
+              <Alert variant={getReadinessAlertVariant(run.readiness.state)}>
                 <div className="space-y-2">
                   <p className="font-medium">
                     {formatLabel(run.readiness.state)}
@@ -739,7 +739,7 @@ export default function RemixBriefInspector(): ReactElement {
                       })}
                     </p>
                   </div>
-                  <Badge variant="ghost">
+                  <Badge variant="secondary">
                     {editor.count}
                     {editor.outputKind === 'copy'
                       ? null
@@ -1045,7 +1045,7 @@ export default function RemixBriefInspector(): ReactElement {
                             withWrapper={false}
                           />
                         ) : (
-                          <Badge variant="ghost">
+                          <Badge variant="secondary">
                             {translate('references.managedByBrand')}
                           </Badge>
                         )}

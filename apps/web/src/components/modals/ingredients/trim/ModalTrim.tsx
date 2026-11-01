@@ -1,13 +1,13 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { ModalTrimProps } from '@genfeedai/props/modals/modal.props';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Play, X } from 'lucide-react';
 import { useVideoTrim } from '@/hooks/media/use-video-trim/use-video-trim';
@@ -90,7 +90,7 @@ export default function ModalTrim({
           />
 
           {/* Error Display */}
-          {error && <Alert type={AlertCategory.ERROR}>{error}</Alert>}
+          {error && <Alert variant="destructive">{error}</Alert>}
 
           {/* Action Buttons */}
           <ModalActions className="justify-between gap-4">

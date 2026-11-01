@@ -1,9 +1,9 @@
 'use client';
 
-import { AlertCategory, ComponentSize } from '@genfeedai/contracts';
+import { ComponentSize } from '@genfeedai/contracts';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import type { VideoTrimTimelineProps } from '@genfeedai/props/ui/media/video-trim-timeline.props';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Slider } from '@ui/primitives/slider';
 import Spinner from '@ui/primitives/spinner';
 import { useMemo } from 'react';
@@ -124,7 +124,7 @@ export default function VideoTrimTimeline({
 
       {/* Validation Message */}
       {(trimDuration < 2 || trimDuration > 15) && (
-        <Alert type={AlertCategory.WARNING} className="text-sm">
+        <Alert variant="warning" className="text-sm">
           Clip duration must be between 2 and 15 seconds
         </Alert>
       )}

@@ -11,11 +11,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminLearningPromptSlotsService } from '@services/admin/learning-prompt-slots.service';
 import { logger } from '@services/core/logger.service';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import Field from '@ui/primitives/field';
@@ -278,7 +279,7 @@ export default function LearningPage() {
             <SkeletonCard showImage={false} />
           </div>
         ) : state === 'error' ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" icon={false}>
             <AlertDescription>{translate('loadFailed')}</AlertDescription>
             <Button
               label={translate('retry')}

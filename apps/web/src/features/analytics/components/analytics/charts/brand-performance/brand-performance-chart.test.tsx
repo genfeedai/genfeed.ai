@@ -176,7 +176,7 @@ describe('BrandPerformanceChart', () => {
 
     it('disables metric buttons when loading', () => {
       render(<BrandPerformanceChart data={mockData} isLoading />);
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       buttons.forEach((button) => {
         expect(button).toBeDisabled();
       });
@@ -191,7 +191,7 @@ describe('BrandPerformanceChart', () => {
 
     it('hides metric buttons when empty (no signal)', () => {
       render(<BrandPerformanceChart data={[]} />);
-      expect(screen.queryAllByRole('button')).toHaveLength(0);
+      expect(screen.queryAllByRole('radio')).toHaveLength(0);
     });
 
     it('does not show empty message when loading', () => {
@@ -212,8 +212,10 @@ describe('BrandPerformanceChart', () => {
 
     it('defaults to engagement metric', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      const engagementButton = screen.getByText('Engagement').closest('button');
-      expect(engagementButton).toHaveClass('bg-muted');
+      const engagementButton = screen.getByRole('radio', {
+        name: 'Engagement',
+      });
+      expect(engagementButton).toHaveAttribute('aria-checked', 'true');
     });
 
     it('accepts custom initial metric', () => {
@@ -223,19 +225,19 @@ describe('BrandPerformanceChart', () => {
           metric={AnalyticsMetric.VIEWS}
         />,
       );
-      const viewsButton = screen.getByText('Views').closest('button');
-      expect(viewsButton).toHaveClass('bg-muted');
+      const viewsButton = screen.getByRole('radio', { name: 'Views' });
+      expect(viewsButton).toHaveAttribute('aria-checked', 'true');
     });
 
     it('changes active metric on button click', () => {
       render(<BrandPerformanceChart data={mockData} />);
 
-      const viewsButton = screen.getByText('Views').closest('button');
+      const viewsButton = screen.getByRole('radio', { name: 'Views' });
       if (viewsButton) {
         fireEvent.click(viewsButton);
       }
 
-      expect(viewsButton).toHaveClass('bg-muted');
+      expect(viewsButton).toHaveAttribute('aria-checked', 'true');
     });
 
     it('renders color indicator for each metric', () => {
@@ -297,7 +299,7 @@ describe('BrandPerformanceChart', () => {
 
     it('updates dataKey when metric changes', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      const viewsButton = screen.getByText('Views').closest('button');
+      const viewsButton = screen.getByRole('radio', { name: 'Views' });
       if (viewsButton) {
         fireEvent.click(viewsButton);
       }
@@ -306,7 +308,7 @@ describe('BrandPerformanceChart', () => {
 
     it('switches to posts dataKey', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      const postsButton = screen.getByText('Posts').closest('button');
+      const postsButton = screen.getByRole('radio', { name: 'Posts' });
       if (postsButton) {
         fireEvent.click(postsButton);
       }

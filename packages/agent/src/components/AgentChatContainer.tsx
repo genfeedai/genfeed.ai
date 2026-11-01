@@ -21,9 +21,9 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
-import { AlertCategory } from '@genfeedai/contracts';
 import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
@@ -53,6 +53,7 @@ export function AgentChatContainer({
   isWideLayout = false,
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
+  const translate = useTranslations('agent.conversationError');
   const composerShell = useConversationComposerShell();
   const [composerOverlayElement, setComposerOverlayElement] =
     useState<HTMLElement | null>(null);
@@ -332,8 +333,9 @@ export function AgentChatContainer({
           <div className={AGENT_CONVERSATION_TRACK_CLASS}>
             <Alert
               className="mt-3 w-full"
+              closeLabel={translate('dismissAriaLabel')}
               onClose={() => container.setError(null)}
-              type={AlertCategory.ERROR}
+              variant="destructive"
             >
               <span className="font-medium">{formattedError.title}</span>
               <span className="mt-0.5 block text-xs opacity-90">

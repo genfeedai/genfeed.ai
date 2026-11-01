@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
@@ -8,11 +8,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
-import Alert from '@ui/feedback/alert/Alert';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
+import { Tabs } from '@ui/primitives/tabs';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
@@ -59,7 +59,7 @@ function SelectionFailure({
         ? 'That source is not available to the effective brand. Choose another source or open Library management.'
         : 'The source could not be verified. Retry without losing your current context.';
 
-  return <Alert type={AlertCategory.WARNING}>{message}</Alert>;
+  return <Alert variant="warning">{message}</Alert>;
 }
 
 function LibrarySourceButton({
@@ -135,14 +135,14 @@ export default function LibraryPickerOverlay({
         {state.status === 'loading' ? <LibraryPickerSkeleton /> : null}
 
         {state.status === 'permission-denied' ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             Library sources are unavailable for the effective brand. Your
             conversation context has not changed.
           </Alert>
         ) : null}
 
         {state.status === 'error' ? (
-          <Alert type={AlertCategory.WARNING}>
+          <Alert variant="warning">
             <div className="flex items-center justify-between gap-3">
               <span>Library sources could not be loaded.</span>
               <Button

@@ -20,9 +20,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -605,7 +605,7 @@ export default function FollowSourceModal({
                             </Badge>
                           ) : null}
                           {!candidate.isValid ? (
-                            <Badge variant="ghost">
+                            <Badge variant="secondary">
                               {translate('notFound')}
                             </Badge>
                           ) : null}

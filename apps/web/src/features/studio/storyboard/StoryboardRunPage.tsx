@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Alert from '@ui/feedback/alert/Alert';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -91,7 +91,7 @@ export function LegacyStoryboardRunPage({
       <Container label={translate('title')} right={backLink}>
         {status === 'error' ? (
           <div className="flex flex-col items-start gap-3">
-            <Alert type={AlertCategory.ERROR}>
+            <Alert variant="destructive">
               {error ?? translate('loadFailed')}
             </Alert>
             <Button

@@ -12,7 +12,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -71,7 +71,7 @@ function SourceRow({
             @{source.handle || source.displayName || 'source'}
           </span>
           {isImportContainer ? (
-            <Badge variant="ghost">
+            <Badge variant="secondary">
               {translateDesk('sourcesMenu.imported')}
             </Badge>
           ) : null}
@@ -79,7 +79,7 @@ function SourceRow({
             <Badge
               variant={
                 syncStatus === 'failed'
-                  ? 'error'
+                  ? 'destructive'
                   : syncStatus === 'empty'
                     ? 'warning'
                     : 'secondary'

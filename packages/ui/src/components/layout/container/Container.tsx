@@ -7,7 +7,7 @@ import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { Tabs } from '@ui/primitives/tabs';
 import type { ReactNode } from 'react';
 import {
   createContext,

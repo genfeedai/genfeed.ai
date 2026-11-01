@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import {
@@ -67,11 +68,9 @@ function ClarifyingView() {
           </p>
         </div>
       ) : (
-        <div className="rounded-lg bg-success/10 border border-success/20 p-4 text-center">
-          <p className="text-sm text-success">
-            All questions answered. Agent will propose approaches next.
-          </p>
-        </div>
+        <Alert className="text-center" variant="success">
+          All questions answered. Agent will propose approaches next.
+        </Alert>
       )}
 
       {(() => {

@@ -8,6 +8,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {
@@ -263,29 +269,26 @@ function EvidencePreview({ draft }: { draft: IBrandKitDraft }) {
         </div>
 
         {evidenceItems.length > 0 ? (
-          <dl className="mt-5 divide-y divide-foreground/10">
+          <DefinitionList className="mt-5" variant="ruled">
             {evidenceItems.map((item) => (
-              <div
-                className="grid gap-2 py-4 sm:grid-cols-[9rem_1fr]"
-                key={item.label}
-              >
-                <dt className="flex flex-col items-start gap-2">
+              <DefinitionRow key={item.label} variant="split">
+                <DefinitionTerm className="flex flex-col items-start gap-2">
                   <Text className="text-xs font-semibold text-foreground">
                     {item.label}
                   </Text>
                   <EvidenceLabel kind={item.kind} />
-                </dt>
-                <dd className="flex flex-col gap-1">
+                </DefinitionTerm>
+                <DefinitionDetail className="flex flex-col gap-1">
                   <Text className="text-sm leading-6 text-foreground/80">
                     {item.detail}
                   </Text>
                   <Text className="font-mono text-2xs uppercase text-foreground/60">
                     {formatConfidence(item.confidence)}
                   </Text>
-                </dd>
-              </div>
+                </DefinitionDetail>
+              </DefinitionRow>
             ))}
-          </dl>
+          </DefinitionList>
         ) : (
           <Text className="mt-5 text-sm text-foreground/60">
             No supported recommendation was inferred from this source.
@@ -405,6 +408,7 @@ export function BrandOSPreviewState({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground/5 shadow-border">
+              {/* ui-guard-allow:loading-spinner -- scan glyph rotates while scanning */}
               <Icon
                 aria-hidden="true"
                 className={`size-5 ${definition.toneClassName} ${state === 'scanning' ? 'animate-spin motion-reduce:animate-none' : ''}`}

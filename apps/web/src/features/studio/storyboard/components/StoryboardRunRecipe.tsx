@@ -8,7 +8,7 @@ import {
 } from '@genfeedai/contracts';
 import type { StoryboardRunRecipe as StoryboardRunRecipeValue } from '@genfeedai/contracts/interfaces';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
@@ -195,7 +195,7 @@ export default function StoryboardRunRecipe({
                       })
                     : `Reference ${index + 1} unavailable`;
               return (
-                <Badge key={assetId} variant="ghost">
+                <Badge key={assetId} variant="secondary">
                   {reference?.thumbnailUrl || reference?.cdnUrl ? (
                     <NextImage
                       width={40}

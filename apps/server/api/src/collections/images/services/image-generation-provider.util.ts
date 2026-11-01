@@ -37,7 +37,6 @@ const IMAGE_PROVIDER_MATCHERS: readonly ImageProviderMatcher[] = [
       ),
     provider: 'crun',
   },
-  { matches: (model) => isGenfeedAiDestination(model), provider: 'genfeedai' },
   { matches: (model) => model === MODEL_KEYS.KLINGAI_V2, provider: 'klingai' },
   {
     matches: (model) => model === MODEL_KEYS.HIGGSFIELD_SOUL,

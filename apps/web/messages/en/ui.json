@@ -448,6 +448,7 @@
     "capabilityStatus": "Status: {status}",
     "empty": "No platform preview available.",
     "label": "Platform preview",
+    "targetsLabel": "Preview channel",
     "account": "Account {count}"
   },
   "textOverlayFields": {
@@ -912,5 +913,19 @@
     "dismiss": "Dismiss",
     "saved": "Saved to your content rules: {rule}",
     "failed": "Could not save the rule. Please try again."
+  },
+  "selectionGroups": {
+    "activityRange": "Activity range",
+    "avatarProvider": "Avatar provider",
+    "chooseAction": "Choose action",
+    "creditAmount": "Credit amount",
+    "curveType": "Curve type",
+    "generationMode": "Generation mode",
+    "metrics": "Metrics",
+    "notifyVia": "Notify via",
+    "platform": "Platform",
+    "platforms": "Platforms",
+    "referenceFrames": "Reference frames",
+    "timeframe": "Timeframe"
   }
 }

@@ -1,8 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -73,14 +73,14 @@ export default function VoiceCatalogRow({
     () => (
       <>
         <Badge variant="secondary">{getProviderLabel(voice.provider)}</Badge>
-        <Badge variant="ghost">{getVoiceSourceLabel(voice)}</Badge>
+        <Badge variant="secondary">{getVoiceSourceLabel(voice)}</Badge>
         {voice.cloneStatus ? (
           <Badge variant="outline">{voice.cloneStatus}</Badge>
         ) : null}
-        {voice.isFeatured ? <Badge variant="accent">Featured</Badge> : null}
+        {voice.isFeatured ? <Badge variant="default">Featured</Badge> : null}
         {isOrgDefault ? <Badge variant="success">Org Default</Badge> : null}
         {isBrandDefault ? (
-          <Badge variant="primary">
+          <Badge variant="default">
             {selectedBrandLabel ?? 'Brand'} Default
           </Badge>
         ) : null}

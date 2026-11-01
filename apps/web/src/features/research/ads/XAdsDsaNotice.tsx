@@ -10,8 +10,10 @@ export default function XAdsDsaNotice() {
 
   return (
     <div className="px-5 pt-5 sm:px-6 sm:pt-6">
-      <Alert variant="info">
-        <Info aria-hidden="true" className="size-4" />
+      <Alert
+        variant="info"
+        icon={<Info aria-hidden="true" className="size-4" />}
+      >
         <AlertTitle className="flex flex-wrap items-center gap-2">
           <Badge variant="info">{translate('badge')}</Badge>
           {translate('title')}

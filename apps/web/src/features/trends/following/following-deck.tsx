@@ -9,8 +9,8 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { Avatar } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -211,7 +211,7 @@ function FollowingDeckPost({
               {displayName || handle || item.platform}
             </Text>
             {item.source === 'imported' ? (
-              <Badge variant="ghost">{translate('imported')}</Badge>
+              <Badge variant="secondary">{translate('imported')}</Badge>
             ) : null}
             {getPlatformIcon(item.platform, 'size-3.5 shrink-0 opacity-60')}
           </div>
@@ -267,7 +267,7 @@ function FollowingDeckPost({
             unoptimized
           />
           {item.contentType === 'video' ? (
-            <Badge className="absolute right-2 top-2" variant="video">
+            <Badge className="absolute right-2 top-2" variant="default">
               {translate('video')}
             </Badge>
           ) : null}

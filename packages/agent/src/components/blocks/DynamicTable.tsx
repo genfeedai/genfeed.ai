@@ -1,10 +1,13 @@
 'use client';
 
+import { CardEmptySize } from '@genfeedai/contracts';
 import type {
   TableBlock,
   TableColumnConfig,
 } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import {
   Table,
   TableBody,
@@ -56,17 +59,6 @@ function sortRows(
   });
 }
 
-function getAlignClass(align?: TableColumnConfig['align']): string {
-  switch (align) {
-    case 'center':
-      return 'text-center';
-    case 'right':
-      return 'text-right';
-    default:
-      return 'text-left';
-  }
-}
-
 function DynamicTable({ block }: DynamicTableProps): ReactElement {
   const { columns, rows, sortBy, sortDirection } = block;
   const hydratableBlock = block as HydratableTableBlock;
@@ -102,17 +94,14 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
       className="overflow-x-auto border border-border"
       data-work-object-viewed={hasBeenViewed ? 'true' : 'false'}
     >
-      <Table className="w-full text-sm">
+      <Table size="md">
         <TableHeader>
-          <TableRow className="border-b border-border bg-muted/50">
+          <TableRow className="bg-muted/50">
             {columns.map((col) => (
               <TableHead
                 key={col.key}
-                className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${getAlignClass(col.align)} ${
-                  col.sortable
-                    ? 'cursor-pointer select-none hover:text-foreground'
-                    : ''
-                }`}
+                align={col.align}
+                isSortable={col.sortable}
                 onClick={() => handleHeaderClick(col)}
               >
                 <span className="inline-flex items-center gap-1">
@@ -130,15 +119,13 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
         <TableBody>
           {isLoading ? (
             Array.from({ length: 4 }).map((_, rowIndex) => (
-              <TableRow
-                // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
-                key={`table-loading-${rowIndex}`}
-                className="border-b border-border"
-              >
+              // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
+              <TableRow key={`table-loading-${rowIndex}`}>
                 {columns.map((col) => (
-                  <TableCell key={col.key} className="px-4 py-3">
-                    <div
-                      className="h-4 animate-pulse rounded bg-muted/70"
+                  <TableCell key={col.key}>
+                    <Skeleton
+                      aria-hidden="true"
+                      className="h-4"
                       style={{
                         animationDelay: `${rowIndex * 70}ms`,
                         width: `${55 + ((rowIndex + col.key.length) % 4) * 10}%`,
@@ -150,25 +137,16 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
             ))
           ) : sortedRows.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="px-4 py-8 text-center text-muted-foreground"
-              >
-                No data available
+              <TableCell colSpan={columns.length}>
+                <EmptyState size={CardEmptySize.SM} title="No data available" />
               </TableCell>
             </TableRow>
           ) : (
             keyListItems(sortedRows, (row) => JSON.stringify(row)).map(
               ({ item: row, key }) => (
-                <TableRow
-                  key={key}
-                  className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/20"
-                >
+                <TableRow key={key}>
                   {columns.map((col) => (
-                    <TableCell
-                      key={col.key}
-                      className={`px-4 py-2.5 text-foreground ${getAlignClass(col.align)}`}
-                    >
+                    <TableCell key={col.key} align={col.align}>
                       {row[col.key] != null ? String(row[col.key]) : '\u2014'}
                     </TableCell>
                   ))}

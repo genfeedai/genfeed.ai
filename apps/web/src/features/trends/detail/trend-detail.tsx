@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -13,10 +13,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buildTrendAgentHref } from '@utils/url/desktop-loop-url.util';
 import {
@@ -118,7 +118,7 @@ export default function TrendDetail({
   if (error) {
     return (
       <Container label={translate('error')} icon={Flame}>
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           {error}
           <Button
             label={translate('goBack')}
@@ -133,7 +133,7 @@ export default function TrendDetail({
   if (!isLoading && !data) {
     return (
       <Container label={translate('error')} icon={Flame}>
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           {translate('notFound')}
           <Button
             label={translate('goBack')}
@@ -259,8 +259,9 @@ export default function TrendDetail({
                   {trend.metadata.hashtags.map((hashtag) => (
                     <Badge
                       key={hashtag}
+                      casing="normal"
                       value={hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
-                      className="border border-border bg-transparent"
+                      variant="outline"
                     />
                   ))}
                 </div>

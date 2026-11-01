@@ -11,6 +11,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -106,9 +107,9 @@ export default function StoryboardShotCard({
         isSelected={isSelected}
       >
         <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
-          <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+          <Badge isMono size="lg" variant="outline">
             {String(shot.ordinal).padStart(2, '0')}
-          </span>
+          </Badge>
           <EditableText
             ariaLabel={translate('shotNameFor', { ordinal: shot.ordinal })}
             className="min-w-0 flex-1"

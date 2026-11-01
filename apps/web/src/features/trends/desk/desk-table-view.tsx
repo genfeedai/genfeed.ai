@@ -23,8 +23,8 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -637,7 +637,7 @@ export default function DeskTableView({
       {
         header: translateDesk('tableHeaders.source'),
         key: 'source',
-        render: (item) => <Badge variant="ghost">{item.source}</Badge>,
+        render: (item) => <Badge variant="secondary">{item.source}</Badge>,
       },
       {
         className: 'text-xs text-foreground/70',

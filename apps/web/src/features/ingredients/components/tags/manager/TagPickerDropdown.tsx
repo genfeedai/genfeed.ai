@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
@@ -62,9 +62,7 @@ export default function TagPickerDropdown({
                   onClick={() => onAddTag(tag)}
                   className="w-full text-left px-2 py-1.5 hover:bg-background transition-colors flex items-center gap-2"
                 >
-                  <Badge size={ComponentSize.SM} style={libraryTagStyle(tag)}>
-                    {tag.label}
-                  </Badge>
+                  <Badge style={libraryTagStyle(tag)}>{tag.label}</Badge>
                 </Button>
               ));
             })()}

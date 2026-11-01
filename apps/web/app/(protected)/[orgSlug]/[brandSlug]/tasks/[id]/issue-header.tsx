@@ -1,6 +1,5 @@
-import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { IssueHeaderProps } from '@/features/tasks/props/issue-header.props';
 
 export default function IssueHeader({
@@ -16,9 +15,7 @@ export default function IssueHeader({
     <div>
       <div className="mb-2 flex items-center gap-3">
         <span className="text-sm font-mono text-gray-800">{identifier}</span>
-        <Badge status={status} size={ComponentSize.SM}>
-          {statusLabels[status]}
-        </Badge>
+        <Badge status={status}>{statusLabels[status]}</Badge>
         <span
           className={cn(
             'text-2xs font-medium uppercase tracking-wider',

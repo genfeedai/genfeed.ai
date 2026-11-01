@@ -7,6 +7,8 @@ import type {
 } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
+import { Badge } from '@ui/primitives/badge';
+import { Kbd } from '@ui/primitives/kbd';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -86,21 +88,35 @@ function AppRailItem({
     <>
       {hoverIcon}
       {isLocked ? (
-        <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
-          <Lock aria-hidden="true" className="size-2.5" />
-        </span>
+        <Badge
+          className="absolute -right-0.5 -top-0.5"
+          icon={<Lock />}
+          shape="pill"
+          size="sm"
+          variant="secondary"
+        />
       ) : hasBadge ? (
-        <span
+        <Badge
           aria-hidden="true"
-          data-testid={`app-rail-badge-${app.id}`}
           className={
             badge.kind === 'dot'
-              ? 'absolute right-0.5 top-0.5 size-1.5 rounded-full bg-info'
-              : 'absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground'
+              ? 'absolute right-0.5 top-0.5'
+              : 'absolute -right-1 -top-1'
           }
-        >
-          {badge.kind === 'dot' ? null : badge.count > 99 ? '99+' : badge.count}
-        </span>
+          data-testid={`app-rail-badge-${app.id}`}
+          isDot={badge.kind === 'dot'}
+          isSolid={badge.kind !== 'dot'}
+          shape="pill"
+          size="sm"
+          value={
+            badge.kind === 'dot'
+              ? undefined
+              : badge.count > 99
+                ? '99+'
+                : badge.count
+          }
+          variant="info"
+        />
       ) : null}
       <span id={`app-rail-desc-${app.id}`} className="sr-only">
         {description}
@@ -146,11 +162,7 @@ function AppRailItem({
       >
         <span className="flex items-center justify-between gap-3">
           <span className="font-semibold">{label}</span>
-          {shortcutLabel ? (
-            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/10 bg-foreground/5 text-xs tracking-[0.2em] text-foreground/70 font-mono">
-              {shortcutLabel}
-            </kbd>
-          ) : null}
+          {shortcutLabel ? <Kbd>{shortcutLabel}</Kbd> : null}
         </span>
         <span className="mt-0.5 block font-normal text-muted-foreground">
           {description}

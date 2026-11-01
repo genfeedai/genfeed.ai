@@ -1,6 +1,7 @@
 'use client';
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
+import { Badge } from '@ui/primitives/badge';
 import { GraduationCap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ExpertStepHeaderProps } from '@/features/onboarding/props/expert-path.props';
@@ -20,10 +21,9 @@ export default function ExpertStepHeader({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-tertiary px-4 py-1.5 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-        <GraduationCap className="size-3" />
+      <Badge icon={<GraduationCap />} shape="pill" size="xl" variant="outline">
         {translate('badge', { current, total })}
-      </div>
+      </Badge>
       <h1 className="text-4xl font-semibold leading-none tracking-tight text-foreground text-balance md:text-5xl">
         {title}
       </h1>

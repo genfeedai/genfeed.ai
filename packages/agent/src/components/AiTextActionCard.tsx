@@ -1,8 +1,11 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Check, FileText } from 'lucide-react';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface AiTextActionCardProps {
@@ -22,6 +25,7 @@ export function AiTextActionCard({
   action,
   onApply,
 }: AiTextActionCardProps): ReactElement {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const textContent = action.textContent ?? '';
   const availableActions = action.textActions ?? DEFAULT_ACTIONS;
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
@@ -48,14 +52,9 @@ export function AiTextActionCard({
 
   if (isApplied) {
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            &quot;{selectedAction}&quot; applied
-          </span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        &quot;{selectedAction}&quot; applied
+      </Alert>
     );
   }
 
@@ -88,23 +87,17 @@ export function AiTextActionCard({
         <p className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           Choose action
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          {availableActions.map((actionLabel) => (
-            <Button
-              key={actionLabel}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => setSelectedAction(actionLabel)}
-              className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
-                selectedAction === actionLabel
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-              }`}
-            >
-              {actionLabel}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={selectionLabels('chooseAction')}
+          onValueChange={setSelectedAction}
+          options={availableActions.map((actionLabel) => ({
+            label: actionLabel,
+            value: actionLabel,
+          }))}
+          size="sm"
+          value={selectedAction ?? undefined}
+        />
       </div>
 
       {/* Apply button */}

@@ -12,7 +12,7 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { Tabs } from '@ui/primitives/tabs';
 import { LayoutGrid } from 'lucide-react';
 import type { TrendPlatform } from '@/features/trends/shared/trends-platforms';
 

@@ -5,13 +5,13 @@ import type {
   AccountSettingsSection,
   AccountSettingsSectionsProps,
 } from '@props/pages/brand-integrations.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Tabs } from '@ui/primitives/tabs';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import AccountHistoryImportPanel from '@/features/brands/components/integrations/AccountHistoryImportPanel';

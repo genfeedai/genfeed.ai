@@ -119,7 +119,7 @@ test.describe('Persisted Turbo projects', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${base}/new`);
     await page
-      .getByRole('button', { name: 'From ideas', exact: true })
+      .getByRole('radio', { name: 'From ideas', exact: true })
       .first()
       .click();
     await page
@@ -236,7 +236,7 @@ test.describe('Persisted Turbo projects', () => {
     );
     await page.goto(`${base}/new`);
     await page
-      .getByRole('button', { name: 'From a workflow', exact: true })
+      .getByRole('radio', { name: 'From a workflow', exact: true })
       .click();
     await expect(
       page.getByText('No saved workflows yet.', { exact: false }),
@@ -245,7 +245,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('link', { name: 'Create a workflow' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'From ideas', exact: true }).first(),
+      page.getByRole('radio', { name: 'From ideas', exact: true }).first(),
     ).toBeEnabled();
   });
 });

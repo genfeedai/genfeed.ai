@@ -22,18 +22,21 @@ const BODY_PADDING: Record<MetricCardSize, CardPadding> = {
   lg: CardPadding.LG,
   md: CardPadding.MD,
   sm: CardPadding.SM,
+  xs: CardPadding.SM,
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
   lg: 'text-4xl sm:text-5xl',
   md: 'text-3xl',
   sm: 'text-2xl',
+  xs: 'text-lg',
 };
 
 const VALUE_SKELETON: Record<MetricCardSize, string> = {
   lg: 'h-12 w-24',
   md: 'h-9 w-16',
   sm: 'h-7 w-12',
+  xs: 'h-5 w-10',
 };
 
 const LABEL_CLASS =
@@ -114,13 +117,15 @@ function resolveValueContent(
  *   largest, the label under it, then the detail line
  * - `appearance="inset"` — the same tile as a recessed panel inside a card
  * - `appearance="inline"` — frameless value/label pair for {@link MetricSummary}
- * - `size` — sm / md / lg scale only
+ * - `size` — xs / sm / md / lg scale only
+ * - `align` — start (default) or center
  * - `tone` — state colour of the value and icon chip
  * - `trend` — optional; omit to hide
  *
  * Surface frame is always {@link Card}.
  */
 const MetricCard = memo(function MetricCard({
+  align = 'start',
   analyticsMetric,
   analyticsMetricVariant,
   appearance = 'tile',
@@ -210,7 +215,12 @@ const MetricCard = memo(function MetricCard({
       isLoading={isLoading}
       loadingLabel={`Loading ${label}`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div
+        className={cn(
+          'flex items-start justify-between gap-3',
+          align === 'center' && 'justify-center',
+        )}
+      >
         {valueNode}
         {Icon ? (
           <span
@@ -226,7 +236,15 @@ const MetricCard = memo(function MetricCard({
         ) : null}
       </div>
 
-      <p className={cn(LABEL_CLASS, 'mt-1.5')}>{labelNode}</p>
+      <p
+        className={cn(
+          LABEL_CLASS,
+          'mt-1.5',
+          align === 'center' && 'text-center',
+        )}
+      >
+        {labelNode}
+      </p>
 
       {description ? (
         <p className="mt-1 text-xs leading-5 text-foreground/60">

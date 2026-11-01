@@ -2,6 +2,7 @@ import type { ConversationComposerContextReferenceKind } from '@genfeedai/agent/
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Film, ImageIcon, Link, Volume2, X } from 'lucide-react';
@@ -114,16 +115,14 @@ export function AgentChatInputAttachmentTray({
                 <X className="size-3.5" />
               </Button>
               {status !== 'completed' ? (
-                <span
-                  className={cn(
-                    'absolute inset-x-1 bottom-1 truncate rounded bg-background/90 px-1 py-0.5 text-center text-2xs font-medium',
-                    status === 'failed'
-                      ? 'text-destructive'
-                      : 'text-muted-foreground',
-                  )}
+                <Badge
+                  casing="normal"
+                  className="absolute inset-x-1 bottom-1 justify-center"
+                  isTruncated
+                  variant={status === 'failed' ? 'destructive' : 'secondary'}
                 >
                   {status === 'failed' ? 'Reattach' : 'Uploading'}
-                </span>
+                </Badge>
               ) : null}
             </div>
           );
@@ -195,31 +194,27 @@ export function AgentChatInputAttachmentTray({
             reference.type === 'asset' && Boolean(onRemoveReference);
 
           return (
-            <span
-              className={cn(
-                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground/80',
-                isRemovableAsset && 'pr-1.5',
-              )}
+            <Badge
+              casing="normal"
+              className="max-w-48"
+              icon={<Link />}
+              isRemoveDisabled={isDisabled}
+              isTruncated
               key={`${reference.type}:${reference.id}`}
+              onRemove={
+                isRemovableAsset
+                  ? () => onRemoveReference?.(reference)
+                  : undefined
+              }
+              removeLabel={translate('removeReference', {
+                label: reference.label,
+              })}
+              size="xl"
               title={reference.label}
+              variant="outline"
             >
-              <Link className="size-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">{reference.label}</span>
-              {isRemovableAsset ? (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => onRemoveReference?.(reference)}
-                  isDisabled={isDisabled}
-                  ariaLabel={translate('removeReference', {
-                    label: reference.label,
-                  })}
-                  className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded text-foreground/60 hover:text-foreground"
-                >
-                  <X className="size-3" />
-                </Button>
-              ) : null}
-            </span>
+              {reference.label}
+            </Badge>
           );
         })}
       </div>

@@ -122,7 +122,7 @@ export default function AssetDeepLink() {
   if (!assetId || state === 'opened') return null;
   if (state === 'error') {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" icon={false}>
         <AlertDescription>{translate('unavailable')}</AlertDescription>
       </Alert>
     );

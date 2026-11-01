@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import type { TabsEnhancedProps } from '@genfeedai/props/ui/navigation/tabs.props';
+import type { TabsEnhancedProps } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
 
-vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({
+vi.mock('@ui/primitives/tabs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ui/primitives/tabs')>()),
+  Tabs: ({
     children,
     contentClassName,
     fullWidth,

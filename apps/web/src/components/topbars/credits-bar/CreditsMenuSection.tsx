@@ -158,6 +158,7 @@ export default function CreditsMenuSection({
         </>
       ) : null}
 
+      {/* ui-guard-allow:notice-tone-box -- tinted credits panel in the topbar menu that wraps the balance rows, not a notice */}
       <div
         className={cn(
           'flex flex-col gap-2 p-2 pt-1',

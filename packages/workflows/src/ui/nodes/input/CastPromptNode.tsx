@@ -1,7 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import {
   CAST_CAMERA_MOVEMENTS,
   CAST_PROMPT_FAMILIES,
@@ -10,9 +8,9 @@ import {
   type CastPromptNodeData,
 } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
-import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Label } from '@genfeedai/ui/primitives/label';
+import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
 import {
   Select,
   SelectContent,
@@ -114,23 +112,18 @@ function CastPromptNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="space-y-3">
-        <div className="flex gap-1">
-          {CAST_PROMPT_FAMILIES.map((item) => (
-            <Button
-              withWrapper={false}
-              key={item}
-              type="button"
-              size={ButtonSize.SM}
-              variant={
-                family === item ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
-              }
-              className="nodrag h-7 flex-1 text-xs"
-              onClick={() => handleFamilyChange(item)}
-            >
-              {FAMILY_LABELS[item]}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel={translate('family')}
+          className="nodrag"
+          isFullWidth
+          onValueChange={handleFamilyChange}
+          options={CAST_PROMPT_FAMILIES.map((item) => ({
+            label: FAMILY_LABELS[item],
+            value: item,
+          }))}
+          size="sm"
+          value={family}
+        />
 
         <div className="flex flex-col gap-1">
           <Label

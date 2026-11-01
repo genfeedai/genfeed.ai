@@ -10,10 +10,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
@@ -56,13 +58,19 @@ const WARMUP_SKELETON_KEYS = [
 const STATUS_META: Record<
   IWarmupAccountStatus,
   {
-    variant: 'error' | 'ghost' | 'info' | 'outline' | 'success' | 'warning';
+    variant:
+      | 'destructive'
+      | 'secondary'
+      | 'info'
+      | 'outline'
+      | 'success'
+      | 'warning';
   }
 > = {
-  ARCHIVED: { variant: 'ghost' },
+  ARCHIVED: { variant: 'secondary' },
   CLAIMED: { variant: 'success' },
   DRAFT: { variant: 'outline' },
-  FAILED: { variant: 'error' },
+  FAILED: { variant: 'destructive' },
   INVITED: { variant: 'success' },
   PROVISIONED: { variant: 'info' },
   PROVISIONING: { variant: 'warning' },
@@ -958,7 +966,9 @@ function WarmupAccountDetail({
                 key={`${step.timestamp}-${step.message}-${index}`}
                 className="flex gap-3 text-sm"
               >
-                <Badge variant={step.status === 'failed' ? 'error' : 'outline'}>
+                <Badge
+                  variant={step.status === 'failed' ? 'destructive' : 'outline'}
+                >
                   {step.status}
                 </Badge>
                 <div>
@@ -972,9 +982,9 @@ function WarmupAccountDetail({
           </ol>
         )}
         {account.diagnostics?.error ? (
-          <p className="mt-4 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert className="mt-4" variant="destructive">
             {account.diagnostics.error}
-          </p>
+          </Alert>
         ) : null}
       </div>
     </aside>

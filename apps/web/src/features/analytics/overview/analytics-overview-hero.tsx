@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -38,16 +39,29 @@ export default function AnalyticsOverviewHero({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/60 shadow-border">
-          {dashboardState === 'active' ? (
-            <CircleCheck className="size-4 text-success" />
-          ) : dashboardState === 'warming_up' ? (
-            <TrendingUp className="size-4 text-warning" />
-          ) : (
-            <Info className="size-4 text-info" />
-          )}
+        <Badge
+          className="w-fit shrink-0"
+          icon={
+            dashboardState === 'active' ? (
+              <CircleCheck />
+            ) : dashboardState === 'warming_up' ? (
+              <TrendingUp />
+            ) : (
+              <Info />
+            )
+          }
+          shape="pill"
+          size="lg"
+          variant={
+            dashboardState === 'active'
+              ? 'success'
+              : dashboardState === 'warming_up'
+                ? 'warning'
+                : 'info'
+          }
+        >
           {heroContent.badge}
-        </div>
+        </Badge>
         <p className="min-w-0 text-sm leading-5 text-foreground/70">
           {heroContent.description}
         </p>

@@ -19,9 +19,15 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { ExternalLink, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -244,38 +250,28 @@ export default function ReleaseDetailDrawer({
 
         {activeDrawerTab === 'preview' ? (
           <div className="space-y-6 p-4">
-            {error ? (
-              <p
-                role="alert"
-                className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {error}
-              </p>
-            ) : null}
+            {error ? <Alert variant="destructive">{error}</Alert> : null}
 
             {isPaused ? (
-              <div
-                role="status"
-                className="space-y-3 border border-warning/40 bg-warning/10 p-3 text-sm"
-              >
-                <p className="font-medium text-foreground">
-                  {translate('pausedHold')}
-                </p>
+              <Alert role="status" variant="warning">
+                <AlertTitle>{translate('pausedHold')}</AlertTitle>
                 {holdReason ? (
-                  <p className="text-muted-foreground">
+                  <AlertDescription>
                     {translate('warmupHold', { reason: holdReason })}
-                  </p>
+                  </AlertDescription>
                 ) : null}
                 {onResumeRelease ? (
-                  <Button
-                    isDisabled={isPending}
-                    isLoading={pendingAction === RELEASE_RESUME_ACTION}
-                    label={translate('resume')}
-                    onClick={onResumeRelease}
-                    size={ButtonSize.SM}
-                  />
+                  <AlertActions>
+                    <Button
+                      isDisabled={isPending}
+                      isLoading={pendingAction === RELEASE_RESUME_ACTION}
+                      label={translate('resume')}
+                      onClick={onResumeRelease}
+                      size={ButtonSize.SM}
+                    />
+                  </AlertActions>
                 ) : null}
-              </div>
+              </Alert>
             ) : null}
 
             <section className="space-y-3">
@@ -369,16 +365,16 @@ export default function ReleaseDetailDrawer({
                       ) : null}
 
                       {isBlocked ? (
-                        <div className="border border-warning/40 bg-warning/10 p-3 text-xs">
-                          <p className="font-medium text-foreground">
+                        <Alert size="sm" variant="warning">
+                          <AlertTitle>
                             {translate('readinessBlocked')}
-                          </p>
+                          </AlertTitle>
                           {target.readiness?.requiredAction ? (
-                            <p className="mt-1 text-muted-foreground">
+                            <AlertDescription>
                               {target.readiness.requiredAction}
-                            </p>
+                            </AlertDescription>
                           ) : null}
-                          <ol className="mt-1 space-y-1 text-muted-foreground">
+                          <ol className="mt-1 space-y-1">
                             {(target.readiness?.diagnostics ?? []).map(
                               (diagnostic) => (
                                 <li key={diagnostic.code}>
@@ -387,19 +383,20 @@ export default function ReleaseDetailDrawer({
                               ),
                             )}
                           </ol>
-                          <Button
-                            asChild
-                            className="mt-3"
-                            size={ButtonSize.SM}
-                            variant={ButtonVariant.SECONDARY}
-                          >
-                            <Link href={reconnectHref}>
-                              {translate('actions.reconnect', {
-                                target: platform,
-                              })}
-                            </Link>
-                          </Button>
-                        </div>
+                          <AlertActions>
+                            <Button
+                              asChild
+                              size={ButtonSize.SM}
+                              variant={ButtonVariant.SECONDARY}
+                            >
+                              <Link href={reconnectHref}>
+                                {translate('actions.reconnect', {
+                                  target: platform,
+                                })}
+                              </Link>
+                            </Button>
+                          </AlertActions>
+                        </Alert>
                       ) : null}
 
                       {target.error ? (

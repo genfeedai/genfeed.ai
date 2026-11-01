@@ -2,7 +2,7 @@ import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import type { Props } from '@/features/studio/props/newsletter-context-review.props';
 

@@ -136,7 +136,6 @@ export class ModelCatalogSeedService {
         isCloud,
         nodeEnv: this.configService.get('NODE_ENV'),
       }),
-      { isCloud },
     );
   }
 

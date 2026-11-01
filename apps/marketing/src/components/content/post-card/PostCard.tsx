@@ -5,7 +5,7 @@ import type { PostCardProps } from '@genfeedai/contracts/interfaces/content/publ
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Calendar, CalendarCheck, ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
 
@@ -137,13 +137,16 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {ingredients.map((ingredient) => (
-              <span
+              <Badge
+                casing="normal"
                 key={ingredient.id}
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-current/20"
+                shape="pill"
+                size="lg"
                 title={ingredient.metadataLabel || undefined}
+                variant="outline"
               >
                 {ingredient.metadataLabel || 'Untitled'}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>

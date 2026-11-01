@@ -1,5 +1,4 @@
 import type {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   CardGap,
@@ -7,20 +6,12 @@ import type {
   CardTone,
 } from '@genfeedai/contracts';
 import { CardVariant } from '@genfeedai/contracts';
+import type { TabItem, TabsProps } from '@genfeedai/contracts/interfaces';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { HTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
 
 export { CardVariant };
-
-export interface AlertProps {
-  type?: AlertCategory;
-  className?: string;
-  children: ReactNode;
-  icon?: ReactNode;
-  onClose?: () => void;
-}
 
 export interface BadgeFormatProps {
   format?: string;

@@ -8,6 +8,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -189,26 +190,16 @@ export default function LivestreamChatBotPage({
 
             <div className="space-y-4">
               <h3 className="font-medium">{translate('sendOneOffMessage')}</h3>
-              <div className="flex gap-2">
-                <Button
-                  label="YouTube"
-                  variant={
-                    selectedPlatform === Platform.YOUTUBE
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  onClick={() => setSelectedPlatform('youtube')}
-                />
-                <Button
-                  label="Twitch"
-                  variant={
-                    selectedPlatform === Platform.TWITCH
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  onClick={() => setSelectedPlatform('twitch')}
-                />
-              </div>
+              <SegmentedControl
+                appearance="chip"
+                ariaLabel={translate('sendOneOffMessage')}
+                onValueChange={setSelectedPlatform}
+                options={[
+                  { label: 'YouTube', value: Platform.YOUTUBE },
+                  { label: 'Twitch', value: Platform.TWITCH },
+                ]}
+                value={selectedPlatform}
+              />
               <div className="space-y-1.5">
                 <Label
                   htmlFor="send-now-message"

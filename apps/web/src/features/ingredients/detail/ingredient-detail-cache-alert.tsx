@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
-import Alert from '@ui/feedback/alert/Alert';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 
 type Props = {
@@ -14,7 +14,7 @@ export default function IngredientDetailCacheAlert({
   onRetry,
 }: Props) {
   return (
-    <Alert type={AlertCategory.WARNING} className="mb-4">
+    <Alert variant="warning" className="mb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <div className="font-medium">

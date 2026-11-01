@@ -1,20 +1,19 @@
 'use client';
 
 import {
-  ComponentSize,
   INGREDIENT_ORIGIN_LABELS,
   IngredientOrigin,
 } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { IngredientOriginBadgeProps } from '@/props/content/ingredient.props';
 
 const ORIGIN_VARIANTS: Record<
   Exclude<IngredientOrigin, IngredientOrigin.GENERATED>,
-  'info' | 'warning' | 'success' | 'slate'
+  'info' | 'warning' | 'success' | 'secondary'
 > = {
   [IngredientOrigin.UPLOADED]: 'success',
   [IngredientOrigin.IMPORTED]: 'warning',
-  [IngredientOrigin.UNKNOWN]: 'slate',
+  [IngredientOrigin.UNKNOWN]: 'secondary',
 };
 
 /**
@@ -33,11 +32,7 @@ export default function IngredientOriginBadge({
   }
 
   return (
-    <Badge
-      className={className}
-      size={ComponentSize.SM}
-      variant={ORIGIN_VARIANTS[origin]}
-    >
+    <Badge className={className} variant={ORIGIN_VARIANTS[origin]}>
       {INGREDIENT_ORIGIN_LABELS[origin]}
     </Badge>
   );

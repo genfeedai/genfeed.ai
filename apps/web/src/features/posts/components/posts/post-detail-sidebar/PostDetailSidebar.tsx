@@ -21,7 +21,7 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { Tabs } from '@ui/primitives/tabs';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';

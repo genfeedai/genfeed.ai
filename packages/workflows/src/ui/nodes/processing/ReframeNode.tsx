@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -111,15 +112,15 @@ function ReframeNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
         {!hasInput && (
-          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5 text-center">
+          <Alert className="text-center" size="sm" variant="note">
             Connect an image or video input
-          </div>
+          </Alert>
         )}
 
         {hasInput && (
-          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+          <Alert size="sm" variant="note">
             Mode: <span className="font-medium capitalize">{inputType}</span>
-          </div>
+          </Alert>
         )}
 
         {inputType === 'image' && (
@@ -194,9 +195,9 @@ function ReframeNodeComponent(props: NodeProps) {
 
         {/* Video Limits Notice */}
         {inputType === 'video' && (
-          <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+          <Alert size="sm" variant="note">
             Max: 10 seconds, 100MB. Output: 720p @ $0.06/sec
-          </div>
+          </Alert>
         )}
 
         {/* Output Preview - Image */}

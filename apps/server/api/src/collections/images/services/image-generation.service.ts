@@ -941,7 +941,6 @@ export class ImageGenerationService {
       try {
         await plan.generationPromise;
         const completed = await resolveImageGenerationCompletion(
-          this.imagesService,
           this.ingredientCompletionService,
           context,
           plan,
@@ -957,15 +956,11 @@ export class ImageGenerationService {
             : completed,
         );
       } catch (error: unknown) {
-        // GenfeedAi (`inline`) completes synchronously and never had timeout
-        // recovery; only the polling providers translate timeouts to 504.
-        if (plan.kind !== 'inline') {
-          await throwImageGatewayTimeoutIfPending(
-            this.imagesService,
-            error,
-            context,
-          );
-        }
+        await throwImageGatewayTimeoutIfPending(
+          this.imagesService,
+          error,
+          context,
+        );
         throw error;
       }
     }

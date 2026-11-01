@@ -1,5 +1,4 @@
-import { ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Text } from '@ui/typography/text';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { TemplateSidebarProps as Props } from '@/features/admin/props/templates.props';
@@ -34,11 +33,7 @@ export default function TemplateSidebar({
                 </Text>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {metadata.requiredFeatures.map((feature) => (
-                    <Badge
-                      key={feature}
-                      variant="ghost"
-                      size={ComponentSize.SM}
-                    >
+                    <Badge key={feature} variant="secondary">
                       {feature}
                     </Badge>
                   ))}
@@ -53,11 +48,7 @@ export default function TemplateSidebar({
                 </Text>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {metadata.compatiblePlatforms.map((platform) => (
-                    <Badge
-                      key={platform}
-                      variant="ghost"
-                      size={ComponentSize.SM}
-                    >
+                    <Badge key={platform} variant="secondary">
                       {platform}
                     </Badge>
                   ))}

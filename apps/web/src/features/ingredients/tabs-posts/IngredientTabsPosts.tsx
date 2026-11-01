@@ -10,10 +10,10 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -113,7 +113,7 @@ export default function IngredientTabsPosts({
     {
       header: 'Status',
       key: 'status',
-      render: (p: IPost) => <Badge variant="ghost">{p.status}</Badge>,
+      render: (p: IPost) => <Badge variant="secondary">{p.status}</Badge>,
     },
   ];
 
