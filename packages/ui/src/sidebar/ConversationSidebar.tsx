@@ -1,6 +1,5 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import type { ChangeEvent, ReactNode } from 'react';
 import Searchbar from '../primitives/searchbar';
 
@@ -59,9 +58,10 @@ export function ConversationSidebarSection({
   return (
     <section aria-label={label}>
       <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-        <SimpleTooltip label={label}>
-          <span className="min-w-0 truncate">{label}</span>
-        </SimpleTooltip>
+        {/* ui-guard-allow:native-title -- this file is exported from the @genfeedai/ui barrel, which public marketing pages import; a Radix tooltip here adds ~37 kB first-load JS to /skills */}
+        <span className="min-w-0 truncate" title={label}>
+          {label}
+        </span>
         {typeof count === 'number' ? (
           <span className="shrink-0 font-mono font-medium tracking-normal text-muted-foreground">
             {count}
