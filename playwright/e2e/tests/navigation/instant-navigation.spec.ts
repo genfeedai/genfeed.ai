@@ -14,6 +14,8 @@ const PREFETCH_QUIET_MS = 500;
 const PREFETCH_TIMEOUT_MS = 30_000;
 const INSTANT_BUDGET_MS = 400;
 const NAVIGATION_TIMING_KEY = '__instantNavigationTiming';
+const SLOW_RENDER_MS = 3_000;
+const PROGRESS_BUDGET_MS = 1_000;
 
 interface NavigationTiming {
   clickedAt?: number;
@@ -219,4 +221,43 @@ test('an open shell popover closes on route change and stays closed on return', 
   ).toBeVisible();
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+// A click on a route whose prefetch has not landed (cold, or stale after the
+// 300s stale time) waits for the server render with the old page unchanged.
+// The click must be acknowledged at once, or it looks ignored and people
+// click again. Every RSC response is delayed so the destination cannot be
+// prefetched before the click.
+test('a slow navigation shows progress until the destination commits', async ({
+  authenticatedPage: page,
+}) => {
+  await page.route(
+    (url) => url.searchParams.has('_rsc'),
+    async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, SLOW_RENDER_MS));
+      await route.fallback();
+    },
+  );
+  await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockLibraryData(page);
+  const origin = createBrandAppRoute(
+    'test-org',
+    'brand-1',
+    APP_ROUTES.LIBRARY.ASSETS,
+  );
+  await page.goto(origin);
+  await expect(
+    page.getByRole('heading', { name: 'All assets', exact: true }),
+  ).toBeVisible();
+
+  const target = page.getByTestId('app-rail-item-analytics');
+  const href = await target.getAttribute('href');
+  await target.click();
+
+  const progress = page.getByRole('progressbar', { name: 'Loading page' });
+  await expect(progress).toBeVisible({ timeout: PROGRESS_BUDGET_MS });
+  expect(new URL(page.url()).pathname).toBe(origin);
+
+  await page.waitForURL((url) => url.pathname === href);
+  await expect(progress).toBeHidden();
 });

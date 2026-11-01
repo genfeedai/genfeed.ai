@@ -2856,6 +2856,9 @@
       "description": "Superadmin settings, access, flags and messaging."
     }
   },
+  "navigationProgress": {
+    "loading": "Loading page"
+  },
   "windowChrome": {
     "back": "Back",
     "forward": "Forward"
