@@ -215,11 +215,18 @@ const RETIRED_MEDIA_SUCCESSORS: Readonly<Record<string, string>> = {
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
   [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]:
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-  // fal answers 404 for these endpoint ids (checked 2026-11-01), so the daily
-  // fal refresh could never read a schema or price for them.
-  [MODEL_KEYS.FAL_SEEDANCE_2_0]: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
-  [MODEL_KEYS.FAL_ELEVEN_LABS_TTS]: MODEL_KEYS.ELEVENLABS_MULTILINGUAL_V2,
+  // fal lists Stable Video Diffusion as `fal-ai/stable-video` with status
+  // `deprecated` (checked 2026-11-01); the stored `-diffusion` id is not served.
   [MODEL_KEYS.FAL_STABLE_VIDEO]: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+};
+
+/**
+ * fal moved these models to new endpoint ids, so the stored key answers 404
+ * (checked 2026-11-01). The key stays and the refresh reads the live endpoint.
+ */
+const FAL_MOVED_ENDPOINTS: Readonly<Record<string, string>> = {
+  [MODEL_KEYS.FAL_ELEVEN_LABS_TTS]: 'fal-ai/elevenlabs/tts/multilingual-v2',
+  [MODEL_KEYS.FAL_SEEDANCE_2_0]: 'bytedance/seedance-2.0/text-to-video',
 };
 
 /**
@@ -298,6 +305,8 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     };
 
     if (curated && 'endpoint' in curated) entry.endpoint = curated.endpoint;
+    const movedEndpoint = FAL_MOVED_ENDPOINTS[key];
+    if (movedEndpoint && !entry.endpoint) entry.endpoint = movedEndpoint;
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
     }
