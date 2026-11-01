@@ -1,8 +1,4 @@
-import {
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type {
   ReplyVariantsResult,
   ReplyVariantTone,
@@ -382,7 +378,6 @@ export function ReplyPage({
             type="button"
             variant={ButtonVariant.GHOST}
             onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
-            className="text-xs"
           >
             ← Back
           </Button>
@@ -413,7 +408,7 @@ export function ReplyPage({
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  className="flex-1 text-xs"
+                  className="flex-1"
                   onClick={() => {
                     void handleInsert(variant, index);
                   }}
@@ -423,7 +418,7 @@ export function ReplyPage({
                 <Button
                   type="button"
                   variant={ButtonVariant.SECONDARY}
-                  className="flex-1 text-xs"
+                  className="flex-1"
                   onClick={() => {
                     void handleCopy(variant, index);
                   }}

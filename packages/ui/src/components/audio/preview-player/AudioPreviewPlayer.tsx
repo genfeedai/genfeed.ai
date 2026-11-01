@@ -241,6 +241,7 @@ export default function AudioPreviewPlayer({
   } = useAudioPreview({ audioUrl, onError, stopOnUnmount });
 
   return (
+    // ui-guard-allow:clickable-element -- stops the click from reaching a parent card; it is not an action
     <div
       className={cn('nodrag nopan flex items-center gap-2', className)}
       onClick={(event) => event.stopPropagation()}

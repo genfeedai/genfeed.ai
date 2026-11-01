@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Input } from '@genfeedai/ui/primitives/input';
@@ -139,11 +139,12 @@ function NegativePromptSelectorComponent({
   return (
     <div className="flex flex-col gap-2">
       <Button
+        size={ButtonSize.INLINE}
         withWrapper={false}
         variant={ButtonVariant.GHOST}
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full text-left h-auto p-0 group"
+        className="flex items-center justify-between w-full text-left group"
       >
         <span className="text-xs text-muted-foreground">Negative Prompt</span>
         <div className="flex items-center gap-1.5">

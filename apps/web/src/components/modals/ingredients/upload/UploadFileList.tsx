@@ -5,6 +5,7 @@ import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/fi
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Progress } from '@ui/primitives/progress';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   Check,
   CircleAlert,
@@ -87,12 +88,11 @@ export default function UploadFileList({
 
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-baseline justify-between gap-2">
-                <span
-                  className="truncate text-sm font-medium"
-                  title={file.name}
-                >
-                  {file.name}
-                </span>
+                <SimpleTooltip label={file.name}>
+                  <span className="truncate text-sm font-medium">
+                    {file.name}
+                  </span>
+                </SimpleTooltip>
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {formatSize(file.size)}
                 </span>

@@ -10,7 +10,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardCreate from './StoryboardCreate';
@@ -114,17 +113,6 @@ function image(id: string, brandId = mocks.brandId, isDeleted = false) {
   });
 }
 
-/** Opens the prompt-bar source dropdown and picks a mode by its label. */
-async function chooseMode(name: string) {
-  fireEvent.pointerDown(screen.getByRole('button', { name: /^Create from:/ }), {
-    button: 0,
-    ctrlKey: false,
-  });
-  fireEvent.click(
-    await screen.findByRole('menuitemradio', { name: new RegExp(`^${name}`) }),
-  );
-}
-
 describe('Storyboard shared composer', () => {
   beforeEach(() => {
     mocks.brandId = 'brand-a';
@@ -136,7 +124,9 @@ describe('Storyboard shared composer', () => {
   });
   it('prefills the brief, format and runtime from a preset without submitting', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
     expect(
       (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
     ).toContain('how-to tutorial');
@@ -185,7 +175,9 @@ describe('Storyboard shared composer', () => {
         }),
       ),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
     expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');
@@ -220,7 +212,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Long video');
+    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -246,7 +238,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -270,52 +262,33 @@ describe('Storyboard shared composer', () => {
       }),
     );
   });
-  it('offers three slideshow ideas that fill the brief without saving', async () => {
+  it('offers three slideshow ideas that fill the brief without saving', () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
     expect(
-      within(screen.getByRole('group', { name: 'Starter ideas' })).getAllByRole(
-        'button',
-      ),
+      screen.getAllByRole('button', { name: /^Start from the .* idea$/ }),
     ).toHaveLength(3);
-    fireEvent.click(screen.getByRole('button', { name: 'Quick tips' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Start from the Quick tips idea' }),
+    );
     expect(screen.getByLabelText('Brief')).toHaveDisplayValue(
       /^Five small habits that make a big difference\./,
     );
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it('lists the four sources in the prompt-bar dropdown with the current one checked', async () => {
+  it('offers long-video ideas and none for a remix', () => {
     render(<StoryboardCreate />);
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: /^Create from:/ }),
-      {
-        button: 0,
-        ctrlKey: false,
-      },
-    );
-    const items = await screen.findAllByRole('menuitemradio');
-    expect(items.map((item) => item.textContent)).toEqual([
-      expect.stringMatching(/^From a brief/),
-      expect.stringMatching(/^Long video/),
-      expect.stringMatching(/^Slideshow/),
-      expect.stringMatching(/^Remix a video/),
-    ]);
-    expect(items[0]).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('button', { name: 'Slideshow' })).toBeNull();
-  });
-  it('offers long-video ideas and none for a remix', async () => {
-    render(<StoryboardCreate />);
-    await chooseMode('Long video');
+    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
     expect(
-      screen.getByRole('button', { name: 'Voice note' }),
+      screen.getByRole('button', { name: 'Start from the Voice note idea' }),
     ).toBeInTheDocument();
-    await chooseMode('Remix a video');
+    fireEvent.click(screen.getByRole('radio', { name: 'Remix a video' }));
     expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    await chooseMode('Slideshow');
-    await chooseMode('From a brief');
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a brief' }));
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });

@@ -16,6 +16,7 @@ import {
 import { getPlatformPreviewIcon } from '@ui/posts/platform-preview/platform-preview-icons';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
 
@@ -124,14 +125,15 @@ export function AuthorRow({
       <span className="relative shrink-0">
         <AuthorAvatar target={target} />
         {showPlatformBadge ? (
-          <span
-            className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border bg-card text-foreground"
-            role="img"
-            aria-label={target.platformLabel}
-            title={target.platformLabel}
-          >
-            <Icon className="size-3" />
-          </span>
+          <SimpleTooltip label={target.platformLabel}>
+            <span
+              className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-border bg-card text-foreground"
+              role="img"
+              aria-label={target.platformLabel}
+            >
+              <Icon className="size-3" />
+            </span>
+          </SimpleTooltip>
         ) : null}
       </span>
       <div className="min-w-0">

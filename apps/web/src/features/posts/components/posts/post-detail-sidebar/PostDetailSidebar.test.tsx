@@ -166,7 +166,7 @@ describe('PostDetailSidebar', () => {
       <PostDetailSidebar {...baseProps} post={post} />,
     );
 
-    expect(screen.queryByRole('tab', { name: 'Preview' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
 
     rerender(
       <PostDetailSidebar
@@ -176,10 +176,15 @@ describe('PostDetailSidebar', () => {
       />,
     );
 
-    expect(screen.getByRole('tab', { name: 'Details' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'View: Details' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Preview body')).toBeNull();
 
-    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+    await user.click(screen.getByRole('button', { name: 'View: Details' }));
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Preview' }),
+    );
 
     expect(screen.getByText('Preview body')).toBeVisible();
     // The details stay mounted so TikTok readiness survives the tab switch.

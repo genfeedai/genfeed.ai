@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { BrandKitAssetTileProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Check, ImageOff } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -92,15 +93,14 @@ export default function BrandKitAssetTile({
         preview
       )}
 
-      <figcaption
-        className="truncate text-2xs text-muted-foreground"
-        title={previewUrl ?? caption}
-      >
-        <span className="font-medium text-foreground/80">{asset.role}</span>
-        {caption === asset.role ? '' : ` · ${caption}`}
-        {dimensions ? ` · ${dimensions}` : ''}
-        {statusLabel ? ` · ${statusLabel}` : ''}
-      </figcaption>
+      <SimpleTooltip label={previewUrl ?? caption}>
+        <figcaption className="truncate text-2xs text-muted-foreground">
+          <span className="font-medium text-foreground/80">{asset.role}</span>
+          {caption === asset.role ? '' : ` · ${caption}`}
+          {dimensions ? ` · ${dimensions}` : ''}
+          {statusLabel ? ` · ${statusLabel}` : ''}
+        </figcaption>
+      </SimpleTooltip>
     </figure>
   );
 }

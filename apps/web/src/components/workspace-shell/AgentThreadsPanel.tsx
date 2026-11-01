@@ -7,7 +7,6 @@ import {
   resolveThreadListPreview,
 } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import {
-  AgentThreadKind,
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
@@ -109,9 +108,6 @@ export default function AgentThreadsPanel({
     ? allThreads.find((thread) => thread.id === openThreadId)
     : undefined;
   if (openThread) {
-    const parent = openThread.parentThreadId
-      ? allThreads.find((thread) => thread.id === openThread.parentThreadId)
-      : undefined;
     const isOpenThreadResolved =
       openThread.status === AgentThreadStatus.ARCHIVED;
     return (
@@ -119,7 +115,6 @@ export default function AgentThreadsPanel({
         apiService={apiService}
         isPending={pendingThreadIds?.has(openThread.id)}
         isResolved={isOpenThreadResolved}
-        isStartedByMaster={parent?.kind === AgentThreadKind.MASTER}
         onBack={() => setOpenThreadId(null)}
         onOpenFullThread={onOpenFullThread}
         onReopen={

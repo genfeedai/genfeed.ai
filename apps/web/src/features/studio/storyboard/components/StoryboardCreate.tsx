@@ -16,6 +16,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -31,12 +32,11 @@ import type {
 } from '@/features/studio/props/storyboard-presets.props';
 import { resolveAgentPromptAuthor } from '@/features/studio/shared/utils/agent-prompt-author';
 import StoryboardAgentBriefs from '@/features/studio/storyboard/components/StoryboardAgentBriefs';
-import StoryboardModeDropdown, {
-  type StoryboardCreateMode,
-} from '@/features/studio/storyboard/components/StoryboardModeDropdown';
 import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
 import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
 import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
+import { STORYBOARD_PITCHES } from '@/features/studio/storyboard/data/storyboard-pitches';
+import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
 import { storyboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-plan';
@@ -70,7 +70,9 @@ export default function StoryboardCreate() {
   const { href } = useOrgUrl();
   const router = useRouter();
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
-  const [mode, setMode] = useState<StoryboardCreateMode>('brief');
+  const [mode, setMode] = useState<
+    'brief' | 'longForm' | 'slideshow' | 'video'
+  >('brief');
   const isLongForm = mode === 'longForm';
   const isSlideshow = mode === 'slideshow';
   const pitchKind = isSlideshow ? 'slideshow' : 'longForm';
@@ -252,21 +254,31 @@ export default function StoryboardCreate() {
       /* The hook keeps the source and exposes the retryable error. */
     }
   }
-
-  function changeMode(next: StoryboardCreateMode) {
-    setMode(next);
-    if (next === 'brief' && !isFormatIn(VIDEO_FORMATS, format)) {
-      setFormat('9:16');
-    } else if (next === 'longForm') {
-      setFormat('16:9');
-    } else if (next === 'slideshow') {
-      setFormat('4:5');
-    }
-  }
-
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('sourceAria')}
+          isDisabled={isCreating}
+          onValueChange={(nextMode) => {
+            setMode(nextMode);
+            if (nextMode === 'brief' && !isFormatIn(VIDEO_FORMATS, format)) {
+              setFormat('9:16');
+            } else if (nextMode === 'longForm') {
+              setFormat('16:9');
+            } else if (nextMode === 'slideshow') {
+              setFormat('4:5');
+            }
+          }}
+          options={[
+            { label: translate('fromBrief'), value: 'brief' },
+            { label: translate('longFormTitle'), value: 'longForm' },
+            { label: translate('slideshowTitle'), value: 'slideshow' },
+            { label: translate('remixTitle'), value: 'video' },
+          ]}
+          value={mode}
+        />
         <PromptBarContainer layoutMode="inflow" maxWidth="full">
           <PromptBarComposer
             data-testid="storyboard-composer"
@@ -281,7 +293,6 @@ export default function StoryboardCreate() {
           >
             {mode !== 'video' ? (
               <PromptEditor
-                key={mode}
                 ariaLabel={translate('brief')}
                 value={brief}
                 isDisabled={isCreating}
@@ -299,13 +310,8 @@ export default function StoryboardCreate() {
             ) : null}
             <PromptBarToolbar
               leading={
-                <>
-                  <StoryboardModeDropdown
-                    isDisabled={isCreating}
-                    mode={mode}
-                    onChange={changeMode}
-                  />
-                  {mode !== 'video' ? (
+                mode !== 'video' ? (
+                  <>
                     <PromptBarCompactSelect
                       ariaLabel={translate('formatAria')}
                       isDisabled={isCreating}
@@ -315,17 +321,17 @@ export default function StoryboardCreate() {
                         if (isFormatIn(formats, value)) setFormat(value);
                       }}
                     />
-                  ) : null}
-                  {mode === 'brief' ? (
-                    <PromptBarCompactSelect
-                      ariaLabel={translate('runtimeBudget')}
-                      isDisabled={isCreating}
-                      options={budgetOptions}
-                      value={budget}
-                      onChange={setBudget}
-                    />
-                  ) : null}
-                </>
+                    {isLongForm || isSlideshow ? null : (
+                      <PromptBarCompactSelect
+                        ariaLabel={translate('runtimeBudget')}
+                        isDisabled={isCreating}
+                        options={budgetOptions}
+                        value={budget}
+                        onChange={setBudget}
+                      />
+                    )}
+                  </>
+                ) : null
               }
               reference={
                 mode === 'brief' ? (
@@ -376,6 +382,11 @@ export default function StoryboardCreate() {
               {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
             </p>
             <StoryboardPitchCards
+              activePitchId={
+                STORYBOARD_PITCHES[pitchKind].find(
+                  (pitch) => pitch.brief === brief,
+                )?.id
+              }
               isDisabled={isCreating}
               kind={pitchKind}
               onSelect={applyPitch}
@@ -389,6 +400,9 @@ export default function StoryboardCreate() {
               onSelect={applyAgentBrief}
             />
             <StoryboardPresetCards
+              activePresetId={
+                STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+              }
               isDisabled={isCreating}
               onSelect={applyPreset}
             />

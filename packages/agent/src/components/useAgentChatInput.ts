@@ -876,7 +876,10 @@ export function useAgentChatInput({
       }
     }
     const mergedArtifactReferences = [...artifactReferencesByKey.values()];
-    const accepted = await onSend(
+    // A host that answers at once clears the draft in the same tick. Waiting a
+    // microtask lets the host re-render first, and a composer it swaps in
+    // (the first message of a conversation) reads the draft before it is gone.
+    const sendResult = onSend(
       promptContent,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
@@ -895,6 +898,16 @@ export function useAgentChatInput({
         ...(requestedSkillSlugs.length > 0 ? { requestedSkillSlugs } : {}),
       },
     );
+    let accepted: boolean | undefined;
+    try {
+      accepted =
+        typeof sendResult === 'object' && sendResult !== null
+          ? await sendResult
+          : sendResult;
+    } catch {
+      // A rejected send keeps the draft; the host reports why.
+      return;
+    }
     if (accepted === false) {
       setActionFeedback(translate('queueFull'));
       return;

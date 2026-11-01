@@ -140,7 +140,6 @@ export default function AnalyticsPlatformDetail({
           onClick={() => router.push(`${basePath}/brands/${brandId}`)}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
-          className="gap-2"
           icon={<ArrowLeft className="size-4" />}
           label="Back to Brand"
         />

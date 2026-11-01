@@ -52,7 +52,6 @@ export default function CorpusSourceList({
                   label={translate('retry')}
                   isLoading={retryingSourceId === source.id}
                   onClick={() => onRetry(source.id)}
-                  className="rounded-none"
                 />
               ) : null}
             </span>

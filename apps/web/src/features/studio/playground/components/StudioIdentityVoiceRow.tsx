@@ -8,6 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { Toggle } from '@ui/primitives/toggle';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Check, Pause, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -69,9 +70,9 @@ export default function StudioIdentityVoiceRow({
         withWrapper={false}
       />
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium" title={name}>
-          {name}
-        </p>
+        <SimpleTooltip label={name}>
+          <p className="truncate text-sm font-medium">{name}</p>
+        </SimpleTooltip>
         <p className="truncate text-xs text-muted-foreground">
           {[
             gender

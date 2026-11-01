@@ -23,7 +23,6 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
           withWrapper={false}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
-          className="text-muted-foreground hover:text-foreground"
         >
           {label}
           <ChevronDown className="size-3.5" />

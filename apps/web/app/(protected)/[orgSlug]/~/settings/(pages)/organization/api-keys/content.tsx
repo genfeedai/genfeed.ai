@@ -4,11 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
-import {
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,

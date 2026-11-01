@@ -1,6 +1,7 @@
 'use client';
 
 import type { AccountCellProps } from '@props/pages/brand-integrations.props';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import AccountAvatar from './AccountAvatar';
 import { getConnectionLabel } from './account-connection-status.util';
 
@@ -16,16 +17,15 @@ export default function AccountCell({ connection }: AccountCellProps) {
     <span className="flex min-w-0 items-center gap-3">
       <AccountAvatar connection={connection} />
       <span className="min-w-0 text-left">
-        <span className="block truncate text-sm font-medium" title={label}>
-          {label}
-        </span>
+        <SimpleTooltip label={label}>
+          <span className="block truncate text-sm font-medium">{label}</span>
+        </SimpleTooltip>
         {connection.handle ? (
-          <span
-            className="block truncate text-xs text-muted-foreground"
-            title={connection.handle}
-          >
-            @{connection.handle.replace(/^@/, '')}
-          </span>
+          <SimpleTooltip label={connection.handle}>
+            <span className="block truncate text-xs text-muted-foreground">
+              @{connection.handle.replace(/^@/, '')}
+            </span>
+          </SimpleTooltip>
         ) : null}
       </span>
     </span>

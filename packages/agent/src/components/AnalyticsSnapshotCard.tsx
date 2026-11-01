@@ -14,9 +14,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { Tabs } from '@ui/primitives/tabs';
 import { ChartColumn, Eye, Heart, MessageCircle } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
 
@@ -163,18 +163,18 @@ export function AnalyticsSnapshotCard({
           Analytics summary
         </h3>
         {periodSnapshots.length > 1 ? (
-          <Tabs
-            activeTab={selectedPeriod}
-            ariaLabel="Analytics period"
-            fullWidth={false}
-            items={periodSnapshots.map((snapshot) => ({
-              id: snapshot.period,
-              label: snapshot.period,
-            }))}
-            onTabChange={(period) => {
+          <ViewMenu
+            activeView={selectedPeriod}
+            onChange={(period) => {
               setSelectedPeriod(period);
               setIsExpanded(true);
             }}
+            options={periodSnapshots.map((snapshot) => ({
+              icon: null,
+              label: snapshot.period,
+              type: snapshot.period,
+            }))}
+            trigger="label"
           />
         ) : (
           <span className="shrink-0 text-2xs font-medium text-muted-foreground">
@@ -256,7 +256,6 @@ export function AnalyticsSnapshotCard({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               withWrapper={false}
-              className="text-xs"
               onClick={() => {
                 setIsExpanded(false);
               }}

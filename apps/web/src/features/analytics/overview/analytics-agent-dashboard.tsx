@@ -76,7 +76,6 @@ export default function AnalyticsAgentDashboard({
           size={ButtonSize.XS}
           variant={ButtonVariant.SECONDARY}
           onClick={onResetToDefaults}
-          className="uppercase tracking-wide"
         >
           Reset to defaults
         </Button>

@@ -239,6 +239,8 @@ describe('DynamicChartView', () => {
     const { container } = render(<DynamicChartView block={hydrating} />);
 
     expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(6);
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      6,
+    );
   });
 });

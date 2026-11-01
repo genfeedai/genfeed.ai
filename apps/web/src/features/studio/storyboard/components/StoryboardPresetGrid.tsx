@@ -12,6 +12,7 @@ import {
 } from '@ui/collection/collection.constants';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
@@ -85,57 +86,60 @@ export default function StoryboardPresetGrid({
             const title = translate(`items.${preset.id}.title`);
             const isLaunching = launchingId === preset.id;
             return (
-              <li
-                className={cn(
-                  'flex',
-                  layout === 'row' && 'w-72 shrink-0 snap-start',
-                )}
-                data-testid="storyboard-preset"
+              <SimpleTooltip
                 key={preset.id}
-                title={translate(`items.${preset.id}.description`)}
+                label={translate(`items.${preset.id}.description`)}
               >
-                <Card
-                  padding={CardPadding.NONE}
-                  gap={CardGap.NONE}
-                  bodyClassName="h-full"
-                  className="flex w-full flex-col overflow-hidden"
+                <li
+                  className={cn(
+                    'flex',
+                    layout === 'row' && 'w-72 shrink-0 snap-start',
+                  )}
+                  data-testid="storyboard-preset"
                 >
-                  <StoryboardPresetThumbnail src={preset.thumbnailSrc} />
-                  <div className="flex flex-1 flex-col gap-3 p-4">
-                    <div className="flex items-center gap-2">
-                      <preset.icon
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                      <h3 className="min-w-0 truncate text-sm font-semibold tracking-[-0.01em]">
-                        {title}
-                      </h3>
+                  <Card
+                    padding={CardPadding.NONE}
+                    gap={CardGap.NONE}
+                    bodyClassName="h-full"
+                    className="flex w-full flex-col overflow-hidden"
+                  >
+                    <StoryboardPresetThumbnail src={preset.thumbnailSrc} />
+                    <div className="flex flex-1 flex-col gap-3 p-4">
+                      <div className="flex items-center gap-2">
+                        <preset.icon
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-muted-foreground"
+                        />
+                        <h3 className="min-w-0 truncate text-sm font-semibold tracking-[-0.01em]">
+                          {title}
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="secondary">{preset.format}</Badge>
+                        <Badge variant="secondary">
+                          {translate('runtime', {
+                            seconds: preset.runtimeBudgetSeconds,
+                          })}
+                        </Badge>
+                        <Badge variant="secondary">
+                          {translate('shots', { count: preset.shotCount })}
+                        </Badge>
+                      </div>
+                      <div className="mt-auto border-t border-border pt-3">
+                        <Button
+                          ariaLabel={translate('createAria', { title })}
+                          className="w-full"
+                          isDisabled={!hasBrand || (isBusy && !isLaunching)}
+                          isLoading={isLaunching}
+                          label={translate(isLaunching ? 'creating' : 'create')}
+                          onClick={() => void launch(preset)}
+                          variant={ButtonVariant.DEFAULT}
+                        />
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary">{preset.format}</Badge>
-                      <Badge variant="secondary">
-                        {translate('runtime', {
-                          seconds: preset.runtimeBudgetSeconds,
-                        })}
-                      </Badge>
-                      <Badge variant="secondary">
-                        {translate('shots', { count: preset.shotCount })}
-                      </Badge>
-                    </div>
-                    <div className="mt-auto border-t border-border pt-3">
-                      <Button
-                        ariaLabel={translate('createAria', { title })}
-                        className="w-full"
-                        isDisabled={!hasBrand || (isBusy && !isLaunching)}
-                        isLoading={isLaunching}
-                        label={translate(isLaunching ? 'creating' : 'create')}
-                        onClick={() => void launch(preset)}
-                        variant={ButtonVariant.DEFAULT}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              </li>
+                  </Card>
+                </li>
+              </SimpleTooltip>
             );
           })}
         </ul>

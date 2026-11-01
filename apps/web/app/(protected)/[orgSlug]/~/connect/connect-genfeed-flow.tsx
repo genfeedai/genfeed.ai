@@ -35,8 +35,8 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
-import { Tabs } from '@ui/primitives/tabs';
 import { StatusDot } from '@ui/primitives/status-dot';
+import { Tabs } from '@ui/primitives/tabs';
 import {
   ArrowRight,
   CircleCheck,

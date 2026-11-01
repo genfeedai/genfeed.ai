@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, CardEmptySize, CardPadding } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -150,7 +154,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       <Button
         asChild
         variant={ButtonVariant.SECONDARY}
-        className="w-full mt-6 py-4 border border-border text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
+        className="w-full mt-6 py-4 border border-border font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
       >
         <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>View All Entities</Link>
       </Button>

@@ -692,6 +692,7 @@ export default function PublishingContentLibrary() {
   }
 
   const renderPostCard = (item: PublishingContentLibraryItem) => (
+    // ui-guard-allow:clickable-element -- pointer shortcut for the whole card; the title link and the primary action inside are the keyboard path
     <div
       key={`${item.type}:${item.id}`}
       className="cursor-pointer"

@@ -7,6 +7,7 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ImageOff } from 'lucide-react';
 import Image from 'next/image';
 import type { IngredientThumbnailProps } from '@/props/content/ingredient.props';
@@ -31,19 +32,20 @@ export default function IngredientThumbnail({
 
   if (!src) {
     return (
-      <span
-        aria-label={alt}
-        className={cn(
-          'flex items-center justify-center bg-tertiary text-muted-foreground',
-          size === undefined ? 'absolute inset-0' : 'aspect-square shrink-0',
-          className,
-        )}
-        data-testid={testId}
-        role="img"
-        title={title}
-      >
-        <ImageOff aria-hidden="true" className="size-2/3 min-h-3 min-w-3" />
-      </span>
+      <SimpleTooltip label={title}>
+        <span
+          aria-label={alt}
+          className={cn(
+            'flex items-center justify-center bg-tertiary text-muted-foreground',
+            size === undefined ? 'absolute inset-0' : 'aspect-square shrink-0',
+            className,
+          )}
+          data-testid={testId}
+          role="img"
+        >
+          <ImageOff aria-hidden="true" className="size-2/3 min-h-3 min-w-3" />
+        </span>
+      </SimpleTooltip>
     );
   }
 

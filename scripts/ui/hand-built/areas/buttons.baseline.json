@@ -1,0 +1,777 @@
+{
+  "files": {
+    "apps/extension/src/components/chat/ChatActionChips.tsx": {
+      "button-restyle": 2
+    },
+    "apps/extension/src/components/create/CreatePanel.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/extension/src/components/create/TemplateCard.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/extension/src/components/history/ThreadItem.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/extension/src/components/pages/LoginPage.tsx": {
+      "button-restyle": 1
+    },
+    "apps/extension/src/components/settings/BrandSelector.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/extension/src/components/settings/OrganizationSelector.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/marketing/app/(content)/articles/[slug]/article-content.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/app/(content)/articles/[slug]/article-experience.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/marketing/app/(content)/articles/[slug]/article-share-button.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/app/(public)/[slug]/product-final-cta.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/app/(public)/[slug]/product-pricing-cta.tsx": {
+      "button-restyle": 3
+    },
+    "apps/marketing/app/(public)/skills/install-command.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/marketing/app/(public)/skills/success/copy-command-button.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/src/components/agent-connect/AgentConnectDialog.tsx": {
+      "button-restyle": 1
+    },
+    "apps/marketing/src/components/shell/topbars/LandingTopbar.tsx": {
+      "button-restyle": 2
+    },
+    "apps/marketing/src/components/topbars/public/TopbarPublic.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/marketing/src/components/topbars/public/TopbarPublicMobileMenu.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/marketing/src/ui/workflow-builder/nodes/RssInputNode.tsx": {
+      "unstyled-look": 6
+    },
+    "apps/marketing/src/ui/workflow-builder/nodes/TweetInputNode.tsx": {
+      "unstyled-look": 3
+    },
+    "apps/web/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/app/(onboarding)/onboarding/post-signup/PostSignupFallback.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/WorkflowExecutionCard.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/ClipperWorkspace.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperInputForm.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperResultCard.tsx": {
+      "unstyled-look": 4
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperSourcePreview.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/edit/article/article-detail-header.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/newsletter-editor.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorEffectsPanel.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorPropertiesPanel.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTextProperties.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTextTrackList.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorTimeline.tsx": {
+      "button-restyle": 2,
+      "unstyled-look": 3
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-row.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-conversation-sidebar.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewDecisionPanel.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewGrid.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewInboxBulkBar.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewLineagePanel.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewPostHoverPreview.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewQueueView.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewRewriteProgress.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/guided-setup/content.tsx": {
+      "button-restyle": 8,
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-field.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-toolbar.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/~/agent/journey/journey-page-content.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-identity-card.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-overview-card.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/app/(protected)/admin/administration/announcements/announcement-compose-form.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/admin/administration/concierge-accounts/warmup-accounts-page.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/admin/administration/users/user-details.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/app/(protected)/admin/overview/overview-page.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(protected)/routed-organization-boundary.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/app/(public)/auth-ui.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/analytics/trends/social-media-player.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/analytics/trends/trending-hashtags.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/app-catalog/AppCatalogCard.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/cloud-sync-indicator/CloudSyncIndicator.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/components/command-palette/command-palette-item/CommandPaletteItem.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/content/admin-filters/AdminOrgBrandFilter.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/content/filter-menu/FilterMenu.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/desktop/DesktopLocalProviderSettings.tsx": {
+      "unstyled-look": 4
+    },
+    "apps/web/src/components/desktop/DesktopServerSettings.tsx": {
+      "unstyled-look": 3
+    },
+    "apps/web/src/components/editors/RichTextEditorToolbar.tsx": {
+      "unstyled-look": 9
+    },
+    "apps/web/src/components/evaluation/card/EvaluationCard.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/components/evaluation/seo-scorecard/SeoScorecard.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/src/components/ingredients/inspector/IngredientInspectorRail.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/ingredients/inspector/IngredientPromptBlock.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/ingredients/inspector/IngredientTagsControl.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/layouts/app/DesktopSidebar.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/layouts/protected/impersonation-banner.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/shared/CollapsibleGroup.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/shared/MenuSharedPrimaryAction.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/sidebar-action-trigger/SidebarActionTrigger.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/menus/sidebar-nested/SidebarNested.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/switchers/MenuBrandSwitcher.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/menus/user-dropdown/UserDropdown.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/modals/content/remix/ModalPostRemix.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/components/modals/content/repurpose/ModalPostRepurpose.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/components/modals/gallery/ModalGalleryUploadsTab.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/modals/ingredients/avatar/ModalAvatar.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/modals/models/ModalModelFormContent.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/modals/system/confirm/ModalConfirm.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/components/modals/trainings/ModalTraining.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/modals/trainings/ModalTrainingNew.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/components/modals/trainings/TrainingFormInputs.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/models/ModelBrowserModal.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/overview/OverviewLayout.tsx": {
+      "button-restyle": 2,
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/prompt-bars/components/blacklist-selector/PromptBarBlacklistSelector.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.tsx": {
+      "button-restyle": 8
+    },
+    "apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx": {
+      "button-restyle": 7
+    },
+    "apps/web/src/components/prompt-bars/components/frame-controls/PromptBarFrameControls.tsx": {
+      "button-restyle": 2,
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/prompt-bars/components/variation-presets/PromptBarVariationPresets.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/shell/NotificationInboxMenu.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/shell/TopbarAppsLink.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/shell/app-rail/AppRailMore.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/components/tags/dropdown/DropdownTagsPanel.tsx": {
+      "unstyled-look": 3
+    },
+    "apps/web/src/components/tags/dropdown/DropdownTagsTrigger.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/tags/library-tag-picker/TagColorPicker.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/topbars/breadcrumbs/TopbarBreadcrumbs.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/components/topbars/credits-bar/CreditsMenuSection.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/workspace-shell/AgentDockHistory.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/workspace-shell/AgentThreadsPanel.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/components/workspace-shell/use-conversation-scope-controls.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/activities/components/ActivityThumbnailCell.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/features/analytics/brand-overview/BrandChartsGrid.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/analytics/components/insights/insight-list-card/InsightListCard.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/brands/components/banner/BrandDetailBanner.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/brands/components/brand-kit/BrandKitAssetTile.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/brands/components/brand-kit/BrandKitReviewCard.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/brands/components/integrations/connect-account/ConnectTile.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/brands/components/overview/BrandDetailOverview.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/src/features/brands/components/sidebar/AgentProfileSummaryCard.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx": {
+      "button-restyle": 4
+    },
+    "apps/web/src/features/brands/components/sidebar/BrandDetailManualKitCard.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/src/features/brands/components/sidebar/BrandDetailReferencesCard.tsx": {
+      "button-restyle": 3
+    },
+    "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/brands/components/sidebar/CredentialPostingTimesEditor.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/brands/components/sidebar/social-warmup/SocialWarmupProgram.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/campaigns/form/CampaignCreateDialog.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/content-runs/detail/content-run-detail.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/ingredients/components/tags/manager/TagPickerDropdown.tsx": {
+      "unstyled-look": 3
+    },
+    "apps/web/src/features/ingredients/components/tags/manager/TagsList.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/ingredients/components/topbars/shared/TopbarShared.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/ingredients/detail/ingredient-detail-not-found.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/library-remix/LibraryPickerOverlay.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/features/models/list/components/ModelsTableColumns.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/posts/components/card-footer/PostMediaStrip.tsx": {
+      "unstyled-look": 3
+    },
+    "apps/web/src/features/posts/components/posts/post-detail-sidebar/PostSidebarWhenDock.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/posts/detail/components/PostDetailThreadFooter.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/posts/grid/account-grid.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/posts/list/components/EvalCell.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/posts/list/components/PostsGrid.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/posts/list/components/PostsTableColumns.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/features/research/ads/AdsResearchAdCards.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupCustomizePanel.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupFieldRow.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupPresetsSection.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupSectionChips.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupStepSlider.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/components/prompt-bars/components/context-row/PromptBarContextRow.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioIdentityFields.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioIdentityVoiceRow.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundAgentProposals.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundCard.tsx": {
+      "button-restyle": 5
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundFailureNotice.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundFocusedPreview.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundInspector.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundStarterIdeas.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardAgentBriefs.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardAnimatic.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardInspector.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardPresetCards.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardReferencesPanel.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/studio/storyboard/components/StoryboardRuntimeRail.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/trends/following/following-deck.tsx": {
+      "unstyled-look": 2
+    },
+    "apps/web/src/features/trends/list/components/HookRemixModal.tsx": {
+      "button-restyle": 2
+    },
+    "apps/web/src/features/workflows/components/dropdowns/multiselect/DropdownMultiSelect.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/workflows/components/editor/CloudWorkflowToolbar.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/workflows/components/editor/WorkflowModelField.tsx": {
+      "button-restyle": 1
+    },
+    "apps/web/src/features/workflows/components/editor/WorkflowPromptPicker.tsx": {
+      "unstyled-look": 1
+    },
+    "apps/web/src/features/workflows/components/ui/button/NodeButton.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentCardCollapseToggle.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentChatContainerThreadView.tsx": {
+      "button-restyle": 2
+    },
+    "packages/agent/src/components/AgentChatInputAttachmentTray.tsx": {
+      "unstyled-look": 2
+    },
+    "packages/agent/src/components/AgentChatMessage.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentCliTerminal.tsx": {
+      "unstyled-look": 4
+    },
+    "packages/agent/src/components/AgentCompletionSummaryCard.tsx": {
+      "button-restyle": 4
+    },
+    "packages/agent/src/components/AgentComposerStatusStack.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentFullPageMobileBar.tsx": {
+      "button-restyle": 3
+    },
+    "packages/agent/src/components/AgentIconStrip.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentInputRequestOverlay.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentOAuthConnectMenu.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentOutputsPanel.tsx": {
+      "unstyled-look": 3
+    },
+    "packages/agent/src/components/AgentRunFailureCard.tsx": {
+      "button-restyle": 3
+    },
+    "packages/agent/src/components/AgentSidebar.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentStrategyEngagementSection.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentStrategyHeader.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentStrategyStatus.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/AgentThreadListErrorBanner.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentThreadListHeaderActions.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentThreadListRow.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AgentUiActionCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AiTextActionCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/BrandMentionList.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/CampaignCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/CharacterMentionList.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/ClipperRunCard.tsx": {
+      "button-restyle": 2
+    },
+    "packages/agent/src/components/ContentCalendarCard.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/ContentLibraryPicker.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/CredentialMentionList.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/EngagementOpportunityCard.tsx": {
+      "button-restyle": 2
+    },
+    "packages/agent/src/components/GenerationActionCanvas.tsx": {
+      "unstyled-look": 2
+    },
+    "packages/agent/src/components/GenerationActionCardControls.tsx": {
+      "button-restyle": 3
+    },
+    "packages/agent/src/components/GenerationActionCardQualityBadge.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/IngredientAlternativesCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/IngredientPickerCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/LivestreamBotCard.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/MutationApprovalCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/PublishPostCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/components/ReviewGateCard.tsx": {
+      "button-restyle": 3
+    },
+    "packages/agent/src/components/StudioReferenceMentionList.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/TeamMentionList.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/TimelineWorkGroup.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/TrendingTopicsCard.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/VoiceCloneDropzone.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/WorkflowCreatedCard.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/components/WorkflowExecuteCardStatusPanel.tsx": {
+      "button-restyle": 2
+    },
+    "packages/agent/src/workflow/components/AgentWorkflow.tsx": {
+      "unstyled-look": 2
+    },
+    "packages/agent/src/workflow/components/ApprovalPanel.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "packages/agent/src/workflow/components/PhaseProgress.tsx": {
+      "button-restyle": 1,
+      "unstyled-look": 1
+    },
+    "packages/agent/src/workflow/components/PhaseTransitionLog.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/agent/src/workflow/components/QuestionCard.tsx": {
+      "button-restyle": 1
+    },
+    "packages/agent/src/workflow/components/VerificationPanel.tsx": {
+      "unstyled-look": 1
+    },
+    "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/canvas/EditableEdge.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/canvas/GroupOverlay.tsx": {
+      "button-restyle": 5
+    },
+    "packages/workflows/src/ui/canvas/NodeSearch.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/components/GlobalImageHistory.tsx": {
+      "button-restyle": 6
+    },
+    "packages/workflows/src/ui/nodes/BaseNode.tsx": {
+      "button-restyle": 2
+    },
+    "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": {
+      "button-restyle": 2
+    },
+    "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
+      "button-restyle": 2
+    },
+    "packages/workflows/src/ui/nodes/input/PromptConstructorNode.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/nodes/processing/ImageGridSplitNode.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/nodes/processing/OutputGalleryNode.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/panels/DebugPanel.tsx": {
+      "button-restyle": 2
+    },
+    "packages/workflows/src/ui/panels/NodeCatalog.tsx": {
+      "button-restyle": 2
+    },
+    "packages/workflows/src/ui/toolbar/BottomBar.tsx": {
+      "button-restyle": 4
+    },
+    "packages/workflows/src/ui/toolbar/CostIndicator.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/toolbar/Toolbar.tsx": {
+      "button-restyle": 1
+    },
+    "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
+      "button-restyle": 1
+    }
+  },
+  "version": 1
+}

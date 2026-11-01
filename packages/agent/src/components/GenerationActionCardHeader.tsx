@@ -52,12 +52,11 @@ export function GenerationActionCardHeader({
       {onStop ? (
         <Button
           ariaLabel="Stop generation"
-          className="size-7 p-0"
           icon={
             <Square aria-hidden className="size-2.5 fill-current stroke-none" />
           }
           onClick={onStop}
-          size={ButtonSize.ICON}
+          size={ButtonSize.MICRO}
           tooltip="Stop"
           variant={ButtonVariant.DESTRUCTIVE}
           withWrapper={false}

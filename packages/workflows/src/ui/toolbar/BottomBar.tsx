@@ -47,7 +47,7 @@ function BatchCounter({
         size={ButtonSize.ICON}
         onClick={onDecrement}
         disabled={batchCount <= MIN_BATCH || isActive}
-        className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="size-5 hover:bg-muted"
       >
         <Minus className="size-2.5" />
       </Button>
@@ -60,7 +60,7 @@ function BatchCounter({
         size={ButtonSize.ICON}
         onClick={onIncrement}
         disabled={batchCount >= MAX_BATCH || isActive}
-        className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="size-5 hover:bg-muted"
       >
         <Plus className="size-2.5" />
       </Button>

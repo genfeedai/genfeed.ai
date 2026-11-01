@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import definitionList from './hand-built/areas/definition-list';
 import loading from './hand-built/areas/loading';
+import metric from './hand-built/areas/metric';
 import table from './hand-built/areas/table';
 import type { HandBuiltArea, HandBuiltSource } from './hand-built/core';
 
@@ -19,6 +20,45 @@ function scan(area: HandBuiltArea, text: string, file = 'apps/web/src/A.tsx') {
   };
   return area.scan(source).map((finding) => finding.rule);
 }
+
+describe('metric guard', () => {
+  it('flags a restyled MetricCard but not layout classes', () => {
+    const header =
+      "import MetricCard from '@ui/cards/metric-card/MetricCard';\n";
+    expect(
+      scan(
+        metric,
+        `${header}export const A = () => <MetricCard className="p-6 text-3xl" label="a" value="1" />;`,
+      ),
+    ).toEqual(['metric-card-restyle']);
+    expect(
+      scan(
+        metric,
+        `${header}export const A = () => <MetricCard className="w-full" label="a" value="1" />;`,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('metric guard, alternate path and looked-up tone', () => {
+  it('flags a restyle imported through the components path', () => {
+    expect(
+      scan(
+        metric,
+        'import MetricCard from \'@ui/components/cards/metric-card/MetricCard\';\nexport const A = () => <MetricCard className="p-6" label="a" value="1" />;',
+      ),
+    ).toEqual(['metric-card-restyle']);
+  });
+
+  it('flags a className read from a looked-up tone', () => {
+    expect(
+      scan(
+        metric,
+        'import MetricCard from \'@ui/cards/metric-card/MetricCard\';\nexport const A = ({ status }) => <MetricCard className={status.color} label="a" value="1" />;',
+      ),
+    ).toEqual(['metric-card-restyle']);
+  });
+});
 
 describe('table guard', () => {
   it('flags padding and typography on cells', () => {

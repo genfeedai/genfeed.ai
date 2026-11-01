@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
-import { Tabs } from '@ui/primitives/tabs';
 import { Maximize2, Sparkles } from 'lucide-react';
 import {
   type ReactElement,
@@ -71,16 +71,14 @@ function AgentPanelShell({
 
         <div className="flex shrink-0 items-center gap-0.5">
           {isOpen && outputsContent && (
-            <Tabs
-              activeTab={activeTab}
-              ariaLabel="Agent panel view"
-              className="mr-1"
-              fullWidth={false}
-              items={[
-                { id: 'chat', label: 'Terminal' },
-                { id: 'outputs', label: 'Outputs' },
+            <ViewMenu
+              activeView={activeTab}
+              onChange={handleTabChange}
+              options={[
+                { icon: null, label: 'Terminal', type: 'chat' },
+                { icon: null, label: 'Outputs', type: 'outputs' },
               ]}
-              onTabChange={(tab) => handleTabChange(tab as AgentRailTab)}
+              trigger="label"
             />
           )}
 

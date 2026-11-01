@@ -213,14 +213,11 @@ test.describe('Storyboard runs', () => {
     await expect(
       page.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
-    const source = page.getByRole('button', { name: /^Create from:/ });
-    await expect(source).toBeVisible();
-    await source.click();
     await expect(
-      page.getByRole('menuitemradio', { name: /^From a brief/ }),
+      page.getByRole('radio', { name: 'From a brief' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('menuitemradio', { name: /^Remix a video/ }),
+      page.getByRole('radio', { name: 'Remix a video' }),
     ).toBeVisible();
   });
 });

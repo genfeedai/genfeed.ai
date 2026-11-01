@@ -810,7 +810,7 @@ export function PublishPostCard({
           void handleConfirm();
         }}
         isDisabled={isConfirmDisabled}
-        className="flex w-full items-center justify-center gap-2 rounded bg-success px-4 py-2 text-sm font-medium text-success-foreground hover:bg-success/90"
+        className="flex w-full items-center justify-center gap-2 rounded bg-success px-4 py-2 text-sm text-success-foreground hover:bg-success/90"
       >
         <Send className="size-4" />
         {isSubmitting
