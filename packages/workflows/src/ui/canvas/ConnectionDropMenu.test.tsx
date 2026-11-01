@@ -66,7 +66,14 @@ function productNode(
   };
 }
 
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
 beforeEach(() => {
+  globalThis.ResizeObserver = ResizeObserverStub;
   Element.prototype.scrollIntoView = vi.fn();
   useWorkflowStore.setState({
     edges: [],
@@ -118,6 +125,17 @@ describe('connection drop menu', () => {
       }),
     ]);
     expect(useUIStore.getState().connectionDropMenu).toBeNull();
+  });
+
+  it('closes on Escape without adding a node', () => {
+    render(<ConnectionDropMenu />);
+
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Add Node' }), {
+      key: 'Escape',
+    });
+
+    expect(useUIStore.getState().connectionDropMenu).toBeNull();
+    expect(useWorkflowStore.getState().nodes).toHaveLength(1);
   });
 
   it('filters incompatible actions instead of offering unavailable core node types', () => {

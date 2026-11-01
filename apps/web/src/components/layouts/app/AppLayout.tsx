@@ -1,10 +1,9 @@
 'use client';
 
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { Button } from '@ui/primitives/button';
+import { Dialog, DialogContent, DialogTitle } from '@ui/primitives/dialog';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
 import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 import {
@@ -145,48 +144,46 @@ export default function AppLayout({
           </>
         ) : null}
 
-        {hasMobileNavigation && isSidebarOpen ? (
-          <>
-            {/* Mobile navigation drawer: app rail beside the module menu */}
-            <div className="fixed inset-0 z-40 flex md:hidden">
-              <Button
-                type="button"
-                ariaLabel="Close navigation"
-                variant={ButtonVariant.UNSTYLED}
-                className={
-                  'absolute inset-0 bg-black/60' /* design-system-allow-content-color -- navigation scrim */
-                }
-                onClick={handleCloseSidebar}
-              />
-
-              <div
-                className="relative flex h-full max-w-[85vw] border-r border-border bg-gray-100"
-                style={{
-                  width: mobileMenuContent
-                    ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`
-                    : 'var(--desktop-rail-width)',
-                }}
-              >
-                {mobileRailContent ? (
-                  <div
-                    // The drawer starts under the fixed topbar (z-50), so the
-                    // rail begins below that band or its first app is hidden.
-                    className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
-                    data-testid="mobile-app-rail"
-                  >
-                    {mobileRailContent}
-                  </div>
-                ) : null}
-                {mobileMenuContent ? (
-                  // Below the fixed topbar, like the rail. The brand
-                  // switcher lives in that bar.
-                  <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
-                    {mobileMenuContent}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </>
+        {hasMobileNavigation ? (
+          // Mobile navigation drawer: app rail beside the module menu. The
+          // shared Dialog supplies the role, Escape, focus trap and focus
+          // restore the old hand-built scrim lacked.
+          <Dialog
+            open={isSidebarOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                handleCloseSidebar();
+              }
+            }}
+          >
+            <DialogContent
+              aria-describedby={undefined}
+              className="max-w-[85vw] flex-row border-r border-border bg-gray-100 p-0 md:hidden"
+              placement="left"
+              style={{
+                width: mobileMenuContent
+                  ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`
+                  : 'var(--desktop-rail-width)',
+              }}
+            >
+              <DialogTitle className="sr-only">Navigation</DialogTitle>
+              {mobileRailContent ? (
+                <div
+                  // The drawer keeps the topbar band clear (its close button
+                  // sits there), so the rail begins below it.
+                  className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
+                  data-testid="mobile-app-rail"
+                >
+                  {mobileRailContent}
+                </div>
+              ) : null}
+              {mobileMenuContent ? (
+                <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
+                  {mobileMenuContent}
+                </div>
+              ) : null}
+            </DialogContent>
+          </Dialog>
         ) : null}
 
         <section

@@ -113,16 +113,16 @@ for (const viewport of [
         exact: true,
       });
       await open.click();
-      const close = page.getByRole('button', {
-        name: 'Close navigation menu',
-        exact: true,
-      });
-      await expect(close).toBeVisible();
-      await close.click();
+      // The drawer is a modal dialog: its own close button dismisses it.
+      const drawer = page.getByRole('dialog', { name: 'Navigation' });
+      await expect(drawer).toBeVisible();
+      await drawer.getByRole('button', { name: 'Close' }).click();
+      await expect(drawer).toBeHidden();
       await expect(open).toBeVisible();
       await open.click();
-      await expect(close).toBeVisible();
-      await close.click();
+      await expect(drawer).toBeVisible();
+      await drawer.getByRole('button', { name: 'Close' }).click();
+      await expect(drawer).toBeHidden();
     } else {
       const sidebar = page.getByRole('complementary', {
         name: 'Navigation',

@@ -8,10 +8,10 @@ import {
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import {
-  ChartLoadingOverlay,
   chartPlatformColor,
   chartPlatformLabel,
 } from '@/features/analytics/components/analytics/charts/chart-theme';
@@ -145,7 +145,7 @@ export function PlatformTimeSeriesChart({
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
-        {isLoading && <ChartLoadingOverlay />}
+        {isLoading && <LoadingOverlay tone="veil" />}
 
         {isEmpty && !isLoading ? (
           <CardEmptyContent

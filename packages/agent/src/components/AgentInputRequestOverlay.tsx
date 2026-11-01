@@ -14,7 +14,7 @@ export function AgentInputRequestOverlay({
   isSubmitting = false,
   onSubmit,
   request,
-  variant = 'overlay',
+  variant = 'inline',
 }: AgentInputRequestOverlayProps): ReactElement {
   const translate = useTranslations('agent.inputRequest');
   const recommendedLabel = useMemo(
@@ -39,7 +39,6 @@ export function AgentInputRequestOverlay({
   const requestIdRef = useRef(request.inputRequestId);
   requestIdRef.current = request.inputRequestId;
   const isComposer = variant === 'composer';
-  const isInline = variant === 'inline' || isComposer;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new request resets the answer even when the overlay stays mounted.
   useEffect(() => {
@@ -90,47 +89,23 @@ export function AgentInputRequestOverlay({
   }
 
   return (
-    <div
-      className={
-        isComposer
-          ? 'w-full'
-          : variant === 'inline'
-            ? 'w-full'
-            : 'absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm' /* design-system-allow-content-color */
-      }
-    >
+    <div className="w-full">
       <div
         className={cn(
-          'w-full border border-border bg-card shadow-border',
-          isComposer
-            ? 'max-h-[min(50dvh,24rem)] overflow-y-auto rounded-lg p-3'
-            : variant === 'inline'
-              ? 'rounded-lg p-4'
-              : 'max-w-4xl p-6 shadow-ambient-lg',
+          'w-full rounded-lg border border-border bg-card shadow-border',
+          isComposer ? 'max-h-[min(50dvh,24rem)] overflow-y-auto p-3' : 'p-4',
         )}
       >
-        <div className={isInline ? 'mb-3' : 'mb-4'}>
+        <div className="mb-3">
           <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             {translate(
               request.isMultiSelect ? 'chooseMultiple' : 'interaction',
             )}
           </p>
-          <h3
-            className={
-              isInline
-                ? 'text-sm font-semibold text-foreground'
-                : 'text-2xl font-semibold text-foreground'
-            }
-          >
+          <h3 className="text-sm font-semibold text-foreground">
             {request.title}
           </h3>
-          <p
-            className={
-              isInline
-                ? 'mt-1 text-xs leading-5 text-foreground/70'
-                : 'mt-3 text-sm text-foreground/70'
-            }
-          >
+          <p className="mt-1 text-xs leading-5 text-foreground/70">
             {request.prompt}
           </p>
         </div>
@@ -207,13 +182,7 @@ export function AgentInputRequestOverlay({
                   ) : null}
                   <span className="block min-w-0">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={
-                          isInline
-                            ? 'text-xs font-medium text-foreground'
-                            : 'text-sm font-semibold text-foreground'
-                        }
-                      >
+                      <span className="text-xs font-medium text-foreground">
                         {option.label}
                       </span>
                       {isRecommended ? (
@@ -239,7 +208,7 @@ export function AgentInputRequestOverlay({
           </p>
         ) : null}
         {request.allowFreeText !== false ? (
-          <div className={isInline ? 'mt-3' : 'mt-4'}>
+          <div className="mt-3">
             <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               {translate('other')}
             </p>
@@ -265,11 +234,7 @@ export function AgentInputRequestOverlay({
         ) : null}
 
         {request.isMultiSelect || request.allowFreeText !== false ? (
-          <div
-            className={
-              isInline ? 'mt-3 flex justify-end' : 'mt-6 flex justify-end'
-            }
-          >
+          <div className="mt-3 flex justify-end">
             <Button
               onClick={() => {
                 if (freeTextAnswer.trim() && request.allowFreeText !== false) {

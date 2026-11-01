@@ -77,12 +77,13 @@ export default function TopbarPublicMobileMenu({
   return createPortal(
     // One layer below the header (`z-50`): the scrim dims the page, not the
     // bar, so the close button and the header CTA stay visible and tappable.
+    // ui-guard-allow:overlay -- header dropdown that must keep the bar's close button and CTA tappable, which a modal Dialog makes inert; Escape, focus return and scroll lock live in TopbarPublic
     <div className="lg:hidden fixed inset-0 z-40">
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}
         className={
-          'absolute inset-0 bg-black/80 backdrop-blur-sm' /* design-system-allow-content-color -- navigation scrim */
+          'absolute inset-0 bg-black/80 backdrop-blur-sm' /* design-system-allow-content-color -- navigation scrim; ui-guard-allow:overlay -- scrim of the header dropdown above */
         }
         onClick={onClose}
         ariaLabel="Close menu"
