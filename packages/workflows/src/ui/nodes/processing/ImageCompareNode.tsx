@@ -1,6 +1,7 @@
 'use client';
 
 import type { ImageCompareNodeData } from '@genfeedai/contracts/types';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useMemo } from 'react';
 import {
@@ -77,20 +78,18 @@ function ImageCompareNodeComponent(props: NodeProps) {
             portrait={false}
             style={{ height: '100%', width: '100%' }}
           />
-          <div
-            className={
-              'absolute top-2 left-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none' /* design-system-allow-content-color */
-            }
+          <Badge
+            className="pointer-events-none absolute top-2 left-2"
+            variant="overlay"
           >
             A
-          </div>
-          <div
-            className={
-              'absolute top-2 right-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none' /* design-system-allow-content-color */
-            }
+          </Badge>
+          <Badge
+            className="pointer-events-none absolute top-2 right-2"
+            variant="overlay"
           >
             B
-          </div>
+          </Badge>
         </div>
       ) : (
         <div className="w-full flex-1 min-h-[200px] border border-dashed border-border rounded flex flex-col items-center justify-center gap-2">

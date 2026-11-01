@@ -490,6 +490,17 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   // Model training operations: these train a model rather than generate
   // an image.
   [MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER, 'model_training_operation'],
+  // Retired Genfeed fleet models: stored keys resolve to their successor
+  // before dispatch, so they are never brief-compiled themselves.
+  [MODEL_KEYS.GENFEED_AI_FLUX_DEV, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO, 'legacy_prompt_builder'],
+  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA, 'legacy_prompt_builder'],
 ];
 
 export const IMAGE_GENERATION_BRIEF_EXEMPTIONS: ReadonlyMap<

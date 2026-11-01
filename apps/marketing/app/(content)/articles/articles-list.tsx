@@ -2,6 +2,7 @@ import { CardVariant } from '@genfeedai/contracts';
 import type { Article } from '@models/content/article.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { Calendar, Clock } from 'lucide-react';
@@ -85,9 +86,9 @@ export default function ArticlesList({
 
                   {article.category && (
                     <div className="mb-3">
-                      <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
+                      <Badge casing="normal" isSolid shape="pill" size="lg">
                         {article.category}
-                      </span>
+                      </Badge>
                     </div>
                   )}
 

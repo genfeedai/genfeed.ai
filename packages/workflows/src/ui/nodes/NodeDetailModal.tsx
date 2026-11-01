@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Dialog,
@@ -138,9 +139,9 @@ function NodeDetailHeader({
     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
       <div className="flex items-center gap-3">
         <DialogTitle className="text-lg font-medium">{nodeLabel}</DialogTitle>
-        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+        <Badge casing="normal" size="lg" variant="secondary">
           {nodeTypeLabel}
-        </span>
+        </Badge>
       </div>
       <div className="flex items-center gap-2">
         {displayUrl && (
@@ -265,9 +266,15 @@ function ImageNavigation({
           <ChevronRight className="size-5" />
         </Button>
       )}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card/80 border border-border rounded-full px-3 py-1 text-xs text-muted-foreground shadow-md">
+      <Badge
+        casing="normal"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2"
+        shape="pill"
+        size="xl"
+        variant="overlay"
+      >
         {currentIndex + 1} / {imageCount}
-      </div>
+      </Badge>
     </>
   );
 }

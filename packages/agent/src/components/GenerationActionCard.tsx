@@ -4,10 +4,9 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
-import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Image, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -315,56 +314,32 @@ export function GenerationActionCard({
           />
 
           {!isImage ? (
-            <div
-              aria-label={translate('videoReferenceRoleAria')}
-              className="flex flex-wrap items-center gap-1.5"
-              role="group"
-            >
-              <Button
-                aria-pressed={videoReferenceMode === 'startFrame'}
-                onClick={() => setVideoReferenceMode('startFrame')}
-                size={ButtonSize.SM}
-                variant={
-                  videoReferenceMode === 'startFrame'
-                    ? ButtonVariant.SECONDARY
-                    : ButtonVariant.GHOST
-                }
-                withWrapper={false}
-              >
-                {translate('startFrame')}
-              </Button>
-              {supportsEndFrame ? (
-                <Button
-                  aria-pressed={videoReferenceMode === 'endFrame'}
-                  isDisabled={supportsInterpolation && !startFrameId}
-                  onClick={() => setVideoReferenceMode('endFrame')}
-                  size={ButtonSize.SM}
-                  variant={
-                    videoReferenceMode === 'endFrame'
-                      ? ButtonVariant.SECONDARY
-                      : ButtonVariant.GHOST
-                  }
-                  withWrapper={false}
-                >
-                  {translate('endFrame')}
-                </Button>
-              ) : null}
-              {supportsVideoReferences ? (
-                <Button
-                  aria-pressed={videoReferenceMode === 'videoReference'}
-                  onClick={() => setVideoReferenceMode('videoReference')}
-                  size={ButtonSize.SM}
-                  variant={
-                    videoReferenceMode === 'videoReference'
-                      ? ButtonVariant.SECONDARY
-                      : ButtonVariant.GHOST
-                  }
-                  withWrapper={false}
-                >
-                  {translate('videoReference')}
-                </Button>
-              ) : null}
-            </div>
+            <SegmentedControl
+              ariaLabel={translate('videoReferenceRoleAria')}
+              onValueChange={setVideoReferenceMode}
+              options={[
+                { label: translate('startFrame'), value: 'startFrame' },
+                ...(supportsEndFrame
+                  ? [
+                      {
+                        isDisabled: supportsInterpolation && !startFrameId,
+                        label: translate('endFrame'),
+                        value: 'endFrame' as const,
+                      },
+                    ]
+                  : []),
+                ...(supportsVideoReferences
+                  ? [
+                      {
+                        label: translate('videoReference'),
+                        value: 'videoReference' as const,
+                      },
+                    ]
+                  : []),
+              ]}
+              size="sm"
+              value={videoReferenceMode}
+            />
           ) : null}
 
           {referenceNotice ? (

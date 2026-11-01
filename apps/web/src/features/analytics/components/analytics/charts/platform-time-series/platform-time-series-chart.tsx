@@ -1,14 +1,16 @@
 'use client';
-import { ButtonVariant, Platform } from '@genfeedai/contracts';
+import { Platform } from '@genfeedai/contracts';
 import {
   formatChartDate,
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import {
   chartPlatformColor,
@@ -60,6 +62,7 @@ export function PlatformTimeSeriesChart({
   height = 300,
   className = '',
 }: PlatformTimeSeriesChartProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const [selectionOverride, setSelectionOverride] =
     useState<PlatformSelectionOverride | null>(null);
   const activeSelectionOverride =
@@ -100,46 +103,39 @@ export function PlatformTimeSeriesChart({
     );
   const isEmpty = !data || data.length === 0 || !hasSignal;
 
-  const togglePlatform = (platform: Platform) => {
-    const nextInactivePlatforms = inactivePlatforms.includes(platform)
-      ? inactivePlatforms.filter(
-          (inactivePlatform) => inactivePlatform !== platform,
-        )
-      : activePlatforms.length > 1
-        ? [...inactivePlatforms, platform]
-        : inactivePlatforms;
-
-    setSelectionOverride({
-      sourcePlatforms: [...platforms],
-      inactivePlatforms: nextInactivePlatforms,
-    });
-  };
-
   return (
     <div className={className}>
       {!isEmpty ? (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {platforms.map((platform) => (
-            <Button
-              type="button"
-              key={platform}
-              onClick={() => togglePlatform(platform)}
-              isDisabled={isLoading || isEmpty}
-              variant={ButtonVariant.UNSTYLED}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-[background-color,border-color,color] border ${
-                activePlatforms.includes(platform)
-                  ? 'border-border-strong bg-muted text-foreground'
-                  : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
-              } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span
-                className="inline-block size-3 rounded-full mr-2"
-                style={{ backgroundColor: chartPlatformColor(platform) }}
-              />
-              {chartPlatformLabel(platform)}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={selectionLabels('platforms')}
+          className="mb-4"
+          isDisabled={isLoading || isEmpty}
+          onValueChange={(nextActive) => {
+            if (nextActive.length > 0) {
+              setSelectionOverride({
+                sourcePlatforms: [...platforms],
+                inactivePlatforms: platforms.filter(
+                  (platform) => !nextActive.includes(platform),
+                ),
+              });
+            }
+          }}
+          options={platforms.map((platform) => ({
+            label: (
+              <>
+                <span
+                  className="inline-block size-3 rounded-full"
+                  style={{ backgroundColor: chartPlatformColor(platform) }}
+                />
+                {chartPlatformLabel(platform)}
+              </>
+            ),
+            value: platform,
+          }))}
+          type="multiple"
+          value={activePlatforms}
+        />
       ) : null}
 
       {/* Chart */}

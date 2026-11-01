@@ -174,3 +174,11 @@ it('does not require an intl provider for generic unannotated cards', () => {
   render(<MetricCard label="Runs" value="0" />);
   expect(screen.queryByRole('button')).toBeNull();
 });
+it('scales the value down for the xs size', () => {
+  render(<MetricCard label="Runs" size="xs" value="3" />);
+  expect(screen.getByText('3').closest('p')).toHaveClass('text-lg');
+});
+it('centres the value and label when align is center', () => {
+  render(<MetricCard align="center" label="Runs" value="3" />);
+  expect(screen.getByText('Runs')).toHaveClass('text-center');
+});

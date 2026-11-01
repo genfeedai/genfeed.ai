@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ClipperReferenceFrameSelector from './ClipperReferenceFrameSelector';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 function createReferenceFrames(
   overrides: Partial<ClipperReferenceFrameSet> = {},
 ): ClipperReferenceFrameSet {
@@ -49,7 +54,7 @@ describe('ClipperReferenceFrameSelector', () => {
       screen.getByAltText('Reference frame at 0:12 from the source video'),
     ).toBeInTheDocument();
 
-    const frame = screen.getByRole('button', {
+    const frame = screen.getByRole('radio', {
       name: 'Select reference frame at 1:15',
     });
     frame.focus();
@@ -75,10 +80,10 @@ describe('ClipperReferenceFrameSelector', () => {
     );
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: 'Selected reference frame at 0:12',
       }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    ).toHaveAttribute('aria-checked', 'true');
   });
 
   it('keeps partial and unavailable reference states non-blocking', () => {
@@ -120,7 +125,7 @@ describe('ClipperReferenceFrameSelector', () => {
       screen.getByText(/available frames remain selectable/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: 'Select reference frame at 0:40',
       }),
     ).toBeDisabled();
@@ -156,7 +161,7 @@ describe('ClipperReferenceFrameSelector', () => {
     );
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: 'Select reference frame at 1:15',
       }),
     ).toHaveAttribute('aria-busy', 'true');

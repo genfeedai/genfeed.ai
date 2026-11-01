@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Tabs, { PanelTabs } from '@ui/navigation/tabs/Tabs';
+import { PanelTabs, Tabs } from '@ui/primitives/tabs';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock next/navigation
@@ -29,6 +29,8 @@ class MockIntersectionObserver {
 }
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
+const HomeIcon = () => <span data-testid="home-icon">H</span>;
 
 describe('Tabs', () => {
   it('matches query tabs independently of query order and unrelated filters', () => {
@@ -214,7 +216,6 @@ describe('Tabs', () => {
 
   it('renders tabs with icons', () => {
     const handleTabChange = vi.fn();
-    const HomeIcon = () => <span data-testid="home-icon">H</span>;
 
     render(
       <Tabs

@@ -7,6 +7,8 @@ import CollectionGrid from '@ui/collection/CollectionGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -24,14 +26,14 @@ function getGrowthRateClass(rate: number): string {
   return '';
 }
 
-function getViralityBadgeClass(score: number): string {
+function getViralityBadgeProps(score: number): {
+  isSolid: boolean;
+  variant: BadgeVariant;
+} {
   if (score >= 70) {
-    return 'bg-primary text-primary-foreground';
+    return { isSolid: true, variant: 'default' };
   }
-  if (score >= 40) {
-    return 'bg-muted text-foreground';
-  }
-  return 'bg-muted text-muted-foreground';
+  return { isSolid: false, variant: 'secondary' };
 }
 
 export default function TrendingTopicsSection({
@@ -72,11 +74,11 @@ export default function TrendingTopicsSection({
           ))}
         </div>
       ) : trendingTopics.length === 0 ? (
-        <div className="text-center py-8 text-foreground/60">
-          <Flame className="size-12 mx-auto mb-3 opacity-30" />
-          <p>{translate('topics.empty')}</p>
-          <p className="text-sm mt-1">{translate('topics.emptyDescription')}</p>
-        </div>
+        <EmptyState
+          description={translate('topics.emptyDescription')}
+          icon={Flame}
+          title={translate('topics.empty')}
+        />
       ) : (
         <Table<TrendItem>
           items={trendingTopics.slice(0, 20)}
@@ -147,7 +149,7 @@ export default function TrendingTopicsSection({
               render: (item) => (
                 <Badge
                   value={item.viralityScore}
-                  className={getViralityBadgeClass(item.viralityScore)}
+                  {...getViralityBadgeProps(item.viralityScore)}
                 />
               ),
             },

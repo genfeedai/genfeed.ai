@@ -120,17 +120,17 @@ test.describe('Automation — Program Interactions', () => {
       brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
-    const platform = authenticatedPage.getByRole('button', {
+    const platform = authenticatedPage.getByRole('radio', {
       name: 'Twitter / X',
       exact: true,
     });
     await platform.click();
-    await expect(platform).toHaveAttribute('aria-pressed', 'true');
-    const sequenceType = authenticatedPage.getByRole('button', {
+    await expect(platform).toBeChecked();
+    const sequenceType = authenticatedPage.getByRole('radio', {
       name: /Discovery/,
     });
     await sequenceType.click();
-    await expect(sequenceType).toHaveAttribute('aria-pressed', 'true');
+    await expect(sequenceType).toBeChecked();
     await authenticatedPage.getByRole('button', { name: 'Next' }).click();
     await expect(
       authenticatedPage.locator('#campaign-wizard-name'),
@@ -149,7 +149,7 @@ test.describe('Automation — Program Interactions', () => {
     );
 
     await authenticatedPage
-      .getByRole('button', { name: 'Twitter / X', exact: true })
+      .getByRole('radio', { name: 'Twitter / X', exact: true })
       .click();
     await authenticatedPage.getByRole('button', { name: 'Next' }).click();
     const name = authenticatedPage.locator('#campaign-wizard-name');

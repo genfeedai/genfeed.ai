@@ -9,7 +9,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { CreditCard } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import type { CreditTopUpPanelProps } from '@/features/settings/props/credit-top-up-panel.props';
@@ -28,6 +30,8 @@ function formatUsd(value: number): string {
   return `$${value.toLocaleString()}`;
 }
 
+const CUSTOM_AMOUNT = 'custom';
+
 export default function CreditTopUpPanel({
   helperContent,
   isSubmitDisabled = false,
@@ -37,6 +41,7 @@ export default function CreditTopUpPanel({
   title = 'Add credits',
   onSubmit,
 }: CreditTopUpPanelProps): ReactElement {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const [selectedUsd, setSelectedUsd] = useState<number | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [customValue, setCustomValue] = useState('');
@@ -72,14 +77,6 @@ export default function CreditTopUpPanel({
     void onSubmit({ credits, usd });
   };
 
-  const packClass = (selected: boolean) =>
-    cn(
-      'inline-flex h-9 items-center gap-2 rounded border px-3 text-left transition-colors',
-      selected
-        ? 'border-foreground bg-foreground/5 text-foreground'
-        : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
-    );
-
   return (
     <Card
       label={title}
@@ -89,45 +86,46 @@ export default function CreditTopUpPanel({
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Amount</p>
           <div className="flex flex-wrap items-center gap-2">
-            {PAYG_CREDIT_PACKS.map((pack) => {
-              const amountUsd = pack.credits / PAYG_CREDITS_PER_USD;
-              const isSelected = !isCustom && selectedUsd === amountUsd;
-
-              return (
-                <Button
-                  key={pack.label}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => {
-                    setIsCustom(false);
-                    setSelectedUsd(amountUsd);
-                  }}
-                  ariaLabel={`Select ${pack.label} credit pack`}
-                  aria-pressed={isSelected}
-                  className={packClass(isSelected)}
-                >
-                  <span className="text-sm font-semibold tabular-nums text-foreground">
-                    {pack.label}
-                  </span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {pack.credits.toLocaleString()} credits
-                  </span>
-                </Button>
-              );
-            })}
-
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => setIsCustom(true)}
-              ariaLabel="Select custom credit amount"
-              aria-pressed={isCustom}
-              className={packClass(isCustom)}
-            >
-              <span className="text-sm font-semibold text-foreground">
-                Custom
-              </span>
-            </Button>
+            <SegmentedControl
+              appearance="chip"
+              ariaLabel={selectionLabels('creditAmount')}
+              onValueChange={(value) => {
+                if (value === CUSTOM_AMOUNT) {
+                  setIsCustom(true);
+                  return;
+                }
+                setIsCustom(false);
+                setSelectedUsd(Number(value));
+              }}
+              options={[
+                ...PAYG_CREDIT_PACKS.map((pack) => ({
+                  ariaLabel: `Select ${pack.label} credit pack`,
+                  label: (
+                    <>
+                      <span className="font-semibold tabular-nums">
+                        {pack.label}
+                      </span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {pack.credits.toLocaleString()} credits
+                      </span>
+                    </>
+                  ),
+                  value: String(pack.credits / PAYG_CREDITS_PER_USD),
+                })),
+                {
+                  ariaLabel: 'Select custom credit amount',
+                  label: <span className="font-semibold">Custom</span>,
+                  value: CUSTOM_AMOUNT,
+                },
+              ]}
+              value={
+                isCustom
+                  ? CUSTOM_AMOUNT
+                  : selectedUsd === null
+                    ? undefined
+                    : String(selectedUsd)
+              }
+            />
 
             {isCustom ? (
               <div

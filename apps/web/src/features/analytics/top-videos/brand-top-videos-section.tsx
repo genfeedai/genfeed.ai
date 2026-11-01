@@ -157,15 +157,12 @@ export default function BrandTopVideosSection() {
             render: (video) => {
               const rank =
                 rankedVideos.findIndex((entry) => entry.id === video.id) + 1;
-              const badgeTone =
-                rank <= 3
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground';
 
               return (
                 <Badge
+                  isSolid={rank <= 3}
                   value={Math.round(video.viralScore || 0)}
-                  className={badgeTone}
+                  variant={rank <= 3 ? 'default' : 'secondary'}
                 />
               );
             },

@@ -6,9 +6,11 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
+import { DefinitionList } from '@ui/primitives/definition-list';
 import { Copy, Play } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -66,19 +68,6 @@ function AnalyticsPostMedia({ item }: Pick<AnalyticsPostCardProps, 'item'>) {
   );
 }
 
-function AnalyticsPostStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="truncate text-2xs uppercase tracking-wide text-foreground/50">
-        {label}
-      </dt>
-      <dd className="truncate font-mono text-sm font-semibold tabular-nums">
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 function AnalyticsPostCard({
   item,
   hasAudience,
@@ -105,9 +94,13 @@ function AnalyticsPostCard({
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         <AnalyticsPostMedia item={item} />
 
-        <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground backdrop-blur">
-          #{item.rank}
-        </span>
+        <Badge
+          className="absolute left-2 top-2"
+          shape="pill"
+          size="lg"
+          value={`#${item.rank}`}
+          variant="overlay"
+        />
 
         {hasMedia ? (
           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-background/80 p-1.5 backdrop-blur">
@@ -151,20 +144,28 @@ function AnalyticsPostCard({
             )}
           </p>
         ) : (
-          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-left">
-            <AnalyticsPostStat
-              label={translate('views')}
-              value={formatCompactNumber(item.totalViews)}
-            />
-            <AnalyticsPostStat
-              label={translate('engagement')}
-              value={formatCompactNumber(item.totalEngagement)}
-            />
-            <AnalyticsPostStat
-              label={translate('engagementRate')}
-              value={`${item.engagementRate.toFixed(2)}%`}
-            />
-          </dl>
+          <div className="border-t border-border pt-3">
+            <DefinitionList columns={3} variant="metrics">
+              <MetricCard
+                appearance="inset"
+                label={translate('views')}
+                size="xs"
+                value={formatCompactNumber(item.totalViews)}
+              />
+              <MetricCard
+                appearance="inset"
+                label={translate('engagement')}
+                size="xs"
+                value={formatCompactNumber(item.totalEngagement)}
+              />
+              <MetricCard
+                appearance="inset"
+                label={translate('engagementRate')}
+                size="xs"
+                value={`${item.engagementRate.toFixed(2)}%`}
+              />
+            </DefinitionList>
+          </div>
         )}
 
         {audience ? (

@@ -2,6 +2,7 @@ import { CardPadding } from '@genfeedai/contracts';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { Eye, FileText, ImageIcon } from 'lucide-react';
@@ -87,9 +88,9 @@ export default function PostsIngredientsList({
                     {/* Category badge */}
                     {ingredient.category && (
                       <div className="mt-3">
-                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
+                        <Badge casing="normal" shape="pill" size="lg">
                           {ingredient.category}
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>

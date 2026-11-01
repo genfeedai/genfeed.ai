@@ -172,6 +172,7 @@ function WorkflowInterfaceSummary({
           disabled={isFetchingWorkflows}
           title="Refresh interface"
         >
+          {/* ui-guard-allow:loading-spinner -- refresh icon rotates while refetching */}
           <RefreshCw
             className={clsx('size-3', isFetchingWorkflows && 'animate-spin')}
           />

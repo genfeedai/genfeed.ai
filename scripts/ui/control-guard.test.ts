@@ -149,23 +149,13 @@ describe('control-guard detection', () => {
     expect(categories).not.toContain('raw-html');
   });
 
-  it('requires production tabs to use the shared navigation component', () => {
-    const primitiveFile = write(
-      'apps/web/primitive-tabs.tsx',
-      'import { Tabs } from "@ui/primitives/tabs";\nexport default Tabs;',
-    );
+  it('requires production tabs to use the shared tabs component', () => {
     const radixFile = write(
       'apps/web/src/features/radix-tabs.tsx',
       'import * as Tabs from "@radix-ui/react-tabs";\nexport default Tabs;',
     );
-    const relativeFile = write(
-      'packages/agent/src/relative-tabs.tsx',
-      'import { Tabs } from "../../../ui/src/primitives/tabs";\nexport default Tabs;',
-    );
 
-    expect(categoriesFor(primitiveFile)).toContain('tabs-bypass');
     expect(categoriesFor(radixFile)).toContain('tabs-bypass');
-    expect(categoriesFor(relativeFile)).toContain('tabs-bypass');
   });
 
   it('rejects hand-rolled tab semantics outside the shared component', () => {
@@ -177,17 +167,12 @@ describe('control-guard detection', () => {
     expect(categoriesFor(file)).toContain('tabs-bypass');
   });
 
-  it('allows the shared tabs component to own the primitive adapter', () => {
-    const sharedFile = write(
-      'packages/ui/src/components/navigation/tabs/Tabs.tsx',
-      'import { Tabs } from "@ui/primitives/tabs";\nexport default Tabs;',
-    );
+  it('allows the shared tabs component to own the Radix adapter', () => {
     const primitiveFile = write(
       'packages/ui/src/primitives/tabs.tsx',
       'import * as Tabs from "@radix-ui/react-tabs";\nexport default Tabs;',
     );
 
-    expect(categoriesFor(sharedFile)).not.toContain('tabs-bypass');
     expect(categoriesFor(primitiveFile)).not.toContain('tabs-bypass');
   });
 

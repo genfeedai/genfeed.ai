@@ -51,14 +51,14 @@ describe('free AI model selector', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Landscape' }),
+      screen.queryByRole('radio', { name: 'Landscape' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: /Create content in Genfeed/ }),
     ).toHaveLength(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Video' }));
-    expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
-      'aria-pressed',
+    fireEvent.click(screen.getByRole('radio', { name: 'Video' }));
+    expect(screen.getByRole('radio', { name: 'Video' })).toHaveAttribute(
+      'aria-checked',
       'true',
     );
     expect(
@@ -71,7 +71,7 @@ describe('free AI model selector', () => {
   it('explains a non-match and restores the initial result when filters reset', () => {
     render(<AiModelSelectorContent models={models} />);
     fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Landscape' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Landscape' }));
     expect(
       screen.getByRole('heading', { name: 'No models match these choices.' }),
     ).toBeInTheDocument();

@@ -1,6 +1,7 @@
 'use client';
 
 import { CardEmptySize, ComponentSize } from '@genfeedai/contracts';
+
 import { Kbd } from '@genfeedai/ui';
 import {
   Dialog,

@@ -94,7 +94,6 @@ export interface MenuItemProps {
    */
   count?: number;
   /** Animates the icon — used while a shelf still has work in flight. */
-  isPulsing?: boolean;
   href?: string;
   label: string;
   icon?: ReactNode;

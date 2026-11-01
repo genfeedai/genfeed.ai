@@ -21,22 +21,10 @@ import type {
 import type { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 export async function resolveImageGenerationCompletion(
-  imagesService: ImagesService,
   ingredientCompletionService: IngredientCompletionService,
   context: ImageGenerationContext,
   plan: ImageGenerationCompletionPlan,
 ): Promise<unknown> {
-  if (plan.kind === 'inline') {
-    return imagesService.findOne(
-      {
-        id: context.ingredientData.id,
-        isDeleted: false,
-        organizationId: context.user.organizationId,
-      },
-      IMAGE_POPULATE,
-    );
-  }
-
   if (plan.kind === 'poll-multiple') {
     const completedIngredients =
       await ingredientCompletionService.waitForMultipleIngredientsCompletion(

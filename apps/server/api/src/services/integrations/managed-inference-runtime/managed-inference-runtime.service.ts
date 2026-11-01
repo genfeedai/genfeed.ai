@@ -2,8 +2,6 @@ import {
   SERVER_TOKENS,
   type ServerCustomerInstanceResolver,
 } from '@api/server.dependencies';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { appendWebhookToken } from '@api/webhooks/webhook-token.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -17,29 +15,6 @@ interface ManagedInferenceRuntime {
   apiUrl: string;
   isConfigured: boolean;
 }
-
-/** Body of the images runtime's `POST /generate/image` and `/generate/pulid`. */
-export interface ManagedImageGenerationRequest {
-  organizationId: string;
-  model: string;
-  prompt: string;
-  width?: number;
-  height?: number;
-  seed?: number;
-  referenceImageUrl?: string;
-  loraPath?: string;
-}
-
-/** A job as the images runtime reports it from `GET /generate/:jobId`. */
-interface ManagedImageJob {
-  jobId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  resultUrl?: string;
-  error?: string;
-}
-
-const IMAGE_JOB_POLL_INTERVAL_MS = 2_000;
-const IMAGE_JOB_TIMEOUT_MS = 300_000;
 
 /**
  * Client for configured self-hosted or managed media runtimes.
@@ -61,7 +36,6 @@ export class ManagedInferenceRuntimeService {
     private readonly loggerService: LoggerService,
     @Inject(SERVER_TOKENS.customerInstances)
     private readonly customerInstancesService: ServerCustomerInstanceResolver,
-    private readonly pollUntilService: PollUntilService,
   ) {
     this.instances = new Map<
       ManagedInferenceRuntimeRole,
@@ -482,86 +456,5 @@ export class ManagedInferenceRuntimeService {
       });
       return null;
     }
-  }
-  /**
-   * Generate one image on the images runtime and wait for its result URL.
-   * Face models (`-pulid`) use `/generate/pulid`; every other model uses
-   * `/generate/image`. Throws when the runtime is missing or the job fails, so
-   * the caller records a failed generation.
-   */
-  async generateImage(
-    params: ManagedImageGenerationRequest,
-  ): Promise<{ jobId: string; resultUrl: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = await this.resolveInstanceUrl(
-      'images',
-      caller,
-      params.organizationId,
-    );
-
-    if (!url) {
-      throw new Error('The Genfeed images runtime is not configured');
-    }
-
-    const isFaceModel = params.model.includes('-pulid');
-    const response = await axios.post<ManagedImageJob>(
-      `${url}/generate/${isFaceModel ? 'pulid' : 'image'}`,
-      {
-        height: params.height,
-        ...(params.loraPath ? { loraPath: params.loraPath } : {}),
-        model: params.model,
-        prompt: params.prompt,
-        ...(params.referenceImageUrl
-          ? { referenceImageUrl: params.referenceImageUrl }
-          : {}),
-        seed: params.seed,
-        width: params.width,
-      },
-      { headers: this.getRuntimeHeaders(), timeout: 30000 },
-    );
-    const { jobId } = response.data;
-
-    try {
-      const { value } = await this.pollUntilService.poll(
-        async () =>
-          (
-            await axios.get<ManagedImageJob>(`${url}/generate/${jobId}`, {
-              headers: this.getRuntimeHeaders(),
-              timeout: 10000,
-            })
-          ).data,
-        (job) => {
-          if (job.status === 'failed') {
-            throw new Error(
-              `Images runtime job ${jobId} failed: ${job.error ?? 'no error reported'}`,
-            );
-          }
-          return job.status === 'completed';
-        },
-        {
-          intervalMs: IMAGE_JOB_POLL_INTERVAL_MS,
-          timeoutMs: IMAGE_JOB_TIMEOUT_MS,
-        },
-      );
-
-      if (!value?.resultUrl) {
-        throw new Error(`Images runtime job ${jobId} returned no image`);
-      }
-
-      return { jobId, resultUrl: value.resultUrl };
-    } catch (error: unknown) {
-      if (error instanceof PollTimeoutException) {
-        throw new Error(
-          `Images runtime job ${jobId} timed out after ${IMAGE_JOB_TIMEOUT_MS}ms`,
-        );
-      }
-      throw error;
-    }
-  }
-
-  /** Bearer key the runtimes' internal API key guard expects. */
-  private getRuntimeHeaders(): Record<string, string> {
-    const apiKey = this.configService.get('GPU_INTERNAL_API_KEY');
-    return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
   }
 }

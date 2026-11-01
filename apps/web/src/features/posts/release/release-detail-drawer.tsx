@@ -19,7 +19,6 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Alert,
   AlertActions,
@@ -28,6 +27,7 @@ import {
 } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { ExternalLink, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

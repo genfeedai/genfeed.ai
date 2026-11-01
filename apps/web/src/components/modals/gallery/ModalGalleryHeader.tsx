@@ -8,10 +8,10 @@ import {
 } from '@genfeedai/contracts';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
 import type { ModalGalleryHeaderProps } from '@genfeedai/props/modals/modal-gallery.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { Upload } from 'lucide-react';
 import Image from 'next/image';
 

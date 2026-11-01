@@ -7,9 +7,10 @@ import type {
   PromptFormat,
   PromptNodeData,
 } from '@genfeedai/contracts/types';
-import { Textarea, ToggleGroup, ToggleGroupItem } from '@genfeedai/ui';
+import { Textarea } from '@genfeedai/ui';
 import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { SegmentedControl } from '@genfeedai/ui/primitives/segmented-control';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -87,7 +88,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
       if (edge.target !== id || edge.targetHandle !== 'text') continue;
 
       const promptNode = nodesById.get(edge.source);
-      if (!promptNode || promptNode.type !== 'prompt') continue;
+      if (promptNode?.type !== 'prompt') continue;
 
       const promptData = promptNode.data as PromptNodeData;
       const variableName = (promptData as Record<string, unknown>)
@@ -284,32 +285,27 @@ function PromptConstructorNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={PROMPT_CONSTRUCTOR_HEADER_ACTIONS}>
       <div className="relative flex flex-col gap-2 flex-1">
-        <ToggleGroup
-          aria-label="Prompt format"
-          className="justify-start gap-0.5"
+        <SegmentedControl
+          ariaLabel="Prompt format"
+          className="nodrag"
           onValueChange={handleFormatChange}
+          options={[
+            {
+              ariaLabel: 'Text',
+              icon: <Type />,
+              tooltip: 'Text',
+              value: PROMPT_FORMAT_TEXT,
+            },
+            {
+              ariaLabel: 'JSON',
+              icon: <Braces />,
+              tooltip: 'JSON',
+              value: PROMPT_FORMAT_JSON,
+            },
+          ]}
           size="sm"
-          type="single"
           value={promptFormat}
-          variant="outline"
-        >
-          <ToggleGroupItem
-            aria-label="Text"
-            className="h-7 min-w-7 px-1.5"
-            title="Text"
-            value={PROMPT_FORMAT_TEXT}
-          >
-            <Type />
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            aria-label="JSON"
-            className="h-7 min-w-7 px-1.5"
-            title="JSON"
-            value={PROMPT_FORMAT_JSON}
-          >
-            <Braces />
-          </ToggleGroupItem>
-        </ToggleGroup>
+        />
 
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (

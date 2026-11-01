@@ -96,7 +96,7 @@ describe('AgentSidebarContent', () => {
   it('switches the nav column to the cross-thread runs surface', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Runs' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Runs' }));
 
     expect(screen.getByText('Runs list')).toBeInTheDocument();
     expect(screen.queryByText('Thread list')).not.toBeInTheDocument();

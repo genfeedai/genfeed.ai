@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { Button } from '@ui/primitives/button';
+import { StatusDot } from '@ui/primitives/status-dot';
 import { ImageIcon, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { PostCardFooterProps } from '@/features/posts/components/card-footer/PostCardFooter.props';
@@ -97,16 +98,10 @@ export default function PostCardFooter({
               role="status"
               className="flex items-center gap-1.5 text-xs text-muted-foreground"
             >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'size-1.5 rounded-full',
-                  isSaving
-                    ? 'animate-pulse bg-muted-foreground'
-                    : isDirty
-                      ? 'bg-warning'
-                      : 'bg-success',
-                )}
+              <StatusDot
+                isPulsing={isSaving}
+                size="xs"
+                tone={isSaving ? 'muted' : isDirty ? 'warning' : 'success'}
               />
               {isSaving
                 ? translate('saving')

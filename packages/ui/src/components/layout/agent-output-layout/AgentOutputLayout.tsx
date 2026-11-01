@@ -3,9 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AgentOutputLayoutProps } from '@genfeedai/props/ui/agent-output-shell.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useState } from 'react';
 

@@ -26,7 +26,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  TabsContent,
+  TabsList,
+  TabsRoot,
+  TabsTrigger,
+} from '@ui/primitives/tabs';
 import { AGENT_CONNECT_EVENT } from '@web-components/buttons/connect-agent/connect-agent.event';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ExternalLink } from 'lucide-react';
@@ -175,7 +180,7 @@ export default function AgentConnectDialog({
               className="min-w-0 py-0 sm:border-l sm:border-foreground/10 sm:pl-5"
               key={family?.name}
             >
-              <Tabs
+              <TabsRoot
                 value={client.slug}
                 onValueChange={(slug) => {
                   const nextClient = agentClients.find(
@@ -330,7 +335,7 @@ export default function AgentConnectDialog({
                     ) : null}
                   </Accordion>
                 </TabsContent>
-              </Tabs>
+              </TabsRoot>
             </DialogBody>
           ) : null}
         </DialogBody>

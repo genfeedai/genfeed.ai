@@ -1,7 +1,7 @@
 'use client';
 
 import type { ModalPostHeaderProps } from '@genfeedai/props/modals/modal.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import { Tabs } from '@ui/primitives/tabs';
 
 export default function ModalPostHeader({
   activeTab,

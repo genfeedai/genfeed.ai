@@ -5,6 +5,7 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
+import { StatusDot } from '@ui/primitives/status-dot';
 import {
   hoverConcealClassName,
   hoverRevealClassName,
@@ -88,10 +90,10 @@ function agentThreadListRowClassName(options: {
   );
 }
 
-const THREAD_STATUS_DOT_CLASS = {
-  failed: 'bg-destructive',
-  running: 'animate-pulse bg-info motion-reduce:animate-none',
-  warning: 'bg-warning',
+const THREAD_STATUS_DOT_TONE = {
+  failed: 'destructive',
+  running: 'info',
+  warning: 'warning',
 } as const;
 
 function ThreadActivityIndicator({
@@ -100,17 +102,13 @@ function ThreadActivityIndicator({
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
 }): ReactElement {
   return (
-    <span
+    <StatusDot
       aria-label={statusMeta.label}
-      className={cn(
-        'size-2 shrink-0 rounded-full',
-        THREAD_STATUS_DOT_CLASS[statusMeta.tone],
-      )}
+      isPulsing={statusMeta.tone === 'running'}
       role="status"
       title={statusMeta.label}
-    >
-      <span className="sr-only">{statusMeta.label}</span>
-    </span>
+      tone={THREAD_STATUS_DOT_TONE[statusMeta.tone]}
+    />
   );
 }
 
@@ -235,9 +233,9 @@ export function AgentThreadListRow({
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.source === 'proactive' && (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground">
+                <Badge className="shrink-0" variant="secondary">
                   {translate('agent')}
-                </span>
+                </Badge>
               )}
               {conv.isPinned ? (
                 <Pin

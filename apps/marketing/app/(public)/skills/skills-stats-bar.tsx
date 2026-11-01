@@ -1,19 +1,23 @@
 import { STATS } from '@public/skills/_data';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { WebSection } from '@web-components/content/NeuralGrid';
 
 export default function SkillsStatsBar(): React.ReactElement {
   return (
     <WebSection py="md" maxWidth="lg">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 gsap-hero">
+      <MetricCardGrid className="gsap-hero" columns={4}>
         {STATS.map((stat) => (
-          <div key={stat.label} className="text-center">
-            <div className="text-4xl font-semibold mb-1">{stat.value}</div>
-            <div className="text-xs font-black uppercase tracking-widest text-foreground/50">
-              {stat.label}
-            </div>
-          </div>
+          <MetricCard
+            align="center"
+            appearance="inset"
+            key={stat.label}
+            label={stat.label}
+            size="lg"
+            value={stat.value}
+          />
         ))}
-      </div>
+      </MetricCardGrid>
     </WebSection>
   );
 }

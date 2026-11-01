@@ -58,7 +58,7 @@ vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
 }));
 
 async function chooseIdeas() {
-  fireEvent.click(screen.getAllByRole('button', { name: 'From ideas' })[0]);
+  fireEvent.click(screen.getAllByRole('radio', { name: 'From ideas' })[0]);
   fireEvent.change(screen.getByRole('textbox', { name: 'Project name' }), {
     target: { value: 'My draft' },
   });
@@ -86,7 +86,7 @@ describe('TurboNewProjectPage', () => {
     mocks.isIdeasEnabled = false;
     render(<TurboNewProjectPage />);
 
-    const fromIdeasButton = await screen.findByRole('button', {
+    const fromIdeasButton = await screen.findByRole('radio', {
       name: 'From ideas',
     });
     expect(fromIdeasButton).toBeDisabled();
@@ -99,7 +99,7 @@ describe('TurboNewProjectPage', () => {
     mocks.isIdeasEnabled = true;
     render(<TurboNewProjectPage />);
 
-    const fromIdeasButtons = screen.getAllByRole('button', {
+    const fromIdeasButtons = screen.getAllByRole('radio', {
       name: 'From ideas',
     });
     for (const button of fromIdeasButtons) expect(button).not.toBeDisabled();
@@ -110,7 +110,7 @@ describe('TurboNewProjectPage', () => {
   it('waits for a brand before loading workflows', async () => {
     mocks.brandId = '';
     const { rerender } = render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
     expect(mocks.getService).not.toHaveBeenCalled();
     expect(
       screen.getByRole('button', { name: 'Create project' }),
@@ -125,8 +125,8 @@ describe('TurboNewProjectPage', () => {
 
   it('starts with ideas and does not load unrelated workflows', () => {
     render(<TurboNewProjectPage />);
-    expect(screen.getByRole('button', { name: 'From ideas' })).toHaveAttribute(
-      'aria-pressed',
+    expect(screen.getByRole('radio', { name: 'From ideas' })).toHaveAttribute(
+      'aria-checked',
       'true',
     );
     expect(
@@ -147,9 +147,9 @@ describe('TurboNewProjectPage', () => {
     };
     render(<TurboNewProjectPage />);
     expect(
-      screen.getByRole('button', { name: 'From a workflow' }),
+      screen.getByRole('radio', { name: 'From a workflow' }),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
     expect(mocks.list).not.toHaveBeenCalled();
     await chooseIdeas();
     fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
@@ -163,7 +163,7 @@ describe('TurboNewProjectPage', () => {
   });
   it('stops loading workflow choices after disabling Automation', async () => {
     const { rerender } = render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
     mocks.settings = {
       hasOrganizationBilling: true,
@@ -196,8 +196,8 @@ describe('TurboNewProjectPage', () => {
         }),
     );
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
-    fireEvent.click(screen.getByRole('button', { name: 'From ideas' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From ideas' }));
     await act(async () => {
       resolve?.({ list: mocks.list, create: mocks.create });
     });
@@ -213,9 +213,9 @@ describe('TurboNewProjectPage', () => {
         }),
     );
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'From ideas' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From ideas' }));
     await act(async () => {
       reject?.(new Error('Workflow unavailable'));
     });
@@ -230,7 +230,7 @@ describe('TurboNewProjectPage', () => {
       errors: [{ status: '403', detail: 'Workflow access denied' }],
     });
     render(<TurboNewProjectPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'From a workflow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a workflow' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Workflow access denied',
     );
@@ -254,10 +254,8 @@ describe('TurboNewProjectPage', () => {
       'Please subscribe to a plan.',
     );
     expect(screen.queryByRole('textbox', { name: 'Project name' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'From ideas' })).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'From a workflow' }),
-    ).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'From ideas' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'From a workflow' })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'Manage subscription' }),
     ).toHaveAttribute('href', '/acme/~/settings/subscription');
@@ -327,10 +325,10 @@ describe('Turbo workflow paid admission', () => {
       mocks.settings.hasPaidModuleSubscription = grant;
       render(<TurboNewProjectPage />);
       expect(
-        screen.getByRole('button', { name: 'From a workflow' }),
+        screen.getByRole('radio', { name: 'From a workflow' }),
       ).toBeDisabled();
       expect(
-        screen.getByRole('button', { name: 'From ideas' }),
+        screen.getByRole('radio', { name: 'From ideas' }),
       ).not.toBeDisabled();
       expect(mocks.list).not.toHaveBeenCalled();
       if (grant === false)

@@ -19,6 +19,7 @@ import { logger } from '@services/core/logger.service';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -259,23 +260,16 @@ export default function CorpusContent() {
       />
 
       <div className="max-w-2xl space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {MODES.map((option) => (
-            <Button
-              key={option}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              aria-pressed={mode === option}
-              label={translate(`corpus.modes.${option}`)}
-              onClick={() => setMode(option)}
-              className={`h-9 border px-3 text-xs font-medium transition ${
-                mode === option
-                  ? 'border-border-strong bg-hover text-foreground'
-                  : 'border-border bg-tertiary text-muted-foreground hover:border-border-strong hover:text-foreground'
-              }`}
-            />
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('corpus.title')}
+          onValueChange={setMode}
+          options={MODES.map((option) => ({
+            label: translate(`corpus.modes.${option}`),
+            value: option,
+          }))}
+          value={mode}
+        />
 
         {mode === 'url' ? (
           <Input

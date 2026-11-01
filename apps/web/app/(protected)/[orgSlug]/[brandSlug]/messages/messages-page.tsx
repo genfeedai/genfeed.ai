@@ -68,7 +68,7 @@ import {
   parseMessagesInboxView,
   parseMessagesSurface,
   STATUS_LABELS,
-  STATUS_STYLES,
+  STATUS_VARIANTS,
 } from './messages-page.helpers';
 import MessagesReplyComposer from './messages-reply-composer';
 import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
@@ -93,14 +93,9 @@ const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
 
 function StatusPill({ status }: { status: string }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
-        STATUS_STYLES[status] ?? 'bg-tertiary text-muted-foreground',
-      )}
-    >
+    <Badge variant={STATUS_VARIANTS[status] ?? 'secondary'}>
       {STATUS_LABELS[status] ?? status}
-    </span>
+    </Badge>
   );
 }
 

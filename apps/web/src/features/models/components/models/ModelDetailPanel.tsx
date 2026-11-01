@@ -1,6 +1,6 @@
 import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
+  getModelCategoryBadgeColors,
+  getModelProviderBadgeColors,
   getModelProviderLabel,
 } from '@genfeedai/helpers/ui/model-badge.helper';
 import { Badge } from '@ui/primitives/badge';
@@ -46,12 +46,14 @@ export default function ModelDetailPanel({ model }: ModelDetailPanelProps) {
     <div className="space-y-6 p-4" data-testid="model-detail-panel">
       <div className="flex flex-wrap gap-2">
         <Badge
-          className={`border ${getModelProviderBadgeClass(model.provider)}`}
+          colors={getModelProviderBadgeColors(model.provider)}
+          variant="custom"
         >
           {getModelProviderLabel(model.provider)}
         </Badge>
         <Badge
-          className={`border ${getModelCategoryBadgeClass(model.category)}`}
+          colors={getModelCategoryBadgeColors(model.category)}
+          variant="custom"
         >
           {model.category}
         </Badge>

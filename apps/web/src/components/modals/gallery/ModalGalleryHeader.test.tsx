@@ -21,13 +21,14 @@ vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
   ],
 }));
 
-vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({
+vi.mock('@ui/primitives/tabs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ui/primitives/tabs')>()),
+  Tabs: ({
     tabs,
     activeTab,
     onTabChange,
   }: import('react').ComponentProps<
-    typeof import('@ui/navigation/tabs/Tabs').default
+    typeof import('@ui/primitives/tabs').Tabs
   >) => (
     <div data-testid="tabs">
       {(tabs ?? []).map((tab) => (

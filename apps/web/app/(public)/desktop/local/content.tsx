@@ -17,6 +17,7 @@ import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runti
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { FolderOpen, HardDrive, RefreshCw, Sparkles } from 'lucide-react';
@@ -290,23 +291,23 @@ export default function LocalDesktopContent() {
                   </div>
 
                   {bootstrap && bootstrap.workspaces.length > 1 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {bootstrap.workspaces.map((workspace) => (
-                        <Button
-                          key={workspace.id}
-                          type="button"
-                          size={ButtonSize.SM}
-                          variant={
-                            workspace.id === activeWorkspace?.id
-                              ? ButtonVariant.DEFAULT
-                              : ButtonVariant.GHOST
-                          }
-                          onClick={() => void selectWorkspace(workspace)}
-                        >
-                          {workspace.name}
-                        </Button>
-                      ))}
-                    </div>
+                    <SegmentedControl
+                      appearance="chip"
+                      ariaLabel={translate('workspace.title')}
+                      onValueChange={(workspaceId) => {
+                        const workspace = bootstrap.workspaces.find(
+                          (entry) => entry.id === workspaceId,
+                        );
+                        if (workspace) {
+                          void selectWorkspace(workspace);
+                        }
+                      }}
+                      options={bootstrap.workspaces.map((workspace) => ({
+                        label: workspace.name,
+                        value: workspace.id,
+                      }))}
+                      value={activeWorkspace?.id}
+                    />
                   ) : null}
                 </Card>
 

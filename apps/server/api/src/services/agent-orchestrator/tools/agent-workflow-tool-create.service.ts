@@ -480,7 +480,7 @@ export class AgentWorkflowToolCreateService {
             model:
               typeof params.model === 'string'
                 ? params.model
-                : 'genfeed-ai/flux2-dev',
+                : 'black-forest-labs/flux-2-pro',
             prompt: this.buildImageVariationPrompt(
               parsed.prompt,
               idx + 1,

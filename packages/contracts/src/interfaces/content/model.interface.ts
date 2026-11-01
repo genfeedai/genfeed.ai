@@ -25,8 +25,6 @@ export interface IModel extends IBaseEntity {
   description?: string;
   isHighlighted?: boolean;
   trigger?: string;
-  categoryBadgeClass?: string;
-  providerBadgeClass?: string;
   capabilities?: string[];
   inputControls?: CrunInputControls;
   costTier?: CostTier;

@@ -2,9 +2,9 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { Tabs } from '@ui/primitives/tabs';
 import { ImagePlus, TriangleAlert } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
