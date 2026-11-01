@@ -207,7 +207,8 @@ describe('local brand preview', () => {
     expect(container.innerHTML).not.toContain('linear-gradient');
     expect(container.innerHTML).not.toContain('radial-gradient');
     expect(screen.getByText('Saved live sample')).toBeInTheDocument();
-    expect(screen.getByTitle('#111111')).toHaveStyle({
+    const [swatch] = screen.getAllByRole('listitem');
+    expect(swatch?.firstElementChild).toHaveStyle({
       backgroundColor: '#111111',
     });
   });

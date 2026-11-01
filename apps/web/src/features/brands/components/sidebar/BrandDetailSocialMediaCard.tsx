@@ -36,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -85,12 +86,13 @@ function ConnectedAccount({
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="block truncate text-sm font-medium">{label}</span>
           {needsReconnect ? (
-            <span
-              aria-label={translate('needsReconnect')}
-              className="gen-dot gen-dot-warning shrink-0"
-              role="img"
-              title={translate('needsReconnect')}
-            />
+            <SimpleTooltip label={translate('needsReconnect')}>
+              <span
+                aria-label={translate('needsReconnect')}
+                className="gen-dot gen-dot-warning shrink-0"
+                role="img"
+              />
+            </SimpleTooltip>
           ) : null}
         </span>
         {connection.handle ? (

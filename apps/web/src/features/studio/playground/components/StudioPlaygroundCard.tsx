@@ -555,6 +555,7 @@ export default function StudioPlaygroundCard({
     };
 
     return (
+      // ui-guard-allow:clickable-element -- pointer shortcut to select the card; the select toggle and actions inside are the keyboard path
       <article
         aria-label={`${label} generation`}
         className={`group relative w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
@@ -634,6 +635,7 @@ export default function StudioPlaygroundCard({
   }
 
   return (
+    // ui-guard-allow:clickable-element -- pointer shortcut to select the card; the select toggle and actions inside are the keyboard path
     <article
       aria-label={`${label} generation`}
       className={`group relative w-full cursor-pointer overflow-hidden rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${

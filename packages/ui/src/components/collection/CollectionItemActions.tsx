@@ -74,6 +74,7 @@ export default function CollectionItemActions({
 
   return (
     // Stops a click on an action from also activating a clickable card/row.
+    // ui-guard-allow:clickable-element -- stops the click from reaching a parent row; it is not an action
     <div
       className={cn('flex shrink-0 items-center gap-1', className)}
       onClick={(event) => event.stopPropagation()}

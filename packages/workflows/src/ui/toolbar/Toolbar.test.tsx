@@ -99,7 +99,7 @@ describe('Toolbar', () => {
     expect(screen.getByText('Saved')).toBeTruthy();
     expect(screen.getByText('Estimated Cost')).toBeTruthy();
     expect(screen.getByText('Lifecycle Actions')).toBeTruthy();
-    expect(screen.queryByTitle('Go to Overview')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Genfeed' })).toBeNull();
 
     fireEvent.click(screen.getByTitle('Keyboard shortcuts'));
     expect(stores.openModal).toHaveBeenCalledWith('shortcutHelp');
@@ -112,7 +112,7 @@ describe('Toolbar', () => {
     expect(toolbar.className).toContain('flex-1');
     expect(toolbar.className).not.toContain('border-b');
     expect(toolbar.className).not.toContain('h-14');
-    expect(screen.queryByTitle('Go to Overview')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Genfeed' })).toBeNull();
   });
 
   it('renders an optional logo only when logoSrc is provided', () => {
@@ -123,9 +123,9 @@ describe('Toolbar', () => {
       />,
     );
 
-    expect(screen.getByTitle('Go to Overview')).toBeTruthy();
-    expect(screen.getByTitle('Go to Overview').getAttribute('href')).toBe(
-      '/workflows',
-    );
+    expect(screen.getByRole('link', { name: 'Genfeed' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Genfeed' }).getAttribute('href'),
+    ).toBe('/workflows');
   });
 });

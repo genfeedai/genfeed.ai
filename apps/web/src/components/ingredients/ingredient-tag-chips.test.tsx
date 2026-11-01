@@ -1,5 +1,6 @@
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientTagChips from './ingredient-tag-chips';
 
@@ -33,12 +34,15 @@ describe('IngredientTagChips', () => {
     expect(screen.getByText('Tag 1')).toBeInTheDocument();
   });
 
-  it('collapses the rest into a count that names them', () => {
+  it('collapses the rest into a count that names them', async () => {
     render(<IngredientTagChips tags={tags(5)} />);
 
     expect(screen.getByText('Tag 2')).toBeInTheDocument();
     expect(screen.queryByText('Tag 3')).not.toBeInTheDocument();
-    expect(screen.getByText('+2')).toHaveAttribute('title', 'Tag 3, Tag 4');
+    await userEvent.hover(screen.getByText('+2'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Tag 3, Tag 4',
+    );
   });
 
   it('honors a custom limit', () => {

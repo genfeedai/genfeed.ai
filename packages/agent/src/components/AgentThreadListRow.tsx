@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   hoverConcealClassName,
   hoverRevealClassName,
@@ -101,17 +102,18 @@ function ThreadActivityIndicator({
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
 }): ReactElement {
   return (
-    <span
-      aria-label={statusMeta.label}
-      className={cn(
-        'size-2 shrink-0 rounded-full',
-        THREAD_STATUS_DOT_CLASS[statusMeta.tone],
-      )}
-      role="status"
-      title={statusMeta.label}
-    >
-      <span className="sr-only">{statusMeta.label}</span>
-    </span>
+    <SimpleTooltip label={statusMeta.label}>
+      <span
+        aria-label={statusMeta.label}
+        className={cn(
+          'size-2 shrink-0 rounded-full',
+          THREAD_STATUS_DOT_CLASS[statusMeta.tone],
+        )}
+        role="status"
+      >
+        <span className="sr-only">{statusMeta.label}</span>
+      </span>
+    </SimpleTooltip>
   );
 }
 
