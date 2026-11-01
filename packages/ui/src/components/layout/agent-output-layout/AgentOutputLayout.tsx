@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AgentOutputLayoutProps } from '@genfeedai/props/ui/agent-output-shell.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useState } from 'react';
@@ -47,19 +48,14 @@ export default function AgentOutputLayout({
       data-testid="agent-output-layout"
     >
       <div className="shrink-0 border-b border-border px-3 py-2 xl:hidden">
-        <Tabs
-          activeTab={mobileView}
-          ariaLabel={labels.views}
-          className="ml-0 justify-start"
-          fullWidth={false}
-          listClassName="mr-auto"
-          onTabChange={(tabId) =>
-            setMobileView(tabId === 'output' ? 'output' : 'agent')
-          }
-          tabs={[
-            { id: 'agent', label: labels.agent },
-            { id: 'output', label: labels.output },
+        <ViewMenu
+          activeView={mobileView}
+          onChange={setMobileView}
+          options={[
+            { icon: null, label: labels.agent, type: 'agent' },
+            { icon: null, label: labels.output, type: 'output' },
           ]}
+          trigger="label"
         />
       </div>
 

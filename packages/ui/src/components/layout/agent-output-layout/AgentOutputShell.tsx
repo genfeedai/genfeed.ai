@@ -145,7 +145,6 @@ export default function AgentOutputShell({
         expandAgent: translate('expandAgent'),
         expandOutput: translate('expandOutput'),
         output: translate('output'),
-        views: translate('views'),
       }}
       mode={mode}
       onTabChange={setActiveTabId}

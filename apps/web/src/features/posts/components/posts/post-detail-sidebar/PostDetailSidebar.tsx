@@ -13,6 +13,7 @@ import {
   getBrowserTimezone,
   resolveTimeZone,
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
 import {
   isImageIngredient,
   isVideoIngredient,
@@ -21,7 +22,7 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
@@ -129,23 +130,22 @@ export default function PostDetailSidebar({
     .join(' · ');
   const firstStat = analyticsStats[0];
   const isPreviewActive = Boolean(preview) && activeTab === 'preview';
-  const inspectorTabs = [
-    { id: 'details', label: translate('tabs.details') },
-    { id: 'preview', label: translate('tabs.preview') },
+  const inspectorViews: ViewOption<InspectorTab>[] = [
+    { icon: null, label: translate('tabs.details'), type: 'details' },
+    { icon: null, label: translate('tabs.preview'), type: 'preview' },
   ];
 
   return (
     <div className={cn('flex flex-col', className)}>
       {preview ? (
-        <Tabs
-          ariaLabel={translate('viewAria')}
-          items={inspectorTabs}
-          activeTab={activeTab}
-          onTabChange={(tabId) => setActiveTab(tabId as InspectorTab)}
-          fullWidth={false}
-          className="justify-start pb-3"
-          listClassName="ml-0"
-        />
+        <div className="flex pb-3">
+          <ViewMenu
+            activeView={activeTab}
+            onChange={setActiveTab}
+            options={inspectorViews}
+            trigger="label"
+          />
+        </div>
       ) : null}
 
       {isPreviewActive ? (

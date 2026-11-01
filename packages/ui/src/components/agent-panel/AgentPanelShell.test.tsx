@@ -5,8 +5,16 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AgentPanelShell from './AgentPanelShell';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock Button — avoids deep @genfeedai/contracts + CVA dependency chain
 vi.mock('lucide-react', () => ({
+  Check: () => <span data-testid="icon-check" />,
+  ChevronDown: () => <span data-testid="icon-chevron" />,
+  Circle: () => <span data-testid="icon-circle" />,
   Maximize2: () => <span data-testid="icon-expand" />,
   Sparkles: () => <span data-testid="icon-sparkles" />,
 }));
@@ -16,6 +24,15 @@ vi.mock('@genfeedai/contracts', async (importOriginal) => ({
   ButtonSize: { DEFAULT: 'default', ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', SOFT: 'soft' },
 }));
+
+async function selectPanelView(active: string, next: string): Promise<void> {
+  await userEvent.click(
+    screen.getByRole('button', { name: `View: ${active}` }),
+  );
+  await userEvent.click(
+    await screen.findByRole('menuitemradio', { name: next }),
+  );
+}
 
 const chatContent = <div data-testid="chat-content">Chat</div>;
 
@@ -79,7 +96,7 @@ describe('AgentPanelShell', () => {
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    await userEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
+    await selectPanelView('Terminal', 'Outputs');
     expect(screen.getByTestId('outputs-content')).toBeInTheDocument();
     // chat tab slot should be hidden
     expect(screen.getByTestId('chat-content').parentElement).toHaveClass(
@@ -92,8 +109,8 @@ describe('AgentPanelShell', () => {
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    await userEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
-    await userEvent.click(screen.getByRole('tab', { name: 'Terminal' }));
+    await selectPanelView('Terminal', 'Outputs');
+    await selectPanelView('Outputs', 'Terminal');
     expect(screen.getByTestId('chat-content').parentElement).not.toHaveClass(
       'hidden',
     );

@@ -1215,8 +1215,7 @@
     "noContent": "No content configured for this overlay."
   },
   "agentWorkspace": {
-    "master": "Master",
-    "views": "Master or Threads"
+    "master": "Master"
   },
   "agentOutput": {
     "agent": "Agent",
@@ -1228,8 +1227,7 @@
     "newThread": "New thread",
     "openFullPage": "Open full page",
     "output": "Output",
-    "threads": "Threads",
-    "views": "Agent or output"
+    "threads": "Threads"
   },
   "agentDock": {
     "close": "Close agent",

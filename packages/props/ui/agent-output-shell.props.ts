@@ -20,7 +20,6 @@ export interface AgentOutputLayoutLabels {
   readonly expandAgent: string;
   readonly expandOutput: string;
   readonly output: string;
-  readonly views: string;
 }
 
 export interface AgentOutputLayoutProps {
