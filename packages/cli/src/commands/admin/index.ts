@@ -46,6 +46,7 @@ import {
   updateOrganizationBrand,
   updateSystemBrand,
   type WarmupAccountInput,
+  type WarmupContextDecisions,
   type WarmupPrepareInput,
 } from '@/operations/admin';
 import {
@@ -129,10 +130,28 @@ interface WarmupCreateOptions {
 interface WarmupPrepareOptions {
   action: string;
   amount?: number;
+  contextDecisions?: string;
   publicProfileUrl?: string;
   reason?: string;
   sourceUrl?: string;
   yes?: boolean;
+}
+
+async function readContextDecisions(path: string): Promise<WarmupContextDecisions> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    throw new GenfeedError(`Could not read context decisions from ${path}`, 'Pass a JSON file.');
+  }
+  const fields = (parsed as { fields?: unknown } | null)?.fields;
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
+    throw new GenfeedError(
+      'Context decisions need a "fields" object',
+      'Shape: {"fields":{"description":{"action":"accept","value":"..."}}}'
+    );
+  }
+  return parsed as WarmupContextDecisions;
 }
 
 async function runAdminLogin(): Promise<void> {
@@ -1103,6 +1122,10 @@ function createWarmupCommand(): Command {
         .option('--reason <text>', 'Audit reason')
         .option('--source-url <url>', 'Source URL for context actions')
         .option('--public-profile-url <url>', 'Public profile URL for context actions')
+        .option(
+          '--context-decisions <file>',
+          'JSON file with per-field accept/reject/preserve decisions for apply-context'
+        )
         .option('--yes', 'Run the action')
         .option('--json', 'Output as JSON')
         .action(async (accountId: string, options: WarmupPrepareOptions, command: Command) => {
@@ -1110,6 +1133,9 @@ function createWarmupCommand(): Command {
             const input: WarmupPrepareInput = {
               action: options.action,
               amount: options.amount,
+              contextDecisions: options.contextDecisions
+                ? await readContextDecisions(options.contextDecisions)
+                : undefined,
               publicProfileUrl: options.publicProfileUrl,
               reason: options.reason,
               sourceUrl: options.sourceUrl,
