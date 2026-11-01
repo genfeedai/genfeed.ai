@@ -234,7 +234,9 @@ test.describe('Agent master thread and Threads panel', () => {
       Math.abs((agentBox?.width ?? 0) - (outputBox?.width ?? 0)),
     ).toBeLessThanOrEqual(2);
 
-    // The Conversations menu is gone from the left nav.
+    // No nav column beside the agent: the rail, then master and Threads.
+    await expect(page.getByTestId('desktop-sidebar-content')).toHaveCount(0);
+    await expect(page.getByTestId('sidebar-primary-action')).toHaveCount(0);
     await expect(page.getByTestId('agent-thread-list-content')).toHaveCount(0);
     await expect(page.getByText('Conversations', { exact: true })).toHaveCount(
       0,

@@ -1,11 +1,9 @@
 'use client';
 
 import { SettingsSurface } from '@genfeedai/contracts';
-import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Plus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { SIDEBAR_DEFAULT_WIDTH } from '@/components/layouts/app/app-layout.utils';
 import SidebarActionTrigger from '@/components/menus/sidebar-action-trigger/SidebarActionTrigger';
@@ -39,7 +37,6 @@ type Props = {
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
-  isConversationRoute: boolean;
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
@@ -51,7 +48,6 @@ type Props = {
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
-  agentMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
@@ -79,7 +75,6 @@ export default function AppProtectedLayoutSidebar({
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
-  isConversationRoute,
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
@@ -90,7 +85,6 @@ export default function AppProtectedLayoutSidebar({
   isAutomationRoute,
   settingsScope = SettingsSurface.PERSONAL,
   adminMenuItems,
-  agentMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
   menuItems,
@@ -105,12 +99,10 @@ export default function AppProtectedLayoutSidebar({
   navPanel,
 }: Props) {
   const translate = useTranslations('common.sidebar');
-  const router = useRouter();
   const openTaskComposer = useOpenTaskComposer();
   // Browsers reserve ⌘⇧N (incognito window), so only the desktop app has it.
   const isDesktop = useIsDesktopClient();
   const newItemShortcut = isDesktop ? '⌘⇧N' : undefined;
-  const { href } = useOrgUrl();
   const sidebarStateProps = {
     isCollapsed,
     onClose,
@@ -124,23 +116,6 @@ export default function AppProtectedLayoutSidebar({
         icon={<Plus className="size-4 flex-shrink-0" />}
         label={translate('newTask')}
         onClick={openTaskComposer}
-        shortcut={newItemShortcut}
-        testId="sidebar-primary-action"
-      />
-      <SidebarSearchTrigger label={translate('search')} />
-    </>
-  );
-
-  // Agent routes get the same two rows as every other surface, so the
-  // conversation panel needs no search field or bare "+" of its own. Only the
-  // primary action differs: a new conversation rather than a new task.
-  const renderConversationQuickActions = () => (
-    <>
-      <SidebarActionTrigger
-        ariaLabel={translate('newConversationAriaLabel')}
-        icon={<Plus className="size-4 flex-shrink-0" />}
-        label={translate('newConversation')}
-        onClick={() => router.push(href(APP_ROUTES.AGENT.NEW))}
         shortcut={newItemShortcut}
         testId="sidebar-primary-action"
       />
@@ -162,12 +137,6 @@ export default function AppProtectedLayoutSidebar({
 
   const surface = (
     [
-      {
-        active: isConversationRoute,
-        currentApp,
-        items: agentMenuItems,
-        sectionLabel: translate('workspace'),
-      },
       {
         active: isLibraryRoute,
         currentApp,
@@ -241,11 +210,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
-        renderTopSlot={
-          isConversationRoute
-            ? renderConversationQuickActions
-            : renderQuickActions
-        }
+        renderTopSlot={renderQuickActions}
       />
     );
   }
