@@ -154,11 +154,7 @@ export default function IngredientTabsTags({
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                size="lg"
-                style={libraryTagStyle(tag)}
-              >
+              <Badge key={tag.id} size="lg" style={libraryTagStyle(tag)}>
                 <Tag className="size-3" />
                 <span>{tag.label}</span>
                 <Button

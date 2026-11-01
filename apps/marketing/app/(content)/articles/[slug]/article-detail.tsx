@@ -251,10 +251,7 @@ export default function ArticleDetail({
           <div className="lg:col-span-2">
             <header className="mb-6 md:mb-8">
               {article.category && (
-                <Badge
-                  variant="secondary"
-                  className="mb-3 md:mb-4"
-                >
+                <Badge variant="secondary" className="mb-3 md:mb-4">
                   {article.category}
                 </Badge>
               )}
