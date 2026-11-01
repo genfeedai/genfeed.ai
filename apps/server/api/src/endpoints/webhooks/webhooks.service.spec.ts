@@ -11,7 +11,6 @@ vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
 
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
@@ -151,11 +150,10 @@ describe('WebhooksService', () => {
   };
 
   const mockStoryboardContextFind = vi.fn();
-  const mockCreditBalance = vi.fn();
+  const mockNotificationOwnerFind = vi.fn();
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockCreditBalance.mockResolvedValue(0);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -168,10 +166,6 @@ describe('WebhooksService', () => {
             releaseOutput: vi.fn().mockResolvedValue('no-hold'),
             settleOutput: vi.fn().mockResolvedValue('no-hold'),
           },
-        },
-        {
-          provide: CreditsUtilsService,
-          useValue: { getOrganizationCreditsBalance: mockCreditBalance },
         },
         {
           provide: ConfigService,
@@ -307,6 +301,7 @@ describe('WebhooksService', () => {
             ),
             notifyBotGatewayFailureIfNeeded: vi.fn(),
             findStoryboardContext: mockStoryboardContextFind,
+            findNotificationOwner: mockNotificationOwnerFind,
             notifyBotGatewayIfNeeded: vi.fn(),
             triggerAutoEvaluationIfEnabled: vi.fn(),
           },
@@ -1401,44 +1396,16 @@ describe('WebhooksService', () => {
 
     it('names the account and its credits left on the notification', async () => {
       mockStoryboardContextFind.mockResolvedValue(null);
-      mockCreditBalance.mockResolvedValue(13);
-      ingredientsService.findOne.mockResolvedValue({
-        ...mockIngredient,
-        organization: { label: 'Acme' },
-        user: {
-          email: 'owner@example.com',
-          firstName: 'Ada',
-          lastName: 'Owner',
-        },
-      } as unknown as IngredientDocument);
+      const owner = {
+        creditBalance: 13,
+        organizationLabel: 'Acme',
+        userEmail: 'owner@example.com',
+      };
+      mockNotificationOwnerFind.mockResolvedValue(owner);
 
       await notify();
 
-      expect(dispatchedPayload()).toMatchObject({
-        ingredient: {
-          owner: {
-            creditBalance: 13,
-            organizationId: mockOrgId,
-            organizationLabel: 'Acme',
-            userEmail: 'owner@example.com',
-            userName: 'Ada Owner',
-          },
-        },
-      });
-    });
-
-    it('still posts the generation when the balance cannot be read', async () => {
-      mockStoryboardContextFind.mockResolvedValue(null);
-      mockCreditBalance.mockRejectedValue(new Error('ledger down'));
-
-      await notify();
-
-      expect(dispatchedPayload()).toMatchObject({
-        ingredient: {
-          id: mockIngredientId,
-          owner: { organizationId: mockOrgId },
-        },
-      });
+      expect(dispatchedPayload()).toMatchObject({ ingredient: { owner } });
     });
 
     it('keeps the ordinary channel path for other generations', async () => {

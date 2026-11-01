@@ -4,7 +4,6 @@ import {
   ASSET_ORIGIN_GENERATION_PENDING,
 } from '@api/collections/assets/constants/asset-origin.constant';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { INGREDIENT_PROCESSING_TIMEOUT_ERROR } from '@api/collections/ingredients/constants/processing-timeout.constants';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -31,10 +30,7 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
-import type {
-  IFileMetadata,
-  IIngredientNotificationOwner,
-} from '@genfeedai/contracts/interfaces';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -78,7 +74,6 @@ export class WebhooksService {
     private readonly autoMergeService: AutoMergeService,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly filesClientService: FilesClientService,
     private readonly generationSettlement: WebhookGenerationSettlementService,
     private readonly ingredientsService: IngredientsService,
@@ -619,7 +614,8 @@ export class WebhooksService {
       return;
     }
 
-    const owner = await this.readNotificationOwner(ingredient);
+    const owner =
+      await this.postProcessingOrchestrator.findNotificationOwner(ingredient);
     const storyboard =
       await this.postProcessingOrchestrator.findStoryboardContext(ingredient);
 
@@ -703,48 +699,6 @@ export class WebhooksService {
       source: { id: ingredient.id, type: 'ingredient' },
       topic: 'operator.alerts',
     });
-  }
-
-  /**
-   * The account behind a generation for the operator feed: who ran it and what
-   * their wallet holds now. Best effort, a failed balance read must never
-   * hold back the notification.
-   */
-  private async readNotificationOwner(
-    ingredient: IngredientDocument,
-  ): Promise<IIngredientNotificationOwner> {
-    const user = ingredient.user as
-      | { email?: string; firstName?: string; lastName?: string }
-      | null
-      | undefined;
-    const organization = ingredient.organization as
-      | { label?: string }
-      | null
-      | undefined;
-    const userName = [user?.firstName, user?.lastName]
-      .filter(Boolean)
-      .join(' ');
-    let creditBalance: number | undefined;
-    if (ingredient.organizationId) {
-      try {
-        creditBalance =
-          await this.creditsUtilsService.getOrganizationCreditsBalance(
-            ingredient.organizationId,
-          );
-      } catch (error: unknown) {
-        this.loggerService.warn(
-          `${this.constructorName} credit balance unavailable for Discord notification`,
-          { error: getErrorMessage(error), ingredientId: ingredient.id },
-        );
-      }
-    }
-    return {
-      creditBalance,
-      organizationId: ingredient.organizationId ?? undefined,
-      organizationLabel: organization?.label,
-      userEmail: user?.email,
-      userName: userName || undefined,
-    };
   }
 
   async processAssetFromWebhook(
