@@ -27,13 +27,13 @@ import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHar
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { PanelTabs } from '@ui/primitives/tabs';
 import {
   DefinitionDetail,
   DefinitionList,
   DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
+import { PanelTabs } from '@ui/primitives/tabs';
 import {
   Download,
   GitBranch,
