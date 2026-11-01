@@ -146,4 +146,13 @@ process.env.TOKEN_ENCRYPTION_KEY = 'test-encryption-key-for-testing-only';
 // Clear mocks between tests
 afterEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
+
+// Per-file reset for `isolate: false`. Setup files run before each spec's own
+// imports, so every spec starts with a fresh module registry and `vi.mock`
+// factories or module-level state cannot leak between files. Do not move this
+// into `beforeAll`: a spec that statically imports a class and later imports
+// the module under test dynamically would see two copies of the class.
+vi.resetModules();
