@@ -59,6 +59,10 @@
     "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
     "remixTitle": "Remix a video",
     "removeAsset": "Remove {title}",
+    "result": "Storyboard",
+    "resultEmpty": "Your storyboard shows up here once you save the idea.",
+    "heroDescription": "Pitch your idea, or start from one of these.",
+    "heroTitle": "Start a storyboard",
     "retrySaving": "Retry saving storyboard",
     "runtimeBudget": "Runtime budget (seconds)",
     "secondsUnit": "s",
@@ -222,7 +226,6 @@
     "title": "Turn an idea into a storyboard"
   },
   "pitches": {
-    "groupAria": "Starter ideas",
     "items": {
       "explainer": {
         "description": "Correct a common mistake and show a better way.",
@@ -248,8 +251,7 @@
         "description": "Talk through the biggest lesson of your year.",
         "title": "Voice note"
       }
-    },
-    "prefillAria": "Start from the {title} idea"
+    }
   },
   "presets": {
     "chipsAria": "Storyboard presets",

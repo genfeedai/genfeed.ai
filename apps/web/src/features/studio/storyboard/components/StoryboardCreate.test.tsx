@@ -1,3 +1,4 @@
+import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
@@ -10,6 +11,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardCreate from './StoryboardCreate';
@@ -42,7 +44,11 @@ vi.mock(
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/${mocks.brandId}${path}` }),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org/brand-a/storyboard/new',
+  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mocks.push }),
+}));
 vi.mock('@/features/studio/storyboard/hooks/use-create-storyboard', () => ({
   useCreateStoryboard: () => ({
     create: mocks.create,
@@ -111,6 +117,17 @@ function image(id: string, brandId = mocks.brandId, isDeleted = false) {
     cdnUrl: `https://assets.test/${id}.jpg`,
     metadata: new Metadata({ label: id }),
   });
+}
+
+/** Picks a source from the prompt bar's dropdown, like a person would. */
+function chooseSource(name: string) {
+  fireEvent.keyDown(
+    screen.getByRole('combobox', { name: 'Storyboard source' }),
+    {
+      key: 'ArrowDown',
+    },
+  );
+  fireEvent.click(screen.getByRole('option', { name }));
 }
 
 describe('Storyboard shared composer', () => {
@@ -212,7 +229,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
+    chooseSource('Long video');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -238,7 +255,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
+    chooseSource('Slideshow');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -264,13 +281,13 @@ describe('Storyboard shared composer', () => {
   });
   it('offers three slideshow ideas that fill the brief without saving', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
+    chooseSource('Slideshow');
     expect(
-      screen.getAllByRole('button', { name: /^Start from the .* idea$/ }),
+      within(screen.getByTestId('storyboard-pitch-cards')).getAllByRole(
+        'button',
+      ),
     ).toHaveLength(3);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Start from the Quick tips idea' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Quick tips' }));
     expect(screen.getByLabelText('Brief')).toHaveDisplayValue(
       /^Five small habits that make a big difference\./,
     );
@@ -278,17 +295,49 @@ describe('Storyboard shared composer', () => {
   });
   it('offers long-video ideas and none for a remix', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
+    chooseSource('Long video');
     expect(
-      screen.getByRole('button', { name: 'Start from the Voice note idea' }),
+      screen.getByRole('button', { name: 'Voice note' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: 'Remix a video' }));
-    expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
+    chooseSource('Remix a video');
+    expect(screen.queryByTestId('storyboard-pitch-cards')).toBeNull();
+  });
+  it('pitches in the agent column and leaves the result on the right', () => {
+    render(
+      <AgentOutputHostContext
+        value={{
+          agent: <p>Shell conversation</p>,
+          contextPanel: <p>Shell context</p>,
+          onNewThread: vi.fn(),
+          onOpenFullPage: vi.fn(),
+          threadsPanel: <p>Shell threads</p>,
+        }}
+      >
+        <StoryboardCreate />
+      </AgentOutputHostContext>,
+    );
+    const agentPane = screen.getByTestId('agent-output-agent-pane');
+    const outputPane = screen.getByTestId('agent-output-output-pane');
+
+    expect(within(agentPane).getByLabelText('Brief')).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('combobox', { name: 'Storyboard source' }),
+    ).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('heading', { name: 'Start a storyboard' }),
+    ).toBeInTheDocument();
+    expect(within(outputPane).queryByLabelText('Brief')).toBeNull();
+    expect(
+      within(outputPane).getByText(
+        'Your storyboard shows up here once you save the idea.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'From a brief' }));
+    chooseSource('Slideshow');
+    chooseSource('From a brief');
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });

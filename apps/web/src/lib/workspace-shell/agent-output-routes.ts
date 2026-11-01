@@ -11,8 +11,9 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // The master conversation; `/agent/new` and `/agent/[id]` stay full-page.
   new RegExp(`^${APP_ROUTES.AGENT.ROOT}/?$`),
-  // A Storyboard run; `/storyboard/new` is the create form.
-  new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/(?!new/?$)[^/]+/?$`),
+  // A Storyboard run, and `/storyboard/new`, where the idea is pitched in the
+  // same chat-left, result-right layout the run opens in.
+  new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/[^/]+/?$`),
   // The workflow editor, new or saved; `/automation/workflows/templates` is
   // the template gallery and stays on the dock.
   new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),

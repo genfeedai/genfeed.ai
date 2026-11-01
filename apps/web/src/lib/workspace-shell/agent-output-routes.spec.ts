@@ -7,10 +7,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/run-1/')).toBe(true);
   });
 
-  it('leaves the storyboard list and the create form on the dock', () => {
+  it('matches the storyboard create page, where the idea is pitched', () => {
+    expect(isAgentOutputRoute('/storyboard/new')).toBe(true);
+    expect(isAgentOutputRoute('/storyboard/new/')).toBe(true);
+  });
+
+  it('leaves the storyboard list on the dock', () => {
     expect(isAgentOutputRoute('/storyboard')).toBe(false);
-    expect(isAgentOutputRoute('/storyboard/new')).toBe(false);
-    expect(isAgentOutputRoute('/storyboard/new/')).toBe(false);
   });
 
   it('keeps a run id that starts with "new" on the split layout', () => {
