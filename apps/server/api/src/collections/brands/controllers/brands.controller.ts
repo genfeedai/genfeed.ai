@@ -349,16 +349,11 @@ export class BrandsController extends BaseCRUDController<
     const isDeleted = query.isDeleted ?? false;
 
     if (adminFilter) {
-      // The shared admin filter names a brand as `brandId`, the foreign key on
-      // brand-owned rows. On Brand itself that brand is the row's `id`.
-      const { brandId, ...organizationFilter } = adminFilter;
+      // The admin filter's `brandId` is a foreign key; on Brand it is `id`.
+      const { brandId: id, ...orgFilter } = adminFilter;
       return {
         orderBy: buildBrandListOrderBy(query.sort),
-        where: {
-          isDeleted,
-          ...organizationFilter,
-          ...(brandId ? { id: brandId } : {}),
-        },
+        where: { isDeleted, ...orgFilter, ...(id ? { id } : {}) },
       };
     }
 
