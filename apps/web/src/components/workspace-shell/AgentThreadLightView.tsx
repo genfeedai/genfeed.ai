@@ -1,44 +1,53 @@
 'use client';
 
+import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import { getThreadStatusMeta } from '@genfeedai/agent/components/agent-thread-list.helpers';
-import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
+import {
+  AGENT_CONVERSATION_SCROLL_CLASS,
+  AGENT_CONVERSATION_TRACK_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
+import type { AgentChatMessage as AgentChatMessageModel } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Badge } from '@ui/primitives/badge';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
-import { Video } from 'lucide-react';
+import {
+  ArchiveRestore,
+  CheckCheck,
+  ChevronRight,
+  Expand,
+  Video,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AgentThreadLightViewProps } from '@/components/workspace-shell/props/agent-threads-panel.props';
 import { collectThreadAssets } from './agent-thread-assets.util';
 
 const MESSAGE_LIMIT = 20;
 
-type SteerState = 'idle' | 'sending' | 'sent' | 'failed';
-
 /**
- * A thread seen from the master's Threads panel: its last messages and a box to
- * steer it, without leaving the page or changing the conversation on the left.
+ * A thread seen from the master's Threads panel, laid out like the master
+ * conversation beside it: the same messages, the same prompt bar anchored at
+ * the foot. One slim header names the thread and holds its actions.
  */
 export default function AgentThreadLightView({
   apiService,
   isPending = false,
   isResolved = false,
   onBack,
-  isStartedByMaster = false,
   onOpenFullThread,
   onReopen,
   onResolve,
   thread,
 }: AgentThreadLightViewProps) {
   const translate = useTranslations('common.agentThreads');
-  const steerId = useId();
-  const [messages, setMessages] = useState<AgentChatMessage[]>([]);
+  const [messages, setMessages] = useState<AgentChatMessageModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadFailed, setHasLoadFailed] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [steerState, setSteerState] = useState<SteerState>('idle');
+  const [isSending, setIsSending] = useState(false);
+  const [hasSteerFailed, setHasSteerFailed] = useState(false);
 
   const status = getThreadStatusMeta(thread);
   const assets = useMemo(
@@ -77,136 +86,128 @@ export default function AgentThreadLightView({
     return () => controller.abort();
   }, [loadMessages]);
 
-  const handleSteer = useCallback(async () => {
-    const content = draft.trim();
-    if (!content || steerState === 'sending' || isResolved) {
-      return;
-    }
+  // The composer clears itself once this resolves; a rejection keeps the draft.
+  const handleSteer = useCallback(
+    async (content: string) => {
+      setIsSending(true);
+      setHasSteerFailed(false);
+      try {
+        await apiService.chatStream({
+          clientRequestId: crypto.randomUUID(),
+          content,
+          expectedContextVersion: thread.contextVersion,
+          source: 'agent',
+          threadId: thread.id,
+        });
+        void loadMessages(new AbortController().signal);
+        return true;
+      } catch (error) {
+        setHasSteerFailed(true);
+        throw error;
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [apiService, loadMessages, thread.contextVersion, thread.id],
+  );
 
-    setSteerState('sending');
-    try {
-      await apiService.chatStream({
-        clientRequestId: crypto.randomUUID(),
-        content,
-        expectedContextVersion: thread.contextVersion,
-        source: 'agent',
-        threadId: thread.id,
-      });
-      setDraft('');
-      setSteerState('sent');
-      void loadMessages(new AbortController().signal);
-    } catch {
-      setSteerState('failed');
-    }
-  }, [
-    apiService,
-    draft,
-    isResolved,
-    loadMessages,
-    steerState,
-    thread.contextVersion,
-    thread.id,
-  ]);
+  const title = thread.title?.trim() || translate('untitled');
+  const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
+  const onToggleResolved = isResolved ? onReopen : onResolve;
 
   return (
     <div
       className="flex min-h-0 flex-1 flex-col"
       data-testid="agent-thread-light-view"
     >
-      <div className="flex items-center gap-2 border-b border-border p-3">
-        <Button
-          onClick={onBack}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
+      <header className="flex min-h-12 shrink-0 items-center gap-1 border-b border-border px-4">
+        <nav
+          aria-label={translate('breadcrumb')}
+          className="flex min-w-0 flex-1 items-center gap-1 text-sm"
         >
-          {translate('back')}
-        </Button>
-        <p className="min-w-0 flex-1 truncate text-sm font-medium">
-          {thread.title?.trim() || translate('untitled')}
-        </p>
-        {isResolved ? (
-          <Badge data-testid="agent-thread-resolved" variant="success">
-            {translate('resolved')}
-          </Badge>
-        ) : null}
-        {isResolved ? (
-          onReopen ? (
-            <Button
-              isDisabled={isPending}
-              onClick={onReopen}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            >
-              {translate('reopen')}
-            </Button>
-          ) : null
-        ) : onResolve ? (
           <Button
-            isDisabled={isPending}
-            onClick={onResolve}
+            onClick={onBack}
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            {translate('resolve')}
+            {translate('threads')}
           </Button>
+          <ChevronRight
+            aria-hidden="true"
+            className="size-3.5 shrink-0 text-muted-foreground"
+          />
+          <h2 className="min-w-0 truncate font-medium text-foreground">
+            {title}
+          </h2>
+          <span
+            className="shrink-0 pl-2 text-xs text-muted-foreground"
+            data-testid="agent-thread-status"
+          >
+            {isResolved
+              ? translate('resolved')
+              : (status?.label ?? translate('statusIdle'))}
+          </span>
+        </nav>
+        {onToggleResolved ? (
+          <Button
+            ariaLabel={toggleLabel}
+            data-testid="agent-thread-toggle-resolved"
+            icon={
+              isResolved ? (
+                <ArchiveRestore className="size-4" />
+              ) : (
+                <CheckCheck className="size-4" />
+              )
+            }
+            isDisabled={isPending}
+            onClick={onToggleResolved}
+            size={ButtonSize.ICON}
+            tooltip={toggleLabel}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
         ) : null}
         {onOpenFullThread ? (
           <Button
+            ariaLabel={translate('openFull')}
+            icon={<Expand className="size-4" />}
             onClick={() => onOpenFullThread(thread.id)}
-            size={ButtonSize.SM}
+            size={ButtonSize.ICON}
+            tooltip={translate('openFull')}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
-          >
-            {translate('openFull')}
-          </Button>
+          />
         ) : null}
-      </div>
+      </header>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-3 py-2 text-xs text-muted-foreground">
-        <span data-testid="agent-thread-status">
-          {status?.label ?? translate('statusIdle')}
-        </span>
-        {isStartedByMaster ? (
-          <span data-testid="agent-thread-started-by">
-            {translate('startedByMaster')}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-        {isLoading && messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground" role="status">
-            {translate('loadingMessages')}
-          </p>
-        ) : hasLoadFailed ? (
-          <p className="text-sm text-destructive" role="alert">
-            {translate('loadFailed')}
-          </p>
-        ) : messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {translate('noMessages')}
-          </p>
-        ) : (
-          messages.map((message) => (
-            <div
-              className="space-y-1"
-              data-testid={`agent-thread-message-${message.id}`}
-              key={message.id}
-            >
-              <p className="text-xs font-medium uppercase text-muted-foreground">
-                {message.role === 'user'
-                  ? translate('roleYou')
-                  : translate('roleAgent')}
-              </p>
-              <p className="line-clamp-6 whitespace-pre-wrap text-sm">
-                {message.content}
-              </p>
-            </div>
-          ))
-        )}
+      <div className={AGENT_CONVERSATION_SCROLL_CLASS}>
+        <div
+          className={cn(AGENT_CONVERSATION_TRACK_CLASS, 'grow space-y-1 pt-4')}
+        >
+          {isLoading && messages.length === 0 ? (
+            <p className="text-sm text-muted-foreground" role="status">
+              {translate('loadingMessages')}
+            </p>
+          ) : hasLoadFailed ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translate('loadFailed')}
+            </p>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {translate('noMessages')}
+            </p>
+          ) : (
+            messages.map((message, index) => (
+              <AgentChatMessage
+                isReadOnly={isResolved}
+                key={message.id}
+                message={message}
+                messageIndex={index}
+              />
+            ))
+          )}
+        </div>
       </div>
 
       {assets.length > 0 ? (
@@ -242,49 +243,35 @@ export default function AgentThreadLightView({
         </ul>
       ) : null}
 
-      <div className="space-y-2 border-t border-border p-3">
-        <Textarea
-          aria-label={translate('steerLabel')}
-          id={steerId}
-          isDisabled={steerState === 'sending' || isResolved}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            if (steerState !== 'sending') {
-              setSteerState('idle');
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-              event.preventDefault();
-              void handleSteer();
-            }
-          }}
-          placeholder={translate('steerPlaceholder')}
-          rows={2}
-          value={draft}
-        />
-        <div className="flex items-center justify-between gap-2">
-          <p
-            className="text-xs text-muted-foreground"
-            role={steerState === 'failed' ? 'alert' : 'status'}
-          >
-            {isResolved
-              ? translate('reopenToSteer')
-              : steerState === 'sent'
-                ? translate('steerSent')
-                : steerState === 'failed'
+      <div className="shrink-0 px-4 pb-4">
+        <PromptBarContainer
+          className="mx-auto w-full max-w-3xl"
+          layoutMode="inflow"
+          maxWidth="full"
+          topContent={
+            isResolved || hasSteerFailed ? (
+              <p
+                className={cn(
+                  'mb-2 text-xs',
+                  hasSteerFailed ? 'text-destructive' : 'text-muted-foreground',
+                )}
+                role={hasSteerFailed ? 'alert' : 'status'}
+              >
+                {hasSteerFailed
                   ? translate('steerFailed')
-                  : ''}
-          </p>
-          <Button
-            isDisabled={!draft.trim() || steerState === 'sending' || isResolved}
-            onClick={() => void handleSteer()}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-          >
-            {translate('steer')}
-          </Button>
-        </div>
+                  : translate('reopenToSteer')}
+              </p>
+            ) : undefined
+          }
+        >
+          <AgentChatInput
+            disabled={isSending || isResolved}
+            isAgentControlsHidden
+            key={thread.id}
+            onSend={handleSteer}
+            placeholder={translate('steerPlaceholder')}
+          />
+        </PromptBarContainer>
       </div>
     </div>
   );

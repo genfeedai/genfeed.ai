@@ -24,14 +24,21 @@ export interface AgentOutputLayoutLabels {
 }
 
 export interface AgentOutputLayoutProps {
-  /** The tab of `tabs` that is showing. The first tab is the page output. */
+  /**
+   * The view of `tabs` that is showing. The first is the page output. There is
+   * no tab strip: the page, the topbar's Context icon or a header control
+   * chooses the view.
+   */
   readonly activeTabId: string;
   /** The agent pane body: transcript and composer. */
   readonly agent: ReactNode;
-  /** Title and thread actions above the agent pane body. */
+  /**
+   * Title and thread actions above the agent pane body. Leave out for a bare
+   * conversation with no header above it.
+   */
   readonly agentHeader?: ReactNode;
   readonly className?: string;
-  /** Page-specific actions on the right of the output pane's tab strip. */
+  /** Page-specific actions in a slim bar above the output pane. */
   readonly headerActions?: ReactNode;
   /**
    * Adds a button that hides the agent so the output fills the page, and
@@ -40,7 +47,6 @@ export interface AgentOutputLayoutProps {
   readonly isOutputExpandable?: boolean;
   readonly labels: AgentOutputLayoutLabels;
   readonly mode?: AgentOutputLayoutMode;
-  readonly onTabChange: (tabId: string) => void;
   readonly tabs: readonly AgentOutputTabDefinition[];
 }
 
@@ -54,6 +60,12 @@ export interface AgentOutputHostValue {
   readonly agent: ReactNode;
   readonly agentTitle?: string;
   readonly contextPanel: ReactNode;
+  /** Context is showing in the output pane, opened from the topbar's icon. */
+  readonly isContextOpen: boolean;
+  /** Back to the page's own view, for example when a thread chip is opened. */
+  readonly onCloseContext: () => void;
+  /** Brings Context forward, for a record the operator just picked. */
+  readonly onOpenContext: () => void;
   readonly onNewThread: () => void;
   readonly onOpenFullPage: () => void;
   readonly threadsPanel: ReactNode;
