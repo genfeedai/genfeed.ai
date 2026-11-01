@@ -18,6 +18,7 @@ import {
 import {
   boundLimit,
   LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+  X_DM_RECONNECT_REASON,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   CreatedSocialMessageRef,
@@ -43,6 +44,7 @@ import {
   SocialConversationType,
   SocialMessageType,
 } from '@genfeedai/contracts';
+import { resolveDirectMessageCapability } from '@genfeedai/helpers';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,12 +53,29 @@ import { ModuleRef } from '@nestjs/core';
 
 const X_DM_MAX_PAGES = 5;
 
+function readProviderStatus(error: unknown): unknown {
+  if (!isObjectLike(error)) {
+    return undefined;
+  }
+  return error.status ?? error.code ?? error.statusCode;
+}
+
+/**
+ * X answers `dm_events` with 403 when the token's grant has no `dm.read`,
+ * which is the case for every account connected before the scope was
+ * requested and whose grant predates scope capture.
+ */
+function isProviderForbidden(error: unknown): boolean {
+  const status = readProviderStatus(error);
+  return status === 403 || status === '403';
+}
+
 function isProviderRateLimit(error: unknown): boolean {
   if (!isObjectLike(error)) {
     return false;
   }
 
-  const status = error.status ?? error.code ?? error.statusCode;
+  const status = readProviderStatus(error);
   if (status === 429 || status === '429') {
     return true;
   }
@@ -522,6 +541,7 @@ export class SocialInboxIngestionService {
       options.credentialId,
     );
     const counts = { conversationsCreated: 0, messagesCreated: 0 };
+    const missingPermissionCredentialIds: string[] = [];
 
     for (const credential of credentials) {
       const brandId = credential.brandId;
@@ -529,24 +549,52 @@ export class SocialInboxIngestionService {
         continue;
       }
 
+      // A grant captured without dm.read cannot read DMs; calling X would
+      // only earn a 403. Skip it and fail the sync with a typed reason below.
+      if (
+        resolveDirectMessageCapability({
+          grantedScopes: credential.grantedScopes,
+          grantedScopesCapturedAt: credential.grantedScopesCapturedAt,
+          platform: Platform.TWITTER,
+        }) === 'reconnect'
+      ) {
+        missingPermissionCredentialIds.push(credential.id);
+        continue;
+      }
+
       // X dm_events paginate with the provider next_token, not a stored
       // message id. Walk newest-first until a page adds nothing new.
       let paginationToken: string | undefined;
       for (let page = 0; page < X_DM_MAX_PAGES; page++) {
-        const listing = await this.pollProvider(
-          Platform.TWITTER,
-          paginationToken,
-          () =>
-            this.twitterService.listDirectMessages(
-              scope.organizationId,
-              brandId,
-              {
-                limit,
-                ...(paginationToken ? { paginationToken } : {}),
-              },
-              credential.id,
-            ),
-        );
+        let listing: Awaited<
+          ReturnType<TwitterService['listDirectMessages']>
+        >;
+        try {
+          listing = await this.pollProvider(
+            Platform.TWITTER,
+            paginationToken,
+            () =>
+              this.twitterService.listDirectMessages(
+                scope.organizationId,
+                brandId,
+                {
+                  limit,
+                  ...(paginationToken ? { paginationToken } : {}),
+                },
+                credential.id,
+              ),
+          );
+        } catch (error: unknown) {
+          // A grant from before scope capture is only found out here.
+          if (
+            error instanceof SocialInboxProviderError &&
+            isProviderForbidden(error.cause)
+          ) {
+            missingPermissionCredentialIds.push(credential.id);
+            break;
+          }
+          throw error;
+        }
         const createdBefore = counts.messagesCreated;
 
         for (const thread of listing.threads) {
@@ -588,6 +636,16 @@ export class SocialInboxIngestionService {
           break;
         }
       }
+    }
+
+    // Accounts that could be read were ingested above; the sync still fails
+    // so the inbox shows why the others stayed empty instead of looking idle.
+    if (missingPermissionCredentialIds.length > 0) {
+      throw new SocialInboxProviderError(X_DM_RECONNECT_REASON, {
+        credentialIds: missingPermissionCredentialIds,
+        platform: Platform.TWITTER,
+        reason: 'missing_permission',
+      });
     }
 
     return counts;

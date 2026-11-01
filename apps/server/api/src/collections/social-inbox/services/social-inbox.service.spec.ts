@@ -2,7 +2,10 @@ import {
   OWNED_INBOX_POST_ORDER_BY,
   publicYoutubeInboxPostFilter,
 } from '@api/collections/posts/services/post-publication-capture.filters';
-import { TWITTER_DM_REASON } from '@api/collections/social-inbox/services/social-inbox.helpers';
+import {
+  TWITTER_DM_REASON,
+  X_DM_RECONNECT_REASON,
+} from '@api/collections/social-inbox/services/social-inbox.helpers';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
@@ -3153,6 +3156,141 @@ describe('SocialInboxService', () => {
         expect.objectContaining({ paginationToken: 'x-dm-2' }),
         'credential-x',
       );
+    });
+  });
+
+  describe('ingestXDms without dm.read', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const xCredential = {
+      brandId: 'brand-1',
+      externalHandle: '@genfeedai',
+      externalId: 'brand-user-id',
+      externalName: 'Genfeed',
+      label: 'X',
+      userId: 'user-1',
+    };
+    const dmListing = {
+      threads: [
+        {
+          conversationId: 'x-dm-thread-1',
+          messages: [
+            {
+              createdAt: new Date('2026-08-01T11:00:00.000Z'),
+              messageId: 'x-dm-1',
+              senderId: '2244994945',
+              senderName: 'Taylor',
+              senderUsername: 'taylor',
+              text: 'Can we chat about pricing?',
+            },
+          ],
+          participantExternalId: '2244994945',
+          participantName: 'Taylor',
+          participantUsername: 'taylor',
+        },
+      ],
+    };
+
+    it('fails with a typed missing-permission reason and never polls X for a grant captured without dm.read', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          ...xCredential,
+          grantedScopes: ['tweet.read', 'tweet.write', 'users.read'],
+          grantedScopesCapturedAt: new Date('2026-10-20T00:00:00.000Z'),
+          id: 'credential-old-grant',
+        },
+      ]);
+
+      const error = await context.service
+        .ingestXDms(scope, { limit: 25 })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(SocialInboxProviderError);
+      expect(error).toMatchObject({
+        credentialIds: ['credential-old-grant'],
+        message: X_DM_RECONNECT_REASON,
+        platform: Platform.TWITTER,
+        reason: 'missing_permission',
+      });
+      expect(context.twitterService.listDirectMessages).not.toHaveBeenCalled();
+      expect(context.messages).toHaveLength(0);
+    });
+
+    it('still ingests accounts that granted dm.read before failing for the rest', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          ...xCredential,
+          grantedScopes: ['dm.read', 'tweet.read', 'tweet.write'],
+          grantedScopesCapturedAt: new Date('2026-11-01T00:00:00.000Z'),
+          id: 'credential-dm-grant',
+        },
+        {
+          ...xCredential,
+          grantedScopes: ['tweet.read', 'tweet.write'],
+          grantedScopesCapturedAt: new Date('2026-10-20T00:00:00.000Z'),
+          id: 'credential-old-grant',
+        },
+      ]);
+      context.twitterService.listDirectMessages.mockResolvedValue(dmListing);
+
+      await expect(
+        context.service.ingestXDms(scope, { limit: 25 }),
+      ).rejects.toMatchObject({
+        credentialIds: ['credential-old-grant'],
+        reason: 'missing_permission',
+      });
+      expect(
+        context.messages.map((message) => message.externalMessageId),
+      ).toEqual(['x-dm-1']);
+    });
+
+    it('reports an X 403 on a grant from before scope capture as missing permission', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          ...xCredential,
+          grantedScopes: [],
+          grantedScopesCapturedAt: null,
+          id: 'credential-uncaptured',
+        },
+      ]);
+      context.twitterService.listDirectMessages.mockRejectedValue(
+        Object.assign(new Error('Request failed with code 403'), {
+          code: 403,
+        }),
+      );
+
+      await expect(
+        context.service.ingestXDms(scope, { limit: 25 }),
+      ).rejects.toMatchObject({
+        credentialIds: ['credential-uncaptured'],
+        message: X_DM_RECONNECT_REASON,
+        reason: 'missing_permission',
+      });
+    });
+
+    it('keeps other X failures as provider errors', async () => {
+      const context = createContext();
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          ...xCredential,
+          grantedScopes: [],
+          grantedScopesCapturedAt: null,
+          id: 'credential-uncaptured',
+        },
+      ]);
+      context.twitterService.listDirectMessages.mockRejectedValue(
+        Object.assign(new Error('Internal error'), { code: 500 }),
+      );
+
+      await expect(
+        context.service.ingestXDms(scope, { limit: 25 }),
+      ).rejects.toMatchObject({ reason: 'provider_error' });
     });
   });
 

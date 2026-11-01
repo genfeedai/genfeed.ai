@@ -29,4 +29,35 @@ describe('credential serializer platform contract', () => {
       }),
     ).toThrow('Unknown credential platform: UNKNOWN_NETWORK');
   });
+
+  it.each([
+    {
+      expected: 'reconnect',
+      grantedScopes: ['tweet.read', 'tweet.write', 'users.read'],
+      grantedScopesCapturedAt: '2026-10-20T00:00:00.000Z',
+    },
+    {
+      expected: 'ok',
+      grantedScopes: ['dm.read', 'tweet.read', 'tweet.write'],
+      grantedScopesCapturedAt: '2026-10-20T00:00:00.000Z',
+    },
+    {
+      expected: 'unknown',
+      grantedScopes: [],
+      grantedScopesCapturedAt: null,
+    },
+  ])(
+    'derives X directMessageCapability $expected without exposing the scope list',
+    ({ expected, grantedScopes, grantedScopesCapturedAt }) => {
+      const output = CredentialSerializer.serialize({
+        grantedScopes,
+        grantedScopesCapturedAt,
+        id: 'credential-x',
+        platform: 'TWITTER',
+      });
+
+      expect(output.data.attributes.directMessageCapability).toBe(expected);
+      expect(output.data.attributes).not.toHaveProperty('grantedScopes');
+    },
+  );
 });

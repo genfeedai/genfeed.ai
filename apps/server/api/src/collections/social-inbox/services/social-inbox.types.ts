@@ -141,27 +141,45 @@ export type OutboundReservation = {
   message: SocialMessageDocument;
 };
 
+/**
+ * Why a provider poll failed. `missing_permission` means the connected
+ * account's grant lacks a scope the poll needs; reconnecting fixes it, and
+ * retrying does not.
+ */
+export type SocialInboxProviderErrorReason =
+  | 'missing_permission'
+  | 'provider_error'
+  | 'rate_limited';
+
 export class SocialInboxProviderError extends Error {
   override readonly cause?: unknown;
+  readonly credentialIds: readonly string[];
   readonly cursor?: string;
   readonly isRateLimited: boolean;
   readonly platform: string;
+  readonly reason: SocialInboxProviderErrorReason;
 
   constructor(
     message: string,
     options: {
       cause?: unknown;
+      credentialIds?: readonly string[];
       cursor?: string;
       isRateLimited?: boolean;
       platform: string;
+      reason?: SocialInboxProviderErrorReason;
     },
   ) {
     super(message);
     this.name = 'SocialInboxProviderError';
     this.cause = options.cause;
+    this.credentialIds = options.credentialIds ?? [];
     this.cursor = options.cursor;
     this.isRateLimited = options.isRateLimited === true;
     this.platform = options.platform;
+    this.reason =
+      options.reason ??
+      (this.isRateLimited ? 'rate_limited' : 'provider_error');
   }
 }
 
