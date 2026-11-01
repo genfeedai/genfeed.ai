@@ -28,12 +28,15 @@ const CONTEXT_TAB_ID = 'context';
  *
  * Detail the page used to push into the global right panel (`ContextSidebarPanel`)
  * opens in the Context tab here, inside the output pane, so the page stays two
- * columns instead of three.
+ * columns instead of three. A page that passes `hasContextTab={false}` has no
+ * tab for it: the topbar's context toggle swaps the output for the detail, and
+ * the output's own tab brings the output back.
  */
 export default function AgentOutputShell({
   agent,
   agentTitle,
   children,
+  hasContextTab = true,
   headerActions,
   isOutputExpandable,
   mode,
@@ -42,7 +45,16 @@ export default function AgentOutputShell({
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
   const translate = useTranslations('common.agentOutput');
-  const [activeTabId, setActiveTabId] = useState(OUTPUT_TAB_ID);
+  const [selectedTabId, setSelectedTabId] = useState(OUTPUT_TAB_ID);
+  const registerContextToggle = host?.registerContextToggle;
+
+  // The topbar only shows its context toggle for a page that has no tab.
+  useEffect(() => {
+    if (hasContextTab) {
+      return;
+    }
+    return registerContextToggle?.();
+  }, [hasContextTab, registerContextToggle]);
 
   const selection = contextSidebar?.selection ?? null;
   const selectionKey = selection ? `${selection.kind}:${selection.id}` : null;
@@ -55,6 +67,19 @@ export default function AgentOutputShell({
   // the operator just left (the sidebar state outlives a route change), so it
   // must not pull this page onto an empty Context tab.
   const carriedSelectionKeyRef = useRef(selectionKey);
+  const isContextToggledOpen =
+    !hasContextTab && Boolean(selection) && Boolean(contextSidebar?.isOpen);
+  const activeTabId = isContextToggledOpen
+    ? CONTEXT_TAB_ID
+    : selectedTabId === CONTEXT_TAB_ID && !hasContextTab
+      ? OUTPUT_TAB_ID
+      : selectedTabId;
+  const handleTabChange = (tabId: string) => {
+    if (isContextToggledOpen && tabId !== CONTEXT_TAB_ID) {
+      contextSidebar?.close();
+    }
+    setSelectedTabId(tabId);
+  };
   // A new selection brings its detail forward; the operator can still step
   // back to the output while it stays selected.
   useEffect(() => {
@@ -63,12 +88,13 @@ export default function AgentOutputShell({
       return;
     }
     if (
+      hasContextTab &&
       isUserSelectionOpen &&
       selectionKey !== carriedSelectionKeyRef.current
     ) {
-      setActiveTabId(CONTEXT_TAB_ID);
+      setSelectedTabId(CONTEXT_TAB_ID);
     }
-  }, [isUserSelectionOpen, selectionKey]);
+  }, [hasContextTab, isUserSelectionOpen, selectionKey]);
 
   if (!host) {
     return <>{children}</>;
@@ -94,6 +120,7 @@ export default function AgentOutputShell({
     {
       content: host.contextPanel,
       id: CONTEXT_TAB_ID,
+      isHiddenFromStrip: !hasContextTab,
       label: translate('context'),
     },
   ];
@@ -115,7 +142,7 @@ export default function AgentOutputShell({
                 icon={<SquarePen className="size-4" />}
                 onClick={() => {
                   host.onNewThread();
-                  setActiveTabId(OUTPUT_TAB_ID);
+                  handleTabChange(OUTPUT_TAB_ID);
                 }}
                 size={ButtonSize.SM}
                 tooltip={translate('newThread')}
@@ -148,7 +175,7 @@ export default function AgentOutputShell({
         views: translate('views'),
       }}
       mode={mode}
-      onTabChange={setActiveTabId}
+      onTabChange={handleTabChange}
       tabs={tabs}
     />
   );

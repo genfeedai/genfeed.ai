@@ -402,6 +402,7 @@ function TabsBar({
               value={value}
               data-testid={tabItem.testId}
               disabled={tab.isDisabled}
+              hidden={tabItem.isHidden}
               className={cn(
                 tab.isDisabled && 'opacity-50 cursor-not-allowed',
                 tabItem.onClose && 'min-w-0 shrink pr-7',

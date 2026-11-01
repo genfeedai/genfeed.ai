@@ -47,9 +47,10 @@ async function previewResponse(file: string) {
 const base = '/test-org/brand-1/storyboard';
 
 /**
- * The run page is an agent + output split. Plan fields live in the output
- * pane's Context tab, which hides the board while it is showing; below xl the
- * layout also shows one pane at a time and opens on the agent.
+ * The run page is an agent + output split. Plan fields live in the context
+ * view the topbar's context toggle opens in the output pane, which hides the
+ * board while it is showing; below xl the layout also shows one pane at a
+ * time and opens on the agent.
  */
 async function showOutputPane(page: Page) {
   const views = page.getByRole('tablist', {
@@ -74,12 +75,19 @@ async function openStoryboardTab(
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
   const output = await showOutputPane(page);
-  await output.getByRole('tab', { exact: true, name: 'Context' }).click();
+  // There is no Context tab: the topbar toggle is the only way in.
+  const toggle = page.getByTestId('topbar-context-toggle');
+  await expect(
+    output.getByRole('tab', { exact: true, name: 'Context' }),
+  ).toHaveCount(0);
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') {
+    await toggle.click();
+  }
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
   await expect(tabs).toBeVisible();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
-/** Brings the board back after a Context tab visit. */
+/** Brings the board back after a context view visit. */
 async function showStoryboardBoard(page: Page) {
   const output = await showOutputPane(page);
   await output.getByRole('tab', { exact: true, name: 'Shots' }).click();

@@ -756,22 +756,36 @@ function UniversalWorkspaceShellContent({
     ((isAgentDockHost && isAgentDockOpen) ||
       (isInspectorOpen && !isCompactViewport) ||
       isMobileContextOpen);
+  // A split page without a Context tab shows its selection in the output
+  // pane when the topbar toggle opens it, so the toggle must show there.
+  const [contextToggleCount, setContextToggleCount] = useState(0);
+  const registerContextToggle = useCallback(() => {
+    setContextToggleCount((count) => count + 1);
+    return () => setContextToggleCount((count) => count - 1);
+  }, []);
+  const isOutputContextToggle =
+    isAgentOutputSurface &&
+    contextToggleCount > 0 &&
+    Boolean(activeContextSidebar);
   const hasContextView =
-    !isAgentOutputSurface && (isAgentDockHost || Boolean(activeContextSidebar));
+    isOutputContextToggle ||
+    (!isAgentOutputSurface &&
+      (isAgentDockHost || Boolean(activeContextSidebar)));
+  const activeView: WorkspacePanelControls['activeView'] = isOutputContextToggle
+    ? isInspectorOpen
+      ? 'details'
+      : null
+    : isPanelVisible
+      ? activePanelTab
+      : null;
   const panelControls = useMemo<WorkspacePanelControls>(
     () => ({
-      activeView: isPanelVisible ? activePanelTab : null,
+      activeView,
       canShowContext: hasContextView,
       close: handleClosePanel,
       selectView: handleSelectPanelTab,
     }),
-    [
-      activePanelTab,
-      handleClosePanel,
-      handleSelectPanelTab,
-      hasContextView,
-      isPanelVisible,
-    ],
+    [activeView, handleClosePanel, handleSelectPanelTab, hasContextView],
   );
 
   useEffect(() => {
@@ -1221,6 +1235,7 @@ function UniversalWorkspaceShellContent({
       ),
       onNewThread: dockThreads.startThread,
       onOpenFullPage: handleOpenFullConversation,
+      registerContextToggle,
       threadsPanel: (
         <AgentThreadsPanel
           apiService={agentApiService}
@@ -1242,6 +1257,7 @@ function UniversalWorkspaceShellContent({
     handleOpenFullConversation,
     isAgentOutputSurface,
     openFullThreadFromPage,
+    registerContextToggle,
     threads,
   ]);
 

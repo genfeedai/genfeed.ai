@@ -306,6 +306,7 @@ export default function StoryboardDraftPage({
         />
       }
       agentTitle={translate('agentThread.title')}
+      hasContextTab={false}
       outputLabel={translate('agentThread.board')}
     >
       {board}

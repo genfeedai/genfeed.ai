@@ -10,6 +10,8 @@ export interface TabItem {
   icon?: IconComponent;
   badge?: ReactNode;
   isDisabled?: boolean;
+  /** Keeps the tab selectable by `activeTab` without showing a trigger for it. */
+  isHidden?: boolean;
   testId?: string;
   /** Adds a close control beside the tab; `closeLabel` names it. */
   onClose?: () => void;
