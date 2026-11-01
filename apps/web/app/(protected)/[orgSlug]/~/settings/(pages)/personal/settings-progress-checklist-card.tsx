@@ -25,7 +25,6 @@ export default function SettingsProgressChecklistCard({
     >
       <Progress
         aria-label={`${completedCount} of ${totalCount} complete`}
-        className="bg-muted"
         value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0}
       />
 

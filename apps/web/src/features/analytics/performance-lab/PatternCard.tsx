@@ -4,8 +4,8 @@ import type {
   ICreativePattern,
   PatternType,
 } from '@genfeedai/contracts/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import { Progress } from '@ui/primitives/progress';
 import UsePatternButton from '@/features/analytics/performance-lab/UsePatternButton';
 import type {
   PatternCardProps,
@@ -37,14 +37,14 @@ const SOURCE_LABEL: Record<ICreativePattern['source'], string> = {
 
 function ScoreBar({ score }: ScoreBarProps) {
   const clampedScore = Math.min(100, Math.max(0, score));
-  const colorClass =
+  const tone =
     clampedScore >= 75
-      ? 'bg-emerald-500'
+      ? 'success'
       : clampedScore >= 50
-        ? 'bg-sky-500'
+        ? 'info'
         : clampedScore >= 25
-          ? 'bg-amber-500'
-          : 'bg-rose-500';
+          ? 'warning'
+          : 'destructive';
 
   return (
     <div className="space-y-1">
@@ -56,12 +56,12 @@ function ScoreBar({ score }: ScoreBarProps) {
           {clampedScore}
         </span>
       </div>
-      <div className="h-1 w-full bg-tertiary">
-        <div
-          className={cn('h-full transition-[width] duration-300', colorClass)}
-          style={{ width: `${clampedScore}%` }}
-        />
-      </div>
+      <Progress
+        aria-label={`Avg Score ${clampedScore}`}
+        size="xs"
+        tone={tone}
+        value={clampedScore}
+      />
     </div>
   );
 }

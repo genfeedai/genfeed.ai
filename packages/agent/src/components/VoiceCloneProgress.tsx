@@ -14,11 +14,7 @@ export function VoiceCloneProgress({
         <span>Cloning in progress…</span>
         <span>{progress}%</span>
       </div>
-      <Progress
-        className="bg-muted"
-        indicatorClassName="bg-rose-500"
-        value={progress}
-      />
+      <Progress value={progress} />
     </div>
   );
 }

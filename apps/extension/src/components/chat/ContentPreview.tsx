@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { type ReactElement, useState } from 'react';
 
 import { useChat } from '~hooks/use-chat';
@@ -120,16 +121,13 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
 
         {charLimit && (
           <div className="mt-2 flex items-center gap-1">
-            <div className="h-1 flex-1 rounded-full bg-border">
-              <div
-                className={`h-1 rounded-full transition-all ${
-                  content.length > charLimit ? 'bg-destructive' : 'bg-primary'
-                }`}
-                style={{
-                  width: `${Math.min((content.length / charLimit) * 100, 100)}%`,
-                }}
-              />
-            </div>
+            <Progress
+              aria-label={`${content.length} of ${charLimit} characters`}
+              className="flex-1"
+              size="xs"
+              tone={content.length > charLimit ? 'destructive' : 'primary'}
+              value={Math.min((content.length / charLimit) * 100, 100)}
+            />
             <span
               className={`text-2xs ${
                 content.length > charLimit

@@ -91,7 +91,7 @@ export default function StudioIdentityVoiceRow({
           <>
             <Progress
               aria-label={translate('identityVoiceProgress', { label: name })}
-              className="h-1 bg-muted"
+              size="xs"
               value={progress}
             />
             <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">

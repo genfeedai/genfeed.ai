@@ -8,6 +8,7 @@ import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflo
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { WorkflowExecutionCardProps } from '@/features/automation/props/workflow-execution-card.props';
@@ -89,12 +90,12 @@ export default function WorkflowExecutionCard({
       </div>
 
       {isActive ? (
-        <div className="h-1 w-full overflow-hidden bg-muted">
-          <div
-            className="h-full bg-info transition-[width] duration-500"
-            style={{ width: `${execution.progress}%` }}
-          />
-        </div>
+        <Progress
+          aria-label={`${execution.progress}%`}
+          size="xs"
+          tone="info"
+          value={execution.progress}
+        />
       ) : null}
 
       {actionIds.length > 0 ? (

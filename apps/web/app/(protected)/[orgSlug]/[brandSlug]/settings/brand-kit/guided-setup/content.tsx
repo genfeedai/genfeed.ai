@@ -75,7 +75,8 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
     <div className="flex items-center gap-3">
       <Progress
         aria-label={label}
-        className="h-1.5 min-w-0 flex-1 bg-foreground/5"
+        className="min-w-0 flex-1"
+        size="sm"
         value={Math.max(0, Math.min(100, percent))}
       />
       <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">

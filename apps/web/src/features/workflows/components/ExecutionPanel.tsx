@@ -15,6 +15,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -214,12 +215,10 @@ export function ExecutionPanel({
                   {execution.progress}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-[width]"
-                  style={{ width: `${execution.progress}%` }}
-                />
-              </div>
+              <Progress
+                aria-label={`Progress ${execution.progress}%`}
+                value={execution.progress}
+              />
               {etaDisplay.phaseLabel && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   {etaDisplay.phaseLabel}
@@ -289,12 +288,12 @@ export function ExecutionPanel({
                         </p>
                       )}
                       {result.progress != null && result.progress < 100 && (
-                        <div className="mt-1 h-1.5 rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary transition-[width]"
-                            style={{ width: `${result.progress}%` }}
-                          />
-                        </div>
+                        <Progress
+                          aria-label={`${result.progress}%`}
+                          className="mt-1"
+                          size="sm"
+                          value={result.progress}
+                        />
                       )}
                     </div>
                   ))}
