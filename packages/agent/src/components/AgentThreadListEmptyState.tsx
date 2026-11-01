@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Spinner from '@ui/primitives/spinner';
 import { MessageSquare, TriangleAlert } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
@@ -60,19 +61,15 @@ export function AgentThreadListEmptyState({
 
   if (shouldShowEmptyState) {
     return (
-      <div className="relative flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+      <div className="relative">
         {actions ? (
           <div className="absolute right-2 top-2">{actions}</div>
         ) : null}
-        <div className="flex size-10 items-center justify-center rounded-md bg-foreground/5 ring-1 ring-inset ring-border">
-          <MessageSquare className="size-5 text-muted-foreground" />
-        </div>
-        <div>
-          <p className="text-sm font-medium text-foreground/50">No threads</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Start one to get going
-          </p>
-        </div>
+        <EmptyState
+          icon={MessageSquare}
+          title="No threads"
+          description="Start one to get going"
+        />
       </div>
     );
   }

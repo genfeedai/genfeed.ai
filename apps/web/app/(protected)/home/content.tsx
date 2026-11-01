@@ -7,9 +7,9 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

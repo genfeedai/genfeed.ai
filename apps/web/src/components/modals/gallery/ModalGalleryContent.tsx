@@ -4,9 +4,9 @@ import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/glob
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IImage, IMusic, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Image, Music, Video } from 'lucide-react';
 import ModalGalleryItemImage from '@/components/modals/gallery/items/ModalGalleryItemImage';
 import ModalGalleryItemMusic from '@/components/modals/gallery/items/ModalGalleryItemMusic';
@@ -115,9 +115,9 @@ export default function ModalGalleryContent({
 
   if (items.length === 0) {
     return (
-      <CardEmptyContent
+      <EmptyState
         icon={emptyIcon}
-        label={emptyMessage}
+        title={emptyMessage}
         description={`Generate some ${
           category === IngredientCategory.VIDEO
             ? 'videos'

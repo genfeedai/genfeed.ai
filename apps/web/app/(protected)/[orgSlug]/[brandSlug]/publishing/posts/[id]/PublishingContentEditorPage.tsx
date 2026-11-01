@@ -10,8 +10,8 @@ import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { PostsService } from '@services/content/posts.service';
 import { useQuery } from '@tanstack/react-query';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import PostDetail from '@/features/posts/detail/post-detail';
@@ -87,7 +87,7 @@ export default function PublishingContentEditorPage({
         artifactLabel="Content"
         title={translate('loadErrorTitle')}
       >
-        <CardEmptyContent label={translate('loadErrorBody')} />
+        <EmptyState title={translate('loadErrorBody')} />
       </ArtifactEditorShell>
     );
   }
@@ -98,7 +98,7 @@ export default function PublishingContentEditorPage({
         artifactLabel="Content"
         title={translate('missingTitle')}
       >
-        <CardEmptyContent label={translate('missingBody')} />
+        <EmptyState title={translate('missingBody')} />
       </ArtifactEditorShell>
     );
   }

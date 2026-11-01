@@ -1,8 +1,8 @@
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import type { Props } from '@/features/studio/props/newsletter-context-review.props';
 
 export default function NewsletterContextReview({ contextPreview }: Props) {
@@ -84,7 +84,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
           </div>
         </div>
       ) : (
-        <CardEmptyContent label="Generate or select a newsletter to inspect the memory context used during drafting." />
+        <EmptyState title="Generate or select a newsletter to inspect the memory context used during drafting." />
       )}
     </Card>
   );

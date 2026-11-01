@@ -1,4 +1,6 @@
+import { CardEmptySize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Bot, User } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useAgentWorkflowStore } from '../store';
@@ -113,9 +115,7 @@ function PhaseConversationInner() {
       className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-card p-3"
     >
       {messages.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          No messages yet
-        </p>
+        <EmptyState size={CardEmptySize.SM} title="No messages yet" />
       ) : (
         WORKFLOW_PHASES.map((phase) => (
           <PhaseSection key={phase} phase={phase} />

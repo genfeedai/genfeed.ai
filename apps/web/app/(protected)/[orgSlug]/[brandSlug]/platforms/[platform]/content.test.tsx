@@ -64,7 +64,7 @@ vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>Loading platform home</div>,
 }));
 
-vi.mock('@ui/card/EmptyState', () => ({
+vi.mock('@ui/primitives/empty-state', () => ({
   EmptyStateCard: ({
     action,
     description,

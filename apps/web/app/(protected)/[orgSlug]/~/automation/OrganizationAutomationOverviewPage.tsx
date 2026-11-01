@@ -10,12 +10,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -103,7 +103,7 @@ export default function OrganizationAutomationOverviewPage() {
   return (
     <OverviewLayout label={APP_DISPLAY_LABELS.automation} icon={Workflow}>
       {isReady && brandCards.length === 0 ? (
-        <CardEmpty
+        <EmptyStateCard
           actions={
             <Button
               asChild
@@ -118,7 +118,7 @@ export default function OrganizationAutomationOverviewPage() {
           className="mx-auto max-w-xl"
           description={translate('emptyDescription')}
           icon={Workflow}
-          label={translate('emptyTitle')}
+          title={translate('emptyTitle')}
         />
       ) : null}
 

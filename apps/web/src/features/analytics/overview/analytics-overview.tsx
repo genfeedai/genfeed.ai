@@ -15,8 +15,8 @@ import type {
   IOrgLeaderboardItem,
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
-import { EmptyStateCard } from '@ui/feedback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';

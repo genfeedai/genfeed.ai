@@ -13,8 +13,8 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
 import Image from 'next/image';
@@ -188,8 +188,8 @@ export default function ArticleDetail({
   if (!article || article?.id === 'undefined') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <CardEmpty
-          label="Article not found"
+        <EmptyStateCard
+          title="Article not found"
           actions={
             <Link
               href="/articles"

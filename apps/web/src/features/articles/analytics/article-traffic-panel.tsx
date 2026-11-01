@@ -10,6 +10,8 @@ import { capitalize } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { ArticlesService } from '@services/content/articles.service';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -150,24 +152,22 @@ export default function ArticleTrafficPanel({
         ) : null}
         {traffic?.status === 'available' ? (
           <div className="space-y-4">
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm text-muted-foreground">
-                  {translate('views')}
-                </dt>
-                <dd className="text-2xl font-semibold">
-                  {traffic.totalViews?.toLocaleString(locale)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">
-                  {translate('resourceActions')}
-                </dt>
-                <dd className="text-2xl font-semibold">
-                  {traffic.totalResourceClicks?.toLocaleString(locale)}
-                </dd>
-              </div>
-            </dl>
+            <MetricCardGrid columns={2} isDefinitionList>
+              <MetricCard
+                appearance="plain"
+                isDefinition
+                label={translate('views')}
+                size="sm"
+                value={traffic.totalViews?.toLocaleString(locale)}
+              />
+              <MetricCard
+                appearance="plain"
+                isDefinition
+                label={translate('resourceActions')}
+                size="sm"
+                value={traffic.totalResourceClicks?.toLocaleString(locale)}
+              />
+            </MetricCardGrid>
             <ArticleTrafficChart days={traffic.days} />
             <p className="text-xs text-muted-foreground">
               {translate('methodology')}

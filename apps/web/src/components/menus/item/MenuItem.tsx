@@ -16,7 +16,6 @@ export default function MenuItem({
   badgeKind = 'count',
   badgeLabel,
   count,
-  isPulsing = false,
   href,
   label,
   icon,
@@ -42,14 +41,7 @@ export default function MenuItem({
 
     if (OutlineIcon && SolidIcon) {
       const IconComponent = isActive ? SolidIcon : OutlineIcon;
-      return (
-        <IconComponent
-          className={cn(
-            'size-4',
-            isPulsing && 'animate-spin [animation-duration:2.4s]',
-          )}
-        />
-      );
+      return <IconComponent className="size-4" />;
     }
 
     return null;

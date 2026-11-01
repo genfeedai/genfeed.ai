@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -103,7 +103,7 @@ export default function BrandDetailExternalLinksCard({
               </div>
             ))
           ) : (
-            <CardEmptyContent label="No website links yet." />
+            <EmptyState title="No website links yet." />
           )}
 
           <Button

@@ -1,27 +1,39 @@
-import type { CardEmptySize, CardVariant } from '@genfeedai/contracts';
+import type { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { CardEmptyAction } from '@genfeedai/props/ui/cards/card-empty.props';
+import type { ReactElement, ReactNode } from 'react';
+
+export interface EmptyStateAction {
+  label: string;
+  onClick: () => void;
+  variant?: ButtonVariant;
+  ariaLabel?: string;
+}
 
 /**
- * Shared contract for the `EmptyState` primitive.
+ * Shared contract for `EmptyState` (bare) and `EmptyStateCard` (framed).
  *
- * Deliberately stricter than {@link CardEmptyProps}: an empty state must always
- * tell the user *what* is empty (`title`) and offer a concrete next step
- * (`action`). This prevents surfaces from shipping bare skeleton chrome — an
- * empty grid, pending placeholder cards, or zero-value tiles — as if it were
- * content. Optional `icon` adds context; the primitive delegates
- * rendering to `CardEmptyContent` (mapping `title` -> `label`).
+ * An empty state always names what is empty (`title`) so a surface never
+ * ships bare skeleton chrome as if it were content. `description` says why or
+ * what to do next; `action` or `actions` offer the next step.
  */
 export interface EmptyStateProps {
-  /** Required headline describing what is empty, in the user's terms. */
+  /** Headline describing what is empty, in the user's terms. */
   title: string;
-  /** Required next step. An empty state must always offer an action. */
-  action: CardEmptyAction;
-  /** Optional leading icon; sized by `size`. */
-  icon?: IconComponent;
+  /** One supporting sentence under the title: why it is empty, or what to do next. */
+  description?: ReactNode;
+  /** Single next-step button. */
+  action?: EmptyStateAction;
+  /**
+   * Custom action node rendered in place of the built-in single `action`
+   * button, for several CTAs or navigation `Link`s. Takes precedence over
+   * `action`.
+   */
+  actions?: ReactNode;
+  /** Optional leading icon component (sized by `size`) or a ready-made element. */
+  icon?: IconComponent | ReactElement;
+  /** Colour/layout for the icon (not its size, which `size` owns). */
   iconClassName?: string;
+  /** Layout only (width, margin, flex). Padding and type come from `size`. */
   className?: string;
   size?: CardEmptySize;
-  /** Card visual variant — applies to the card-wrapped `EmptyStateCard` only. */
-  variant?: CardVariant;
 }

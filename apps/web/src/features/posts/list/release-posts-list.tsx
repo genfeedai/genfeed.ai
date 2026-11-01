@@ -32,11 +32,11 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -601,7 +601,7 @@ export default function ReleasePostsList({
       ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
-        <CardEmpty label={translate('empty.label')} />
+        <EmptyStateCard title={translate('empty.label')} />
       ) : (
         <Table
           items={data.releases}

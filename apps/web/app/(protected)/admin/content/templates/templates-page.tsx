@@ -8,7 +8,6 @@ import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -17,6 +16,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -168,7 +168,7 @@ function TemplatesPageContent() {
           isLoading={templates === null}
           maxColumns={3}
           getItemKey={(template) => template.id}
-          emptyState={<CardEmptyContent label={t('empty')} />}
+          emptyState={<EmptyState title={t('empty')} />}
           renderListItem={(template) => (
             <ListRow
               density="compact"

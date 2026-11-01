@@ -14,7 +14,6 @@ import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflo
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -22,6 +21,7 @@ import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -359,7 +359,7 @@ export function DashboardRecentActivity({
           })}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentActivity.empty')} />
+        <EmptyState title={translate('recentActivity.empty')} />
       )}
     </WorkspaceSurface>
   );
@@ -435,7 +435,7 @@ export function DashboardRecentTasks({
           ))}
         </div>
       ) : (
-        <CardEmptyContent label={translate('recentTasks.empty')} />
+        <EmptyState title={translate('recentTasks.empty')} />
       )}
     </WorkspaceSurface>
   );

@@ -9,10 +9,10 @@ import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -195,7 +195,7 @@ export default function AccountsTable({
       ariaLabel={translate('connectedAccounts')}
       columns={columns}
       emptyState={
-        <CardEmptyContent
+        <EmptyState
           actions={
             <Button
               onClick={onConnectAccount}
@@ -206,7 +206,7 @@ export default function AccountsTable({
             </Button>
           }
           icon={Link2}
-          label={translate('emptyAccountsTitle')}
+          title={translate('emptyAccountsTitle')}
         />
       }
       getRowKey={(connection) => connection.credentialId}

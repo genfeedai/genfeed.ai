@@ -35,6 +35,8 @@ export interface ButtonProps
   icon?: ReactNode;
   isDisabled?: boolean;
   isLoading?: boolean;
+  /** Draws attention to a live state (recording, needs input) without a second element. */
+  isPulsing?: boolean;
   isPingEnabled?: boolean;
   label?: ReactNode;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -46,6 +48,8 @@ export interface ButtonProps
   withWrapper?: boolean;
   wrapperClassName?: string;
 }
+
+const PULSING_CLASS = 'animate-pulse motion-reduce:animate-none';
 
 function Spinner({
   'aria-hidden': ariaHidden,
@@ -77,6 +81,7 @@ function Button({
   isDisabled = false,
   isLoading = false,
   isPingEnabled = false,
+  isPulsing = false,
   label,
   onClick,
   onMouseDown,
@@ -125,6 +130,7 @@ function Button({
         data-action={action}
         className={cn(
           isButtonDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+          isPulsing && PULSING_CLASS,
           transformClass,
           className,
         )}
@@ -145,6 +151,7 @@ function Button({
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
           '[&_svg:not([class*="size-"])]:size-4',
           buttonVariants({ size, variant: resolvedVariant }),
+          isPulsing && PULSING_CLASS,
           transformClass,
           className,
         )}

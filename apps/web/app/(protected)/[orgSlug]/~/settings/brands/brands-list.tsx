@@ -25,13 +25,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { EmptyState } from '@ui/card/EmptyState';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   ArrowRightLeft,
   Building2,

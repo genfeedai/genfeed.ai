@@ -2,6 +2,7 @@
 
 import { ComponentSize } from '@genfeedai/contracts';
 import { Label } from '@ui/primitives/label';
+import { Skeleton } from '@ui/primitives/skeleton';
 import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 
@@ -31,14 +32,14 @@ export default function IllustrationPreview({
               height={dimensions.height}
             />
           ) : (
-            <div
-              className="flex items-center justify-center bg-background animate-pulse"
+            <Skeleton
+              className="flex items-center justify-center"
               style={{
                 aspectRatio: `${dimensions.width}/${dimensions.height}`,
               }}
             >
               <Spinner size={ComponentSize.LG} />
-            </div>
+            </Skeleton>
           )}
         </div>
       </div>

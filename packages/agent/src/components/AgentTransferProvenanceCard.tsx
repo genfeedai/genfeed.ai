@@ -139,6 +139,7 @@ export function AgentTransferProvenanceCard({
         )}
         role="status"
       >
+        {/* ui-guard-allow:loading-spinner -- status glyph rotates while the transfer is active */}
         <StatusIcon
           aria-hidden="true"
           className={cn('size-3.5', ACTIVE.has(status) && 'animate-spin')}
@@ -241,6 +242,7 @@ export function AgentTransferProvenanceCard({
             withWrapper={false}
             onClick={() => void retry()}
           >
+            {/* ui-guard-allow:loading-spinner -- retry icon rotates while retrying */}
             <RotateCcw
               className={cn('size-3.5', isRetrying && 'animate-spin')}
             />

@@ -41,7 +41,6 @@ import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.u
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -49,6 +48,7 @@ import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { format } from 'date-fns';
 import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
@@ -796,7 +796,7 @@ export default function IngredientsListContent({
       // Mirror the media grid and say so.
       if (filteredIngredients.length === 0) {
         const noun = categoryToString(singularType);
-        return <CardEmptyContent label={`No ${noun} yet`} className="w-full" />;
+        return <EmptyState title={`No ${noun} yet`} className="w-full" />;
       }
 
       return (
@@ -1001,8 +1001,8 @@ export default function IngredientsListContent({
           onInspect={inspectIngredient}
         />
       ) : hasFilteredEmptyState ? (
-        <CardEmptyContent
-          label={EMPTY_STATES.RESULTS_FOUND}
+        <EmptyState
+          title={EMPTY_STATES.RESULTS_FOUND}
           action={{
             label: 'Clear Filters',
             onClick: onClearFilters,

@@ -4,8 +4,8 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -81,7 +81,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
 
   if (brandChoices.length === 0) {
     return (
-      <CardEmpty
+      <EmptyStateCard
         actions={
           <Button
             asChild
@@ -94,7 +94,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
         className="mx-auto max-w-xl"
         description="Create or connect a brand first, then open Discovery to explore trends and ads for that brand."
         icon={TrendingUp}
-        label="Discovery needs a brand"
+        title="Discovery needs a brand"
       />
     );
   }

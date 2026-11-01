@@ -6,6 +6,11 @@ export type MetricCardGridProps = {
   className?: string;
   columns?: 1 | 2 | 3 | 4 | 5 | 6;
   'data-testid'?: string;
+  /**
+   * Render the grid as a `<dl>` so `MetricCard isDefinition` children are
+   * valid `<dt>`/`<dd>` pairs.
+   */
+  isDefinitionList?: boolean;
 };
 
 // Keep tiles at least 12rem wide, growing from one to six within their panel.
@@ -23,10 +28,15 @@ export function MetricCardGrid({
   className,
   columns = 2,
   'data-testid': dataTestId = 'metric-card-grid',
+  isDefinitionList = false,
 }: MetricCardGridProps): ReactElement {
+  const Grid = isDefinitionList ? 'dl' : 'div';
+
   return (
     <div className={cn('@container', className)} data-testid={dataTestId}>
-      <div className={cn('grid gap-3', TILE_COLUMNS[columns])}>{children}</div>
+      <Grid className={cn('grid gap-3', TILE_COLUMNS[columns])}>
+        {children}
+      </Grid>
     </div>
   );
 }

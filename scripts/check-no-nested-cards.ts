@@ -52,11 +52,7 @@ const ICON_COMPONENT_PREFIXES = [
   'Wi',
 ];
 
-const CARD_HELPER_COMPONENTS = new Set([
-  'CardContent',
-  'CardEmptyContent',
-  'CardIcon',
-]);
+const CARD_HELPER_COMPONENTS = new Set(['CardContent', 'CardIcon']);
 
 const CARD_SURFACE_COMPONENTS = new Set([
   'Card',
@@ -125,7 +121,10 @@ function collectViolations(
   function visit(node: ts.Node, cardDepth: number) {
     if (ts.isJsxElement(node)) {
       const tagName = getTagName(node.openingElement.tagName);
-      const isCardSurface = isCardSurfaceTag(tagName);
+      const isCardSurface = isCardSurfaceTag(
+        tagName,
+        node.openingElement.attributes,
+      );
 
       checkNode({
         cardDepth,
@@ -147,7 +146,7 @@ function collectViolations(
 
     if (ts.isJsxSelfClosingElement(node)) {
       const tagName = getTagName(node.tagName);
-      const isCardSurface = isCardSurfaceTag(tagName);
+      const isCardSurface = isCardSurfaceTag(tagName, node.attributes);
 
       checkNode({
         cardDepth,
@@ -230,8 +229,32 @@ function getTagName(tagName: ts.JsxTagNameExpression): string {
   return tagName.getText();
 }
 
-function isCardSurfaceTag(tagName: string): boolean {
-  if (CARD_HELPER_COMPONENTS.has(tagName)) {
+/** MetricCard draws a Card only in its default `tile` appearance. */
+function isUnframedMetric(
+  tagName: string,
+  attributes: ts.JsxAttributes,
+): boolean {
+  if (tagName !== 'MetricCard') {
+    return false;
+  }
+  return attributes.properties.some(
+    (attribute) =>
+      ts.isJsxAttribute(attribute) &&
+      attribute.name.getText() === 'appearance' &&
+      attribute.initializer !== undefined &&
+      ts.isStringLiteral(attribute.initializer) &&
+      attribute.initializer.text !== 'tile',
+  );
+}
+
+function isCardSurfaceTag(
+  tagName: string,
+  attributes: ts.JsxAttributes,
+): boolean {
+  if (
+    CARD_HELPER_COMPONENTS.has(tagName) ||
+    isUnframedMetric(tagName, attributes)
+  ) {
     return false;
   }
 

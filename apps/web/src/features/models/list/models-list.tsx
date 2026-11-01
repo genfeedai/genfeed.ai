@@ -10,9 +10,9 @@ import type {
   TableAction,
   TableRowSidebar,
 } from '@props/ui/display/table.props';
-import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { CircleCheck, CircleX, Cpu, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';

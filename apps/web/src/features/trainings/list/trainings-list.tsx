@@ -9,13 +9,12 @@ import { hasTrainingAccess } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentProps } from '@props/layout/content.props';
-import { EmptyState } from '@ui/card/EmptyState';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
 import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -143,7 +142,7 @@ export default function TrainingsList({
 
   if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
     return (
-      <CardEmpty
+      <EmptyStateCard
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
@@ -152,7 +151,7 @@ export default function TrainingsList({
           </Button>
         }
         icon={Lock}
-        label={`Unlock trainings with ${TRAINING_UPGRADE_TIER_LABEL}`}
+        title={`Unlock trainings with ${TRAINING_UPGRADE_TIER_LABEL}`}
       />
     );
   }

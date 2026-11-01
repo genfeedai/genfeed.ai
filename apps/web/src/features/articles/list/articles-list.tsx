@@ -24,11 +24,11 @@ import type {
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -210,9 +210,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         onSortChange={onSortChange}
         emptyLabel={translate('emptyLabel')}
         emptyState={
-          <CardEmptyContent
+          <EmptyState
             icon={Newspaper}
-            label={translate('emptyTitle')}
+            title={translate('emptyTitle')}
             action={{
               label: translate('create'),
               onClick: openCreateArticleModal,

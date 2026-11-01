@@ -13,6 +13,7 @@ import { Button } from '@ui/primitives/button';
 import {
   DefinitionDetail,
   DefinitionList,
+  DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
 import { Pre } from '@ui/primitives/pre';
@@ -170,14 +171,11 @@ export default function ActivityDetailPanel({
           </p>
         ) : null}
 
-        <DefinitionList variant="compact">
+        <DefinitionList variant="properties">
           {facts
             .filter((fact) => fact.value)
             .map((fact) => (
-              <div
-                className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"
-                key={fact.label}
-              >
+              <DefinitionRow key={fact.label}>
                 <DefinitionTerm variant="muted">{fact.label}</DefinitionTerm>
                 <DefinitionDetail
                   className={
@@ -186,7 +184,7 @@ export default function ActivityDetailPanel({
                 >
                   {fact.value}
                 </DefinitionDetail>
-              </div>
+              </DefinitionRow>
             ))}
         </DefinitionList>
 

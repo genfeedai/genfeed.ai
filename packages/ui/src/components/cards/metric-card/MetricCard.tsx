@@ -4,6 +4,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type {
+  MetricCardAlign,
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
@@ -20,18 +21,26 @@ const BODY_PADDING: Record<MetricCardSize, string> = {
   lg: 'p-5 sm:p-6',
   md: 'p-4',
   sm: 'p-3',
+  xs: 'p-3',
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
   lg: 'text-4xl sm:text-5xl',
   md: 'text-3xl',
   sm: 'text-2xl',
+  xs: 'text-sm',
 };
 
 const VALUE_SKELETON: Record<MetricCardSize, string> = {
   lg: 'h-12 w-24',
   md: 'h-9 w-16',
   sm: 'h-7 w-12',
+  xs: 'h-5 w-10',
+};
+
+const ALIGN_CLASS: Record<MetricCardAlign, string> = {
+  center: 'items-center text-center',
+  start: 'items-start text-left',
 };
 
 const LABEL_CLASS =
@@ -89,12 +98,17 @@ function resolveValueContent(
  * SummaryMetricCard / raw metric divs:
  * - `appearance="tile"` (default) — framed {@link Card}, label → value → detail
  * - `appearance="inline"` — frameless pair for {@link MetricSummary} strips
- * - `size` — sm / md / lg scale only
+ * - `appearance="plain"` — frameless label → value block for a surface that
+ *   already owns the frame (a Card, panel or grid); `isDefinition` renders it
+ *   as `<dt>`/`<dd>` inside a `<dl>`
+ * - `size` — xs / sm / md / lg scale only
+ * - `align` — start (default) or center
  * - `trend` — optional; omit to hide
  *
  * Surface frame is always {@link Card} (`rounded-card` + `shadow-border`).
  */
 const MetricCard = memo(function MetricCard({
+  align = 'start',
   analyticsMetric,
   analyticsMetricVariant,
   appearance = 'tile',
@@ -102,6 +116,8 @@ const MetricCard = memo(function MetricCard({
   description,
   icon: Icon,
   iconClassName,
+  isDefinition = false,
+  isLabelBelow = false,
   isLoading = false,
   label,
   size = 'md',
@@ -118,6 +134,27 @@ const MetricCard = memo(function MetricCard({
     : isNegativeTrend
       ? TrendingDown
       : null;
+
+  const trendNode =
+    hasTrend && !isLoading ? (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
+          isPositiveTrend && 'text-success',
+          isNegativeTrend && 'text-destructive',
+          !isPositiveTrend && !isNegativeTrend && 'text-muted-foreground',
+        )}
+      >
+        {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
+        {isPositiveTrend ? '+' : ''}
+        {Math.round(trend * 10) / 10}%
+        {trendLabel ? (
+          <span className="font-normal text-muted-foreground">
+            {trendLabel}
+          </span>
+        ) : null}
+      </span>
+    ) : null;
 
   const valueNode = (
     <div
@@ -136,27 +173,55 @@ const MetricCard = memo(function MetricCard({
         {isLoading ? value : resolveValueContent(value, false, size)}
       </p>
 
-      {hasTrend && !isLoading ? (
-        <span
-          className={cn(
-            'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
-            isPositiveTrend && 'text-success',
-            isNegativeTrend && 'text-destructive',
-            !isPositiveTrend && !isNegativeTrend && 'text-muted-foreground',
-          )}
-        >
-          {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
-          {isPositiveTrend ? '+' : ''}
-          {Math.round(trend * 10) / 10}%
-          {trendLabel ? (
-            <span className="font-normal text-muted-foreground">
-              {trendLabel}
-            </span>
-          ) : null}
-        </span>
-      ) : null}
+      {trendNode}
     </div>
   );
+
+  if (appearance === 'plain') {
+    const LabelTag = isDefinition ? 'dt' : 'p';
+    const ValueTag = isDefinition ? 'dd' : 'p';
+
+    return (
+      <div
+        className={cn(
+          'flex min-w-0 gap-1',
+          isLabelBelow ? 'flex-col-reverse' : 'flex-col',
+          ALIGN_CLASS[align],
+          className,
+        )}
+        data-appearance="plain"
+        data-testid="metric-card"
+      >
+        <LabelTag className={LABEL_CLASS}>
+          {analyticsMetric ? (
+            <AnalyticsMetricLabel
+              metric={analyticsMetric}
+              variant={analyticsMetricVariant}
+            >
+              {label}
+            </AnalyticsMetricLabel>
+          ) : (
+            label
+          )}
+        </LabelTag>
+        <ValueTag
+          className={cn(
+            VALUE_CLASS,
+            'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1',
+            align === 'center' && 'justify-center',
+            VALUE_SIZE[size],
+            valueClassName,
+          )}
+        >
+          {resolveValueContent(value, isLoading, size)}
+          {trendNode}
+        </ValueTag>
+        {description ? (
+          <p className="text-xs leading-5 text-foreground/60">{description}</p>
+        ) : null}
+      </div>
+    );
+  }
 
   if (appearance === 'inline') {
     return (
@@ -186,7 +251,11 @@ const MetricCard = memo(function MetricCard({
 
   return (
     <Card
-      bodyClassName={cn('flex h-full flex-col gap-0', BODY_PADDING[size])}
+      bodyClassName={cn(
+        'flex h-full flex-col gap-0',
+        BODY_PADDING[size],
+        align === 'center' && ALIGN_CLASS.center,
+      )}
       className={cn('h-full', className)}
       data-testid="metric-card"
       isLoading={isLoading}
@@ -263,6 +332,7 @@ export function MetricSummary({
 
 export default MetricCard;
 export type {
+  MetricCardAlign,
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,

@@ -10,4 +10,23 @@ describe('Skeleton primitive', () => {
     expect(skeleton).toHaveAttribute('aria-busy', 'true');
     expect(skeleton).toHaveClass('block', 'animate-pulse', 'h-10', 'w-1/2');
   });
+
+  it.each([
+    ['circular', 'rounded-full'],
+    ['text', 'rounded'],
+    ['rectangular', 'rounded-md'],
+  ] as const)('shapes the %s variant', (variant, expectedClass) => {
+    render(<Skeleton variant={variant} />);
+
+    expect(screen.getByRole('status')).toHaveClass(expectedClass);
+  });
+
+  it('sizes the placeholder from numeric and string dimensions', () => {
+    render(<Skeleton height={24} width="40%" />);
+
+    expect(screen.getByRole('status')).toHaveStyle({
+      height: '24px',
+      width: '40%',
+    });
+  });
 });

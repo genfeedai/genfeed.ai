@@ -8,10 +8,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 

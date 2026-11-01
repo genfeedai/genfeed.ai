@@ -8,12 +8,12 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableColumn } from '@props/ui/display/table.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Bookmark, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -184,8 +184,8 @@ export function AdsResearchAdGrid({
 
   if (ads.length === 0 && !isLoading) {
     return (
-      <CardEmptyContent
-        label={
+      <EmptyState
+        title={
           search.trim()
             ? translate('emptySearch')
             : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')

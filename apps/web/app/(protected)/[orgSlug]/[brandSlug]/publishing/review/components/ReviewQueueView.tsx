@@ -7,10 +7,10 @@ import {
 } from '@genfeedai/contracts';
 import type { ITurboRunSummary } from '@genfeedai/contracts/interfaces';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -245,9 +245,9 @@ export default function ReviewQueueView({
     approvals.error !== null;
 
   const emptySearchCard = (
-    <CardEmpty
+    <EmptyStateCard
       icon={ClipboardCheck}
-      label={translateReview('queue.emptySearchTitle')}
+      title={translateReview('queue.emptySearchTitle')}
       description={translateReview('queue.emptySearchDescription')}
       className="max-w-xl mx-auto"
     />
@@ -262,9 +262,9 @@ export default function ReviewQueueView({
         return emptySearchCard;
       }
       return (
-        <CardEmpty
+        <EmptyStateCard
           icon={ClipboardCheck}
-          label={translateInbox('emptyFilteredTitle')}
+          title={translateInbox('emptyFilteredTitle')}
           description={translateInbox('emptyFilteredDescription')}
           className="max-w-xl mx-auto"
         />
@@ -277,9 +277,9 @@ export default function ReviewQueueView({
     return (
       <>
         {approvalsSection}
-        <CardEmpty
+        <EmptyStateCard
           icon={TriangleAlert}
-          label={translateReview('queue.loadFailed')}
+          title={translateReview('queue.loadFailed')}
           description={getJsonApiErrorMessage(
             turboRunsError,
             translateReview('queue.invalidResponse'),
@@ -301,9 +301,9 @@ export default function ReviewQueueView({
       return emptySearchCard;
     }
     return (
-      <CardEmpty
+      <EmptyStateCard
         icon={ClipboardCheck}
-        label={translateReview('queue.emptyTitle')}
+        title={translateReview('queue.emptyTitle')}
         description={translateReview('queue.emptyDescription')}
         className="max-w-xl mx-auto"
       />
@@ -344,9 +344,9 @@ export default function ReviewQueueView({
       {isTurboRunLoading && !activeTurboRun ? (
         <Loading />
       ) : activeTurboRunError ? (
-        <CardEmpty
+        <EmptyStateCard
           icon={TriangleAlert}
-          label={translateReview('queue.batchLoadFailed')}
+          title={translateReview('queue.batchLoadFailed')}
           description={translateReview('queue.batchLoadDescription')}
           className="max-w-xl mx-auto"
         />
@@ -386,9 +386,9 @@ export default function ReviewQueueView({
           )}
         </>
       ) : (
-        <CardEmpty
+        <EmptyStateCard
           icon={TriangleAlert}
-          label={translateReview('queue.noDetails')}
+          title={translateReview('queue.noDetails')}
           description={translateReview('queue.noDetailsDescription')}
           className="max-w-xl mx-auto"
         />

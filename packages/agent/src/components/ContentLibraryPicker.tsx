@@ -1,7 +1,11 @@
 'use client';
 
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -12,7 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
@@ -109,16 +115,19 @@ export function ContentLibraryPicker({
           aria-label="Library content"
         >
           {isLoading ? (
-            <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-              Loading library…
-            </p>
+            <div className="flex justify-center py-8">
+              <Spinner ariaLabel="Loading library" />
+            </div>
           ) : filteredItems.length === 0 ? (
-            <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-              {items.length === 0 &&
-              !(search.searchMode === 'remote' && query.trim())
-                ? 'No library content available yet.'
-                : 'No matching content.'}
-            </p>
+            <EmptyState
+              size={CardEmptySize.SM}
+              title={
+                items.length === 0 &&
+                !(search.searchMode === 'remote' && query.trim())
+                  ? 'No library content available yet.'
+                  : 'No matching content.'
+              }
+            />
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {filteredItems.map((item) => {

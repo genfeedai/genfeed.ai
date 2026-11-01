@@ -7,11 +7,11 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Check, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
@@ -323,7 +323,7 @@ function WorkspacePageContentContent({
       items={inboxTableItems}
       isLoading={isWorkspaceTasksLoading || inboxRead.state.isLoading}
       emptyLabel={inboxEmpty.label}
-      emptyState={<CardEmptyContent icon={Inbox} label={inboxEmpty.label} />}
+      emptyState={<EmptyState icon={Inbox} title={inboxEmpty.label} />}
       getGroupHeading={
         hasInboxGroups
           ? (task) => {

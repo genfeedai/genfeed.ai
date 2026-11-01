@@ -97,10 +97,10 @@ describe('PlatformBreakdownChart', () => {
 
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
-      const { container } = render(
-        <PlatformBreakdownChart data={mockData} isLoading />,
-      );
-      expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+      render(<PlatformBreakdownChart data={mockData} isLoading />);
+      expect(
+        screen.getByRole('status', { name: 'Loading' }),
+      ).toBeInTheDocument();
     });
   });
 

@@ -1,6 +1,7 @@
 'use client';
 
 import type { TerminalDemoProps } from '@props/website/terminal-demo.props';
+import { StatusDot } from '@ui/primitives/status-dot';
 import { useEffect, useState } from 'react';
 
 export default function TerminalDemo({
@@ -67,7 +68,7 @@ export default function TerminalDemo({
             {lines[currentLine]?.prompt && (
               <span className="text-foreground/40">$</span>
             )}
-            <span className="w-2 h-4 bg-foreground/40 animate-pulse" />
+            <StatusDot isPulsing shape="caret" tone="muted" />
           </div>
         )}
       </div>

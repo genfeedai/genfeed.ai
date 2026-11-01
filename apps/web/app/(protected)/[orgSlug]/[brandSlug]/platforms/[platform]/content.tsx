@@ -8,12 +8,12 @@ import {
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
-import { EmptyStateCard } from '@ui/card/EmptyState';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import {
   Calendar,
   ChartColumn,

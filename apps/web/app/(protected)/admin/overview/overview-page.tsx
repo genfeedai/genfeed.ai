@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -12,6 +12,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -96,9 +97,10 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
             ))}
           </div>
         ) : data.length === 0 ? (
-          <div className="text-muted-foreground text-sm text-center py-8">
-            No organization data available
-          </div>
+          <EmptyState
+            size={CardEmptySize.SM}
+            title="No organization data available"
+          />
         ) : (
           data.map((org) => (
             <div

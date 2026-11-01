@@ -8,11 +8,11 @@ import {
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
 import { Text } from '@ui/typography/text';
 import {
   AtSign,
@@ -378,7 +378,7 @@ function FollowingDeckColumnView({
             />
           ))
         ) : (
-          <CardEmptyContent label={translate('columnEmpty')} />
+          <EmptyState title={translate('columnEmpty')} />
         )}
       </div>
     </section>
@@ -422,7 +422,7 @@ export default function FollowingDeck({
   if (columns.length === 0) {
     return (
       <>
-        <CardEmpty
+        <EmptyStateCard
           actions={
             <Button
               icon={<AtSign className="size-3.5" />}
@@ -433,7 +433,7 @@ export default function FollowingDeck({
             />
           }
           icon={AtSign}
-          label={translate('emptyTitle')}
+          title={translate('emptyTitle')}
         />
         {followModal}
       </>

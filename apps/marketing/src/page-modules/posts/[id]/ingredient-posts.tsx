@@ -5,10 +5,10 @@ import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -29,7 +29,7 @@ export default function IngredientPosts({
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
       <PublicListPage>
-        <CardEmpty label="Ingredient not found" />
+        <EmptyStateCard title="Ingredient not found" />
       </PublicListPage>
     );
   }
@@ -105,7 +105,7 @@ export default function IngredientPosts({
       </div>
 
       {posts.length === 0 ? (
-        <CardEmpty label={EMPTY_STATES.POSTS_YET} />
+        <EmptyStateCard title={EMPTY_STATES.POSTS_YET} />
       ) : (
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">

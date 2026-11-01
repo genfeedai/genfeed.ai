@@ -3,16 +3,25 @@ import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { AnalyticsMetricVariant } from '@props/analytics/analytics-metric-definition.props';
 import type { ReactNode } from 'react';
 
-export type MetricCardSize = 'sm' | 'md' | 'lg';
+export type MetricCardSize = 'xs' | 'sm' | 'md' | 'lg';
+
+export type MetricCardAlign = 'start' | 'center';
 
 /**
  * How the metric paints:
  * - `tile` — framed Card (label → value → description). Default for grids.
  * - `inline` — frameless label/value pair for {@link MetricSummary} strips.
+ * - `plain` — frameless label-above-value block for a surface that already
+ *   owns the frame (a Card, panel or grid).
  */
-export type MetricCardAppearance = 'tile' | 'inline';
+export type MetricCardAppearance = 'tile' | 'inline' | 'plain';
 
 export type MetricCardProps = {
+  /**
+   * Horizontal alignment of label, value and description.
+   * @default 'start'
+   */
+  align?: MetricCardAlign;
   analyticsMetric?: AnalyticsQueryMetric;
   analyticsMetricVariant?: AnalyticsMetricVariant;
   /**
@@ -27,12 +36,22 @@ export type MetricCardProps = {
   /** Optional leading/trailing icon */
   icon?: IconComponent;
   iconClassName?: string;
+  /**
+   * Plain appearance only: show the label under the value (a caption) while
+   * the DOM keeps label first.
+   */
+  isLabelBelow?: boolean;
+  /**
+   * Render label and value as `<dt>`/`<dd>` (plain appearance only). The
+   * parent must be a `<dl>`.
+   */
+  isDefinition?: boolean;
   /** Show one skeleton inside the tile while its data is loading. */
   isLoading?: boolean;
   /** Uppercase metric label — same type scale on every size */
   label: string;
   /**
-   * Compact (nested in surfaces), default, or hero dashboard row.
+   * Dense (xs), compact (nested in surfaces), default, or hero dashboard row.
    * Typography stays the same family; only scale changes.
    */
   size?: MetricCardSize;

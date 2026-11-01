@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ArticlesList from './articles-list';
 
-vi.mock('@ui/card/empty/CardEmpty', () => ({
-  default: ({ label }: { label: string }) => <div>{label}</div>,
+vi.mock('@ui/primitives/empty-state', () => ({
+  EmptyStateCard: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
 const ARTICLE = {

@@ -1,7 +1,9 @@
 import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { CardEmptySize } from '@genfeedai/contracts';
 import { ConversationSidebarSection } from '@genfeedai/ui';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { type ReactElement, useMemo } from 'react';
 import { AgentThreadListEmptyState } from './AgentThreadListEmptyState';
 import { AgentThreadListErrorBanner } from './AgentThreadListErrorBanner';
@@ -243,14 +245,11 @@ export function AgentThreadList({
             />
           )
         ) : visibleThreadCount === 0 ? (
-          <div className="flex h-40 flex-col items-center justify-center px-6 text-center">
-            <p className="text-sm text-foreground/50">
-              No matching conversations
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Try another search.
-            </p>
-          </div>
+          <EmptyState
+            size={CardEmptySize.SM}
+            title="No matching conversations"
+            description="Try another search."
+          />
         ) : (
           <div
             data-testid="agent-thread-list-content"

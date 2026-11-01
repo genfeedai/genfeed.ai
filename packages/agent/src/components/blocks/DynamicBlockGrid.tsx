@@ -32,6 +32,8 @@ import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -226,14 +228,21 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
             bodyClassName={topPostBodyClassName(isList)}
             variant={CardVariant.BORDERED}
           >
-            <div
-              className={`animate-pulse rounded bg-muted/70 ${
-                isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'
-              }`}
+            <Skeleton
+              aria-hidden="true"
+              className={isList ? 'size-12 shrink-0' : 'mb-2 h-32 w-full'}
             />
             <div className="min-w-0 flex-1 space-y-2">
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted/70" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
+              <Skeleton
+                aria-hidden="true"
+                className="h-4 w-2/3"
+                variant="text"
+              />
+              <Skeleton
+                aria-hidden="true"
+                className="h-3 w-1/2"
+                variant="text"
+              />
             </div>
           </Card>
         ))}
@@ -417,20 +426,6 @@ function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
   );
 }
 
-function EmptyState({ block }: { block: EmptyStateBlock }): ReactElement {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border py-12 text-center">
-      {block.icon && <span className="text-3xl">{block.icon}</span>}
-      <p className="text-sm font-medium text-foreground">{block.message}</p>
-      {block.ctaLabel && (
-        <Button variant={ButtonVariant.DEFAULT} className="mt-2">
-          {block.ctaLabel}
-        </Button>
-      )}
-    </div>
-  );
-}
-
 function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
   switch (block.type) {
     case 'metric_card':
@@ -458,7 +453,23 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
     case 'composite':
       return <CompositeLayout block={block as CompositeBlock} />;
     case 'empty_state':
-      return <EmptyState block={block} />;
+      return (
+        <EmptyStateCard
+          icon={
+            block.icon ? (
+              <span aria-hidden className="text-3xl">
+                {block.icon}
+              </span>
+            ) : undefined
+          }
+          title={block.message}
+          actions={
+            block.ctaLabel ? (
+              <Button variant={ButtonVariant.DEFAULT}>{block.ctaLabel}</Button>
+            ) : undefined
+          }
+        />
+      );
     default:
       return (
         <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">

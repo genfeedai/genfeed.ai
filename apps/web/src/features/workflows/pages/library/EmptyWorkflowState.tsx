@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Copy, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -15,9 +15,9 @@ export default function EmptyWorkflowState() {
   const translate = useTranslations('common.automation.workflows.library');
 
   return (
-    <CardEmpty
+    <EmptyStateCard
       icon={Sparkles}
-      label={translate('emptyTitle')}
+      title={translate('emptyTitle')}
       actions={
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link href={href(workflowTemplatesTabPath())}>

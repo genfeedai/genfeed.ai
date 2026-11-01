@@ -8,11 +8,11 @@ import {
 import type { BrandCharacterListItem } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { FolderOpen, Images, Plus, Share2, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -294,9 +294,9 @@ export default function CharactersTable({
       ariaLabel={translate('list.title')}
       columns={columns}
       emptyState={
-        <CardEmptyContent
+        <EmptyState
           icon={UserRound}
-          label={translate('list.title')}
+          title={translate('list.title')}
           actions={
             <Button
               onClick={onCreate}

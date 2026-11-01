@@ -1,8 +1,13 @@
 'use client';
 
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardEmptySize,
+  type IngredientCategory,
+} from '@genfeedai/contracts';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { getCredentialErrorMessage } from './batch-post.utils';
 
 type ModalPostBatchEmptyStateProps = {
@@ -24,18 +29,18 @@ export default function ModalPostBatchEmptyState({
 }: ModalPostBatchEmptyStateProps) {
   if (!ingredient) {
     return (
-      <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-semibold mb-4">No Content Selected</h3>
-        <p className="text-foreground/70 mb-6">
-          Please select content to publish.
-        </p>
-
-        <Button
-          label="Close"
-          variant={ButtonVariant.SECONDARY}
-          onClick={onClose}
-        />
-      </div>
+      <EmptyState
+        size={CardEmptySize.SM}
+        title="No Content Selected"
+        description="Please select content to publish."
+        actions={
+          <Button
+            label="Close"
+            variant={ButtonVariant.SECONDARY}
+            onClick={onClose}
+          />
+        }
+      />
     );
   }
 
@@ -56,27 +61,29 @@ export default function ModalPostBatchEmptyState({
       : 'Connect Account';
 
     return (
-      <div className="text-center py-8 px-4">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        <p className="text-foreground/70 mb-6">{errorMessage}</p>
+      <EmptyState
+        size={CardEmptySize.SM}
+        title={title}
+        description={errorMessage}
+        actions={
+          <>
+            <Button
+              label="Close"
+              variant={ButtonVariant.SECONDARY}
+              onClick={onClose}
+            />
 
-        <div className="flex gap-3 justify-center">
-          <Button
-            label="Close"
-            variant={ButtonVariant.SECONDARY}
-            onClick={onClose}
-          />
-
-          <Button
-            label={actionLabel}
-            variant={ButtonVariant.DEFAULT}
-            onClick={() => {
-              onClose();
-              onOpenCredentials();
-            }}
-          />
-        </div>
-      </div>
+            <Button
+              label={actionLabel}
+              variant={ButtonVariant.DEFAULT}
+              onClick={() => {
+                onClose();
+                onOpenCredentials();
+              }}
+            />
+          </>
+        }
+      />
     );
   }
 

@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { VoiceCatalogListProps } from '@/features/library/props/voice-catalog-list.props';
@@ -17,8 +17,8 @@ export default function VoiceCatalogList({
 
   if (voices.length === 0) {
     return (
-      <CardEmpty
-        label={
+      <EmptyStateCard
+        title={
           hasActiveFilters
             ? 'No voices match the current filters'
             : 'No voices available yet'

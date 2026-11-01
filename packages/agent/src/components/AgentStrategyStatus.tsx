@@ -1,12 +1,13 @@
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import {
   formatCreditBalanceExact,
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
@@ -103,11 +104,10 @@ export function AgentStrategyStatus({
 
   if (!strategy) {
     return (
-      <div className="border border-border p-6 text-center">
-        <p className="text-xs text-muted-foreground">
-          No strategy configured yet. Create one in the configuration above.
-        </p>
-      </div>
+      <EmptyStateCard
+        size={CardEmptySize.SM}
+        title="No strategy configured yet. Create one in the configuration above."
+      />
     );
   }
 

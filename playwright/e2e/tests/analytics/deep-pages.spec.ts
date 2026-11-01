@@ -639,7 +639,9 @@ test.describe('Analytics Deep Pages', () => {
       const secondCard = cards.filter({ hasText: 'Behind the scenes' });
       await expect(secondCard).toContainText('8.0k');
 
-      await expect(authenticatedPage.getByTestId('card-empty')).toHaveCount(0);
+      await expect(
+        authenticatedPage.getByTestId('empty-state-card'),
+      ).toHaveCount(0);
     });
 
     test('should filter posts by platform', async ({ authenticatedPage }) => {
@@ -704,7 +706,9 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      await expect(authenticatedPage.getByTestId('card-empty')).toBeVisible();
+      await expect(
+        authenticatedPage.getByTestId('empty-state-card'),
+      ).toBeVisible();
       await expect(
         authenticatedPage.getByText('No posts found for this period'),
       ).toBeVisible();

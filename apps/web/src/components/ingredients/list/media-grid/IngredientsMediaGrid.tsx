@@ -7,13 +7,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import IngredientTileOverlays from '@/components/ingredients/ingredient-tile-overlays';
 import type { IngredientsMediaGridProps } from '@/props/content/ingredient.props';
 
@@ -74,8 +74,8 @@ export default function IngredientsMediaGrid({
 
   if (items.length === 0) {
     return (
-      <CardEmptyContent
-        label={emptyLabel}
+      <EmptyState
+        title={emptyLabel}
         actions={emptyActions}
         className="w-full"
       />

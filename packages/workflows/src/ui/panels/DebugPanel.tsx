@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { EmptyState } from '@genfeedai/ui/primitives/empty-state';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
@@ -150,13 +151,11 @@ function DebugPanelComponent() {
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Bug className="size-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
-            <p className="text-sm font-medium mb-2">No payloads captured</p>
-            <p className="text-xs">
-              Run a workflow with debug mode enabled to capture API payloads.
-            </p>
-          </div>
+          <EmptyState
+            icon={Bug}
+            title="No payloads captured"
+            description="Run a workflow with debug mode enabled to capture API payloads."
+          />
         ) : (
           debugPayloads.map((payload) => (
             <PayloadCard

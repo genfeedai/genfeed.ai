@@ -12,6 +12,12 @@ import PlatformPreview, {
 import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -84,14 +90,18 @@ function NewsletterPreview({
         <h3 className="text-base font-semibold tracking-[-0.02em] text-foreground">
           {subject}
         </h3>
-        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-[4rem_1fr]">
-          <span>From</span>
-          <span className="text-foreground/80">
-            {author?.name || 'Your publication'}
-          </span>
-          <span>To</span>
-          <span className="text-foreground/80">Subscribers</span>
-        </div>
+        <DefinitionList variant="properties">
+          <DefinitionRow>
+            <DefinitionTerm variant="muted">From</DefinitionTerm>
+            <DefinitionDetail variant="compact">
+              {author?.name || 'Your publication'}
+            </DefinitionDetail>
+          </DefinitionRow>
+          <DefinitionRow>
+            <DefinitionTerm variant="muted">To</DefinitionTerm>
+            <DefinitionDetail variant="compact">Subscribers</DefinitionDetail>
+          </DefinitionRow>
+        </DefinitionList>
         {data.preheader?.trim() ? (
           <p className="text-xs leading-5 text-muted-foreground">
             {data.preheader}

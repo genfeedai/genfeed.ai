@@ -11,12 +11,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -765,7 +765,7 @@ function WarmupAccountList({
   }
 
   if (accounts.length === 0) {
-    return <CardEmpty label={translate('empty')} />;
+    return <EmptyStateCard title={translate('empty')} />;
   }
 
   return (
@@ -822,7 +822,7 @@ function WarmupAccountDetail({
   if (!account) {
     return (
       <div className="shadow-border bg-card p-5">
-        <CardEmpty label={translate('selectAccount')} />
+        <EmptyStateCard title={translate('selectAccount')} />
       </div>
     );
   }

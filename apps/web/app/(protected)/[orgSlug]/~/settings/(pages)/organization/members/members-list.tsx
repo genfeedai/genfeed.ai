@@ -28,13 +28,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
 import { RolesService } from '@services/organization/roles.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Ban, Lock, RotateCw, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -416,7 +416,7 @@ function MembersListContent() {
       }
     >
       {isTeamSubscriptionLocked ? (
-        <CardEmpty
+        <EmptyStateCard
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
@@ -425,7 +425,7 @@ function MembersListContent() {
             </Button>
           }
           icon={Lock}
-          label={`Unlock team members with ${upgradeTierLabel}`}
+          title={`Unlock team members with ${upgradeTierLabel}`}
         />
       ) : (
         <>

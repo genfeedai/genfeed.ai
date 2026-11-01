@@ -181,10 +181,10 @@ describe('PlatformTimeSeriesChart', () => {
 
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
-      const { container } = render(
-        <PlatformTimeSeriesChart data={mockData} isLoading />,
-      );
-      expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+      render(<PlatformTimeSeriesChart data={mockData} isLoading />);
+      expect(
+        screen.getByRole('status', { name: 'Loading' }),
+      ).toBeInTheDocument();
     });
 
     it('disables platform buttons when loading', () => {

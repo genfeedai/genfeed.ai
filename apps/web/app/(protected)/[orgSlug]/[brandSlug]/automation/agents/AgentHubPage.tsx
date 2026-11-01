@@ -21,7 +21,6 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
@@ -32,6 +31,7 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { formatDistanceToNow } from 'date-fns';
 import {
   CirclePause,
@@ -544,9 +544,9 @@ export default function AgentHubPage() {
       }
     >
       {isEmpty ? (
-        <CardEmptyContent
+        <EmptyState
           icon={Users}
-          label={translate('empty.title')}
+          title={translate('empty.title')}
           description={translate('empty.description')}
           actions={
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2">

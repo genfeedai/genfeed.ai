@@ -1,4 +1,5 @@
-import { formatPlatformLabel } from '@genfeedai/contracts';
+import { ComponentSize, formatPlatformLabel } from '@genfeedai/contracts';
+import Spinner from '@ui/primitives/spinner';
 
 /*
  * Axis, grid and neutral-series colors for every recharts chart. They read the
@@ -47,7 +48,7 @@ export function chartPlatformLabel(platform: string): string {
 export function ChartLoadingOverlay() {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-      <span className="size-12 animate-pulse rounded-full bg-primary/20" />
+      <Spinner size={ComponentSize.LG} />
     </div>
   );
 }

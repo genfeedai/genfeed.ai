@@ -2,9 +2,9 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IOrgWithStats } from '@services/analytics/analytics.service';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

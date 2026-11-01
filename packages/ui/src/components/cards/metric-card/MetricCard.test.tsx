@@ -78,6 +78,52 @@ describe('MetricCard', () => {
   });
 });
 
+describe('MetricCard plain appearance', () => {
+  it('renders an unframed label and value', () => {
+    render(<MetricCard appearance="plain" label="Views" value="1,204" />);
+
+    const card = screen.getByTestId('metric-card');
+    expect(card).toHaveAttribute('data-appearance', 'plain');
+    expect(screen.getByText('Views')).toBeInTheDocument();
+    expect(screen.getByText('1,204')).toBeInTheDocument();
+  });
+
+  it('renders a term and a detail when it is a definition', () => {
+    render(
+      <dl>
+        <MetricCard appearance="plain" isDefinition label="Views" value="12" />
+      </dl>,
+    );
+
+    expect(screen.getByText('Views').tagName).toBe('DT');
+    expect(screen.getByText('12').closest('dd')).not.toBeNull();
+  });
+
+  it('centres and puts the caption under the value when asked', () => {
+    render(
+      <MetricCard
+        align="center"
+        appearance="plain"
+        isLabelBelow
+        label="credits remaining"
+        value="42"
+      />,
+    );
+
+    expect(screen.getByTestId('metric-card')).toHaveClass(
+      'items-center',
+      'flex-col-reverse',
+    );
+  });
+
+  it('shows a skeleton while loading', () => {
+    render(<MetricCard appearance="plain" isLoading label="Views" value="1" />);
+
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    expect(screen.getByText('Views')).toBeInTheDocument();
+  });
+});
+
 describe('MetricSummary', () => {
   it('joins metrics with separators', async () => {
     const { MetricSummary } = await import('./MetricCard');

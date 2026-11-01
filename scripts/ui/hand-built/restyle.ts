@@ -60,7 +60,7 @@ export function ownedClasses(
     });
 }
 
-function collectStrings(
+export function collectStrings(
   node: ts.Node,
   constants: Map<string, string[]>,
   out: string[],
@@ -84,7 +84,7 @@ function collectStrings(
   ts.forEachChild(node, (child) => collectStrings(child, constants, out));
 }
 
-function collectConstantClassStrings(
+export function collectConstantClassStrings(
   sourceFile: ts.SourceFile,
 ): Map<string, string[]> {
   const constants = new Map<string, string[]>();
@@ -111,6 +111,8 @@ export interface RestyleRuleOptions {
   component: string;
   /** Module paths that export it, e.g. `@ui/primitives/badge`. */
   importPaths: readonly string[];
+  /** True when the component is the module's default export. */
+  isDefaultExport?: boolean;
   /** Whether fixed height and size classes are owned by the component. */
   isSizeOwned: boolean;
   /** Rule id, also the key in the baseline and in `ui-guard-allow:<rule>`. */
@@ -130,7 +132,7 @@ export function scanRestyle(
   const localNames = importedLocalNames(
     source.sourceFile,
     options.importPaths,
-    options.component,
+    options.isDefaultExport ? 'default' : options.component,
   );
   if (localNames.size === 0) {
     return [];

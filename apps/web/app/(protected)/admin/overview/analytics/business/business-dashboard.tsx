@@ -8,11 +8,11 @@ import {
 } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
 import { Alert } from '@ui/primitives/alert';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 import type {
   ComparisonCardProps,
@@ -46,7 +46,7 @@ function LeaderTable({
     <Card bodyClassName="gap-0 p-4">
       <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
       {leaders.length === 0 ? (
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       ) : (
         <Table<LeaderTableProps['leaders'][number]>
           ariaLabel={title}
@@ -122,7 +122,7 @@ function DailySeriesChart({
     return (
       <Card bodyClassName="gap-0 p-4">
         <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
-        <CardEmptyContent label="No data available" />
+        <EmptyState title="No data available" />
       </Card>
     );
   }

@@ -6,9 +6,9 @@ import type {
   SchedulerAnalyticsComparisonMetric,
 } from '@genfeedai/contracts/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import type { ReleaseAnalyticsTableProps } from '@/props/publisher/release-calendar.props';
 
@@ -62,9 +62,9 @@ export default function ReleaseAnalyticsTable({
 
   if (!comparison || comparison.targets.length === 0) {
     return (
-      <CardEmpty
+      <EmptyStateCard
         description={translate('analytics.emptyDescription')}
-        label={translate('analytics.emptyTitle')}
+        title={translate('analytics.emptyTitle')}
       />
     );
   }

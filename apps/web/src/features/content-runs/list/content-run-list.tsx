@@ -14,13 +14,13 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -195,9 +195,9 @@ export default function ContentRunListPage() {
               <AutoPagination showTotal totalLabel="runs" />
             </>
           ) : (
-            <CardEmpty
+            <EmptyStateCard
               icon={Sparkles}
-              label={
+              title={
                 search
                   ? translate('emptySearchTitle')
                   : status === ALL_STATUSES

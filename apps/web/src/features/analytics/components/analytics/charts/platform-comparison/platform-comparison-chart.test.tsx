@@ -139,10 +139,10 @@ describe('PlatformComparisonChart', () => {
 
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
-      const { container } = render(
-        <PlatformComparisonChart data={mockData} isLoading />,
-      );
-      expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+      render(<PlatformComparisonChart data={mockData} isLoading />);
+      expect(
+        screen.getByRole('status', { name: 'Loading' }),
+      ).toBeInTheDocument();
     });
 
     it('disables metric buttons when loading', () => {

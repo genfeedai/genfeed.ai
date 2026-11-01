@@ -1,8 +1,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Calendar } from 'lucide-react';
 import type { AnnouncementHistoryListProps as Props } from '@/features/admin/props/announcements.props';
 
@@ -40,7 +40,7 @@ export default function AnnouncementHistoryList({
           <SkeletonCard key={key} showImage={false} />
         ))
       ) : announcements.length === 0 ? (
-        <CardEmpty label="No announcements yet" />
+        <EmptyStateCard title="No announcements yet" />
       ) : (
         announcements.map((announcement) => (
           <div

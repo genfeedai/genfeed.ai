@@ -6,8 +6,8 @@ import type {
   ITrendSound,
   ITrendVideo,
 } from '@genfeedai/contracts/interfaces';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionView from '@ui/collection/CollectionView';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Film, Hash, Music } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
@@ -126,7 +126,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-videos-grid"
             density="tile"
             emptyState={
-              <CardEmptyContent label="No viral videos available right now." />
+              <EmptyState title="No viral videos available right now." />
             }
             getItemKey={(video) => video.id}
             isLoading={isLoadingVideos}
@@ -150,7 +150,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-hashtags-grid"
             density="tile"
             emptyState={
-              <CardEmptyContent label="No trending hashtags available right now." />
+              <EmptyState title="No trending hashtags available right now." />
             }
             getItemKey={(hashtag) => hashtag.id || hashtag.hashtag}
             isLoading={isLoadingHashtags}
@@ -174,7 +174,7 @@ export default function TrendsPlatformRelatedSections({
             data-testid="trends-related-sounds-grid"
             density="tile"
             emptyState={
-              <CardEmptyContent label="No trending sounds available right now." />
+              <EmptyState title="No trending sounds available right now." />
             }
             getItemKey={(sound) => sound.soundId}
             isLoading={isLoadingSounds}

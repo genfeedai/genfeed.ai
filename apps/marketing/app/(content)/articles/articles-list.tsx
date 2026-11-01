@@ -1,7 +1,7 @@
 import type { Article } from '@models/content/article.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -42,7 +42,7 @@ export default function ArticlesList({
     >
       {articles.length === 0 ? (
         <div className="space-y-4">
-          <CardEmpty label="No articles published yet" />
+          <EmptyStateCard title="No articles published yet" />
           <p className="text-center text-sm text-foreground/60">
             Explore{' '}
             <Link href="/features" className="link">

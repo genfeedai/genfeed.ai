@@ -4,8 +4,8 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EditSettingModal } from '@protected/organizations/components/edit-setting-modal';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -262,7 +262,7 @@ export function OrganizationSettingsTable({
   );
 
   if (!isLoading && !settings) {
-    return <CardEmpty label="No settings found" />;
+    return <EmptyStateCard title="No settings found" />;
   }
 
   return (

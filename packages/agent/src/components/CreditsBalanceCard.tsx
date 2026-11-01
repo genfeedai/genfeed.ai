@@ -3,6 +3,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { Progress } from '@ui/primitives/progress';
 import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -43,14 +44,14 @@ export function CreditsBalanceCard({
       )}
 
       {/* Balance number */}
-      <div className="mb-3 text-center">
-        <span className="text-3xl font-bold text-foreground">
-          {balance.toLocaleString()}
-        </span>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          credits remaining
-        </p>
-      </div>
+      <MetricCard
+        align="center"
+        appearance="plain"
+        className="mb-3"
+        isLabelBelow
+        label="credits remaining"
+        value={balance.toLocaleString()}
+      />
 
       {/* Usage bar */}
       <div className="mb-3">

@@ -168,10 +168,10 @@ describe('BrandPerformanceChart', () => {
 
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
-      const { container } = render(
-        <BrandPerformanceChart data={mockData} isLoading />,
-      );
-      expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+      render(<BrandPerformanceChart data={mockData} isLoading />);
+      expect(
+        screen.getByRole('status', { name: 'Loading' }),
+      ).toBeInTheDocument();
     });
 
     it('disables metric buttons when loading', () => {

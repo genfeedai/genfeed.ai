@@ -26,9 +26,9 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
-import { EmptyStateCard } from '@ui/feedback';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';

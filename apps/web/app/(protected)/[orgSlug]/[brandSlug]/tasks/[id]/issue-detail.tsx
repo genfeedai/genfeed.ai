@@ -17,9 +17,9 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
+import { EmptyStateCard } from '@ui/primitives/empty-state';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
@@ -292,7 +292,7 @@ export default function IssueDetail({
           <SkeletonCard showImage={false} />
         </div>
       ) : !issue ? (
-        <CardEmpty icon={TriangleAlert} label="Issue not found" />
+        <EmptyStateCard icon={TriangleAlert} title="Issue not found" />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">

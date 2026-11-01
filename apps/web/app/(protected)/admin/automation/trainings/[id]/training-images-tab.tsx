@@ -10,8 +10,8 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Image as LucideImage } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -72,17 +72,12 @@ export default function TrainingImagesTab({
 
   if (error) {
     return (
-      <CardEmptyContent
-        icon={LucideImage}
-        label="Generated assets failed to load"
-      />
+      <EmptyState icon={LucideImage} title="Generated assets failed to load" />
     );
   }
 
   if (!hasTrainingModel) {
-    return (
-      <CardEmptyContent icon={LucideImage} label="Training model unavailable" />
-    );
+    return <EmptyState icon={LucideImage} title="Training model unavailable" />;
   }
 
   const content =

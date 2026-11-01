@@ -5,9 +5,9 @@ import {
   formatChartDate,
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import {
@@ -148,9 +148,9 @@ export function PlatformTimeSeriesChart({
         {isLoading && <ChartLoadingOverlay />}
 
         {isEmpty && !isLoading ? (
-          <CardEmptyContent
-            className="absolute inset-0 py-0"
-            label={
+          <EmptyState
+            className="absolute inset-0"
+            title={
               hasConnectedPlatforms
                 ? 'No performance trends yet'
                 : 'No connected platforms yet'

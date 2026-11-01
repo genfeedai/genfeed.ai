@@ -6,6 +6,12 @@ import type {
   IPublicYoutubeClipperToolSession,
 } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionRow,
+  DefinitionTerm,
+} from '@ui/primitives/definition-list';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -354,21 +360,18 @@ export default function YoutubeClipperContent(): React.ReactElement {
                 Timestamped transcript
               </Heading>
               <div className="max-h-[34rem] overflow-y-auto bg-background p-5 shadow-border">
-                <ol className="grid gap-3">
+                <DefinitionList variant="properties">
                   {session.transcript.map((segment) => (
-                    <li
-                      className="grid grid-cols-[4.5rem_1fr] gap-3 text-sm"
-                      key={`${segment.start}-${segment.end}`}
-                    >
-                      <span className="font-mono text-xs text-foreground/60">
+                    <DefinitionRow key={`${segment.start}-${segment.end}`}>
+                      <DefinitionTerm className="font-mono">
                         {formatTimestamp(segment.start)}
-                      </span>
-                      <span className="leading-6 text-foreground/80">
+                      </DefinitionTerm>
+                      <DefinitionDetail className="leading-6">
                         {segment.text}
-                      </span>
-                    </li>
+                      </DefinitionDetail>
+                    </DefinitionRow>
                   ))}
-                </ol>
+                </DefinitionList>
               </div>
             </section>
           </>

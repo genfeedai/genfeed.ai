@@ -14,7 +14,6 @@ import {
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
-import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -28,6 +27,7 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -124,7 +124,7 @@ function KanbanColumn({
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <CardEmptyContent label={translate('noTasksKanban')} />
+          <EmptyState title={translate('noTasksKanban')} />
         ) : null}
       </div>
     </section>
@@ -483,8 +483,8 @@ export default function IssuesList() {
       {isLoading ? (
         <SkeletonTable rows={6} columns={4} />
       ) : isEmpty ? (
-        <CardEmpty
-          label={
+        <EmptyStateCard
+          title={
             isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
           }
           action={
