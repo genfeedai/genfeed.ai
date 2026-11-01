@@ -178,7 +178,11 @@ function eyebrowHtml(text: string, color: string = COLORS.mute): string {
   return `<div style="color:${color};font-size:11px;letter-spacing:0.08em;line-height:16px;text-transform:uppercase;">${escapeTrendHtml(text)}</div>`;
 }
 
-function linked(url: string | null, inner: string, color = COLORS.text): string {
+function linked(
+  url: string | null,
+  inner: string,
+  color = COLORS.text,
+): string {
   return url
     ? `<a href="${escapeTrendHtml(url)}" style="color:${color};text-decoration:none;">${inner}</a>`
     : inner;

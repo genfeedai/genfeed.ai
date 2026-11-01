@@ -249,7 +249,10 @@ describe('buildTrendDigestHtml', () => {
 
 describe('buildTrendDigestSubject', () => {
   it.each([
-    [[leadTrend, postTrend], '2 posts ready for today, from 2 topics in your niche'],
+    [
+      [leadTrend, postTrend],
+      '2 posts ready for today, from 2 topics in your niche',
+    ],
     [[leadTrend], '1 post ready for today, from 1 topic in your niche'],
     [[sampleTrends[0]], 'Your daily trends — 1 topic'],
   ])('writes %#', (trends, expected) => {

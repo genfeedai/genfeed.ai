@@ -816,10 +816,9 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         minViralScore,
       });
     } catch (error) {
-      this.loggerService.error(
-        `${this.logContext} trend digest fetch failed`,
-        { error },
-      );
+      this.loggerService.error(`${this.logContext} trend digest fetch failed`, {
+        error,
+      });
       return empty;
     }
     if (!sources) {
@@ -849,7 +848,10 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     items: TrendDigestItem[],
     brand: { description?: string; label: string },
   ): Promise<TrendDigestItem[]> {
-    if (items.length === 0 || typeof trends.generateDigestAngles !== 'function') {
+    if (
+      items.length === 0 ||
+      typeof trends.generateDigestAngles !== 'function'
+    ) {
       return items;
     }
     const angles = await trends.generateDigestAngles(items, {
