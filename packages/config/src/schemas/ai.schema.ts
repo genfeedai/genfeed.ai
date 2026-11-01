@@ -169,7 +169,6 @@ export const fleetSchema = {
  */
 export const gpuFleetSchema = {
   GPU_IMAGES_URL: Joi.string().uri().optional(),
-  GPU_LLM_INSTANCE_ID: Joi.string().optional(),
   GPU_LLM_URL: Joi.string().uri().optional(),
   GPU_VIDEOS_URL: Joi.string().uri().optional(),
   GPU_VOICES_URL: Joi.string().uri().optional(),

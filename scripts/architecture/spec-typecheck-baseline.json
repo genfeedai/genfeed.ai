@@ -3113,30 +3113,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 3,
-      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
-      "fingerprint": "194377a1dfd183df25db",
-      "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
-      "fingerprint": "7b3e4e8f4deab4295c14",
-      "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
-      "fingerprint": "e5bb6dee125c0f9346cc",
-      "message": "Property 'mockRejectedValue' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/pinterest/controllers/pinterest.controller.spec.ts",
