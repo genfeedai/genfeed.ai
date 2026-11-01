@@ -92,4 +92,56 @@ describe('BrandKitAssetsService.importBrandKitAssets CDN fetch', () => {
 
     expect(uploadToS3.mock.calls[0][2].url).toBe(AVATAR);
   });
+  describe('SVG logos', () => {
+    async function importLogo(url: string, mimeType?: string) {
+      return service.importBrandKitAssets(
+        'brand-1',
+        'org-1',
+        'user-1',
+        {
+          assets: [
+            {
+              candidateId: 'c1',
+              label: 'site logo',
+              mimeType,
+              role: 'logo',
+              url,
+            },
+          ],
+        } as never,
+        async () => ({ id: 'brand-1' }) as never,
+      );
+    }
+
+    it.each([
+      [
+        'declared image/svg+xml',
+        'https://example.com/logo.svg',
+        'image/svg+xml',
+      ],
+      ['a .svg extension only', 'https://example.com/logo.svg', undefined],
+    ])(
+      'imports an SVG logo with %s and records it as a PNG',
+      async (_name, url, mimeType) => {
+        const result = await importLogo(url, mimeType);
+
+        expect(result.results[0]).toMatchObject({ status: 'imported' });
+        expect(assetCreate.mock.calls[0][0].data).toMatchObject({
+          mimeType: 'image/png',
+          origin: url,
+          originalFileName: 'logo.png',
+        });
+      },
+    );
+
+    it('still rejects an unsupported image type', async () => {
+      const result = await importLogo(
+        'https://example.com/logo.bmp',
+        'image/bmp',
+      );
+
+      expect(result.results[0]).toMatchObject({ status: 'failed' });
+      expect(assetCreate).not.toHaveBeenCalled();
+    });
+  });
 });
