@@ -255,7 +255,6 @@
     "apps/web/src/components/modals/ingredients/image-to-video/ModalImageToVideo.tsx": 2,
     "apps/web/src/components/modals/ingredients/trim/ModalTrim.tsx": 5,
     "apps/web/src/components/modals/ingredients/upload/UploadVoiceCloneSection.tsx": 8,
-    "apps/web/src/components/modals/ingredients/video/ModalVideo.tsx": 6,
     "apps/web/src/components/modals/members/invite/EditMemberForm.tsx": 5,
     "apps/web/src/components/modals/members/invite/InviteForm.tsx": 9,
     "apps/web/src/components/modals/system/export/ModalExport.tsx": 25,
