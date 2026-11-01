@@ -134,6 +134,7 @@ const getPostingCadencesServiceMock = vi.fn(async () => ({
 
 const calendarRenderProps: Array<{
   emptyState?: ReactNode;
+  filterControls?: ReactNode;
   getEventActions: (item: CalendarItemShape) => CalendarEventAction[];
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
   getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -241,7 +242,7 @@ vi.mock(
       timezone,
     }: {
       emptyState?: ReactNode;
-      filterControls: ReactNode;
+      filterControls?: ReactNode;
       getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
       getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
       getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -258,6 +259,7 @@ vi.mock(
     }) => {
       calendarRenderProps.push({
         emptyState,
+        filterControls,
         getEventActions: getEventActions ?? (() => []),
         getEventBadge,
         getEventChannels,
