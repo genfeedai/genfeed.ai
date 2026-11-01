@@ -348,13 +348,15 @@ describe('AgentPanel', () => {
     }
   });
 
-  it('renders outputs as a second rail tab', () => {
+  it('offers outputs as a second rail view in the view dropdown', () => {
     renderAgentPanel(
       <AgentPanel apiService={createCreditsInfoApiService() as never} />,
     );
 
-    expect(screen.getByRole('tab', { name: 'Terminal' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Outputs' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'View: Terminal' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });
 

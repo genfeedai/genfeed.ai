@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+import { CalendarWithSubbar as ContentCalendarView } from '@app-tests/calendar-subbar.harness';
 import { selectView } from '@app-tests/view-menu.helpers';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ContentCalendarView from '@/features/posts/components/calendar/content-calendar/ContentCalendarView';
 import type {
   CalendarItem,
   ContentCalendarProps,
@@ -111,7 +111,7 @@ describe('ContentCalendar Week view with the real renderer', () => {
       ],
       onDatesChange: vi.fn(),
       onEventClick: vi.fn(),
-    } satisfies ContentCalendarProps<CalendarItem>;
+    } satisfies Omit<ContentCalendarProps<CalendarItem>, 'onToolbarChange'>;
     const { rerender } = render(
       <ContentCalendarView {...props} timezone="America/Los_Angeles" />,
     );

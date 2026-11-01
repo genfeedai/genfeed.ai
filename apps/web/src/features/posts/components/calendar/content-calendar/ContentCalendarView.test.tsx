@@ -1,5 +1,6 @@
 import type { CalendarItem } from '@/props/components/calendar.props';
 import '@testing-library/jest-dom/vitest';
+import { CalendarWithSubbar as ContentCalendarView } from '@app-tests/calendar-subbar.harness';
 import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   act,
@@ -11,7 +12,6 @@ import {
 import userEvent from '@testing-library/user-event';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ContentCalendarView from '@/features/posts/components/calendar/content-calendar/ContentCalendarView';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');

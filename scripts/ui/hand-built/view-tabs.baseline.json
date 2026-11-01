@@ -1,6 +1,1 @@
-{
-  "apps/web/src/features/posts/components/posts/post-detail-sidebar/PostDetailSidebar.tsx": 1,
-  "packages/agent/src/components/AnalyticsSnapshotCard.tsx": 1,
-  "packages/ui/src/components/agent-panel/AgentPanelShell.tsx": 1,
-  "packages/ui/src/components/layout/agent-output-layout/AgentOutputLayout.tsx": 1
-}
+{}

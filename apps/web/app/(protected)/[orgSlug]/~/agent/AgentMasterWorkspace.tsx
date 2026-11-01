@@ -137,7 +137,6 @@ export default function AgentMasterWorkspace() {
         expandAgent: translate('expandAgent'),
         expandOutput: translate('expandOutput'),
         output: translate('threads'),
-        views: translateWorkspace('views'),
       }}
       mode="split"
       tabs={tabs}

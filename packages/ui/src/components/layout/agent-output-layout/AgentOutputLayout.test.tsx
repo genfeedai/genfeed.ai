@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -14,7 +20,6 @@ const labels = {
   expandAgent: 'Expand agent',
   expandOutput: 'Full size',
   output: 'Output',
-  views: 'Agent or output',
 };
 
 function Harness({
@@ -84,12 +89,18 @@ describe('AgentOutputLayout', () => {
     expect(within(agentPane).getByText('Agent transcript')).toBeVisible();
   });
 
-  it('shows one pane at a time on narrow screens without unmounting the other', () => {
+  it('shows one pane at a time on narrow screens without unmounting the other', async () => {
+    const user = userEvent.setup();
     render(<Harness />);
     const layout = screen.getByTestId('agent-output-layout');
     expect(layout).toHaveAttribute('data-mobile-view', 'agent');
 
-    fireEvent.mouseDown(within(layout).getByRole('tab', { name: 'Output' }));
+    await user.click(
+      within(layout).getByRole('button', { name: 'View: Agent' }),
+    );
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: 'Output' }),
+    );
 
     expect(layout).toHaveAttribute('data-mobile-view', 'output');
     expect(screen.getByTestId('agent-output-agent-pane')).toHaveClass(
