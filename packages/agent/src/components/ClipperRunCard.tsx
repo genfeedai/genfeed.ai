@@ -208,7 +208,7 @@ export function ClipperRunCard({
                 variant={ButtonVariant.DEFAULT}
                 withWrapper={false}
                 onClick={onConfirm}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"
+                className="flex items-center gap-1 px-3 py-1.5"
               >
                 <CircleCheck className="size-3.5" />
                 Confirm
@@ -217,7 +217,7 @@ export function ClipperRunCard({
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
                 onClick={onCancel}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"
+                className="flex items-center gap-1 px-3 py-1.5"
               >
                 Cancel
               </Button>

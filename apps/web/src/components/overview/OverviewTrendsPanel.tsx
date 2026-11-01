@@ -9,10 +9,10 @@ import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-
 import {
   WorkspaceSurface,
   type WorkspaceSurfaceTone,
@@ -98,12 +98,11 @@ export function OverviewTrendsPanel({
                 size={ComponentSize.SM}
               />
 
-              <span
-                className="min-w-0 flex-1 truncate text-sm font-medium text-foreground"
-                title={trend.topic}
-              >
-                {trend.topic}
-              </span>
+              <SimpleTooltip label={trend.topic}>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                  {trend.topic}
+                </span>
+              </SimpleTooltip>
 
               <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {formatViralityScore(trend.viralityScore)}

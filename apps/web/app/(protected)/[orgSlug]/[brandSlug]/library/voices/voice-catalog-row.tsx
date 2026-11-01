@@ -160,7 +160,7 @@ export default function VoiceCatalogRow({
           {onDelete ? (
             <Button
               ariaLabel={`Delete ${getVoiceName(voice)}`}
-              className="text-muted-foreground hover:text-destructive"
+              className="hover:text-destructive"
               onClick={onDelete}
               size={ButtonSize.XS}
               variant={ButtonVariant.GHOST}

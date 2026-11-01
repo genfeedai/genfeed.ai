@@ -11,6 +11,7 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ExternalLink, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -157,12 +158,11 @@ export default function AdminPostsTable({
               </div>
               {post.status === PostStatus.FAILED &&
               post.targetError?.message ? (
-                <p
-                  className="truncate text-xs text-destructive"
-                  title={post.targetError.message}
-                >
-                  {post.targetError.message}
-                </p>
+                <SimpleTooltip label={post.targetError.message}>
+                  <p className="truncate text-xs text-destructive">
+                    {post.targetError.message}
+                  </p>
+                </SimpleTooltip>
               ) : null}
             </div>
           );

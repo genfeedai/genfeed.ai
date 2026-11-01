@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { AdminUserEmailProps } from '@/features/admin/props/admin-user.props';
@@ -21,13 +22,11 @@ export default function UserEmail({ email }: AdminUserEmailProps) {
 
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
-      <a
-        className="truncate hover:underline"
-        href={`mailto:${email}`}
-        title={translate('sendEmail', { email })}
-      >
-        {email}
-      </a>
+      <SimpleTooltip label={translate('sendEmail', { email })}>
+        <a className="truncate hover:underline" href={`mailto:${email}`}>
+          {email}
+        </a>
+      </SimpleTooltip>
       <Button
         ariaLabel={translate('copyEmail', { email })}
         icon={<Copy />}

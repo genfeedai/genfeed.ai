@@ -213,13 +213,11 @@ function ReframeNodeComponent(props: NodeProps) {
             />
             <Button
               withWrapper={false}
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.OVERLAY}
               size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className={
-                'absolute right-2 top-2 size-6 bg-black/50 hover:bg-black/70' /* design-system-allow-content-color */
-              }
+              className="absolute right-2 top-2 size-6"
             >
               <RefreshCw
                 className={
@@ -253,13 +251,11 @@ function ReframeNodeComponent(props: NodeProps) {
             />
             <Button
               withWrapper={false}
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.OVERLAY}
               size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className={
-                'absolute right-2 top-2 size-6 bg-black/50 hover:bg-black/70' /* design-system-allow-content-color */
-              }
+              className="absolute right-2 top-2 size-6"
             >
               <RefreshCw
                 className={

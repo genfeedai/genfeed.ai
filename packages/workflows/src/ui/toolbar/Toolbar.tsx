@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowFile } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { toast } from '@genfeedai/ui/primitives/toaster';
+import { SimpleTooltip } from '@genfeedai/ui/primitives/tooltip';
 import {
   Bug,
   CircleQuestionMark,
@@ -80,20 +81,21 @@ function ToolbarLogo({ branding, logoHref, logoSrc }: ToolbarLogoProps) {
   }
 
   return (
-    <a
-      href={logoHref ?? '/'}
-      title="Go to Overview"
-      className="flex size-6 items-center justify-center transition hover:opacity-90"
-    >
-      <NextImage
-        src={logoSrc}
-        alt="Genfeed"
-        width={24}
-        height={24}
-        className="size-6 object-contain"
-        unoptimized
-      />
-    </a>
+    <SimpleTooltip label="Go to Overview">
+      <a
+        href={logoHref ?? '/'}
+        className="flex size-6 items-center justify-center transition hover:opacity-90"
+      >
+        <NextImage
+          src={logoSrc}
+          alt="Genfeed"
+          width={24}
+          height={24}
+          className="size-6 object-contain"
+          unoptimized
+        />
+      </a>
+    </SimpleTooltip>
   );
 }
 

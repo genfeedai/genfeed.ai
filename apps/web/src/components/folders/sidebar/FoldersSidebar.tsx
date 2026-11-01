@@ -119,7 +119,7 @@ function FoldersSidebar({
             <Button
               aria-expanded={isOpen}
               ariaLabel={`${isOpen ? 'Collapse' : 'Expand'} ${folder.label}`}
-              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 hover:bg-foreground/5"
               onClick={() => toggleFolder(folder.id)}
               size={ButtonSize.ICON}
               textTransform="none"
@@ -154,7 +154,7 @@ function FoldersSidebar({
           {onCreateFolder ? (
             <Button
               ariaLabel="New folder"
-              className="size-6 shrink-0 p-0 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+              className="size-6 shrink-0 p-0 hover:bg-foreground/5"
               onClick={onCreateFolder}
               size={ButtonSize.ICON}
               textTransform="none"

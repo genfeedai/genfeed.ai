@@ -920,6 +920,7 @@
     "chooseAction": "Choose action",
     "creditAmount": "Credit amount",
     "curveType": "Curve type",
+    "existingCaptions": "Existing captions",
     "generationMode": "Generation mode",
     "metrics": "Metrics",
     "notifyVia": "Notify via",

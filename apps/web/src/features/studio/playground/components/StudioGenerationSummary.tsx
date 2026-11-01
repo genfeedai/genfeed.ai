@@ -8,6 +8,7 @@ import {
   getDesktopCreditsVisibility,
 } from '@genfeedai/services/core/desktop-runtime.service';
 import {
+  SimpleTooltip,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -170,25 +171,21 @@ export default function StudioGenerationSummary({
               <div className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
                 {isEstimateHidden ? null : (
                   <>
-                    <span
-                      role="status"
-                      aria-label={estimateLabel}
-                      title={estimateLabel}
-                    >
-                      {compactEstimate === '…' || compactEstimate === '—'
-                        ? estimateLabel
-                        : compactEstimate}
-                    </span>
+                    <SimpleTooltip label={estimateLabel}>
+                      <span role="status" aria-label={estimateLabel}>
+                        {compactEstimate === '…' || compactEstimate === '—'
+                          ? estimateLabel
+                          : compactEstimate}
+                      </span>
+                    </SimpleTooltip>
                     <span aria-hidden="true">/</span>
                   </>
                 )}
-                <span
-                  role="status"
-                  aria-label={balanceLabel}
-                  title={balanceLabel}
-                >
-                  {compactBalance}
-                </span>
+                <SimpleTooltip label={balanceLabel}>
+                  <span role="status" aria-label={balanceLabel}>
+                    {compactBalance}
+                  </span>
+                </SimpleTooltip>
               </div>
             ) : runtime.status !== 'web' ? (
               <span role="status">

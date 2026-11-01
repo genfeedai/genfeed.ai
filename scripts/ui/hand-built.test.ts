@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import badgeArea from './hand-built/areas/badge';
 import alertArea from './hand-built/areas/badge-alert';
+import buttons from './hand-built/areas/buttons';
 import selectionControls from './hand-built/areas/selection-controls';
 import {
   buildBaseline,
@@ -348,5 +349,98 @@ describe('selection controls guard', () => {
 );
 `;
     expect(scanSelection(text)).toEqual(['segmented-restyle:5']);
+  });
+});
+
+function scanButtons(text: string, file = 'apps/web/src/Example.tsx') {
+  return buttons
+    .scan(sourceOf(file, text))
+    .map((finding) => `${finding.rule}:${finding.line}`);
+}
+
+describe('buttons guard', () => {
+  it.each([
+    ['a surface', 'bg-black/50 hover:bg-black/70'],
+    ['a border and radius', 'rounded-md border border-border'],
+    ['a text colour', 'text-destructive'],
+  ])('flags a shared-variant Button restyled with %s', (_name, classes) => {
+    expect(
+      scanButtons(
+        `${BUTTON_IMPORT}export const A = () => <Button className="${classes}" />;\n`,
+      ),
+    ).toEqual(['button-restyle:2']);
+  });
+
+  it('allows layout classes on a Button', () => {
+    expect(
+      scanButtons(
+        `${BUTTON_IMPORT}export const A = () => <Button className="w-full mt-2 justify-start" />;\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags an UNSTYLED Button that paints its own look', () => {
+    expect(
+      scanButtons(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={ButtonVariant.UNSTYLED} className="rounded-full bg-muted px-3" />;\n`,
+      ),
+    ).toEqual(['unstyled-look:2']);
+  });
+
+  it('allows an UNSTYLED Button that only lays itself out', () => {
+    expect(
+      scanButtons(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={ButtonVariant.UNSTYLED} className="flex w-full items-center text-left" />;\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags a native title tooltip on a plain element', () => {
+    expect(
+      scanButtons(
+        'export const A = ({ name }: { name: string }) => <span title={name}>{name}</span>;\n',
+      ),
+    ).toEqual(['native-title:1']);
+  });
+
+  it('allows a title on an iframe', () => {
+    expect(
+      scanButtons(
+        'export const A = () => <iframe title="Preview" src="x" />;\n',
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags onClick on a div without a role or key handler', () => {
+    expect(
+      scanButtons(
+        'export const A = ({ go }: { go: () => void }) => <div onClick={go}>Open</div>;\n',
+      ),
+    ).toEqual(['clickable-element:1']);
+  });
+
+  it.each([
+    ['a role', 'role="button" tabIndex={0}'],
+    ['a key handler', 'onKeyDown={go}'],
+  ])('allows onClick on a div with %s', (_name, extra) => {
+    expect(
+      scanButtons(
+        `export const A = ({ go }: { go: () => void }) => <div onClick={go} ${extra}>Open</div>;\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('honours ui-guard-allow only with a reason', () => {
+    const withReason = `${BUTTON_IMPORT}export const A = () => (
+  // ui-guard-allow:button-restyle -- brand-coloured share button
+  <Button className="bg-black/50" />
+);
+`;
+    const withoutReason = withReason.replace(
+      ' -- brand-coloured share button',
+      '',
+    );
+    expect(scanButtons(withReason)).toEqual([]);
+    expect(scanButtons(withoutReason)).toEqual(['button-restyle:4']);
   });
 });

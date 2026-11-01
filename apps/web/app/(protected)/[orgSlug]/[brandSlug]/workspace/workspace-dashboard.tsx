@@ -314,7 +314,7 @@ export function DashboardRecentActivity({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}
@@ -401,7 +401,7 @@ export function DashboardRecentTasks({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-2xs font-normal text-muted-foreground hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX)}>
             {translate('recentViewAll')}

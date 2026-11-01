@@ -97,12 +97,7 @@ export function WorkspaceTaskCard({
         >
           {translate('planNextSteps')}
         </Button>
-        <Button
-          asChild
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-          className="font-semibold"
-        >
+        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.SM}>
           <Link href={getAdvancedToolHref(task)}>{translate('openTool')}</Link>
         </Button>
       </div>

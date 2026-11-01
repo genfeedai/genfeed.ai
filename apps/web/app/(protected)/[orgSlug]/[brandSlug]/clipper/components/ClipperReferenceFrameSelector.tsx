@@ -174,7 +174,6 @@ export default function ClipperReferenceFrameSelector({
           <AlertDescription>{error}</AlertDescription>
           <AlertActions>
             <Button
-              className="text-xs"
               isDisabled={pendingCandidateId !== null}
               label="Retry selection"
               onClick={onRetry}

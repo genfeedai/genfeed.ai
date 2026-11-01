@@ -307,7 +307,6 @@ export default function CorpusContent() {
                 label={file?.name ?? translate('corpus.chooseFile')}
                 icon={<Upload className="size-4" />}
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-none"
               />
               <span className="text-xs text-muted-foreground">
                 {translate('corpus.fileHint')}
@@ -330,7 +329,6 @@ export default function CorpusContent() {
           isDisabled={!canAdd}
           isLoading={isAdding}
           onClick={handleAdd}
-          className="rounded-none px-5"
         />
       </div>
 

@@ -63,7 +63,7 @@ export default function GenerationSetupStepSlider({
         {canReset ? (
           <Button
             ariaLabel={translate('resetToAgent', { field: label })}
-            className="size-5 p-0 text-muted-foreground [&_svg]:size-3"
+            className="size-5 p-0 [&_svg]:size-3"
             icon={<Undo2 />}
             onClick={() => onReset?.(fieldKey)}
             size={ButtonSize.ICON}

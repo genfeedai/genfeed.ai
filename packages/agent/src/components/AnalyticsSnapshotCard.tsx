@@ -256,7 +256,6 @@ export function AnalyticsSnapshotCard({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               withWrapper={false}
-              className="text-xs"
               onClick={() => {
                 setIsExpanded(false);
               }}

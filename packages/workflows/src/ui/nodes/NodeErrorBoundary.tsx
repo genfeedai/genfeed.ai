@@ -61,7 +61,6 @@ export class NodeErrorBoundary extends Component<
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={this.handleRetry}
-            className="gap-1.5"
           >
             <RefreshCw className="size-3" />
             Retry

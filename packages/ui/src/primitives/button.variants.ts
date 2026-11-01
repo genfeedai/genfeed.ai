@@ -3,7 +3,13 @@ import { cn } from '@genfeedai/helpers';
 import { cva } from 'class-variance-authority';
 
 export type ButtonVariantConfig = {
-  nativeVariant: 'default' | 'secondary' | 'destructive' | 'ghost' | 'link';
+  nativeVariant:
+    | 'default'
+    | 'secondary'
+    | 'destructive'
+    | 'ghost'
+    | 'link'
+    | 'overlay';
 };
 
 export type CanonicalButtonVariant =
@@ -11,6 +17,7 @@ export type CanonicalButtonVariant =
   | ButtonVariant.DESTRUCTIVE
   | ButtonVariant.GHOST
   | ButtonVariant.LINK
+  | ButtonVariant.OVERLAY
   | ButtonVariant.SECONDARY
   | ButtonVariant.UNSTYLED;
 
@@ -22,6 +29,7 @@ export const BUTTON_VARIANT_CONFIG: Record<
   [ButtonVariant.DESTRUCTIVE]: { nativeVariant: 'destructive' },
   [ButtonVariant.GHOST]: { nativeVariant: 'ghost' },
   [ButtonVariant.LINK]: { nativeVariant: 'link' },
+  [ButtonVariant.OVERLAY]: { nativeVariant: 'overlay' },
   [ButtonVariant.SECONDARY]: { nativeVariant: 'secondary' },
   [ButtonVariant.UNSTYLED]: { nativeVariant: 'default' },
 };
@@ -49,6 +57,8 @@ export function getMappedButtonSize(size?: ButtonSize | null) {
       return 'xs';
     case ButtonSize.MICRO:
       return 'micro';
+    case ButtonSize.INLINE:
+      return 'inline';
     case ButtonSize.ICON:
       return 'icon';
     case ButtonSize.PUBLIC:
@@ -97,6 +107,7 @@ const nativeButtonVariants = cva(
         // 28px visual, 40px hit area (dense desktop floor).
         micro:
           "relative size-7 justify-center p-0 after:absolute after:-inset-1.5 after:content-['']",
+        inline: 'h-auto p-0',
         sm: 'h-8 px-2.5 has-[>svg:first-child]:pl-2',
         xl: 'h-10 px-5 text-sm has-[>svg:first-child]:pl-4',
         xs: 'h-8 gap-1 px-2 has-[>svg:first-child]:pl-1.5',
@@ -109,6 +120,9 @@ const nativeButtonVariants = cva(
         ghost:
           'rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
         link: 'justify-center text-foreground underline-offset-4 hover:underline',
+        // Sits on media, so its colours are fixed rather than themed.
+        overlay:
+          'justify-center rounded-md bg-black/50 text-white hover:bg-black/70', // design-system-allow-content-color -- media overlay control
         secondary:
           'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
       },

@@ -199,7 +199,6 @@ export default function ApiStatusProvider({
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.LG}
               onClick={() => void checkApiHealth(true)}
-              className="gap-2"
             >
               <RefreshCw className="size-4" />
               Try Again

@@ -224,6 +224,9 @@ vi.mock('@ui/primitives/tooltip', async () => {
   // The hover spec is covered in ModelSelectorModelItem.test.tsx with the real
   // Radix tooltip. Here it would only duplicate every model label in the tree.
   return {
+    SimpleTooltip: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
     Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     TooltipContent: () => null,
     TooltipProvider: ({ children }: { children: React.ReactNode }) => (

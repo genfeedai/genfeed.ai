@@ -1,6 +1,7 @@
 import { CostTier, ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ModelSelectorTrigger from '@ui/dropdowns/model-selector/ModelSelectorTrigger';
 import { describe, expect, it } from 'vitest';
 
@@ -67,18 +68,24 @@ describe('ModelSelectorTrigger', () => {
     expect(label).toHaveClass('truncate', 'min-w-0');
   });
 
-  it('exposes the credit cost for a contextual picker selection', () => {
+  it('exposes the credit cost for a contextual picker selection', async () => {
     render(
       <ModelSelectorTrigger
         context={{ label: 'Image', value: 'image' }}
         isOpen={false}
         selectedModels={[
-          createModel({ cost: 17, key: 'google/imagen-3', label: 'Imagen 3' }),
+          createModel({
+            cost: 17,
+            costTier: CostTier.HIGH,
+            key: 'google/imagen-3',
+            label: 'Imagen 3',
+          }),
         ]}
       />,
     );
 
-    expect(screen.getByTitle('17 credits')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('$$$'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('17 credits');
     expect(screen.getByRole('img', { name: 'Google' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Image' })).toBeInTheDocument();
   });
@@ -104,7 +111,7 @@ describe('ModelSelectorTrigger', () => {
 
     expect(within(button).getByText('Image · Auto')).toBeInTheDocument();
     expect(within(button).queryByText('Imagen 3')).not.toBeInTheDocument();
-    expect(within(button).queryByTitle('17 credits')).not.toBeInTheDocument();
+    expect(within(button).queryByText('$$$')).not.toBeInTheDocument();
     expect(
       within(button).queryByRole('img', { name: 'Replicate' }),
     ).not.toBeInTheDocument();

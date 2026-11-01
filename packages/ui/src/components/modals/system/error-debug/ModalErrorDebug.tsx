@@ -27,6 +27,7 @@ import {
   resolveErrorDebugSummary,
 } from '@ui/modals/system/error-debug/error-debug-copy.util';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
@@ -177,12 +178,11 @@ export default function ModalErrorDebug() {
                 {errorInfo.url && (
                   <>
                     <span className="text-muted-foreground">URL</span>
-                    <span
-                      className="truncate font-mono text-foreground"
-                      title={errorInfo.url}
-                    >
-                      {errorInfo.url}
-                    </span>
+                    <SimpleTooltip label={errorInfo.url}>
+                      <span className="truncate font-mono text-foreground">
+                        {errorInfo.url}
+                      </span>
+                    </SimpleTooltip>
                   </>
                 )}
 

@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -382,12 +383,11 @@ const PostsGrid = memo(
 
                 {post.status === PostStatus.FAILED &&
                   post.targetError?.message && (
-                    <p
-                      className="mt-3 truncate text-xs text-destructive"
-                      title={post.targetError.message}
-                    >
-                      {post.targetError.message}
-                    </p>
+                    <SimpleTooltip label={post.targetError.message}>
+                      <p className="mt-3 truncate text-xs text-destructive">
+                        {post.targetError.message}
+                      </p>
+                    </SimpleTooltip>
                   )}
 
                 <div

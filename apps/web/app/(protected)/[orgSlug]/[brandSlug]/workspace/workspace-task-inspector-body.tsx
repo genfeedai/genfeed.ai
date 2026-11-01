@@ -245,7 +245,6 @@ export function WorkspaceTaskInspectorBody({
               asChild
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              className="font-semibold"
             >
               <Link
                 href={taskHref(

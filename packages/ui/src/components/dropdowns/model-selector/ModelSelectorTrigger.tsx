@@ -12,6 +12,7 @@ import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCo
 import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ChevronsUpDown, Cpu, Sparkles } from 'lucide-react';
 import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
@@ -80,9 +81,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
             : context.label}
         </span>
         {!isAutoSelected && selectedModels.length === 1 ? (
-          <span title={costTitle}>
-            <ModelSelectorCostBadge costTier={selectedModel?.costTier} />
-          </span>
+          <SimpleTooltip label={costTitle}>
+            <span>
+              <ModelSelectorCostBadge costTier={selectedModel?.costTier} />
+            </span>
+          </SimpleTooltip>
         ) : null}
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
@@ -153,9 +156,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
           testId="model-trigger-provider-icon"
         />
         <span className={labelClassName}>{model.label}</span>
-        <span title={costTitle}>
-          <ModelSelectorCostBadge costTier={model.costTier} />
-        </span>
+        <SimpleTooltip label={costTitle}>
+          <span>
+            <ModelSelectorCostBadge costTier={model.costTier} />
+          </span>
+        </SimpleTooltip>
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
         />

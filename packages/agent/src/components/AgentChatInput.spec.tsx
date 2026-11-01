@@ -625,9 +625,9 @@ describe('AgentChatInput', () => {
       'Referenced content: Launch post: Skipped',
     );
     expect(within(tile).getByText('Skipped')).toBeInTheDocument();
-    expect(tile).toHaveAttribute(
-      'title',
-      expect.stringContaining('brand does not match'),
+    await user.hover(tile);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'brand does not match',
     );
     const editor = screen.getByRole('textbox');
     await user.click(editor);
