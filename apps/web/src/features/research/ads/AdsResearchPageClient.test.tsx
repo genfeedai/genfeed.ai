@@ -321,12 +321,12 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children?: ReactNode }) => (
     <div role="alert">{children}</div>
   ),
 }));

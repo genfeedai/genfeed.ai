@@ -568,8 +568,11 @@ export function AgentComposerStatusStack({
       ) : null}
 
       {hasStalledNotice ? (
-        <Alert className="gap-y-1" variant="warning">
-          <TriangleAlert aria-hidden />
+        <Alert
+          className="gap-y-1"
+          variant="warning"
+          icon={<TriangleAlert aria-hidden className="size-4" />}
+        >
           <AlertTitle>{translateStalled('title')}</AlertTitle>
           <AlertDescription>
             <p className="text-xs leading-5 text-foreground">

@@ -8,9 +8,9 @@ import {
 } from '@helpers/formatting/timezone/timezone.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
 import Image from 'next/image';
@@ -210,10 +210,7 @@ export default function ReviewItemsTable({
           );
           return (
             <span className="flex flex-wrap items-center gap-1.5">
-              <Badge
-                size={ComponentSize.SM}
-                status={getReviewItemBadgeStatus(item)}
-              >
+              <Badge status={getReviewItemBadgeStatus(item)}>
                 {formatReviewItemStatus(item, translateReview)}
               </Badge>
               {performanceLabel ? (

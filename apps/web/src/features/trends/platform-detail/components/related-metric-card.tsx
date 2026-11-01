@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import type { AuthorizedResearchFinding } from '@/features/research/work-surface/research-work-surface.types';
 
@@ -30,7 +30,7 @@ export default function RelatedMetricCard({
           {title}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-foreground/60">
-          <Badge variant="ghost">{Math.round(badgeValue)}</Badge>
+          <Badge variant="secondary">{Math.round(badgeValue)}</Badge>
           {detail ? <span>{detail}</span> : null}
         </div>
         {finding && onSelect ? (

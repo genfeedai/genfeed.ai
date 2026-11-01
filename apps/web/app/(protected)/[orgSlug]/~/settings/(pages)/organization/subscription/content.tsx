@@ -13,9 +13,9 @@ import {
   type PlanTier,
 } from '@genfeedai/pricing';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';

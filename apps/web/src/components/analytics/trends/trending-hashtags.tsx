@@ -4,7 +4,7 @@ import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';

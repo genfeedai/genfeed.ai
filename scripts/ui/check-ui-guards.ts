@@ -56,6 +56,13 @@ const checks = [
     required: true,
   },
   {
+    // One AST drift guard for hand-built UI, one file per area under
+    // scripts/ui/hand-built/areas with its own shrink-only baseline.
+    command: ['bun', 'run', 'scripts/ui/hand-built/check-hand-built.ts'],
+    name: 'Hand-built UI (shared components are not restyled or rebuilt)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-modal-standard-usage.ts'],
     name: 'Modal architecture',
     required: true,

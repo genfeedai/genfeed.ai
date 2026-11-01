@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -33,9 +33,7 @@ export function WorkspaceTaskCard({
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{task.title}</p>
-          <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
-            {statusLabel}
-          </Badge>
+          <Badge status={getTaskBadgeStatus(task)}>{statusLabel}</Badge>
         </div>
         <p className="text-sm text-foreground/60">{task.request}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">

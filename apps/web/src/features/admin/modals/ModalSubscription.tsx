@@ -4,7 +4,7 @@ import {
   type SubscriptionSchema,
   subscriptionSchema,
 } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
@@ -16,8 +16,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { ModalOrganizationProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Alert from '@ui/feedback/alert/Alert';
 import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -94,7 +94,7 @@ export default function ModalSubscription({
     <Modal id={ModalEnum.SUBSCRIPTION} title="Edit Amount">
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

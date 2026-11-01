@@ -14,7 +14,8 @@ export {
 export { Alert, AlertDescription, AlertTitle } from './alert';
 export { Avatar, AvatarFallback, AvatarImage } from './avatar';
 export { Badge, type BadgeProps } from './badge';
-export { badgeVariants } from './badge.variants';
+export { type BadgeStatus, getBadgeStatus } from './badge.status';
+export { type BadgeVariant, badgeVariants } from './badge.variants';
 export {
   Blockquote,
   type BlockquoteProps,

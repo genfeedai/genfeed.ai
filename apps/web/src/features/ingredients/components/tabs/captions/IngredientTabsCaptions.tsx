@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  CaptionFormat,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CaptionFormat } from '@genfeedai/contracts';
 import type {
   ICaption,
   IFieldOption,
@@ -21,8 +16,8 @@ import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { SelectField } from '@ui/primitives/select';
 import { Download, Plus, Sparkles } from 'lucide-react';
@@ -280,7 +275,7 @@ export default function IngredientTabsCaptions({
           )}
         </Card>
       ) : (
-        <Alert type={AlertCategory.INFO}>
+        <Alert variant="info">
           No captions generated yet. Use the form above to generate your first
           caption.
         </Alert>

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
@@ -12,8 +12,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -118,7 +118,7 @@ function CaptionsListContent() {
   return (
     <>
       {loadError ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{loadError}</span>
             <Button

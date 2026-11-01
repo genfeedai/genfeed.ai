@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
 } from '@genfeedai/contracts/interfaces';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 type SchemaProperty = Record<string, unknown>;
@@ -82,9 +82,7 @@ function SchemaFields({
               <div className="flex flex-wrap items-center gap-2">
                 <code className="text-xs text-foreground">{name}</code>
                 {required.has(name) && (
-                  <Badge variant="outline" size={ComponentSize.SM}>
-                    {translate('field.required')}
-                  </Badge>
+                  <Badge variant="outline">{translate('field.required')}</Badge>
                 )}
               </div>
               <p className="mt-1 text-xs text-foreground/60">
@@ -125,7 +123,6 @@ function ContractSnapshot({
               ? 'success'
               : ButtonVariant.SECONDARY
           }
-          size={ComponentSize.SM}
         >
           {snapshot.mappingStatus}
         </Badge>

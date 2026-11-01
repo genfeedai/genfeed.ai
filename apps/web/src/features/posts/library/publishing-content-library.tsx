@@ -42,9 +42,9 @@ import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   buildSourcePostVariationsHref,

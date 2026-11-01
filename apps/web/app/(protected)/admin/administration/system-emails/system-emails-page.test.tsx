@@ -77,8 +77,8 @@ vi.mock('@ui/card/empty/CardEmpty', () => ({
   default: ({ label }: { label: string }) => <div>{label}</div>,
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 vi.mock('@ui/display/skeleton/skeleton', () => ({

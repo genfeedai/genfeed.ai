@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Dialog,

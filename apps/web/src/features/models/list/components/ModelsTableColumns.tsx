@@ -16,10 +16,10 @@ import {
   resolveProviderCostUnits,
 } from '@genfeedai/pricing';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import ModelAvatar from '@ui/models/ModelAvatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Select,

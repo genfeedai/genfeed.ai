@@ -1,6 +1,5 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -11,9 +10,9 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 import type {
   ComparisonCardProps,
@@ -229,7 +228,7 @@ export default function BusinessDashboard() {
 
   if (error && !data) {
     return (
-      <Alert type={AlertCategory.ERROR}>
+      <Alert variant="destructive">
         Failed to load business analytics. Please try again.
       </Alert>
     );
@@ -237,9 +236,7 @@ export default function BusinessDashboard() {
 
   if (!isLoading && !data) {
     return (
-      <Alert type={AlertCategory.WARNING}>
-        No business analytics data available.
-      </Alert>
+      <Alert variant="warning">No business analytics data available.</Alert>
     );
   }
 

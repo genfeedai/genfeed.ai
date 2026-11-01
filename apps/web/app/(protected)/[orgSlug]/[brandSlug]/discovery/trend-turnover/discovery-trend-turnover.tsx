@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -19,9 +14,9 @@ import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
@@ -131,7 +126,7 @@ export default function DiscoveryTrendTurnover() {
       bodyClassName="space-y-8"
     >
       {hasError ? (
-        <Alert type={AlertCategory.ERROR}>{translate('errors.load')}</Alert>
+        <Alert variant="destructive">{translate('errors.load')}</Alert>
       ) : null}
 
       {isEmpty ? (

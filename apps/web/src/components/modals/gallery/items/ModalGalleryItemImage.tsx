@@ -1,9 +1,9 @@
 'use client';
 
-import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
+import { IngredientFormat } from '@genfeedai/contracts';
 import type { ModalGalleryItemImageProps } from '@genfeedai/props/modals/modal-gallery.props';
-import Badge from '@ui/display/badge/Badge';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
+import { Badge } from '@ui/primitives/badge';
 
 export default function ModalGalleryItemImage({
   image,
@@ -29,7 +29,6 @@ export default function ModalGalleryItemImage({
       {imageFormat && (
         <div className="absolute top-2 left-2 z-10">
           <Badge
-            size={ComponentSize.SM}
             className={
               'bg-black/70 text-white shadow-lg backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
             }

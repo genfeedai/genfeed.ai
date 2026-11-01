@@ -2,7 +2,6 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
-  ComponentSize,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -20,8 +19,8 @@ import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
-import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -108,12 +107,7 @@ function WorkflowExecutionCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <Badge
-            status={execution.status.toLowerCase()}
-            size={ComponentSize.SM}
-          >
-            {statusLabel}
-          </Badge>
+          <Badge status={execution.status.toLowerCase()}>{statusLabel}</Badge>
           <p className="truncate text-sm font-semibold text-foreground">
             {label}
           </p>
@@ -346,7 +340,7 @@ export function DashboardRecentActivity({
                 description={message}
                 key={task.id}
                 leading={
-                  <Badge status={task.status} size={ComponentSize.SM}>
+                  <Badge status={task.status}>
                     {task.status.replaceAll('_', ' ')}
                   </Badge>
                 }
@@ -423,7 +417,7 @@ export function DashboardRecentTasks({
               density="compact"
               key={task.id}
               leading={
-                <Badge status={task.status} size={ComponentSize.SM}>
+                <Badge status={task.status}>
                   {task.status.replaceAll('_', ' ')}
                 </Badge>
               }

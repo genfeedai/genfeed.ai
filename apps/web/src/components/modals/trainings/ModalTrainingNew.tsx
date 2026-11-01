@@ -1,19 +1,14 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonSize,
-  ButtonVariant,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { ArrowUp } from 'lucide-react';
@@ -54,7 +49,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((err) => (
                 <div key={err}>{err}</div>

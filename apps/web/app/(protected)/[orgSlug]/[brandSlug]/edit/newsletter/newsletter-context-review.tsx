@@ -2,7 +2,7 @@ import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { Props } from '@/features/studio/props/newsletter-context-review.props';
 
 export default function NewsletterContextReview({ contextPreview }: Props) {

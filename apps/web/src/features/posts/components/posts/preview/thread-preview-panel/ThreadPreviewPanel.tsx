@@ -3,8 +3,8 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Badge } from '@ui/primitives/badge';
 import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type {
   PostPreviewItemProps,
@@ -137,7 +137,7 @@ export default function ThreadPreviewPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Thread Preview</h3>
-        <Badge variant="ghost" className="tabular-nums">
+        <Badge variant="secondary" className="tabular-nums">
           {readyCount}/{postCount} ready
         </Badge>
       </div>

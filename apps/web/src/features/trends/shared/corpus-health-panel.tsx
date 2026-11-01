@@ -4,8 +4,8 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { CorpusHealthPanelProps } from '@/features/trends/props/corpus-health-panel.props';
 
@@ -72,7 +72,7 @@ export default function CorpusHealthPanel({
                       receipt.outcome.endsWith('available'),
                     )
                   ? 'success'
-                  : 'ghost'
+                  : 'secondary'
             }
           >
             {isUnavailable
@@ -101,7 +101,9 @@ export default function CorpusHealthPanel({
             return (
               <Badge
                 key={platform}
-                variant={failed ? 'warning' : available ? 'success' : 'ghost'}
+                variant={
+                  failed ? 'warning' : available ? 'success' : 'secondary'
+                }
               >
                 {getPlatformIcon(platform, 'size-3')}
                 <span className="ml-1">
@@ -157,7 +159,7 @@ export default function CorpusHealthPanel({
                         ? 'warning'
                         : receipt.outcome.endsWith('available')
                           ? 'success'
-                          : 'ghost'
+                          : 'secondary'
                     }
                   >
                     {translate(receiptLabel(receipt))}

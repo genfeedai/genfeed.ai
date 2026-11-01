@@ -16,11 +16,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   ChevronDown,
@@ -43,13 +43,13 @@ import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function getWorkflowStatusVariant(
   status: string,
-): 'success' | 'ghost' | 'warning' | 'info' | 'error' {
+): 'success' | 'secondary' | 'warning' | 'info' | 'destructive' {
   switch (status) {
     case 'running':
     case 'active':
       return 'success';
     case 'draft':
-      return 'ghost';
+      return 'secondary';
     case 'paused':
     case 'inactive':
       return 'warning';
@@ -57,7 +57,7 @@ function getWorkflowStatusVariant(
     case 'failed':
       return 'info';
     default:
-      return 'error';
+      return 'destructive';
   }
 }
 
@@ -389,7 +389,7 @@ export default function WorkflowsPage() {
       render: (entry) => {
         const status = getCatalogStatus(entry);
         return (
-          <Badge variant={status === 'installed' ? 'success' : 'ghost'}>
+          <Badge variant={status === 'installed' ? 'success' : 'secondary'}>
             {translate(`catalog.status.${status}`)}
           </Badge>
         );

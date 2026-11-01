@@ -1,6 +1,6 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';

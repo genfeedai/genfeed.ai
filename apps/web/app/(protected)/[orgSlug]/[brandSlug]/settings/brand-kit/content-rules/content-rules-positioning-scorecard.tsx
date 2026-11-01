@@ -48,7 +48,7 @@ export default function ContentRulesPositioningScorecard({
       </dl>
 
       {weakestDimension ? (
-        <Alert variant="warning">
+        <Alert variant="warning" icon={false}>
           <AlertTitle>
             {translate('weakestTitle', { label: weakestDimension.label })}
           </AlertTitle>

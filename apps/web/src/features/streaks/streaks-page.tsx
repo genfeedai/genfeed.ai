@@ -9,7 +9,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
@@ -191,7 +191,7 @@ export default function StreaksPage() {
                             ? 'success'
                             : milestone.isNext
                               ? 'warning'
-                              : 'ghost'
+                              : 'secondary'
                         }
                       >
                         {milestone.isAchieved

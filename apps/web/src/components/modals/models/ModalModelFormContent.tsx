@@ -1,6 +1,5 @@
 import type { ModelSchema } from '@genfeedai/client/schemas';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   type ModelCategory,
@@ -19,9 +18,9 @@ import {
   getModelProviderBadgeClass,
   getModelProviderLabel,
 } from '@genfeedai/helpers/ui/model-badge.helper';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -76,7 +75,7 @@ export default function ModalModelFormContent({
   return (
     <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(form.formState.errors) && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="space-y-1">
             {parseFormErrors(form.formState.errors).map((error) => (
               <div key={error}>{error}</div>

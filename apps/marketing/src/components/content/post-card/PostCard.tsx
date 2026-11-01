@@ -5,7 +5,7 @@ import type { PostCardProps } from '@genfeedai/contracts/interfaces/content/publ
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Calendar, CalendarCheck, ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
 

@@ -1,7 +1,7 @@
 import { LinkCategory } from '@genfeedai/contracts';
 import type { ModalBrandCreateProps } from '@genfeedai/props/modals/modal.props';
-import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { AlertProps } from '@ui/primitives/alert';
 import type { FieldProps } from '@ui/primitives/field';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModalBrandCreate from '@/components/modals/brands/brand/ModalBrandCreate';
@@ -67,9 +67,9 @@ vi.mock('@ui/primitives/input', () => ({
   default: () => <input data-testid="form-input" />,
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
+vi.mock('@ui/primitives/alert', () => ({
   __esModule: true,
-  default: ({ children }: AlertProps) => (
+  Alert: ({ children }: AlertProps) => (
     <div data-testid="alert">{children}</div>
   ),
 }));

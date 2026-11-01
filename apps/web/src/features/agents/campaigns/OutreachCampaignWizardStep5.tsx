@@ -5,7 +5,7 @@ import {
   CampaignType,
   type ReplyTone,
 } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 interface OutreachCampaignWizardStep5Props {

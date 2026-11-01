@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { X } from 'lucide-react';
 import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';

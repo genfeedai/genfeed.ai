@@ -85,8 +85,8 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: function MockAlert(props: { children?: ReactNode }) {
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: function MockAlert(props: { children?: ReactNode }) {
     return <div>{props.children}</div>;
   },
 }));

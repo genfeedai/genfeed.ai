@@ -8,7 +8,7 @@ import type { CollectionOverflowAction } from '@props/ui/collection/collection.p
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
@@ -111,7 +111,7 @@ function DeskLightCard({
               <span className="truncate text-sm text-foreground/80">
                 {item.authorHandle ? `@${item.authorHandle}` : item.platform}
               </span>
-              <Badge className="ml-auto" variant="ghost">
+              <Badge className="ml-auto" variant="secondary">
                 {item.source}
               </Badge>
             </div>

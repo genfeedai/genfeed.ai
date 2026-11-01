@@ -1,0 +1,71 @@
+{
+  "files": {
+    "apps/marketing/app/(content)/articles/[slug]/article-detail.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookAnalysisSection.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperResultCard.tsx": {
+      "badge-restyle": 4
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/HighlightReviewCard.tsx": {
+      "badge-restyle": 3
+    },
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorLockedBanner.tsx": {
+      "alert-restyle": 1
+    },
+    "apps/web/app/(protected)/admin/configuration/elements/styles/styles-list.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/app/(protected)/admin/configuration/presets/presets-list-columns.tsx": {
+      "badge-restyle": 3
+    },
+    "apps/web/src/components/analytics/trends/trending-hashtags.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/components/analytics/trends/trending-sounds.tsx": {
+      "badge-restyle": 2
+    },
+    "apps/web/src/components/evaluation/seo-scorecard/SeoScorecard.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/components/modals/gallery/ModalGalleryHeader.tsx": {
+      "alert-restyle": 1
+    },
+    "apps/web/src/components/modals/gallery/items/ModalGalleryItemImage.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/components/modals/models/ModalModelFormContent.tsx": {
+      "badge-restyle": 2
+    },
+    "apps/web/src/components/modals/trainings/TrainingFileList.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/features/activities/components/ActivityStatusCell.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/features/analytics/top-videos/brand-top-videos-section.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/features/models/components/models/ModelDetailPanel.tsx": {
+      "badge-restyle": 2
+    },
+    "apps/web/src/features/trends/detail/trend-detail.tsx": {
+      "badge-restyle": 1
+    },
+    "apps/web/src/features/workflows/components/ui/badge/NodeBadge.tsx": {
+      "badge-restyle": 1
+    },
+    "packages/agent/src/components/AgentArchivedComposerBar.tsx": {
+      "alert-restyle": 1
+    },
+    "packages/agent/src/components/AgentComposerStatusStack.tsx": {
+      "alert-restyle": 1
+    }
+  },
+  "version": 1
+}

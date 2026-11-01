@@ -109,8 +109,10 @@ function SettingsCreditsContent() {
         </Card>
       ) : error ? (
         <Card label={translate('balance')} bodyClassName="gap-3 p-4">
-          <Alert variant="destructive">
-            <TriangleAlert aria-hidden="true" className="size-4" />
+          <Alert
+            variant="destructive"
+            icon={<TriangleAlert aria-hidden="true" className="size-4" />}
+          >
             <AlertDescription>{translate('loadError')}</AlertDescription>
           </Alert>
           <Button
@@ -125,8 +127,10 @@ function SettingsCreditsContent() {
       ) : creditsBreakdown ? (
         <Card label={translate('balance')} bodyClassName="gap-4 p-5">
           {isLowCredits && (
-            <Alert variant="warning">
-              <TriangleAlert aria-hidden="true" className="size-4" />
+            <Alert
+              variant="warning"
+              icon={<TriangleAlert aria-hidden="true" className="size-4" />}
+            >
               <AlertDescription>
                 {translate('lowCreditsWarning')}
               </AlertDescription>

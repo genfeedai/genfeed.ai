@@ -1,13 +1,12 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/contracts';
 import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
-import Alert from '@ui/feedback/alert/Alert';
 import type { BrandOverlayRecord } from '@ui/modals/brands/brand/ModalBrand.types';
+import { Alert } from '@ui/primitives/alert';
 import BrandDetailBanner from '@/features/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@/features/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@/features/brands/components/overview/BrandDetailOverview';
@@ -54,7 +53,7 @@ export default function BrandOverviewPanel({
   return (
     <div className="space-y-4">
       {error ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div>{error}</div>
         </Alert>
       ) : null}

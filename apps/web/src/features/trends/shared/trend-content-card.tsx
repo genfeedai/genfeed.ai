@@ -19,8 +19,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   buildSourcePostVariationsHref,
@@ -46,7 +46,7 @@ import { getSafeExternalUrl } from '@/features/trends/shared/safe-external-url';
 
 function getViralityVariant(
   score: number,
-): 'ghost' | 'info' | 'success' | 'warning' {
+): 'secondary' | 'info' | 'success' | 'warning' {
   if (score >= 75) {
     return 'success';
   }
@@ -56,7 +56,7 @@ function getViralityVariant(
   if (score >= 25) {
     return 'warning';
   }
-  return 'ghost';
+  return 'secondary';
 }
 
 function toTrendItem(item: TrendContentItem): TrendItem {
@@ -336,7 +336,7 @@ export default function TrendContentCard({
               <Zap className="size-3" />
               {item.trendViralityScore}
             </Badge>
-            <Badge variant="ghost">
+            <Badge variant="secondary">
               {item.sourcePreviewState === 'live'
                 ? translate('sourceStatus.live')
                 : translate('sourceStatus.fallback')}
@@ -368,7 +368,7 @@ export default function TrendContentCard({
 
         <div className="flex flex-wrap gap-2">
           {item.matchedTrends.map((trendTopic) => (
-            <Badge key={`${item.id}-${trendTopic}`} variant="ghost">
+            <Badge key={`${item.id}-${trendTopic}`} variant="secondary">
               {trendTopic}
             </Badge>
           ))}

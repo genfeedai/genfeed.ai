@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -12,7 +12,7 @@ import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -155,7 +155,7 @@ export default function IngredientTabsTags({
             {tags.map((tag) => (
               <Badge
                 key={tag.id}
-                size={ComponentSize.LG}
+                size="lg"
                 className="gap-2"
                 style={libraryTagStyle(tag)}
               >

@@ -13,11 +13,11 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -274,7 +274,7 @@ export default function AgentFailuresPage() {
         {state === 'loading' ? (
           <LazyLoadingFallback variant="grid" />
         ) : state === 'error' ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" icon={false}>
             <AlertDescription>{translate('loadError')}</AlertDescription>
             <Button label={translate('retry')} onClick={refreshFailures} />
           </Alert>

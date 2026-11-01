@@ -1,15 +1,15 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   createPublishingApprovalsRoute,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Copy, GitBranch, Megaphone, Send } from 'lucide-react';
 import NextImage from 'next/image';
@@ -118,7 +118,7 @@ export default function StoryboardRunPanel({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{formatLabel(run.phase)}</Badge>
-            <Badge variant="ghost">{run.brand.name}</Badge>
+            <Badge variant="secondary">{run.brand.name}</Badge>
             <span className="text-xs text-muted-foreground">
               {translate('run.recipeRevision', {
                 recipeVersion: run.recipeVersion,
@@ -165,14 +165,12 @@ export default function StoryboardRunPanel({
         />
       ) : null}
 
-      {error ? <Alert type={AlertCategory.ERROR}>{error}</Alert> : null}
+      {error ? <Alert variant="destructive">{error}</Alert> : null}
 
       {run.readiness.state !== 'ready' ? (
         <Alert
-          type={
-            run.readiness.state === 'blocked'
-              ? AlertCategory.ERROR
-              : AlertCategory.WARNING
+          variant={
+            run.readiness.state === 'blocked' ? 'destructive' : 'warning'
           }
         >
           <div className="space-y-1">
@@ -236,7 +234,10 @@ export default function StoryboardRunPanel({
 
       <div className="flex flex-wrap gap-2">
         {run.draft.references.map((reference) => (
-          <Badge key={`${reference.assetId}:${reference.role}`} variant="ghost">
+          <Badge
+            key={`${reference.assetId}:${reference.role}`}
+            variant="secondary"
+          >
             {formatLabel(reference.role)} · {formatLabel(reference.source)}
           </Badge>
         ))}
@@ -251,9 +252,7 @@ export default function StoryboardRunPanel({
             })}
           </p>
           {run.execution.partialReason ? (
-            <Alert type={AlertCategory.WARNING}>
-              {run.execution.partialReason}
-            </Alert>
+            <Alert variant="warning">{run.execution.partialReason}</Alert>
           ) : null}
           <div className="divide-y divide-border border-y border-border">
             {run.execution.variants.map((variant, index) => (
@@ -328,7 +327,9 @@ export default function StoryboardRunPanel({
                   ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Badge variant="ghost">{formatLabel(variant.status)}</Badge>
+                  <Badge variant="secondary">
+                    {formatLabel(variant.status)}
+                  </Badge>
                   {variant.status === 'ready' &&
                   (variant.content || variant.assetIds.length > 0) ? (
                     <Button
@@ -404,13 +405,11 @@ export default function StoryboardRunPanel({
       ) : null}
 
       {isMetaHandoffUnavailable ? (
-        <Alert type={AlertCategory.INFO}>
-          {translate('run.metaHandoffUnavailable')}
-        </Alert>
+        <Alert variant="info">{translate('run.metaHandoffUnavailable')}</Alert>
       ) : null}
 
       {run.paidDraft ? (
-        <Alert type={AlertCategory.SUCCESS}>
+        <Alert variant="success">
           {translate('run.paidDraftSummary', {
             adId: run.paidDraft.adId,
             adSetId: run.paidDraft.adSetId,

@@ -2,12 +2,7 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
@@ -19,11 +14,11 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image, Pencil } from 'lucide-react';
@@ -125,11 +120,7 @@ export default function TrainingDetail({
       {
         badge:
           training?.totalGeneratedImages !== undefined ? (
-            <Badge
-              value={training.totalGeneratedImages}
-              variant="info"
-              size={ComponentSize.SM}
-            />
+            <Badge value={training.totalGeneratedImages} variant="info" />
           ) : undefined,
         href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}`,
         icon: Image,
@@ -138,11 +129,7 @@ export default function TrainingDetail({
       {
         badge:
           training?.totalSources !== undefined ? (
-            <Badge
-              value={training.totalSources}
-              variant="secondary"
-              size={ComponentSize.SM}
-            />
+            <Badge value={training.totalSources} variant="secondary" />
           ) : undefined,
         href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
         icon: Database,

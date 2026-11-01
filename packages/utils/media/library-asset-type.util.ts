@@ -16,7 +16,11 @@ export type LibraryAssetTypeId =
   | 'voice'
   | 'text';
 
-export type LibraryAssetBadgeVariant = LibraryAssetTypeId;
+export type LibraryAssetBadgeVariant =
+  | 'default'
+  | 'info'
+  | 'success'
+  | 'warning';
 
 export interface LibraryAssetType {
   readonly badgeVariant: LibraryAssetBadgeVariant;
@@ -27,43 +31,43 @@ export interface LibraryAssetType {
 
 export const LIBRARY_ASSET_TYPES: readonly LibraryAssetType[] = [
   {
-    badgeVariant: 'image',
+    badgeVariant: 'info',
     categories: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
     id: 'image',
     label: 'Image',
   },
   {
-    badgeVariant: 'video',
+    badgeVariant: 'default',
     categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
     id: 'video',
     label: 'Video',
   },
   {
-    badgeVariant: 'gif',
+    badgeVariant: 'info',
     categories: [IngredientCategory.GIF],
     id: 'gif',
     label: 'GIF',
   },
   {
-    badgeVariant: 'avatar',
+    badgeVariant: 'info',
     categories: [IngredientCategory.AVATAR],
     id: 'avatar',
     label: 'Avatar',
   },
   {
-    badgeVariant: 'audio',
+    badgeVariant: 'warning',
     categories: [IngredientCategory.MUSIC, IngredientCategory.AUDIO],
     id: 'audio',
     label: 'Audio',
   },
   {
-    badgeVariant: 'voice',
+    badgeVariant: 'warning',
     categories: [IngredientCategory.VOICE],
     id: 'voice',
     label: 'Voice',
   },
   {
-    badgeVariant: 'text',
+    badgeVariant: 'success',
     categories: [IngredientCategory.TEXT],
     id: 'text',
     label: 'Text',

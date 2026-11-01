@@ -14,7 +14,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
 import Image from 'next/image';
@@ -254,7 +254,7 @@ export default function ArticleDetail({
             <header className="mb-6 md:mb-8">
               {article.category && (
                 <Badge
-                  variant="primary"
+                  variant="default"
                   className="mb-3 bg-foreground/20 text-foreground border-foreground/20 md:mb-4 md:text-sm"
                 >
                   {article.category}

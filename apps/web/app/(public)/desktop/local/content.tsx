@@ -228,7 +228,7 @@ export default function LocalDesktopContent() {
         ) : (
           <>
             {error ? (
-              <Alert variant="destructive">
+              <Alert variant="destructive" icon={false}>
                 <AlertTitle>{translate('errors.title')}</AlertTitle>
                 <AlertDescription className="space-y-3">
                   <p>{error}</p>

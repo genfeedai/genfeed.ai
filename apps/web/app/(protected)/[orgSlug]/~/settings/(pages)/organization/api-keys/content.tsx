@@ -641,8 +641,10 @@ function AuthorizedApiKeysContent({
                 {translate('list.loading')}
               </p>
             ) : hasProductKeysLoadError ? (
-              <Alert variant="destructive">
-                <TriangleAlert className="size-4" aria-hidden="true" />
+              <Alert
+                variant="destructive"
+                icon={<TriangleAlert className="size-4" aria-hidden="true" />}
+              >
                 <AlertTitle>{translate('errors.loadTitle')}</AlertTitle>
                 <AlertDescription>
                   {translate('errors.loadDescription')}

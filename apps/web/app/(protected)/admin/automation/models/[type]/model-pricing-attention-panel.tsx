@@ -72,8 +72,11 @@ export default function ModelPricingAttentionPanel() {
       aria-label={t('attentionLabel')}
     >
       {red.length > 0 ? (
-        <Alert variant="destructive" data-testid="model-pricing-attention-red">
-          <CircleAlert aria-hidden="true" />
+        <Alert
+          variant="destructive"
+          data-testid="model-pricing-attention-red"
+          icon={<CircleAlert aria-hidden="true" className="size-4" />}
+        >
           <div className="col-start-2 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <AlertTitle>
@@ -111,8 +114,11 @@ export default function ModelPricingAttentionPanel() {
         </Alert>
       ) : null}
       {orange.length > 0 ? (
-        <Alert variant="warning" data-testid="model-pricing-attention-orange">
-          <TriangleAlert aria-hidden="true" />
+        <Alert
+          variant="warning"
+          data-testid="model-pricing-attention-orange"
+          icon={<TriangleAlert aria-hidden="true" className="size-4" />}
+        >
           <div className="col-start-2 flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <AlertTitle>

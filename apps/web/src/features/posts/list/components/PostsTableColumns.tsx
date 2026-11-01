@@ -14,11 +14,11 @@ import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Badge from '@ui/display/badge/Badge';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import EvalCell from './EvalCell';

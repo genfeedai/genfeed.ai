@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -51,9 +51,7 @@ export default function ModalTwitterThread({
         <DialogHeader>
           <DialogTitle className="font-bold text-lg">
             Twitter Thread Preview{' '}
-            <Badge variant="outline" size={ComponentSize.SM}>
-              {thread.totalTweets} tweets
-            </Badge>
+            <Badge variant="outline">{thread.totalTweets} tweets</Badge>
           </DialogTitle>
         </DialogHeader>
 
@@ -62,9 +60,7 @@ export default function ModalTwitterThread({
             {thread.tweets.map((tweet) => (
               <div key={tweet.order} className="p-4 bg-muted shadow-border">
                 <div className="flex justify-between items-start mb-2">
-                  <Badge size={ComponentSize.SM} variant="outline">
-                    Tweet {tweet.order}
-                  </Badge>
+                  <Badge variant="outline">Tweet {tweet.order}</Badge>
                   <span className="text-xs text-foreground/60">
                     {tweet.characterCount}/280
                   </span>

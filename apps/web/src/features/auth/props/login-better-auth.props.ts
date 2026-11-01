@@ -1,10 +1,10 @@
-import type { AlertCategory } from '@genfeedai/contracts';
+import type { AlertProps } from '@ui/primitives/alert';
 
 export type LoginMode = 'chooser' | 'magic-link' | 'password';
 
 export type InvitationNotice = {
   message: string;
-  type: AlertCategory;
+  variant: NonNullable<AlertProps['variant']>;
 };
 
 export interface LoginBetterAuthProps {

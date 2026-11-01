@@ -3,8 +3,8 @@ import type { ExternalVoice } from '@models/elements/external-voice.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { VoicesCatalogTableProps as Props } from '@/features/admin/props/voices.props';
 

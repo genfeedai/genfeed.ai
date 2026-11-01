@@ -3,7 +3,6 @@
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   Platform,
   PostStatus,
 } from '@genfeedai/contracts';
@@ -23,7 +22,7 @@ import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-ico
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -66,7 +65,7 @@ function getPostMediaUrls(post: IPost): string[] {
 function getStatusPresentation(status: string): {
   canonicalStatus: string;
   label: string;
-  variant: 'success' | 'info' | 'warning' | 'destructive' | 'ghost';
+  variant: 'success' | 'info' | 'warning' | 'destructive' | 'secondary';
 } {
   switch (status.toLowerCase()) {
     case PostStatus.PUBLIC:
@@ -106,7 +105,11 @@ function getStatusPresentation(status: string): {
         variant: 'warning',
       };
     default:
-      return { canonicalStatus: 'planned', label: status, variant: 'ghost' };
+      return {
+        canonicalStatus: 'planned',
+        label: status,
+        variant: 'secondary',
+      };
   }
 }
 
@@ -397,7 +400,6 @@ const PostsGrid = memo(
                   <Badge
                     status={statusPresentation.canonicalStatus}
                     variant={statusPresentation.variant}
-                    size={ComponentSize.SM}
                   >
                     {statusPresentation.label}
                   </Badge>

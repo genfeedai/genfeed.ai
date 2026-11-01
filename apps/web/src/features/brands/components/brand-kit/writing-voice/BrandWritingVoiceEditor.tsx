@@ -124,7 +124,7 @@ export default function BrandWritingVoiceEditor({
               </p>
             ) : null}
             {voiceCorpus?.guidance ? (
-              <Alert variant="warning">
+              <Alert variant="warning" icon={false}>
                 <AlertTitle>{translate('corpus.notEnoughPosts')}</AlertTitle>
                 <AlertDescription className="text-xs leading-5">
                   {voiceCorpus.guidance}

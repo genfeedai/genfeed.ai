@@ -2,8 +2,8 @@
 
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -56,7 +56,7 @@ export default function SkillDetailPanel({
             <>
               <Badge variant="outline">{selectedSkill.slug}</Badge>
               {selectedSkill.version ? (
-                <Badge variant="ghost">
+                <Badge variant="secondary">
                   {translate('detail.version', {
                     version: selectedSkill.version,
                   })}

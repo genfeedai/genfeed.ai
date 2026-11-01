@@ -564,7 +564,11 @@ export default function BrandSettingsPublishingPage() {
           />
 
           {showApprovalGateNote ? (
-            <Alert data-testid="publish-approval-gate-note" variant="info">
+            <Alert
+              data-testid="publish-approval-gate-note"
+              variant="info"
+              icon={false}
+            >
               <AlertTitle>{translate('approvalGate.title')}</AlertTitle>
               <AlertDescription>
                 {translate('approvalGate.description')}

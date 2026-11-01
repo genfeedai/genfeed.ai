@@ -3,10 +3,10 @@
 import { AgentThreadUpdateNotice } from '@genfeedai/agent/components/AgentThreadUpdateNotice';
 import { isThreadGoneError } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { ArchiveRestore } from 'lucide-react';
@@ -66,10 +66,7 @@ export function AgentArchivedComposerBar({
         bodyClassName="flex min-w-0 flex-col gap-2"
         data-testid="agent-archived-composer-bar"
       >
-        <Alert
-          type={AlertCategory.WARNING}
-          className="border-0 bg-transparent p-0"
-        >
+        <Alert variant="warning" className="border-0 bg-transparent p-0">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <p className="min-w-0 text-sm leading-5 text-foreground">
               {message}

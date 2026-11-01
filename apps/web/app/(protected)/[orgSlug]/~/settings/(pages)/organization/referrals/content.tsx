@@ -10,8 +10,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
@@ -65,8 +65,10 @@ export default function SettingsReferralsPage() {
       <div className="flex flex-col gap-4 pb-10">
         <h1 className="sr-only">{translate('title')}</h1>
         <Card label={translate('title')} bodyClassName="gap-4 p-4">
-          <Alert variant="destructive">
-            <TriangleAlert className="size-4" aria-hidden="true" />
+          <Alert
+            variant="destructive"
+            icon={<TriangleAlert className="size-4" aria-hidden="true" />}
+          >
             <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
             <AlertDescription>
               <p>{translate('loadErrorDescription')}</p>

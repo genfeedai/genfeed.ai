@@ -20,10 +20,10 @@ import type {
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Badge } from '@ui/primitives/badge';
 import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';

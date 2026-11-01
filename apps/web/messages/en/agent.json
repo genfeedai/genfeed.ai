@@ -2,6 +2,9 @@
   "nextSteps": {
     "start": "Start"
   },
+  "conversationError": {
+    "dismissAriaLabel": "Dismiss alert"
+  },
   "timeline": {
     "thinking": "Thinking",
     "worked": "Worked",

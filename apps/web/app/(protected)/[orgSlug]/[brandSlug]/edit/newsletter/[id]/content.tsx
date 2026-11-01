@@ -2,8 +2,8 @@
 
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Badge } from '@ui/primitives/badge';
 import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';

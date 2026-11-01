@@ -8,7 +8,7 @@ import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Music, Play, TrendingUp } from 'lucide-react';

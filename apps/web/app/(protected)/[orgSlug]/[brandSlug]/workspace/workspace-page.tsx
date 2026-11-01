@@ -2,15 +2,15 @@
 
 import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Check, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -370,7 +370,7 @@ function WorkspacePageContentContent({
       }
     >
       {inboxRead.state.isError || inboxRead.read.isError ? (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           {translate('inbox.readError')}
           <Button
             variant={ButtonVariant.GHOST}
@@ -390,13 +390,13 @@ function WorkspacePageContentContent({
         </Alert>
       ) : null}
       {workspaceActionError ? (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           {workspaceActionError}
         </Alert>
       ) : null}
 
       {workspaceLoadWarning ? (
-        <Alert type={AlertCategory.WARNING} className="mb-4">
+        <Alert variant="warning" className="mb-4">
           {workspaceLoadWarning}
         </Alert>
       ) : null}

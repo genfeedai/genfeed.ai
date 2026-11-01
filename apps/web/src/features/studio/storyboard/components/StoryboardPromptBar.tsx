@@ -1,9 +1,9 @@
 'use client';
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import Alert from '@ui/feedback/alert/Alert';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import type { StoryboardPromptBarProps } from '@/features/studio/props/storyboard.props';
@@ -29,7 +29,7 @@ export default function StoryboardPromptBar({
       topContent={
         error ? (
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Alert type={AlertCategory.ERROR}>{error}</Alert>
+            <Alert variant="destructive">{error}</Alert>
             <Button
               label={translate('retry')}
               size={ButtonSize.SM}

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -20,10 +15,10 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
-import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { format } from 'date-fns';
@@ -220,11 +215,7 @@ function useCampaignFacts(campaign: AgentCampaign): string {
 function CampaignStatusBadge({ campaign }: AgentCampaignItemProps) {
   const translate = useTranslations('common.agentCampaign.status');
 
-  return (
-    <Badge status={campaign.status} size={ComponentSize.SM}>
-      {translate(campaign.status)}
-    </Badge>
-  );
+  return <Badge status={campaign.status}>{translate(campaign.status)}</Badge>;
 }
 
 function CampaignActions({

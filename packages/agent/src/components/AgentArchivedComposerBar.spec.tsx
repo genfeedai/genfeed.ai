@@ -15,8 +15,8 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   },
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: function MockAlert(props: { children?: React.ReactNode }) {
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: function MockAlert(props: { children?: React.ReactNode }) {
     return <div role="alert">{props.children}</div>;
   },
 }));

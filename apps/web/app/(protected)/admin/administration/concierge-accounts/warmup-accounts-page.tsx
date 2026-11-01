@@ -12,10 +12,10 @@ import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -57,13 +57,19 @@ const WARMUP_SKELETON_KEYS = [
 const STATUS_META: Record<
   IWarmupAccountStatus,
   {
-    variant: 'error' | 'ghost' | 'info' | 'outline' | 'success' | 'warning';
+    variant:
+      | 'destructive'
+      | 'secondary'
+      | 'info'
+      | 'outline'
+      | 'success'
+      | 'warning';
   }
 > = {
-  ARCHIVED: { variant: 'ghost' },
+  ARCHIVED: { variant: 'secondary' },
   CLAIMED: { variant: 'success' },
   DRAFT: { variant: 'outline' },
-  FAILED: { variant: 'error' },
+  FAILED: { variant: 'destructive' },
   INVITED: { variant: 'success' },
   PROVISIONED: { variant: 'info' },
   PROVISIONING: { variant: 'warning' },
@@ -959,7 +965,9 @@ function WarmupAccountDetail({
                 key={`${step.timestamp}-${step.message}-${index}`}
                 className="flex gap-3 text-sm"
               >
-                <Badge variant={step.status === 'failed' ? 'error' : 'outline'}>
+                <Badge
+                  variant={step.status === 'failed' ? 'destructive' : 'outline'}
+                >
                   {step.status}
                 </Badge>
                 <div>

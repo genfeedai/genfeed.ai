@@ -117,6 +117,7 @@
     "check:runtime-complexity": "bun run scripts/architecture/check-runtime-complexity.ts --full --ratchet",
     "check:runtime-complexity:update": "bun run scripts/architecture/check-runtime-complexity.ts --full --update-ratchet",
     "check:design-system": "bun run scripts/check-design-system.ts",
+    "check:ui-hand-built": "bun run scripts/ui/hand-built/check-hand-built.ts",
     "check:desktop-schema-drift": "bun run scripts/check-desktop-schema-drift.ts",
     "check:generated-source": "bun run scripts/check-generated-source-artifacts.ts",
     "check:serializer-drift": "bun run scripts/check-serializer-drift.ts",

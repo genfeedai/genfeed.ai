@@ -13,8 +13,11 @@ export default function EditorLockedBanner({
   const t = useTranslations('pages.studioEditorLock');
 
   return (
-    <Alert variant="info" className="rounded-none border-x-0 border-t-0">
-      <Lock aria-hidden="true" />
+    <Alert
+      variant="info"
+      className="rounded-none border-x-0 border-t-0"
+      icon={<Lock aria-hidden="true" className="size-4" />}
+    >
       <AlertTitle>{t('title')}</AlertTitle>
       <AlertDescription>
         <p>{hasSaveConflict ? t('conflictDescription') : t('description')}</p>

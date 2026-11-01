@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, PostStatus } from '@genfeedai/contracts';
+import { PostStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
@@ -11,8 +11,8 @@ import {
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
-import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { ExternalLink, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -153,10 +153,7 @@ export default function AdminPostsTable({
           return (
             <div className="flex max-w-48 flex-col gap-1">
               <div>
-                <Badge
-                  status={presentation?.canonicalStatus ?? 'planned'}
-                  size={ComponentSize.SM}
-                >
+                <Badge status={presentation?.canonicalStatus ?? 'planned'}>
                   {statusLabel}
                 </Badge>
               </div>
