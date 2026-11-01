@@ -1,18 +1,11 @@
 import { AssetScope } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Badge } from '@ui/primitives/badge';
-import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 import { Building2, Globe, Lock, Tag } from 'lucide-react';
 import type { ComponentType } from 'react';
-import type {
-  ScopeBadgeProps,
-  ScopeIconProps,
-  ScopeSelectorProps,
-} from '@/props/components/scope-selector.props';
+import type { ScopeSelectorProps } from '@/props/components/scope-selector.props';
 
 const SCOPE_ICONS: Record<AssetScope, ComponentType<{ className?: string }>> = {
   [AssetScope.USER]: Lock,
@@ -153,76 +146,3 @@ export function ScopeSelector({
     </fieldset>
   );
 }
-
-/**
- * Scope Badge Component
- *
- * Displays a badge showing the current scope of an asset.
- *
- * @example
- * ```tsx
- * <ScopeBadge scope={ingredient.scope} />
- * ```
- */
-
-export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
-  const option = SCOPE_OPTIONS.find((opt) => opt.value === scope);
-
-  if (!option) {
-    return null;
-  }
-
-  const variant = {
-    [AssetScope.USER]: 'secondary',
-    [AssetScope.BRAND]: 'info',
-    [AssetScope.ORGANIZATION]: 'success',
-    [AssetScope.PUBLIC]: 'default',
-  }[scope] as BadgeVariant;
-
-  return (
-    <Badge
-      casing="normal"
-      className={className}
-      shape="pill"
-      size="lg"
-      variant={variant}
-    >
-      {option.label}
-    </Badge>
-  );
-}
-
-/**
- * Scope Icon Component
- *
- * Displays just the icon for a scope (for compact views).
- *
- * @example
- * ```tsx
- * <ScopeIcon scope={ingredient.scope} />
- * ```
- */
-
-export function ScopeIcon({
-  scope,
-  className = '',
-  showTooltip = true,
-}: ScopeIconProps) {
-  const option = SCOPE_OPTIONS.find((opt) => opt.value === scope);
-
-  if (!option) {
-    return null;
-  }
-
-  return (
-    <SimpleTooltip
-      label={showTooltip ? `${option.label}: ${option.description}` : undefined}
-    >
-      <span className={`${className}`}>{option.label.charAt(0)}</span>
-    </SimpleTooltip>
-  );
-}
-
-export type { AssetScope };
-// Export scope options for reuse
-export { SCOPE_OPTIONS };

@@ -1,5 +1,4 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import Spinner from '@ui/primitives/spinner';
 import { MessageSquare, TriangleAlert } from 'lucide-react';

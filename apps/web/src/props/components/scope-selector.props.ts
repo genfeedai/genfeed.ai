@@ -10,14 +10,3 @@ export interface ScopeSelectorProps {
   variant?: ScopeSelectorVariant;
   showLabel?: boolean;
 }
-
-export interface ScopeBadgeProps {
-  scope: AssetScope;
-  className?: string;
-}
-
-export interface ScopeIconProps {
-  scope: AssetScope;
-  className?: string;
-  showTooltip?: boolean;
-}

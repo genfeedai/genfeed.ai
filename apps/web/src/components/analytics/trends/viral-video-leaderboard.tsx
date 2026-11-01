@@ -7,7 +7,6 @@ import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Skeleton } from '@ui/primitives/skeleton';
