@@ -2,6 +2,10 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AdminOrganizationMembersController } from '@api/endpoints/admin/organization-members/organization-members.controller';
 import { AdminOrganizationMembersService } from '@api/endpoints/admin/organization-members/organization-members.service';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -18,6 +22,16 @@ interface FakeMember {
 interface FakeUser {
   email: string;
   id: string;
+}
+
+/** Mirrors the Prisma tenant guard: a scoped query must run in its own tenant. */
+function assertTenant(organizationId: string) {
+  const tenant = getTenantContext()?.organizationId;
+  if (tenant !== organizationId) {
+    throw new Error(
+      `Tenant isolation: query used organizationId ${organizationId} but the request tenant is ${tenant}`,
+    );
+  }
 }
 
 /** An in-memory stand-in for the slice of Prisma the service reads and writes. */
@@ -43,12 +57,16 @@ function createFakeDatabase(options: { hasBrand?: boolean } = {}) {
         where,
       }: {
         where: { organizationId: string; userId: string };
-      }) =>
-        members.find(
-          (member) =>
-            member.organizationId === where.organizationId &&
-            member.userId === where.userId,
-        ) ?? null,
+      }) => {
+        assertTenant(where.organizationId);
+        return (
+          members.find(
+            (member) =>
+              member.organizationId === where.organizationId &&
+              member.userId === where.userId,
+          ) ?? null
+        );
+      },
       updateMany: async ({
         data,
         where,
@@ -134,6 +152,18 @@ describe('admin organization members', () => {
       isUserCreated: true,
       roleKey: 'admin',
     });
+  });
+
+  it('adds a member while the caller is in a different operator tenant', async () => {
+    const { controller, members } = createController();
+
+    const { data } = await runWithTenantContext(
+      { organizationId: 'operator-org' },
+      () => controller.add('org-1', { email: 'design@example.com' }),
+    );
+
+    expect(data.organizationId).toBe('org-1');
+    expect(members.map((member) => member.organizationId)).toEqual(['org-1']);
   });
 
   it('is idempotent: a repeat call reuses the user and reactivates the same member', async () => {
