@@ -3,6 +3,7 @@
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar } from '@ui/primitives/avatar';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Globe, Mail, Share2 } from 'lucide-react';
 import type { PublishingContentChannelsProps } from '@/features/posts/props/publishing-content-entry.props';
 import { formatPublishingContentChannel } from './publishing-content-library.helpers';
@@ -57,15 +58,16 @@ export default function PublishingContentChannels({
           (channel === 'email' ? Mail : channel === 'web' ? Globe : Share2);
         const label = formatPublishingContentChannel(channel);
         return (
-          <span
-            key={channel}
-            role="img"
-            aria-label={label}
-            title={label}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background"
-          >
-            <Icon className="size-4" />
-          </span>
+          <SimpleTooltip label={label}>
+            <span
+              key={channel}
+              role="img"
+              aria-label={label}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background"
+            >
+              <Icon className="size-4" />
+            </span>
+          </SimpleTooltip>
         );
       })}
       {uniqueChannels.length > MAX_VISIBLE_CHANNELS ? (

@@ -50,6 +50,7 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -303,28 +304,27 @@ function IngredientLedgerAssetCell({
             {label || 'Untitled asset'}
           </Link>
         ) : (
-          <span
-            className="truncate text-sm font-medium"
-            title={label || undefined}
-          >
-            {label || 'Untitled asset'}
-          </span>
+          <SimpleTooltip label={label || undefined}>
+            <span className="truncate text-sm font-medium">
+              {label || 'Untitled asset'}
+            </span>
+          </SimpleTooltip>
         )}
         {failureReason ? (
-          <span
-            className="truncate text-xs text-destructive"
-            data-testid={`ingredient-failure-reason-${ingredient.id}`}
-            title={failureReason}
-          >
-            {failureReason}
-          </span>
+          <SimpleTooltip label={failureReason}>
+            <span
+              className="truncate text-xs text-destructive"
+              data-testid={`ingredient-failure-reason-${ingredient.id}`}
+            >
+              {failureReason}
+            </span>
+          </SimpleTooltip>
         ) : promptText ? (
-          <span
-            className="truncate text-xs text-muted-foreground"
-            title={promptText}
-          >
-            {promptText}
-          </span>
+          <SimpleTooltip label={promptText}>
+            <span className="truncate text-xs text-muted-foreground">
+              {promptText}
+            </span>
+          </SimpleTooltip>
         ) : null}
       </div>
       {isAudio ? (
@@ -552,9 +552,9 @@ export default function IngredientsListContent({
 
           return (
             <div className="flex w-20 min-w-0 max-w-20 flex-col">
-              <span className="truncate text-sm" title={modelLabel}>
-                {modelLabel}
-              </span>
+              <SimpleTooltip label={modelLabel}>
+                <span className="truncate text-sm">{modelLabel}</span>
+              </SimpleTooltip>
               {providerLabel ? (
                 <span className="truncate text-xs text-muted-foreground">
                   {providerLabel}
@@ -576,12 +576,11 @@ export default function IngredientsListContent({
           }
 
           return (
-            <span
-              className="block truncate text-xs tabular-nums text-foreground/70"
-              title={sizeLabel}
-            >
-              {sizeLabel}
-            </span>
+            <SimpleTooltip label={sizeLabel}>
+              <span className="block truncate text-xs tabular-nums text-foreground/70">
+                {sizeLabel}
+              </span>
+            </SimpleTooltip>
           );
         },
       },

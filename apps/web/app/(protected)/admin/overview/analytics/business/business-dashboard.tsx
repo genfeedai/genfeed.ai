@@ -13,6 +13,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
 import { Alert } from '@ui/primitives/alert';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 import type {
   ComparisonCardProps,
@@ -138,16 +139,14 @@ function DailySeriesChart({
           const value = (point[valueKey] as number) ?? 0;
           const height = (value / maxValue) * 100;
           return (
-            <div
-              key={point.date}
-              className="group relative flex-1"
-              title={`${point.date}: ${formatter(value)}`}
-            >
-              <div
-                className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
-                style={{ height: `${Math.max(height, 2)}%` }}
-              />
-            </div>
+            <SimpleTooltip label={`${point.date}: ${formatter(value)}`}>
+              <div key={point.date} className="group relative flex-1">
+                <div
+                  className="w-full rounded-t bg-primary/60 transition-colors group-hover:bg-primary"
+                  style={{ height: `${Math.max(height, 2)}%` }}
+                />
+              </div>
+            </SimpleTooltip>
           );
         })}
       </div>

@@ -131,9 +131,6 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewGrid.tsx": {
       "button-restyle": 3
     },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewInboxApprovalsTable.tsx": {
-      "button-restyle": 2
-    },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewInboxBulkBar.tsx": {
       "button-restyle": 2
     },
@@ -349,16 +346,10 @@
     "apps/web/src/components/shell/app-rail/AppRailMore.tsx": {
       "button-restyle": 2
     },
-    "apps/web/src/components/tags/badge/TagBadge.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/components/tags/dropdown/DropdownTagsPanel.tsx": {
       "unstyled-look": 3
     },
     "apps/web/src/components/tags/dropdown/DropdownTagsTrigger.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/web/src/components/tags/library-tag-picker/LibraryTagChip.tsx": {
       "unstyled-look": 1
     },
     "apps/web/src/components/tags/library-tag-picker/TagColorPicker.tsx": {
@@ -437,7 +428,7 @@
       "button-restyle": 1
     },
     "apps/web/src/features/ingredients/components/tabs/tags/IngredientTabsTags.tsx": {
-      "unstyled-look": 2
+      "unstyled-look": 1
     },
     "apps/web/src/features/ingredients/components/tags/manager/TagPickerDropdown.tsx": {
       "unstyled-look": 3
@@ -575,13 +566,13 @@
       "button-restyle": 2
     },
     "packages/agent/src/components/AgentChatInputAttachmentTray.tsx": {
-      "unstyled-look": 3
+      "unstyled-look": 2
     },
     "packages/agent/src/components/AgentChatMessage.tsx": {
       "button-restyle": 1
     },
     "packages/agent/src/components/AgentCliTerminal.tsx": {
-      "unstyled-look": 5
+      "unstyled-look": 4
     },
     "packages/agent/src/components/AgentCompletionSummaryCard.tsx": {
       "button-restyle": 4
@@ -619,9 +610,6 @@
     },
     "packages/agent/src/components/AgentStrategyStatus.tsx": {
       "unstyled-look": 1
-    },
-    "packages/agent/src/components/AgentThreadListEmptyState.tsx": {
-      "button-restyle": 1
     },
     "packages/agent/src/components/AgentThreadListErrorBanner.tsx": {
       "button-restyle": 1
@@ -748,12 +736,6 @@
     "packages/workflows/src/ui/components/GlobalImageHistory.tsx": {
       "button-restyle": 6
     },
-    "packages/workflows/src/ui/components/NotificationToast.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/components/context-menu/ContextMenuItem.tsx": {
-      "button-restyle": 2
-    },
     "packages/workflows/src/ui/nodes/BaseNode.tsx": {
       "button-restyle": 2
     },
@@ -785,7 +767,7 @@
       "button-restyle": 1
     },
     "packages/workflows/src/ui/toolbar/Toolbar.tsx": {
-      "button-restyle": 2
+      "button-restyle": 1
     },
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
       "button-restyle": 1
