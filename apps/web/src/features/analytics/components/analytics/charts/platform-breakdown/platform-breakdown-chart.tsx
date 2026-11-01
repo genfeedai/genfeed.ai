@@ -4,11 +4,11 @@ import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.he
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
-  ChartLoadingOverlay,
   chartPlatformColor,
   chartPlatformLabel,
 } from '@/features/analytics/components/analytics/charts/chart-theme';
@@ -59,7 +59,7 @@ export function PlatformBreakdownChart({
     <WorkspaceSurface density="compact" framed={false} title={title}>
       <Card className={className}>
         <div className="relative" style={{ height }}>
-          {isLoading && <ChartLoadingOverlay />}
+          {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
             <CardEmptyContent

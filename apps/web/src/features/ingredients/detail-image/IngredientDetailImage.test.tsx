@@ -67,12 +67,9 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
   default: () => <div data-testid="tabs" />,
 }));
 
-vi.mock(
-  '@/features/ingredients/components/loading/overlay/LoadingOverlay',
-  () => ({
-    default: () => <div data-testid="loading-overlay" />,
-  }),
-);
+vi.mock('@ui/primitives/loading-overlay', () => ({
+  default: () => <div data-testid="loading-overlay" />,
+}));
 
 vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({

@@ -63,6 +63,26 @@ const ctx = {
   userId: 'user-1',
 } as ToolExecutionContext;
 
+const slideshowPlan: StoryboardPlan = {
+  kind: 'slideshow',
+  videoModelKey: null,
+  title: 'Five habits',
+  logline: 'Swipe for five habits.',
+  format: '4:5',
+  runtimeBudgetSeconds: null,
+  styleReferenceAssetIds: [],
+  cast: [],
+  shots: ['a', 'b', 'c'].map((id, index) => ({
+    id: `slide-${id}`,
+    ordinal: index + 1,
+    action: `Habit ${id}`,
+    onScreenSpeaker: false,
+    durationSeconds: null,
+    stillFreshness: 'missing' as const,
+    transition: 'cut' as const,
+  })),
+};
+
 function setup(isAllowed = true) {
   const runs = {
     get: vi.fn(async () => storyboardRun(3)),
@@ -79,23 +99,175 @@ function setup(isAllowed = true) {
       if (!isAllowed) throw new ForbiddenException('Storyboard is not on.');
     }),
   };
+  const stills = {
+    generate: vi.fn(
+      async (_org: string, _brand: string, _run: string, _user: string) =>
+        storyboardRun(5, slideshowPlan),
+    ),
+    quote: vi.fn(async () => ({ credits: 9, inputHash: 'a'.repeat(64) })),
+  };
+  const slideshowPosts = {
+    createDraft: vi.fn(async () => ({ postId: 'post-1' })),
+  };
+  const slideshowRuns = {
+    ...runs,
+    get: vi.fn(async () => storyboardRun(3, slideshowPlan)),
+  };
   const handler = new AgentStoryboardToolHandler(
     runs as never,
-    {} as never,
+    stills as never,
     aRoll as never,
     {} as never,
     {} as never,
     {} as never,
     moduleAccess as never,
+    slideshowPosts as never,
   );
-  return { handler, runs };
+  const slideshowHandler = new AgentStoryboardToolHandler(
+    slideshowRuns as never,
+    stills as never,
+    aRoll as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    moduleAccess as never,
+    slideshowPosts as never,
+  );
+  return { handler, runs, slideshowHandler, stills };
 }
 
 describe('AgentStoryboardToolHandler', () => {
   it('routes only the long-form storyboard tools', () => {
     expect(isAgentStoryboardTool('storyboard_long_form')).toBe(true);
     expect(isAgentStoryboardTool('start_storyboard_long_form')).toBe(true);
+    expect(isAgentStoryboardTool('storyboard_slideshow')).toBe(true);
+    expect(isAgentStoryboardTool('start_storyboard_slideshow')).toBe(true);
     expect(isAgentStoryboardTool('generate')).toBe(false);
+  });
+
+  it('reads a slideshow as slides chat can reorder by id', async () => {
+    const { slideshowHandler } = setup();
+
+    const result = await slideshowHandler.execute(
+      'storyboard_slideshow',
+      { action: 'get', brandId: 'brand-1', runId: 'run-1' },
+      ctx,
+    );
+
+    expect(result.data).toMatchObject({
+      title: 'Five habits',
+      longForm: null,
+      slideshow: {
+        caption: 'Swipe for five habits.',
+        format: '4:5',
+        slides: [
+          { id: 'slide-a', description: 'Habit a', imageState: 'missing' },
+          { id: 'slide-b', description: 'Habit b', imageState: 'missing' },
+          { id: 'slide-c', description: 'Habit c', imageState: 'missing' },
+        ],
+      },
+    });
+  });
+
+  it('saves a new swipe order and drops the slides left out', async () => {
+    const { slideshowHandler } = setup();
+
+    const result = await slideshowHandler.execute(
+      'storyboard_slideshow',
+      {
+        action: 'edit_slides',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 3,
+        order: ['slide-c', 'slide-a'],
+        slides: [{ id: 'slide-a', description: 'A sharper habit' }],
+      },
+      ctx,
+    );
+
+    expect(
+      (result.data as { slideshow: { slides: unknown[] } }).slideshow.slides,
+    ).toMatchObject([
+      { id: 'slide-c', description: 'Habit c' },
+      { id: 'slide-a', description: 'A sharper habit' },
+    ]);
+  });
+
+  it('refuses an edit that names a slide the run does not have', async () => {
+    const { slideshowHandler } = setup();
+
+    const result = await slideshowHandler.execute(
+      'storyboard_slideshow',
+      {
+        action: 'edit_slides',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 3,
+        order: ['slide-z', 'slide-a'],
+      },
+      ctx,
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error: 'Unknown slide ids: slide-z',
+    });
+  });
+
+  it('quotes slides, starts the quoted images and saves only a draft post', async () => {
+    const { slideshowHandler } = setup();
+
+    const quote = await slideshowHandler.execute(
+      'storyboard_slideshow',
+      {
+        action: 'quote',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 3,
+        slideIds: ['slide-a'],
+      },
+      ctx,
+    );
+    const started = await slideshowHandler.execute(
+      'start_storyboard_slideshow',
+      {
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 5,
+        inputHash: 'a'.repeat(64),
+      },
+      ctx,
+    );
+    const post = await slideshowHandler.execute(
+      'storyboard_slideshow',
+      {
+        action: 'save_draft_post',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 5,
+      },
+      ctx,
+    );
+
+    expect(quote.data).toEqual({ credits: 9, inputHash: 'a'.repeat(64) });
+    expect(started).toMatchObject({ data: { revision: 5 } });
+    expect(post.data).toEqual({ executionState: 'draft', postId: 'post-1' });
+  });
+
+  it('rejects a slideshow start without a quote hash', async () => {
+    const result = await setup().slideshowHandler.execute(
+      'start_storyboard_slideshow',
+      {
+        brandId: 'brand-1',
+        runId: 'run-1',
+        expectedRevision: 5,
+        inputHash: 'short',
+      },
+      ctx,
+    );
+
+    expect(result).toMatchObject({ success: false, creditsUsed: 0 });
+    expect(result.error).toContain('Invalid storyboard input');
   });
 
   it('reads the run as a script chat can edit by id', async () => {
@@ -119,6 +291,7 @@ describe('AgentStoryboardToolHandler', () => {
         title: 'Why creators quit',
         animatic: null,
         presenter: null,
+        slideshow: null,
         longForm: {
           presenterId: 'presenter',
           runtimeBudgetSeconds: 20,

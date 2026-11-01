@@ -811,7 +811,16 @@ const FROZEN_MCP_PRESENTATIONS = [
     false,
     true,
   ],
+  [
+    'start_storyboard_slideshow',
+    'Start Storyboard Slideshow',
+    false,
+    true,
+    false,
+    true,
+  ],
   ['storyboard_long_form', 'Storyboard Long Form', false, true, false, false],
+  ['storyboard_slideshow', 'Storyboard Slideshow', false, true, false, false],
   [
     'storyboard_run_capabilities',
     'Storyboard Run Capabilities',
@@ -918,7 +927,7 @@ describe('MCP tool annotations', () => {
         tool?.annotations?.openWorldHint,
       ]).toEqual(row);
     }
-    expect(rows).toHaveLength(159);
+    expect(rows).toHaveLength(161);
     expect(rows.map((row) => row[0])).toEqual(expected.map((row) => row[0]));
     expect(rows).toEqual(expected);
   });
@@ -1123,6 +1132,7 @@ describe('MCP tool annotations', () => {
         tool.name === 'control_remix_generation' ||
         tool.name === 'replace_storyboard_character' ||
         tool.name === 'start_storyboard_long_form' ||
+        tool.name === 'start_storyboard_slideshow' ||
         publishing.has(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }

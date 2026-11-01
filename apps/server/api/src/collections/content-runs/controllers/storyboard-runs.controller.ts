@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import {
   ApproveStoryboardPlanDto,
   CreateStoryboardRunDto,
+  CreateStoryboardSlideshowPostDto,
   DraftStoryboardPlanDto,
   GenerateStoryboardStillsDto,
   ListStoryboardRunsDto,
@@ -21,6 +22,7 @@ import { StoryboardLongFormEstimateService } from '@api/collections/content-runs
 import { StoryboardLongFormTranslationService } from '@api/collections/content-runs/services/storyboard-long-form-translation.service';
 import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardSlideshowPostService } from '@api/collections/content-runs/services/storyboard-slideshow-post.service';
 import { StoryboardStillsService } from '@api/collections/content-runs/services/storyboard-stills.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
@@ -58,6 +60,7 @@ export class StoryboardRunsController {
     private readonly assembly: StoryboardLongFormAssemblyService,
     private readonly estimates: StoryboardLongFormEstimateService,
     private readonly translations: StoryboardLongFormTranslationService,
+    private readonly slideshowPosts: StoryboardSlideshowPostService,
   ) {}
 
   @Post()
@@ -232,6 +235,23 @@ export class StoryboardRunsController {
     @Body() body: TranslateStoryboardRunDto,
   ) {
     return this.translations.translate(
+      user.organizationId,
+      brandId,
+      runId,
+      user.userId,
+      body,
+    );
+  }
+
+  /** One draft post from an approved slideshow; never scheduled or published (#8896). */
+  @Post(':runId/slideshow/post')
+  createSlideshowPost(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+    @Body() body: CreateStoryboardSlideshowPostDto,
+  ) {
+    return this.slideshowPosts.createDraft(
       user.organizationId,
       brandId,
       runId,

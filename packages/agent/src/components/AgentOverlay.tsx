@@ -2,11 +2,17 @@ import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Sparkles, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from '@ui/primitives/dialog';
+import { Sparkles } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { type ReactElement, useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { type ReactElement, useState } from 'react';
 
 interface AgentOverlayProps {
   apiService: AgentApiService;
@@ -23,63 +29,40 @@ export function AgentOverlay({
   onNavigateToBilling,
   onOAuthConnect,
 }: AgentOverlayProps): ReactElement | null {
+  const translate = useTranslations('agent.chrome');
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-
-  const handleToggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-  }, []);
 
   if (pathname.startsWith(APP_ROUTES.AGENT.ROOT)) {
     return null;
   }
 
   return (
-    <>
-      {/* Toggle button — sits in a fixed position */}
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        onClick={handleToggle}
-        className={cn(
-          'fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-md shadow-lg transition-all duration-200',
-          isOpen
-            ? 'bg-foreground/10 text-foreground hover:bg-foreground/20'
-            : 'bg-primary text-primary-foreground hover:scale-105',
-        )}
-        aria-label={isOpen ? 'Close agent' : 'Open agent'}
-      >
-        {isOpen ? <X className="size-5" /> : <Sparkles className="size-5" />}
-      </Button>
-
-      {isOpen && (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {/* Launcher: a fixed button that opens the drawer. */}
+      <DialogTrigger asChild>
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          onClick={handleClose}
-          className={
-            'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm' /* design-system-allow-content-color */
-          }
-          aria-label="Close agent overlay"
-        />
-      )}
+          className="fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-lg transition-transform duration-200 hover:scale-105"
+          aria-label={translate('openAgent')}
+        >
+          <Sparkles className="size-5" />
+        </Button>
+      </DialogTrigger>
 
-      <aside
-        className={cn(
-          'fixed right-0 top-0 z-50 h-screen w-[400px] max-w-[90vw] border-l border-foreground/5 bg-background shadow-2xl transition-transform duration-300 ease-out',
-          isOpen ? 'translate-x-0' : 'translate-x-full',
-        )}
+      <DialogContent
+        aria-describedby={undefined}
+        className="w-[400px] max-w-[90vw] gap-0 border-l border-foreground/5 p-0"
+        placement="right"
       >
+        <DialogTitle className="sr-only">{translate('title')}</DialogTitle>
         <AgentPanel
           apiService={apiService}
           onNavigateToBilling={onNavigateToBilling}
           onOAuthConnect={onOAuthConnect}
         />
-      </aside>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

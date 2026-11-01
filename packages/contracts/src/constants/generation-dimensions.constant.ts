@@ -12,6 +12,7 @@ export const AGENT_GENERATION_ASPECT_RATIO_DIMENSIONS: Readonly<
   '1:1': { height: 1024, width: 1024 },
   '3:4': { height: 1365, width: 1024 },
   '4:3': { height: 768, width: 1024 },
+  '4:5': { height: 1280, width: 1024 },
   '9:16': { height: 1024, width: 576 },
   '16:9': { height: 576, width: 1024 },
 };

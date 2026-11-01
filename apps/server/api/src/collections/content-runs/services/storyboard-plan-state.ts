@@ -5,6 +5,8 @@ import {
 import { storyboardLongFormProblems } from '@api/collections/content-runs/services/storyboard-long-form-draft';
 import { storyboardStillInput } from '@api/collections/content-runs/services/storyboard-still-state';
 import {
+  isStoryboardSlideshow,
+  STORYBOARD_SLIDESHOW_LIMITS,
   type StoryboardPlan,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
@@ -170,10 +172,75 @@ export function assertStoryboardComplete(plan: StoryboardPlan): void {
     );
 }
 
+export type StoryboardVideoFormat = Exclude<StoryboardPlan['format'], '4:5'>;
+
+/** The frame shape of a video plan; a 4:5 slideshow has no video to frame. */
+export function storyboardVideoFormat(
+  plan: Pick<StoryboardPlan, 'format'>,
+): StoryboardVideoFormat {
+  if (plan.format === '4:5')
+    throw new ConflictException('A slideshow has no video.');
+  return plan.format;
+}
+
+/**
+ * A slideshow is ready when every slide is described and has a fresh still:
+ * approving it is the creator confirming the set looks consistent side by side.
+ */
+export function assertStoryboardSlideshowComplete(plan: StoryboardPlan): void {
+  const { minSlides, maxSlides } = STORYBOARD_SLIDESHOW_LIMITS;
+  if (plan.shots.length < minSlides || plan.shots.length > maxSlides)
+    throw new ConflictException(
+      `A slideshow needs ${minSlides}–${maxSlides} slides.`,
+    );
+  const pending = plan.shots.filter(
+    (shot) =>
+      !shot.action.trim() ||
+      shot.stillFreshness !== 'fresh' ||
+      !shot.stillAssetId,
+  );
+  if (pending.length)
+    throw new ConflictException(
+      `Described slides with fresh images are required for slides ${pending.map((shot) => shot.ordinal).join(', ')}.`,
+    );
+}
+
+/**
+ * Keeps an edited slideshow a slideshow: no runtime, and no durations,
+ * dialogue or transitions on its slides.
+ */
+export function normalizeStoryboardSlideshow(
+  plan: StoryboardPlan,
+): StoryboardPlan {
+  return storyboardPlanSchema.parse({
+    ...plan,
+    kind: 'slideshow',
+    longForm: undefined,
+    runtimeBudgetSeconds: null,
+    shots: plan.shots.map((shot) => ({
+      ...shot,
+      dialogue: undefined,
+      durationSeconds: null,
+      onScreenSpeaker: false,
+      speakerId: undefined,
+      transition: 'cut',
+    })),
+  });
+}
+
 export function approveStoryboardPlan(
   config: StoryboardStoredRunConfig,
 ): StoryboardStoredRunConfig {
   assertStoryboardEditable(config);
+  if (isStoryboardSlideshow(config.plan)) {
+    assertStoryboardSlideshowComplete(config.plan);
+    return {
+      ...config,
+      state: 'approved',
+      approvedRevision: config.revision,
+      quote: undefined,
+    };
+  }
   if (config.plan.longForm) {
     const problems = storyboardLongFormProblems(config.plan);
     if (problems.length) throw new ConflictException(problems.join(' '));

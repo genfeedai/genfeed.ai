@@ -1,9 +1,13 @@
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
-import type {
-  StoryboardCutaway,
-  StoryboardPlan,
+import {
+  isStoryboardSlideshow,
+  type StoryboardCutaway,
+  type StoryboardPlan,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import { DRAFT_GENERATION_CONFIG } from '@genfeedai/contracts/constants';
+import {
+  DRAFT_GENERATION_CONFIG,
+  SLIDESHOW_GENERATION_CONFIG,
+} from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -92,6 +96,7 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
       ...plan.styleReferenceAssetIds,
     ]),
   ].slice(0, DRAFT_GENERATION_CONFIG.maxReferences);
+  const isSlideshow = isStoryboardSlideshow(plan);
   // Names mean nothing to the image model; identity comes from the
   // references, so a speaker swap with the same images keeps the still fresh.
   const prompt = [
@@ -100,7 +105,12 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
     referenceAssetIds.includes(speaker?.avatarAssetId ?? '')
       ? 'Keep every person consistent with the reference images.'
       : '',
-    DRAFT_GENERATION_CONFIG.sketchStyle,
+    // Slides are the finished output: the style label and the shared look
+    // keep every slide of the set consistent.
+    isSlideshow && plan.styleLabel ? `Visual style: ${plan.styleLabel}.` : '',
+    isSlideshow
+      ? SLIDESHOW_GENERATION_CONFIG.slideStyle
+      : DRAFT_GENERATION_CONFIG.sketchStyle,
   ]
     .filter(Boolean)
     .join(' ');
@@ -108,7 +118,9 @@ export function storyboardStillInput(plan: StoryboardPlan, shotId: string) {
     prompt,
     referenceAssetIds,
     aspectRatio: plan.format,
-    modelKey: DRAFT_GENERATION_CONFIG.draftModelKey,
+    modelKey: isSlideshow
+      ? SLIDESHOW_GENERATION_CONFIG.modelKey
+      : DRAFT_GENERATION_CONFIG.draftModelKey,
   };
   return { ...input, fingerprint: storyboardConfigHash(input) };
 }
