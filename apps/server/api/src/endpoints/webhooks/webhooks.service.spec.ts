@@ -47,6 +47,12 @@ import { Test, type TestingModule } from '@nestjs/testing';
 // Mock setImmediate for testing async callbacks
 vi.useFakeTimers();
 
+// Unit specs share workers (`isolate: false`), so fake timers left on here
+// would stall any later spec that waits on a real timer.
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 const sharedId = testId('id');
 
 describe('WebhooksService', () => {
