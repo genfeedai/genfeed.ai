@@ -14,9 +14,8 @@ import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-
  *     public entrypoint with the real routing/dispatch/prompt-building code
  *     paths, constructed directly (mirroring the existing
  *     `image-generation.service.spec.ts` unit-spec pattern) rather than
- *     through the full NestJS DI container, with only the four AI provider
- *     clients (`ReplicateService`, `FalService`, `KlingAIService`,
- *     `ComfyUIService`) swapped for canned-output mocks. This proves zero
+ *     through the full NestJS DI container, with only the three AI provider
+ *     clients (`ReplicateService`, `FalService`, `KlingAIService`) swapped for canned-output mocks. This proves zero
  *     network + correct provider routing without needing to also stand up
  *     the cross-workspace `apps/server/workers` processor.
  *  2. `CreditsUtilsService.deductCreditsFromOrganization` — the exact method
@@ -64,7 +63,6 @@ import { ImageGenerationCreditsService } from '@api/collections/images/services/
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -90,7 +88,6 @@ import {
   E2ETestModule,
 } from '@api-test/e2e-test.module';
 import {
-  createMockComfyUIService,
   createMockFalService,
   createMockKlingAIImageService,
   createMockReplicateService,
@@ -139,7 +136,7 @@ const baseDto = (overrides: Partial<CreateImageDto> = {}): CreateImageDto =>
 
 /**
  * Direct construction (no NestJS DI container), mirroring the proven
- * pattern in `image-generation.service.spec.ts`. Only the four AI provider
+ * pattern in `image-generation.service.spec.ts`. Only the three AI provider
  * clients are swapped for the shared `external-services.mocks.ts` factories
  * so this spec doesn't drift from the canonical mock shapes; every other
  * dependency is a lightweight inline stub, matching the unit spec exactly.
@@ -193,11 +190,6 @@ const createImageGenerationService = () => {
     }),
   };
   const replicateService = createMockReplicateService();
-  const comfyUIService = createMockComfyUIService();
-  const managedInferenceRuntimeService = {
-    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
-  };
-  const mediaUrlService = {};
   const klingAIService = createMockKlingAIImageService();
   const falService = createMockFalService();
   const higgsFieldService = {
@@ -266,11 +258,6 @@ const createImageGenerationService = () => {
   } as unknown as LoggerService;
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(
-      managedInferenceRuntimeService as never,
-      comfyUIService as never,
-      mediaUrlService as never,
-    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
@@ -366,7 +353,6 @@ const createImageGenerationService = () => {
   );
 
   return {
-    comfyUIService,
     falService,
     klingAIService,
     promptsService,
@@ -381,7 +367,6 @@ describe('Generation completes with a fake AI provider (zero network, real routi
       service,
       falService,
       replicateService,
-      comfyUIService,
       klingAIService,
       promptsService,
     } = createImageGenerationService();
@@ -395,7 +380,6 @@ describe('Generation completes with a fake AI provider (zero network, real routi
     expect(response).toHaveProperty('data');
     expect(falService.generateImage).toHaveBeenCalledTimes(1);
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
-    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
     // The text the model was sent is kept next to the prompt's slots.
     expect(promptsService.patch).toHaveBeenCalledWith(

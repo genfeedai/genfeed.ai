@@ -7,7 +7,6 @@ import { resolveImageGenerationProvider } from '@api/collections/images/services
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -199,13 +198,6 @@ const createService = () => {
       templateVersion: '1.0.0',
     }),
   };
-  const comfyUIService = {
-    generateImage: vi.fn(),
-    isConfigured: vi.fn().mockReturnValue(true),
-  };
-  const managedInferenceRuntimeService = {
-    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
-  };
   const klingAIService = { queueGenerateImage: vi.fn() };
   const leonardoaiService = {
     generateImage: vi.fn().mockResolvedValue('leo-gen'),
@@ -322,11 +314,6 @@ const createService = () => {
   };
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(
-      managedInferenceRuntimeService as never,
-      comfyUIService as never,
-      {} as never,
-    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),

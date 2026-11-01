@@ -58,21 +58,21 @@ export const GENERATION_BRIEF_IMAGE_EVAL_SCENARIOS = [
   },
   {
     fidelityMode: 'off' as const,
-    id: 'image-self-hosted-flux2',
-    model: MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
+    id: 'image-fal-flux2-pro',
+    model: MODEL_KEYS.FAL_FLUX_2_PRO,
     objective: 'product hero on black',
   },
   {
     fidelityMode: 'strict' as const,
-    id: 'image-pulid-identity',
-    model: MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
+    id: 'image-reference-identity',
+    model: MODEL_KEYS.FAL_NANO_BANANA_2,
     objective: 'a portrait of the brand face',
     references: [{ assetId: 'face-1', role: 'character' as const }],
   },
   {
     fidelityMode: 'off' as const,
-    id: 'image-z-turbo',
-    model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+    id: 'image-fal-recraft-pro',
+    model: MODEL_KEYS.FAL_RECRAFT_V4_PRO,
     objective: 'soft daylight interior',
   },
   {

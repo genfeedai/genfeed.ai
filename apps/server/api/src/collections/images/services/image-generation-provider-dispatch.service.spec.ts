@@ -4,7 +4,6 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImageGenerationReceiptsService } from '@api/collections/images/services/image-generation-receipts.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
@@ -28,15 +27,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('ImageGenerationProviderDispatchService', () => {
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
-  };
-  // No images runtime is configured, so genfeedai models run on the
-  // self-hosted ComfyUI path.
-  const comfyUIService = {
-    generateImage: vi.fn(),
-    isConfigured: vi.fn().mockReturnValue(true),
-  };
-  const managedInferenceRuntimeService = {
-    getInstanceUrlForOrg: vi.fn().mockResolvedValue(null),
   };
   const failedGenerationService = {
     notifyFailedImageGeneration: vi.fn(),
@@ -96,11 +86,6 @@ describe('ImageGenerationProviderDispatchService', () => {
   };
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
-    new GenfeedAiImageGenerationProviderAdapter(
-      managedInferenceRuntimeService as never,
-      comfyUIService as never,
-      {} as never,
-    ),
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
@@ -422,108 +407,6 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(plan?.kind).toBe('poll-single');
   });
 
-  it('uploads and completes GenfeedAI output inline', async () => {
-    const imageBuffer = Buffer.from('image');
-    comfyUIService.generateImage.mockResolvedValue({ imageBuffer });
-    filesClientService.uploadToS3.mockResolvedValue({
-      height: 1080,
-      publicUrl: 'https://cdn.example.com/generated.png',
-      s3Key: 'images/generated.png',
-      size: imageBuffer.length,
-      width: 1920,
-    });
-    const context = buildContext({
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-    });
-
-    const plan = await service.dispatch(context);
-    await plan?.generationPromise;
-
-    expect(comfyUIService.generateImage).toHaveBeenCalledWith(
-      MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-      {
-        faceImage: 'https://cdn.example.com/reference.png',
-        height: 1080,
-        prompt: 'A cinematic sunrise',
-        seed: 42,
-        width: 1920,
-      },
-    );
-    expect(imagesService.patchAll).toHaveBeenCalledWith(
-      {
-        id: 'ingredient-1',
-        organizationId: 'organization-1',
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      expect.objectContaining({
-        s3Key: 'images/generated.png',
-        status: IngredientStatus.GENERATED,
-      }),
-    );
-    expect(websocketService.publishVideoComplete).toHaveBeenCalled();
-    expect(
-      generationEventWebhookService.emitGenerationCompleted,
-    ).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      generationId: 'ingredient-1',
-      kind: 'image',
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-      organizationId: 'organization-1',
-      output: {
-        mimeType: 'image/png',
-        storageKey: 'images/generated.png',
-        url: 'https://cdn.example.com/generated.png',
-      },
-    });
-    expect(
-      mediaGenerationCostService.recordGenerationCost,
-    ).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      category: 'image',
-      height: 1080,
-      ingredientId: 'ingredient-1',
-      modelKey: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-      organizationId: 'organization-1',
-      width: 1920,
-    });
-    expect(plan?.kind).toBe('inline');
-    expect(mediaReceipts.recordAccepted).toHaveBeenCalledWith({
-      organizationId: 'organization-1',
-      ingredientId: 'ingredient-1',
-      provider: 'genfeedai',
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-      externalId: 'ingredient-1',
-    });
-  });
-
-  it.each([
-    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
-    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
-  ])(
-    'passes the requested LoRA through the %s provider dispatch',
-    async (model) => {
-      comfyUIService.generateImage.mockResolvedValue({
-        imageBuffer: Buffer.from('image'),
-      });
-      const context = buildContext({
-        model,
-        createImageDto: {
-          text: 'A product portrait',
-          model,
-          loraPath: 'styles/product.safetensors',
-        },
-      });
-      const plan = await service.dispatch(context);
-      await plan?.generationPromise;
-      expect(comfyUIService.generateImage).toHaveBeenCalledWith(
-        model,
-        expect.objectContaining({ loraPath: 'styles/product.safetensors' }),
-      );
-      expect(plan?.kind).toBe('inline');
-    },
-  );
-
   it('records realized provider dimensions instead of requested dimensions', async () => {
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     filesClientService.uploadToS3.mockResolvedValueOnce({
@@ -553,44 +436,14 @@ describe('ImageGenerationProviderDispatchService', () => {
     );
   });
 
-  it('records unknown dimensions when upload metadata omits them', async () => {
-    const imageBuffer = Buffer.from('image');
-    comfyUIService.generateImage.mockResolvedValueOnce({ imageBuffer });
-    filesClientService.uploadToS3.mockResolvedValueOnce({
-      publicUrl: 'https://cdn.example.com/generated.png',
-      s3Key: 'images/generated.png',
-      size: imageBuffer.length,
-    });
-    const context = buildContext({
-      height: 1080,
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
-      width: 1920,
-    });
-
-    const plan = await service.dispatch(context);
-    await plan?.generationPromise;
-
-    expect(
-      mediaGenerationCostService.recordGenerationCost,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        height: null,
-        ingredientId: 'ingredient-1',
-        width: null,
-      }),
-    );
-  });
-
   it('emits a generation failure webhook when the provider throws', async () => {
-    comfyUIService.generateImage.mockRejectedValueOnce(
-      new Error('ComfyUI unreachable'),
+    klingAIService.queueGenerateImage.mockRejectedValueOnce(
+      new Error('Kling unreachable'),
     );
-    const context = buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV });
+    const context = buildContext({ model: MODEL_KEYS.KLINGAI_V2 });
 
     const plan = await service.dispatch(context);
-    await expect(plan?.generationPromise).rejects.toThrow(
-      'ComfyUI unreachable',
-    );
+    await expect(plan?.generationPromise).rejects.toThrow('Kling unreachable');
 
     expect(
       failedGenerationService.notifyFailedImageGeneration,
@@ -599,10 +452,10 @@ describe('ImageGenerationProviderDispatchService', () => {
       generationEventWebhookService.emitGenerationFailed,
     ).toHaveBeenCalledWith({
       brandId: 'brand-1',
-      errorMessage: 'ComfyUI unreachable',
+      errorMessage: 'Kling unreachable',
       generationId: 'ingredient-1',
       kind: 'image',
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      model: MODEL_KEYS.KLINGAI_V2,
       organizationId: 'organization-1',
     });
   });
@@ -612,7 +465,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       new Error('Generation quote hold has ended'),
     );
     const context = buildContext({
-      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      model: MODEL_KEYS.KLINGAI_V2,
       request: {
         creditsConfig: {
           amount: 4,
@@ -640,17 +493,17 @@ describe('ImageGenerationProviderDispatchService', () => {
       failedGenerationService.notifyFailedImageGeneration,
     ).toHaveBeenCalled();
     expect(generationBilling.releasePool).toHaveBeenCalledOnce();
-    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
   });
 
   it('preserves completion when failure loses the terminal claim', async () => {
     const failure = new Error('provider rejected');
-    comfyUIService.generateImage.mockRejectedValueOnce(failure);
+    klingAIService.queueGenerateImage.mockRejectedValueOnce(failure);
     imagesService.patchAll
       .mockResolvedValueOnce({ modifiedCount: 0 })
       .mockResolvedValueOnce({ modifiedCount: 0 });
     const plan = await service.dispatch(
-      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+      buildContext({ model: MODEL_KEYS.KLINGAI_V2 }),
     );
     await expect(plan?.generationPromise).rejects.toBe(failure);
     expect(imagesService.patchAll).toHaveBeenCalledWith(
@@ -667,24 +520,6 @@ describe('ImageGenerationProviderDispatchService', () => {
     ).not.toHaveBeenCalled();
     expect(
       generationEventWebhookService.emitGenerationFailed,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('does not publish completion when expiry wins the terminal claim', async () => {
-    comfyUIService.generateImage.mockResolvedValueOnce({
-      imageBuffer: Buffer.from('image'),
-    });
-    imagesService.patchAll
-      .mockResolvedValueOnce({ modifiedCount: 0 })
-      .mockResolvedValueOnce({ modifiedCount: 0 });
-    const plan = await service.dispatch(
-      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
-    );
-    await plan?.generationPromise;
-    expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
-    expect(generationBilling.settleOutput).not.toHaveBeenCalled();
-    expect(
-      generationEventWebhookService.emitGenerationCompleted,
     ).not.toHaveBeenCalled();
   });
 
@@ -916,7 +751,6 @@ describe('ImageGenerationProviderDispatchService', () => {
 
     await expect(service.dispatch(context)).resolves.toBeNull();
 
-    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
     expect(falService.generateImage).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
     expect(leonardoaiService.generateImage).not.toHaveBeenCalled();
@@ -1355,32 +1189,6 @@ describe('ImageGenerationProviderDispatchService', () => {
       expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
     },
   );
-
-  it('recovers a processing timeout during inline upload before settling the durable output', async () => {
-    comfyUIService.generateImage.mockResolvedValueOnce({
-      imageBuffer: Buffer.from('image'),
-    });
-    imagesService.patchAll
-      .mockResolvedValueOnce({ modifiedCount: 0 })
-      .mockResolvedValueOnce({ modifiedCount: 1 })
-      .mockResolvedValueOnce({ modifiedCount: 1 });
-    const plan = await service.dispatch(
-      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
-    );
-    await plan?.generationPromise;
-    expect(imagesService.patchAll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: IngredientStatus.FAILED,
-        generationError: INGREDIENT_PROCESSING_TIMEOUT_ERROR,
-      }),
-      { status: IngredientStatus.PROCESSING, generationError: null },
-    );
-    expect(generationBilling.settleOutput).toHaveBeenCalledExactlyOnceWith(
-      'ingredient-1',
-      'organization-1',
-    );
-    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
-  });
 
   it.each(['provider failed', INGREDIENT_PROCESSING_TIMEOUT_ERROR])(
     'records confirmed provider failure after a processing timeout without leaving a reopenable marker (%s)',
