@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+
+# Fail fast on what CI would fail on: Biome check on the files this branch
+# changed, then type-check only the workspaces those changes reach. A type
+# error caught here costs seconds; caught in CI it costs a push, a wait and
+# another push. Agents skip instructions but cannot skip a hook, so this is a
+# hook and not a line in AGENTS.md. Bypass with `git push --no-verify`.
+export PATH="$HOME/.bun/bin:$PATH"
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Bun is required for pre-push hooks. Install Bun or add it to PATH." >&2
+  exit 127
+fi
+
+# git feeds one "<local ref> <local sha> <remote ref> <remote sha>" line per ref.
+# A push that only deletes remote refs has nothing to check.
+zero="0000000000000000000000000000000000000000"
+has_commits=false
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  if [ "$local_sha" != "$zero" ]; then
+    has_commits=true
+  fi
+done
+if [ "$has_commits" = false ]; then
+  exit 0
+fi
+
+# Same diff base CI uses: the trunk the branch was cut from.
+if ! base="$(git merge-base HEAD origin/master 2>/dev/null)"; then
+  echo "pre-push: origin/master not found (run 'git fetch origin master'); skipping checks." >&2
+  exit 0
+fi
+
+changed="$(git diff --name-only --diff-filter=ACMR "$base" HEAD)"
+if [ -z "$changed" ]; then
+  exit 0
+fi
+
+echo "pre-push: Biome check on files changed since origin/master"
+code_files="$(printf '%s\n' "$changed" | grep -E '\.(js|jsx|ts|tsx|mjs|cjs|json|css)$' || true)"
+if [ -n "$code_files" ]; then
+  # shellcheck disable=SC2086 # intentional word-splitting: paths are repo-relative, no spaces
+  printf '%s\n' "$code_files" | xargs bunx biome check \
+    --config-path=biome-staged.json --no-errors-on-unmatched || exit 1
+fi
+
+echo "pre-push: type-check affected workspaces"
+filters="$(CI_BASE_SHA="$base" bun scripts/ci/typecheck-affected-scope.ts)" || exit 1
+if [ -n "$filters" ]; then
+  # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+  bunx turbo run type-check $filters --concurrency=2 || exit 1
+fi
