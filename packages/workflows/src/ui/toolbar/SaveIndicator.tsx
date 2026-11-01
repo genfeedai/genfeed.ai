@@ -68,10 +68,9 @@ export function SaveIndicator({
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}
-        size={ButtonSize.SM}
+        size={ButtonSize.INLINE}
         onClick={toggleAutoSave}
-        title="Click to enable auto-save"
-        className="h-auto p-0"
+        tooltip="Click to enable auto-save"
       >
         <CloudOff className="size-3.5" />
         <span>Auto-save off</span>
@@ -102,16 +101,17 @@ export function SaveIndicator({
   }
 
   return (
+    // ui-guard-allow:button-restyle -- saved state is a success-toned status that is also the auto-save toggle
     <Button
       withWrapper={false}
       variant={ButtonVariant.GHOST}
-      size={ButtonSize.SM}
+      size={isPill ? ButtonSize.SM : ButtonSize.INLINE}
       onClick={toggleAutoSave}
-      title="Click to disable auto-save"
+      tooltip="Click to disable auto-save"
       className={
         isPill
           ? 'rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs text-success hover:text-success/80'
-          : 'text-xs text-success hover:text-success/80 h-auto p-0'
+          : 'text-xs text-success hover:text-success/80'
       }
     >
       <Check className="size-3.5" />

@@ -88,9 +88,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <Button
               withWrapper={false}
               variant={ButtonVariant.LINK}
-              size={ButtonSize.SM}
+              size={ButtonSize.INLINE}
               onClick={handleCopy}
-              className="flex items-center gap-1 text-2xs text-primary h-auto p-0"
+              className="flex items-center gap-1 text-2xs text-primary"
             >
               <Copy className="size-3" />
               {copied ? 'Copied!' : 'Copy'}

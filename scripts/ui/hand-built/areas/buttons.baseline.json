@@ -707,9 +707,6 @@
     "packages/agent/src/components/ClipperRunCard.tsx": {
       "button-restyle": 2
     },
-    "packages/agent/src/components/ComposerFollowUpQueue.tsx": {
-      "button-restyle": 6
-    },
     "packages/agent/src/components/ContentCalendarCard.tsx": {
       "unstyled-look": 1
     },
@@ -727,9 +724,6 @@
     },
     "packages/agent/src/components/GenerationActionCardControls.tsx": {
       "button-restyle": 3
-    },
-    "packages/agent/src/components/GenerationActionCardHeader.tsx": {
-      "button-restyle": 1
     },
     "packages/agent/src/components/GenerationActionCardQualityBadge.tsx": {
       "button-restyle": 1
@@ -820,25 +814,10 @@
     "packages/workflows/src/ui/nodes/BaseNode.tsx": {
       "button-restyle": 2
     },
-    "packages/workflows/src/ui/nodes/NegativePromptSelector.tsx": {
-      "button-restyle": 1
-    },
     "packages/workflows/src/ui/nodes/NodeDetailModal.tsx": {
       "button-restyle": 2
     },
     "packages/workflows/src/ui/nodes/NodeErrorBoundary.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/ai/LipSyncNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/ai/MotionControlNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/ai/TranscribeNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/ai/VoiceChangeNode.tsx": {
       "button-restyle": 1
     },
     "packages/workflows/src/ui/nodes/input/AudioInputNode.tsx": {
@@ -847,34 +826,10 @@
     "packages/workflows/src/ui/nodes/input/PromptConstructorNode.tsx": {
       "button-restyle": 1
     },
-    "packages/workflows/src/ui/nodes/processing/AnimationNode.tsx": {
-      "button-restyle": 1
-    },
     "packages/workflows/src/ui/nodes/processing/ImageGridSplitNode.tsx": {
-      "button-restyle": 3
+      "button-restyle": 1
     },
     "packages/workflows/src/ui/nodes/processing/OutputGalleryNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/ReframeNode.tsx": {
-      "button-restyle": 2
-    },
-    "packages/workflows/src/ui/nodes/processing/ResizeNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/SubtitleNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/UpscaleNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/VideoFrameExtractNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/VideoStitchNode.tsx": {
-      "button-restyle": 1
-    },
-    "packages/workflows/src/ui/nodes/processing/VideoTrimNode.tsx": {
       "button-restyle": 1
     },
     "packages/workflows/src/ui/panels/DebugPanel.tsx": {
@@ -888,9 +843,6 @@
     },
     "packages/workflows/src/ui/toolbar/CostIndicator.tsx": {
       "button-restyle": 1
-    },
-    "packages/workflows/src/ui/toolbar/SaveIndicator.tsx": {
-      "button-restyle": 2
     },
     "packages/workflows/src/ui/toolbar/Toolbar.tsx": {
       "button-restyle": 2
