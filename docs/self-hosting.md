@@ -353,7 +353,7 @@ The Community image does not start the separate GPU service workspaces. For
 supported API flows that call a local ComfyUI instance, configure:
 
 ```env
-FLEET_COMFYUI_URL=http://your-comfyui-host:8188
+COMFYUI_URL=http://your-comfyui-host:8188
 ```
 
 For `genfeed-ai/z-image-turbo-lora` or `genfeed-ai/flux2-dev-pulid-lora`,
