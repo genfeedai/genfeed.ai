@@ -8,10 +8,12 @@ import {
 } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import {
   AgentThreadKind,
+  AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { CheckCheck, Undo2 } from 'lucide-react';
 import Searchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -27,13 +29,19 @@ import AgentThreadLightView from './AgentThreadLightView';
 
 const ALL_BRANDS = '__all_brands__';
 
-type GroupKey = 'needsYou' | 'working' | 'readyForReview' | 'recent';
+type GroupKey =
+  | 'needsYou'
+  | 'working'
+  | 'readyForReview'
+  | 'recent'
+  | 'resolved';
 
 const GROUP_ORDER: readonly GroupKey[] = [
   'needsYou',
   'working',
   'readyForReview',
   'recent',
+  'resolved',
 ];
 
 /**
@@ -46,7 +54,11 @@ export default function AgentThreadsPanel({
   isLoading = false,
   onOpenFullThread,
   onOpenThreadChange,
+  onReopenThread,
+  onResolveThread,
   openThreadId: controlledOpenThreadId,
+  pendingThreadIds,
+  resolvedThreads,
   threads,
 }: AgentThreadsPanelProps) {
   const translate = useTranslations('common.agentThreads');
@@ -64,38 +76,59 @@ export default function AgentThreadsPanel({
     onOpenThreadChange?.(threadId);
   };
 
+  // One list: the store's threads, plus resolved ones it never loaded. A thread
+  // the store knows keeps the store's status, so a reopen shows at once.
+  const allThreads = useMemo(() => {
+    const known = new Set(threads.map((thread) => thread.id));
+    return [
+      ...threads,
+      ...(resolvedThreads ?? []).filter((thread) => !known.has(thread.id)),
+    ];
+  }, [resolvedThreads, threads]);
+
   const brandOptions = useMemo(() => {
     const labels = new Map<string, string>();
-    for (const thread of threads) {
+    for (const thread of allThreads) {
       if (thread.brandId && !labels.has(thread.brandId)) {
         labels.set(thread.brandId, thread.brandLabel?.trim() || thread.brandId);
       }
     }
     return [...labels.entries()].map(([id, label]) => ({ id, label }));
-  }, [threads]);
+  }, [allThreads]);
 
   const groups = useMemo(
     () =>
-      groupChildThreads([...threads], {
+      groupChildThreads([...allThreads], {
         brandId: brandId === ALL_BRANDS ? null : brandId,
         searchQuery,
       }),
-    [brandId, searchQuery, threads],
+    [allThreads, brandId, searchQuery],
   );
 
   const openThread = openThreadId
-    ? threads.find((thread) => thread.id === openThreadId)
+    ? allThreads.find((thread) => thread.id === openThreadId)
     : undefined;
   if (openThread) {
     const parent = openThread.parentThreadId
-      ? threads.find((thread) => thread.id === openThread.parentThreadId)
+      ? allThreads.find((thread) => thread.id === openThread.parentThreadId)
       : undefined;
+    const isOpenThreadResolved = openThread.status === AgentThreadStatus.ARCHIVED;
     return (
       <AgentThreadLightView
         apiService={apiService}
+        isPending={pendingThreadIds?.has(openThread.id)}
+        isResolved={isOpenThreadResolved}
         isStartedByMaster={parent?.kind === AgentThreadKind.MASTER}
         onBack={() => setOpenThreadId(null)}
         onOpenFullThread={onOpenFullThread}
+        onReopen={
+          onReopenThread ? () => void onReopenThread(openThread.id) : undefined
+        }
+        onResolve={
+          onResolveThread
+            ? () => void onResolveThread(openThread.id)
+            : undefined
+        }
         thread={openThread}
       />
     );
@@ -109,10 +142,13 @@ export default function AgentThreadsPanel({
   const renderRow = (thread: AgentThread) => {
     const status = getThreadStatusMeta(thread);
     const preview = resolveThreadListPreview(thread);
+    const isResolved = thread.status === AgentThreadStatus.ARCHIVED;
+    const onToggleResolved = isResolved ? onReopenThread : onResolveThread;
+    const toggleLabel = translate(isResolved ? 'reopen' : 'resolve');
     return (
-      <li key={thread.id}>
+      <li className="flex items-start gap-1" key={thread.id}>
         <Button
-          className="h-auto min-h-10 w-full flex-col items-start gap-0.5 py-2 text-left"
+          className="h-auto min-h-10 min-w-0 flex-1 flex-col items-start gap-0.5 py-2 text-left"
           data-testid={`agent-threads-panel-thread-${thread.id}`}
           onClick={() => setOpenThreadId(thread.id)}
           size={ButtonSize.SM}
@@ -124,7 +160,7 @@ export default function AgentThreadsPanel({
             <span className="line-clamp-1 flex-1 text-sm font-medium">
               {thread.title?.trim() || translate('untitled')}
             </span>
-            {status ? (
+            {status && !isResolved ? (
               <span className="shrink-0 text-xs text-muted-foreground">
                 {status.label}
               </span>
@@ -141,6 +177,24 @@ export default function AgentThreadsPanel({
             </span>
           ) : null}
         </Button>
+        {onToggleResolved ? (
+          <Button
+            aria-label={`${toggleLabel}: ${thread.title?.trim() || translate('untitled')}`}
+            data-testid={`agent-threads-panel-toggle-resolved-${thread.id}`}
+            isDisabled={pendingThreadIds?.has(thread.id) ?? false}
+            onClick={() => void onToggleResolved(thread.id)}
+            size={ButtonSize.ICON}
+            tooltip={toggleLabel}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {isResolved ? (
+              <Undo2 className="size-4" />
+            ) : (
+              <CheckCheck className="size-4" />
+            )}
+          </Button>
+        ) : null}
       </li>
     );
   };

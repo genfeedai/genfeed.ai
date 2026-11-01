@@ -3,6 +3,7 @@
 import { getThreadStatusMeta } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Video } from 'lucide-react';
@@ -22,9 +23,13 @@ type SteerState = 'idle' | 'sending' | 'sent' | 'failed';
  */
 export default function AgentThreadLightView({
   apiService,
+  isPending = false,
+  isResolved = false,
   onBack,
   isStartedByMaster = false,
   onOpenFullThread,
+  onReopen,
+  onResolve,
   thread,
 }: AgentThreadLightViewProps) {
   const translate = useTranslations('common.agentThreads');
@@ -74,7 +79,7 @@ export default function AgentThreadLightView({
 
   const handleSteer = useCallback(async () => {
     const content = draft.trim();
-    if (!content || steerState === 'sending') {
+    if (!content || steerState === 'sending' || isResolved) {
       return;
     }
 
@@ -96,6 +101,7 @@ export default function AgentThreadLightView({
   }, [
     apiService,
     draft,
+    isResolved,
     loadMessages,
     steerState,
     thread.contextVersion,
@@ -119,6 +125,34 @@ export default function AgentThreadLightView({
         <p className="min-w-0 flex-1 truncate text-sm font-medium">
           {thread.title?.trim() || translate('untitled')}
         </p>
+        {isResolved ? (
+          <Badge data-testid="agent-thread-resolved" variant="success">
+            {translate('resolved')}
+          </Badge>
+        ) : null}
+        {isResolved ? (
+          onReopen ? (
+            <Button
+              isDisabled={isPending}
+              onClick={onReopen}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              {translate('reopen')}
+            </Button>
+          ) : null
+        ) : onResolve ? (
+          <Button
+            isDisabled={isPending}
+            onClick={onResolve}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {translate('resolve')}
+          </Button>
+        ) : null}
         {onOpenFullThread ? (
           <Button
             onClick={() => onOpenFullThread(thread.id)}
@@ -212,7 +246,7 @@ export default function AgentThreadLightView({
         <Textarea
           aria-label={translate('steerLabel')}
           id={steerId}
-          isDisabled={steerState === 'sending'}
+          isDisabled={steerState === 'sending' || isResolved}
           onChange={(event) => {
             setDraft(event.target.value);
             if (steerState !== 'sending') {
@@ -234,14 +268,16 @@ export default function AgentThreadLightView({
             className="text-xs text-muted-foreground"
             role={steerState === 'failed' ? 'alert' : 'status'}
           >
-            {steerState === 'sent'
+            {isResolved
+              ? translate('reopenToSteer')
+              : steerState === 'sent'
               ? translate('steerSent')
               : steerState === 'failed'
                 ? translate('steerFailed')
                 : ''}
           </p>
           <Button
-            isDisabled={!draft.trim() || steerState === 'sending'}
+            isDisabled={!draft.trim() || steerState === 'sending' || isResolved}
             onClick={() => void handleSteer()}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}

@@ -2,7 +2,11 @@
 
 import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
-import { AgentThreadOpenProvider, useAgentChatStore } from '@genfeedai/agent';
+import {
+  AgentThreadOpenProvider,
+  AgentThreadResolutionProvider,
+  useAgentChatStore,
+} from '@genfeedai/agent';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentOutputTabDefinition } from '@props/ui/agent-output-shell.props';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
@@ -13,6 +17,7 @@ import AgentThreadsPanel from '@/components/workspace-shell/AgentThreadsPanel';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 import { useAgentWorkspace } from './agent-workspace-context';
 import { useMasterThread } from './use-master-thread';
+import { useThreadResolution } from './use-thread-resolution';
 
 const THREADS_TAB_ID = 'threads';
 const CONTEXT_TAB_ID = 'context';
@@ -35,6 +40,9 @@ export default function AgentMasterWorkspace() {
     agentApiService,
     isLoaded,
   );
+  const resolution = useThreadResolution(agentApiService, isLoaded);
+  const { pendingThreadIds, reopenThread, resolveThread, resolvedThreads } =
+    resolution;
   const [activeTabId, setActiveTabId] = useState(THREADS_TAB_ID);
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
 
@@ -71,7 +79,11 @@ export default function AgentMasterWorkspace() {
             isLoading={isLoading}
             onOpenFullThread={openFullThread}
             onOpenThreadChange={setOpenThreadId}
+            onReopenThread={reopenThread}
+            onResolveThread={resolveThread}
             openThreadId={openThreadId}
+            pendingThreadIds={pendingThreadIds}
+            resolvedThreads={resolvedThreads}
             threads={threads}
           />
         ),
@@ -90,6 +102,10 @@ export default function AgentMasterWorkspace() {
       isLoading,
       openFullThread,
       openThreadId,
+      pendingThreadIds,
+      reopenThread,
+      resolveThread,
+      resolvedThreads,
       threads,
       translate,
     ],
@@ -103,7 +119,9 @@ export default function AgentMasterWorkspace() {
         // is never empty.
         isLoading && !hasFailed ? null : (
           <AgentThreadOpenProvider value={openThreadInPanel}>
-            <AgentWorkspacePageShell threadId={masterThreadId ?? undefined} />
+            <AgentThreadResolutionProvider value={resolution}>
+              <AgentWorkspacePageShell threadId={masterThreadId ?? undefined} />
+            </AgentThreadResolutionProvider>
           </AgentThreadOpenProvider>
         )
       }

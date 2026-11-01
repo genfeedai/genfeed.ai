@@ -1256,6 +1256,7 @@
       "needsYou": "Needs you",
       "readyForReview": "Ready for review",
       "recent": "Recent",
+      "resolved": "Resolved",
       "working": "Working"
     },
     "loadFailed": "Failed to load this thread.",
@@ -1266,6 +1267,10 @@
     "openFull": "Open full page",
     "openOutput": "Open output",
     "outputs": "Outputs",
+    "reopen": "Reopen",
+    "reopenToSteer": "Reopen this thread to steer it.",
+    "resolve": "Resolve",
+    "resolved": "Resolved",
     "roleAgent": "Agent",
     "roleYou": "You",
     "search": "Search threads",
