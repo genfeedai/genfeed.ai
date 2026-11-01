@@ -42,7 +42,7 @@ test.describe('Persisted Turbo projects', () => {
     ).toBeVisible();
     await page.reload();
     await page.getByRole('button', { name: 'Approve', exact: true }).click();
-    await page.getByRole('button', { name: 'Schedule', exact: true }).click();
+    await page.getByRole('radio', { name: 'Schedule', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Turbo Instagram' }).check();
     await page
       .getByLabel('Publish time for Turbo Instagram')

@@ -47,17 +47,26 @@ async function previewResponse(file: string) {
 const base = '/test-org/brand-1/storyboard';
 
 /**
- * The run page is an agent + output split. Plan fields live in the output
- * pane's Context tab, which hides the board while it is showing; below xl the
- * layout also shows one pane at a time and opens on the agent.
+ * The run page is an agent + output split. Plan fields live in the Context
+ * view, which swaps in for the board while the topbar's Context icon has it
+ * open; below xl the layout also shows one pane at a time through a view
+ * dropdown and opens on the agent.
  */
 async function showOutputPane(page: Page) {
-  // Below xl the panes switch through one view dropdown, never tabs.
-  const views = page.getByRole('button', { exact: true, name: 'View: Agent' });
-  const output = page.getByRole('tablist', { exact: true, name: 'Output' });
-  // After a reload neither tablist exists yet, so isVisible() alone would skip
-  // the Output click on a narrow viewport.
-  await expect(views.or(output).first()).toBeVisible();
+  // The page being left can stay mounted but hidden, so only the visible
+  // layout counts.
+  const layout = page
+    .getByTestId('agent-output-layout')
+    .filter({ visible: true });
+  const output = layout.getByTestId('agent-output-output-pane');
+  const views = layout.getByRole('button', {
+    exact: true,
+    name: 'View: Agent',
+  });
+  // After a reload, or while a new storyboard opens, the layout is not
+  // settled yet, so isVisible() alone would skip the Output choice on a narrow
+  // viewport.
+  await expect(layout).toHaveCount(1);
   if (await views.isVisible())
     // A click that lands before hydration after a reload is dropped, so retry
     // until the output pane is actually showing.
@@ -68,6 +77,7 @@ async function showOutputPane(page: Page) {
         .click();
       await expect(output).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 15_000 });
+  await expect(output).toBeVisible();
   return output;
 }
 async function openStoryboardTab(
@@ -75,15 +85,29 @@ async function openStoryboardTab(
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
   const output = await showOutputPane(page);
-  await output.getByRole('tab', { exact: true, name: 'Context' }).click();
+  const context = output.getByRole('tabpanel', {
+    exact: true,
+    name: 'Context',
+  });
+  if (!(await context.isVisible()))
+    await page.getByTestId('topbar-context-toggle').click();
+  await expect(context).toBeVisible();
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
   await expect(tabs).toBeVisible();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 }
-/** Brings the board back after a Context tab visit. */
+/** Brings the board back after a Context visit. */
 async function showStoryboardBoard(page: Page) {
   const output = await showOutputPane(page);
-  await output.getByRole('tab', { exact: true, name: 'Shots' }).click();
+  const context = output.getByRole('tabpanel', {
+    exact: true,
+    name: 'Context',
+  });
+  if (await context.isVisible())
+    await page.getByTestId('topbar-context-toggle').click();
+  await expect(
+    output.getByRole('tabpanel', { exact: true, name: 'Shots' }),
+  ).toBeVisible();
 }
 async function fillStoryboardTitle(page: Page, value: string) {
   await openStoryboardTab(page, 'Details');

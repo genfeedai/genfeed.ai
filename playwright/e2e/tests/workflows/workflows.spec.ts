@@ -65,22 +65,23 @@ test.describe('Workflows', () => {
       'workflow-editor-section-actions',
     );
     await expect(editorActions).toBeVisible();
-    // The workflow's context lives in the output pane's Context tab, behind
-    // the canvas; the agent layout has no topbar toggle for it.
-    await expect(
-      authenticatedPage.getByTestId('topbar-context-toggle'),
-    ).toHaveCount(0);
-    const contextTab = authenticatedPage.getByRole('tab', { name: 'Context' });
-    await expect(contextTab).toHaveAttribute('aria-selected', 'false');
-    await contextTab.click();
+    // The workflow's context opens in the output pane from the topbar icon
+    // and the same icon brings the canvas back.
+    const contextToggle = authenticatedPage.getByTestId(
+      'topbar-context-toggle',
+    );
+    await expect(contextToggle).toBeVisible();
     const contextPanel = authenticatedPage.getByRole('tabpanel', {
       name: 'Context',
     });
+    await expect(contextPanel).toBeHidden();
+    await contextToggle.click();
     await expect(contextPanel).toBeVisible();
     await expect(
       contextPanel.getByText(workflow.name, { exact: true }),
     ).toBeVisible();
-    await authenticatedPage.getByRole('tab', { name: 'Canvas' }).click();
+    await contextToggle.click();
+    await expect(contextPanel).toBeHidden();
     await expect(
       editorActions.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();

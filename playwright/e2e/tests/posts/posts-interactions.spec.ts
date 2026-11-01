@@ -294,7 +294,7 @@ test.describe('Posts — deep interactions', () => {
       .getByRole('button', { name: 'New post', exact: true })
       .click();
     await authenticatedPage
-      .getByRole('button', { name: 'Newsletter', exact: true })
+      .getByRole('radio', { name: 'Newsletter', exact: true })
       .click();
     await authenticatedPage
       .getByRole('button', { name: 'Continue', exact: true })
