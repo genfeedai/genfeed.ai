@@ -29,11 +29,12 @@ describe('IngredientNotificationOwnerService', () => {
     await expect(
       service.find({
         id: 'ingredient_1',
-        organization: { label: 'Acme' },
+        organization: { id: 'org_1', label: 'Acme' },
         organizationId: 'org_1',
         user: {
           email: 'owner@example.com',
           firstName: 'Ada',
+          id: 'user_1',
           lastName: 'Owner',
         },
       }),
@@ -53,7 +54,7 @@ describe('IngredientNotificationOwnerService', () => {
       service.find({
         id: 'ingredient_2',
         organizationId: 'org_2',
-        user: { email: 'owner@example.com' },
+        user: { email: 'owner@example.com', id: 'user_2' },
       }),
     ).resolves.toEqual({
       creditBalance: undefined,
