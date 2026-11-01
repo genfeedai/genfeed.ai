@@ -63,6 +63,12 @@ describe('storyboard prompt bar', () => {
       'reword slide 3',
     );
   });
+  it('passes a prefill on to the composer', () => {
+    renderBar({ prefill: { content: 'A founder story', nonce: 1 } });
+    expect(input.props).toMatchObject({
+      prefill: { content: 'A founder story', nonce: 1 },
+    });
+  });
   it('hands the text on and lets the composer clear straight away', () => {
     const onSubmit = vi.fn();
     renderBar({ onSubmit });

@@ -308,7 +308,10 @@ describe('Storyboard shared composer', () => {
         value={{
           agent: <p>Shell conversation</p>,
           contextPanel: <p>Shell context</p>,
+          isContextOpen: false,
+          onCloseContext: vi.fn(),
           onNewThread: vi.fn(),
+          onOpenContext: vi.fn(),
           onOpenFullPage: vi.fn(),
           threadsPanel: <p>Shell threads</p>,
         }}

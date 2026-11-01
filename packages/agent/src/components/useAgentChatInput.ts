@@ -209,6 +209,11 @@ export function hasKnowledgeSelection(
   );
 }
 
+export interface AgentChatInputPrefill {
+  content: string;
+  nonce: number;
+}
+
 interface UseAgentChatInputParams {
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
@@ -224,6 +229,8 @@ interface UseAgentChatInputParams {
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
+  /** Replaces the draft and focuses the editor each time `nonce` changes. */
+  prefill?: AgentChatInputPrefill;
   apiService?: AgentApiService;
   attachments?: AttachmentItem[];
   isUploading?: boolean;
@@ -244,6 +251,7 @@ export function useAgentChatInput({
   hasQueuedFollowUps = false,
   disabled,
   placeholder: placeholderOverride,
+  prefill,
   apiService,
   attachments = [],
   isUploading = false,
@@ -719,6 +727,21 @@ export function useAgentChatInput({
     editor.commands.focus('end');
     clearComposerSeed();
   }, [activeThreadId, clearComposerSeed, composerSeed, editor]);
+
+  const appliedPrefillNonceRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (
+      !editor ||
+      !prefill ||
+      appliedPrefillNonceRef.current === prefill.nonce
+    ) {
+      return;
+    }
+
+    appliedPrefillNonceRef.current = prefill.nonce;
+    editor.commands.setContent(prefill.content);
+    editor.commands.focus('end');
+  }, [editor, prefill]);
 
   // Sync disabled state
   useEffect(() => {
