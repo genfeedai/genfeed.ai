@@ -25,9 +25,10 @@ export default function StoryboardPromptBar({
   const translate = useTranslations('pages.studioStoryboard.promptBar');
   return (
     <PromptBarContainer
-      className={variant === 'pane' ? 'pt-2' : 'pt-6'}
+      className={variant === 'pane' ? 'mx-auto w-full max-w-2xl' : 'pt-6'}
       layoutMode={variant === 'pane' ? 'inflow' : 'sticky-bottom'}
       maxWidth={variant === 'pane' ? 'full' : '4xl'}
+      zIndex={variant === 'pane' ? 60 : undefined}
       topContent={
         error ? (
           <div className="mb-2 flex flex-wrap items-center gap-2">

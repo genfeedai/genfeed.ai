@@ -327,14 +327,6 @@ export interface StoryboardAgentRequest {
   readonly text: string;
 }
 
-/** First-time example pitches shown while the agent column is still empty. */
-export interface StoryboardStarterCardsProps {
-  readonly isDisabled: boolean;
-  readonly isSlideshow: boolean;
-  /** Receives the example's full prompt; the host decides what to do with it. */
-  readonly onSelect: (prompt: string) => void;
-}
-
 export interface StoryboardAgentThreadProps
   extends Omit<StoryboardPromptBarProps, 'prefill' | 'variant'> {
   /** The source is a brief on a plan that is not in production yet. */

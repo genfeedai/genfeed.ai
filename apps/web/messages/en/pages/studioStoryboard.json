@@ -515,9 +515,10 @@
     "emptyBrief": "Describe the video you want and the agent drafts the shots on the board.",
     "emptyChanges": "Ask for a change, like making shot 3 shorter, and the board updates.",
     "emptySlides": "Ask for a change, like rewording slide 3, and the board updates.",
+    "emptyTitleBrief": "What's your idea?",
+    "emptyTitleChanges": "What should change?",
     "failed": "That did not change the board.",
     "starters": {
-      "apply": "Use this idea: {title}",
       "slideshow": {
         "beforeAfter": {
           "prompt": "A 5-slide before and after story: the problem, what changed, the result, and how to get it.",
@@ -532,7 +533,6 @@
           "title": "Tips carousel"
         }
       },
-      "title": "Not sure where to start? Try one",
       "video": {
         "founderStory": {
           "prompt": "A 30-second founder story: why I started, the turning point, and where we are going next.",

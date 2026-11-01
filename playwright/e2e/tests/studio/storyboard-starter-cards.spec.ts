@@ -103,9 +103,7 @@ test.describe('Storyboard starter cards', () => {
     await expect(cards).toBeVisible();
     await expect(cards.getByRole('button')).toHaveCount(3);
 
-    await cards
-      .getByRole('button', { name: 'Use this idea: Product teaser' })
-      .click();
+    await cards.getByRole('button', { name: 'Product teaser' }).click();
     await expect(agent.getByRole('textbox')).toContainText(
       'A 20-second teaser for a product launch',
     );
@@ -113,9 +111,7 @@ test.describe('Storyboard starter cards', () => {
     await expect(cards).toBeVisible();
     expect(draftUrls).toEqual([]);
 
-    await cards
-      .getByRole('button', { name: 'Use this idea: Founder story' })
-      .click();
+    await cards.getByRole('button', { name: 'Founder story' }).click();
     await expect(agent.getByRole('textbox')).toContainText(
       'A 30-second founder story',
     );
@@ -136,12 +132,9 @@ test.describe('Storyboard starter cards', () => {
     const cards = page.getByTestId('storyboard-starter-cards');
     await expect(cards.getByRole('button')).toHaveCount(3);
     await expect(
-      cards.getByRole('button', { name: 'Use this idea: Product teaser' }),
+      cards.getByRole('button', { name: 'Product teaser' }),
     ).toHaveCount(0);
-    await cards
-      .getByRole('button', { name: /Use this idea: / })
-      .first()
-      .click();
+    await cards.getByRole('button', { name: /./ }).first().click();
     await expect(
       page.getByTestId('agent-output-agent-pane').getByRole('textbox'),
     ).toContainText('slide');

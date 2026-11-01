@@ -36,7 +36,7 @@ describe('storyboard agent thread starter cards', () => {
   it('fills the composer with the picked pitch and does not send it', () => {
     const onSubmit = vi.fn();
     renderThread({ onSubmit });
-    fireEvent.click(screen.getByTestId('storyboard-starter-productTeaser'));
+    fireEvent.click(screen.getByRole('button', { name: 'Product teaser' }));
     expect(screen.getByTestId('composer')).toHaveTextContent(
       'A 20-second teaser for a product launch',
     );
@@ -45,10 +45,10 @@ describe('storyboard agent thread starter cards', () => {
 
   it('gives each pick a new nonce so the same card can be picked again', () => {
     renderThread();
-    fireEvent.click(screen.getByTestId('storyboard-starter-howTo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Quick how-to' }));
     const first = (input.props as ComponentProps<typeof AgentChatInput>)
       .prefill;
-    fireEvent.click(screen.getByTestId('storyboard-starter-howTo'));
+    fireEvent.click(screen.getByRole('button', { name: 'Quick how-to' }));
     const second = (input.props as ComponentProps<typeof AgentChatInput>)
       .prefill;
     expect(second?.nonce).toBe((first?.nonce ?? 0) + 1);
