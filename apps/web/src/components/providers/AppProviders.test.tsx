@@ -28,7 +28,7 @@ vi.mock('next-themes', () => ({
   useTheme: () => ({ theme: 'dark' }),
 }));
 
-vi.mock('sonner', () => ({
+vi.mock('@ui/primitives/toaster', () => ({
   Toaster: ({ theme }: { theme: string }) => (
     <div data-testid="toaster" data-theme={theme} />
   ),

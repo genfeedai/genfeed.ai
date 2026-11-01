@@ -12,7 +12,6 @@ export {
 } from './canvas';
 export { GlobalImageHistory } from './components/GlobalImageHistory';
 // Components
-export { NotificationToast } from './components/NotificationToast';
 export { SmallGraphViewportGuard } from './components/SmallGraphViewportGuard';
 export type { WorkflowEditorShellProps } from './components/WorkflowEditorShell';
 export { WorkflowEditorShell } from './components/WorkflowEditorShell';
