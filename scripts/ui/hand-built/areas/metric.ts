@@ -16,9 +16,13 @@ const area: HandBuiltArea = {
     }
     return scanRestyle(source, {
       component: 'MetricCard',
-      importPaths: ['@ui/cards/metric-card/MetricCard'],
+      importPaths: [
+        '@ui/cards/metric-card/MetricCard',
+        '@ui/components/cards/metric-card/MetricCard',
+      ],
       isDefaultExport: true,
       isSizeOwned: false,
+      isToneLookupFlagged: true,
       rule: 'metric-card-restyle',
     });
   },

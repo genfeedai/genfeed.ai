@@ -40,6 +40,26 @@ describe('metric guard', () => {
   });
 });
 
+describe('metric guard, alternate path and looked-up tone', () => {
+  it('flags a restyle imported through the components path', () => {
+    expect(
+      scan(
+        metric,
+        'import MetricCard from \'@ui/components/cards/metric-card/MetricCard\';\nexport const A = () => <MetricCard className="p-6" label="a" value="1" />;',
+      ),
+    ).toEqual(['metric-card-restyle']);
+  });
+
+  it('flags a className read from a looked-up tone', () => {
+    expect(
+      scan(
+        metric,
+        'import MetricCard from \'@ui/cards/metric-card/MetricCard\';\nexport const A = ({ status }) => <MetricCard className={status.color} label="a" value="1" />;',
+      ),
+    ).toEqual(['metric-card-restyle']);
+  });
+});
+
 describe('table guard', () => {
   it('flags padding and typography on cells', () => {
     expect(
