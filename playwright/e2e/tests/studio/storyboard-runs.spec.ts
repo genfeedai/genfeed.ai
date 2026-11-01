@@ -214,10 +214,10 @@ test.describe('Storyboard runs', () => {
       page.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
     await expect(
-      page.getByRole('button', { name: 'From a brief' }),
+      page.getByRole('radio', { name: 'From a brief' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Remix a video' }),
+      page.getByRole('radio', { name: 'Remix a video' }),
     ).toBeVisible();
   });
 });

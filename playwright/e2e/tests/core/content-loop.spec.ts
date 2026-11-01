@@ -109,10 +109,10 @@ test.describe('Core Content Loop', () => {
       authenticatedPage.getByRole('link', { name: 'Browse Discovery' }),
     ).toHaveAttribute('href', /\/discovery\/overview$/);
     await expect(
-      authenticatedPage.getByRole('button', { name: 'From a brief' }),
+      authenticatedPage.getByRole('radio', { name: 'From a brief' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Remix a video' }),
+      authenticatedPage.getByRole('radio', { name: 'Remix a video' }),
     ).toBeVisible();
   });
 
