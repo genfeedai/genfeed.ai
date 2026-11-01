@@ -95,7 +95,8 @@ describe('CredentialMentionList', () => {
     expect(screen.getByText('!acme_official')).toBeInTheDocument();
     expect(screen.getByText('Acme Official')).toBeInTheDocument();
     expect(screen.getByText('Instagram')).toBeInTheDocument();
-    expect(screen.getByAltText('acme_official')).toBeInTheDocument();
+    // jsdom never preloads the picture, so the avatar shows the initial.
+    expect(screen.getByText('A')).toBeInTheDocument();
     // Same name/handle renders only the handle line.
     expect(screen.getByText('!acme')).toBeInTheDocument();
   });
