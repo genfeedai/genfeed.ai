@@ -7,11 +7,8 @@
       "button-restyle": 3
     },
     "apps/extension/src/components/create/CreatePanel.tsx": {
-      "button-restyle": 2,
+      "button-restyle": 1,
       "unstyled-look": 1
-    },
-    "apps/extension/src/components/create/PublicationInsightsPanel.tsx": {
-      "button-restyle": 3
     },
     "apps/extension/src/components/create/TemplateCard.tsx": {
       "unstyled-look": 1
@@ -21,9 +18,6 @@
     },
     "apps/extension/src/components/pages/LoginPage.tsx": {
       "button-restyle": 1
-    },
-    "apps/extension/src/components/pages/ReplyPage.tsx": {
-      "button-restyle": 3
     },
     "apps/extension/src/components/settings/BrandSelector.tsx": {
       "unstyled-look": 1
@@ -35,7 +29,7 @@
       "unstyled-look": 1
     },
     "apps/extension/src/popup.tsx": {
-      "button-restyle": 2
+      "button-restyle": 1
     },
     "apps/marketing/app/(content)/articles/[slug]/article-content.tsx": {
       "button-restyle": 1
@@ -119,9 +113,6 @@
       "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx": {
-      "button-restyle": 1
-    },
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperReferenceFrameSelector.tsx": {
       "button-restyle": 1
     },
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperResultCard.tsx": {
@@ -279,9 +270,6 @@
     "apps/web/src/components/content/filter-menu/FilterMenu.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/components/content/textarea-label-actions/TextareaLabelActions.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/desktop/DesktopLocalProviderSettings.tsx": {
       "unstyled-look": 4
     },
@@ -303,11 +291,7 @@
     "apps/web/src/components/ingredients/inspector/IngredientInspectorRail.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/ingredients/inspector/IngredientLineageStrip.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/ingredients/inspector/IngredientPromptBlock.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/src/components/ingredients/inspector/IngredientTagsControl.tsx": {
@@ -489,7 +473,7 @@
       "button-restyle": 3
     },
     "apps/web/src/features/brands/components/sidebar/BrandDetailSocialMediaCard.tsx": {
-      "button-restyle": 3
+      "button-restyle": 2
     },
     "apps/web/src/features/brands/components/sidebar/CredentialPostingTimesEditor.tsx": {
       "button-restyle": 1
@@ -556,7 +540,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupCustomizePanel.tsx": {
-      "button-restyle": 3
+      "button-restyle": 2
     },
     "apps/web/src/features/studio/components/dropdowns/generation-setup/GenerationSetupFieldRow.tsx": {
       "button-restyle": 1
@@ -679,14 +663,9 @@
       "button-restyle": 3
     },
     "packages/agent/src/components/AgentSidebar.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
-    "packages/agent/src/components/AgentStrategyContentSection.tsx": {
-      "button-restyle": 1
-    },
     "packages/agent/src/components/AgentStrategyEngagementSection.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "packages/agent/src/components/AgentStrategyHeader.tsx": {
@@ -714,7 +693,6 @@
       "button-restyle": 1
     },
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "packages/agent/src/components/BrandMentionList.tsx": {
@@ -785,9 +763,6 @@
     },
     "packages/agent/src/components/TrendingTopicsCard.tsx": {
       "unstyled-look": 1
-    },
-    "packages/agent/src/components/TurboRunResultCard.tsx": {
-      "button-restyle": 1
     },
     "packages/agent/src/components/VoiceCloneDropzone.tsx": {
       "unstyled-look": 1
@@ -919,9 +894,6 @@
     },
     "packages/workflows/src/ui/toolbar/Toolbar.tsx": {
       "button-restyle": 2
-    },
-    "packages/workflows/src/ui/toolbar/ToolbarDropdown.tsx": {
-      "button-restyle": 1
     },
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": {
       "button-restyle": 1

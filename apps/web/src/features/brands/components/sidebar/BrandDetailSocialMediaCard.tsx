@@ -649,7 +649,7 @@ export default function BrandDetailSocialMediaCard({
                   <Button
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
-                    className="h-8 text-xs"
+                    className="h-8"
                     onClick={() => {
                       setOverrideUnresolvedChecks([]);
                       setOverrideCredentialId(summary.credentialId);
@@ -875,7 +875,7 @@ export default function BrandDetailSocialMediaCard({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="h-8 shrink-0 px-2.5 text-xs"
+            className="h-8 shrink-0 px-2.5"
             onClick={() => setIsDialogOpen(true)}
           >
             {hasConnectedAccounts ? translate('manage') : translate('connect')}
@@ -930,7 +930,7 @@ export default function BrandDetailSocialMediaCard({
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      className="h-7 px-2 text-2xs text-muted-foreground"
+                      className="h-7 px-2 text-2xs"
                       onClick={() => setDisconnectTarget(connection)}
                     >
                       {translate('disconnectNamed', {

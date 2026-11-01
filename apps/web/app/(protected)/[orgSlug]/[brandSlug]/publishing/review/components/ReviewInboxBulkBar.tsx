@@ -60,7 +60,7 @@ export default function ReviewInboxBulkBar({
       </p>
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <Button
-          className="h-7 gap-1 px-2 text-xs"
+          className="h-7 gap-1 px-2"
           isDisabled={isDisabled}
           onClick={onApprove}
           size={ButtonSize.SM}
@@ -71,7 +71,7 @@ export default function ReviewInboxBulkBar({
           {translate('approve')}
         </Button>
         <Button
-          className="h-7 gap-1 px-2 text-xs"
+          className="h-7 gap-1 px-2"
           isDisabled={isDisabled}
           onClick={onReject}
           size={ButtonSize.SM}

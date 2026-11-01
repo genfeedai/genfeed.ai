@@ -124,7 +124,6 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
       size={ButtonSize.SM}
       variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
       withWrapper={false}
-      className="font-medium"
     >
       <a href={href}>{cta.label}</a>
     </Button>

@@ -37,7 +37,7 @@ export default function AgentProfileSummaryCard({
           onClick={onManage}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
-          className="h-8 shrink-0 px-2.5 text-xs"
+          className="h-8 shrink-0 px-2.5"
         >
           Manage
         </Button>

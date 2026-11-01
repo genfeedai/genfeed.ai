@@ -144,7 +144,7 @@ function HistorySidebar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             onClick={onClear}
-            className="text-2xs text-muted-foreground hover:text-destructive p-0 h-auto"
+            className="text-2xs hover:text-destructive p-0 h-auto"
             title="Clear all history"
           >
             Clear All
@@ -154,7 +154,7 @@ function HistorySidebar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             onClick={onClose}
-            className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="size-5 hover:bg-muted"
             title="Close"
           >
             <X className="size-3" />

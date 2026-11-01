@@ -71,7 +71,7 @@ export function SaveIndicator({
         size={ButtonSize.SM}
         onClick={toggleAutoSave}
         title="Click to enable auto-save"
-        className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
+        className="h-auto p-0"
       >
         <CloudOff className="size-3.5" />
         <span>Auto-save off</span>

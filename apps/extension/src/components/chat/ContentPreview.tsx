@@ -145,7 +145,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             type="button"
             variant={ButtonVariant.SECONDARY}
             onClick={handleCopy}
-            className="rounded px-2.5 py-1 text-xs"
+            className="rounded px-2.5 py-1"
           >
             {copied ? 'Copied!' : 'Copy'}
           </Button>
@@ -156,7 +156,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
               variant={ButtonVariant.DEFAULT}
               onClick={handleInsert}
               disabled={insertStatus === 'inserting'}
-              className="rounded px-2.5 py-1 text-xs"
+              className="rounded px-2.5 py-1"
             >
               {insertStatus === 'inserting' ? 'Inserting...' : 'Insert'}
             </Button>
@@ -188,7 +188,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             variant={ButtonVariant.SECONDARY}
             onClick={handleRegenerate}
             isDisabled={isGenerating}
-            className="rounded px-2.5 py-1 text-xs"
+            className="rounded px-2.5 py-1"
           >
             Regenerate
           </Button>

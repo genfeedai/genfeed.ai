@@ -310,7 +310,7 @@ function PreviewSection({
           variant={ButtonVariant.SECONDARY}
           disabled={!previewContent.trim() || !canCompose}
           onClick={onInsert}
-          className="w-full p-2 text-xs font-medium"
+          className="w-full p-2"
         >
           Insert In Composer
         </Button>
@@ -343,7 +343,7 @@ function PostSection({
         variant={ButtonVariant.DEFAULT}
         disabled={isRunning || !previewContent.trim()}
         onClick={onPost}
-        className="mt-2 w-full text-xs"
+        className="mt-2 w-full"
       >
         {isRunning && currentAction === 'post'
           ? 'Creating Draft…'

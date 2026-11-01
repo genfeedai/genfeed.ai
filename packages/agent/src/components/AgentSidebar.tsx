@@ -59,7 +59,6 @@ export function AgentSidebar({
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 onClick={toggleOpen}
-                className="text-muted-foreground hover:text-foreground"
                 aria-label="Close"
               >
                 <svg

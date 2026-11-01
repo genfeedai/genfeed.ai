@@ -134,7 +134,7 @@ export function ConnectedAccounts(): ReactElement {
               }
               onClick={() => handleConnect(key, connectEndpoint)}
               disabled={connecting === key}
-              className="rounded px-3 py-1 text-xs font-medium"
+              className="rounded px-3 py-1"
             >
               {connecting === key
                 ? 'Connecting...'

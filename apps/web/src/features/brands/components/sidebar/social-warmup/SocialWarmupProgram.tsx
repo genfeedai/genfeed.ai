@@ -399,7 +399,7 @@ export default function SocialWarmupProgram({
               {model.unresolvedChecks.map((check) => (
                 <li key={check.id}>
                   <Button
-                    className="h-auto px-0 text-left text-xs"
+                    className="h-auto px-0 text-left"
                     onClick={() => handleFocusCheck(check.id)}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.LINK}

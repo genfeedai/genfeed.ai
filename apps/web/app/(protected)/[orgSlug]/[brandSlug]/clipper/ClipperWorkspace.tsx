@@ -527,7 +527,7 @@ function ClipperProjectControls({
                       : !avatarId || !voiceId))
                 }
                 isLoading={isSubmitting}
-                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
                 icon={
                   isSubmitting ? (
                     <Spinner

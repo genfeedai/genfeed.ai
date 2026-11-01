@@ -163,7 +163,7 @@ export default function IngredientLineageStrip({
 
       {hasNext ? (
         <Button
-          className="w-fit text-xs"
+          className="w-fit"
           isLoading={isLoading}
           onClick={loadMore}
           type="button"

@@ -55,7 +55,7 @@ export default function BrandDetailReferencesCard({
           </div>
           <Button
             variant={ButtonVariant.SECONDARY}
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}
@@ -70,7 +70,7 @@ export default function BrandDetailReferencesCard({
           </Alert>
           <Button
             variant={ButtonVariant.DEFAULT}
-            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            className="w-full gap-1.5 [&_svg]:size-3.5"
             size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}

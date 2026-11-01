@@ -109,7 +109,6 @@ function PopupContent() {
             type="button"
             variant={ButtonVariant.GHOST}
             onClick={handleLogout}
-            className="text-xs text-muted-foreground hover:text-foreground"
           >
             Logout
           </Button>

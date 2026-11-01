@@ -25,7 +25,7 @@ export function WorkspaceTaskBrandField({
           <Button
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
-            className="px-2 text-xs text-foreground/60"
+            className="px-2 text-foreground/60"
             onClick={onClear}
           >
             Clear

@@ -104,7 +104,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
         <Button
           variant={ButtonVariant.GHOST}
           onClick={handleToggle}
-          className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-foreground/70 self-start"
+          className="flex items-center gap-1.5 text-foreground/50 hover:text-foreground/70 self-start"
           icon={
             expanded ? (
               <ChevronUp className="size-3.5" />
