@@ -1,18 +1,17 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { IIngredientNotificationOwner } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
-interface OwnedIngredient {
-  id: string;
-  organization?: { label?: string } | null;
-  organizationId?: string | null;
-  user?: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-  } | null;
+type OwnedIngredient = Pick<
+  IngredientDocument,
+  'id' | 'organization' | 'organizationId' | 'user'
+>;
+
+function readText(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined;
 }
 
 /**
@@ -33,7 +32,7 @@ export class IngredientNotificationOwnerService {
     ingredient: OwnedIngredient,
   ): Promise<IIngredientNotificationOwner> {
     const { organization, user } = ingredient;
-    const userName = [user?.firstName, user?.lastName]
+    const userName = [readText(user?.firstName), readText(user?.lastName)]
       .filter(Boolean)
       .join(' ');
     let creditBalance: number | undefined;
@@ -53,8 +52,8 @@ export class IngredientNotificationOwnerService {
     return {
       creditBalance,
       organizationId: ingredient.organizationId ?? undefined,
-      organizationLabel: organization?.label,
-      userEmail: user?.email,
+      organizationLabel: readText(organization?.label),
+      userEmail: readText(user?.email),
       userName: userName || undefined,
     };
   }
