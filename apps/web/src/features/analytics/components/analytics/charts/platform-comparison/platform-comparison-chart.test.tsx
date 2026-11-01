@@ -3,6 +3,10 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@ui/charts', () => ({
   ChartContainer: ({
     children,
@@ -213,16 +217,16 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const viewsButton = screen.getByText('views').closest('button');
       const likesButton = screen.getByText('likes').closest('button');
-      expect(viewsButton).toHaveClass('bg-muted');
-      expect(likesButton).toHaveClass('bg-muted');
+      expect(viewsButton).toHaveAttribute('aria-pressed', 'true');
+      expect(likesButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('comments and shares are inactive by default', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const commentsButton = screen.getByText('comments').closest('button');
       const sharesButton = screen.getByText('shares').closest('button');
-      expect(commentsButton).toHaveClass('bg-transparent');
-      expect(sharesButton).toHaveClass('bg-transparent');
+      expect(commentsButton).toHaveAttribute('aria-pressed', 'false');
+      expect(sharesButton).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('renders color indicator for each metric', () => {
@@ -242,7 +246,7 @@ describe('PlatformComparisonChart', () => {
       const commentsButton = getMetricButton('comments');
       fireEvent.click(commentsButton);
 
-      expect(commentsButton).toHaveClass('bg-muted');
+      expect(commentsButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('can toggle off views metric', () => {
@@ -251,7 +255,7 @@ describe('PlatformComparisonChart', () => {
       const viewsButton = getMetricButton('views');
       fireEvent.click(viewsButton);
 
-      expect(viewsButton).toHaveClass('bg-transparent');
+      expect(viewsButton).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('cannot toggle off last remaining metric', () => {
@@ -264,7 +268,7 @@ describe('PlatformComparisonChart', () => {
       const likesButton = getMetricButton('likes');
       fireEvent.click(likesButton);
 
-      expect(likesButton).toHaveClass('bg-muted');
+      expect(likesButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('can toggle a metric back on', () => {
@@ -274,11 +278,11 @@ describe('PlatformComparisonChart', () => {
 
       // Toggle off
       fireEvent.click(viewsButton);
-      expect(viewsButton).toHaveClass('bg-transparent');
+      expect(viewsButton).toHaveAttribute('aria-pressed', 'false');
 
       // Toggle back on
       fireEvent.click(viewsButton);
-      expect(viewsButton).toHaveClass('bg-muted');
+      expect(viewsButton).toHaveAttribute('aria-pressed', 'true');
     });
   });
 
@@ -394,20 +398,20 @@ describe('PlatformComparisonChart', () => {
     it('applies active styling to selected metrics', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const activeButton = screen.getByText('views').closest('button');
-      expect(activeButton).toHaveClass('text-foreground');
+      expect(activeButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('applies inactive styling to unselected metrics', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const inactiveButton = screen.getByText('comments').closest('button');
-      expect(inactiveButton).toHaveClass('text-muted-foreground');
+      expect(inactiveButton).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('applies disabled styling when loading', () => {
       render(<PlatformComparisonChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveClass('opacity-50');
+        expect(button).toBeDisabled();
       });
     });
 
@@ -415,7 +419,7 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveClass('cursor-not-allowed');
+        expect(button).toBeDisabled();
       });
     });
   });

@@ -212,7 +212,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -238,7 +238,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -264,7 +264,7 @@ describe('Storyboard shared composer', () => {
   });
   it('offers three slideshow ideas that fill the brief without saving', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
     expect(
       screen.getAllByRole('button', { name: /^Start from the .* idea$/ }),
     ).toHaveLength(3);
@@ -278,17 +278,17 @@ describe('Storyboard shared composer', () => {
   });
   it('offers long-video ideas and none for a remix', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Long video' }));
     expect(
       screen.getByRole('button', { name: 'Start from the Voice note idea' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remix a video' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Remix a video' }));
     expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
-    fireEvent.click(screen.getByRole('button', { name: 'From a brief' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a brief' }));
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });

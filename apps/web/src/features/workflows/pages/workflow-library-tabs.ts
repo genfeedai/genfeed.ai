@@ -1,5 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
+import type { TabsProps } from '@genfeedai/contracts/interfaces';
 
 type WorkflowRouteQuery = Record<string, string | string[] | undefined>;
 

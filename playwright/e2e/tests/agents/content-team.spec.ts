@@ -113,8 +113,8 @@ test.describe('Agents — Content Team', () => {
     );
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /Creator Studio/ }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      authenticatedPage.getByRole('radio', { name: /Creator Studio/ }),
+    ).toBeChecked();
 
     await authenticatedPage
       .locator('#agent-campaign-label')

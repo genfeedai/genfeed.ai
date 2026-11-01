@@ -355,6 +355,7 @@ function SplitButton({
   const isProcessing = status === 'processing';
 
   return (
+    // ui-guard-allow:selection-button -- emphasis of the process action, not a choice group
     <Button
       withWrapper={false}
       variant={

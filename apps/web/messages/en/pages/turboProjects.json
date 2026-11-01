@@ -13,6 +13,7 @@
   "fromIdeas": "From ideas",
   "fromWorkflow": "From a workflow",
   "source": "How do you want to create this project?",
+  "stepsLabel": "Project steps",
   "ideasDescription": "Describe a topic, generate ideas, then turn them into content.",
   "workflowDescription": "Run a saved workflow for each image or video you add.",
   "workflowDisabled": "Enable Automation in organization settings to use saved workflows. A paid subscription is required to run them.",

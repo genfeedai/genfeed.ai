@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
@@ -468,25 +469,25 @@ function MotionWorkspace() {
                   {current?.status} · {current?.progress ?? 0}%
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {revisions.map((item) => (
-                  <Button
-                    key={item.id}
-                    variant={
-                      revision?.id === item.id
-                        ? ButtonVariant.DEFAULT
-                        : ButtonVariant.SECONDARY
-                    }
-                    onClick={() => {
-                      setSelectedRevision(item.number);
-                      setSource(null);
-                      invalidateQuote();
-                    }}
-                  >
-                    {t('revision', { number: item.number })} · {item.status}
-                  </Button>
-                ))}
-              </div>
+              <SegmentedControl
+                appearance="chip"
+                ariaLabel={t('history')}
+                onValueChange={(revisionId) => {
+                  const item = revisions.find(
+                    (entry) => entry.id === revisionId,
+                  );
+                  if (item) {
+                    setSelectedRevision(item.number);
+                    setSource(null);
+                    invalidateQuote();
+                  }
+                }}
+                options={revisions.map((item) => ({
+                  label: `${t('revision', { number: item.number })} · ${item.status}`,
+                  value: item.id,
+                }))}
+                value={revision?.id}
+              />
               {(historyCursor === undefined
                 ? project.nextRevisionCursor
                 : historyCursor) != null && (

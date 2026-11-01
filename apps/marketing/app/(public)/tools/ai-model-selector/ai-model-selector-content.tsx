@@ -20,6 +20,7 @@ import {
 } from '@ui/primitives/collapsible';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import {
   ArrowRight,
@@ -92,49 +93,31 @@ export default function AiModelSelectorContent({
       <div className="grid gap-5 lg:grid-cols-2">
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Create</legend>
-          <div className="flex flex-wrap gap-1">
-            {MODEL_FORMATS.map((option) => (
-              <Button
-                aria-pressed={format === option.value}
-                className="min-h-11 px-3"
-                key={option.value}
-                label={option.label}
-                onClick={() => {
-                  setFormat(option.value);
-                  setCopyStatus('');
-                }}
-                variant={
-                  format === option.value
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                withWrapper={false}
-              />
-            ))}
-          </div>
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel="Create"
+            onValueChange={(value) => {
+              setFormat(value);
+              setCopyStatus('');
+            }}
+            options={MODEL_FORMATS}
+            size="touch"
+            value={format}
+          />
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Prioritize</legend>
-          <div className="flex flex-wrap gap-1">
-            {MODEL_PRIORITIES.map((option) => (
-              <Button
-                aria-pressed={priority === option.value}
-                className="min-h-11 px-3"
-                key={option.value}
-                label={option.label}
-                onClick={() => {
-                  setPriority(option.value);
-                  setCopyStatus('');
-                }}
-                variant={
-                  priority === option.value
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                withWrapper={false}
-              />
-            ))}
-          </div>
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel="Prioritize"
+            onValueChange={(value) => {
+              setPriority(value);
+              setCopyStatus('');
+            }}
+            options={MODEL_PRIORITIES}
+            size="touch"
+            value={priority}
+          />
         </fieldset>
       </div>
       <Collapsible className="border-b border-border">
@@ -159,26 +142,17 @@ export default function AiModelSelectorContent({
             {hasVisualOutput ? (
               <fieldset className="space-y-2">
                 <legend className="text-sm font-medium">Aspect ratio</legend>
-                <div className="flex flex-wrap gap-2">
-                  {ORIENTATIONS.map((option) => (
-                    <Button
-                      aria-pressed={orientation === option.value}
-                      className="min-h-11"
-                      key={option.value}
-                      label={option.label}
-                      onClick={() => {
-                        setOrientation(option.value);
-                        setCopyStatus('');
-                      }}
-                      variant={
-                        orientation === option.value
-                          ? ButtonVariant.DEFAULT
-                          : ButtonVariant.SECONDARY
-                      }
-                      withWrapper={false}
-                    />
-                  ))}
-                </div>
+                <SegmentedControl
+                  appearance="chip"
+                  ariaLabel="Aspect ratio"
+                  onValueChange={(value) => {
+                    setOrientation(value);
+                    setCopyStatus('');
+                  }}
+                  options={ORIENTATIONS}
+                  size="touch"
+                  value={orientation}
+                />
               </fieldset>
             ) : null}
           </div>

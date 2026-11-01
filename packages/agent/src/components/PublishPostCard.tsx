@@ -13,6 +13,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { Toggle } from '@ui/primitives/toggle';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Calendar, CircleCheck, Send } from 'lucide-react';
@@ -115,37 +117,21 @@ function PublishTargetSettingField(params: {
     const selected = Array.isArray(value)
       ? value.filter((item): item is string => typeof item === 'string')
       : [];
-    const selectedSet = new Set(selected);
+    const _selectedSet = new Set(selected);
 
     return (
-      <div className="flex flex-wrap gap-2">
-        {field.options.map((option) => {
-          const isSelected = selectedSet.has(option.value);
-          return (
-            <Button
-              key={option.value}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => {
-                const next = new Set(selectedSet);
-                if (next.has(option.value)) {
-                  next.delete(option.value);
-                } else {
-                  next.add(option.value);
-                }
-                onChange([...next]);
-              }}
-              className={`rounded border px-2.5 py-1 text-xs transition-colors ${
-                isSelected
-                  ? 'border-primary bg-primary/5 text-foreground'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
-            >
-              {option.label}
-            </Button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        appearance="chip"
+        ariaLabel={field.label}
+        onValueChange={onChange}
+        options={field.options.map((option) => ({
+          label: option.label,
+          value: option.value,
+        }))}
+        size="sm"
+        type="multiple"
+        value={selected}
+      />
     );
   }
 
@@ -581,18 +567,14 @@ export function PublishPostCard({
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <Button
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                      onClick={() => toggleTarget(target.id)}
-                      className={`rounded border px-2.5 py-1 text-xs transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 text-foreground'
-                          : 'border-border text-muted-foreground hover:border-primary/50'
-                      }`}
+                    <Toggle
+                      onPressedChange={() => toggleTarget(target.id)}
+                      pressed={isSelected}
+                      size="sm"
+                      variant="chip"
                     >
                       {targetToggleName(target, targetProposals)}
-                    </Button>
+                    </Toggle>
                     <span className="text-xs text-muted-foreground">
                       {target.label}
                     </span>
@@ -751,27 +733,34 @@ export function PublishPostCard({
           <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {translate('platforms')}
           </span>
-          <div className="flex flex-wrap gap-2">
-            {availablePlatforms.map((platform) => {
-              const selected = selectedPlatformSet.has(platform);
-
-              return (
-                <Button
-                  key={platform}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={() => togglePlatform(platform)}
-                  className={`rounded border px-2.5 py-1 text-xs transition-colors ${
-                    selected
-                      ? 'border-primary bg-primary/5 text-foreground'
-                      : 'border-border text-muted-foreground hover:border-primary/50'
-                  }`}
-                >
-                  {platform}
-                </Button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={translate('platforms')}
+            onValueChange={(next) => {
+              const changed = [
+                ...next.filter(
+                  (platform) => !selectedPlatformSet.has(platform),
+                ),
+                ...availablePlatforms.filter(
+                  (platform) =>
+                    selectedPlatformSet.has(platform) &&
+                    !next.includes(platform),
+                ),
+              ];
+              for (const platform of changed) {
+                togglePlatform(platform);
+              }
+            }}
+            options={availablePlatforms.map((platform) => ({
+              label: platform,
+              value: platform,
+            }))}
+            size="sm"
+            type="multiple"
+            value={availablePlatforms.filter((platform) =>
+              selectedPlatformSet.has(platform),
+            )}
+          />
         </div>
       )}
 

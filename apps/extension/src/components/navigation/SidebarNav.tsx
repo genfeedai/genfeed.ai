@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import {
   BookOpen,
   History,
@@ -49,6 +50,7 @@ export function SidebarNav({
   activeTab,
   onTabChange,
 }: SidebarNavProps): ReactElement {
+  const primary = NAV_ITEMS.slice(0, 3);
   const secondary = NAV_ITEMS.slice(3);
   const secondaryActive = secondary.find((item) => item.id === activeTab);
   return (
@@ -56,25 +58,22 @@ export function SidebarNav({
       aria-label="Genfeed tools"
       className="flex shrink-0 items-center gap-1 border-b border-border px-3 py-2"
     >
-      {NAV_ITEMS.slice(0, 3).map(({ id, label, icon: Icon }) => (
-        <Button
-          key={id}
-          variant={
-            activeTab === id ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-          }
-          size={ButtonSize.SM}
-          withWrapper={false}
-          icon={<Icon className="size-3.5" />}
-          ariaLabel={label}
-          aria-current={activeTab === id ? 'page' : undefined}
-          onClick={() => onTabChange(id)}
-          className="shrink-0"
-        >
-          {label}
-        </Button>
-      ))}
+      <SegmentedControl
+        ariaLabel="Primary tools"
+        onValueChange={onTabChange}
+        options={NAV_ITEMS.slice(0, 3).map(({ id, label, icon: Icon }) => ({
+          icon: <Icon />,
+          label,
+          value: id,
+        }))}
+        size="sm"
+        value={
+          primary.some((item) => item.id === activeTab) ? activeTab : undefined
+        }
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
+          {/* ui-guard-allow:selection-button -- overflow menu trigger, not a choice group */}
           <Button
             withWrapper={false}
             variant={

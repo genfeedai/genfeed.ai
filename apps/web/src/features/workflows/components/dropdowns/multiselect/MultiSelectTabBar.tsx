@@ -1,8 +1,8 @@
 'use client';
 
 import type { MultiSelectDropdownTab } from '@genfeedai/props/ui/forms/button.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { DropdownMenuSeparator } from '@ui/primitives/dropdown-menu';
+import { Tabs } from '@ui/primitives/tabs';
 
 type MultiSelectTabBarProps = {
   tabs: MultiSelectDropdownTab[];

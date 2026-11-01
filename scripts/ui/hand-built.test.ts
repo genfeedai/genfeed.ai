@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import badgeArea from './hand-built/areas/badge';
 import alertArea from './hand-built/areas/badge-alert';
+import selectionControls from './hand-built/areas/selection-controls';
 import {
   buildBaseline,
   diffBaseline,
@@ -260,5 +261,92 @@ describe('shrink-only baseline', () => {
       ],
       stale: [{ actual: 0, baseline: 1, file: 'b.tsx', rule: 'badge-restyle' }],
     });
+  });
+});
+
+function scanSelection(text: string, file = 'apps/web/src/Example.tsx') {
+  return selectionControls
+    .scan(sourceOf(file, text))
+    .map((finding) => `${finding.rule}:${finding.line}`);
+}
+
+const BUTTON_IMPORT = "import { Button } from '@ui/primitives/button';\n";
+const SEGMENTED_IMPORT =
+  "import { SegmentedControl } from '@ui/primitives/segmented-control';\n";
+
+describe('selection controls guard', () => {
+  it.each([
+    ['an equality check', 'mode === option'],
+    ['an includes check', 'goals.includes(goal)'],
+    ['a selected flag', 'isSelected'],
+    ['an active flag', 'isActive'],
+  ])('flags a Button whose variant flips on %s', (_name, condition) => {
+    expect(
+      scanSelection(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={${condition} ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY} />;\n`,
+      ),
+    ).toEqual(['selection-button:2']);
+  });
+
+  it.each([
+    [
+      'a destructive swap',
+      'isError ? ButtonVariant.DESTRUCTIVE : ButtonVariant.DEFAULT',
+    ],
+    ['a static variant', 'ButtonVariant.GHOST'],
+    [
+      'a non-selection flag',
+      'canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY',
+    ],
+  ])('allows a Button with %s', (_name, variant) => {
+    expect(
+      scanSelection(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={${variant}} />;\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags an UNSTYLED Button that paints a selected tile', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <Button
+    variant={ButtonVariant.UNSTYLED}
+    className={\`rounded-lg border p-4 \${on ? 'border-primary bg-primary/10' : 'border-border'}\`}
+  />
+);
+`;
+    expect(scanSelection(text)).toEqual(['selection-tile:3']);
+  });
+
+  it('does not flag a left-edge selection marker on a list row', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <Button
+    variant={ButtonVariant.UNSTYLED}
+    className={on ? 'bg-primary/10 border-l-2 border-primary' : ''}
+  />
+);
+`;
+    expect(scanSelection(text)).toEqual([]);
+  });
+
+  it('honours ui-guard-allow with a reason for a Button', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <>
+    {/* ui-guard-allow:selection-button -- primary call to action */}
+    <Button variant={on === true ? ButtonVariant.DEFAULT : ButtonVariant.GHOST} />
+  </>
+);
+`;
+    expect(scanSelection(text)).toEqual([]);
+  });
+
+  it('flags a restyled SegmentedControl but allows layout classes', () => {
+    const text = `${SEGMENTED_IMPORT}export const A = () => (
+  <>
+    <SegmentedControl className="mb-4 w-full" />
+    <SegmentedControl className="rounded-full px-3" />
+  </>
+);
+`;
+    expect(scanSelection(text)).toEqual(['segmented-restyle:5']);
   });
 });

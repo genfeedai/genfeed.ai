@@ -661,20 +661,20 @@ describe('SettingsApiKeysPage', () => {
 
     await screen.findByText('MCP Key');
 
-    const mcp = screen.getByRole('button', { name: 'MCP' });
-    const read = screen.getByRole('button', { name: 'Read' });
-    const content = screen.getByRole('button', { name: 'Content' });
+    const mcp = screen.getByRole('radio', { name: 'MCP' });
+    const read = screen.getByRole('radio', { name: 'Read' });
+    const content = screen.getByRole('radio', { name: 'Content' });
 
-    expect(mcp).toHaveAttribute('aria-pressed', 'true');
-    expect(read).toHaveAttribute('aria-pressed', 'false');
+    expect(mcp).toHaveAttribute('aria-checked', 'true');
+    expect(read).toHaveAttribute('aria-checked', 'false');
 
     fireEvent.click(read);
-    expect(read).toHaveAttribute('aria-pressed', 'true');
-    expect(mcp).toHaveAttribute('aria-pressed', 'false');
+    expect(read).toHaveAttribute('aria-checked', 'true');
+    expect(mcp).toHaveAttribute('aria-checked', 'false');
 
     fireEvent.click(content);
-    expect(content).toHaveAttribute('aria-pressed', 'true');
-    expect(read).toHaveAttribute('aria-pressed', 'false');
+    expect(content).toHaveAttribute('aria-checked', 'true');
+    expect(read).toHaveAttribute('aria-checked', 'false');
   });
 
   it('does not let a stale list overwrite a key created during the initial load', async () => {

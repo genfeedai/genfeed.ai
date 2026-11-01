@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Toggle } from '@ui/primitives/toggle';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Calendar, Clock, DollarSign } from 'lucide-react';
@@ -454,18 +455,14 @@ export function SchedulePostCard({
               return (
                 <div key={target.id} className="border border-border p-3">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <Button
-                      className={`rounded border px-2.5 py-1 text-xs transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 text-foreground'
-                          : 'border-border text-muted-foreground hover:border-primary/50'
-                      }`}
-                      onClick={() => toggleTarget(target.id)}
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
+                    <Toggle
+                      onPressedChange={() => toggleTarget(target.id)}
+                      pressed={isSelected}
+                      size="sm"
+                      variant="chip"
                     >
                       {targetToggleName(target, targetProposals)}
-                    </Button>
+                    </Toggle>
                     <span className="text-xs text-muted-foreground">
                       {target.label}
                       {isUnhealthy

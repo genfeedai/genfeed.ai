@@ -16,6 +16,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -256,57 +257,28 @@ export default function StoryboardCreate() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        <div
-          role="group"
-          aria-label={translate('sourceAria')}
-          className="flex flex-wrap gap-2"
-        >
-          <Button
-            label={translate('fromBrief')}
-            aria-pressed={mode === 'brief'}
-            variant={
-              mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('brief');
-              if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
-            }}
-          />
-          <Button
-            label={translate('longFormTitle')}
-            aria-pressed={isLongForm}
-            variant={
-              isLongForm ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('longForm');
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={translate('sourceAria')}
+          isDisabled={isCreating}
+          onValueChange={(nextMode) => {
+            setMode(nextMode);
+            if (nextMode === 'brief' && !isFormatIn(VIDEO_FORMATS, format)) {
+              setFormat('9:16');
+            } else if (nextMode === 'longForm') {
               setFormat('16:9');
-            }}
-          />
-          <Button
-            label={translate('slideshowTitle')}
-            aria-pressed={isSlideshow}
-            variant={
-              isSlideshow ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-            }
-            disabled={isCreating}
-            onClick={() => {
-              setMode('slideshow');
+            } else if (nextMode === 'slideshow') {
               setFormat('4:5');
-            }}
-          />
-          <Button
-            label={translate('remixTitle')}
-            aria-pressed={mode === 'video'}
-            variant={
-              mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
             }
-            disabled={isCreating}
-            onClick={() => setMode('video')}
-          />
-        </div>
+          }}
+          options={[
+            { label: translate('fromBrief'), value: 'brief' },
+            { label: translate('longFormTitle'), value: 'longForm' },
+            { label: translate('slideshowTitle'), value: 'slideshow' },
+            { label: translate('remixTitle'), value: 'video' },
+          ]}
+          value={mode}
+        />
         <PromptBarContainer layoutMode="inflow" maxWidth="full">
           <PromptBarComposer
             data-testid="storyboard-composer"
