@@ -16,6 +16,18 @@ export interface TrendDigestEntry {
   type: 'video' | 'hashtag' | 'sound' | 'topic';
   url?: string;
   usageCount?: number;
+  angle?: string;
+  matchedTerms?: string[];
+  postIdea?: { caption: string; format: string; hook: string };
+  thumbnailUrl?: string;
+  posts?: Array<{
+    authorHandle?: string;
+    likes?: number;
+    platform: string;
+    text?: string;
+    url: string;
+    views?: number;
+  }>;
 }
 
 export interface RenderedDigest {
@@ -33,6 +45,8 @@ export type DigestOwnerResolver = (
  * viral-score and platform gates. `sourceTopicCount === 0` is an empty corpus.
  */
 export interface DigestTrendsLookup {
+  /** Brand the topics were chosen for. */
+  brandLabel?: string;
   sourceTopicCount: number;
   trends: TrendDigestEntry[];
 }
@@ -64,7 +78,12 @@ export type DigestCreditsChecker = (
 /** Renders the branded subject + HTML for the digest. */
 export type DigestRenderer = (
   trends: TrendDigestEntry[],
-  options: { minViralScore: number; appUrl?: string; headerTitle?: string },
+  options: {
+    minViralScore: number;
+    appUrl?: string;
+    brandLabel?: string;
+    headerTitle?: string;
+  },
 ) => RenderedDigest;
 
 export type TrendDigestSkipReason =
@@ -98,7 +117,7 @@ export type TrendDigestOutput =
   | TrendDigestReadyOutput;
 
 const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'youtube', 'twitter'];
-const DEFAULT_TOP_N = 5;
+const DEFAULT_TOP_N = 8;
 const DEFAULT_MIN_VIRAL_SCORE = 70;
 const DEFAULT_CREDIT_COST = 5;
 const IDEMPOTENCY_TTL_SECONDS = 93_600; // ~26h — spans a daily run + clock skew
@@ -236,6 +255,7 @@ export class TrendDigestExecutor extends BaseExecutor {
 
     const { subject, html } = this.renderer(trends, {
       appUrl,
+      brandLabel: lookup.brandLabel,
       headerTitle,
       minViralScore,
     });

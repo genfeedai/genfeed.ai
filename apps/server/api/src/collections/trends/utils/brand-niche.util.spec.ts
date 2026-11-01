@@ -3,6 +3,7 @@ import {
   buildBrandNicheQueries,
   countNicheTermMatches,
   isWithinTimeframe,
+  matchedNicheTerms,
   rankBrandVideos,
 } from '@api/collections/trends/utils/brand-niche.util';
 import { Timeframe } from '@genfeedai/contracts';
@@ -31,6 +32,17 @@ describe('brand niche util', () => {
 
     it('returns nothing without any signal', () => {
       expect(buildBrandNicheQueries({ description: '  ' })).toEqual([]);
+    });
+  });
+
+  describe('matchedNicheTerms', () => {
+    it('names the niche terms a caption mentions and skips the rest', () => {
+      expect(
+        matchedNicheTerms(
+          { hashtags: ['#UGC'], title: 'AI video ads beat studio shoots' },
+          ['ai video', 'ugc', 'skincare'],
+        ),
+      ).toEqual(['ai video', 'ugc']);
     });
   });
 
