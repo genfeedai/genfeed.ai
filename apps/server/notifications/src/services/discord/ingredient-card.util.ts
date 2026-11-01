@@ -26,6 +26,30 @@ export function buildIngredientFields(
     fields.push({ inline: false, name: 'Prompt', value: truncatedPrompt });
   }
 
+  const { owner } = ingredient;
+  const account = [owner?.userName, owner?.userEmail]
+    .filter(Boolean)
+    .join(' · ');
+  if (account) {
+    fields.push({ inline: false, name: 'User', value: account });
+  }
+
+  if (owner?.organizationLabel || owner?.organizationId) {
+    fields.push({
+      inline: true,
+      name: 'Organization',
+      value: owner.organizationLabel ?? String(owner.organizationId),
+    });
+  }
+
+  if (typeof owner?.creditBalance === 'number') {
+    fields.push({
+      inline: true,
+      name: 'Credits left',
+      value: String(owner.creditBalance),
+    });
+  }
+
   if (ingredient.metadata?.model) {
     fields.push({
       inline: true,
