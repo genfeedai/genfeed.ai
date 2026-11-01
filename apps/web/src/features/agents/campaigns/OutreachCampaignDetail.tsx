@@ -170,19 +170,19 @@ export default function OutreachCampaignDetail() {
         {
           label: 'Processing',
           value: targetStats.processing,
-          valueClassName: 'text-warning',
+          tone: 'warning' as const,
         },
         {
           label: 'Replied',
           value: targetStats.replied,
-          valueClassName: 'text-success',
+          tone: 'success' as const,
         },
         ...(campaign.campaignType === CampaignType.DM_OUTREACH
           ? [
               {
                 label: 'DMs Sent',
                 value: campaign.totalDmsSent || 0,
-                valueClassName: 'text-success',
+                tone: 'success' as const,
               },
             ]
           : []),
@@ -193,7 +193,7 @@ export default function OutreachCampaignDetail() {
         {
           label: 'Failed',
           value: targetStats.failed,
-          valueClassName: 'text-destructive',
+          tone: 'destructive' as const,
         },
       ]
     : CAMPAIGN_KPI_PLACEHOLDERS;

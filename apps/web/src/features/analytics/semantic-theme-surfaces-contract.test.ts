@@ -15,13 +15,9 @@ describe('analytics semantic theme surfaces', () => {
       'bg-white/5',
       'bg-foreground/5',
     ],
-    [
-      'platform-detail/analytics-platform-detail.tsx',
-      'bg-white/10',
-      'bg-foreground/10',
-    ],
-    // Delegates its surface to `@ui/kpi/kpi-section`; only the forbidden token
-    // is still this file's concern.
+    // These delegate their surfaces to `@ui/kpi/kpi-section` (MetricCard owns
+    // the icon chip tone); only the forbidden token is still their concern.
+    ['platform-detail/analytics-platform-detail.tsx', 'bg-white/10', null],
     ['brand-overview/BrandKPISection.tsx', 'bg-white/10', null],
   ])(
     'removes fixed dark-only chrome from %s',

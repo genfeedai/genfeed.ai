@@ -136,9 +136,7 @@ function SettingsCreditsContent() {
           )}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <Text as="p" size="sm" color="muted">
-                {translate('creditsLeft')}
-              </Text>
+              {/* ui-guard-allow:hand-built-stat -- balance meter paired with the progress bar, not a stat tile; still value first */}
               <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                 {creditsBreakdown.total.toLocaleString('en-US', {
                   maximumFractionDigits: 1,
@@ -153,6 +151,9 @@ function SettingsCreditsContent() {
                   </span>
                 ) : null}
               </p>
+              <Text as="p" size="sm" color="muted">
+                {translate('creditsLeft')}
+              </Text>
             </div>
             <Text
               as="span"

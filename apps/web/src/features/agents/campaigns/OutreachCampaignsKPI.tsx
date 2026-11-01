@@ -31,7 +31,7 @@ export default function OutreachCampaignsKPI({
         {
           label: 'Active',
           value: activeCampaignsCount,
-          valueClassName: 'text-success',
+          tone: 'success' as const,
         },
         {
           label: 'Total Replies',
@@ -40,7 +40,7 @@ export default function OutreachCampaignsKPI({
         {
           label: 'Success Rate',
           value: `${successRate}%`,
-          valueClassName: successRate >= 80 ? 'text-success' : 'text-warning',
+          tone: successRate >= 80 ? ('success' as const) : ('warning' as const),
         },
       ]}
     />

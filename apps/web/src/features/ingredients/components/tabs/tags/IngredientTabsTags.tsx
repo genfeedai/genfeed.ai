@@ -12,6 +12,8 @@ import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -282,27 +284,32 @@ export default function IngredientTabsTags({
       {/* Tag Statistics */}
       <Card>
         <h3 className="text-lg font-semibold mb-4">Tag Statistics</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-tertiary">
-            <div className="text-sm text-foreground/60">Total Tags</div>
-            <div className="text-2xl font-bold">{tags.length}</div>
-          </div>
-          <div className="p-4 bg-tertiary">
-            <div className="text-sm text-foreground/60">Available</div>
-            <div className="text-2xl font-bold">{availableTags.length}</div>
-          </div>
-
-          <div className="p-4 bg-tertiary">
-            <div className="text-sm text-foreground/60">Categories</div>
-            <div className="text-2xl font-bold">
-              {new Set(tags.map((t) => t.category)).size}
-            </div>
-          </div>
-          <div className="p-4 bg-tertiary">
-            <div className="text-sm text-foreground/60">Most Used</div>
-            <div className="text-lg font-bold">{tags[0]?.label || '-'}</div>
-          </div>
-        </div>
+        <MetricCardGrid columns={4}>
+          <MetricCard
+            appearance="inset"
+            label="Total Tags"
+            size="sm"
+            value={tags.length}
+          />
+          <MetricCard
+            appearance="inset"
+            label="Available"
+            size="sm"
+            value={availableTags.length}
+          />
+          <MetricCard
+            appearance="inset"
+            label="Categories"
+            size="sm"
+            value={new Set(tags.map((t) => t.category)).size}
+          />
+          <MetricCard
+            appearance="inset"
+            label="Most Used"
+            size="sm"
+            value={tags[0]?.label || '-'}
+          />
+        </MetricCardGrid>
       </Card>
     </div>
   );
