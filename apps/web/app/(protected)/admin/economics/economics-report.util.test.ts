@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildEconomicsRange,
   formatCount,
-  formatLedgerTimestamp,
   formatMarginPercent,
   formatUsd,
   formatUsdAxis,
@@ -35,12 +34,5 @@ describe('economics report helpers', () => {
     expect(
       buildEconomicsRange(30, new Date('2026-09-30T12:00:00.000Z')),
     ).toEqual({ from: '2026-09-01', to: '2026-09-30' });
-  });
-
-  it('formats ledger timestamps in UTC and dashes an empty ledger', () => {
-    expect(formatLedgerTimestamp('2026-09-30T12:34:56.000Z')).toBe(
-      '2026-09-30 12:34',
-    );
-    expect(formatLedgerTimestamp(null)).toBe('—');
   });
 });

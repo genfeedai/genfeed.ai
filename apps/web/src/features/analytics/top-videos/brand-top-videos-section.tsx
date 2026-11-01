@@ -2,12 +2,12 @@
 
 import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Alert from '@ui/feedback/alert/Alert';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
@@ -114,11 +114,9 @@ export default function BrandTopVideosSection() {
                 <span className="font-semibold text-foreground">
                   {video.title || video.hook || 'Untitled'}
                 </span>
-                {video.publishedAt && (
-                  <span className="text-xs text-foreground/60">
-                    {formatDate(video.publishedAt)}
-                  </span>
-                )}
+                {video.publishedAt ? (
+                  <TableDateCell hasTime={false} value={video.publishedAt} />
+                ) : null}
               </div>
             ),
           },

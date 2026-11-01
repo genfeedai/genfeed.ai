@@ -15,6 +15,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { ArrowRight, Video } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,14 +29,12 @@ type PostWithAnalytics = Post & {
 };
 
 type BrandTopPostsTableProps = {
-  formatDate: (dateStr: string) => string;
   isLoadingPosts: boolean;
   onSelectPost: (postId: string) => void;
   topPosts: Post[];
 };
 
 export default function BrandTopPostsTable({
-  formatDate,
   isLoadingPosts,
   onSelectPost,
   topPosts,
@@ -115,11 +114,7 @@ export default function BrandTopPostsTable({
           {
             header: 'Published',
             key: 'publishedAt',
-            render: (post) => (
-              <span className="text-sm">
-                {post.publishedAt ? formatDate(post.publishedAt) : '-'}
-              </span>
-            ),
+            render: (post) => <TableDateCell value={post.publishedAt} />,
           },
           {
             header: (

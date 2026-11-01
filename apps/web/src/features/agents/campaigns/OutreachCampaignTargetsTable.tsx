@@ -9,6 +9,7 @@ import type { TableAction } from '@props/ui/display/table.props';
 import type { CampaignTarget } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -144,9 +145,7 @@ export default function OutreachCampaignTargetsTable({
         header: 'Sent At',
         key: 'sentAt',
         render: (target: CampaignTarget) => (
-          <span className="text-sm">
-            {target.dmSentAt ? new Date(target.dmSentAt).toLocaleString() : '-'}
-          </span>
+          <TableDateCell value={target.dmSentAt} />
         ),
       },
     ],

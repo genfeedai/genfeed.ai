@@ -32,7 +32,6 @@ const post = {
 function renderTable(onSelectPost = vi.fn()) {
   render(
     <BrandTopPostsTable
-      formatDate={(value) => value}
       isLoadingPosts={false}
       onSelectPost={onSelectPost}
       topPosts={[post]}
@@ -52,7 +51,7 @@ describe('BrandTopPostsTable', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Launch day recap' }));
     expect(onSelectPost).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText('2026-03-10T10:00:00.000Z'));
+    fireEvent.click(screen.getByText(/^Mar 10/));
     expect(onSelectPost).toHaveBeenCalledWith('post-7');
   });
 });

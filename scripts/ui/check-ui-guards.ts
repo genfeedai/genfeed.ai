@@ -38,6 +38,13 @@ const checks = [
     required: true,
   },
   {
+    // Dates in table columns render through TableDateCell: one line, compact,
+    // the full date in the tooltip. Relative times stay allowed.
+    command: ['bun', 'run', 'scripts/ui/hand-built/table-dates.ts'],
+    name: 'Table dates (TableDateCell, no hand-formatted dates in columns)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,

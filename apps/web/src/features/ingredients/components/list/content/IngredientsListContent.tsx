@@ -46,12 +46,12 @@ import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { format } from 'date-fns';
 import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -592,25 +592,9 @@ export default function IngredientsListContent({
         className: 'w-20',
         header: translate('browser.columns.created'),
         key: 'createdAt',
-        render: (ingredient: IIngredient) => {
-          const createdAt = ingredient.createdAt
-            ? new Date(ingredient.createdAt)
-            : null;
-
-          if (!createdAt || Number.isNaN(createdAt.getTime())) {
-            return <span className="text-muted-foreground">—</span>;
-          }
-
-          return (
-            <time
-              className="whitespace-nowrap text-xs tabular-nums text-foreground/70"
-              title={format(createdAt, 'd MMM yyyy')}
-              dateTime={createdAt.toISOString()}
-            >
-              {format(createdAt, 'd MMM yy')}
-            </time>
-          );
-        },
+        render: (ingredient: IIngredient) => (
+          <TableDateCell hasTime={false} value={ingredient.createdAt} />
+        ),
       },
       {
         className: 'w-32',

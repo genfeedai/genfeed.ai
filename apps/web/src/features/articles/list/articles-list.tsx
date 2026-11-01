@@ -6,7 +6,6 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -27,6 +26,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
@@ -93,8 +93,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       header: translate('created'),
       key: 'createdAt',
       sortable: true,
-      render: (article: Article) =>
-        article.createdAt ? formatDate(article.createdAt) : '-',
+      render: (article: Article) => <TableDateCell value={article.createdAt} />,
     },
   ];
 

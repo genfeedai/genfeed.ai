@@ -14,6 +14,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -193,7 +194,7 @@ export default function SettingsOrganizationMemoryPage() {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
+      render: (entry) => <TableDateCell value={entry.createdAt} />,
     },
   ];
 

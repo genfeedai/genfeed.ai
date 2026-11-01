@@ -19,12 +19,6 @@ import BrandChartsGrid from './BrandChartsGrid';
 import BrandKPISection from './BrandKPISection';
 import BrandTopPostsTable from './BrandTopPostsTable';
 
-const BRAND_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-
 type PostWithAnalytics = Post & {
   totalViews?: number;
   totalLikes?: number;
@@ -155,11 +149,6 @@ export default function AnalyticsBrandOverview({
     fetchTimeSeries();
   }, [brandId, dateRange, getBrandsService]);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return BRAND_DATE_FORMATTER.format(date);
-  };
-
   const platformCount = analytics
     ? Object.keys(analytics).filter((key) =>
         ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook'].includes(key),
@@ -240,7 +229,6 @@ export default function AnalyticsBrandOverview({
         />
 
         <BrandTopPostsTable
-          formatDate={formatDate}
           isLoadingPosts={isLoadingPosts}
           onSelectPost={setSelectedPostId}
           topPosts={topPosts}

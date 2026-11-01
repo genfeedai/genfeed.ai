@@ -45,6 +45,6 @@ describe('TableDateCell', () => {
   it.each([null, undefined, 'not a date'])('renders a dash for %s', (value) => {
     render(<TableDateCell timeZone="UTC" value={value} />);
 
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
   });
 });

@@ -11,12 +11,12 @@ import {
 } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import { Button } from '@ui/primitives/button';
@@ -219,10 +219,9 @@ export function buildPostsTableColumns({
       className: 'text-xs',
       header: 'Scheduled',
       key: 'scheduledDate',
-      render: (p: IPost) =>
-        p.scheduledDate
-          ? formatDateInTimezone(p.scheduledDate, browserTimezone, 'short')
-          : '-',
+      render: (p: IPost) => (
+        <TableDateCell timeZone={browserTimezone} value={p.scheduledDate} />
+      ),
     },
     // Eval column - hidden in Analytics app
     ...(scope !== PageScope.ANALYTICS
