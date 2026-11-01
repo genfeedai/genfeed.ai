@@ -8,11 +8,6 @@ export interface LoadingProps {
 }
 
 /**
- * Loading overlay props extending base LoadingProps
- */
-export interface LoadingOverlayProps extends LoadingProps {}
-
-/**
  * Loading states for tracking multiple async operations
  */
 export interface LoadingStates {

@@ -193,3 +193,4 @@ export class RenderStoryboardARollDto extends ControlStoryboardRunDto {
   @IsString()
   inputHash!: string;
 }
+export class CreateStoryboardSlideshowPostDto extends ControlStoryboardRunDto {}

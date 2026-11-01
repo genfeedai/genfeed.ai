@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockUsePathname = vi.fn();
@@ -7,6 +7,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/web/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/agent/components/AgentPanel', () => ({
   AgentPanel: () => <div data-testid="agent-panel-mock" />,
 }));
@@ -14,26 +21,25 @@ vi.mock('@genfeedai/agent/components/AgentPanel', () => ({
 import { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 
 describe('AgentOverlay', () => {
-  it('renders the overlay controls on non-agent routes and opens the drawer on demand', () => {
+  it('opens the agent drawer from the launcher and closes it on Escape', async () => {
     mockUsePathname.mockReturnValue('/overview');
 
     render(<AgentOverlay apiService={{} as never} />);
 
-    expect(screen.getAllByRole('button')).toHaveLength(1);
-    expect(screen.getByTestId('agent-panel-mock')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-panel-mock').closest('aside')).toHaveClass(
-      'translate-x-full',
-    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const launcher = screen.getByRole('button', { name: 'Open agent' });
 
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(launcher);
 
-    expect(screen.getAllByRole('button')).toHaveLength(2);
-    expect(screen.getAllByRole('button')[1]).toHaveClass(
-      'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm',
+    const drawer = screen.getByRole('dialog', { name: 'Agent' });
+    expect(drawer).toContainElement(screen.getByTestId('agent-panel-mock'));
+
+    fireEvent.keyDown(drawer, { key: 'Escape' });
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     );
-    expect(screen.getByTestId('agent-panel-mock').closest('aside')).toHaveClass(
-      'translate-x-0',
-    );
+    expect(launcher).toHaveFocus();
   });
 
   it('returns null on dedicated agent routes', () => {

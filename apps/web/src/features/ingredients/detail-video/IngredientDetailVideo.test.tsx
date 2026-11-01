@@ -84,12 +84,9 @@ vi.mock(
   }),
 );
 
-vi.mock(
-  '@/features/ingredients/components/loading/overlay/LoadingOverlay',
-  () => ({
-    default: () => <div data-testid="loading-overlay" />,
-  }),
-);
+vi.mock('@ui/primitives/loading-overlay', () => ({
+  default: () => <div data-testid="loading-overlay" />,
+}));
 
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => <div data-testid="ingredient-quick-actions" />,

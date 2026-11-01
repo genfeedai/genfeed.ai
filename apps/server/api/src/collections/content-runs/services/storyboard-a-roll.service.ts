@@ -13,6 +13,10 @@ import {
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import {
+  type StoryboardVideoFormat,
+  storyboardVideoFormat,
+} from '@api/collections/content-runs/services/storyboard-plan-state';
+import {
   projectStoryboardRun,
   StoryboardRunStoreService,
 } from '@api/collections/content-runs/services/storyboard-run-store.service';
@@ -359,7 +363,7 @@ export class StoryboardARollService {
     if (track === 'aRoll')
       return (text, presenter) =>
         this.avatars.quote(
-          this.chunkParams(text, presenter, config.plan.format),
+          this.chunkParams(text, presenter, storyboardVideoFormat(config.plan)),
           { organizationId, userId, brandId },
         );
     const voice = await this.voice.resolve(
@@ -372,7 +376,7 @@ export class StoryboardARollService {
   private chunkParams(
     text: string,
     presenter: StoryboardARollPresenter,
-    format: StoryboardStoredRunConfig['plan']['format'],
+    format: StoryboardVideoFormat,
   ): AvatarVideoGenerationParams {
     return {
       text,
@@ -415,7 +419,7 @@ export class StoryboardARollService {
         this.chunkParams(
           chunk.text,
           storyboardARollPresenter(config.plan),
-          config.plan.format,
+          storyboardVideoFormat(config.plan),
         ),
         { organizationId, userId: chunk.actorUserId, brandId },
         async (ingredientId) => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from './dialog';
 
 describe('Dialog scrolling', () => {
@@ -83,5 +84,43 @@ describe('Dialog scrolling', () => {
     const panel = screen.getByRole('dialog');
     expect(panel).toHaveClass('gen-dialog-panel-right', 'right-0', 'h-full');
     expect(panel).not.toHaveClass('max-w-4xl', 'top-1/2');
+  });
+
+  it.each([
+    ['left', 'gen-dialog-panel-left', 'left-0'],
+    ['top', 'gen-dialog-panel-top', 'top-0'],
+  ] as const)(
+    'docks a %s panel to the viewport edge',
+    (placement, animationClass, edgeClass) => {
+      render(
+        <Dialog defaultOpen>
+          <DialogContent placement={placement}>
+            <DialogTitle>Navigation</DialogTitle>
+          </DialogContent>
+        </Dialog>,
+      );
+      const panel = screen.getByRole('dialog');
+      expect(panel).toHaveClass(animationClass, edgeClass);
+      expect(panel).not.toHaveClass('top-1/2');
+    },
+  );
+
+  it('closes on Escape and returns focus to the trigger', async () => {
+    render(
+      <Dialog>
+        <DialogTrigger>Open menu</DialogTrigger>
+        <DialogContent placement="left">
+          <DialogTitle>Navigation</DialogTitle>
+        </DialogContent>
+      </Dialog>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Open menu' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
   });
 });

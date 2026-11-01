@@ -21,6 +21,14 @@ const cutawayIds = {
   uniqueItems: true,
 };
 const inputHash = { type: 'string', minLength: 64, maxLength: 64 };
+const slideIds = {
+  type: 'array',
+  items: id,
+  minItems: 1,
+  maxItems: 12,
+  uniqueItems: true,
+};
+const assetIds = { type: 'array', items: id, maxItems: 20 };
 
 export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
   {
@@ -176,6 +184,135 @@ export const MCP_STORYBOARD_CAPABILITY_TOOLS: SourceTool[] = [
         },
       },
       required: ['brandId', 'runId', 'stage', 'expectedRevision', 'inputHash'],
+    },
+    creditCost: 0,
+    requiredRole: 'user',
+  },
+  {
+    name: 'storyboard_slideshow',
+    description:
+      'Work on a photo slideshow (a swipeable 4:5 carousel for Instagram, TikTok or LinkedIn). create starts one from an idea (brief) with optional styleReferenceAssetIds and cast reference images that keep every slide consistent; get reads the run, slides and any draft post; draft_plan drafts or revises the slides (instruction); edit_slides changes slide text, the caption, or the swipe order (order lists every slide id; slides left out are removed); approve_plan locks the slides; quote prices the slide images (all, or slideIds to redo some) and returns its inputHash; reconcile picks up finished images; save_draft_post saves one draft post with the slides in order. Never charges credits, schedules or publishes.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        action: {
+          type: 'string',
+          enum: [
+            'create',
+            'get',
+            'draft_plan',
+            'edit_slides',
+            'approve_plan',
+            'quote',
+            'reconcile',
+            'save_draft_post',
+          ],
+        },
+        brandId: id,
+        runId: { ...id, description: 'Every action except create.' },
+        clientRequestId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'create only: a new UUID for this slideshow.',
+        },
+        brief: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 2000,
+          description: 'create only: the idea the slides illustrate.',
+        },
+        styleReferenceAssetIds: {
+          ...assetIds,
+          description:
+            'create only: images every slide is drawn in the style of.',
+        },
+        cast: {
+          type: 'array',
+          maxItems: 6,
+          description:
+            'create only: recurring people or products, each kept consistent from its reference images.',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              name: { type: 'string', minLength: 1, maxLength: 80 },
+              referenceAssetIds: { ...assetIds, minItems: 1 },
+            },
+            required: ['name', 'referenceAssetIds'],
+          },
+        },
+        expectedRevision: {
+          ...revision,
+          description:
+            'Run revision from get; required for draft_plan, edit_slides, approve_plan, quote and save_draft_post.',
+        },
+        instruction: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 2000,
+          description: 'draft_plan only: how to revise the current slides.',
+        },
+        title: { type: 'string', minLength: 1, maxLength: 120 },
+        caption: {
+          type: 'string',
+          maxLength: 300,
+          description: 'edit_slides only: the post caption.',
+        },
+        slides: {
+          type: 'array',
+          maxItems: 12,
+          description:
+            'edit_slides only: slides to change, by id from get. Omitted fields stay.',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              id,
+              description: { type: 'string', minLength: 1, maxLength: 1000 },
+              sectionLabel: { type: 'string', maxLength: 40 },
+            },
+            required: ['id'],
+          },
+        },
+        order: {
+          ...slideIds,
+          description:
+            'edit_slides only: every slide id in the new swipe order. Slides left out are removed.',
+        },
+        slideIds: {
+          ...slideIds,
+          description:
+            'quote only: redo only these slides; omit for every slide without an image.',
+        },
+      },
+      required: ['action', 'brandId'],
+    },
+    creditCost: 0,
+    requiredRole: 'user',
+  },
+  {
+    name: 'start_storyboard_slideshow',
+    description:
+      'Start the quoted slide images of a slideshow after the user accepts the price from storyboard_slideshow quote. Pass the quote inputHash; a changed plan is refused, and finished images are not charged again. Then call storyboard_slideshow reconcile until the slides are ready.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        brandId: id,
+        runId: id,
+        expectedRevision: revision,
+        inputHash: {
+          ...inputHash,
+          description: 'inputHash from the accepted quote.',
+        },
+        slideIds: {
+          ...slideIds,
+          description:
+            'The quoted slide ids; omit if the quote covered every slide.',
+        },
+      },
+      required: ['brandId', 'runId', 'expectedRevision', 'inputHash'],
     },
     creditCost: 0,
     requiredRole: 'user',

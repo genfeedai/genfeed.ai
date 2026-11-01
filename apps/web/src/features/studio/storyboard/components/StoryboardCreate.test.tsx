@@ -236,6 +236,48 @@ describe('Storyboard shared composer', () => {
       }),
     );
   });
+  it('saves a brief as a 4:5 slideshow with no runtime', async () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Five habits of calm founders' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        source: {
+          kind: 'brief',
+          brief: 'Five habits of calm founders',
+          length: 'slideshow',
+        },
+        planSettings: {
+          kind: 'slideshow',
+          format: '4:5',
+          videoModelKey: null,
+          runtimeBudgetSeconds: null,
+          styleReferenceAssetIds: [],
+          cast: [],
+        },
+      }),
+    );
+  });
+  it('goes back to a video format when a slideshow is switched back to a brief', async () => {
+    render(<StoryboardCreate />);
+    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('button', { name: 'From a brief' }));
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'A product launch' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planSettings: expect.objectContaining({ format: '9:16' }),
+        }),
+      ),
+    );
+  });
   it('saves only owned, nondeleted style references and clears them when the brand changes', async () => {
     const { rerender } = render(<StoryboardCreate />);
     fireEvent.click(

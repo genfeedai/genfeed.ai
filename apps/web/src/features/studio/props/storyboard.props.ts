@@ -23,6 +23,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
+import type { StoryboardSlideshowPost } from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type { StoryboardStillQuote } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
 import type {
@@ -216,6 +217,13 @@ export interface StoryboardPlanEditorProps {
     quote: StoryboardStillQuote,
   ) => Promise<StoryboardRun>;
   readonly longForm?: StoryboardLongFormActions;
+  readonly slideshow?: StoryboardSlideshowActions;
+}
+
+/** The slideshow step that follows approval (#8896). */
+export interface StoryboardSlideshowActions {
+  /** Makes one draft post from the approved slides; nothing is scheduled. */
+  readonly createPost: (revision: number) => Promise<StoryboardSlideshowPost>;
 }
 
 /** The paid long-form steps (#8218), each priced before it starts. */
@@ -285,6 +293,7 @@ export type StoryboardDraftPageProps = Pick<
   | 'quoteStills'
   | 'generateStills'
   | 'longForm'
+  | 'slideshow'
 > & {
   /** Drafts the plan from the brief, or revises it when `instruction` is set. */
   readonly draftPlan: (instruction?: string) => Promise<StoryboardRun>;
@@ -384,10 +393,14 @@ export interface StoryboardInspectorProps {
   readonly selectedShotId?: string;
   readonly shots: readonly StoryboardInspectorShot[];
   readonly totalSeconds: number;
+  /** Slides have no duration: hide the seconds. */
+  readonly isSlideshow?: boolean;
 }
 
 export interface StoryboardDetailsPanelProps {
   readonly isDisabled: boolean;
+  /** Slides have no model, format choice or runtime: those fields are hidden. */
+  readonly isSlideshow?: boolean;
   readonly isTimingDisabled: boolean;
   readonly modelCapabilities?: StoryboardRunCapabilities;
   readonly onChange: (next: StoryboardEditablePlan) => void;
@@ -466,4 +479,25 @@ export interface StoryboardCreationIntent {
 export interface StoryboardDraftFieldMerge {
   value: unknown;
   base: unknown;
+}
+
+export interface StoryboardSlideshowBoardProps {
+  readonly slides: readonly StoryboardShot[];
+  readonly format: StoryboardEditablePlan['format'];
+  readonly isApproved: boolean;
+  readonly isDisabled: boolean;
+  /** The saved image of each slide, by asset id. */
+  readonly slideImages: Readonly<Record<string, string | undefined>>;
+  readonly onPatchSlide: (
+    slideId: string,
+    patch: Partial<Pick<StoryboardShot, 'action' | 'sectionLabel'>>,
+  ) => void;
+  readonly onMoveSlide: (slideId: string, offset: -1 | 1) => void;
+  readonly onRemoveSlide: (slideId: string) => void;
+  readonly onAddSlide: () => void;
+  /** Prices and draws the slide images; no ids draws every slide that needs one. */
+  readonly onDrawImages: (slideIds?: readonly string[]) => void;
+  /** Saves pending edits, then runs a step against the saved revision. */
+  readonly onPerform: (action: (revision: number) => Promise<unknown>) => void;
+  readonly actions?: StoryboardSlideshowActions;
 }

@@ -4,6 +4,7 @@ import type { DownloadNodeData } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import LoadingOverlay from '@genfeedai/ui/primitives/loading-overlay';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
 import { Clock, Download } from 'lucide-react';
@@ -118,22 +119,7 @@ function DownloadNodeComponent(props: NodeProps) {
                   }}
                 />
                 {nodeData.status === 'processing' && (
-                  <div
-                    className={
-                      'absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm' /* design-system-allow-content-color */
-                    }
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Spinner className="size-8 text-primary" />
-                      <span
-                        className={
-                          'text-xs text-white/80' /* design-system-allow-content-color */
-                        }
-                      >
-                        Processing…
-                      </span>
-                    </div>
-                  </div>
+                  <LoadingOverlay message="Processing…" tone="media" />
                 )}
               </div>
             ) : activeType === 'image' ? (
@@ -151,22 +137,7 @@ function DownloadNodeComponent(props: NodeProps) {
                   unoptimized
                 />
                 {nodeData.status === 'processing' && (
-                  <div
-                    className={
-                      'absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm' /* design-system-allow-content-color */
-                    }
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Spinner className="size-8 text-primary" />
-                      <span
-                        className={
-                          'text-xs text-white/80' /* design-system-allow-content-color */
-                        }
-                      >
-                        Processing…
-                      </span>
-                    </div>
-                  </div>
+                  <LoadingOverlay message="Processing…" tone="media" />
                 )}
               </div>
             ) : (

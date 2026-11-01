@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ButtonSize,
   ButtonVariant,
   ComponentSize,
   IngredientFormat,
@@ -12,9 +11,17 @@ import type { ModalVideoProps } from '@genfeedai/props/modals/modal.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import Spinner from '@ui/primitives/spinner';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import { Video, X } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useIngredientMediaUrl } from '@/hooks/media/use-ingredient-media-url';
 
 function ModalVideoPreview({ video }: { video: IVideo }) {
@@ -70,36 +77,27 @@ export default function ModalVideo({
   };
 
   return (
-    <div
-      className={
-        'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm' /* design-system-allow-content-color -- modal scrim */
-      }
+    <Dialog
+      open
+      onOpenChange={(isDialogOpen) => {
+        if (!isDialogOpen) {
+          onClose();
+        }
+      }}
     >
-      <div className="bg-card max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold">
-                {selectedFrameIndex !== null
-                  ? `Replace Frame ${selectedFrameIndex + 1}`
-                  : 'Select a Video'}
-              </h3>
-              <p className="text-sm text-foreground/60 mt-1">
-                Showing {format} videos ({getFormatLabel()})
-              </p>
-            </div>
-            <Button
-              ariaLabel="Close"
-              label={<X className="text-lg" />}
-              onClick={onClose}
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="rounded-full"
-            />
-          </div>
-        </div>
+      <DialogContent size="2xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            {selectedFrameIndex !== null
+              ? `Replace Frame ${selectedFrameIndex + 1}`
+              : 'Select a Video'}
+          </DialogTitle>
+          <DialogDescription>
+            Showing {format} videos ({getFormatLabel()})
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-card">
+        <DialogBody>
           {isLoadingVideos ? (
             <div className="flex justify-center py-12">
               <Spinner size={ComponentSize.LG} />
@@ -158,8 +156,8 @@ export default function ModalVideo({
               ))}
             </Masonry>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

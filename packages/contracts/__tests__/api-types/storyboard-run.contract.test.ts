@@ -220,10 +220,10 @@ describe('Canonical storyboard contract', () => {
     };
     expect(storyboardRunConfigSchema.safeParse(config).success).toBe(false);
   });
-  it('keeps 4:5 out of native plan and creation formats', () => {
+  it('accepts 4:5 for plan and creation formats', () => {
     expect(
       storyboardPlanSchema.safeParse({ ...plan, format: '4:5' }).success,
-    ).toBe(false);
+    ).toBe(true);
     expect(
       createStoryboardRunSchema.safeParse({
         clientRequestId: requestId,
@@ -235,7 +235,7 @@ describe('Canonical storyboard contract', () => {
           cast: [],
         },
       }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
   it('validates priced planning maxima and stable still slots without exposing private funding snapshots', () => {
     const line = {
