@@ -130,6 +130,8 @@ interface WarmupCreateOptions {
 interface WarmupPrepareOptions {
   action: string;
   amount?: number;
+  assetCandidateId?: string;
+  prompt?: string;
   contextDecisions?: string;
   publicProfileUrl?: string;
   reason?: string;
@@ -1135,6 +1137,11 @@ function createWarmupCommand(): Command {
           '--context-decisions <file>',
           'JSON file with per-field accept/reject/preserve decisions for apply-context'
         )
+        .option(
+          '--asset-candidate-id <id>',
+          'Reviewed imported asset candidate (for example banner:2) used by starter-content'
+        )
+        .option('--prompt <text>', 'Optional prompt for starter-content')
         .option('--yes', 'Run the action')
         .option('--json', 'Output as JSON')
         .action(async (accountId: string, options: WarmupPrepareOptions, command: Command) => {
@@ -1142,9 +1149,11 @@ function createWarmupCommand(): Command {
             const input: WarmupPrepareInput = {
               action: options.action,
               amount: options.amount,
+              assetCandidateId: options.assetCandidateId,
               contextDecisions: options.contextDecisions
                 ? await readContextDecisions(options.contextDecisions)
                 : undefined,
+              prompt: options.prompt,
               publicProfileUrl: options.publicProfileUrl,
               reason: options.reason,
               sourceUrl: options.sourceUrl,
