@@ -109,7 +109,9 @@ describe('ChatJourneyPage', () => {
     ).toHaveAttribute('href', '/onboarding/providers');
     expect(screen.getByText('Available to unlock')).toBeInTheDocument();
     expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
-    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('status', { name: 'Loading Available to unlock' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('journey-missions-loading')).toBeInTheDocument();
     expect(
       screen.queryByText(ONBOARDING_JOURNEY_MISSIONS[0].label),

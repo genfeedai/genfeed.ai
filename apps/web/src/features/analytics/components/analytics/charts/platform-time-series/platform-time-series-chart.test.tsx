@@ -7,6 +7,10 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@ui/charts', () => ({
   ChartContainer: ({
     children,
@@ -181,10 +185,10 @@ describe('PlatformTimeSeriesChart', () => {
 
   describe('Loading State', () => {
     it('shows loading spinner when isLoading is true', () => {
-      render(<PlatformTimeSeriesChart data={mockData} isLoading />);
-      expect(
-        screen.getByRole('status', { name: 'Loading' }),
-      ).toBeInTheDocument();
+      const { container } = render(
+        <PlatformTimeSeriesChart data={mockData} isLoading />,
+      );
+      expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     });
 
     it('disables platform buttons when loading', () => {
@@ -259,10 +263,10 @@ describe('PlatformTimeSeriesChart', () => {
       const youtubeButton = screen.getByText('YouTube').closest('button');
       const twitterButton = screen.getByText('X').closest('button');
 
-      expect(instagramButton).toHaveClass('bg-muted');
-      expect(tiktokButton).toHaveClass('bg-muted');
-      expect(youtubeButton).toHaveClass('bg-muted');
-      expect(twitterButton).toHaveClass('bg-muted');
+      expect(instagramButton).toHaveAttribute('aria-pressed', 'true');
+      expect(tiktokButton).toHaveAttribute('aria-pressed', 'true');
+      expect(youtubeButton).toHaveAttribute('aria-pressed', 'true');
+      expect(twitterButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('accepts custom platforms prop', () => {
@@ -294,7 +298,7 @@ describe('PlatformTimeSeriesChart', () => {
       const instagramButton = getPlatformButton('Instagram');
       fireEvent.click(instagramButton);
 
-      expect(instagramButton).toHaveClass('bg-transparent');
+      expect(instagramButton).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('cannot toggle off last remaining platform', () => {
@@ -312,7 +316,7 @@ describe('PlatformTimeSeriesChart', () => {
       const tiktokButton = getPlatformButton('TikTok');
       fireEvent.click(tiktokButton);
 
-      expect(tiktokButton).toHaveClass('bg-muted');
+      expect(tiktokButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('can toggle a platform back on', () => {
@@ -322,11 +326,11 @@ describe('PlatformTimeSeriesChart', () => {
 
       // Toggle off
       fireEvent.click(instagramButton);
-      expect(instagramButton).toHaveClass('bg-transparent');
+      expect(instagramButton).toHaveAttribute('aria-pressed', 'false');
 
       // Toggle back on
       fireEvent.click(instagramButton);
-      expect(instagramButton).toHaveClass('bg-muted');
+      expect(instagramButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('reconciles active platforms when available platforms change', () => {
@@ -344,7 +348,10 @@ describe('PlatformTimeSeriesChart', () => {
 
       expect(screen.getByTestId('area-facebook')).toBeInTheDocument();
       expect(screen.queryByTestId('area-tiktok')).not.toBeInTheDocument();
-      expect(getPlatformButton('Facebook')).toHaveClass('bg-muted');
+      expect(getPlatformButton('Facebook')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     });
   });
 
@@ -483,7 +490,7 @@ describe('PlatformTimeSeriesChart', () => {
     it('applies active styling to selected platforms', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
       const activeButton = screen.getByText('Instagram').closest('button');
-      expect(activeButton).toHaveClass('text-foreground');
+      expect(activeButton).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('applies inactive styling to deselected platforms', () => {
@@ -492,14 +499,14 @@ describe('PlatformTimeSeriesChart', () => {
       fireEvent.click(getPlatformButton('Instagram'));
 
       const inactiveButton = screen.getByText('Instagram').closest('button');
-      expect(inactiveButton).toHaveClass('text-muted-foreground');
+      expect(inactiveButton).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('applies disabled styling when loading', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveClass('opacity-50');
+        expect(button).toBeDisabled();
       });
     });
 
@@ -507,7 +514,7 @@ describe('PlatformTimeSeriesChart', () => {
       render(<PlatformTimeSeriesChart data={mockData} isLoading />);
       const buttons = screen.getAllByRole('button');
       buttons.forEach((button) => {
-        expect(button).toHaveClass('cursor-not-allowed');
+        expect(button).toBeDisabled();
       });
     });
   });

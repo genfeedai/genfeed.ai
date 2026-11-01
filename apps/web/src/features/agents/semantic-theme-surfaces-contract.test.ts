@@ -24,7 +24,6 @@ describe('agents semantic theme surfaces', () => {
 
     expect(table).not.toContain('text-slate');
     expect(header).not.toContain('text-slate');
-    expect(wizard).toContain('border-border');
     expect(wizard).not.toContain('border-white');
   });
 

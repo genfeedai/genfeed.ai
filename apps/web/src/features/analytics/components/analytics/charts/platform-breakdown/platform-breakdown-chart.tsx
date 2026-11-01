@@ -1,14 +1,13 @@
 'use client';
-
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { EmptyState } from '@ui/primitives/empty-state';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
-  ChartLoadingOverlay,
   chartPlatformColor,
   chartPlatformLabel,
 } from '@/features/analytics/components/analytics/charts/chart-theme';
@@ -57,15 +56,12 @@ export function PlatformBreakdownChart({
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
-      <Card className={className} bodyClassName="gap-3 p-4">
+      <Card className={className}>
         <div className="relative" style={{ height }}>
-          {isLoading && <ChartLoadingOverlay />}
+          {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <EmptyState
-              className="absolute inset-0"
-              title="No platform distribution yet"
-            />
+            <EmptyState isFill title="No platform distribution yet" />
           ) : null}
 
           {!isEmpty ? (

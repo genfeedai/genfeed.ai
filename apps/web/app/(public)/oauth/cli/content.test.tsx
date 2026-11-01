@@ -86,15 +86,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@/components/ui/card', () => ({
-  Card: ({ children }: { children: ReactNode }) => (
-    <div data-testid="card">{children}</div>
-  ),
-  CardContent: ({ children }: { children: ReactNode }) => (
-    <div data-testid="card-content">{children}</div>
-  ),
-}));
-
 describe('CliAuthPage', () => {
   const originalFetch = globalThis.fetch;
   const originalClipboard = navigator.clipboard;

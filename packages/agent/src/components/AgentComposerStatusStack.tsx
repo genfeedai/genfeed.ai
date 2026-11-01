@@ -13,7 +13,12 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { readAgentTaskList } from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import {
@@ -25,7 +30,6 @@ import {
   ListChecks,
   SignalZero,
   TriangleAlert,
-  X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -139,11 +143,6 @@ function getWorkTaskLabel(event: AgentWorkEvent): string | null {
 
   return label;
 }
-
-// Composer-owned status (Claude/T3): sits above the glass bar, not in the
-// timeline. Compact surfaces so the stack never steals half the viewport.
-const STATUS_SURFACE_CLASS =
-  'rounded-lg border bg-card/90 px-2.5 py-1.5 shadow-sm backdrop-blur-sm';
 
 function splitComposerError(error: string): {
   detail: string | null;
@@ -497,49 +496,30 @@ export function AgentComposerStatusStack({
       ) : null}
 
       {composerError ? (
-        <div
-          className={cn(
-            STATUS_SURFACE_CLASS,
-            'mx-auto flex w-full max-w-2xl items-start gap-2 border-destructive/40 bg-background/80 text-foreground shadow-none backdrop-blur-xl',
-            isApprovalExpired && 'border-warning/50',
-          )}
-          role="alert"
+        <Alert
+          className="mx-auto max-w-2xl"
+          closeLabel="Dismiss composer error"
+          icon={<TriangleAlert aria-hidden className="size-4" />}
+          onClose={onClearError}
+          size="sm"
+          variant={isApprovalExpired ? 'warning' : 'destructive'}
         >
-          <TriangleAlert
-            aria-hidden
-            className={cn(
-              'mt-0.5 size-4 shrink-0',
-              isApprovalExpired ? 'text-warning' : 'text-destructive',
-            )}
-          />
-          <div className="min-w-0 flex-1 space-y-1">
-            <p
-              className={cn(
-                'font-semibold text-sm leading-5',
-                isApprovalExpired ? 'text-warning' : 'text-destructive',
-              )}
-            >
-              {composerError.title}
+          <AlertTitle>{composerError.title}</AlertTitle>
+          <AlertDescription>{composerError.summary}</AlertDescription>
+          {composerError.detail ? (
+            <p className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-muted-foreground">
+              {composerError.detail}
             </p>
-            <p className="text-xs leading-5 text-foreground">
-              {composerError.summary}
+          ) : null}
+          {composerError.recovery ? (
+            <p className="mt-1 text-2xs leading-5 text-muted-foreground">
+              {composerError.recovery}
             </p>
-            {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-muted-foreground">
-                {composerError.detail}
-              </p>
-            ) : null}
-            {composerError.recovery ? (
-              <p className="text-2xs leading-5 text-muted-foreground">
-                {composerError.recovery}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-start gap-0.5">
+          ) : null}
+          <AlertActions>
             <Button
               ariaLabel={isErrorCopied ? 'Error copied' : 'Copy error'}
               tooltip={isErrorCopied ? 'Copied' : 'Copy error for agent'}
-              className="size-7 text-muted-foreground hover:bg-hover hover:text-foreground"
               icon={
                 isErrorCopied ? (
                   <Check className="size-3.5" />
@@ -554,70 +534,52 @@ export function AgentComposerStatusStack({
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
-            <Button
-              ariaLabel="Dismiss composer error"
-              className="size-7 text-muted-foreground hover:bg-hover hover:text-foreground"
-              icon={<X className="size-4" />}
-              onClick={onClearError}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </div>
-        </div>
+          </AlertActions>
+        </Alert>
       ) : null}
 
       {hasStalledNotice ? (
         <Alert
-          className="gap-y-1"
+          size="sm"
           variant="warning"
           icon={<TriangleAlert aria-hidden className="size-4" />}
         >
           <AlertTitle>{translateStalled('title')}</AlertTitle>
-          <AlertDescription>
-            <p className="text-xs leading-5 text-foreground">
-              {translateStalled('description')}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Button
-                label={translateStalled('keepWaiting')}
-                onClick={onKeepWaiting}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              />
-              <Button
-                label={translateStalled('stopAndRetry')}
-                onClick={() => {
-                  void onStopAndRetry?.();
-                }}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.DEFAULT}
-                withWrapper={false}
-              />
-            </div>
-          </AlertDescription>
+          <AlertDescription>{translateStalled('description')}</AlertDescription>
+          <AlertActions>
+            <Button
+              label={translateStalled('keepWaiting')}
+              onClick={onKeepWaiting}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            />
+            <Button
+              label={translateStalled('stopAndRetry')}
+              onClick={() => {
+                void onStopAndRetry?.();
+              }}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            />
+          </AlertActions>
         </Alert>
       ) : null}
 
       {hasConnectionWarning ? (
-        <div
-          aria-live="polite"
-          className={cn(
-            STATUS_SURFACE_CLASS,
-            'flex min-w-0 items-center gap-2 border-warning/50 bg-warning/10 text-sm leading-5 text-warning',
-          )}
+        <Alert
+          icon={<SignalZero aria-hidden className="size-4" />}
           role="status"
+          size="sm"
+          variant="warning"
         >
-          <SignalZero className="size-4 shrink-0 text-warning" aria-hidden />
-          <p className="min-w-0 break-words font-medium text-warning">
-            {socketConnectionState === 'offline'
-              ? 'Offline. Your draft is safe; sending is paused.'
-              : socketConnectionState === 'connecting'
-                ? 'Connecting. Your draft is safe; sending starts when connected.'
-                : 'Reconnecting. Your draft is safe; sending resumes when connected.'}
-          </p>
-        </div>
+          {socketConnectionState === 'offline'
+            ? 'Offline. Your draft is safe; sending is paused.'
+            : socketConnectionState === 'connecting'
+              ? 'Connecting. Your draft is safe; sending starts when connected.'
+              : 'Reconnecting. Your draft is safe; sending resumes when connected.'}
+        </Alert>
       ) : null}
 
       {visibleTasks.length > 0 ? (
@@ -715,7 +677,7 @@ export function AgentComposerStatusStack({
                   <Progress
                     aria-label={`${progressEventLabel} progress`}
                     aria-valuetext={`${Math.round(determinateProgress)} percent`}
-                    className="h-1"
+                    size="xs"
                     value={determinateProgress}
                   />
                 </li>

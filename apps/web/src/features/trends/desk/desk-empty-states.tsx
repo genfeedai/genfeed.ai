@@ -1,11 +1,10 @@
 'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Activity, AtSign, Link2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -67,7 +66,8 @@ export function DeskEmptyState({
 
   if (hasSearch) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={TrendingUp}
         title="No matching signals"
         action={{
@@ -79,7 +79,8 @@ export function DeskEmptyState({
   }
 
   return (
-    <EmptyStateCard
+    <EmptyState
+      surface="card"
       actions={
         <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
           <Button

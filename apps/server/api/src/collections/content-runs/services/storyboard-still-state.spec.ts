@@ -5,7 +5,10 @@ import {
   storyboardStillInput,
 } from '@api/collections/content-runs/services/storyboard-still-state';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import { DRAFT_GENERATION_CONFIG } from '@genfeedai/contracts/constants';
+import {
+  DRAFT_GENERATION_CONFIG,
+  SLIDESHOW_GENERATION_CONFIG,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 function plan(): StoryboardPlan {
@@ -94,5 +97,32 @@ describe('appendStillOperations', () => {
     expect(
       next.some((item) => item.operationId === journal[1].operationId),
     ).toBe(false);
+  });
+});
+
+describe('storyboardStillInput for slideshows', () => {
+  it('draws a slide in the finished slide style at the 4:5 slide format', () => {
+    const slideshow: StoryboardPlan = {
+      ...plan(),
+      kind: 'slideshow',
+      format: '4:5',
+      runtimeBudgetSeconds: null,
+    };
+
+    const input = storyboardStillInput(slideshow, 'shot-1');
+
+    expect(input).toMatchObject({
+      aspectRatio: '4:5',
+      modelKey: SLIDESHOW_GENERATION_CONFIG.modelKey,
+    });
+    expect(input.prompt).toContain('Visual style: Neon noir.');
+    expect(input.prompt).toContain(SLIDESHOW_GENERATION_CONFIG.slideStyle);
+    expect(input.prompt).not.toContain(DRAFT_GENERATION_CONFIG.sketchStyle);
+  });
+
+  it('keeps video storyboards on the sketch style', () => {
+    expect(storyboardStillInput(plan(), 'shot-1').prompt).toContain(
+      DRAFT_GENERATION_CONFIG.sketchStyle,
+    );
   });
 });

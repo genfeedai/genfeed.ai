@@ -3,8 +3,11 @@ import type {
   ClipperReferenceFrameCandidate,
   ClipperReferenceFrameDiagnostic,
 } from '@genfeedai/contracts/interfaces';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import type { ClipperReferenceFrameSelectorProps } from '@/props/studio/clipper.props';
 
 const MAX_VISIBLE_DIAGNOSTICS = 3;
@@ -35,7 +38,7 @@ function renderDiagnostics(diagnostics: ClipperReferenceFrameDiagnostic[]) {
   const hiddenCount = diagnostics.length - visibleDiagnostics.length;
 
   return (
-    <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-xs text-foreground/80">
+    <Alert className="mt-3" size="sm" variant="warning">
       {visibleDiagnostics.map((diagnostic) => (
         <p key={`${diagnostic.code}-${diagnostic.candidateId ?? 'set'}`}>
           {diagnostic.message}
@@ -46,7 +49,7 @@ function renderDiagnostics(diagnostics: ClipperReferenceFrameDiagnostic[]) {
           {hiddenCount} more diagnostic{hiddenCount === 1 ? '' : 's'} not shown.
         </p>
       ) : null}
-    </div>
+    </Alert>
   );
 }
 
@@ -57,6 +60,7 @@ export default function ClipperReferenceFrameSelector({
   pendingCandidateId,
   referenceFrames,
 }: ClipperReferenceFrameSelectorProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const candidates = referenceFrames?.candidates ?? [];
   const diagnostics = [
     ...(referenceFrames?.diagnostics ?? []),
@@ -94,7 +98,13 @@ export default function ClipperReferenceFrameSelector({
           highlights.
         </p>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <OptionTileGroup
+          ariaLabel={selectionLabels('referenceFrames')}
+          className="mt-4 sm:grid-cols-3"
+          columns={2}
+          onValueChange={onSelect}
+          value={referenceFrames.selectedCandidateId ?? undefined}
+        >
           {candidates.map((candidate) => {
             const timestamp = formatTimestamp(candidate.timestampSeconds);
             const isAvailable = candidate.status === 'available';
@@ -103,21 +113,14 @@ export default function ClipperReferenceFrameSelector({
               referenceFrames.selectedCandidateId === candidate.id;
 
             return (
-              <Button
-                key={candidate.id}
-                aria-busy={isPending}
-                aria-label={`${isSelected ? 'Selected' : 'Select'} reference frame at ${timestamp}`}
-                aria-pressed={isSelected}
-                className={`group relative overflow-hidden rounded-lg border p-0 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  isSelected
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border bg-muted hover:border-primary/60'
-                }`}
+              <OptionTile
+                ariaLabel={`${isSelected ? 'Selected' : 'Select'} reference frame at ${timestamp}`}
+                isBusy={isPending}
                 isDisabled={!isAvailable || pendingCandidateId !== null}
-                onClick={() => onSelect(candidate.id)}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
+                key={candidate.id}
+                layout="stack"
+                size="none"
+                value={candidate.id}
               >
                 <span className="relative block aspect-video w-full overflow-hidden bg-muted">
                   {candidate.url ? (
@@ -151,10 +154,10 @@ export default function ClipperReferenceFrameSelector({
                             : 'Select'}
                   </span>
                 </span>
-              </Button>
+              </OptionTile>
             );
           })}
-        </div>
+        </OptionTileGroup>
       )}
 
       {referenceFrames?.status === 'partial' ? (
@@ -167,21 +170,20 @@ export default function ClipperReferenceFrameSelector({
       {renderDiagnostics(diagnostics)}
 
       {error ? (
-        <div
-          className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2"
-          role="alert"
-        >
-          <p className="text-xs text-destructive">{error}</p>
-          <Button
-            className="text-xs"
-            isDisabled={pendingCandidateId !== null}
-            label="Retry selection"
-            onClick={onRetry}
-            type="button"
-            variant={ButtonVariant.LINK}
-            withWrapper={false}
-          />
-        </div>
+        <Alert className="mt-3" size="sm" variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+          <AlertActions>
+            <Button
+              className="text-xs"
+              isDisabled={pendingCandidateId !== null}
+              label="Retry selection"
+              onClick={onRetry}
+              type="button"
+              variant={ButtonVariant.LINK}
+              withWrapper={false}
+            />
+          </AlertActions>
+        </Alert>
       ) : null}
     </fieldset>
   );

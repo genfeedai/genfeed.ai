@@ -1,76 +1,100 @@
 import '@testing-library/jest-dom/vitest';
-import { CardEmptySize } from '@genfeedai/contracts';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Inbox } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 
-describe.each([
-  ['EmptyState', EmptyState],
-  ['EmptyStateCard', EmptyStateCard],
-])('%s', (_name, Empty) => {
-  it('names the empty result and runs its recovery action', () => {
+describe('EmptyState', () => {
+  it('names what is empty and runs its recovery action', async () => {
+    const user = userEvent.setup();
     const onClick = vi.fn();
     render(
-      <Empty
+      <EmptyState
         title="No saved drafts"
-        action={{ label: 'Create draft', onClick }}
-        size={CardEmptySize.LG}
+        description="Drafts you save appear here."
+        icon={Inbox}
+        action={{
+          label: 'Create draft',
+          onClick,
+          variant: ButtonVariant.DEFAULT,
+        }}
       />,
     );
 
     expect(
       screen.getByRole('heading', { name: 'No saved drafts' }),
-    ).toHaveClass('text-base');
-    fireEvent.click(screen.getByRole('button', { name: 'Create draft' }));
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Drafts you save appear here.'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Create draft' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('renders only the title when there is nothing to do next', () => {
-    render(<Empty title="No messages yet" />);
-
-    expect(
-      screen.getByRole('heading', { name: 'No messages yet' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  it('shows the description and prefers a custom actions slot', () => {
+  it('renders custom actions in place of the single action button', () => {
     render(
-      <Empty
+      <EmptyState
         title="No tasks"
-        description="Create one to get going."
-        action={{ label: 'Create task', onClick: vi.fn() }}
-        actions={<a href="/tasks/new">Browse templates</a>}
+        action={{ label: 'Create task', onClick: () => undefined }}
+        actions={<span>Retry</span>}
       />,
     );
 
-    expect(screen.getByText('Create one to get going.')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Browse templates' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Retry')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Create task' }),
     ).not.toBeInTheDocument();
   });
-});
 
-it('keeps the bare empty state free of card chrome', () => {
-  const { rerender } = render(<EmptyState title="No drafts" />);
-  expect(screen.queryByTestId('empty-state-card')).not.toBeInTheDocument();
+  it.each([
+    [CardEmptySize.LG, 'text-base'],
+    [CardEmptySize.DEFAULT, 'text-sm'],
+    [CardEmptySize.SM, 'text-sm'],
+  ])('scales the title for size %s', (size, className) => {
+    render(<EmptyState title="Nothing here" size={size} />);
 
-  rerender(<EmptyStateCard title="No drafts" />);
-  expect(screen.getByTestId('empty-state-card')).toHaveClass(
-    'bg-card',
-    'rounded-card',
-  );
-});
+    expect(screen.getByRole('heading', { name: 'Nothing here' })).toHaveClass(
+      className,
+    );
+  });
 
-it('owns padding through size', () => {
-  const { container, rerender } = render(
-    <EmptyState size={CardEmptySize.SM} title="Nothing" />,
-  );
-  expect(container.firstElementChild).toHaveClass('py-6');
+  it('paints card chrome only for the card surface', () => {
+    const { rerender } = render(<EmptyState title="No drafts" />);
+    expect(screen.getByTestId('empty-state')).toHaveAttribute(
+      'data-surface',
+      'none',
+    );
+    expect(screen.queryByTestId('empty-state')?.closest('.rounded-card')).toBe(
+      null,
+    );
 
-  rerender(<EmptyState title="Nothing" />);
-  expect(container.firstElementChild).toHaveClass('py-10');
+    rerender(<EmptyState surface="card" title="No drafts" />);
+    expect(screen.getByTestId('empty-state')).toHaveAttribute(
+      'data-surface',
+      'card',
+    );
+    expect(
+      screen.getByTestId('empty-state').closest('.rounded-card'),
+    ).not.toBeNull();
+  });
+
+  it('fills its positioned parent when isFill is set', () => {
+    render(<EmptyState title="No chart data" isFill />);
+
+    expect(screen.getByTestId('empty-state')).toHaveClass(
+      'absolute',
+      'inset-0',
+    );
+  });
+
+  it('shows an emoji glyph when no icon component is given', () => {
+    render(<EmptyState glyph="📭" title="Nothing here yet" />);
+
+    expect(screen.getByText('📭')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Nothing here yet' }),
+    ).toBeInTheDocument();
+  });
 });

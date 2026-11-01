@@ -1,5 +1,4 @@
 'use client';
-
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';

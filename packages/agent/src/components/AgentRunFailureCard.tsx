@@ -5,11 +5,13 @@ import {
   AgentFailureReason,
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   ModalEnum,
 } from '@genfeedai/contracts';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, Coins, Copy, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -73,11 +75,9 @@ export function AgentRunFailureCard({
   }, [error]);
 
   return (
-    <div
-      className={cn(
-        'mx-auto mb-4 w-full max-w-2xl rounded-lg bg-card px-4 py-3 text-foreground shadow-border',
-        className,
-      )}
+    <Card
+      padding={CardPadding.SM}
+      className={cn('mx-auto mb-4 w-full max-w-2xl', className)}
       role="alert"
     >
       <div className="flex items-start gap-3">
@@ -151,6 +151,6 @@ export function AgentRunFailureCard({
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

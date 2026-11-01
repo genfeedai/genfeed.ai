@@ -1,8 +1,7 @@
 'use client';
-
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import AnalyticsPostCard from '@/features/analytics/posts-list/analytics-post-card';
 import type { AnalyticsPostsGridProps } from '@/features/analytics/props/analytics-posts-grid.props';
@@ -52,7 +51,7 @@ export default function AnalyticsPostsGrid({
   }
 
   if (items.length === 0) {
-    return <EmptyStateCard title={emptyLabel} />;
+    return <EmptyState surface="card" title={emptyLabel} />;
   }
 
   return (

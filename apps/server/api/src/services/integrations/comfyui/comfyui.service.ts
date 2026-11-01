@@ -42,7 +42,7 @@ export class ComfyUIService {
     private readonly httpService: HttpService,
     private readonly pollUntilService: PollUntilService,
   ) {
-    this.comfyuiUrl = this.configService.get('FLEET_COMFYUI_URL') ?? '';
+    this.comfyuiUrl = this.configService.get('COMFYUI_URL') ?? '';
     this.client = new ComfyUIClient(this.comfyuiUrl, (path, options) =>
       this.request(path, options),
     );
@@ -91,6 +91,11 @@ export class ComfyUIService {
       this.loggerService.error(`${url} failed`, { error, model });
       throw error;
     }
+  }
+
+  /** True when `COMFYUI_URL` points at a ComfyUI server. */
+  public isConfigured(): boolean {
+    return Boolean(this.comfyuiUrl);
   }
 
   /**

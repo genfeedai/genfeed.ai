@@ -24,10 +24,7 @@ export default function ProductPricingCTA({
 }: Props) {
   return (
     <section className="max-w-4xl mx-auto pb-20">
-      <Card
-        className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]"
-        bodyClassName="text-center"
-      >
+      <Card isCentered isSelected>
         <Heading size="2xl" className="mb-2">
           Recommended Plan
         </Heading>

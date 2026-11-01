@@ -1,5 +1,4 @@
 'use client';
-
 import ArticleEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/article/[id]/content';
 import NewsletterEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content';
 import { useBrand } from '@contexts/user/brand-context/brand-context';

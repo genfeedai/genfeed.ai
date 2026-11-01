@@ -1,4 +1,4 @@
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 
 interface ProfileEmptyStateProps {
   handle: string;
@@ -6,9 +6,10 @@ interface ProfileEmptyStateProps {
 
 export default function ProfileEmptyState({ handle }: ProfileEmptyStateProps) {
   return (
-    <EmptyStateCard
-      title="Nothing here yet"
+    <EmptyState
       description={`@${handle} has not shared any content, links or socials yet. Check back soon.`}
+      surface="card"
+      title="Nothing here yet"
     />
   );
 }

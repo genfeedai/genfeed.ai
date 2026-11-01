@@ -2,9 +2,9 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
+import { Tabs } from '@ui/primitives/tabs';
 import { ImagePlus, TriangleAlert } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -27,6 +27,7 @@ export default function StoryboardInspector({
   selectedShotId,
   shots,
   totalSeconds,
+  isSlideshow = false,
 }: StoryboardInspectorProps) {
   const translate = useTranslations('pages.studioStoryboard.inspector');
   const translateWorkspace = useTranslations(
@@ -66,9 +67,11 @@ export default function StoryboardInspector({
           <div className="flex flex-col gap-1">
             <p className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{translate('shotList')}</span>
-              <span className="tabular-nums">
-                {translateWorkspace('seconds', { seconds: totalSeconds })}
-              </span>
+              {isSlideshow ? null : (
+                <span className="tabular-nums">
+                  {translateWorkspace('seconds', { seconds: totalSeconds })}
+                </span>
+              )}
             </p>
             {shots.map((shot) => (
               <Button
@@ -116,13 +119,15 @@ export default function StoryboardInspector({
                     aria-label={translate('stillOutOfDate')}
                   />
                 )}
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {shot.durationSeconds === null
-                    ? translate('durationUnset')
-                    : translateWorkspace('seconds', {
-                        seconds: shot.durationSeconds,
-                      })}
-                </span>
+                {isSlideshow ? null : (
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {shot.durationSeconds === null
+                      ? translate('durationUnset')
+                      : translateWorkspace('seconds', {
+                          seconds: shot.durationSeconds,
+                        })}
+                  </span>
+                )}
               </Button>
             ))}
             {onGenerateMissingStills && missingStillCount > 0 ? (

@@ -52,7 +52,7 @@ describe('LibraryTagChip', () => {
     );
 
     const chip = screen.getByText('Odd').parentElement;
-    expect(chip).toHaveClass('bg-foreground/10');
+    expect(chip).toHaveClass('bg-tertiary', 'text-muted-foreground');
     expect(chip?.getAttribute('style')).toBeNull();
   });
 

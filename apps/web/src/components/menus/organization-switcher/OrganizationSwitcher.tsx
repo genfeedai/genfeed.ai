@@ -15,13 +15,12 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { getOrganizationLimitForTier } from '@genfeedai/pricing';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
-import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import {
-  SWITCHER_AVATAR_CLASSNAME,
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -142,12 +141,12 @@ export default function OrganizationSwitcher({
               isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
           >
-            <SwitcherAvatar
+            <Avatar
               alt={displayLabel}
-              fallbackClassName={SWITCHER_AVATAR_CLASSNAME}
-              imageUrl={activeOrg?.logoUrl ?? undefined}
-              imageWrapperClassName={SWITCHER_AVATAR_CLASSNAME}
-              letter={displayLabel.charAt(0).toUpperCase()}
+              name={displayLabel}
+              shape="square"
+              size="xs"
+              src={activeOrg?.logoUrl}
             />
             <span
               className={cn(

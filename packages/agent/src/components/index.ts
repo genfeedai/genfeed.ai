@@ -10,7 +10,6 @@ export { AgentConversationTurnNavigator } from '@genfeedai/agent/components/Agen
 export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
 export { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
-export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 export { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 export { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';

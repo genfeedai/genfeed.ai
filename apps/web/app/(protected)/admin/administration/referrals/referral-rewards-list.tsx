@@ -11,6 +11,7 @@ import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -130,7 +131,7 @@ export default function ReferralRewardsList() {
       header: 'Eligible',
       key: 'eligibleAt',
       sortable: true,
-      render: (reward) => new Date(reward.eligibleAt).toLocaleString('en-US'),
+      render: (reward) => <TableDateCell value={reward.eligibleAt} />,
     },
     {
       header: 'Attempts',

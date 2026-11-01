@@ -11,6 +11,7 @@ import { VideosService } from '@services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { SelectField } from '@ui/primitives/select';
@@ -238,9 +239,9 @@ export default function HookRemixModal({
         </FormControl>
 
         {submitError && (
-          <div className="text-xs text-destructive bg-destructive/10 px-3 py-2">
+          <Alert size="sm" variant="destructive">
             {submitError}
-          </div>
+          </Alert>
         )}
 
         <ModalActions>

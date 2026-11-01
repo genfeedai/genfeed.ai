@@ -6,6 +6,8 @@ import {
   MOOD_BOARD_DEFAULT_ASPECT_RATIO,
   MOOD_BOARD_TILE_WIDTH,
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
+import { Badge } from '@ui/primitives/badge';
+import { Play } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
@@ -23,23 +25,15 @@ function PlayBadge(): React.JSX.Element {
   const videoLabel = translate('videoBadge');
 
   return (
-    <div
+    <Badge
+      aria-label={videoLabel}
+      className="absolute right-2 bottom-2"
       data-testid="library-canvas-play-badge"
-      className={
-        'absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/50 text-white backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
-      }
-    >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="currentColor"
-        role="img"
-        aria-label={videoLabel}
-      >
-        <title>{videoLabel}</title>
-        <path d="M8 5v14l11-7z" />
-      </svg>
-    </div>
+      icon={<Play className="fill-current" />}
+      role="img"
+      size="lg"
+      variant="overlay"
+    />
   );
 }
 

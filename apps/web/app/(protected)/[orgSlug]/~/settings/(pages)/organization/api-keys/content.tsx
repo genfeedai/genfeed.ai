@@ -4,7 +4,11 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
@@ -12,7 +16,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
@@ -25,6 +28,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import {
   Clipboard,
@@ -446,7 +450,6 @@ function AuthorizedApiKeysContent({
       {isReady ? (
         <Card
           label={translate('card.title')}
-          bodyClassName="gap-3 p-4"
           headerAction={
             <Button
               variant={SECONDARY_BUTTON_VARIANT}
@@ -551,37 +554,31 @@ function AuthorizedApiKeysContent({
               <span className="mb-1.5 block text-xs text-muted-foreground">
                 {translate('fields.scopePreset')}
               </span>
-              <div className="flex flex-wrap gap-2">
-                {PRODUCT_API_KEY_PRESETS.map((preset) => {
-                  const isActive = scopesExactlyMatch(
-                    productForm.selectedScopes,
-                    preset.scopes,
+              <SegmentedControl
+                appearance="chip"
+                ariaLabel={translate('fields.scopePreset')}
+                onValueChange={(labelKey) => {
+                  const preset = PRODUCT_API_KEY_PRESETS.find(
+                    (entry) => entry.labelKey === labelKey,
                   );
-
-                  return (
-                    <Button
-                      key={preset.labelKey}
-                      type="button"
-                      size={ButtonSize.SM}
-                      withWrapper={false}
-                      textTransform="none"
-                      aria-pressed={isActive}
-                      variant={
-                        isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-                      }
-                      className={cn(
-                        'h-8 rounded-md border px-3 text-xs font-medium',
-                        isActive
-                          ? 'border-foreground/20 bg-foreground/10 text-foreground'
-                          : 'border-border text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
-                      )}
-                      onClick={() => handlePresetSelect(preset.scopes)}
-                    >
-                      {translate(preset.labelKey)}
-                    </Button>
-                  );
-                })}
-              </div>
+                  if (preset) {
+                    handlePresetSelect(preset.scopes);
+                  }
+                }}
+                options={PRODUCT_API_KEY_PRESETS.map((preset) => ({
+                  label: translate(preset.labelKey),
+                  value: preset.labelKey,
+                }))}
+                size="sm"
+                value={
+                  PRODUCT_API_KEY_PRESETS.find((preset) =>
+                    scopesExactlyMatch(
+                      productForm.selectedScopes,
+                      preset.scopes,
+                    ),
+                  )?.labelKey
+                }
+              />
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {API_KEY_SCOPE_OPTIONS.map((option) => {
@@ -593,16 +590,15 @@ function AuthorizedApiKeysContent({
                   selectedCount > 0 && !isFullySelected;
 
                 return (
-                  <div
+                  <Card
                     key={option.label}
-                    className={cn(
-                      'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
-                      isFullySelected
-                        ? 'border-foreground/20 bg-foreground/5'
-                        : isPartiallySelected
-                          ? 'border-border bg-muted/20'
-                          : 'border-border',
-                    )}
+                    variant={
+                      isPartiallySelected
+                        ? CardVariant.INSET
+                        : CardVariant.BORDERED
+                    }
+                    isSelected={isFullySelected}
+                    padding={CardPadding.SM}
                   >
                     <Checkbox
                       checked={
@@ -615,7 +611,7 @@ function AuthorizedApiKeysContent({
                       label={option.label}
                       onCheckedChange={() => handleScopeToggle(option.scopes)}
                     />
-                  </div>
+                  </Card>
                 );
               })}
             </div>

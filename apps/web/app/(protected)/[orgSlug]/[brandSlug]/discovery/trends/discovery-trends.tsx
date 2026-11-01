@@ -1,6 +1,6 @@
 'use client';
 
-import { Timeframe } from '@genfeedai/contracts';
+import { CardGap, Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -167,8 +167,7 @@ export default function DiscoveryTrends() {
 
         <section>
           <Card
-            className="backdrop-blur"
-            bodyClassName="space-y-6"
+            gap={CardGap.LG}
             label={translate('trendingTopics')}
             icon={Flame}
           >

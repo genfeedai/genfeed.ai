@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   getSystemWorkflowMetadata,
@@ -17,6 +17,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -36,7 +37,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
@@ -308,7 +308,7 @@ export default function WorkflowsPage() {
       icon: <Trash2 />,
       onClick: handleDelete,
       tooltip: translate('actions.delete'),
-      variant: ButtonVariant.DESTRUCTIVE,
+      tone: 'destructive',
     },
   ];
 
@@ -352,10 +352,7 @@ export default function WorkflowsPage() {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (workflow) =>
-        workflow.createdAt ? (
-          <ClientFormattedDate format="date" value={workflow.createdAt} />
-        ) : null,
+      render: (workflow) => <TableDateCell value={workflow.createdAt} />,
     },
   ];
 
@@ -485,7 +482,7 @@ export default function WorkflowsPage() {
             }
             data-testid="admin-featured-workflows"
           >
-            <Card bodyClassName="p-0">
+            <Card padding={CardPadding.NONE}>
               {pins.map((pin, index) => (
                 <ListRow
                   key={pin.id}

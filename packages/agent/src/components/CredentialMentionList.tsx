@@ -2,8 +2,8 @@ import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
 import {
   type ReactElement,
   type Ref,
@@ -78,13 +78,11 @@ export function CredentialMentionList({
           )}
         >
           {item.avatar && (
-            <Image
-              width={24}
-              height={24}
-              unoptimized
-              src={item.avatar}
+            <Avatar
               alt={item.handle}
-              className="size-6 rounded-full object-cover"
+              name={item.handle}
+              size="sm"
+              src={item.avatar}
             />
           )}
           <div className="flex flex-col">

@@ -31,8 +31,9 @@ import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import Card from '@ui/card/Card';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
@@ -62,43 +63,17 @@ function getColSpan(width?: AgentUIBlockWidth): string {
   }
 }
 
-function getAlertStyles(severity?: AlertBlock['severity']): {
-  border: string;
-  bg: string;
-  text: string;
-  icon: string;
-} {
-  switch (severity) {
-    case 'error':
-      return {
-        bg: 'bg-destructive/10',
-        border: 'border-red-500/20',
-        icon: '\u2716',
-        text: 'text-destructive',
-      };
-    case 'warning':
-      return {
-        bg: 'bg-warning/10',
-        border: 'border-yellow-500/20',
-        icon: '\u26A0',
-        text: 'text-warning',
-      };
-    case 'success':
-      return {
-        bg: 'bg-success/10',
-        border: 'border-green-500/20',
-        icon: '\u2714',
-        text: 'text-success',
-      };
-    default:
-      return {
-        bg: 'bg-info/10',
-        border: 'border-blue-500/20',
-        icon: '\u2139',
-        text: 'text-info',
-      };
-  }
-}
+type BlockTone = NonNullable<CalloutBlock['tone']>;
+
+const BLOCK_TONE_VARIANTS: Record<
+  BlockTone,
+  'destructive' | 'info' | 'success' | 'warning'
+> = {
+  error: 'destructive',
+  info: 'info',
+  success: 'success',
+  warning: 'warning',
+};
 
 function parseAnimatedValue(value: MetricCardBlock['value']): {
   canAnimate: boolean;
@@ -300,21 +275,11 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
 }
 
 function AlertBanner({ block }: { block: AlertBlock }): ReactElement {
-  const styles = getAlertStyles(block.severity);
   return (
-    <div
-      className={`flex items-start gap-3 rounded-lg border p-4 ${styles.border} ${styles.bg}`}
-    >
-      <span className={`text-lg ${styles.text}`}>{styles.icon}</span>
-      <div className="min-w-0 flex-1">
-        {block.title && (
-          <p className={`text-sm font-semibold ${styles.text}`}>
-            {block.title}
-          </p>
-        )}
-        <p className="text-sm text-foreground">{block.message}</p>
-      </div>
-    </div>
+    <Alert variant={BLOCK_TONE_VARIANTS[block.severity ?? 'info']}>
+      {block.title ? <AlertTitle>{block.title}</AlertTitle> : null}
+      <AlertDescription>{block.message}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -358,40 +323,11 @@ function BulletList({ block }: { block: BulletListBlock }): ReactElement {
   );
 }
 
-const CALLOUT_SEVERITY_STYLES: Record<
-  NonNullable<CalloutBlock['tone']>,
-  { border: string; bg: string; text: string }
-> = {
-  error: {
-    bg: 'bg-destructive/10',
-    border: 'border-red-500/20',
-    text: 'text-destructive',
-  },
-  info: {
-    bg: 'bg-info/10',
-    border: 'border-blue-500/20',
-    text: 'text-info',
-  },
-  success: {
-    bg: 'bg-success/10',
-    border: 'border-green-500/20',
-    text: 'text-success',
-  },
-  warning: {
-    bg: 'bg-warning/10',
-    border: 'border-yellow-500/20',
-    text: 'text-warning',
-  },
-};
-
 function Callout({ block }: { block: CalloutBlock }): ReactElement {
-  const tone = block.tone ?? 'info';
-  const styles = CALLOUT_SEVERITY_STYLES[tone];
-
   return (
-    <div className={`rounded-lg border p-3 ${styles.border} ${styles.bg}`}>
-      <p className={`text-sm ${styles.text}`}>{block.message}</p>
-    </div>
+    <Alert variant={BLOCK_TONE_VARIANTS[block.tone ?? 'info']}>
+      {block.message}
+    </Alert>
   );
 }
 
@@ -426,6 +362,23 @@ function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
   );
 }
 
+function EmptyBlock({ block }: { block: EmptyStateBlock }): ReactElement {
+  return (
+    <EmptyState
+      actions={
+        block.ctaLabel ? (
+          <Button variant={ButtonVariant.DEFAULT} className="mt-2">
+            {block.ctaLabel}
+          </Button>
+        ) : undefined
+      }
+      glyph={block.icon}
+      surface="card"
+      title={block.message}
+    />
+  );
+}
+
 function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
   switch (block.type) {
     case 'metric_card':
@@ -453,28 +406,12 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
     case 'composite':
       return <CompositeLayout block={block as CompositeBlock} />;
     case 'empty_state':
-      return (
-        <EmptyStateCard
-          icon={
-            block.icon ? (
-              <span aria-hidden className="text-3xl">
-                {block.icon}
-              </span>
-            ) : undefined
-          }
-          title={block.message}
-          actions={
-            block.ctaLabel ? (
-              <Button variant={ButtonVariant.DEFAULT}>{block.ctaLabel}</Button>
-            ) : undefined
-          }
-        />
-      );
+      return <EmptyBlock block={block} />;
     default:
       return (
-        <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
+        <Alert size="sm" variant="note">
           Unknown block type
-        </div>
+        </Alert>
       );
   }
 }

@@ -12,7 +12,7 @@ describe('BrandCompletenessCard', () => {
     render(<BrandCompletenessCard brand={{ id: 'brand-1', label: 'Acme' }} />);
 
     const card = screen.getByTestId('brand-completeness-card');
-    const fills = card.querySelectorAll('.bg-foreground');
+    const fills = card.querySelectorAll('.bg-foreground\\/60');
 
     expect(fills.length).toBeGreaterThanOrEqual(2);
     expect(card.querySelector('.bg-primary')).toBeNull();

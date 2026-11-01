@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AgentAutonomyMode,
   ButtonSize,
@@ -507,10 +506,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             {
               label: detail('failures'),
               value: strategy.consecutiveFailures,
-              valueClassName:
+              tone:
                 strategy.consecutiveFailures > 0
-                  ? 'text-destructive'
-                  : 'text-success',
+                  ? ('destructive' as const)
+                  : ('success' as const),
             },
           ]}
         />

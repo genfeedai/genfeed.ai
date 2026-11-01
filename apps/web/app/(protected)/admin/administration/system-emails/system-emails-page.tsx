@@ -1,5 +1,4 @@
 'use client';
-
 import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
 import SystemEmailRangeFilter from '@app/(protected)/admin/administration/system-emails/system-email-range-filter';
 import { useSystemEmailRange } from '@app/(protected)/admin/administration/system-emails/use-system-email-range';
@@ -15,6 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -24,12 +24,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import { Badge } from '@ui/primitives/badge';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionRow,
-  DefinitionTerm,
-} from '@ui/primitives/definition-list';
+import { DefinitionDetail, DefinitionList, DefinitionRow, DefinitionTerm } from '@ui/primitives/definition-list';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';

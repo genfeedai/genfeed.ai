@@ -1,11 +1,7 @@
 import type { Article } from '@models/content/article.model';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import ArticlesList from './articles-list';
-
-vi.mock('@ui/primitives/empty-state', () => ({
-  EmptyStateCard: ({ title }: { title: string }) => <div>{title}</div>,
-}));
 
 const ARTICLE = {
   id: 'a1',

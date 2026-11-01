@@ -38,7 +38,7 @@ export default function SettingsHomeAppCard() {
   // settings load, so a saved app can look unavailable for a moment.
 
   return (
-    <Card bodyClassName="gap-3 p-4" label={translate('label')}>
+    <Card label={translate('label')}>
       <Select
         disabled={!isLoaded || !isReady}
         onValueChange={(value) =>

@@ -1,5 +1,11 @@
 import '@mcp/ui/preview-runtime';
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+  formatPlatformLabel,
+} from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
   McpCard,
@@ -27,7 +33,7 @@ import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -385,14 +391,6 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
     );
   return null;
 }
-function initials(value: string) {
-  const letters = value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase());
-  return letters.join('') || '?';
-}
 function SummaryCard({
   item,
   bridge,
@@ -420,19 +418,13 @@ function SummaryCard({
         bodyClassName="h-full"
         icon={
           hasIdentity ? (
-            <Avatar className="size-11 rounded-xl">
-              {avatarUrl && (
-                <AvatarImage
-                  src={avatarUrl}
-                  alt=""
-                  className="rounded-xl object-cover"
-                  onLoadingStatusChange={() => bridge.resize()}
-                />
-              )}
-              <AvatarFallback className="rounded-xl text-sm font-semibold">
-                {initials(item.title)}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar
+              name={item.title}
+              onLoadingStatusChange={() => bridge.resize()}
+              shape="square"
+              size="lg"
+              src={avatarUrl}
+            />
           ) : undefined
         }
         label={item.title}
@@ -451,6 +443,7 @@ function SummaryCard({
         actions={
           item.actions?.length
             ? item.actions.map((action) => (
+                // ui-guard-allow:selection-button -- action button showing a state, not a choice group
                 <Button
                   key={`${action.kind}-${action.brandId}`}
                   variant={
@@ -682,7 +675,6 @@ function CardPreview({
         label={title}
         labelAs="h2"
         isLabelWrapped
-        bodyClassName="gap-3"
         headerAction={
           !isMedia && current.status ? (
             <Badge variant="outline" className="status">
@@ -1112,14 +1104,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   <Card
                     labelAs="h2"
                     isLabelWrapped
+                    isSelected={day.date === localDayKey(new Date())}
                     className={
-                      day.date === localDayKey(new Date())
-                        ? 'ring-1 ring-primary/50'
-                        : day.posts.length
-                          ? undefined
-                          : 'opacity-80'
+                      day.date !== localDayKey(new Date()) && !day.posts.length
+                        ? 'opacity-80'
+                        : undefined
                     }
-                    bodyClassName="min-h-24 gap-2"
+                    gap={CardGap.SM}
+                    bodyClassName="min-h-24"
                     headerAction={
                       day.date === localDayKey(new Date()) ? (
                         <Badge variant="outline">Today</Badge>
@@ -1133,8 +1125,11 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   >
                     {day.posts.length ? (
                       day.posts.map((post) => (
-                        <div
-                          className="slot space-y-1 rounded-lg bg-muted/40 p-2"
+                        <Card
+                          variant={CardVariant.INSET}
+                          padding={CardPadding.SM}
+                          gap={CardGap.SM}
+                          className="slot"
                           key={post.id || `${post.date}-${post.description}`}
                         >
                           <div className="flex flex-wrap items-center gap-2">
@@ -1148,7 +1143,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                           <Text as="p" size="sm" className="line-clamp-3">
                             {post.description || post.title}
                           </Text>
-                        </div>
+                        </Card>
                       ))
                     ) : (
                       <Text

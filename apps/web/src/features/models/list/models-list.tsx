@@ -1,5 +1,4 @@
 'use client';
-
 import {
   type ModelsToolbar,
   usePublishModelsToolbar,
@@ -22,7 +21,6 @@ import ModelDetailPanel from '@/features/models/components/models/ModelDetailPan
 import type { ModelsListProps } from '@/features/models/props/models.props';
 import AdminModelsToolbar from './components/AdminModelsToolbar';
 import type { ModelCategoryGroupKey } from './components/models-catalog-overview.helpers';
-
 import { useModelsList } from './useModelsList';
 
 export default function ModelsList({

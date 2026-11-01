@@ -1,11 +1,18 @@
 'use client';
 
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import { Button } from '@ui/primitives/button';
-import { cloneElement, type ReactElement, type ReactNode } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@ui/primitives/dialog';
+import {
+  cloneElement,
+  type ReactElement,
+  type ReactNode,
+  Suspense,
+  useLayoutEffect,
+  useRef,
+} from 'react';
+import NavigationProgress from '@/components/shell/NavigationProgress';
 import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
@@ -66,6 +73,22 @@ export default function AppLayout({
     topbarComponent,
   });
 
+  // The drawer opens from a button elsewhere in the shell, not from a Dialog
+  // trigger, so Radix has nothing to hand focus back to on close. Remember the
+  // control that was focused as the drawer opened (a layout effect runs before
+  // the dialog moves focus inside) and return focus there.
+  const drawerOpenerRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const active = document.activeElement;
+    if (
+      isSidebarOpen &&
+      active instanceof HTMLElement &&
+      active !== document.body
+    ) {
+      drawerOpenerRef.current = active;
+    }
+  }, [isSidebarOpen]);
+
   // Codex chrome: the rail and the topbar share the window plane. The menu and
   // the page share one rounded block, inset from that plane. The page owns
   // its own scroll (desktop only; mobile keeps document scrolling under the
@@ -123,6 +146,10 @@ export default function AppLayout({
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
         style={layoutStyle}
       >
+        {/* Search params are read on the client only; keep them out of the shell. */}
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {railComponent ? (
           <DesktopRail
             hasStaticMark={!menuComponent && !isSidebarToggleInTitlebar}
@@ -145,48 +172,53 @@ export default function AppLayout({
           </>
         ) : null}
 
-        {hasMobileNavigation && isSidebarOpen ? (
-          <>
-            {/* Mobile navigation drawer: app rail beside the module menu */}
-            <div className="fixed inset-0 z-40 flex md:hidden">
-              <Button
-                type="button"
-                ariaLabel="Close navigation"
-                variant={ButtonVariant.UNSTYLED}
-                className={
-                  'absolute inset-0 bg-black/60' /* design-system-allow-content-color -- navigation scrim */
+        {hasMobileNavigation ? (
+          // Mobile navigation drawer: app rail beside the module menu. The
+          // shared Dialog supplies the role, Escape, focus trap and focus
+          // restore the old hand-built scrim lacked.
+          <Dialog
+            open={isSidebarOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) {
+                handleCloseSidebar();
+              }
+            }}
+          >
+            <DialogContent
+              aria-describedby={undefined}
+              onCloseAutoFocus={(event) => {
+                const opener = drawerOpenerRef.current;
+                if (opener?.isConnected) {
+                  event.preventDefault();
+                  opener.focus();
                 }
-                onClick={handleCloseSidebar}
-              />
-
-              <div
-                className="relative flex h-full max-w-[85vw] border-r border-border bg-gray-100"
-                style={{
-                  width: mobileMenuContent
-                    ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`
-                    : 'var(--desktop-rail-width)',
-                }}
-              >
-                {mobileRailContent ? (
-                  <div
-                    // The drawer starts under the fixed topbar (z-50), so the
-                    // rail begins below that band or its first app is hidden.
-                    className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
-                    data-testid="mobile-app-rail"
-                  >
-                    {mobileRailContent}
-                  </div>
-                ) : null}
-                {mobileMenuContent ? (
-                  // Below the fixed topbar, like the rail. The brand
-                  // switcher lives in that bar.
-                  <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
-                    {mobileMenuContent}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </>
+              }}
+              className="max-w-[85vw] flex-row border-r border-border bg-gray-100 p-0 md:hidden"
+              placement="left"
+              style={{
+                width: mobileMenuContent
+                  ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`
+                  : 'var(--desktop-rail-width)',
+              }}
+            >
+              <DialogTitle className="sr-only">Navigation</DialogTitle>
+              {mobileRailContent ? (
+                <div
+                  // The drawer keeps the topbar band clear (its close button
+                  // sits there), so the rail begins below it.
+                  className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/5 pt-[var(--shell-topbar-height)]"
+                  data-testid="mobile-app-rail"
+                >
+                  {mobileRailContent}
+                </div>
+              ) : null}
+              {mobileMenuContent ? (
+                <div className="h-full min-w-0 flex-1 pt-[var(--shell-topbar-height)]">
+                  {mobileMenuContent}
+                </div>
+              ) : null}
+            </DialogContent>
+          </Dialog>
         ) : null}
 
         <section

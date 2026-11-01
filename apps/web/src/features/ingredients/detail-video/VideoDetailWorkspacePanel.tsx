@@ -6,8 +6,8 @@ import type {
   IIngredient,
   ITag,
   IVideo,
+  TabItem,
 } from '@genfeedai/contracts/interfaces';
-import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';

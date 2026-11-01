@@ -8,6 +8,11 @@ import type {
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
 import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@genfeedai/ui/primitives/alert';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Label } from '@genfeedai/ui/primitives/label';
 import {
@@ -20,7 +25,7 @@ import {
 import { Slider } from '@genfeedai/ui/primitives/slider';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { AudioLines, RefreshCw, TriangleAlert, Volume2 } from 'lucide-react';
+import { AudioLines, RefreshCw, Volume2 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
@@ -130,11 +135,10 @@ function TextToSpeechNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {!TTS_ENABLED && (
-          <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/20 rounded text-xs">
-            <TriangleAlert className="size-4 text-warning flex-shrink-0 mt-0.5" />
-            <div className="text-warning">
-              <p className="font-medium">ElevenLabs not configured</p>
-              <p className="text-warning/80 mt-0.5">
+          <Alert size="sm" variant="warning">
+            <AlertTitle>ElevenLabs not configured</AlertTitle>
+            <AlertDescription>
+              <p>
                 Set <Code className="bg-warning/20">ELEVENLABS_API_KEY</Code> in
                 API and{' '}
                 <Code className="bg-warning/20">
@@ -142,8 +146,8 @@ function TextToSpeechNodeComponent(props: NodeProps) {
                 </Code>{' '}
                 in web
               </p>
-            </div>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         <div>

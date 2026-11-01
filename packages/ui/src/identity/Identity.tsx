@@ -1,27 +1,22 @@
-import { cn } from '@genfeedai/helpers/formatting/cn';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Avatar } from '@ui/primitives/avatar';
 
 type IdentitySize = 'xs' | 'sm' | 'default' | 'lg';
 
 interface IdentityProps {
   name: string;
-  initials?: string;
+  /** Picture URL; initials show until it loads or when there is none. */
+  src?: string | null;
   size?: IdentitySize;
   className?: string;
 }
 
-function deriveInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2)
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
-
-const avatarSize: Record<IdentitySize, string> = {
-  default: 'size-6 text-2xs',
-  lg: 'size-7 text-xs',
-  sm: 'size-5 text-2xs',
-  xs: 'size-4 text-2xs',
-};
+const avatarSize = {
+  default: 'sm',
+  lg: 'md',
+  sm: 'xs',
+  xs: '2xs',
+} as const;
 
 const textSize: Record<IdentitySize, string> = {
   default: 'text-sm',
@@ -30,14 +25,13 @@ const textSize: Record<IdentitySize, string> = {
   xs: 'text-sm',
 };
 
+/** A person's avatar beside their name, inline with text. */
 export function Identity({
   name,
-  initials,
+  src,
   size = 'default',
   className,
 }: IdentityProps) {
-  const displayInitials = initials ?? deriveInitials(name);
-
   return (
     <span
       className={cn(
@@ -47,15 +41,12 @@ export function Identity({
         className,
       )}
     >
-      <span
-        className={cn(
-          'inline-flex shrink-0 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground',
-          avatarSize[size],
-          size === 'xs' && 'relative -top-px',
-        )}
-      >
-        {displayInitials}
-      </span>
+      <Avatar
+        className={cn(size === 'xs' && 'relative -top-px')}
+        name={name}
+        size={avatarSize[size]}
+        src={src}
+      />
       <span className={cn('truncate', textSize[size])}>{name}</span>
     </span>
   );

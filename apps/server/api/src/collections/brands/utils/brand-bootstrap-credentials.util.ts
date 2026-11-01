@@ -1,4 +1,5 @@
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
+import { resolveDirectMessageCapability } from '@genfeedai/helpers';
 import { Prisma } from '@genfeedai/prisma';
 
 /**
@@ -17,6 +18,8 @@ const BOOTSTRAP_CREDENTIAL_SELECT = {
   externalHandle: true,
   externalId: true,
   externalName: true,
+  grantedScopes: true,
+  grantedScopesCapturedAt: true,
   id: true,
   isConnected: true,
   label: true,
@@ -64,9 +67,19 @@ type BootstrapCredentialRow = Prisma.CredentialGetPayload<{
 function toBootstrapCredential(
   credential: BootstrapCredentialRow,
 ): Record<string, unknown> {
+  // The scope list is read only to derive the DM verdict; it is not embedded.
+  const { grantedScopes, grantedScopesCapturedAt, ...embedded } = credential;
+  const platform = fromPrismaCredentialPlatform(credential.platform);
   return {
-    ...credential,
-    platform: fromPrismaCredentialPlatform(credential.platform),
+    ...embedded,
+    directMessageCapability: platform
+      ? resolveDirectMessageCapability({
+          grantedScopes,
+          grantedScopesCapturedAt,
+          platform,
+        })
+      : undefined,
+    platform,
   };
 }
 

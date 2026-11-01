@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -11,12 +10,14 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -765,7 +766,7 @@ function WarmupAccountList({
   }
 
   if (accounts.length === 0) {
-    return <EmptyStateCard title={translate('empty')} />;
+    return <EmptyState surface="card" title={translate('empty')} />;
   }
 
   return (
@@ -822,7 +823,7 @@ function WarmupAccountDetail({
   if (!account) {
     return (
       <div className="shadow-border bg-card p-5">
-        <EmptyStateCard title={translate('selectAccount')} />
+        <EmptyState surface="card" title={translate('selectAccount')} />
       </div>
     );
   }
@@ -981,9 +982,9 @@ function WarmupAccountDetail({
           </ol>
         )}
         {account.diagnostics?.error ? (
-          <p className="mt-4 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert className="mt-4" variant="destructive">
             {account.diagnostics.error}
-          </p>
+          </Alert>
         ) : null}
       </div>
     </aside>

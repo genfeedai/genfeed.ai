@@ -110,7 +110,7 @@ function renderVariantPreview(
     );
   }
 
-  return <EmptyState size={CardEmptySize.SM} title="No preview available." />;
+  return <EmptyState title="No preview available." />;
 }
 
 function VariantIcon({

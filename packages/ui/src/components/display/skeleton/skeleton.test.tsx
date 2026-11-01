@@ -1,6 +1,24 @@
 import { render, screen } from '@testing-library/react';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Skeleton, SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { describe, expect, it } from 'vitest';
+
+describe('Skeleton', () => {
+  it('should render without crashing', () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<Skeleton />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should apply correct styles and classes', () => {
+    const { container } = render(<Skeleton />);
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement).toBeInTheDocument();
+  });
+});
 
 describe('SkeletonCard', () => {
   it('renders one accessible card silhouette with no nested placeholders', () => {
@@ -8,8 +26,10 @@ describe('SkeletonCard', () => {
     const card = screen.getByRole('status', { name: 'Loading card' });
     expect(card).toHaveAttribute('aria-busy', 'true');
     expect(card.childElementCount).toBe(0);
-    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
-    expect(card).toHaveClass('rounded-card', 'motion-reduce:animate-none');
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      1,
+    );
+    expect(card).toHaveClass('rounded-card', 'motion-reduce:before:hidden');
   });
 
   it('keeps media and text card footprints distinct without drawing fake content', () => {

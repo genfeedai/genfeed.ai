@@ -1,15 +1,15 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
+  getModelCategoryBadgeColors,
+  getModelProviderBadgeColors,
   getModelProviderLabel,
 } from './model-badge.helper';
 
 describe('model-badge.helper', () => {
   it('assigns a distinct category treatment to every model category', () => {
     const treatments = Object.values(ModelCategory).map((category) =>
-      getModelCategoryBadgeClass(category),
+      getModelCategoryBadgeColors(category),
     );
 
     expect(new Set(treatments).size).toBe(Object.values(ModelCategory).length);
@@ -17,21 +17,25 @@ describe('model-badge.helper', () => {
 
   it('assigns a distinct branded treatment to every inference provider', () => {
     const treatments = Object.values(ModelProvider).map((provider) =>
-      getModelProviderBadgeClass(provider),
+      getModelProviderBadgeColors(provider),
     );
 
     expect(new Set(treatments).size).toBe(Object.values(ModelProvider).length);
-    expect(getModelProviderBadgeClass(ModelProvider.REPLICATE)).toContain(
-      '#D97706',
-    );
-    expect(getModelProviderBadgeClass(ModelProvider.FAL)).toContain('#06B6D4');
-    expect(getModelProviderBadgeClass()).toContain('muted');
+    expect(getModelProviderBadgeColors(ModelProvider.REPLICATE)).toMatchObject({
+      textColor: '#F59E0B',
+    });
+    expect(getModelProviderBadgeColors(ModelProvider.FAL)).toMatchObject({
+      textColor: '#06B6D4',
+    });
+    expect(getModelProviderBadgeColors()).toMatchObject({
+      textColor: 'var(--color-muted-foreground)',
+    });
   });
 
   it('uses the reviewed neutral Crun badge and exact provider label', () => {
     expect(getModelProviderLabel(ModelProvider.CRUN)).toBe('Crun');
-    expect(getModelProviderBadgeClass(ModelProvider.CRUN)).toBe(
-      'bg-muted text-muted-foreground border-border',
+    expect(getModelProviderBadgeColors(ModelProvider.CRUN)).toEqual(
+      getModelProviderBadgeColors(),
     );
   });
 
@@ -43,14 +47,14 @@ describe('model-badge.helper', () => {
     [ModelProvider.OPENAI, 'OpenAI'],
   ])('labels the explicit direct provider %s', (provider, label) => {
     expect(getModelProviderLabel(provider)).toBe(label);
-    expect(getModelProviderBadgeClass(provider)).not.toBe(
-      getModelProviderBadgeClass(),
+    expect(getModelProviderBadgeColors(provider)).not.toEqual(
+      getModelProviderBadgeColors(),
     );
   });
 
   it('keeps the xAI text theme-aware', () => {
-    expect(getModelProviderBadgeClass(ModelProvider.XAI)).toContain(
-      'text-foreground',
+    expect(getModelProviderBadgeColors(ModelProvider.XAI).textColor).toBe(
+      'var(--color-foreground)',
     );
   });
 

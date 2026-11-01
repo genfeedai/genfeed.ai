@@ -57,3 +57,29 @@ export interface StoryboardAgentBriefsProps {
   isDisabled?: boolean;
   onSelect: (proposal: StudioStoryboardProposal) => void;
 }
+
+export type StoryboardPitchKind = 'slideshow' | 'longForm';
+
+export type StoryboardPitchId =
+  | 'tips'
+  | 'howTo'
+  | 'story'
+  | 'voiceNote'
+  | 'lessons'
+  | 'explainer';
+
+/** A starter idea that fills the brief box. Titles live in i18n by `id`. */
+export interface StoryboardPitch {
+  id: StoryboardPitchId;
+  /** Brand-neutral brief placed in the composer. */
+  brief: string;
+  icon: LucideIcon;
+}
+
+export interface StoryboardPitchCardsProps {
+  /** Pitch whose brief is currently in the composer, highlighted as selected. */
+  activePitchId?: StoryboardPitchId;
+  isDisabled?: boolean;
+  kind: StoryboardPitchKind;
+  onSelect: (pitch: StoryboardPitch) => void;
+}

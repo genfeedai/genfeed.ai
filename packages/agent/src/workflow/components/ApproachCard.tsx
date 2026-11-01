@@ -1,5 +1,6 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { CardGap } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
+import { Badge } from '@ui/primitives/badge';
 import { Check, Minus, Plus, Star } from 'lucide-react';
 import { memo } from 'react';
 import type { Approach } from '../types';
@@ -21,11 +22,10 @@ function ApproachCardInner({
     <Card
       onClick={() => !disabled && onSelect(approach.id)}
       isDisabled={disabled}
-      bodyClassName="gap-0 p-4"
-      className={cn(
-        'w-full',
-        isSelected ? 'bg-info/10 shadow-border-strong' : 'hover:bg-hover',
-      )}
+      gap={CardGap.NONE}
+      isPressed={isSelected}
+      isSelected={isSelected}
+      className="w-full"
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <h3 className="text-sm font-semibold text-foreground/90">
@@ -33,10 +33,15 @@ function ApproachCardInner({
         </h3>
         <div className="flex items-center gap-2 shrink-0">
           {approach.recommended && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning rounded-full">
-              <Star className="size-3 fill-current" />
+            <Badge
+              casing="normal"
+              icon={<Star className="fill-current" />}
+              shape="pill"
+              size="lg"
+              variant="warning"
+            >
               Recommended
-            </span>
+            </Badge>
           )}
           {isSelected && (
             <span className="inline-flex items-center justify-center size-5 rounded-full bg-info/10">

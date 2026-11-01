@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IOnboardingJourneyMissionState,
@@ -70,7 +70,7 @@ export default function JourneyPageContent() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
+      <Card variant={CardVariant.DEFAULT} padding={CardPadding.XL}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="sr-only">{translate('title')}</h1>
           <Button
@@ -85,37 +85,28 @@ export default function JourneyPageContent() {
           </Button>
         </div>
 
-        <MetricCardGrid className="mt-6" columns={4} isDefinitionList>
+        <MetricCardGrid className="mt-6" columns={4}>
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
+            isLoading={isLoading}
             label={translate('progress')}
-            size="sm"
-            value={isLoading ? '-' : `${completionPercent}%`}
+            value={`${completionPercent}%`}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
+            isLoading={isLoading}
             label={translate('availableToUnlock')}
-            size="sm"
-            value={isLoading ? '-' : remainingJourneyCredits}
+            value={remainingJourneyCredits}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
+            isLoading={isLoading}
             label={translate('journeyUnlocked')}
-            size="sm"
-            value={
-              isLoading
-                ? '-'
-                : `${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`
-            }
+            value={`${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
             label={translate('journeyTotal')}
-            size="sm"
             value={ONBOARDING_JOURNEY_TOTAL_CREDITS}
           />
         </MetricCardGrid>
@@ -133,13 +124,11 @@ export default function JourneyPageContent() {
             const isRecommended = mission.id === recommendedMissionId;
 
             return (
-              <div
+              <Card
                 key={mission.id}
-                className={`rounded-2xl border p-5 ${
-                  isRecommended
-                    ? 'border-primary/40 bg-primary/5'
-                    : 'border-border bg-card'
-                }`}
+                variant={CardVariant.BORDERED}
+                padding={CardPadding.LG}
+                isSelected={isRecommended}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-2xl">
@@ -190,7 +179,7 @@ export default function JourneyPageContent() {
                     </Link>
                   </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

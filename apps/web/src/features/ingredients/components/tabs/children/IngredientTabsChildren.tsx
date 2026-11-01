@@ -1,5 +1,4 @@
 'use client';
-
 import { TransformationCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -62,7 +61,7 @@ export default function IngredientTabsChildren({
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <span>📝</span> Captioned Versions ({captionedChildren.length})
             </h3>
-            <Card className="p-4">
+            <Card>
               <div className="text-sm text-foreground/70 mb-3">
                 These versions include captions and can be used for social media
                 platforms.

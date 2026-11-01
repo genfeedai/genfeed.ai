@@ -25,9 +25,9 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
-import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { PanelTabs } from '@ui/primitives/tabs';
 import {
   DefinitionDetail,
   DefinitionList,

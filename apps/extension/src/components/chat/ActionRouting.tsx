@@ -3,6 +3,7 @@ import type {
   ActionRecovery,
   ActionRouting,
 } from '@genfeedai/contracts/interfaces/extension/extension-action-routing.interface';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { usePanelNavigationStore } from '~store/use-panel-navigation-store';
@@ -15,9 +16,9 @@ export function RoutingNotice({
 }): ReactElement | null {
   if (!routing) return null;
   return (
-    <p role="status" className="text-xs text-muted-foreground">
+    <Alert role="status" size="sm" variant="note">
       {routing.notice}
-    </p>
+    </Alert>
   );
 }
 

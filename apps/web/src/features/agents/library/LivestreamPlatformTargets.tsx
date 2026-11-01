@@ -1,5 +1,6 @@
 'use client';
 
+import { CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 
@@ -37,7 +38,7 @@ export default function LivestreamPlatformTargets({
 }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="p-6">
+      <Card padding={CardPadding.XL}>
         <h2 className="text-lg font-semibold">YouTube Live</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Primary delivery target for the show.
@@ -70,7 +71,7 @@ export default function LivestreamPlatformTargets({
         </div>
       </Card>
 
-      <Card className="p-6">
+      <Card padding={CardPadding.XL}>
         <h2 className="text-lg font-semibold">Twitch</h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Secondary delivery target for simultaneous streams.

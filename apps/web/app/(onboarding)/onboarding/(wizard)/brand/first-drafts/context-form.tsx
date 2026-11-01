@@ -1,9 +1,9 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { IOnboardingDraftContext } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { FirstDraftsContextFormProps } from '@/features/onboarding/props/first-drafts.props';
@@ -48,16 +48,8 @@ export default function ContextForm({
   const t = useTranslations('pages.onboarding.firstDrafts');
   const [audience, setAudience] = useState('');
   const [offer, setOffer] = useState('');
-  const [goals, setGoals] = useState<string[]>([]);
+  const [goals, setGoals] = useState<(typeof GOALS)[number][]>([]);
   const [tone, setTone] = useState<(typeof TONES)[number]>('keep');
-
-  function toggleGoal(goal: string) {
-    setGoals((current) =>
-      current.includes(goal)
-        ? current.filter((entry) => entry !== goal)
-        : [...current, goal].slice(0, MAX_GOALS),
-    );
-  }
 
   return (
     <Form
@@ -106,38 +98,30 @@ export default function ContextForm({
       <Suggestions values={offerSuggestions} onPick={setOffer} />
 
       <Field label={t('context.goals.label')}>
-        <div className="flex flex-wrap gap-2">
-          {GOALS.map((goal) => (
-            <Button
-              key={goal}
-              label={t(`context.goals.${goal}`)}
-              ariaLabel={t(`context.goals.${goal}`)}
-              variant={
-                goals.includes(goal)
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              onClick={() => toggleGoal(goal)}
-            />
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={t('context.goals.label')}
+          onValueChange={(next) => setGoals(next.slice(0, MAX_GOALS))}
+          options={GOALS.map((goal) => ({
+            label: t(`context.goals.${goal}`),
+            value: goal,
+          }))}
+          type="multiple"
+          value={goals}
+        />
       </Field>
 
       <Field label={t('context.tone.label')}>
-        <div className="flex flex-wrap gap-2">
-          {TONES.map((option) => (
-            <Button
-              key={option}
-              label={t(`context.tone.${option}`)}
-              variant={
-                tone === option
-                  ? ButtonVariant.DEFAULT
-                  : ButtonVariant.SECONDARY
-              }
-              onClick={() => setTone(option)}
-            />
-          ))}
-        </div>
+        <SegmentedControl
+          appearance="chip"
+          ariaLabel={t('context.tone.label')}
+          onValueChange={setTone}
+          options={TONES.map((option) => ({
+            label: t(`context.tone.${option}`),
+            value: option,
+          }))}
+          value={tone}
+        />
       </Field>
 
       {hasError ? (

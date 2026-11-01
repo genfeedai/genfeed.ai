@@ -56,8 +56,8 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
     return (
       <EmptyState
         className="h-full"
-        title="No threads yet"
         description="Start chatting to see your history here"
+        title="No threads yet"
       />
     );
   }

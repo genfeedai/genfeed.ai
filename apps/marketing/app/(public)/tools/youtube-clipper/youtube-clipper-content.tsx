@@ -15,6 +15,7 @@ import {
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Progress } from '@ui/primitives/progress';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { Clock3, Sparkles } from 'lucide-react';
@@ -312,16 +313,12 @@ export default function YoutubeClipperContent(): React.ReactElement {
             <Text className="text-sm font-semibold">
               Analyzing transcript and clip moments…
             </Text>
-            <div
+            <Progress
               aria-label={`${session.progress}% complete`}
-              className="h-1 overflow-hidden bg-foreground/10"
-              role="progressbar"
-            >
-              <div
-                className="h-full bg-foreground transition-[width]"
-                style={{ width: `${Math.max(2, session.progress)}%` }}
-              />
-            </div>
+              size="xs"
+              tone="neutral"
+              value={Math.max(2, session.progress)}
+            />
           </div>
         ) : null}
 

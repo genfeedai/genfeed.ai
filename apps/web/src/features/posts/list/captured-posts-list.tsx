@@ -20,6 +20,7 @@ import type { Post } from '@models/content/post.model';
 import { PostsService } from '@services/content/posts.service';
 import { useQuery } from '@tanstack/react-query';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
@@ -255,12 +256,12 @@ export default function CapturedPostsList({
           {
             header: translate('columns.published'),
             key: 'publishedAt',
-            render: (post) =>
-              formatDateInTimezone(
-                post.publishedAt || post.publicationDate,
-                browserTimezone,
-                'short',
-              ),
+            render: (post) => (
+              <TableDateCell
+                timeZone={browserTimezone}
+                value={post.publishedAt || post.publicationDate}
+              />
+            ),
           },
         ]}
         emptyLabel={translate('empty.label')}

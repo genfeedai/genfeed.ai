@@ -1,4 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
@@ -41,7 +46,9 @@ export default function ProvidersActionBar({
     <>
       <Card
         className="provider-card opacity-0"
-        bodyClassName="flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6"
+        padding={CardPadding.LG}
+        gap={CardGap.LG}
+        bodyClassName="md:flex-row md:items-center md:justify-between"
       >
         <div className="text-sm text-muted-foreground">{guidance}</div>
 
@@ -104,6 +111,7 @@ export default function ProvidersActionBar({
 
           <div className="relative w-full md:w-auto">
             {selectedMode === 'cloud' ? <CurrentBadge /> : null}
+            {/* ui-guard-allow:selection-button -- primary call to action for the current surface, not a choice group */}
             <Button
               variant={
                 surface === 'saas' ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
@@ -139,10 +147,15 @@ export default function ProvidersActionBar({
           Back
         </Button>
 
-        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-tertiary px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-          <Sparkles className="size-3" />
+        <Badge
+          className="step-badge shrink-0"
+          icon={<Sparkles />}
+          shape="pill"
+          size="xl"
+          variant="outline"
+        >
           Step 2 of 3
-        </div>
+        </Badge>
       </div>
     </>
   );

@@ -1,5 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -13,15 +18,16 @@ export default function EditorLockedBanner({
   const t = useTranslations('pages.studioEditorLock');
 
   return (
-    <Alert
-      variant="info"
-      className="rounded-none border-x-0 border-t-0"
-      icon={<Lock aria-hidden="true" className="size-4" />}
-    >
-      <AlertTitle>{t('title')}</AlertTitle>
-      <AlertDescription>
-        <p>{hasSaveConflict ? t('conflictDescription') : t('description')}</p>
-        <div className="mt-3 flex">
+    <div className="px-4 pt-3">
+      <Alert
+        variant="info"
+        icon={<Lock aria-hidden="true" className="size-4" />}
+      >
+        <AlertTitle>{t('title')}</AlertTitle>
+        <AlertDescription>
+          {hasSaveConflict ? t('conflictDescription') : t('description')}
+        </AlertDescription>
+        <AlertActions>
           <Button
             withWrapper={false}
             variant={ButtonVariant.SECONDARY}
@@ -31,8 +37,8 @@ export default function EditorLockedBanner({
           >
             {t('duplicateToEdit')}
           </Button>
-        </div>
-      </AlertDescription>
-    </Alert>
+        </AlertActions>
+      </Alert>
+    </div>
   );
 }

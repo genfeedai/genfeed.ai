@@ -1,7 +1,7 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -14,6 +14,7 @@ import { logger } from '@services/core/logger.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
@@ -382,15 +383,17 @@ export default function SummaryContent() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
-            Default behavior: use the providers configured on this server. Add
-            your own key later in{' '}
-            <span className="text-foreground">
-              Settings → Organization → API Keys
-            </span>{' '}
-            if you want BYOK overrides or this install is missing a provider you
-            need.
-          </div>
+          <Card variant={CardVariant.INSET} className="mt-5">
+            <div className="text-sm text-muted-foreground">
+              Default behavior: use the providers configured on this server. Add
+              your own key later in{' '}
+              <span className="text-foreground">
+                Settings → Organization → API Keys
+              </span>{' '}
+              if you want BYOK overrides or this install is missing a provider
+              you need.
+            </div>
+          </Card>
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row">
             <div className="relative w-full md:w-auto">
@@ -477,10 +480,15 @@ export default function SummaryContent() {
             Back
           </Button>
 
-          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-muted px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
-            <Sparkles className="size-3" />
+          <Badge
+            className="step-badge shrink-0"
+            icon={<Sparkles />}
+            shape="pill"
+            size="xl"
+            variant="outline"
+          >
             Step 3 of 3
-          </div>
+          </Badge>
         </div>
       </div>
     </div>

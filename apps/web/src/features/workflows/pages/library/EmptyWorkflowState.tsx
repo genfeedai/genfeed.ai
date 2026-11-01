@@ -1,10 +1,9 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Copy, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -15,7 +14,8 @@ export default function EmptyWorkflowState() {
   const translate = useTranslations('common.automation.workflows.library');
 
   return (
-    <EmptyStateCard
+    <EmptyState
+      surface="card"
       icon={Sparkles}
       title={translate('emptyTitle')}
       actions={

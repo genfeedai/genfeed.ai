@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
   workflowId: 'workflow-1' as string | null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@genfeedai/workflows/ui/stores', () => {
   const useWorkflowStore = vi.fn(
     (
@@ -53,16 +57,6 @@ vi.mock('@/components/ui/client-formatted-date', () => ({
   }) => <time>{value ?? fallback}</time>,
 }));
 
-vi.mock('@/features/workflows/components/ui/badge', () => ({
-  NodeBadge: ({
-    children,
-    variant,
-  }: {
-    children?: ReactNode;
-    variant: string;
-  }) => <span data-variant={variant}>{children}</span>,
-}));
-
 vi.mock('@/features/workflows/components/ui/button', () => ({
   NodeButton: ({
     children,
@@ -77,33 +71,9 @@ vi.mock('@/features/workflows/components/ui/button', () => ({
       {children}
     </button>
   ),
-  SelectableButton: ({
-    children,
-    onClick,
-    selected,
-  }: {
-    children?: ReactNode;
-    onClick?: () => void;
-    selected?: boolean;
-  }) => (
-    <button
-      data-selected={String(Boolean(selected))}
-      type="button"
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  ),
 }));
 
 vi.mock('@/features/workflows/components/ui/card', () => ({
-  NodeCard: ({
-    children,
-    minWidth,
-  }: {
-    children?: ReactNode;
-    minWidth?: string;
-  }) => <section data-min-width={minWidth}>{children}</section>,
   NodeDescription: ({ children }: { children?: ReactNode }) => (
     <p>{children}</p>
   ),

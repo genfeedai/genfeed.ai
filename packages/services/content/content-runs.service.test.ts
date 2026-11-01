@@ -579,6 +579,30 @@ describe('ContentRunsService canonical storyboard drafts', () => {
     ).rejects.toThrow();
   });
 
+  it('makes a draft post from an approved slideshow and rejects a malformed reply', async () => {
+    const service = new ContentRunsService('token');
+    mockPost.mockResolvedValueOnce({
+      data: { isExisting: false, postId: 'post-1', slideCount: 4 },
+    });
+
+    expect(
+      await service.createStoryboardSlideshowPost('brand-1', 'run-1', {
+        expectedRevision: 5,
+      }),
+    ).toEqual({ isExisting: false, postId: 'post-1', slideCount: 4 });
+    expect(mockPost).toHaveBeenLastCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/slideshow/post',
+      { expectedRevision: 5 },
+    );
+
+    mockPost.mockResolvedValueOnce({ data: { postId: 'post-1' } });
+    await expect(
+      service.createStoryboardSlideshowPost('brand-1', 'run-1', {
+        expectedRevision: 5,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('reads exact capabilities without JSON:API deserialization and rejects malformed timing data', async () => {
     const response = {
       version: 1,

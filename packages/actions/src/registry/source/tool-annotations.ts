@@ -37,6 +37,7 @@ const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
   'start_remix_generation',
   'control_remix_generation',
   'start_storyboard_long_form',
+  'start_storyboard_slideshow',
   'replace_storyboard_character',
   'run_clipper',
   'transform_media',

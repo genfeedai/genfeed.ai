@@ -1,3 +1,4 @@
+import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
@@ -7,7 +8,7 @@ import type { Props } from '@/features/studio/props/newsletter-context-review.pr
 
 export default function NewsletterContextReview({ contextPreview }: Props) {
   return (
-    <Card className="space-y-4 p-5">
+    <Card gap={CardGap.LG} padding={CardPadding.LG}>
       <div>
         <h2 className="text-lg font-semibold">Context review</h2>
         <p className="text-sm text-muted-foreground">
@@ -18,7 +19,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
 
       {contextPreview ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-tertiary p-3">
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
             <div className="text-sm font-medium text-foreground">
               Selected continuity issues
             </div>
@@ -52,9 +53,9 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
                 </div>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className="rounded-lg bg-tertiary p-3">
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
             <div className="text-sm font-medium text-foreground">
               Context sources
             </div>
@@ -81,7 +82,7 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       ) : (
         <EmptyState title="Generate or select a newsletter to inspect the memory context used during drafting." />

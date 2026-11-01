@@ -445,22 +445,18 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
   });
 
-  it('offers calendar and approvals as routes of their own beside the display modes', async () => {
+  it('offers only the Posts display modes, never the sidebar pages', async () => {
     render(<PublishingContentLibrary />);
 
     const [toggle] = mocks.setViewToggleNode.mock.calls.at(-1) ?? [];
     render(toggle);
-    expect(viewMenuTrigger('list')).toBeInTheDocument();
+    await userEvent.setup().click(viewMenuTrigger('list'));
 
-    await selectView(userEvent.setup(), 'approvals');
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/main/publishing/approvals',
-    );
-
-    await selectView(userEvent.setup(), 'calendar');
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/main/publishing/calendar',
-    );
+    expect(
+      (await screen.findAllByRole('menuitemradio')).map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(['list', 'board', 'grid']);
   });
 
   it('keeps board and grid as display modes of the Posts route', async () => {

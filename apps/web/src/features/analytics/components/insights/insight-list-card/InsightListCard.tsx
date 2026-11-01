@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant, InsightImpact } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';

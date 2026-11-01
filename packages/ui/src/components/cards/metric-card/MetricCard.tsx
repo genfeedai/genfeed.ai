@@ -1,13 +1,14 @@
 'use client';
 
+import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type {
-  MetricCardAlign,
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
+  MetricCardTone,
   MetricSummaryItem,
   MetricSummaryProps,
 } from '@genfeedai/props/cards/metric-card.props';
@@ -17,18 +18,18 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
 
-const BODY_PADDING: Record<MetricCardSize, string> = {
-  lg: 'p-5 sm:p-6',
-  md: 'p-4',
-  sm: 'p-3',
-  xs: 'p-3',
+const BODY_PADDING: Record<MetricCardSize, CardPadding> = {
+  lg: CardPadding.LG,
+  md: CardPadding.MD,
+  sm: CardPadding.SM,
+  xs: CardPadding.SM,
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
   lg: 'text-4xl sm:text-5xl',
   md: 'text-3xl',
   sm: 'text-2xl',
-  xs: 'text-sm',
+  xs: 'text-lg',
 };
 
 const VALUE_SKELETON: Record<MetricCardSize, string> = {
@@ -38,16 +39,32 @@ const VALUE_SKELETON: Record<MetricCardSize, string> = {
   xs: 'h-5 w-10',
 };
 
-const ALIGN_CLASS: Record<MetricCardAlign, string> = {
-  center: 'items-center text-center',
-  start: 'items-start text-left',
-};
-
 const LABEL_CLASS =
   'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
 
-const VALUE_CLASS =
-  'font-semibold tracking-[-0.02em] tabular-nums text-foreground';
+const VALUE_CLASS = 'font-semibold tracking-[-0.02em] tabular-nums';
+
+const VALUE_TONE: Record<MetricCardTone, string> = {
+  accent: 'text-accent',
+  default: 'text-foreground',
+  destructive: 'text-destructive',
+  info: 'text-info',
+  muted: 'text-muted-foreground',
+  primary: 'text-primary',
+  success: 'text-success',
+  warning: 'text-warning',
+};
+
+const ICON_TONE: Record<MetricCardTone, string> = {
+  accent: 'bg-accent/10 text-accent',
+  default: 'bg-muted text-foreground/50',
+  destructive: 'bg-destructive/10 text-destructive',
+  info: 'bg-info/10 text-info',
+  muted: 'bg-muted text-muted-foreground',
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+};
 
 function AnimatedValue({ value }: { value: string }): ReactElement {
   const match = value.match(/^([\d.]+)(.*)$/);
@@ -96,16 +113,16 @@ function resolveValueContent(
  *
  * **One component, states via props** — do not invent StatCard / KPICard /
  * SummaryMetricCard / raw metric divs:
- * - `appearance="tile"` (default) — framed {@link Card}, label → value → detail
- * - `appearance="inline"` — frameless pair for {@link MetricSummary} strips
- * - `appearance="plain"` — frameless label → value block for a surface that
- *   already owns the frame (a Card, panel or grid); `isDefinition` renders it
- *   as `<dt>`/`<dd>` inside a `<dl>`
+ * - `appearance="tile"` (default) — framed {@link Card}: the value first and
+ *   largest, the label under it, then the detail line
+ * - `appearance="inset"` — the same tile as a recessed panel inside a card
+ * - `appearance="inline"` — frameless value/label pair for {@link MetricSummary}
  * - `size` — xs / sm / md / lg scale only
  * - `align` — start (default) or center
+ * - `tone` — state colour of the value and icon chip
  * - `trend` — optional; omit to hide
  *
- * Surface frame is always {@link Card} (`rounded-card` + `shadow-border`).
+ * Surface frame is always {@link Card}.
  */
 const MetricCard = memo(function MetricCard({
   align = 'start',
@@ -115,16 +132,13 @@ const MetricCard = memo(function MetricCard({
   className,
   description,
   icon: Icon,
-  iconClassName,
-  isDefinition = false,
-  isLabelBelow = false,
   isLoading = false,
   label,
   size = 'md',
+  tone = 'default',
   trend,
   trendLabel,
   value,
-  valueClassName,
 }: MetricCardProps): ReactElement {
   const hasTrend = typeof trend === 'number';
   const isPositiveTrend = hasTrend && trend > 0;
@@ -135,93 +149,44 @@ const MetricCard = memo(function MetricCard({
       ? TrendingDown
       : null;
 
-  const trendNode =
-    hasTrend && !isLoading ? (
-      <span
-        className={cn(
-          'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
-          isPositiveTrend && 'text-success',
-          isNegativeTrend && 'text-destructive',
-          !isPositiveTrend && !isNegativeTrend && 'text-muted-foreground',
-        )}
-      >
-        {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
-        {isPositiveTrend ? '+' : ''}
-        {Math.round(trend * 10) / 10}%
-        {trendLabel ? (
-          <span className="font-normal text-muted-foreground">
-            {trendLabel}
-          </span>
-        ) : null}
-      </span>
-    ) : null;
+  const labelNode = analyticsMetric ? (
+    <AnalyticsMetricLabel
+      metric={analyticsMetric}
+      variant={analyticsMetricVariant}
+    >
+      {label}
+    </AnalyticsMetricLabel>
+  ) : (
+    label
+  );
 
   const valueNode = (
-    <div
-      className={cn(
-        'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1',
-        appearance === 'tile' ? 'mt-2' : undefined,
-      )}
-    >
-      <p
-        className={cn(
-          VALUE_CLASS,
-          appearance === 'inline' ? 'text-sm' : VALUE_SIZE[size],
-          valueClassName,
-        )}
-      >
+    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+      <p className={cn(VALUE_CLASS, VALUE_SIZE[size], VALUE_TONE[tone])}>
         {isLoading ? value : resolveValueContent(value, false, size)}
       </p>
 
-      {trendNode}
-    </div>
-  );
-
-  if (appearance === 'plain') {
-    const LabelTag = isDefinition ? 'dt' : 'p';
-    const ValueTag = isDefinition ? 'dd' : 'p';
-
-    return (
-      <div
-        className={cn(
-          'flex min-w-0 gap-1',
-          isLabelBelow ? 'flex-col-reverse' : 'flex-col',
-          ALIGN_CLASS[align],
-          className,
-        )}
-        data-appearance="plain"
-        data-testid="metric-card"
-      >
-        <LabelTag className={LABEL_CLASS}>
-          {analyticsMetric ? (
-            <AnalyticsMetricLabel
-              metric={analyticsMetric}
-              variant={analyticsMetricVariant}
-            >
-              {label}
-            </AnalyticsMetricLabel>
-          ) : (
-            label
-          )}
-        </LabelTag>
-        <ValueTag
+      {hasTrend && !isLoading ? (
+        <span
           className={cn(
-            VALUE_CLASS,
-            'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1',
-            align === 'center' && 'justify-center',
-            VALUE_SIZE[size],
-            valueClassName,
+            'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
+            isPositiveTrend && 'text-success',
+            isNegativeTrend && 'text-destructive',
+            !isPositiveTrend && !isNegativeTrend && 'text-muted-foreground',
           )}
         >
-          {resolveValueContent(value, isLoading, size)}
-          {trendNode}
-        </ValueTag>
-        {description ? (
-          <p className="text-xs leading-5 text-foreground/60">{description}</p>
-        ) : null}
-      </div>
-    );
-  }
+          {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
+          {isPositiveTrend ? '+' : ''}
+          {Math.round(trend * 10) / 10}%
+          {trendLabel ? (
+            <span className="font-normal text-muted-foreground">
+              {trendLabel}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
+    </div>
+  );
 
   if (appearance === 'inline') {
     return (
@@ -230,67 +195,59 @@ const MetricCard = memo(function MetricCard({
         data-testid="metric-card"
         data-appearance="inline"
       >
-        <span className="font-medium text-foreground tabular-nums">
+        <span className={cn('font-medium tabular-nums', VALUE_TONE[tone])}>
           {resolveValueContent(value, isLoading, 'sm')}
         </span>
-        <span className="text-foreground/60">
-          {analyticsMetric ? (
-            <AnalyticsMetricLabel
-              metric={analyticsMetric}
-              variant={analyticsMetricVariant}
-            >
-              {label}
-            </AnalyticsMetricLabel>
-          ) : (
-            label
-          )}
-        </span>
+        <span className="text-foreground/60">{labelNode}</span>
       </span>
     );
   }
 
   return (
     <Card
-      bodyClassName={cn(
-        'flex h-full flex-col gap-0',
-        BODY_PADDING[size],
-        align === 'center' && ALIGN_CLASS.center,
-      )}
+      bodyClassName="h-full"
+      gap={CardGap.NONE}
+      padding={BODY_PADDING[size]}
+      variant={appearance === 'inset' ? CardVariant.INSET : undefined}
       className={cn('h-full', className)}
       data-testid="metric-card"
+      data-appearance={appearance}
       isLoading={isLoading}
       loadingLabel={`Loading ${label}`}
     >
-      <div className="flex items-center gap-2">
+      <div
+        className={cn(
+          'flex items-start justify-between gap-3',
+          align === 'center' && 'justify-center',
+        )}
+      >
+        {valueNode}
         {Icon ? (
           <span
+            aria-hidden="true"
             className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground/50',
+              'flex size-8 shrink-0 items-center justify-center rounded-md',
+              ICON_TONE[tone],
               size === 'lg' && 'size-10',
-              iconClassName,
             )}
           >
             <Icon className={size === 'lg' ? 'size-5' : 'size-4'} />
           </span>
         ) : null}
-        <p className={LABEL_CLASS}>
-          {analyticsMetric ? (
-            <AnalyticsMetricLabel
-              metric={analyticsMetric}
-              variant={analyticsMetricVariant}
-            >
-              {label}
-            </AnalyticsMetricLabel>
-          ) : (
-            label
-          )}
-        </p>
       </div>
 
-      {valueNode}
+      <p
+        className={cn(
+          LABEL_CLASS,
+          'mt-1.5',
+          align === 'center' && 'text-center',
+        )}
+      >
+        {labelNode}
+      </p>
 
       {description ? (
-        <p className="mt-1.5 text-xs leading-5 text-foreground/60">
+        <p className="mt-1 text-xs leading-5 text-foreground/60">
           {description}
         </p>
       ) : null}
@@ -332,10 +289,10 @@ export function MetricSummary({
 
 export default MetricCard;
 export type {
-  MetricCardAlign,
   MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
+  MetricCardTone,
   MetricSummaryItem,
   MetricSummaryProps,
 };

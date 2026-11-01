@@ -1,8 +1,8 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   formatPlatformLabel,
   isYouTubePlatform,
   Platform,
@@ -18,6 +18,7 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -376,7 +377,7 @@ export default function RepliesPage() {
         />
       }
     >
-      <Card label="Inbox status" bodyClassName="gap-4 p-4">
+      <Card label="Inbox status" gap={CardGap.LG}>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">
             <MessageCircleReply className="mr-1 size-3" />
@@ -394,11 +395,7 @@ export default function RepliesPage() {
         <p className="text-sm text-muted-foreground">
           {translate('description')}
         </p>
-        {inboxError ? (
-          <p className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {inboxError}
-          </p>
-        ) : null}
+        {inboxError ? <Alert variant="destructive">{inboxError}</Alert> : null}
       </Card>
 
       {inboxPlatform === Platform.TWITTER ? <RepliesWarmupQueue /> : null}
@@ -411,7 +408,7 @@ export default function RepliesPage() {
       ) : search && items.length > 0 && visibleItems.length === 0 ? (
         <Card
           label={translate('emptySearchTitle')}
-          bodyClassName="flex flex-col gap-3 p-4"
+          bodyClassName="flex flex-col"
         />
       ) : items.length === 0 ? (
         <Card
@@ -423,7 +420,7 @@ export default function RepliesPage() {
                 ? 'No unreplied YouTube comments in the last 48 hours — connect YouTube for this brand, or check back after people comment.'
                 : 'No unreplied comments in the last 24 hours — connect X and post, or check back after people reply.'
           }
-          bodyClassName="flex flex-col gap-3 p-4"
+          bodyClassName="flex flex-col"
           headerAction={
             <Button
               isDisabled={isConnecting}
@@ -452,7 +449,6 @@ export default function RepliesPage() {
                     ? `On: ${item.parentPostPreview}`
                     : 'On your post'
                 }
-                bodyClassName="gap-3 p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={intentBadgeVariant(intent)}>

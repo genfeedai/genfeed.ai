@@ -145,7 +145,7 @@ vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('@ui/cards/metric-card/MetricCard', () => ({
+vi.mock('@ui/display/metric-item/MetricItem', () => ({
   default: ({ label, value }: { label: string; value: ReactNode }) => (
     <div>
       {label}: {value}

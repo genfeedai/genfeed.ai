@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -11,6 +11,7 @@ import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -124,19 +125,21 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                 <span className="text-sm text-muted-foreground">
                   {org.totalPosts.toLocaleString()} posts
                 </span>
-                <span
-                  className={cn(
-                    'px-2 py-0.5 rounded-full text-xs font-medium',
+                <Badge
+                  casing="normal"
+                  shape="pill"
+                  size="lg"
+                  variant={
                     org.growth > 0
-                      ? 'bg-success/10 text-success'
+                      ? 'success'
                       : org.growth < 0
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-muted text-muted-foreground',
-                  )}
+                        ? 'destructive'
+                        : 'secondary'
+                  }
                 >
                   {org.growth > 0 ? '+' : ''}
                   {org.growth}%
-                </span>
+                </Badge>
               </div>
             </div>
           ))
@@ -226,10 +229,12 @@ function QuickActionsGrid() {
           >
             <Card
               label={card.label}
-              bodyClassName="flex h-full flex-col justify-between p-6"
+              padding={CardPadding.XL}
+              bodyClassName="flex h-full flex-col justify-between"
               icon={card.icon}
               iconWrapperClassName={cn('p-3', card.color)}
-              className="h-full text-left transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-border-strong"
+              isInteractive
+              className="h-full text-left group-hover:-translate-y-0.5"
               data-testid="admin-overview-quick-action"
             >
               <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">

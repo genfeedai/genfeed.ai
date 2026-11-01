@@ -1,8 +1,13 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardTone,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
-import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { PanelTabs } from '@ui/primitives/tabs';
 import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -57,18 +62,12 @@ export function WorkspaceTaskInspectorBody({
 
   const detailsContent = (
     <div className="space-y-4 p-6">
-      <Card
-        label={translate('inspector.routing')}
-        bodyClassName="space-y-2 p-4"
-      >
+      <Card label={translate('inspector.routing')} gap={CardGap.SM}>
         <p className="text-sm text-foreground">
           {task.routingSummary ?? translate('inspector.autoRouted')}
         </p>
       </Card>
-      <Card
-        label={translate('inspector.progress')}
-        bodyClassName="space-y-2 p-4"
-      >
+      <Card label={translate('inspector.progress')} gap={CardGap.SM}>
         <div className="space-y-1 text-sm text-foreground/60">
           <p>{task.progress?.stage ?? translate('inspector.queued')}</p>
           <p>
@@ -100,26 +99,25 @@ export function WorkspaceTaskInspectorBody({
           ) : null}
         </div>
       </Card>
-      <Card
-        label={translate('inspector.labels.taskMetadata')}
-        bodyClassName="space-y-2 p-4 text-sm text-foreground/70"
-      >
-        <p>{translate('inspector.priority', { value: task.priority })}</p>
-        <p>
-          {translate('inspector.reviewState', {
-            value:
-              task.reviewState?.replaceAll('_', ' ') ??
-              translate('inspector.reviewStateNone'),
-          })}
-        </p>
-        <p>
-          {translate('inspector.organization', {
-            value: task.organizationId,
-          })}
-        </p>
-        {task.brandId ? (
-          <p>{translate('inspector.brand', { value: task.brandId })}</p>
-        ) : null}
+      <Card label={translate('inspector.labels.taskMetadata')}>
+        <div className="flex flex-col gap-2 text-sm text-foreground/70">
+          <p>{translate('inspector.priority', { value: task.priority })}</p>
+          <p>
+            {translate('inspector.reviewState', {
+              value:
+                task.reviewState?.replaceAll('_', ' ') ??
+                translate('inspector.reviewStateNone'),
+            })}
+          </p>
+          <p>
+            {translate('inspector.organization', {
+              value: task.organizationId,
+            })}
+          </p>
+          {task.brandId ? (
+            <p>{translate('inspector.brand', { value: task.brandId })}</p>
+          ) : null}
+        </div>
       </Card>
     </div>
   );
@@ -129,93 +127,95 @@ export function WorkspaceTaskInspectorBody({
       {hasResultPreview ? (
         <Card
           label={translate('inspector.labels.resultPreview')}
-          bodyClassName="border-l border-emerald-400/20 p-4 text-sm text-foreground/80"
+          tone={CardTone.SUCCESS}
         >
-          {task.resultPreview}
+          <div className="text-sm text-foreground/80">{task.resultPreview}</div>
         </Card>
       ) : null}
 
       {continuityQa ? (
         <Card
           label={translate('inspector.labels.visualContinuityQa')}
-          bodyClassName="space-y-3 border-l border-amber-400/20 p-4 text-sm text-foreground/80"
+          tone={CardTone.WARNING}
         >
-          <p className="flex items-center gap-2 font-semibold">
-            {continuityQa.summary.driftClipCount > 0 ? (
-              <AlertTriangle className="size-4 text-warning" />
-            ) : null}
-            {continuityQa.status.replace('_', ' ')} ·{' '}
-            {translate('inspector.driftFindings', {
-              count: continuityQa.summary.driftClipCount,
-            })}
-          </p>
-          {continuityQa.skipReason ? (
-            <p className="text-foreground/60">
-              {translate('inspector.assessmentSkipped', {
-                reason: continuityQa.skipReason.replaceAll('_', ' '),
+          <div className="flex flex-col gap-3 text-sm text-foreground/80">
+            <p className="flex items-center gap-2 font-semibold">
+              {continuityQa.summary.driftClipCount > 0 ? (
+                <AlertTriangle className="size-4 text-warning" />
+              ) : null}
+              {continuityQa.status.replace('_', ' ')} ·{' '}
+              {translate('inspector.driftFindings', {
+                count: continuityQa.summary.driftClipCount,
               })}
             </p>
-          ) : null}
-          {continuityQa.clips.map((clip) => (
-            <div
-              key={clip.clipId}
-              className="space-y-1 rounded-md border border-border/70 p-3"
-            >
-              <p className="font-semibold">
-                {translate('inspector.clipNumber', {
-                  number: clip.clipIndex + 1,
+            {continuityQa.skipReason ? (
+              <p className="text-foreground/60">
+                {translate('inspector.assessmentSkipped', {
+                  reason: continuityQa.skipReason.replaceAll('_', ' '),
                 })}
               </p>
-              <p>
-                {translate('inspector.characterConfidence', {
-                  confidence: formatConfidence(
-                    clip.character.confidence,
-                    translate,
-                  ),
-                  verdict: clip.character.verdict,
-                })}
-              </p>
-              <p>
-                {translate('inspector.outfitConfidence', {
-                  confidence: formatConfidence(
-                    clip.outfit.confidence,
-                    translate,
-                  ),
-                  verdict: clip.outfit.verdict,
-                })}
-              </p>
-              <p>
-                {translate('inspector.productConfidence', {
-                  confidence: formatConfidence(
-                    clip.product.confidence,
-                    translate,
-                  ),
-                  verdict: clip.product.verdict,
-                })}
-              </p>
-              {clip.errors.map((error) => (
-                <p
-                  key={`${clip.clipId}-${error.code}`}
-                  className="text-warning"
-                >
-                  {error.message}
-                </p>
-              ))}
-              {clip.evidenceFrames.map((frame, index) => (
-                <Link
-                  key={frame.url}
-                  href={frame.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mr-3 inline-block underline underline-offset-2"
-                >
-                  {translate('inspector.evidenceFrame', {
-                    number: index + 1,
+            ) : null}
+            {continuityQa.clips.map((clip) => (
+              <div
+                key={clip.clipId}
+                className="space-y-1 rounded-md border border-border/70 p-3"
+              >
+                <p className="font-semibold">
+                  {translate('inspector.clipNumber', {
+                    number: clip.clipIndex + 1,
                   })}
-                </Link>
-              ))}
-            </div>
-          ))}
+                </p>
+                <p>
+                  {translate('inspector.characterConfidence', {
+                    confidence: formatConfidence(
+                      clip.character.confidence,
+                      translate,
+                    ),
+                    verdict: clip.character.verdict,
+                  })}
+                </p>
+                <p>
+                  {translate('inspector.outfitConfidence', {
+                    confidence: formatConfidence(
+                      clip.outfit.confidence,
+                      translate,
+                    ),
+                    verdict: clip.outfit.verdict,
+                  })}
+                </p>
+                <p>
+                  {translate('inspector.productConfidence', {
+                    confidence: formatConfidence(
+                      clip.product.confidence,
+                      translate,
+                    ),
+                    verdict: clip.product.verdict,
+                  })}
+                </p>
+                {clip.errors.map((error) => (
+                  <p
+                    key={`${clip.clipId}-${error.code}`}
+                    className="text-warning"
+                  >
+                    {error.message}
+                  </p>
+                ))}
+                {clip.evidenceFrames.map((frame, index) => (
+                  <Link
+                    key={frame.url}
+                    href={frame.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mr-3 inline-block underline underline-offset-2"
+                  >
+                    {translate('inspector.evidenceFrame', {
+                      number: index + 1,
+                    })}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
         </Card>
       ) : null}
 
@@ -238,44 +238,45 @@ export function WorkspaceTaskInspectorBody({
       ) : null}
 
       {hasReportLocation ? (
-        <Card
-          label={translate('inspector.labels.reportLocation')}
-          bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/80"
-        >
-          <p>{translate('inspector.reportLocationDescription')}</p>
-          <Button
-            asChild
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
-            className="font-semibold"
-          >
-            <Link
-              href={taskHref(
-                task,
-                `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`,
-              )}
+        <Card label={translate('inspector.labels.reportLocation')}>
+          <div className="flex flex-col gap-3 text-sm text-foreground/80">
+            <p>{translate('inspector.reportLocationDescription')}</p>
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              className="font-semibold"
             >
-              {translate('inspector.openReportThread')}
-            </Link>
-          </Button>
+              <Link
+                href={taskHref(
+                  task,
+                  `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`,
+                )}
+              >
+                {translate('inspector.openReportThread')}
+              </Link>
+            </Button>
+          </div>
         </Card>
       ) : null}
 
       {hasFailure ? (
         <Card
           label={translate('inspector.labels.failure')}
-          bodyClassName="border-l border-destructive/40 p-4 text-sm text-destructive"
+          tone={CardTone.DESTRUCTIVE}
         >
-          {task.failureReason}
+          <div className="text-sm text-destructive">{task.failureReason}</div>
         </Card>
       ) : null}
 
       {hasRequestedChanges ? (
         <Card
           label={translate('inspector.labels.requestedChanges')}
-          bodyClassName="border-l border-warning/40 p-4 text-sm text-warning"
+          tone={CardTone.WARNING}
         >
-          {task.requestedChangesReason}
+          <div className="text-sm text-warning">
+            {task.requestedChangesReason}
+          </div>
         </Card>
       ) : null}
     </div>
@@ -283,56 +284,55 @@ export function WorkspaceTaskInspectorBody({
 
   const recordsContent = (
     <div className="space-y-4 p-6">
-      <Card
-        label={translate('inspector.labels.linkedRecords')}
-        bodyClassName="space-y-2 p-4 text-sm text-foreground/70"
-      >
-        <p>
-          {translate('inspector.runs', {
-            count: task.linkedExecutionIds?.length ?? 0,
-          })}
-        </p>
-        {task.linkedIssueId ? (
+      <Card label={translate('inspector.labels.linkedRecords')}>
+        <div className="flex flex-col gap-2 text-sm text-foreground/70">
           <p>
-            {translate('inspector.issue', {
-              value: linkedIssueSummary.isLoading
+            {translate('inspector.runs', {
+              count: task.linkedExecutionIds?.length ?? 0,
+            })}
+          </p>
+          {task.linkedIssueId ? (
+            <p>
+              {translate('inspector.issue', {
+                value: linkedIssueSummary.isLoading
+                  ? translate('inspector.loading')
+                  : (linkedIssueSummary.identifier ??
+                    translate('inspector.unavailable')),
+              })}
+            </p>
+          ) : null}
+          <p>
+            {translate('inspector.outputs', {
+              count: task.linkedOutputIds?.length ?? 0,
+            })}
+          </p>
+          <p>
+            {translate('inspector.reportThreads', {
+              count: linkedExecutionSummary.isLoading
                 ? translate('inspector.loading')
-                : (linkedIssueSummary.identifier ??
-                  translate('inspector.unavailable')),
+                : linkedExecutionSummary.reportThreadCount,
             })}
           </p>
-        ) : null}
-        <p>
-          {translate('inspector.outputs', {
-            count: task.linkedOutputIds?.length ?? 0,
-          })}
-        </p>
-        <p>
-          {translate('inspector.reportThreads', {
-            count: linkedExecutionSummary.isLoading
-              ? translate('inspector.loading')
-              : linkedExecutionSummary.reportThreadCount,
-          })}
-        </p>
-        <p>
-          {translate('inspector.generatedContent', {
-            count: linkedExecutionSummary.isLoading
-              ? translate('inspector.loading')
-              : linkedExecutionSummary.generatedContentCount,
-          })}
-        </p>
-        <p>
-          {translate('inspector.approvals', {
-            count: task.linkedApprovalIds?.length ?? 0,
-          })}
-        </p>
-        {task.planningThreadId ? (
-          <p className="truncate">
-            {translate('inspector.thread', {
-              value: task.planningThreadId,
+          <p>
+            {translate('inspector.generatedContent', {
+              count: linkedExecutionSummary.isLoading
+                ? translate('inspector.loading')
+                : linkedExecutionSummary.generatedContentCount,
             })}
           </p>
-        ) : null}
+          <p>
+            {translate('inspector.approvals', {
+              count: task.linkedApprovalIds?.length ?? 0,
+            })}
+          </p>
+          {task.planningThreadId ? (
+            <p className="truncate">
+              {translate('inspector.thread', {
+                value: task.planningThreadId,
+              })}
+            </p>
+          ) : null}
+        </div>
       </Card>
     </div>
   );

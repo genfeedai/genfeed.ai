@@ -14,7 +14,7 @@ type Props = {
 export default function IngredientDetailNotFound({ type }: Props) {
   return (
     <Container>
-      <Card className="text-center">
+      <Card isCentered>
         <h3 className="text-lg font-bold mb-4">Ingredient Not Found</h3>
         <p className="text-foreground/70 mb-6">
           The ingredient you&apos;re looking for doesn&apos;t exist or has been

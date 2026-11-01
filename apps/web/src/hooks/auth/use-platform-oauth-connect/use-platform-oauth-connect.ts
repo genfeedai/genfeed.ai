@@ -28,6 +28,16 @@ export interface UsePlatformOAuthConnectOptions {
 }
 
 /**
+ * Per-call target. A reconnect passes the existing `credentialId` (and that
+ * account's own brand) so the server re-links the same row instead of minting
+ * a duplicate connected account.
+ */
+export interface PlatformOAuthConnectTarget {
+  brandId?: string;
+  credentialId?: string;
+}
+
+/**
  * Start a platform OAuth connect without navigating to brand settings.
  * Appends `return_to` for clients that preserve it, and always mirrors the
  * path into sessionStorage so `/oauth/[platform]` can return here after the
@@ -35,7 +45,7 @@ export interface UsePlatformOAuthConnectOptions {
  */
 export function usePlatformOAuthConnect(
   options: UsePlatformOAuthConnectOptions = {},
-): (platform: string) => Promise<void> {
+): (platform: string, target?: PlatformOAuthConnectTarget) => Promise<void> {
   const { getToken } = useAuthIdentity();
   const { selectedBrand } = useBrand();
   const pathname = usePathname();
@@ -45,7 +55,7 @@ export function usePlatformOAuthConnect(
   const defaultReturnTo = search ? `${pathname}?${search}` : pathname;
 
   return useCallback(
-    async (platform: string) => {
+    async (platform: string, target?: PlatformOAuthConnectTarget) => {
       try {
         const token = await resolveAuthToken(getToken);
         if (!token) {
@@ -53,10 +63,11 @@ export function usePlatformOAuthConnect(
         }
 
         const brandId =
-          options.brandId === null
+          target?.brandId ??
+          (options.brandId === null
             ? undefined
             : (options.brandId ??
-              (selectedBrand ? getBrandEntityId(selectedBrand) : undefined));
+              (selectedBrand ? getBrandEntityId(selectedBrand) : undefined)));
         if (!brandId) {
           throw new OAuthBrandRequiredError();
         }
@@ -72,10 +83,14 @@ export function usePlatformOAuthConnect(
           resolveOAuthServicePath(platform),
           token,
         );
-        const credential = await service.postConnect({ brandId });
+        const credentialId = target?.credentialId;
+        const credential = await service.postConnect({
+          brandId,
+          ...(credentialId ? { credentialId } : {}),
+        });
         rememberOAuthConnectContext({
           brandId,
-          credentialId: credential.id,
+          credentialId: credential.id || credentialId,
         });
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(

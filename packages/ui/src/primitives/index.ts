@@ -12,7 +12,7 @@ export {
   AccordionTrigger,
 } from './accordion';
 export { Alert, AlertDescription, AlertTitle } from './alert';
-export { Avatar, AvatarFallback, AvatarImage } from './avatar';
+export { Avatar } from './avatar';
 export { Badge, type BadgeProps } from './badge';
 export { type BadgeStatus, getBadgeStatus } from './badge.status';
 export { type BadgeVariant, badgeVariants } from './badge.variants';
@@ -109,6 +109,7 @@ export {
   default as DropzoneField,
 } from './dropzone-field';
 export { EditableText, type EditableTextProps } from './editable-text';
+export { EmptyState } from './empty-state';
 export {
   default as Field,
   type FieldElementProps,
@@ -126,6 +127,15 @@ export { Input, type InputProps } from './input';
 export { Kbd, type KbdProps } from './kbd';
 export { kbdVariants } from './kbd.variants';
 export { Label } from './label';
+export {
+  OptionTile,
+  OptionTileGroup,
+  type OptionTileProps,
+} from './option-tile';
+export {
+  optionTileGroupVariants,
+  optionTileVariants,
+} from './option-tile.variants';
 export {
   Pagination,
   PaginationContent,
@@ -147,11 +157,21 @@ export {
 } from './popover';
 export { Pre, type PreProps } from './pre';
 export { preVariants } from './pre.variants';
-export { Progress } from './progress';
+export { Progress, type ProgressProps } from './progress';
+export type { ProgressTone } from './progress.variants';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { default as RangeField, type RangeFieldProps } from './range-field';
 export { ScrollArea, ScrollBar } from './scroll-area';
 export { default as Searchbar, type SearchbarProps } from './searchbar';
+export {
+  SegmentedControl,
+  type SegmentedControlOption,
+  type SegmentedControlProps,
+} from './segmented-control';
+export {
+  segmentedItemVariants,
+  segmentedListVariants,
+} from './segmented-control.variants';
 export {
   Select,
   SelectContent,
@@ -167,6 +187,7 @@ export {
 export { Separator } from './separator';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
+export { Stepper, type StepperProps, type StepperStep } from './stepper';
 export { Switch } from './switch';
 export {
   Table,
@@ -178,11 +199,14 @@ export {
   TableHeader,
   TableRow,
 } from './table';
-export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 export {
-  getTabsListClassName,
-  getTabsTriggerClassName,
-} from './tabs.styles';
+  PanelTabs,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsRoot,
+  TabsTrigger,
+} from './tabs';
 export {
   default as TagsEditable,
   type TagsEditableProps,

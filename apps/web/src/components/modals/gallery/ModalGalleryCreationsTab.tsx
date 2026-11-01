@@ -1,5 +1,4 @@
 'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import CollectionGrid from '@ui/collection/CollectionGrid';

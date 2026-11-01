@@ -1,7 +1,8 @@
 # Docker Compose for the LLM GPU instance
 # Runs: vLLM OpenAI-compatible server on a g6e.xlarge (L40S 48GB)
 # Models: Qwen 2.5 32B Instruct GPTQ Int8 (~34GB) + Mistral Small 3.1 24B (~13GB)
-# On-demand: EC2 instance is started/stopped by LlmInstanceService + LlmIdleShutdown cron
+# Instance lifecycle (start, stop, idle shutdown) is run by the operator, not by Genfeed.
+# Genfeed only calls the server at GPU_LLM_URL.
 
 services:
   vllm:

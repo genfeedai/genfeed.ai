@@ -10,7 +10,7 @@ import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -245,7 +245,8 @@ export default function ReviewQueueView({
     approvals.error !== null;
 
   const emptySearchCard = (
-    <EmptyStateCard
+    <EmptyState
+      surface="card"
       icon={ClipboardCheck}
       title={translateReview('queue.emptySearchTitle')}
       description={translateReview('queue.emptySearchDescription')}
@@ -262,7 +263,8 @@ export default function ReviewQueueView({
         return emptySearchCard;
       }
       return (
-        <EmptyStateCard
+        <EmptyState
+          surface="card"
           icon={ClipboardCheck}
           title={translateInbox('emptyFilteredTitle')}
           description={translateInbox('emptyFilteredDescription')}
@@ -277,7 +279,8 @@ export default function ReviewQueueView({
     return (
       <>
         {approvalsSection}
-        <EmptyStateCard
+        <EmptyState
+          surface="card"
           icon={TriangleAlert}
           title={translateReview('queue.loadFailed')}
           description={getJsonApiErrorMessage(
@@ -301,7 +304,8 @@ export default function ReviewQueueView({
       return emptySearchCard;
     }
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={ClipboardCheck}
         title={translateReview('queue.emptyTitle')}
         description={translateReview('queue.emptyDescription')}
@@ -344,7 +348,8 @@ export default function ReviewQueueView({
       {isTurboRunLoading && !activeTurboRun ? (
         <Loading />
       ) : activeTurboRunError ? (
-        <EmptyStateCard
+        <EmptyState
+          surface="card"
           icon={TriangleAlert}
           title={translateReview('queue.batchLoadFailed')}
           description={translateReview('queue.batchLoadDescription')}
@@ -386,7 +391,8 @@ export default function ReviewQueueView({
           )}
         </>
       ) : (
-        <EmptyStateCard
+        <EmptyState
+          surface="card"
           icon={TriangleAlert}
           title={translateReview('queue.noDetails')}
           description={translateReview('queue.noDetailsDescription')}

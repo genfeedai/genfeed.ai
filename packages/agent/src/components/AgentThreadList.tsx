@@ -246,9 +246,9 @@ export function AgentThreadList({
           )
         ) : visibleThreadCount === 0 ? (
           <EmptyState
+            description="Try another search."
             size={CardEmptySize.SM}
             title="No matching conversations"
-            description="Try another search."
           />
         ) : (
           <div

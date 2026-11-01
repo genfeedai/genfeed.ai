@@ -1,6 +1,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Alert, AlertTitle } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   CircleAlert,
@@ -25,30 +27,18 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
   const Icon = EVIDENCE_ICONS[evidence.type];
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border p-3 transition-all',
-        evidence.passed
-          ? 'border-success/20 bg-success/10'
-          : 'border-destructive/20 bg-destructive/10',
-      )}
+    <Alert
+      icon={<Icon className="size-4" />}
+      variant={evidence.passed ? 'success' : 'destructive'}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <Icon
-          className={cn(
-            'size-4',
-            evidence.passed ? 'text-success' : 'text-destructive',
-          )}
-        />
-        <span className="text-sm font-medium text-foreground/80">
-          {evidence.title}
-        </span>
+      <AlertTitle className="flex items-center justify-between gap-2">
+        {evidence.title}
         {evidence.passed ? (
-          <CircleCheck className="size-4 text-success ml-auto" />
+          <CircleCheck className="size-4" />
         ) : (
-          <CircleAlert className="size-4 text-destructive ml-auto" />
+          <CircleAlert className="size-4" />
         )}
-      </div>
+      </AlertTitle>
       <Pre
         variant="ghost"
         size="xs"
@@ -56,7 +46,7 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
       >
         {evidence.content}
       </Pre>
-    </div>
+    </Alert>
   );
 }
 
@@ -81,16 +71,14 @@ function VerificationPanelInner() {
           </h2>
         </div>
         {evidence.length > 0 && (
-          <span
-            className={cn(
-              'text-xs font-medium px-2 py-0.5 rounded-full',
-              allPassed
-                ? 'bg-success/10 text-success'
-                : 'bg-destructive/10 text-destructive',
-            )}
+          <Badge
+            casing="normal"
+            shape="pill"
+            size="lg"
+            variant={allPassed ? 'success' : 'destructive'}
           >
             {evidence.filter((e) => e.passed).length}/{evidence.length} passed
-          </span>
+          </Badge>
         )}
       </div>
 

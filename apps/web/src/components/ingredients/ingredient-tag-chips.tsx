@@ -2,6 +2,7 @@
 
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
 
@@ -53,13 +54,16 @@ function TagChipList({
         </span>
       ))}
       {hidden.length > 0 ? (
-        <span
-          className="rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-foreground"
+        <Badge
+          casing="normal"
           role="listitem"
+          shape="pill"
+          size="lg"
           title={hidden.map((tag) => tag.label).join(', ')}
+          variant="secondary"
         >
           {translate('moreTags', { count: hidden.length })}
-        </span>
+        </Badge>
       ) : null}
     </div>
   );

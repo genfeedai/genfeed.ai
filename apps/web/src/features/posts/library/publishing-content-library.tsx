@@ -1,5 +1,4 @@
 'use client';
-
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -20,7 +19,6 @@ import {
   getPublishingReleaseHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -42,6 +40,7 @@ import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -560,9 +559,7 @@ export default function PublishingContentLibrary() {
               {formatPublishingContentStatus(item.status)}
             </Badge>
             {item.scheduledAt ? (
-              <span className="text-xs text-muted-foreground">
-                {formatDate(item.scheduledAt)}
-              </span>
+              <TableDateCell value={item.scheduledAt} />
             ) : null}
           </div>
         </PublishingPostHoverPreview>
@@ -582,13 +579,13 @@ export default function PublishingContentLibrary() {
       className: 'hidden md:table-cell',
       header: 'Scheduled',
       key: 'scheduledAt',
-      render: (item) => (item.scheduledAt ? formatDate(item.scheduledAt) : '—'),
+      render: (item) => <TableDateCell value={item.scheduledAt} />,
     },
     {
       className: 'hidden md:table-cell',
       header: 'Created',
       key: 'createdAt',
-      render: (item) => formatDate(item.createdAt),
+      render: (item) => <TableDateCell value={item.createdAt} />,
     },
   ];
 

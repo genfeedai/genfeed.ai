@@ -3,7 +3,7 @@ import type { IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildModelCatalogOverviewCards,
-  getModelCategoryBadgeClass,
+  getModelCategoryBadgeColors,
   getModelCategoryGroupCategories,
   resolveModelCategoryGroupKey,
 } from './models-catalog-overview.helpers';
@@ -47,7 +47,7 @@ describe('model catalog overview helpers', () => {
 
   it('assigns a distinct category treatment to every model category', () => {
     const treatments = Object.values(ModelCategory).map((category) =>
-      getModelCategoryBadgeClass(category),
+      JSON.stringify(getModelCategoryBadgeColors(category)),
     );
 
     expect(new Set(treatments).size).toBe(Object.values(ModelCategory).length);

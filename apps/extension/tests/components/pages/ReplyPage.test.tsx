@@ -62,7 +62,7 @@ describe('ReplyPage', () => {
   it('asks for tone variants with the real post, author and platform', async () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Challenge/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Challenge/ }));
     fireEvent.click(screen.getByRole('button', { name: /Generate replies/ }));
 
     await screen.findByText('Great launch, congrats!');
@@ -145,19 +145,15 @@ describe('ReplyPage', () => {
 
     expect(
       screen
-        .getByRole('button', { name: /Add Value/ })
-        .getAttribute('aria-pressed'),
+        .getByRole('radio', { name: /Add Value/ })
+        .getAttribute('aria-checked'),
     ).toBe('true');
     expect(
-      screen
-        .getByRole('button', { name: /Funny/ })
-        .getAttribute('aria-pressed'),
+      screen.getByRole('radio', { name: /Funny/ }).getAttribute('aria-checked'),
     ).toBe('false');
-    fireEvent.click(screen.getByRole('button', { name: /Funny/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /Funny/ }));
     expect(
-      screen
-        .getByRole('button', { name: /Funny/ })
-        .getAttribute('aria-pressed'),
+      screen.getByRole('radio', { name: /Funny/ }).getAttribute('aria-checked'),
     ).toBe('true');
   });
 

@@ -1,19 +1,19 @@
 'use client';
-
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import {
-  ChartLoadingOverlay,
   chartAxisStroke,
   chartAxisTick,
   chartGridStroke,
@@ -98,43 +98,37 @@ export function BrandPerformanceChart({
 
   return (
     <WorkspaceSurface density="compact" framed={false} title={title}>
-      <Card className={className} bodyClassName="gap-3 p-4">
+      <Card className={className}>
         {!isEmpty ? (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(
-              (metricKey) => (
-                <Button
-                  type="button"
-                  key={metricKey}
-                  onClick={() => setActiveMetric(metricKey)}
-                  isDisabled={isLoading}
-                  variant={ButtonVariant.UNSTYLED}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-[background-color,border-color,color] ${
-                    activeMetric === metricKey
-                      ? 'border-border-strong bg-muted text-foreground'
-                      : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
-                  } ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
-                >
-                  <span
-                    className="mr-2 inline-block size-3 rounded-full"
-                    style={{ backgroundColor: METRIC_COLORS[metricKey] }}
-                  />
-
-                  {METRIC_LABELS[metricKey]}
-                </Button>
-              ),
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={title ?? 'Metric'}
+            className="mb-4"
+            isDisabled={isLoading}
+            onValueChange={setActiveMetric}
+            options={(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map(
+              (metricKey) => ({
+                label: (
+                  <>
+                    <span
+                      className="inline-block size-3 rounded-full"
+                      style={{ backgroundColor: METRIC_COLORS[metricKey] }}
+                    />
+                    {METRIC_LABELS[metricKey]}
+                  </>
+                ),
+                value: metricKey,
+              }),
             )}
-          </div>
+            value={activeMetric}
+          />
         ) : null}
 
         <div className="relative" style={{ height }}>
-          {isLoading && <ChartLoadingOverlay />}
+          {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <EmptyState
-              className="absolute inset-0"
-              title="No brand performance yet"
-            />
+            <EmptyState isFill title="No brand performance yet" />
           ) : null}
 
           {!isEmpty ? (

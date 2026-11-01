@@ -4,7 +4,7 @@ import type { Props } from '@/features/settings/props/settings-progress-heatmap-
 
 export default function SettingsProgressHeatmapCard({ calendar }: Props) {
   return (
-    <Card label="Creation heatmap" bodyClassName="gap-3 p-4">
+    <Card label="Creation heatmap">
       <CreationHeatmap calendar={calendar} />
     </Card>
   );

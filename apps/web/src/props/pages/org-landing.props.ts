@@ -6,11 +6,6 @@ export interface OrgLandingBrandItemProps {
   href: string;
 }
 
-export interface OrgLandingBrandLogoProps {
-  brand: Brand;
-  className?: string;
-}
-
 export interface OrgLandingBrandFactsProps {
   brand: Brand;
   className?: string;

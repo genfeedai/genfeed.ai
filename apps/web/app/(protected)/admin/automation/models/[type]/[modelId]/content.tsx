@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { AdminModelDetailService } from '@services/admin/model-detail.service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Table from '@ui/display/table/Table';
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Power, PowerOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -179,39 +180,45 @@ export default function ModelDetailContent() {
       header: t('offer'),
       key: 'isActive',
       render: (offer) => (
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          disabled={busy}
-          onClick={() =>
-            update.mutate({
-              executionModelId: offer.executionModelId,
-              isActive: !offer.isActive,
-            })
-          }
-        >
-          {offer.isActive ? t('disableOffer') : t('enableOffer')}
-        </Button>
+        <Badge variant={offer.isActive ? 'secondary' : 'outline'}>
+          {offer.isActive ? t('active') : t('inactive')}
+        </Badge>
       ),
     },
     {
       header: t('providerAvailability'),
       key: 'isProviderActive',
       render: (offer) => (
-        <Button
-          variant={ButtonVariant.SECONDARY}
-          disabled={busy}
-          onClick={() =>
-            providerUpdate.mutate({
-              provider: offer.provider,
-              isActive: !offer.isProviderActive,
-            })
-          }
-        >
-          {offer.isProviderActive
-            ? t('disableProviderGlobally')
-            : t('enableProviderGlobally')}
-        </Button>
+        <Badge variant={offer.isProviderActive ? 'secondary' : 'outline'}>
+          {offer.isProviderActive ? t('active') : t('inactive')}
+        </Badge>
       ),
+    },
+  ];
+  const offerActions: TableAction<AdminModelOffer>[] = [
+    {
+      icon: (offer) => (offer.isActive ? <ToggleRight /> : <ToggleLeft />),
+      isDisabled: () => busy,
+      onClick: (offer) =>
+        update.mutate({
+          executionModelId: offer.executionModelId,
+          isActive: !offer.isActive,
+        }),
+      tooltip: (offer) =>
+        offer.isActive ? t('disableOffer') : t('enableOffer'),
+    },
+    {
+      icon: (offer) => (offer.isProviderActive ? <PowerOff /> : <Power />),
+      isDisabled: () => busy,
+      onClick: (offer) =>
+        providerUpdate.mutate({
+          provider: offer.provider,
+          isActive: !offer.isProviderActive,
+        }),
+      tooltip: (offer) =>
+        offer.isProviderActive
+          ? t('disableProviderGlobally')
+          : t('enableProviderGlobally'),
     },
   ];
   const pricingRows: AdminModelPricingRow[] =
@@ -435,6 +442,7 @@ export default function ModelDetailContent() {
           </Select>
         </div>
         <Table<AdminModelOffer>
+          actions={offerActions}
           ariaLabel={t('routingProvider')}
           columns={offerColumns}
           getRowKey={(offer) => offer.id}

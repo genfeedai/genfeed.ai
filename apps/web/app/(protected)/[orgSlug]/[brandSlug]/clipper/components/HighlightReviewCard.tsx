@@ -1,6 +1,12 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -19,9 +25,6 @@ import type {
   RewriteAction,
   RewriteState,
 } from '@/props/studio/clipper.props';
-
-const CLIP_TYPE_BADGE_CLASSES =
-  'bg-muted text-muted-foreground border-transparent';
 
 const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: 'tiktok' },
@@ -46,10 +49,10 @@ function formatDuration(startTime: number, endTime: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function getViralityColor(score: number): string {
-  if (score >= 80) return 'bg-success/10 text-success border-transparent';
-  if (score >= 60) return 'bg-warning/10 text-warning border-transparent';
-  return 'bg-destructive/10 text-destructive border-transparent';
+function getViralityVariant(score: number): BadgeVariant {
+  if (score >= 80) return 'success';
+  if (score >= 60) return 'warning';
+  return 'destructive';
 }
 
 const initialRewriteState: RewriteState = {
@@ -90,7 +93,7 @@ export default function HighlightReviewCard({
   clipsService,
 }: HighlightReviewCardProps) {
   const duration = formatDuration(highlight.start_time, highlight.end_time);
-  const viralityColor = getViralityColor(highlight.virality_score);
+  const viralityVariant = getViralityVariant(highlight.virality_score);
 
   // Viral rewrite state
   const [
@@ -142,10 +145,10 @@ export default function HighlightReviewCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-4"
-      className={`border transition-[background-color,border-color,box-shadow] ${
-        selected ? 'border-primary/50 bg-primary/5' : 'bg-muted opacity-60'
-      }`}
+      gap={CardGap.NONE}
+      variant={CardVariant.INSET}
+      isSelected={selected}
+      className={selected ? undefined : 'opacity-60'}
     >
       {/* Header: checkbox + title + badges */}
       <div className="mb-3 flex items-start gap-3">
@@ -162,20 +165,13 @@ export default function HighlightReviewCard({
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {/* Virality score */}
-            <Badge variant="outline" className={viralityColor}>
-              {highlight.virality_score}
-            </Badge>
+            <Badge variant={viralityVariant}>{highlight.virality_score}</Badge>
 
             {/* Clip type */}
-            <Badge variant="outline" className={CLIP_TYPE_BADGE_CLASSES}>
-              {highlight.clip_type}
-            </Badge>
+            <Badge variant="secondary">{highlight.clip_type}</Badge>
 
             {/* Duration */}
-            <Badge
-              variant="outline"
-              className="border-transparent bg-muted text-muted-foreground"
-            >
+            <Badge isMono variant="secondary">
               {duration}
             </Badge>
           </div>
@@ -268,11 +264,7 @@ export default function HighlightReviewCard({
       {highlight.tags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {highlight.tags.map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-              className="bg-muted text-muted-foreground"
-            >
+            <Badge key={tag} variant="secondary" casing="normal">
               #{tag}
             </Badge>
           ))}

@@ -5,10 +5,13 @@ import {
   formatCreditBalanceExact,
   formatCreditCost,
 } from '@genfeedai/contracts/constants';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
-import { type ReactElement, useCallback, useRef, useState } from 'react';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { Progress } from '@ui/primitives/progress';
+import { useTranslations } from 'next-intl';
+import { type ReactElement, useCallback, useId, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
   apiService: AgentStrategyApiService;
@@ -59,9 +62,12 @@ function formatFutureTime(dateStr: string): string {
 export function AgentStrategyStatus({
   apiService,
 }: AgentStrategyStatusProps): ReactElement {
+  const translate = useTranslations('agent.strategyStatus');
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
   const abortRef = useRef<AbortController | null>(null);
+  const dailyLabelId = useId();
+  const weeklyLabelId = useId();
   const [isToggling, setIsToggling] = useState(false);
 
   const handleToggleEnabled = useCallback(async () => {
@@ -104,9 +110,11 @@ export function AgentStrategyStatus({
 
   if (!strategy) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        description={translate('emptyDescription')}
         size={CardEmptySize.SM}
-        title="No strategy configured yet. Create one in the configuration above."
+        surface="card"
+        title={translate('emptyTitle')}
       />
     );
   }
@@ -189,64 +197,47 @@ export function AgentStrategyStatus({
       {/* Daily budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-2xs text-muted-foreground">Daily credits</p>
+          <p className="text-2xs text-muted-foreground" id={dailyLabelId}>
+            Daily credits
+          </p>
           <p className="text-2xs text-muted-foreground">
             {formatCreditCost(strategy.creditsUsedToday)} /{' '}
             {formatCreditBalanceExact(strategy.dailyCreditBudget)}
           </p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className={`h-1.5 rounded-full transition-all ${
-              dailyPercent >= 90 ? 'bg-destructive' : 'bg-primary'
-            }`}
-            style={{ width: `${dailyPercent}%` }}
-          />
-        </div>
+        <Progress
+          aria-labelledby={dailyLabelId}
+          size="sm"
+          tone={dailyPercent >= 90 ? 'destructive' : 'primary'}
+          value={dailyPercent}
+        />
       </div>
 
       {/* Weekly budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-2xs text-muted-foreground">Weekly credits</p>
+          <p className="text-2xs text-muted-foreground" id={weeklyLabelId}>
+            Weekly credits
+          </p>
           <p className="text-2xs text-muted-foreground">
             {formatCreditCost(strategy.creditsUsedThisWeek)} /{' '}
             {formatCreditBalanceExact(strategy.weeklyCreditBudget)}
           </p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-muted">
-          <div
-            className={`h-1.5 rounded-full transition-all ${
-              weeklyPercent >= 90 ? 'bg-destructive' : 'bg-primary'
-            }`}
-            style={{ width: `${weeklyPercent}%` }}
-          />
-        </div>
+        <Progress
+          aria-labelledby={weeklyLabelId}
+          size="sm"
+          tone={weeklyPercent >= 90 ? 'destructive' : 'primary'}
+          value={weeklyPercent}
+        />
       </div>
 
       {/* Consecutive failures warning */}
       {strategy.consecutiveFailures > 0 && (
-        <div className="flex items-center gap-2 rounded bg-destructive/10 px-3 py-2">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-destructive"
-          >
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <span className="text-xs text-destructive">
-            {strategy.consecutiveFailures} consecutive failure
-            {strategy.consecutiveFailures > 1 ? 's' : ''}
-          </span>
-        </div>
+        <Alert size="sm" variant="destructive">
+          {strategy.consecutiveFailures} consecutive failure
+          {strategy.consecutiveFailures > 1 ? 's' : ''}
+        </Alert>
       )}
 
       {/* Run Now */}

@@ -1,5 +1,4 @@
 'use client';
-
 import type {
   IImage,
   IIngredient,
@@ -16,7 +15,6 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import IngredientTileOverlays from '@/components/ingredients/ingredient-tile-overlays';
 import type { IngredientsMediaGridProps } from '@/props/content/ingredient.props';
-
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 

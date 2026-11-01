@@ -30,16 +30,13 @@ export default function ModalPostBatchEmptyState({
   if (!ingredient) {
     return (
       <EmptyState
-        size={CardEmptySize.SM}
-        title="No Content Selected"
+        action={{
+          label: 'Close',
+          onClick: onClose,
+          variant: ButtonVariant.SECONDARY,
+        }}
         description="Please select content to publish."
-        actions={
-          <Button
-            label="Close"
-            variant={ButtonVariant.SECONDARY}
-            onClick={onClose}
-          />
-        }
+        title="No Content Selected"
       />
     );
   }
@@ -62,11 +59,8 @@ export default function ModalPostBatchEmptyState({
 
     return (
       <EmptyState
-        size={CardEmptySize.SM}
-        title={title}
-        description={errorMessage}
         actions={
-          <>
+          <div className="mt-1 flex justify-center gap-3">
             <Button
               label="Close"
               variant={ButtonVariant.SECONDARY}
@@ -81,8 +75,10 @@ export default function ModalPostBatchEmptyState({
                 onOpenCredentials();
               }}
             />
-          </>
+          </div>
         }
+        description={errorMessage}
+        title={title}
       />
     );
   }

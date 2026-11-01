@@ -70,10 +70,7 @@ export function TrendingHashtags({
                 <Card
                   key={hashtag.id}
                   variant={CardVariant.DEFAULT}
-                  className={
-                    onHashtagClick ? 'hover:shadow-border-strong' : undefined
-                  }
-                  bodyClassName="p-4"
+                  isInteractive={Boolean(onHashtagClick)}
                 >
                   {onHashtagClick ? (
                     <Button
@@ -149,13 +146,13 @@ export function TrendingHashtags({
                           ? translate('notMeasured')
                           : `Score: ${Math.round(hashtag.viralityScore)}`
                       }
-                      className={`text-xs w-full justify-center ${
-                        hashtag.viralityScore >= 70
-                          ? 'bg-primary text-primary-foreground'
-                          : hashtag.viralityScore >= 40
-                            ? 'bg-muted text-foreground'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
+                      casing="normal"
+                      className="w-full justify-center"
+                      isSolid={hashtag.viralityScore >= 70}
+                      size="lg"
+                      variant={
+                        hashtag.viralityScore >= 70 ? 'default' : 'secondary'
+                      }
                     />
                   </div>
                 </Card>

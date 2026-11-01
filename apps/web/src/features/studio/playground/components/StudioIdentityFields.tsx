@@ -6,15 +6,17 @@ import type { HeyGenGender } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { heyGenAvatarValue } from '@helpers/voice/heygen-identity.helper';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
-import Tabs from '@ui/navigation/tabs/Tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import {
   Popover,
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
+import { Tabs } from '@ui/primitives/tabs';
 import { Check, Mic, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useRef, useState } from 'react';
@@ -278,18 +280,12 @@ export default function StudioIdentityFields({
   const isComplete = missingMessage === null;
 
   const avatarThumbnail = (
-    <Avatar className="size-5 shrink-0 rounded-md">
-      {selectedAvatarOption?.preview ? (
-        <AvatarImage
-          src={selectedAvatarOption.preview}
-          alt=""
-          className="object-cover"
-        />
-      ) : null}
-      <AvatarFallback className="rounded-md">
-        <UserRound className="size-3" />
-      </AvatarFallback>
-    </Avatar>
+    <Avatar
+      fallback={<UserRound className="size-3" />}
+      shape="square"
+      size="xs"
+      src={selectedAvatarOption?.preview}
+    />
   );
 
   const voiceList = (
@@ -342,48 +338,43 @@ export default function StudioIdentityFields({
 
   const avatarGrid = (
     <section aria-label={translate('identityAvatarGallery')}>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      <OptionTileGroup
+        ariaLabel={translate('identityAvatarGallery')}
+        className="grid-cols-3 sm:grid-cols-4"
+        columns={3}
+        onValueChange={(value) => {
+          const option = matchingAvatars.find((entry) => entry.value === value);
+          if (option) {
+            selectAvatar(option);
+          }
+        }}
+        value={avatarValue}
+      >
         {matchingAvatars.slice(0, avatarLimit).map((option) => (
-          <Button
-            key={option.value}
-            aria-pressed={option.value === avatarValue}
+          <OptionTile
             ariaLabel={option.label}
-            title={option.label}
-            className={cn(
-              'relative flex h-auto min-w-0 flex-col gap-1.5 rounded-lg border p-1.5 text-left text-xs',
-              option.value === avatarValue
-                ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                : 'border-border hover:bg-muted/50',
-            )}
             isDisabled={isDisabled || option.disabled}
-            onClick={() => selectAvatar(option)}
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
+            key={option.value}
+            layout="stack"
+            size="sm"
+            value={option.value}
           >
-            <Avatar className="aspect-square h-auto w-full rounded-md">
-              {option.preview ? (
-                <AvatarImage
-                  src={option.preview}
-                  alt=""
-                  className="object-cover"
-                />
-              ) : null}
-              <AvatarFallback className="rounded-md">
-                <UserRound className="size-8" />
-              </AvatarFallback>
-            </Avatar>
-            {option.value === avatarValue ? (
-              <span className="absolute right-3 top-3 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
-                <Check className="size-3" />
-              </span>
-            ) : null}
-            <span className="w-full truncate font-medium">{option.name}</span>
+            <Avatar
+              className="aspect-square"
+              fallback={<UserRound className="size-8" />}
+              shape="square"
+              size="fill"
+              src={option.preview}
+            />
+            <span className="w-full truncate text-xs font-medium">
+              {option.name}
+            </span>
             <span className="w-full truncate text-2xs text-muted-foreground">
               {option.source}
             </span>
-          </Button>
+          </OptionTile>
         ))}
-      </div>
+      </OptionTileGroup>
       {matchingAvatars.length > avatarLimit || hasMoreAvatars ? (
         <Button
           label={translate('identityMoreAvatars')}
@@ -429,36 +420,26 @@ export default function StudioIdentityFields({
   ) : null;
 
   const genderToggle = (
-    <div
-      aria-label={translate('identityGenderFilterAria')}
-      className="flex gap-1"
-      role="group"
-    >
-      {GENDER_FILTERS.map((filter) => (
-        <Button
-          key={filter}
-          aria-pressed={genderFilter === filter}
-          label={translate(
-            filter === 'all'
-              ? 'identityGenderAll'
-              : filter === 'female'
-                ? 'identityGenderFemale'
-                : 'identityGenderMale',
-          )}
-          onClick={() => {
-            setGenderFilter(filter);
-            setAvatarLimit(PAGE_SIZE);
-            setVoiceLimit(PAGE_SIZE);
-          }}
-          size={ButtonSize.SM}
-          variant={
-            genderFilter === filter
-              ? ButtonVariant.SECONDARY
-              : ButtonVariant.GHOST
-          }
-        />
-      ))}
-    </div>
+    <SegmentedControl
+      ariaLabel={translate('identityGenderFilterAria')}
+      onValueChange={(filter) => {
+        setGenderFilter(filter);
+        setAvatarLimit(PAGE_SIZE);
+        setVoiceLimit(PAGE_SIZE);
+      }}
+      options={GENDER_FILTERS.map((filter) => ({
+        label: translate(
+          filter === 'all'
+            ? 'identityGenderAll'
+            : filter === 'female'
+              ? 'identityGenderFemale'
+              : 'identityGenderMale',
+        ),
+        value: filter,
+      }))}
+      size="sm"
+      value={genderFilter}
+    />
   );
 
   const searchInput = (
@@ -594,24 +575,15 @@ export default function StudioIdentityFields({
                 'avatar',
                 translate('identityTabAvatar'),
                 avatarName,
-                <Avatar className="aspect-[4/3] h-auto w-full rounded-md">
-                  {selectedAvatarOption?.preview ? (
-                    <AvatarImage
-                      src={selectedAvatarOption.preview}
-                      alt=""
-                      className="object-cover"
-                    />
-                  ) : null}
-                  <AvatarFallback
-                    className={cn(
-                      'rounded-md',
-                      !hasAvatar &&
-                        'border border-dashed border-muted-foreground/40 bg-transparent',
-                    )}
-                  >
+                <Avatar
+                  className="aspect-[4/3]"
+                  fallback={
                     <UserRound className="size-6 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>,
+                  }
+                  shape="square"
+                  size="fill"
+                  src={selectedAvatarOption?.preview}
+                />,
               )}
               {pairingSlot(
                 'voice',

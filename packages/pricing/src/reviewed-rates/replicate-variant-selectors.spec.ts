@@ -197,6 +197,69 @@ describe('checked-in Replicate variant selectors', () => {
     ).toMatchObject({ status: 'failed' });
   });
 
+  it('skips the priceless own-key tier Replicate lists for Sora (2026-11-01)', () => {
+    expect(mapped('openai/sora-2').rates).toEqual([
+      expect.objectContaining({
+        isPerOutput: true,
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {},
+      }),
+    ]);
+    const pro = mapped('openai/sora-2-pro');
+    expect(
+      pro.rates.map((rate) => [rate.when.model_variant, rate.unitPriceUsd]),
+    ).toEqual([
+      ['sora-2-pro-standard', 0.3],
+      ['sora-2-pro-high', 0.5],
+    ]);
+    expect(pro.variantRules?.[0]?.derive).toMatchObject({
+      field: 'resolution',
+      kind: 'field',
+      valueMap: {
+        high: 'sora-2-pro-high',
+        standard: 'sora-2-pro-standard',
+      },
+    });
+  });
+  it('still fails a model with a priceless tier that is not a declared own-key tier', () => {
+    const fixture = REPLICATE_VARIANT_FIXTURES['openai/sora-2'];
+    if (!fixture) throw new Error('Missing evidence openai/sora-2');
+    expect(
+      mapReplicateBillingTiers(
+        fixture.tiers,
+        fixture.inputProperties,
+        'openai/not-sora',
+      ),
+    ).toEqual({ reason: 'billing_tier_without_price', status: 'failed' });
+  });
+  it('fails a single-variant model again once a second variant appears without a resolver', () => {
+    const fixture = REPLICATE_VARIANT_FIXTURES['openai/sora-2'];
+    if (!fixture) throw new Error('Missing evidence openai/sora-2');
+    const [, priced] = fixture.tiers as Array<Record<string, unknown>>;
+    const secondVariant = {
+      ...priced,
+      criteria: [
+        {
+          subtype: 'string',
+          title: 'model variant',
+          type: 'equals',
+          value: 'sora-2-hd',
+        },
+      ],
+    };
+    expect(
+      mapReplicateBillingTiers(
+        [priced, secondVariant],
+        fixture.inputProperties,
+        'openai/sora-2',
+      ),
+    ).toEqual({
+      reason: 'model variant needs a resolver entry',
+      status: 'failed',
+    });
+  });
+
   it('prices FLUX 3 draft and continuation independently of audio', () => {
     const { rates, variantRules } = mapped('black-forest-labs/flux-3');
     expect(rates).toEqual(

@@ -1,7 +1,11 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
+'use client';
+
+import { ComponentSize } from '@genfeedai/contracts';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { ActivityChartProps } from '@/features/admin/props/dashboard.props';
 
@@ -42,6 +46,9 @@ function formatDate(dateStr: string) {
 }
 
 export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
+  const selectionLabels = useTranslations('ui.selectionGroups');
+  const [range, setRange] = useState<'7d' | '30d'>('7d');
+
   return (
     <WorkspaceSurface
       eyebrow="Performance Trend"
@@ -53,22 +60,16 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
         <div className="text-sm text-foreground/60">
           Real-time throughput metrics
         </div>
-        <div className="flex bg-muted/50 rounded-full p-1">
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            className="rounded-full bg-muted px-4 py-2 text-xs font-medium text-foreground"
-          >
-            7 Days
-          </Button>
-          <Button
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            className="px-4 py-2 text-xs font-medium rounded-full text-muted-foreground hover:text-foreground transition-colors"
-          >
-            30 Days
-          </Button>
-        </div>
+        <SegmentedControl
+          ariaLabel={selectionLabels('activityRange')}
+          onValueChange={setRange}
+          options={[
+            { label: '7 Days', value: '7d' },
+            { label: '30 Days', value: '30d' },
+          ]}
+          size="sm"
+          value={range}
+        />
       </div>
       <div className="h-chart-sm">
         {isLoading ? (

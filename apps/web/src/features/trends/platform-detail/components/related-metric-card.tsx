@@ -1,9 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
+import { Toggle } from '@ui/primitives/toggle';
 import type { AuthorizedResearchFinding } from '@/features/research/work-surface/research-work-surface.types';
 
 type RelatedMetricCardProps = {
@@ -24,7 +23,7 @@ export default function RelatedMetricCard({
   title,
 }: RelatedMetricCardProps) {
   return (
-    <Card bodyClassName="p-4">
+    <Card>
       <div className="space-y-2">
         <div className="truncate text-sm font-medium text-foreground">
           {title}
@@ -34,13 +33,14 @@ export default function RelatedMetricCard({
           {detail ? <span>{detail}</span> : null}
         </div>
         {finding && onSelect ? (
-          <Button
-            aria-pressed={isSelected}
-            label={isSelected ? 'Selected for context' : 'Use as context'}
-            onClick={() => onSelect(finding)}
-            size={ButtonSize.SM}
-            variant={isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
-          />
+          <Toggle
+            onPressedChange={() => onSelect(finding)}
+            pressed={isSelected}
+            size="sm"
+            variant="outline"
+          >
+            {isSelected ? 'Selected for context' : 'Use as context'}
+          </Toggle>
         ) : null}
       </div>
     </Card>

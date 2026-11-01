@@ -194,10 +194,10 @@ describe('BrandsList', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the brand logo, or the brand initial when none is uploaded', () => {
+  it('shows the brand logo, or the brand initial when none is uploaded', async () => {
     render(<BrandsList />);
 
-    expect(screen.getByAltText('Test Brand')).toHaveAttribute(
+    expect(await screen.findByAltText('Test Brand')).toHaveAttribute(
       'src',
       expect.stringContaining('cdn.example.com'),
     );

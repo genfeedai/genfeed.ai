@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, PostStatus } from '@genfeedai/contracts';
+import type { TabItem } from '@genfeedai/contracts/interfaces';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformTabBarProps } from '@props/content/platform-tab-bar.props';
-import type { TabItem } from '@props/ui/navigation/tabs.props';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 

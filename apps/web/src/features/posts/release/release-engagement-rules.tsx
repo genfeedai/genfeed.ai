@@ -3,6 +3,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
   EngagementMetric,
   EngagementRuleAction,
   EngagementRuleMode,
@@ -13,6 +15,7 @@ import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -194,7 +197,7 @@ export default function ReleaseEngagementRules({
       ) : null}
 
       {rules.map((rule) => (
-        <div key={rule.id} className="space-y-2 rounded-card bg-card/40 p-3">
+        <Card padding={CardPadding.SM} gap={CardGap.SM} key={rule.id}>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{metricLabel(rule.metric)}</Badge>
             <Badge variant="secondary">{actionLabel(rule.actionType)}</Badge>
@@ -242,7 +245,7 @@ export default function ReleaseEngagementRules({
               <p>{translate('engagement.notTriggered')}</p>
             )}
           </div>
-        </div>
+        </Card>
       ))}
 
       <div className="space-y-2">

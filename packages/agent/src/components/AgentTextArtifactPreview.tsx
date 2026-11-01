@@ -6,6 +6,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlatformPreviewAuthor } from '@genfeedai/props/components/platform-preview.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import PlatformPreview, {
   type PlatformPreviewThreadSegment,
 } from '@ui/posts/platform-preview/PlatformPreview';
@@ -155,16 +156,13 @@ function ArtifactPreviewBody({
   }
 
   return (
-    <article
-      aria-label="Text artifact preview"
-      className="rounded-lg bg-card p-4 shadow-border"
-    >
+    <Card as="article" aria-label="Text artifact preview">
       <SafeMarkdown
         className="max-w-none text-sm leading-7 text-foreground/90"
         content={data.content}
         enhanceStructure
       />
-    </article>
+    </Card>
   );
 }
 

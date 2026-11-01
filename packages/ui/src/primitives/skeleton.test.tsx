@@ -8,7 +8,18 @@ describe('Skeleton primitive', () => {
 
     const skeleton = screen.getByRole('status');
     expect(skeleton).toHaveAttribute('aria-busy', 'true');
-    expect(skeleton).toHaveClass('block', 'animate-pulse', 'h-10', 'w-1/2');
+    expect(skeleton).toHaveClass('block', 'h-10', 'w-1/2');
+  });
+
+  it('sweeps light across the block and holds still under reduced motion', () => {
+    render(<Skeleton />);
+
+    const skeleton = screen.getByRole('status');
+    expect(skeleton).toHaveClass(
+      'before:animate-skeleton',
+      'motion-reduce:before:hidden',
+    );
+    expect(skeleton).not.toHaveClass('animate-pulse');
   });
 
   it.each([

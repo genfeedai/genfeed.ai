@@ -123,7 +123,7 @@ export default function GenerationStatus({
           aria-label={statusLabel}
           aria-valuetext={`${Math.round(progress)}%`}
           value={progress}
-          className="h-1"
+          size="xs"
         />
       ) : null}
       {detail ? <p className="break-words leading-relaxed">{detail}</p> : null}

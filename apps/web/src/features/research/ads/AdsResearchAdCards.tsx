@@ -1,20 +1,25 @@
 'use client';
-
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import {
   AdsChannel,
   type AdsResearchItem,
   type AdsResearchMetric,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Bookmark, Megaphone } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -97,14 +102,16 @@ export function AdGridCard({
             </div>
           </div>
 
-          <div className="rounded-md bg-tertiary px-3 py-2 text-right">
-            <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-              {getMetricLabel(metric)}
+          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
+            <div className="text-right">
+              <div className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
+                {getMetricLabel(metric)}
+              </div>
+              <div className="text-lg font-semibold text-foreground">
+                {formatMetric(metricValue)}
+              </div>
             </div>
-            <div className="text-lg font-semibold text-foreground">
-              {formatMetric(metricValue)}
-            </div>
-          </div>
+          </Card>
         </div>
 
         <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/80">
@@ -312,38 +319,36 @@ export function AdsResearchAdTable({
     {
       header: translate('saved'),
       key: 'savedAdId',
-      render: (item) => {
-        const savedActionLabel = translateAds(
+      render: (item) =>
+        item.savedAdId ? (
+          <Badge variant="secondary">{translateAds('swipeFile.saved')}</Badge>
+        ) : (
+          '—'
+        ),
+    },
+  ];
+
+  const actions: TableAction<AdsResearchItem>[] = [
+    {
+      ariaLabel: (item) =>
+        translateAds(
           item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
           { title: item.title },
-        );
-
-        return (
-          <Button
-            type="button"
-            variant={
-              item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-            }
-            ariaLabel={savedActionLabel}
-            disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleSaved([item]);
-            }}
-            icon={
-              <Bookmark
-                className={cn('size-4', item.savedAdId && 'fill-current')}
-              />
-            }
-            label={<span className="sr-only">{savedActionLabel}</span>}
-          />
-        );
-      },
+        ),
+      icon: (item) => (item.savedAdId ? <BookmarkCheck /> : <Bookmark />),
+      isDisabled: (item) =>
+        savedMutating || item.usagePolicy === 'disclosure_only',
+      onClick: (item) => onToggleSaved([item]),
+      tooltip: (item) =>
+        translateAds(
+          item.savedAdId ? 'swipeFile.unsaveAction' : 'swipeFile.saveAction',
+        ),
     },
   ];
 
   return (
     <Table<AdsResearchItem>
+      actions={actions}
       ariaLabel={translate('tableLabel')}
       columns={columns}
       emptyLabel={

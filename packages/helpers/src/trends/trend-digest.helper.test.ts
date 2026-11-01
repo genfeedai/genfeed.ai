@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTrendDigestHtml,
   buildTrendDigestMessage,
+  buildTrendDigestSubject,
   escapeTrendHtml,
   formatTrendCount,
   type TrendDigestItem,
@@ -69,6 +70,25 @@ describe('buildTrendDigestMessage', () => {
     expect(message).toContain('score: 92');
   });
 
+  it('lists topic-corpus rows with their mention count', () => {
+    const message = buildTrendDigestMessage(
+      [
+        {
+          platform: 'youtube',
+          topic: 'Launch thread',
+          type: 'topic',
+          usageCount: 2_400,
+          viralScore: 88,
+        },
+      ],
+      { minViralScore: 70 },
+    );
+
+    expect(message).toContain('Trending Topics:');
+    expect(message).toContain('Launch thread (youtube, score: 88)');
+    expect(message).toContain('2.4K mentions');
+  });
+
   it('honors a custom header title', () => {
     const message = buildTrendDigestMessage(sampleTrends, {
       headerTitle: 'Daily Trends',
@@ -78,74 +98,200 @@ describe('buildTrendDigestMessage', () => {
   });
 });
 
+const leadTrend: TrendDigestItem = {
+  angle: 'Your buyers compare AI and studio output.',
+  matchedTerms: ['ai video', 'ugc'],
+  platform: 'tiktok',
+  postIdea: {
+    caption: 'Left: two days. Right: four minutes.',
+    format: 'Video · 30s',
+    hook: 'We made the same ad twice.',
+  },
+  thumbnailUrl: 'https://img.example.com/lead.jpg',
+  topic: 'AI UGC ads beat studio shoots',
+  type: 'video',
+  url: 'https://tiktok.com/@a/video/1',
+  usageCount: 2_400_000,
+  viralScore: 100,
+};
+
+const postTrend: TrendDigestItem = {
+  platform: 'twitter',
+  posts: [
+    {
+      authorHandle: '@lenabuilds',
+      likes: 4200,
+      platform: 'twitter',
+      text: 'Two open video models now beat the paid tool I used in January.',
+      url: 'https://x.com/lenabuilds/status/1',
+    },
+  ],
+  postIdea: {
+    caption: 'The stack and what a clip costs.',
+    format: 'Thread · 5 posts',
+    hook: 'Run a full AI studio on your own server.',
+  },
+  topic: 'Open source video models close the gap',
+  type: 'topic',
+  viralScore: 90,
+};
+
 describe('buildTrendDigestHtml', () => {
-  it('renders sections, escapes content, and links the footer when appUrl is set', () => {
-    const html = buildTrendDigestHtml(sampleTrends, {
+  it('leads with the top topic: thumbnail, angle, matched terms and post idea', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      appUrl: 'https://app.genfeed.ai',
+      brandLabel: 'Genfeed',
+      minViralScore: 70,
+    });
+
+    expect(html).toContain('Lead story');
+    expect(html).toContain('src="https://img.example.com/lead.jpg"');
+    expect(html).toContain('alt="AI UGC ads beat studio shoots"');
+    expect(html).toContain('Your buyers compare AI and studio output.');
+    expect(html).toContain('ai video');
+    expect(html).toContain('We made the same ad twice.');
+    expect(html).toContain('2.4M views');
+    expect(html).toContain('2 topics moving in the Genfeed niche');
+  });
+
+  it('lists drafts ready to post, then the other topics with the post as a card', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      minViralScore: 70,
+    });
+
+    expect(html).toContain('Ready to post today');
+    expect(html).toContain('Also moving in your niche');
+    expect(html).toContain('@lenabuilds');
+    expect(html).toContain('Two open video models now beat the paid tool');
+    expect(html).toContain('4.2K likes');
+    expect(html).toContain('href="https://x.com/lenabuilds/status/1"');
+  });
+
+  it('shows each post idea once: the lead in its card, the rest as drafts', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      minViralScore: 70,
+    });
+
+    expect(html.split('We made the same ad twice.')).toHaveLength(2);
+    expect(html.split('Run a full AI studio on your own server.')).toHaveLength(
+      2,
+    );
+  });
+
+  it('brands each card with the platform logo served from the app', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
       appUrl: 'https://app.genfeed.ai',
       minViralScore: 70,
     });
-    expect(html).toContain('Viral Videos');
-    expect(html).toContain('Trending Hashtags');
-    expect(html).toContain('Trending Sounds');
-    expect(html).toContain('Score: 92');
-    expect(html).toContain('1.5M views');
-    expect(html).toContain('href="https://app.genfeed.ai"');
-    expect(html).toContain('Open Genfeed');
+
+    expect(html).toContain(
+      'src="https://app.genfeed.ai/assets/email/platforms/tiktok.png"',
+    );
+    expect(html).toContain(
+      'src="https://app.genfeed.ai/assets/email/platforms/x.png"',
+    );
+    expect(html).toContain('border-top:3px solid #EDEDED');
   });
 
-  it('links each trend row to its source', () => {
-    const html = buildTrendDigestHtml(sampleTrends, { minViralScore: 70 });
-    expect(html).toContain('href="https://example.com/v"');
+  it('shows the platform name without a logo when there is no app url', () => {
+    const html = buildTrendDigestHtml([leadTrend, postTrend], {
+      appUrl: '',
+      minViralScore: 70,
+    });
+
+    expect(html).not.toContain('/assets/email/platforms/');
+    expect(html).toContain('>X</span>');
+  });
+
+  it('never prints a score badge', () => {
+    const html = buildTrendDigestHtml([leadTrend], { minViralScore: 70 });
+
+    expect(html).not.toContain('Score:');
+  });
+
+  it('drops a thumbnail that is not an http(s) image', () => {
+    const html = buildTrendDigestHtml(
+      [{ ...leadTrend, thumbnailUrl: 'javascript:alert(1)' }],
+      { minViralScore: 70 },
+    );
+
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('<img src="javascript');
+    expect(html).toContain('AI UGC ads beat studio shoots');
+  });
+
+  it('escapes scraped post text', () => {
+    const html = buildTrendDigestHtml(
+      [
+        leadTrend,
+        {
+          ...postTrend,
+          posts: [
+            {
+              platform: 'twitter',
+              text: '<script>alert(1)</script>',
+              url: 'https://x.com/a/status/2',
+            },
+          ],
+        },
+      ],
+      { minViralScore: 70 },
+    );
+
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
   });
 
   it('drops a row link that is not a safe http(s) target', () => {
     const html = buildTrendDigestHtml(
-      [{ ...sampleTrends[0], url: 'javascript:alert(1)' }],
+      [{ ...leadTrend, url: 'mailto:someone@example.com' }],
       { minViralScore: 70 },
     );
-    expect(html).not.toContain('javascript:');
-    expect(html).toContain('Dancing cats');
-  });
 
-  it('drops a mailto row link — a trend source is a web page', () => {
-    const html = buildTrendDigestHtml(
-      [{ ...sampleTrends[0], url: 'mailto:someone@example.com' }],
-      { minViralScore: 70 },
-    );
     expect(html).not.toContain('mailto:');
+    expect(html).toContain('AI UGC ads beat studio shoots');
+  });
+
+  it('renders rows without ideas or media, for callers that only have scores', () => {
+    const html = buildTrendDigestHtml(sampleTrends, { minViralScore: 70 });
+
     expect(html).toContain('Dancing cats');
+    expect(html).toContain('1.5M views');
+    expect(html).not.toContain('Ready to post today');
   });
 
-  it('omits the footer link when appUrl is empty', () => {
-    const html = buildTrendDigestHtml(
-      sampleTrends.map(({ url: _url, ...trend }) => trend),
-      { minViralScore: 70 },
+  it('links the footer when appUrl is set and omits it when empty', () => {
+    const withUrl = buildTrendDigestHtml([leadTrend], {
+      appUrl: 'https://app.genfeed.ai',
+      minViralScore: 70,
+    });
+    const withoutUrl = buildTrendDigestHtml(
+      [{ ...leadTrend, thumbnailUrl: undefined, url: undefined }],
+      { appUrl: '', minViralScore: 70 },
     );
-    expect(html).not.toContain('<a href=');
-  });
 
-  it('renders topic-corpus rows the media sections would drop', () => {
-    const topic = {
-      platform: 'youtube',
-      topic: 'Launch thread',
-      type: 'topic' as const,
-      usageCount: 2_400,
-      viralScore: 88,
-    };
-    const message = buildTrendDigestMessage([topic], { minViralScore: 70 });
-    const html = buildTrendDigestHtml([topic], { minViralScore: 70 });
-
-    expect(message).toContain('Trending Topics:');
-    expect(message).toContain('Launch thread (youtube, score: 88)');
-    expect(message).toContain('2.4K mentions');
-    expect(html).toContain('Trending Topics');
-    expect(html).toContain('Launch thread');
-    expect(html).toContain('2.4K mentions');
+    expect(withUrl).toContain('href="https://app.genfeed.ai"');
+    expect(withUrl).toContain('Open Genfeed');
+    expect(withoutUrl).not.toContain('<a href=');
   });
 
   it('renders an empty digest without crashing', () => {
     const html = buildTrendDigestHtml([], { minViralScore: 70 });
+
     expect(html).toContain('Your Trend Summary');
-    expect(html).not.toContain('Viral Videos');
+    expect(html).not.toContain('Lead story');
+  });
+});
+
+describe('buildTrendDigestSubject', () => {
+  it.each([
+    [
+      [leadTrend, postTrend],
+      '2 posts ready for today, from 2 topics in your niche',
+    ],
+    [[leadTrend], '1 post ready for today, from 1 topic in your niche'],
+    [[sampleTrends[0]], 'Your daily trends — 1 topic'],
+  ])('writes %#', (trends, expected) => {
+    expect(buildTrendDigestSubject(trends)).toBe(expected);
   });
 });

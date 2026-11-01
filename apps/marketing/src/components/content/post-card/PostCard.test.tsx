@@ -66,13 +66,13 @@ describe('PostCard', () => {
     expect(ingredient.closest('a')).toBeNull();
   });
 
-  it('should apply correct styles and classes', () => {
+  it('should apply the caller class and hover feedback', () => {
     const { container } = render(
       <PostCard post={mockPost} className="custom-class" />,
     );
     const cardElement = container.firstChild as HTMLElement;
 
-    expect(cardElement).toHaveClass('shadow-lg');
+    expect(cardElement).toHaveClass('hover:shadow-border-strong');
     expect(cardElement).toHaveClass('custom-class');
   });
 });

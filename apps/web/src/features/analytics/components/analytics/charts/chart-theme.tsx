@@ -1,5 +1,4 @@
-import { ComponentSize, formatPlatformLabel } from '@genfeedai/contracts';
-import Spinner from '@ui/primitives/spinner';
+import { formatPlatformLabel } from '@genfeedai/contracts';
 
 /*
  * Axis, grid and neutral-series colors for every recharts chart. They read the
@@ -42,13 +41,4 @@ export function chartPlatformColor(platform: string): string {
 
 export function chartPlatformLabel(platform: string): string {
   return formatPlatformLabel(platform) ?? platform;
-}
-
-/** Loading veil a chart lays over its plot area while data is in flight. */
-export function ChartLoadingOverlay() {
-  return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-      <Spinner size={ComponentSize.LG} />
-    </div>
-  );
 }

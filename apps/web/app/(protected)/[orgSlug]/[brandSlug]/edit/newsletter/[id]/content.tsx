@@ -1,5 +1,4 @@
 'use client';
-
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';

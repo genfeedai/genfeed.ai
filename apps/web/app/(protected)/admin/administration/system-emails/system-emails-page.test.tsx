@@ -72,11 +72,6 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/empty-state', () => ({
-  EmptyState: ({ title }: { title: string }) => <div>{title}</div>,
-  EmptyStateCard: ({ title }: { title: string }) => <div>{title}</div>,
-}));
-
 vi.mock('@ui/primitives/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));

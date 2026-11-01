@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AgentFailureReason,
   type AgentFailureResolution,
@@ -8,17 +7,20 @@ import {
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { ChevronDown, ChevronUp, CircleCheck, CirclePlus, RotateCcw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
@@ -148,6 +150,34 @@ export default function AgentFailuresPage() {
     );
   }
 
+  const rowActions: TableAction<IWorkflowExecution>[] = [
+    {
+      icon: (run) =>
+        expandedIds.has(run.id) ? <ChevronUp /> : <ChevronDown />,
+      onClick: (run) => toggleExpanded(run.id),
+      tooltip: (run) =>
+        translate(
+          expandedIds.has(run.id)
+            ? 'actions.hideDetails'
+            : 'actions.showDetails',
+        ),
+    },
+    {
+      icon: (run) => (run.failureResolvedAt ? <RotateCcw /> : <CircleCheck />),
+      isDisabled: (run) => pendingId === run.id,
+      onClick: (run) => void setResolved(run, !run.failureResolvedAt),
+      tooltip: (run) =>
+        translate(
+          run.failureResolvedAt ? 'actions.reopen' : 'actions.markResolved',
+        ),
+    },
+    {
+      icon: <CirclePlus />,
+      onClick: (run) => createIssue(run),
+      tooltip: translate('actions.createIssue'),
+    },
+  ];
+
   const columns: TableColumn<IWorkflowExecution>[] = [
     {
       className: 'font-mono text-xs',
@@ -167,8 +197,9 @@ export default function AgentFailuresPage() {
     {
       header: translate('columns.failedAt'),
       key: 'completedAt',
-      render: (run) =>
-        new Date(run.completedAt ?? run.createdAt).toLocaleString('en-US'),
+      render: (run) => (
+        <TableDateCell value={run.completedAt ?? run.createdAt} />
+      ),
     },
     {
       header: translate('columns.status'),
@@ -194,25 +225,10 @@ export default function AgentFailuresPage() {
       className: 'max-w-md',
       header: translate('columns.error'),
       key: 'error',
-      render: (run) => (
-        <>
-          <p>
-            {summarizeFailureError(run.error) ||
-              run.failure?.summary ||
-              translate('noError')}
-          </p>
-          <Button
-            label={translate(
-              expandedIds.has(run.id)
-                ? 'actions.hideDetails'
-                : 'actions.showDetails',
-            )}
-            variant={ButtonVariant.LINK}
-            size={ButtonSize.XS}
-            onClick={() => toggleExpanded(run.id)}
-          />
-        </>
-      ),
+      render: (run) =>
+        summarizeFailureError(run.error) ||
+        run.failure?.summary ||
+        translate('noError'),
     },
   ];
 
@@ -287,28 +303,7 @@ export default function AgentFailuresPage() {
             framed={false}
             getRowKey={(run) => run.id}
             items={failures}
-            renderRowActions={(run) => {
-              const isResolved = Boolean(run.failureResolvedAt);
-              return (
-                <>
-                  <Button
-                    label={translate(
-                      isResolved ? 'actions.reopen' : 'actions.markResolved',
-                    )}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    isLoading={pendingId === run.id}
-                    onClick={() => void setResolved(run, !isResolved)}
-                  />
-                  <Button
-                    label={translate('actions.createIssue')}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    onClick={() => createIssue(run)}
-                  />
-                </>
-              );
-            }}
+            actions={rowActions}
             renderExpandedRow={(run) =>
               expandedIds.has(run.id) ? (
                 <div>

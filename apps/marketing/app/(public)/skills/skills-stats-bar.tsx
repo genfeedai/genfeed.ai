@@ -10,8 +10,7 @@ export default function SkillsStatsBar(): React.ReactElement {
         {STATS.map((stat) => (
           <MetricCard
             align="center"
-            appearance="plain"
-            isLabelBelow
+            appearance="inset"
             key={stat.label}
             label={stat.label}
             size="lg"

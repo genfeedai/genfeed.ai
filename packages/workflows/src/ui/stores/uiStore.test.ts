@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useUIStore } from './uiStore';
 
 const INITIAL_STATE = useUIStore.getState();
@@ -12,7 +12,6 @@ beforeEach(() => {
     nodeDetailActiveTab: 'preview',
     nodeDetailNodeId: null,
     nodeDetailStartIndex: 0,
-    notifications: [],
     selectedEdgeId: null,
     selectedNodeId: null,
     showAIGenerator: false,
@@ -123,68 +122,5 @@ describe('uiStore — connection drop menu', () => {
 
     useUIStore.getState().closeConnectionDropMenu();
     expect(useUIStore.getState().connectionDropMenu).toBeNull();
-  });
-});
-
-describe('uiStore — notifications', () => {
-  it('addNotification assigns an id and stores it', () => {
-    vi.useFakeTimers();
-    try {
-      useUIStore.getState().addNotification({
-        title: 'Saved',
-        type: 'success',
-      });
-
-      const notifications = useUIStore.getState().notifications;
-      expect(notifications).toHaveLength(1);
-      expect(notifications[0].id).toMatch(/^notification-/);
-      expect(notifications[0].title).toBe('Saved');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('auto-removes after the default duration', () => {
-    vi.useFakeTimers();
-    try {
-      useUIStore.getState().addNotification({ title: 'Bye', type: 'info' });
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-
-      vi.advanceTimersByTime(5000);
-      expect(useUIStore.getState().notifications).toHaveLength(0);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('duration 0 disables auto-removal', () => {
-    vi.useFakeTimers();
-    try {
-      useUIStore.getState().addNotification({
-        duration: 0,
-        title: 'Sticky',
-        type: 'warning',
-      });
-      vi.advanceTimersByTime(60000);
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('removeNotification removes by id', () => {
-    vi.useFakeTimers();
-    try {
-      useUIStore.getState().addNotification({
-        duration: 0,
-        title: 'One',
-        type: 'error',
-      });
-      const id = useUIStore.getState().notifications[0].id;
-      useUIStore.getState().removeNotification(id);
-      expect(useUIStore.getState().notifications).toHaveLength(0);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });

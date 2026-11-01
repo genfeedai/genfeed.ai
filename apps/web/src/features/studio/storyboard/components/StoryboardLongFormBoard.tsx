@@ -2,7 +2,13 @@
 
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import type {
   StoryboardARollChunk,
   StoryboardARollQuote,
@@ -19,6 +25,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import Field from '@ui/primitives/field';
@@ -193,7 +200,7 @@ export default function StoryboardLongFormBoard({
   let elapsed = 0;
   return (
     <div className="flex flex-col gap-4">
-      <Card variant={CardVariant.BORDERED} bodyClassName="gap-3 p-4">
+      <Card variant={CardVariant.BORDERED}>
         <h2 className="text-sm font-semibold">
           {translate('productionTitle')}
         </h2>
@@ -371,11 +378,15 @@ export default function StoryboardLongFormBoard({
             id={`segment-${segment.id}`}
             aria-label={translate('segment', { ordinal: segment.ordinal })}
           >
-            <Card variant={CardVariant.BORDERED} bodyClassName="gap-0 p-0">
+            <Card
+              variant={CardVariant.BORDERED}
+              padding={CardPadding.NONE}
+              gap={CardGap.NONE}
+            >
               <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2.5">
-                <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                <Badge isMono size="lg" variant="outline">
                   {String(segment.ordinal).padStart(2, '0')}
-                </span>
+                </Badge>
                 <EditableText
                   ariaLabel={translate('segmentNameFor', {
                     ordinal: segment.ordinal,

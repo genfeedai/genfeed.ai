@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   LearningPromptSlotOutcomeGroup,
@@ -12,6 +11,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminLearningPromptSlotsService } from '@services/admin/learning-prompt-slots.service';
 import { logger } from '@services/core/logger.service';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';

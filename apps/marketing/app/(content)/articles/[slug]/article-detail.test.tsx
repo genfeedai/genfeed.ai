@@ -41,7 +41,8 @@ describe('ArticleAbout', () => {
       'href',
       '/about',
     );
-    expect(screen.getByAltText('Genfeed logo')).toBeInTheDocument();
+    // jsdom never preloads the logo, so the avatar shows the initial.
+    expect(screen.getByText('G')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /twitter\/x/i })).toHaveAttribute(
       'href',
       'https://x.com/genfeedai',

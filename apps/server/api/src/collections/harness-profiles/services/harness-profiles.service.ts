@@ -1,6 +1,7 @@
 import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
+import { normalizeBrandRule } from '@api/collections/harness-profiles/utils/brand-rule-proposals.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ExpertHarnessDraft } from '@api/services/expert-path/utils/expert-harness-draft.util';
 import {
@@ -33,6 +34,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
+/** Label of the profile created when a brand has none yet and a rule is accepted. */
+const ACCEPTED_RULES_PROFILE_LABEL = 'Brand harness';
 
 /**
  * Thesis keys owned by the Expert Path interview. Re-answering the interview
@@ -385,6 +388,67 @@ export class HarnessProfilesService {
     });
 
     return this.normalizeProfile(updated);
+  }
+
+  /**
+   * Saves rules the user accepted as lines of the brand's content rules
+   * (`guardrails`), which every later generation reads. Rules already present,
+   * ignoring case and punctuation, are skipped. A brand with no profile gets one.
+   */
+  async saveAcceptedRules(params: {
+    brandId: string;
+    organizationId: string;
+    rules: readonly string[];
+    userId?: string;
+  }): Promise<{ added: string[]; profile: HarnessProfileDocument }> {
+    const { brandId, organizationId } = params;
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const profile =
+      (await this.getActiveForBrand(organizationId, brandId)) ??
+      (await this.create(
+        {
+          brandId,
+          isDefault: true,
+          label: ACCEPTED_RULES_PROFILE_LABEL,
+          scope: 'brand',
+          status: 'active',
+        },
+        organizationId,
+        params.userId,
+      ));
+
+    const known = new Set(profile.guardrails.map(normalizeBrandRule));
+    const added: string[] = [];
+    for (const rule of params.rules) {
+      const text = rule.trim();
+      const identity = normalizeBrandRule(text);
+      if (!identity || known.has(identity)) continue;
+      known.add(identity);
+      added.push(text);
+    }
+    if (added.length === 0) {
+      return { added, profile };
+    }
+
+    const updated = await this.update(
+      profile.id,
+      { guardrails: [...profile.guardrails, ...added] },
+      organizationId,
+    );
+    this.logger.log('Brand rules saved from accepted proposals', {
+      addedCount: added.length,
+      brandId,
+      organizationId,
+      profileId: updated.id,
+    });
+    return { added, profile: updated };
   }
 
   async remove(id: string, organizationId: string): Promise<void> {

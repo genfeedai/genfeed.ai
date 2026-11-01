@@ -1,5 +1,4 @@
 'use client';
-
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -13,10 +12,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Archive, Lock, Pencil, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -193,7 +193,7 @@ export default function SettingsOrganizationMemoryPage() {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
+      render: (entry) => <TableDateCell value={entry.createdAt} />,
     },
   ];
 
@@ -276,7 +276,8 @@ export default function SettingsOrganizationMemoryPage() {
 
   if (!isBillingEnabled) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>

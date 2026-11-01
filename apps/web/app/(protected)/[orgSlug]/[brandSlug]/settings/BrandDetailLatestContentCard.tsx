@@ -15,7 +15,6 @@ export default function BrandDetailLatestContentCard({
   return (
     <Card
       label={label}
-      bodyClassName="gap-3 p-4"
       headerAction={
         <Button
           asChild

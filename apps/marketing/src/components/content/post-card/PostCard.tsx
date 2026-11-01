@@ -55,8 +55,8 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
 
   return (
     <Card
-      className={`shadow-lg hover:shadow-xl transition-all duration-300 group ${className}`}
-      bodyClassName="p-4"
+      isInteractive
+      className={`group ${className}`}
       actions={
         externalUrl ? (
           <a
@@ -137,13 +137,16 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {ingredients.map((ingredient) => (
-              <span
+              <Badge
+                casing="normal"
                 key={ingredient.id}
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-current/20"
+                shape="pill"
+                size="lg"
                 title={ingredient.metadataLabel || undefined}
+                variant="outline"
               >
                 {ingredient.metadataLabel || 'Untitled'}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>

@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonVariant,
   CardVariant,
@@ -16,7 +15,7 @@ import type {
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -124,7 +123,8 @@ export default function AnalyticsOverview({
 
   if (isEmptyOverview && !isLoading) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={ChartColumn}
         title={translate('emptyTitle')}
         action={{

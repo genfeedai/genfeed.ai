@@ -1,5 +1,4 @@
 'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
@@ -14,7 +13,7 @@ import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -142,7 +141,8 @@ export default function TrainingsList({
 
   if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>

@@ -1,6 +1,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardVariant,
   SourcePostActionType,
 } from '@genfeedai/contracts';
 import type {
@@ -14,6 +16,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -117,7 +120,7 @@ function StateCard({
   onRetry?: () => void;
 }) {
   return (
-    <Card className="border-border bg-muted/40">
+    <Card variant={CardVariant.BORDERED}>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground" role="status">
           {message}
@@ -323,12 +326,9 @@ export default function SocialIntelligenceInbox({
     return (
       <div className="space-y-5">
         {inbox.partialReason ? (
-          <div
-            className="rounded-md border border-warning/20 bg-warning/5 p-3 text-sm text-warning"
-            role="status"
-          >
+          <Alert role="status" variant="warning">
             {inbox.partialReason}
-          </div>
+          </Alert>
         ) : null}
         {inbox.items.map((bundle) => (
           <section className="space-y-3" key={bundle.topic.id}>
@@ -354,7 +354,7 @@ export default function SocialIntelligenceInbox({
                 const contentActionDisabled = coverage.partial && !confirmed;
                 return (
                   <Card
-                    bodyClassName="gap-4"
+                    gap={CardGap.LG}
                     key={theme.id}
                     label={theme.label}
                     description={`${evidence.length} evidence item${evidence.length === 1 ? '' : 's'}`}

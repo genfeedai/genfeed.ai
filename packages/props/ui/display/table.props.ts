@@ -1,4 +1,3 @@
-import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ContextSidebarSelectionKind } from '@props/ui/context-sidebar.props';
 import type { Key, ReactNode } from 'react';
 
@@ -178,14 +177,16 @@ interface TableActionBase<T> {
   /** A longer accessible name for the control when the tooltip is one word. */
   ariaLabel?: string | ((item: T) => string);
   className?: string;
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+  /** Colours the glyph for a decision: `success` (approve), `destructive` (reject). */
+  tone?: TableActionTone;
 
   getClassName?: (item: T) => string;
   isDisabled?: (item: T) => boolean;
   isVisible?: (item: T) => boolean;
   tooltipPosition?: 'left' | 'right' | 'top' | 'bottom';
 }
+
+export type TableActionTone = 'default' | 'success' | 'destructive';
 
 /** Row action that acts in place. */
 export interface TableButtonAction<T> extends TableActionBase<T> {
@@ -209,13 +210,3 @@ export interface TableLinkAction<T> extends TableActionBase<T> {
 
 /** Icon-only row action, revealed on row hover and keyboard focus. */
 export type TableAction<T> = TableButtonAction<T> | TableLinkAction<T>;
-
-export interface StandardTableActionsOptions<T> {
-  onEdit?: (item: T) => void;
-  onDelete?: (item: T) => void;
-  canEdit?: (item: T) => boolean;
-  canDelete?: (item: T) => boolean;
-  editClassName?: string;
-  deleteClassName?: string;
-  additionalActions?: TableAction<T>[];
-}

@@ -1,5 +1,6 @@
 import type { CredentialPlatform } from '../..';
 import type { IBaseEntity, IBrand, IOrganization, ITag, IUser } from '../index';
+import type { DirectMessageCapability } from '../publisher/direct-message-capability.interface';
 import type { AccountHealthSummary } from './account-health.interface';
 
 export interface IClockTime {
@@ -42,6 +43,11 @@ export interface ICredential extends IBaseEntity {
    * this connection as complete.
    */
   needsAccountSelection?: boolean;
+  /**
+   * Whether the stored grant can read DMs (X only today). `reconnect` means
+   * the account must reconnect to grant the DM scope.
+   */
+  directMessageCapability?: DirectMessageCapability;
   accessTokenExpiry?: string | null;
 
   label?: string | null;

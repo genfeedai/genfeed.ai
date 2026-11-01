@@ -5,9 +5,8 @@ import {
   hasOrganizationBillingHint,
   shouldShowCreditsNav,
 } from '@genfeedai/config/license';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -102,13 +101,12 @@ function SettingsCreditsContent() {
       {isLoading ? (
         <Card
           label={translate('balance')}
-          bodyClassName="gap-3 p-4"
           data-testid="credits-balance-loading"
         >
           <SkeletonCard showImage={false} />
         </Card>
       ) : error ? (
-        <Card label={translate('balance')} bodyClassName="gap-3 p-4">
+        <Card label={translate('balance')}>
           <Alert
             variant="destructive"
             icon={<TriangleAlert aria-hidden="true" className="size-4" />}
@@ -125,7 +123,11 @@ function SettingsCreditsContent() {
           </Button>
         </Card>
       ) : creditsBreakdown ? (
-        <Card label={translate('balance')} bodyClassName="gap-4 p-5">
+        <Card
+          label={translate('balance')}
+          padding={CardPadding.LG}
+          gap={CardGap.LG}
+        >
           {isLowCredits && (
             <Alert
               variant="warning"
@@ -138,9 +140,7 @@ function SettingsCreditsContent() {
           )}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <Text as="p" size="sm" color="muted">
-                {translate('creditsLeft')}
-              </Text>
+              {/* ui-guard-allow:hand-built-stat -- balance meter paired with the progress bar, not a stat tile; still value first */}
               <p className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
                 {creditsBreakdown.total.toLocaleString('en-US', {
                   maximumFractionDigits: 1,
@@ -155,6 +155,9 @@ function SettingsCreditsContent() {
                   </span>
                 ) : null}
               </p>
+              <Text as="p" size="sm" color="muted">
+                {translate('creditsLeft')}
+              </Text>
             </div>
             <Text
               as="span"
@@ -167,7 +170,8 @@ function SettingsCreditsContent() {
           </div>
           <Progress
             aria-label={translate('progressLabel')}
-            className={cn('h-2.5', isLowCredits && 'bg-warning/20')}
+            size="lg"
+            tone={isLowCredits ? 'warning' : 'primary'}
             value={remainingPercent ?? 0}
           />
           <Text as="p" size="xs" color="muted">
@@ -199,7 +203,7 @@ function SettingsCreditsContent() {
       )}
 
       {isBillingEnabled && !useManagedCloudCheckout ? (
-        <Card bodyClassName="p-4">
+        <Card>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

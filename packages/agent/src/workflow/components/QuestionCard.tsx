@@ -1,4 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardTone,
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -35,10 +40,7 @@ function QuestionCardInner({
   }, [question, selectedOption, freeText, onAnswer]);
 
   return (
-    <Card
-      bodyClassName="gap-0 p-4"
-      className={cn(isAnswered && 'bg-success/10')}
-    >
+    <Card gap={CardGap.NONE} tone={isAnswered ? CardTone.SUCCESS : undefined}>
       <div className="flex items-start gap-3 mb-3">
         <CircleQuestionMark
           className={cn(

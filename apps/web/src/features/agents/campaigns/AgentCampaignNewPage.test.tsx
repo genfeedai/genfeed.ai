@@ -175,8 +175,8 @@ describe('AgentCampaignNewPage', () => {
     render(<AgentCampaignNewPage />);
 
     expect(
-      screen.getByRole('button', { name: /Creator Studio team/ }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      screen.getByRole('radio', { name: /Creator Studio team/ }),
+    ).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByLabelText(/Program Label/)).toHaveValue(
       'Creator Studio team Program',
     );

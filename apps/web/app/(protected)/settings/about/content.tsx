@@ -1,6 +1,7 @@
 'use client';
 
 import { getClientSurface, getDeployment } from '@genfeedai/config/deployment';
+import { CardGap } from '@genfeedai/contracts';
 import type { ReleaseUpdateState } from '@genfeedai/contracts/interfaces/system/app-build.interface';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -94,7 +95,7 @@ export default function AboutContent() {
   }
 
   return (
-    <Card bodyClassName="space-y-6">
+    <Card gap={CardGap.LG}>
       <h1 id="about-title" className="sr-only">
         {translate('title')}
       </h1>

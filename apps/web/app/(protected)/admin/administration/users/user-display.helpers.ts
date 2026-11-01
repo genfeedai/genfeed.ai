@@ -8,9 +8,3 @@ export function getUserDisplayName(user: IUser): string | undefined {
   const splitName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   return user.name?.trim() || splitName || undefined;
 }
-
-/** One letter for the avatar fallback: the name, else the email, else "?". */
-export function getUserInitial(user: IUser): string {
-  const source = getUserDisplayName(user) ?? user.email;
-  return source?.trim().charAt(0).toUpperCase() || '?';
-}

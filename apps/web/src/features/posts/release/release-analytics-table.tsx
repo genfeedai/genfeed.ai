@@ -1,5 +1,4 @@
 'use client';
-
 import type {
   IReleaseTargetAnalyticsComparison,
   IReleaseTargetAnalyticsMetrics,
@@ -8,7 +7,7 @@ import type {
 import type { TableColumn } from '@props/ui/display/table.props';
 import Table from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
 import type { ReleaseAnalyticsTableProps } from '@/props/publisher/release-calendar.props';
 
@@ -62,7 +61,8 @@ export default function ReleaseAnalyticsTable({
 
   if (!comparison || comparison.targets.length === 0) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         description={translate('analytics.emptyDescription')}
         title={translate('analytics.emptyTitle')}
       />

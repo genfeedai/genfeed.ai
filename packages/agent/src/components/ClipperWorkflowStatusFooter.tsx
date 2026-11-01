@@ -1,4 +1,4 @@
-import { CircleCheck } from 'lucide-react';
+import { Alert } from '@ui/primitives/alert';
 import type { ReactElement } from 'react';
 
 type SupervisedReviewStatus =
@@ -64,10 +64,9 @@ export function ClipperWorkflowStatusFooter({
       </div>
 
       {supervisedReviewStatus === 'completed' && (
-        <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2 text-xs text-success   ">
-          <CircleCheck className="size-4" />
+        <Alert size="sm" variant="success">
           Handed off into the supervised publishing flow for human review.
-        </div>
+        </Alert>
       )}
     </>
   );

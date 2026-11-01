@@ -1,5 +1,4 @@
 'use client';
-
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import type {
   BreakoutResponsePage,

@@ -49,6 +49,7 @@ export default function StoryboardDraftPage({
   quoteStills,
   generateStills,
   longForm,
+  slideshow,
 }: StoryboardDraftPageProps) {
   const translate = useTranslations('pages.studioStoryboard');
   const translateAction = useTranslations('ui.quickActions');
@@ -102,6 +103,7 @@ export default function StoryboardDraftPage({
   const hasAgentColumn = Boolean(useAgentOutputHost());
   const pipeline = run.config.scenePipeline;
   const hasShots = (run.config.plan?.shots.length ?? 0) > 0;
+  const isSlideshow = run.config.plan?.kind === 'slideshow';
   const savedBrief =
     sourceAutosave.value.kind === 'brief' ? sourceAutosave.value.brief : '';
   const canCompose =
@@ -226,6 +228,7 @@ export default function StoryboardDraftPage({
       quoteStills={quoteStills}
       generateStills={generateStills}
       longForm={longForm}
+      slideshow={slideshow}
       capabilities={capabilities}
       capabilityError={capabilityError}
       refreshCapabilities={refreshCapabilities}
@@ -278,6 +281,7 @@ export default function StoryboardDraftPage({
             error={draftError}
             hasShots={hasShots}
             isDisabled={leaving || !draft.queue || isDrafting}
+            isSlideshow={isSlideshow}
             onRetry={() => void runDraft(lastRequest.current)}
             onSubmit={submitPrompt}
           />
@@ -293,6 +297,7 @@ export default function StoryboardDraftPage({
           error={draftError}
           hasShots={hasShots}
           isDisabled={leaving || !draft.queue || isDrafting}
+          isSlideshow={isSlideshow}
           onRetry={() =>
             void runDraft(lastRequest.current, lastRequestId.current)
           }

@@ -1,5 +1,4 @@
 'use client';
-
 import { ViewType } from '@genfeedai/contracts';
 import type {
   ITrendHashtag,

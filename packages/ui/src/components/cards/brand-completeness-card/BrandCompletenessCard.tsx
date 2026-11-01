@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import type { BrandCompletenessGroup } from '@genfeedai/helpers';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -84,8 +84,9 @@ function GroupRow({
         <div className="flex items-center gap-2">
           <Progress
             aria-label={group.label}
-            className="h-1 w-10 bg-foreground/5"
-            indicatorClassName="bg-foreground"
+            className="w-10"
+            size="xs"
+            tone="neutral"
             value={group.score}
           />
           <span className="w-7 text-right text-2xs font-medium text-muted-foreground tabular-nums">
@@ -124,7 +125,8 @@ export default function BrandCompletenessCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-3 sm:p-3"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
       data-testid="brand-completeness-card"
     >
       {/* Header */}
@@ -139,8 +141,9 @@ export default function BrandCompletenessCard({
 
       {/* Progress bar */}
       <Progress
-        className="mb-3 h-1 bg-foreground/5"
-        indicatorClassName="bg-foreground"
+        className="mb-3"
+        size="xs"
+        tone="neutral"
         value={result.overallScore}
       />
 

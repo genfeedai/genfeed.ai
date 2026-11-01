@@ -1,6 +1,8 @@
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import badgeAlert from './hand-built/areas/badge-alert';
+import badgeArea from './hand-built/areas/badge';
+import alertArea from './hand-built/areas/badge-alert';
+import selectionControls from './hand-built/areas/selection-controls';
 import {
   buildBaseline,
   diffBaseline,
@@ -27,9 +29,10 @@ const BADGE_IMPORT = "import { Badge } from '@ui/primitives/badge';\n";
 const ALERT_IMPORT = "import { Alert } from '@ui/primitives/alert';\n";
 
 function scan(text: string, file = 'apps/web/src/Example.tsx') {
-  return badgeAlert
-    .scan(sourceOf(file, text))
-    .map((finding) => `${finding.rule}:${finding.line}`);
+  return [
+    ...badgeArea.scan(sourceOf(file, text)),
+    ...alertArea.scan(sourceOf(file, text)),
+  ].map((finding) => `${finding.rule}:${finding.line}`);
 }
 
 describe('badge and alert restyle guard', () => {
@@ -139,6 +142,88 @@ export const A = ({ x }: { x: boolean }) => (
   });
 });
 
+describe('hand-built badge guard', () => {
+  it.each([
+    [
+      'a rounded-full pill span',
+      '<span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium" />',
+    ],
+    [
+      'a media overlay chip',
+      '<div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-2xs text-white" />',
+    ],
+    [
+      'a bordered mono tag',
+      '<span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-xs" />',
+    ],
+    [
+      'a pill whose tone is a template value',
+      '<span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs ${tone}`} />',
+    ],
+    [
+      'a count dot with a fixed height',
+      '<span className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 text-2xs" />',
+    ],
+  ])('flags %s', (_name, element) => {
+    expect(scan(`export const A = () => ${element};\n`)).toEqual([
+      'badge-hand-built:1',
+    ]);
+  });
+
+  it.each([
+    [
+      'a block-level alert box',
+      '<div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs" />',
+    ],
+    [
+      'padding without small text',
+      '<span className="rounded-md bg-muted px-3 py-2 text-sm" />',
+    ],
+    [
+      'layout only',
+      '<span className="absolute right-2 top-2 flex items-center" />',
+    ],
+    ['text with no shape', '<span className="px-2 py-0.5 text-xs" />'],
+  ])('allows %s', (_name, element) => {
+    expect(scan(`export const A = () => ${element};\n`)).toEqual([]);
+  });
+
+  it('flags a tone read from a lookup, which the literal scan cannot see', () => {
+    const text = `${BADGE_IMPORT}export const A = ({ status }: { status: { color: string } }) => (
+  <>
+    <Badge className={status.color} />
+    <Badge className={getToneClass(1)} />
+    <Badge className={className} />
+  </>
+);
+`;
+    expect(scan(text)).toEqual(['badge-restyle:4', 'badge-restyle:5']);
+  });
+
+  it('knows the workspace import path for Badge', () => {
+    expect(
+      scan(
+        'import { Badge } from \'@genfeedai/ui/primitives/badge\';\nexport const A = () => <Badge className="px-3" />;\n',
+      ),
+    ).toEqual(['badge-restyle:2']);
+  });
+
+  it('is silenced only by ui-guard-allow with a reason', () => {
+    const text =
+      '// ui-guard-allow:badge-hand-built -- member-chosen colour\nexport const A = () => <span className="rounded-full px-2 py-0.5 text-xs" />;\n';
+    expect(scan(text)).toEqual([]);
+  });
+
+  it('does not scan the shared package that defines the badge', () => {
+    expect(
+      scan(
+        'export const A = () => <span className="rounded-full px-2 py-0.5 text-xs" />;\n',
+        'packages/ui/src/primitives/badge.tsx',
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe('shrink-only baseline', () => {
   const finding = (file: string, rule: string): HandBuiltFinding => ({
     detail: '',
@@ -176,5 +261,92 @@ describe('shrink-only baseline', () => {
       ],
       stale: [{ actual: 0, baseline: 1, file: 'b.tsx', rule: 'badge-restyle' }],
     });
+  });
+});
+
+function scanSelection(text: string, file = 'apps/web/src/Example.tsx') {
+  return selectionControls
+    .scan(sourceOf(file, text))
+    .map((finding) => `${finding.rule}:${finding.line}`);
+}
+
+const BUTTON_IMPORT = "import { Button } from '@ui/primitives/button';\n";
+const SEGMENTED_IMPORT =
+  "import { SegmentedControl } from '@ui/primitives/segmented-control';\n";
+
+describe('selection controls guard', () => {
+  it.each([
+    ['an equality check', 'mode === option'],
+    ['an includes check', 'goals.includes(goal)'],
+    ['a selected flag', 'isSelected'],
+    ['an active flag', 'isActive'],
+  ])('flags a Button whose variant flips on %s', (_name, condition) => {
+    expect(
+      scanSelection(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={${condition} ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY} />;\n`,
+      ),
+    ).toEqual(['selection-button:2']);
+  });
+
+  it.each([
+    [
+      'a destructive swap',
+      'isError ? ButtonVariant.DESTRUCTIVE : ButtonVariant.DEFAULT',
+    ],
+    ['a static variant', 'ButtonVariant.GHOST'],
+    [
+      'a non-selection flag',
+      'canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY',
+    ],
+  ])('allows a Button with %s', (_name, variant) => {
+    expect(
+      scanSelection(
+        `${BUTTON_IMPORT}export const A = () => <Button variant={${variant}} />;\n`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags an UNSTYLED Button that paints a selected tile', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <Button
+    variant={ButtonVariant.UNSTYLED}
+    className={\`rounded-lg border p-4 \${on ? 'border-primary bg-primary/10' : 'border-border'}\`}
+  />
+);
+`;
+    expect(scanSelection(text)).toEqual(['selection-tile:3']);
+  });
+
+  it('does not flag a left-edge selection marker on a list row', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <Button
+    variant={ButtonVariant.UNSTYLED}
+    className={on ? 'bg-primary/10 border-l-2 border-primary' : ''}
+  />
+);
+`;
+    expect(scanSelection(text)).toEqual([]);
+  });
+
+  it('honours ui-guard-allow with a reason for a Button', () => {
+    const text = `${BUTTON_IMPORT}export const A = ({ on }: { on: boolean }) => (
+  <>
+    {/* ui-guard-allow:selection-button -- primary call to action */}
+    <Button variant={on === true ? ButtonVariant.DEFAULT : ButtonVariant.GHOST} />
+  </>
+);
+`;
+    expect(scanSelection(text)).toEqual([]);
+  });
+
+  it('flags a restyled SegmentedControl but allows layout classes', () => {
+    const text = `${SEGMENTED_IMPORT}export const A = () => (
+  <>
+    <SegmentedControl className="mb-4 w-full" />
+    <SegmentedControl className="rounded-full px-3" />
+  </>
+);
+`;
+    expect(scanSelection(text)).toEqual(['segmented-restyle:5']);
   });
 });

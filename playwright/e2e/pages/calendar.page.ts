@@ -29,7 +29,8 @@ export class CalendarPage {
   readonly todayButton: Locator;
   readonly monthLabel: Locator;
 
-  // View toggles
+  // View dropdown
+  readonly viewMenuTrigger: Locator;
   readonly weekViewButton: Locator;
   readonly monthViewButton: Locator;
 
@@ -90,13 +91,11 @@ export class CalendarPage {
         ' div:has(button[aria-label="Previous period"]) h2',
     );
 
-    // View toggles
-    this.weekViewButton = page.locator(
-      'button:has-text("Week"),' + ' [data-testid="view-week"]',
-    );
-    this.monthViewButton = page.locator(
-      'button:has-text("Month"),' + ' [data-testid="view-month"]',
-    );
+    // Views are one dropdown in the sub bar, named for the active view
+    // ("View: Week"); the options are menu radio items, never tabs.
+    this.viewMenuTrigger = page.getByRole('button', { name: /^View: / });
+    this.weekViewButton = page.getByRole('menuitemradio', { name: 'Week' });
+    this.monthViewButton = page.getByRole('menuitemradio', { name: 'Month' });
 
     this.listViewLink = page.locator(
       `a[href$="${APP_ROUTES.PUBLISHING.POSTS}"]`,
@@ -178,13 +177,15 @@ export class CalendarPage {
   // ── View toggles ───────────────────────────────────────
 
   async switchToWeekView(): Promise<void> {
-    await this.weekViewButton.first().click();
-    await this.page.waitForTimeout(500);
+    await this.viewMenuTrigger.click();
+    await this.weekViewButton.click();
+    await expect(this.viewMenuTrigger).toHaveAccessibleName('View: Week');
   }
 
   async switchToMonthView(): Promise<void> {
-    await this.monthViewButton.first().click();
-    await this.page.waitForTimeout(500);
+    await this.viewMenuTrigger.click();
+    await this.monthViewButton.click();
+    await expect(this.viewMenuTrigger).toHaveAccessibleName('View: Month');
   }
 
   // ── Calendar event interactions ────────────────────────

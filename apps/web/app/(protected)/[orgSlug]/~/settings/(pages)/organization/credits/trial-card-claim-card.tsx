@@ -155,7 +155,7 @@ export default function TrialCardClaimCard({
   }
 
   return (
-    <Card bodyClassName="p-4" data-testid="trial-card-claim">
+    <Card data-testid="trial-card-claim">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

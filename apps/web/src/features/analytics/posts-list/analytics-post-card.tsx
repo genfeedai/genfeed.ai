@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
+import { CardGap, CardPadding, ComponentSize } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -85,7 +85,8 @@ function AnalyticsPostCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-0"
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
       className="group h-full w-full overflow-hidden"
       data-testid="analytics-post-card"
       onClick={() => onSelectPost(item.postId)}
@@ -93,9 +94,13 @@ function AnalyticsPostCard({
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
         <AnalyticsPostMedia item={item} />
 
-        <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground backdrop-blur">
-          #{item.rank}
-        </span>
+        <Badge
+          className="absolute left-2 top-2"
+          shape="pill"
+          size="lg"
+          value={`#${item.rank}`}
+          variant="overlay"
+        />
 
         {hasMedia ? (
           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-background/80 p-1.5 backdrop-blur">
@@ -142,22 +147,19 @@ function AnalyticsPostCard({
           <div className="border-t border-border pt-3">
             <DefinitionList columns={3} variant="metrics">
               <MetricCard
-                appearance="plain"
-                isDefinition
+                appearance="inset"
                 label={translate('views')}
                 size="xs"
                 value={formatCompactNumber(item.totalViews)}
               />
               <MetricCard
-                appearance="plain"
-                isDefinition
+                appearance="inset"
                 label={translate('engagement')}
                 size="xs"
                 value={formatCompactNumber(item.totalEngagement)}
               />
               <MetricCard
-                appearance="plain"
-                isDefinition
+                appearance="inset"
                 label={translate('engagementRate')}
                 size="xs"
                 value={`${item.engagementRate.toFixed(2)}%`}

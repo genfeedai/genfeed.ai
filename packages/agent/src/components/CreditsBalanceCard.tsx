@@ -21,12 +21,12 @@ export function CreditsBalanceCard({
   const usagePercent = action.usagePercent ?? 0;
   const usageLabel = action.usageLabel ?? `${usagePercent}% used`;
 
-  const barColor =
+  const barTone =
     usagePercent >= 90
-      ? 'bg-destructive'
+      ? 'destructive'
       : usagePercent >= 70
-        ? 'bg-warning'
-        : 'bg-success';
+        ? 'warning'
+        : 'success';
 
   return (
     <div className="my-2 border border-border bg-background p-4">
@@ -43,26 +43,20 @@ export function CreditsBalanceCard({
         </p>
       )}
 
-      {/* Balance number */}
-      <MetricCard
-        align="center"
-        appearance="plain"
-        className="mb-3"
-        isLabelBelow
-        label="credits remaining"
-        value={balance.toLocaleString()}
-      />
+      <div className="mb-3">
+        <MetricCard
+          appearance="inset"
+          label="credits remaining"
+          value={balance.toLocaleString()}
+        />
+      </div>
 
       {/* Usage bar */}
       <div className="mb-3">
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>{usageLabel}</span>
         </div>
-        <Progress
-          className="bg-muted"
-          indicatorClassName={barColor}
-          value={Math.min(usagePercent, 100)}
-        />
+        <Progress tone={barTone} value={Math.min(usagePercent, 100)} />
       </div>
 
       {/* Buy Credits CTA */}

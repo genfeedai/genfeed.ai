@@ -24,6 +24,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Textarea } from '@ui/primitives/textarea';
 import { FileText, LayoutDashboard, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -40,6 +41,8 @@ interface FormState {
   selectedAgentIds: string[];
   startDate: string;
 }
+
+const BLANK_TEMPLATE = '__blank__';
 
 function createInitialForm(templateId?: string): FormState {
   const template = templateId ? getAgentProgramTemplate(templateId) : undefined;
@@ -73,69 +76,37 @@ function ProgramTemplatePicker({
           {translate('template.description')}
         </p>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Button
-          aria-pressed={!selectedTemplateId}
-          className={`w-full rounded p-4 text-left transition-colors ${
-            selectedTemplateId
-              ? 'shadow-border hover:shadow-border-strong'
-              : 'bg-tertiary shadow-border-strong'
-          }`}
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          onClick={() => onSelect()}
-        >
-          <span className="flex items-start gap-3">
-            <FileText className="mt-0.5 size-4 shrink-0" />
-            <span>
-              <span className="block text-sm font-medium">
-                {translate('template.blankLabel')}
-              </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {translate('template.blankDescription')}
-              </span>
-            </span>
-          </span>
-        </Button>
+      <OptionTileGroup
+        ariaLabel={translate('template.title')}
+        className="md:grid-cols-2"
+        columns={1}
+        onValueChange={(templateId) =>
+          onSelect(templateId === BLANK_TEMPLATE ? undefined : templateId)
+        }
+        value={selectedTemplateId ?? BLANK_TEMPLATE}
+      >
+        <OptionTile
+          description={translate('template.blankDescription')}
+          icon={<FileText className="mt-0.5 size-4 shrink-0" />}
+          size="lg"
+          title={translate('template.blankLabel')}
+          value={BLANK_TEMPLATE}
+        />
 
-        {AGENT_PROGRAM_TEMPLATES.map((template) => {
-          const isSelected = selectedTemplateId === template.id;
-
-          return (
-            <Button
-              key={template.id}
-              aria-pressed={isSelected}
-              className={`w-full rounded p-4 text-left transition-colors ${
-                isSelected
-                  ? 'bg-tertiary shadow-border-strong'
-                  : 'shadow-border hover:shadow-border-strong'
-              }`}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => onSelect(template.id)}
-            >
-              <span className="flex items-start gap-3">
-                <Users className="mt-0.5 size-4 shrink-0" />
-                <span>
-                  <span className="block text-sm font-medium">
-                    {template.label}
-                  </span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    {translate('template.createsAgents', {
-                      count: template.roles.length,
-                      roles: template.roles
-                        .map((role) => role.displayRole)
-                        .join(', '),
-                    })}
-                  </span>
-                </span>
-              </span>
-            </Button>
-          );
-        })}
-      </div>
+        {AGENT_PROGRAM_TEMPLATES.map((template) => (
+          <OptionTile
+            description={translate('template.createsAgents', {
+              count: template.roles.length,
+              roles: template.roles.map((role) => role.displayRole).join(', '),
+            })}
+            icon={<Users className="mt-0.5 size-4 shrink-0" />}
+            key={template.id}
+            size="lg"
+            title={template.label}
+            value={template.id}
+          />
+        ))}
+      </OptionTileGroup>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
@@ -190,8 +189,9 @@ function TemplatesPageContent() {
             >
               <Card
                 data-testid="template-card"
-                className="h-full group-hover:shadow-border-strong"
-                bodyClassName="flex h-full flex-col gap-3 p-4"
+                isInteractive
+                className="h-full"
+                bodyClassName="flex h-full flex-col"
               >
                 <h3 className="text-sm font-semibold">{template.title}</h3>
                 {template.description && (

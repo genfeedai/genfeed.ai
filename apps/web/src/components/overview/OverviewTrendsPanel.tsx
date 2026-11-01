@@ -1,5 +1,11 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
+import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -70,18 +76,22 @@ export function OverviewTrendsPanel({
           ))}
         </div>
       ) : topTrends.length === 0 ? (
-        <div
+        <Card
+          variant={CardVariant.INSET}
+          padding={CardPadding.XL}
+          bodyClassName="flex-row items-center justify-center"
           data-testid="overview-trends-empty"
-          className="flex items-center justify-center rounded-card bg-background p-8 text-sm text-foreground/60 shadow-border"
         >
-          No trends yet.
-        </div>
+          <div className="text-sm text-foreground/60">No trends yet.</div>
+        </Card>
       ) : (
         <div className="space-y-2" data-testid="overview-trends-list">
           {topTrends.map((trend) => (
-            <div
+            <Card
+              variant={CardVariant.INSET}
+              padding={CardPadding.SM}
+              bodyClassName="flex-row items-center"
               key={trend.id}
-              className="flex items-center gap-3 rounded-card bg-background px-4 py-3 shadow-border"
             >
               <PlatformBadge
                 platform={trend.platform}
@@ -98,7 +108,7 @@ export function OverviewTrendsPanel({
               <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 {formatViralityScore(trend.viralityScore)}
               </span>
-            </div>
+            </Card>
           ))}
         </div>
       )}

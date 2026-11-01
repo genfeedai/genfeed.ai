@@ -41,8 +41,11 @@ export class ExpertOnboardingPage {
 
     this.headline = page.locator('h1').first();
     // Next retains previous steps hidden in the DOM; assert the active step.
+    // The step counter is the shared Badge (data-slot="badge").
     this.stepBadge = page
-      .getByText(/Expert Path · Step \d of \d/)
+      .locator('[data-slot="badge"]', {
+        hasText: /Expert Path · Step \d of \d/,
+      })
       .filter({ visible: true });
     this.continueButton = page.getByRole('button', { name: 'Continue' });
     this.skipButton = page.getByRole('button', { name: 'Skip for now' });

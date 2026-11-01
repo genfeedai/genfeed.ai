@@ -1,6 +1,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   CardVariant,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -102,7 +103,7 @@ function WorkflowExecutionCard({
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      bodyClassName="gap-2 p-4"
+      gap={CardGap.SM}
       data-testid="workflow-execution-card"
     >
       <div className="flex items-start justify-between gap-3">
@@ -196,7 +197,7 @@ export function DashboardAgentCards({
               'agent-run-skeleton-2',
               'agent-run-skeleton-3',
             ].map((key) => (
-              <Card key={key} variant={CardVariant.DEFAULT} bodyClassName="p-4">
+              <Card key={key} variant={CardVariant.DEFAULT}>
                 <WorkspaceTaskRowsSkeleton rows={1} />
               </Card>
             ))

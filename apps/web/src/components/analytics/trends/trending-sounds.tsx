@@ -42,8 +42,7 @@ export function TrendingSounds({
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Music className="text-muted-foreground" />
           Trending Sounds
-          <Badge className="bg-transparent">
-            <TiktokIcon className="size-3 mr-1" />
+          <Badge icon={<TiktokIcon />} variant="outline">
             TikTok
           </Badge>
         </h2>
@@ -66,11 +65,7 @@ export function TrendingSounds({
         <>
           <CollectionGrid data-testid="trending-sounds-grid" maxColumns={3}>
             {sortedSounds.slice(0, 9).map((sound, index) => (
-              <Card
-                key={sound.id}
-                variant={CardVariant.DEFAULT}
-                bodyClassName="p-4"
-              >
+              <Card key={sound.id} variant={CardVariant.DEFAULT}>
                 <div className="relative">
                   {onSoundClick && (
                     <Button
@@ -182,13 +177,11 @@ export function TrendingSounds({
                           ? translate('notMeasured')
                           : Math.round(sound.viralityScore)
                       }
-                      className={`text-xs ${
-                        sound.viralityScore >= 70
-                          ? 'bg-primary text-primary-foreground'
-                          : sound.viralityScore >= 40
-                            ? 'bg-muted text-foreground'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
+                      isSolid={sound.viralityScore >= 70}
+                      size="lg"
+                      variant={
+                        sound.viralityScore >= 70 ? 'default' : 'secondary'
+                      }
                     />
                   </div>
                 </div>

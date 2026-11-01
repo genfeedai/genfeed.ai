@@ -8,18 +8,17 @@ import {
   getOrgSwitchHref,
   normalizeBrandHandle,
 } from '@genfeedai/contracts/constants';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Sparkles, Upload } from 'lucide-react';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -128,7 +127,7 @@ export default function OrganizationIdentityCard({
   ]);
 
   return (
-    <Card label={translate('title')} bodyClassName="p-4">
+    <Card label={translate('title')}>
       {organization ? (
         <OrganizationIdentityEditor
           key={organization.id}
@@ -246,20 +245,13 @@ function OrganizationIdentityEditor({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start gap-6">
-        <div className="group relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-3xl font-semibold text-foreground">
-          {logoUrl ? (
-            <Image
-              alt={translate('logoAlt', { label: saved.label })}
-              className="size-full object-cover object-center"
-              height={96}
-              sizes="96px"
-              src={logoUrl}
-              unoptimized={!canOptimizeImageSource(logoUrl)}
-              width={96}
-            />
-          ) : (
-            saved.label.charAt(0).toUpperCase()
-          )}
+        <Avatar
+          alt={translate('logoAlt', { label: saved.label })}
+          name={saved.label}
+          shape="square"
+          size="2xl"
+          src={logoUrl}
+        >
           <div
             className={cn(
               'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
@@ -288,7 +280,7 @@ function OrganizationIdentityEditor({
               />
             </div>
           </div>
-        </div>
+        </Avatar>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <EditableText

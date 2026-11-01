@@ -1,6 +1,6 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
-import MetricCard from '@ui/cards/metric-card/MetricCard';
+import MetricItem from '@ui/display/metric-item/MetricItem';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import type { Props } from '@/features/analytics/props/platform-performance-section.props';
 
@@ -14,23 +14,18 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
       {topPlatforms.map((platformData) => (
         <Card
           key={platformData.platform}
-          className="backdrop-blur"
           data-testid={`hook-platform-${platformData.platform}`}
         >
           <div className="space-y-4 p-4">
             <PlatformBadge platform={platformData.platform} />
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <MetricCard
+              <MetricItem
                 analyticsMetric="views"
-                appearance="plain"
-                size="xs"
                 label="Total Views"
                 value={formatCompactNumber(platformData.totalViews)}
               />
-              <MetricCard
+              <MetricItem
                 analyticsMetric="engagement"
-                appearance="plain"
-                size="xs"
                 label="Total Engagement"
                 value={formatCompactNumber(platformData.totalEngagement)}
               />

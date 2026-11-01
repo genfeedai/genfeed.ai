@@ -1,12 +1,13 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/contracts';
+import { CardGap, CardPadding, PostStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
+import { Alert } from '@ui/primitives/alert';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function PostDetailCardBody({
   const isTweetOverLimit = tweetLength > tweetLimit;
 
   return (
-    <Card bodyClassName="gap-0 p-0">
+    <Card padding={CardPadding.NONE} gap={CardGap.NONE}>
       <div className="flex items-start gap-3 p-4">
         {isThread ? (
           <div className="flex flex-col items-center">
@@ -162,11 +163,9 @@ export default function PostDetailCardBody({
               carouselValidation &&
               !carouselValidation.valid &&
               localIngredients.length > 0 && (
-                <div className=" bg-destructive/10 p-2">
-                  <p className="text-xs text-destructive font-medium">
-                    {carouselValidation.errors.join('. ')}
-                  </p>
-                </div>
+                <Alert size="sm" variant="destructive">
+                  {carouselValidation.errors.join('. ')}
+                </Alert>
               )}
 
             {/* Per-tweet KPIs - shown for all scopes when analytics exist */}

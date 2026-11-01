@@ -43,7 +43,6 @@ export const PLATFORM_SCHEDULED_TASKS = {
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
   LIFECYCLE_EMAILS: 'lifecycle-emails',
-  LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
   MEDIA_DELIVERY_RECOVERY: 'media-delivery-recovery',
   MEDIA_PERCEPTION_SWEEP: 'media-perception-sweep',
   MODEL_DEPRECATION: 'model-deprecation',
@@ -174,10 +173,6 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.INGREDIENT_PROCESSING_RECONCILE]: {
     pattern: '0 * * * *',
-    timezone: 'UTC',
-  },
-  [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN]: {
-    pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.MEDIA_DELIVERY_RECOVERY]: {

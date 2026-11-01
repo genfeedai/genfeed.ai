@@ -11,6 +11,7 @@ import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import { useTranslations } from 'next-intl';
 import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
 import type { TrendVideoGalleryProps } from '@/props/analytics/trends.props';
@@ -38,28 +39,17 @@ export default function TrendVideoGallery({
           </p>
         </div>
         {onTimeframeChange ? (
-          <div className="flex gap-1">
-            {(
-              [
-                { label: translate('hours24'), value: Timeframe.H24 },
-                { label: translate('hours72'), value: Timeframe.H72 },
-                { label: translate('days7'), value: Timeframe.D7 },
-              ] as const
-            ).map((option) => (
-              <Button
-                key={option.value}
-                size={ButtonSize.SM}
-                variant={
-                  timeframe === option.value
-                    ? ButtonVariant.SECONDARY
-                    : ButtonVariant.GHOST
-                }
-                onClick={() => onTimeframeChange?.(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel={translate('content')}
+            onValueChange={onTimeframeChange}
+            options={[
+              { label: translate('hours24'), value: Timeframe.H24 },
+              { label: translate('hours72'), value: Timeframe.H72 },
+              { label: translate('days7'), value: Timeframe.D7 },
+            ]}
+            size="sm"
+            value={timeframe}
+          />
         ) : null}
       </div>
       {selectedHashtag ? (
@@ -82,10 +72,7 @@ export default function TrendVideoGallery({
       ) : (
         <CollectionGrid maxColumns={3}>
           {videos.slice(0, 12).map((video) => (
-            <Card
-              key={video.id || `${video.platform}:${video.externalId}`}
-              bodyClassName="space-y-3 p-4"
-            >
+            <Card key={video.id || `${video.platform}:${video.externalId}`}>
               <SocialMediaPlayer
                 contentType="video"
                 mediaUrl={video.playUrl || video.videoUrl}

@@ -1,14 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
-import { X } from 'lucide-react';
-import {
-  libraryTagStyle,
-  resolveLibraryTagColors,
-} from './library-tag-colors.util';
+import { Badge } from '@ui/primitives/badge';
+import { resolveLibraryTagColors } from './library-tag-colors.util';
 
 export interface LibraryTagChipProps {
   className?: string;
@@ -32,28 +26,19 @@ export default function LibraryTagChip({
   const colors = resolveLibraryTagColors(tag);
 
   return (
-    <span
-      className={cn(
-        'inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-        colors ? null : 'bg-foreground/10 text-foreground',
-        onRemove ? 'pr-1' : null,
-        className,
-      )}
-      style={libraryTagStyle(tag)}
+    <Badge
+      casing="normal"
+      className={className}
+      colors={colors ?? undefined}
+      isTruncated
+      onRemove={onRemove ? () => onRemove(tag) : undefined}
+      removeLabel={removeLabel}
+      shape="pill"
+      size="lg"
       title={tag.label}
+      variant={colors ? 'custom' : 'secondary'}
     >
-      <span className="truncate">{tag.label}</span>
-      {onRemove ? (
-        <Button
-          ariaLabel={removeLabel}
-          className="flex size-4 shrink-0 items-center justify-center rounded-full hover:bg-foreground/10"
-          icon={<X className="size-3" />}
-          onClick={() => onRemove(tag)}
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        />
-      ) : null}
-    </span>
+      {tag.label}
+    </Badge>
   );
 }

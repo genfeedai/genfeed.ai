@@ -1,3 +1,4 @@
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
@@ -14,7 +15,11 @@ export default function ToolsContent(): React.ReactElement {
     >
       <section className="container mx-auto px-6 py-20">
         <div className="grid max-w-5xl gap-6 md:grid-cols-2">
-          <Card className="flex flex-col gap-5 p-8">
+          <Card
+            gap={CardGap.LG}
+            padding={CardPadding.XL}
+            className="flex flex-col"
+          >
             <Cpu aria-hidden="true" className="size-5" />
             <div>
               <h2 className="text-xl font-semibold">AI model selector</h2>
@@ -30,7 +35,11 @@ export default function ToolsContent(): React.ReactElement {
               Choose an AI model &rarr;
             </Link>
           </Card>
-          <Card className="flex flex-col gap-5 p-8">
+          <Card
+            gap={CardGap.LG}
+            padding={CardPadding.XL}
+            className="flex flex-col"
+          >
             <div className="flex size-11 items-center justify-center bg-foreground/5">
               <FileText aria-hidden="true" className="size-5" />
             </div>
@@ -50,7 +59,11 @@ export default function ToolsContent(): React.ReactElement {
               Try the free tool &rarr;
             </Link>
           </Card>
-          <Card className="flex flex-col gap-5 p-8">
+          <Card
+            gap={CardGap.LG}
+            padding={CardPadding.XL}
+            className="flex flex-col"
+          >
             <div className="flex size-11 items-center justify-center bg-foreground/5">
               <Scissors aria-hidden="true" className="size-5" />
             </div>

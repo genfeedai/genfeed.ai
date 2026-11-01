@@ -30,6 +30,7 @@ describe('character replacement controller', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
     expect(
       await controller.characterReplacementStatus(

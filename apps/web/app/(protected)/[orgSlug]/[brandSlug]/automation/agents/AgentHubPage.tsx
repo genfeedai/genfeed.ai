@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

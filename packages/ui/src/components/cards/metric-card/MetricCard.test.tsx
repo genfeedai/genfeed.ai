@@ -14,6 +14,36 @@ describe('MetricCard', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('renders the value first and the label under it', () => {
+    render(<MetricCard label="Not posted" value="13" />);
+
+    const value = screen.getByText('13');
+    const label = screen.getByText('Not posted');
+    expect(
+      value.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it.each([
+    ['destructive', 'text-destructive'],
+    ['success', 'text-success'],
+    ['default', 'text-foreground'],
+  ] as const)('paints the %s tone on the value', (tone, className) => {
+    render(<MetricCard label="Failed" tone={tone} value="2" />);
+
+    expect(screen.getByText('2').closest('p')).toHaveClass(className);
+  });
+
+  it('renders the inset appearance as a recessed tile', () => {
+    render(<MetricCard appearance="inset" label="Total tags" value="4" />);
+
+    expect(screen.getByTestId('metric-card')).toHaveAttribute(
+      'data-appearance',
+      'inset',
+    );
+    expect(screen.getByText('Total tags')).toBeInTheDocument();
+  });
+
   it('hides trend when the prop is omitted', () => {
     const { container } = render(
       <MetricCard label="Pending posts" value="9" />,
@@ -52,7 +82,9 @@ describe('MetricCard', () => {
     expect(
       screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
     ).toBe(0);
-    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      1,
+    );
   });
 
   it('starts the counter only after the real value arrives', () => {
@@ -75,52 +107,6 @@ describe('MetricCard', () => {
     expect(card).toHaveAttribute('data-appearance', 'inline');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('accounts')).toBeInTheDocument();
-  });
-});
-
-describe('MetricCard plain appearance', () => {
-  it('renders an unframed label and value', () => {
-    render(<MetricCard appearance="plain" label="Views" value="1,204" />);
-
-    const card = screen.getByTestId('metric-card');
-    expect(card).toHaveAttribute('data-appearance', 'plain');
-    expect(screen.getByText('Views')).toBeInTheDocument();
-    expect(screen.getByText('1,204')).toBeInTheDocument();
-  });
-
-  it('renders a term and a detail when it is a definition', () => {
-    render(
-      <dl>
-        <MetricCard appearance="plain" isDefinition label="Views" value="12" />
-      </dl>,
-    );
-
-    expect(screen.getByText('Views').tagName).toBe('DT');
-    expect(screen.getByText('12').closest('dd')).not.toBeNull();
-  });
-
-  it('centres and puts the caption under the value when asked', () => {
-    render(
-      <MetricCard
-        align="center"
-        appearance="plain"
-        isLabelBelow
-        label="credits remaining"
-        value="42"
-      />,
-    );
-
-    expect(screen.getByTestId('metric-card')).toHaveClass(
-      'items-center',
-      'flex-col-reverse',
-    );
-  });
-
-  it('shows a skeleton while loading', () => {
-    render(<MetricCard appearance="plain" isLoading label="Views" value="1" />);
-
-    expect(screen.queryByText('1')).not.toBeInTheDocument();
-    expect(screen.getByText('Views')).toBeInTheDocument();
   });
 });
 
@@ -187,4 +173,12 @@ it('preserves canonical metric identity through zero, loading and inline renderi
 it('does not require an intl provider for generic unannotated cards', () => {
   render(<MetricCard label="Runs" value="0" />);
   expect(screen.queryByRole('button')).toBeNull();
+});
+it('scales the value down for the xs size', () => {
+  render(<MetricCard label="Runs" size="xs" value="3" />);
+  expect(screen.getByText('3').closest('p')).toHaveClass('text-lg');
+});
+it('centres the value and label when align is center', () => {
+  render(<MetricCard align="center" label="Runs" value="3" />);
+  expect(screen.getByText('Runs')).toHaveClass('text-center');
 });

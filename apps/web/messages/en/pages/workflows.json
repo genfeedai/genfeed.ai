@@ -140,10 +140,20 @@
   "castPrompt": {
     "action": "Action",
     "cameraMovement": "Camera movement",
+    "family": "Prompt family",
     "preset": "Preset",
     "startFrameReference": "Start-frame reference",
     "subject": "Subject",
     "vocabularyLibrary": "Vocabulary library"
+  },
+  "outputGallery": {
+    "connectImages": "Connect image nodes to view gallery",
+    "copy": "Copy",
+    "download": "Download",
+    "lightboxTitle": "Generated result {index} of {total}",
+    "next": "Next image",
+    "previous": "Previous image",
+    "resultAlt": "Generated result {index}"
   },
   "status": {
     "activeRuns": "Active Runs",

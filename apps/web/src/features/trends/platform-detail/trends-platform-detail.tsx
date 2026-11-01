@@ -1,7 +1,13 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, Platform, ViewType } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+  Platform,
+  ViewType,
+} from '@genfeedai/contracts';
 import type {
   ITrendHashtag,
   ITrendSound,
@@ -12,6 +18,7 @@ import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { TrendsService } from '@services/social/trends.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -66,9 +73,9 @@ function SectionHeader({
 
 function EmptyBlock({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-card bg-background px-4 py-6 text-sm text-muted-foreground shadow-border">
-      {children}
-    </div>
+    <Card variant={CardVariant.INSET} padding={CardPadding.MD}>
+      <div className="text-sm text-muted-foreground">{children}</div>
+    </Card>
   );
 }
 

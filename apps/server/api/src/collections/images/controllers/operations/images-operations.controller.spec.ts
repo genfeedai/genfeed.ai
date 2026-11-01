@@ -16,6 +16,11 @@ vi.mock('@api/services/integrations/comfyui/comfyui.service', () => ({
   ComfyUIService: class {},
 }));
 
+vi.mock(
+  '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service',
+  () => ({ ManagedInferenceRuntimeService: class {} }),
+);
+
 vi.mock('@api/services/integrations/fal/services/fal.service', () => ({
   FalService: class {},
 }));
@@ -94,7 +99,9 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -401,8 +408,14 @@ describe('ImagesOperationsController', () => {
           },
         },
         {
+          provide: ManagedInferenceRuntimeService,
+          useValue: { getInstanceUrlForOrg: vi.fn().mockResolvedValue(null) },
+        },
+        { provide: MediaUrlService, useValue: {} },
+        {
           provide: ComfyUIService,
           useValue: {
+            isConfigured: vi.fn().mockReturnValue(true),
             generateImage: vi.fn().mockResolvedValue({
               filename: 'test.png',
               imageBuffer: mockFrameBuffer,

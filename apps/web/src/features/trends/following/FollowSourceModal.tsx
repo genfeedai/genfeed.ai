@@ -1,8 +1,8 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   CardVariant,
   ComponentSize,
   formatPlatformLabel,
@@ -21,6 +21,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -37,7 +38,6 @@ import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import { Download, Plus, Search, UserPlus } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
@@ -446,7 +446,7 @@ export default function FollowSourceModal({
 
         <div className="min-h-40 space-y-3">
           {postReference ? (
-            <Card bodyClassName="space-y-3" variant={CardVariant.DEFAULT}>
+            <Card variant={CardVariant.DEFAULT}>
               <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
                 {getPlatformIcon(postReference.platform, 'h-4 w-4')}
                 <span className="font-medium">
@@ -582,13 +582,11 @@ export default function FollowSourceModal({
                       )}
 
                       {avatarUrl ? (
-                        <Image
+                        <Avatar
                           alt={candidate.displayName || `@${candidate.handle}`}
-                          className="size-10 shrink-0 rounded-full object-cover"
-                          height={40}
+                          name={candidate.displayName || candidate.handle}
+                          size="lg"
                           src={avatarUrl}
-                          unoptimized
-                          width={40}
                         />
                       ) : null}
 
@@ -655,14 +653,14 @@ export default function FollowSourceModal({
                           {rowBody}
                         </div>
                       ) : (
-                        <div
-                          className={[
-                            'flex w-full items-start gap-3 rounded-card border border-border px-3 py-3 text-left opacity-80',
-                            'bg-card/40',
-                          ].join(' ')}
+                        <Card
+                          variant={CardVariant.BORDERED}
+                          padding={CardPadding.SM}
+                          className="opacity-80"
+                          bodyClassName="flex-row items-start"
                         >
                           {rowBody}
-                        </div>
+                        </Card>
                       )}
                     </li>
                   );

@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { LIFECYCLE_SYSTEM_EMAILS } from '@genfeedai/contracts/constants';
 import type {

@@ -19,6 +19,7 @@ export function ChatMessage({ message }: ChatMessageProps): ReactElement {
     <div
       className={`mb-3 flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200`}
     >
+      {/* ui-guard-allow:hand-built-card -- chat bubble tinted by sender, not a content card */}
       <div
         className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
           isUser

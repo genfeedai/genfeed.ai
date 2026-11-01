@@ -1,6 +1,5 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
-import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import type {
@@ -41,7 +40,6 @@ describe('LlmDispatcherService', () => {
     lookupApiKey: ReturnType<typeof vi.fn>;
     updateOAuthTokens: ReturnType<typeof vi.fn>;
   };
-  let llmInstanceService: { ensureRunning: ReturnType<typeof vi.fn> };
   let llmCompletionTelemetryService: {
     beginWorkflowOperation: ReturnType<typeof vi.fn>;
     recordCompletion: ReturnType<typeof vi.fn>;
@@ -97,9 +95,6 @@ describe('LlmDispatcherService', () => {
       lookupApiKey: vi.fn().mockResolvedValue(undefined),
       updateOAuthTokens: vi.fn(),
     };
-    llmInstanceService = {
-      ensureRunning: vi.fn().mockResolvedValue(undefined),
-    };
     llmCompletionTelemetryService = {
       beginWorkflowOperation: vi.fn().mockResolvedValue(undefined),
       recordCompletion: vi.fn().mockResolvedValue(undefined),
@@ -135,7 +130,6 @@ describe('LlmDispatcherService', () => {
         { provide: OpenAiOAuthService, useValue: openAiOAuthService },
         { provide: OpenRouterService, useValue: openRouterService },
         { provide: ByokService, useValue: byokService },
-        { provide: LlmInstanceService, useValue: llmInstanceService },
         {
           provide: LlmCompletionTelemetryService,
           useValue: llmCompletionTelemetryService,
@@ -256,7 +250,6 @@ describe('LlmDispatcherService', () => {
 
       await service.chatCompletion(makeParams('local/my-model'));
 
-      expect(llmInstanceService.ensureRunning).toHaveBeenCalled();
       expect(openAiLlmService.chatCompletion).toHaveBeenCalledWith(
         expect.any(Object),
         undefined,
@@ -527,7 +520,7 @@ describe('LlmDispatcherService', () => {
       ).toHaveBeenCalledWith(expect.any(Object), undefined, onToken);
     });
 
-    it('should warm and stream local/ models via GPU vLLM URL', async () => {
+    it('should stream local/ models via the GPU vLLM URL', async () => {
       configService.get.mockImplementation((key: string) =>
         key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
       );
@@ -539,7 +532,6 @@ describe('LlmDispatcherService', () => {
         onToken,
       );
 
-      expect(llmInstanceService.ensureRunning).toHaveBeenCalled();
       expect(
         openAiLlmService.streamChatCompletionAggregated,
       ).toHaveBeenCalledWith(
@@ -936,7 +928,7 @@ describe('LlmDispatcherService', () => {
       );
       expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
     });
-    it('uses only the configured local endpoint and never starts a GPU or falls back', async () => {
+    it('uses only the configured local endpoint and never falls back', async () => {
       configService.get.mockImplementation((key: string) =>
         key === 'GPU_LLM_URL' ? 'http://localhost:8000' : undefined,
       );
@@ -953,7 +945,6 @@ describe('LlmDispatcherService', () => {
         undefined,
         'http://localhost:8000/v1',
       );
-      expect(llmInstanceService.ensureRunning).not.toHaveBeenCalled();
       expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
       expect(byokService.lookupApiKey).not.toHaveBeenCalled();
     });

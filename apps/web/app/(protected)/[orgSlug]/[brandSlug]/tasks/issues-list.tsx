@@ -1,5 +1,4 @@
 'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -27,7 +26,7 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
-import { EmptyState, EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -58,7 +57,6 @@ import type {
   ViewMode,
 } from '@/features/tasks/props/issues-list.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
-
 import {
   PRIORITY_ORDER,
   STATUS_ORDER,
@@ -483,7 +481,8 @@ export default function IssuesList() {
       {isLoading ? (
         <SkeletonTable rows={6} columns={4} />
       ) : isEmpty ? (
-        <EmptyStateCard
+        <EmptyState
+          surface="card"
           title={
             isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
           }

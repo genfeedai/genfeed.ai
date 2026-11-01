@@ -2,9 +2,28 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SkeletonCardProps,
   SkeletonListProps,
+  SkeletonProps,
   SkeletonTableProps,
 } from '@genfeedai/props/ui/feedback/skeleton.props';
-import { Skeleton } from '@ui/primitives/skeleton';
+import { Skeleton as ShadcnSkeleton } from '@ui/primitives/skeleton';
+
+type SkeletonVariant = 'circular' | 'rectangular' | 'rounded' | 'text';
+
+const VARIANT_CLASSES: Record<SkeletonVariant, string> = {
+  circular: 'rounded-full',
+  rectangular: '',
+  rounded: '',
+  text: 'rounded',
+};
+
+function formatDimension(
+  value: number | string | undefined,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return typeof value === 'number' ? `${value}px` : value;
+}
 
 interface SkeletonRenderItem {
   id: string;
@@ -34,6 +53,29 @@ function SkeletonListItem({ id }: SkeletonRenderItem): React.ReactNode {
   );
 }
 
+/**
+ * Enhanced Skeleton component with variant support
+ * Uses shadcn Skeleton as base
+ */
+export function Skeleton({
+  className,
+  variant = 'rectangular',
+  width,
+  height,
+}: SkeletonProps): React.ReactElement {
+  const style = {
+    height: formatDimension(height),
+    width: formatDimension(width),
+  };
+
+  return (
+    <ShadcnSkeleton
+      className={cn(VARIANT_CLASSES[variant as SkeletonVariant], className)}
+      style={style}
+    />
+  );
+}
+
 // Composite skeleton components for common patterns
 export function SkeletonCard({
   className,
@@ -56,12 +98,9 @@ export function SkeletonCard({
     Math.max(0, sections - 1) * 12;
 
   return (
-    <Skeleton
+    <ShadcnSkeleton
       aria-label={label}
-      className={cn(
-        'block w-full rounded-card motion-reduce:animate-none motion-reduce:before:animate-none',
-        className,
-      )}
+      className={cn('block w-full rounded-card', className)}
       data-testid={dataTestId}
       role="status"
       style={{ minHeight }}
@@ -82,7 +121,8 @@ export function SkeletonTable({
   columns = 4,
   className,
 }: SkeletonTableProps) {
-  // Same card chrome as EmptyStateCard / AppTable so loading → empty/list does not clip.
+  // Same card chrome as the card EmptyState / AppTable so loading → empty/list does not clip.
+  // ui-guard-allow:hand-built-card -- Card imports this module for its own loading state, so Card cannot be used here without a cycle.
   return (
     <div
       aria-busy="true"

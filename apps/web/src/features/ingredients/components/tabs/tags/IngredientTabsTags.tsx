@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -19,9 +18,9 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import Spinner from '@ui/primitives/spinner';
-import { Plus, Tag, X } from 'lucide-react';
+import { Plus, Tag } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { libraryTagStyle } from '@/components/tags/library-tag-picker/library-tag-colors.util';
+import { resolveLibraryTagColors } from '@/components/tags/library-tag-picker/library-tag-colors.util';
 import { LIBRARY_TAGS_QUERY_KEY } from '@/components/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@/features/ingredients/components/tags/manager/TagsManager';
 import type { ExtendedIngredientTabsTagsProps } from '@/features/ingredients/props/ingredient-tabs.props';
@@ -145,7 +144,7 @@ export default function IngredientTabsTags({
   return (
     <div className="space-y-4">
       {/* Current Tags */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Current Tags</h3>
 
         {tags.length === 0 ? (
@@ -156,23 +155,17 @@ export default function IngredientTabsTags({
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <Badge
+                casing="normal"
+                colors={resolveLibraryTagColors(tag) ?? undefined}
+                icon={<Tag />}
+                isRemoveDisabled={isUpdating}
                 key={tag.id}
+                onRemove={() => handleRemoveTag(tag.id)}
+                removeLabel={`Remove tag ${tag.label}`}
                 size="lg"
-                className="gap-2"
-                style={libraryTagStyle(tag)}
+                variant={resolveLibraryTagColors(tag) ? 'custom' : 'secondary'}
               >
-                <Tag className="size-3" />
-                <span>{tag.label}</span>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={() => handleRemoveTag(tag.id)}
-                  isDisabled={isUpdating}
-                  className="ml-1 hover:opacity-70 transition-opacity"
-                  ariaLabel={`Remove tag ${tag.label}`}
-                >
-                  <X className="size-3" />
-                </Button>
+                {tag.label}
               </Badge>
             ))}
           </div>
@@ -194,7 +187,7 @@ export default function IngredientTabsTags({
       />
 
       {/* Add Tags Section */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Add Tags</h3>
 
         {/* Create New Tag */}
@@ -282,33 +275,29 @@ export default function IngredientTabsTags({
       </Card>
 
       {/* Tag Statistics */}
-      <Card className="p-4">
+      <Card>
         <h3 className="text-lg font-semibold mb-4">Tag Statistics</h3>
-        <MetricCardGrid columns={4} isDefinitionList>
+        <MetricCardGrid columns={4}>
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
             label="Total Tags"
             size="sm"
             value={tags.length}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
             label="Available"
             size="sm"
             value={availableTags.length}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
             label="Categories"
             size="sm"
             value={new Set(tags.map((t) => t.category)).size}
           />
           <MetricCard
-            appearance="plain"
-            isDefinition
+            appearance="inset"
             label="Most Used"
             size="sm"
             value={tags[0]?.label || '-'}

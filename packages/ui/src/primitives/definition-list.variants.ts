@@ -13,7 +13,7 @@ export const dlVariants = cva('', {
       compact: 'space-y-2',
       default: 'space-y-3',
       grid: 'grid grid-cols-2 gap-y-2',
-      /** Metric blocks side by side (`MetricCard appearance="plain" isDefinition`). */
+      /** Metric blocks side by side (`MetricCard appearance="inset"`). */
       metrics: 'grid gap-3',
       /**
        * Term column beside a value column, one row per property. Pair with

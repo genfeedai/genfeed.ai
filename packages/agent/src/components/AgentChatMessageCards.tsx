@@ -7,7 +7,13 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -16,6 +22,7 @@ import Card from '@ui/card/Card';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import GenerationFeedback from '@ui/generation-receipts/GenerationFeedback';
 import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { useTranslations } from 'next-intl';
@@ -64,9 +71,10 @@ function GenericOAuthConnectCard({
 
   return (
     <Card
-      variant={CardVariant.BORDERED}
-      className="mt-2 bg-background"
-      bodyClassName="gap-0 p-3"
+      variant={CardVariant.INSET}
+      className="mt-2"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
     >
       <p className="mb-2 text-sm font-medium text-foreground">
         {action.title || 'Choose an integration'}
@@ -139,9 +147,10 @@ export function OAuthConnectCard({
 
   return (
     <Card
-      variant={CardVariant.BORDERED}
-      className="mt-2 bg-background"
-      bodyClassName="gap-0 p-3"
+      variant={CardVariant.INSET}
+      className="mt-2"
+      padding={CardPadding.SM}
+      gap={CardGap.NONE}
     >
       <p className="text-sm font-medium text-foreground">{title}</p>
       {action.description ? (
@@ -384,23 +393,21 @@ export function ContentPreviewCard({
         </div>
       )}
       {hasNoMedia && isUnavailable && (
-        <div
+        <Alert
           aria-label={`${assetKindLabel} generation failed`}
-          className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2"
           role="status"
+          variant="destructive"
         >
-          <p className="text-sm font-medium text-foreground">
+          <AlertTitle>
             {translate('generationFailed', { kind: assetKindLabel })}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {translate('noPreview')}
-          </p>
-        </div>
+          </AlertTitle>
+          <AlertDescription>{translate('noPreview')}</AlertDescription>
+        </Alert>
       )}
       {reconciliationError && (
-        <p className="text-xs text-destructive" role="alert">
+        <Alert size="sm" variant="destructive">
           {reconciliationError}
-        </p>
+        </Alert>
       )}
       {resolvedVideos && resolvedVideos.length > 0 && (
         <AgentMediaArtifactPreview

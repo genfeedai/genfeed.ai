@@ -143,4 +143,20 @@ export class WorkflowEngineAdapterService implements OnApplicationBootstrap {
       organizationId,
     );
   }
+
+  collectDigestTrends(
+    trends: TrendsService,
+    topN: number,
+    minViralScore: number,
+    platforms: string[],
+    organizationId?: string,
+  ) {
+    return this.trendPublishRegistrar.collectDigestTrends(
+      trends,
+      topN,
+      minViralScore,
+      platforms,
+      organizationId,
+    );
+  }
 }

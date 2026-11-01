@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   NodeStatus,
   NodeType,
@@ -10,7 +9,14 @@ import type {
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+} from '@genfeedai/ui/primitives/alert';
+import { Badge } from '@genfeedai/ui/primitives/badge';
 import { Button } from '@genfeedai/ui/primitives/button';
+import { Progress } from '@genfeedai/ui/primitives/progress';
 import Spinner from '@genfeedai/ui/primitives/spinner';
 import {
   Handle,
@@ -386,34 +392,32 @@ function BaseNodeContent({
     <div className="flex-1 flex flex-col p-3 min-h-0">
       <NodeErrorBoundary nodeId={nodeId} nodeType={nodeType}>
         {nodeData.error && (
-          <div className="mb-3 border border-destructive/20 bg-destructive/10 p-2">
-            <div className="flex items-start gap-1.5">
-              <p className="flex-1 text-xs text-destructive break-all">
-                {nodeData.error}
-              </p>
+          <Alert className="mb-3" size="sm" variant="destructive">
+            <AlertDescription className="break-all">
+              {nodeData.error}
+            </AlertDescription>
+            <AlertActions>
+              <Button
+                withWrapper={false}
+                variant={ButtonVariant.DESTRUCTIVE}
+                size={ButtonSize.SM}
+                onClick={onRetry}
+                disabled={nodeExecuting}
+              >
+                <RotateCcw className="size-3" />
+                Retry
+              </Button>
               <Button
                 withWrapper={false}
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 onClick={onCopyError}
-                className="flex-shrink-0 size-5 text-destructive/70 hover:bg-destructive/20 hover:text-destructive"
                 title="Copy error"
               >
                 <Copy className="size-3" />
               </Button>
-            </div>
-            <Button
-              withWrapper={false}
-              variant={ButtonVariant.DESTRUCTIVE}
-              size={ButtonSize.SM}
-              onClick={onRetry}
-              disabled={nodeExecuting}
-              className="mt-2 w-full"
-            >
-              <RotateCcw className="size-3" />
-              Retry
-            </Button>
-          </div>
+            </AlertActions>
+          </Alert>
         )}
 
         {children}
@@ -421,12 +425,11 @@ function BaseNodeContent({
         {nodeData.status === 'processing' &&
           nodeData.progress !== undefined && (
             <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${nodeData.progress}%` }}
-                />
-              </div>
+              <Progress
+                aria-label={`${nodeData.label ?? 'Node'} progress`}
+                size="sm"
+                value={nodeData.progress}
+              />
               <span className="mt-1 text-xs text-muted-foreground">
                 {nodeData.progress}%
               </span>
@@ -439,9 +442,9 @@ function BaseNodeContent({
 
 function LockBadge() {
   return (
-    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-2xs font-bold text-background">
+    <Badge className="absolute -right-2 -top-2" variant="inverse">
       LOCKED
-    </div>
+    </Badge>
   );
 }
 

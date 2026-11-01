@@ -6,10 +6,13 @@ import type { ComponentPropsWithoutRef } from 'react';
 
 const skeletonVariants = cva(
   [
-    'relative block overflow-hidden animate-pulse bg-muted',
+    'relative block overflow-hidden bg-foreground/5',
+    // One sweep of light across the block. It animates `transform`, so it
+    // never repaints the page, and it is hidden under reduced motion,
+    // leaving the static placeholder.
     'before:absolute before:inset-0',
-    'before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent',
-    'before:animate-shimmer',
+    'before:bg-gradient-to-r before:from-transparent before:via-foreground/10 before:to-transparent',
+    'before:animate-skeleton motion-reduce:before:hidden',
   ],
   {
     defaultVariants: { variant: 'rectangular' },
@@ -52,6 +55,7 @@ function Skeleton({
     <output
       aria-busy="true"
       className={cn(skeletonVariants({ variant }), className)}
+      data-slot="skeleton"
       style={{
         height: formatDimension(height),
         width: formatDimension(width),

@@ -1,5 +1,4 @@
 'use client';
-
 import { useTraining } from '@contexts/content/training-context/training-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

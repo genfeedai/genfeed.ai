@@ -12,10 +12,10 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import {
   adaptFalVideoRequest,
   type FalJsonSchema,
-  type FalSchemaFamily,
+  FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
 import type { ModelProvider } from '@genfeedai/contracts';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';
 const MINIMAX_H3_MAX_TEXT_ENDPOINT = 'minimax/h3-max/text-to-video';
@@ -169,6 +169,17 @@ export function prepareFalVideoDispatch(
       },
     };
   }
+  // fal splits video models by mode, and a text-to-video schema has no image
+  // field, so the adapter would drop the reference frame without a word.
+  if (
+    endpoint.endsWith('/text-to-video') &&
+    params.modelSchemaFamily === FalSchemaFamily.VIDEO_TEXT &&
+    (params.imageUrl || optionalString(params.promptParams.image_url))
+  )
+    throw new BadRequestException({
+      detail: `${endpoint} is text-to-video only; pick its image-to-video model for a reference image.`,
+      title: 'Reference image not supported',
+    });
   return {
     endpoint,
     input:

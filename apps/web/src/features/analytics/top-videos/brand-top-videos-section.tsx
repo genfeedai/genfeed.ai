@@ -2,11 +2,11 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -110,11 +110,9 @@ export default function BrandTopVideosSection() {
                 <span className="font-semibold text-foreground">
                   {video.title || video.hook || 'Untitled'}
                 </span>
-                {video.publishedAt && (
-                  <span className="text-xs text-foreground/60">
-                    {formatDate(video.publishedAt)}
-                  </span>
-                )}
+                {video.publishedAt ? (
+                  <TableDateCell hasTime={false} value={video.publishedAt} />
+                ) : null}
               </div>
             ),
           },
@@ -159,15 +157,12 @@ export default function BrandTopVideosSection() {
             render: (video) => {
               const rank =
                 rankedVideos.findIndex((entry) => entry.id === video.id) + 1;
-              const badgeTone =
-                rank <= 3
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground';
 
               return (
                 <Badge
+                  isSolid={rank <= 3}
                   value={Math.round(video.viralScore || 0)}
-                  className={badgeTone}
+                  variant={rank <= 3 ? 'default' : 'secondary'}
                 />
               );
             },
@@ -181,7 +176,7 @@ export default function BrandTopVideosSection() {
                 <div className="max-w-sm space-y-2 break-words">
                   <Badge
                     value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
-                    className="bg-muted/10 text-muted-foreground"
+                    variant="secondary"
                   />
                   {video.persuasionHighlight.analysisNote ? (
                     <Collapsible>

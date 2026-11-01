@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -85,13 +86,12 @@ export default function PostMediaStrip({
             sizes="64px"
           />
 
-          <span
-            className={
-              'absolute bottom-0.5 left-0.5 rounded-sm bg-black/60 px-1 text-2xs leading-4 text-white' /* design-system-allow-content-color -- media overlay */
-            }
-          >
-            {index + 1}
-          </span>
+          <Badge
+            className="absolute bottom-0.5 left-0.5"
+            size="sm"
+            value={index + 1}
+            variant="overlay"
+          />
 
           {!isDisabled && (
             <div className="absolute inset-x-0 top-0 flex items-start justify-between p-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">

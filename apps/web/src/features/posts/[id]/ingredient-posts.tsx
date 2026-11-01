@@ -13,7 +13,7 @@ import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,7 +31,7 @@ export default function IngredientPosts({
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
       <Container>
-        <EmptyStateCard title="Ingredient not found" />
+        <EmptyState surface="card" title="Ingredient not found" />
       </Container>
     );
   }
@@ -107,14 +107,14 @@ export default function IngredientPosts({
       </div>
 
       {posts.length === 0 ? (
-        <EmptyStateCard title={EMPTY_STATES.POSTS_YET} />
+        <EmptyState surface="card" title={EMPTY_STATES.POSTS_YET} />
       ) : (
         <div className="@container space-y-4">
           <h2 className="text-2xl font-bold">Posts using this ingredient</h2>
 
           <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3">
             {posts.map((post) => (
-              <Card key={post.id} className="p-4">
+              <Card key={post.id}>
                 <div className="flex flex-col gap-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate flex-1">

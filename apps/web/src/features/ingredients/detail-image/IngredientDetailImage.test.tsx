@@ -63,16 +63,14 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => <div data-testid="ingredient-quick-actions" />,
 }));
 
-vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: () => <div data-testid="tabs" />,
+vi.mock('@ui/primitives/tabs', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ui/primitives/tabs')>()),
+  Tabs: () => <div data-testid="tabs" />,
 }));
 
-vi.mock(
-  '@/features/ingredients/components/loading/overlay/LoadingOverlay',
-  () => ({
-    default: () => <div data-testid="loading-overlay" />,
-  }),
-);
+vi.mock('@ui/primitives/loading-overlay', () => ({
+  default: () => <div data-testid="loading-overlay" />,
+}));
 
 vi.mock('@/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({

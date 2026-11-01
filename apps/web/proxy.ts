@@ -1498,7 +1498,30 @@ export default proxy;
 
 export const config = {
   matcher: [
-    '/((?!_next|serwist(?:/|$)|v1(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
+    {
+      source:
+        '/((?!_next|serwist(?:/|$)|v1(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
+      // Router prefetches fetch the prerendered route shell, which is the same
+      // cached file for every visitor and carries no tenant data. Sending them
+      // through the proxy turned each one into a function invocation: a page
+      // fires dozens on load, they queued for 1-2s on production, and a click
+      // waited behind them. Navigations and full loads still run the proxy.
+      missing: [{ type: 'header', key: 'next-router-prefetch' }],
+    },
+    // Prefetches of the paths the proxy redirects (the root, `/settings`,
+    // bare module paths and API-namespace-poisoned paths) still run it, so a
+    // prefetch never caches a page the click would have been redirected away
+    // from. Keep in sync with BRAND_SCOPED_PREFIXES / ORG_SCOPED_PREFIXES;
+    // proxy.test.ts checks every one.
+    {
+      source: '/',
+      has: [{ type: 'header', key: 'next-router-prefetch' }],
+    },
+    {
+      source:
+        '/(analytics|agent|library|automation|overview|publishing|discovery|playground|storyboard|turbo|motion|clipper|editor|workspace|settings)(.*)',
+      has: [{ type: 'header', key: 'next-router-prefetch' }],
+    },
     '/(api|trpc)(.*)',
   ],
 };

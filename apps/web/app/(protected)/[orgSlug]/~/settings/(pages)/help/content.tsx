@@ -1,6 +1,7 @@
 'use client';
 
 // biome-ignore assist/source/organizeImports: Keep external imports before workspace aliases.
+import { CardGap } from '@genfeedai/contracts';
 import {
   BookOpen,
   CircleHelp,
@@ -76,7 +77,7 @@ function HelpResourceCard({ resource, selfHosted }: HelpResourceCardProps) {
           }
         />
       ) : (
-        <Card bodyClassName="gap-2 p-4" className="h-full">
+        <Card gap={CardGap.SM} className="h-full">
           <Text as="p" size="sm">
             {description}
           </Text>
@@ -107,7 +108,7 @@ export default function SettingsHelpPage() {
         </Heading>
         <div className="grid gap-3 md:grid-cols-3">
           {(['brand', 'create', 'review'] as const).map((step) => (
-            <Card key={step} bodyClassName="gap-2 p-4">
+            <Card key={step} gap={CardGap.SM}>
               <Heading as="h3" size="sm">
                 {translate(`steps.${step}.title`)}
               </Heading>

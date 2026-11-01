@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardGap, CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -95,7 +95,9 @@ export default function StoryboardPresetGrid({
                 title={translate(`items.${preset.id}.description`)}
               >
                 <Card
-                  bodyClassName="h-full gap-0 p-0"
+                  padding={CardPadding.NONE}
+                  gap={CardGap.NONE}
+                  bodyClassName="h-full"
                   className="flex w-full flex-col overflow-hidden"
                 >
                   <StoryboardPresetThumbnail src={preset.thumbnailSrc} />

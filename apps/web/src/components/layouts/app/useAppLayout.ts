@@ -29,6 +29,8 @@ import {
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
+/** Tailwind `md`: the width where the inline rail replaces the drawer. */
+const DESKTOP_NAVIGATION_QUERY = '(min-width: 768px)';
 /** Window chrome: one 32px control with equal 8px padding on each side. */
 const SHELL_CONTROL_SIZE = 32;
 const SHELL_CONTROL_INSET = 8;
@@ -186,22 +188,27 @@ export function useAppLayout({
 
   const hasMobileNavigation = Boolean(menuComponent || railComponent);
 
+  // The drawer is phone-only: close it when the viewport grows to the desktop
+  // layout, where the rail and sidebar render inline.
   useEffect(() => {
-    if (!hasMobileNavigation) {
+    if (
+      !hasMobileNavigation ||
+      !isSidebarOpen ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return;
     }
 
-    if (isSidebarOpen) {
-      const previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+    const query = window.matchMedia(DESKTOP_NAVIGATION_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        handleCloseSidebar();
+      }
+    };
 
-      return () => {
-        document.body.style.overflow = previousOverflow;
-      };
-    }
-
-    return;
-  }, [hasMobileNavigation, isSidebarOpen]);
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, [handleCloseSidebar, hasMobileNavigation, isSidebarOpen]);
 
   const renderMenu = useCallback(
     (extraProps: Record<string, unknown> = {}) => {

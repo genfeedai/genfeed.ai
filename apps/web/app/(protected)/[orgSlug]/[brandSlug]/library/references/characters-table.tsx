@@ -1,5 +1,4 @@
 'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,

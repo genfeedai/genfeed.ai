@@ -1,5 +1,6 @@
 'use client';
 
+import { CardGap, CardPadding, CardVariant } from '@genfeedai/contracts';
 import type { ChannelValidationIssue } from '@genfeedai/contracts/api-types/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
@@ -7,6 +8,7 @@ import type {
   PlatformPreviewCharacterCounterProps,
   PlatformPreviewRendererProps,
 } from '@genfeedai/props/components/platform-preview.props';
+import Card from '@ui/card/Card';
 import { PreviewPresentation } from '@ui/posts/platform-preview/PlatformPreview.context';
 import { getCaptionPreviewState } from '@ui/posts/platform-preview/PlatformPreview.data';
 import { extractFirstUrl } from '@ui/posts/platform-preview/platform-preview.helpers';
@@ -183,7 +185,12 @@ export function ThreadSegments({ target }: PlatformPreviewRendererProps) {
                 <span className="mt-2 h-full min-h-8 w-px bg-border" />
               ) : null}
             </div>
-            <div className="min-w-0 flex-1 rounded-lg border border-border bg-background/10 p-3">
+            <Card
+              variant={CardVariant.BORDERED}
+              padding={CardPadding.SM}
+              gap={CardGap.NONE}
+              className="min-w-0 flex-1"
+            >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-foreground/70">
                   {segment.label ??
@@ -200,7 +207,7 @@ export function ThreadSegments({ target }: PlatformPreviewRendererProps) {
                   {translate('emptyCaption')}
                 </p>
               )}
-            </div>
+            </Card>
           </div>
         );
       })}

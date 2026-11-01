@@ -1,27 +1,34 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type { OutputGalleryNodeData } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
 import type { NodeProps } from '@xyflow/react';
-import { ChevronLeft, ChevronRight, Copy, Download, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Download } from 'lucide-react';
 import NextImage from 'next/image';
+import { useTranslations } from 'next-intl';
 import {
   memo,
+  type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
-  useEffect,
-  useEffectEvent,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 function OutputGalleryNodeComponent(props: NodeProps) {
+  const translate = useTranslations('pages.workflows.outputGallery');
   const { id, data } = props;
   const nodeData = data as OutputGalleryNodeData;
   const { edges, nodes } = useWorkflowStore(
@@ -135,29 +142,20 @@ function OutputGalleryNodeComponent(props: NodeProps) {
     }
   }, [lightboxIndex]);
 
-  const handleLightboxKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (!isLightboxOpen) return;
+  const handleLightboxKeyDown = useCallback(
+    (e: ReactKeyboardEvent) => {
+      // The dialog is portalled but React still bubbles its events to the
+      // canvas, so key presses stop here.
+      e.stopPropagation();
 
-    switch (e.key) {
-      case 'Escape':
-        closeLightbox();
-        break;
-      case 'ArrowLeft':
+      if (e.key === 'ArrowLeft') {
         navigateLightbox('prev');
-        break;
-      case 'ArrowRight':
+      } else if (e.key === 'ArrowRight') {
         navigateLightbox('next');
-        break;
-    }
-  });
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleLightboxKeyDown(e);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+      }
+    },
+    [navigateLightbox],
+  );
 
   return (
     <>
@@ -165,7 +163,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
         {displayImages.length === 0 ? (
           <div className="w-full flex-1 min-h-[200px] border border-dashed border-border rounded flex items-center justify-center">
             <span className="text-muted-foreground text-2xs text-center px-4">
-              Connect image nodes to view gallery
+              {translate('connectImages')}
             </span>
           </div>
         ) : (
@@ -181,7 +179,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 >
                   <NextImage
                     src={img}
-                    alt={`Generated result ${idx + 1}`}
+                    alt={translate('resultAlt', { index: idx + 1 })}
                     fill
                     className="size-full object-cover"
                     sizes="80px"
@@ -194,109 +192,93 @@ function OutputGalleryNodeComponent(props: NodeProps) {
         )}
       </BaseNode>
 
-      {isLightboxOpen &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className={
-              'fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8' /* design-system-allow-content-color */
-            }
-            onClick={closeLightbox}
-            onContextMenu={(e) => e.stopPropagation()}
-          >
-            <div
-              className="relative max-w-full max-h-full"
-              role="presentation"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
+      <Dialog
+        open={isLightboxOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            closeLightbox();
+          }
+        }}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          // Right-clicks bubble through the portal to the canvas menu.
+          onContextMenu={(e) => e.stopPropagation()}
+          onKeyDown={handleLightboxKeyDown}
+          size="2xl"
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {translate('lightboxTitle', {
+                index: (lightboxIndex ?? 0) + 1,
+                total: displayImages.length,
+              })}
+            </DialogTitle>
+          </DialogHeader>
+
+          <DialogBody scrollable={false}>
+            {lightboxIndex !== null && displayImages[lightboxIndex] ? (
+              <div className="relative flex items-center justify-center">
+                <NextImage
+                  src={displayImages[lightboxIndex]}
+                  alt={translate('resultAlt', { index: lightboxIndex + 1 })}
+                  width={1200}
+                  height={800}
+                  className="max-h-[60dvh] w-auto max-w-full rounded object-contain"
+                  unoptimized
+                />
+
+                {lightboxIndex > 0 && (
+                  <Button
+                    ariaLabel={translate('previous')}
+                    withWrapper={false}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.ICON}
+                    onClick={() => navigateLightbox('prev')}
+                    className="absolute left-2 top-1/2 -translate-y-1/2"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </Button>
+                )}
+
+                {lightboxIndex < displayImages.length - 1 && (
+                  <Button
+                    ariaLabel={translate('next')}
+                    withWrapper={false}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.ICON}
+                    onClick={() => navigateLightbox('next')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                  >
+                    <ChevronRight className="size-5" />
+                  </Button>
+                )}
+              </div>
+            ) : null}
+          </DialogBody>
+
+          <DialogFooter>
+            <Button
+              withWrapper={false}
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={downloadImage}
             >
-              <NextImage
-                src={displayImages[lightboxIndex]}
-                alt={`Generated result ${lightboxIndex + 1}`}
-                width={1200}
-                height={800}
-                className="max-h-[90vh] w-auto max-w-full object-contain rounded"
-                unoptimized
-              />
-
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                onClick={closeLightbox}
-                className={
-                  'absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white' /* design-system-allow-content-color */
-                }
-              >
-                <X className="size-4" />
-              </Button>
-
-              <div className="absolute top-4 left-4 flex items-center gap-2">
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.SM}
-                  onClick={downloadImage}
-                  className={
-                    'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
-                  }
-                >
-                  <Download className="size-3.5" />
-                  Download
-                </Button>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.SM}
-                  onClick={copyImage}
-                  className={
-                    'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
-                  }
-                >
-                  <Copy className="size-3.5" />
-                  Copy
-                </Button>
-              </div>
-
-              {lightboxIndex > 0 && (
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.ICON}
-                  onClick={() => navigateLightbox('prev')}
-                  className={
-                    'absolute left-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */
-                  }
-                >
-                  <ChevronLeft className="size-5" />
-                </Button>
-              )}
-
-              {lightboxIndex < displayImages.length - 1 && (
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.ICON}
-                  onClick={() => navigateLightbox('next')}
-                  className={
-                    'absolute right-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */
-                  }
-                >
-                  <ChevronRight className="size-5" />
-                </Button>
-              )}
-
-              <div
-                className={
-                  'absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 rounded text-white text-xs font-medium' /* design-system-allow-content-color */
-                }
-              >
-                {lightboxIndex + 1} / {displayImages.length}
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+              <Download className="size-3.5" />
+              {translate('download')}
+            </Button>
+            <Button
+              withWrapper={false}
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={copyImage}
+            >
+              <Copy className="size-3.5" />
+              {translate('copy')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

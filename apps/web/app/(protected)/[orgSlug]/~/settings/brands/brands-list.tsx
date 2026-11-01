@@ -1,5 +1,4 @@
 'use client';
-
 import { AppAssetCatalogBoundary } from '@app-i18n/AppGlobalModalIntlBoundary';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -12,7 +11,6 @@ import {
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
@@ -27,9 +25,11 @@ import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import PlatformAvatarStack from '@ui/display/platform-avatar-stack/PlatformAvatarStack';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import {
@@ -39,11 +39,9 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import BrandSidebarPanel from '@/features/brands/sidebar-panel/BrandSidebarPanel';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
@@ -230,21 +228,13 @@ function BrandsListContent() {
         // The table links this name to the brand settings page (`getRowLink`).
         render: (brand: Brand) => (
           <div className="flex items-center gap-2.5">
-            {brand.logoUrl ? (
-              <Image
-                alt={brand.label}
-                className="size-6 rounded-md object-cover outline-media"
-                src={brand.logoUrl}
-                sizes="24px"
-                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                width={24}
-                height={24}
-              />
-            ) : (
-              <div className="flex size-6 items-center justify-center rounded-md bg-foreground/10 text-xs font-semibold text-foreground">
-                {brand.label.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              alt={brand.label}
+              name={brand.label}
+              shape="square"
+              size="sm"
+              src={brand.logoUrl}
+            />
             <span className="font-medium">{brand.label}</span>
           </div>
         ),
@@ -278,15 +268,7 @@ function BrandsListContent() {
         header: 'Created',
         key: 'createdAt',
         sortable: true,
-        render: (brand: Brand) => (
-          <span className="text-sm text-foreground/70">
-            <ClientFormattedDate
-              fallback="-"
-              format="date"
-              value={brand.createdAt}
-            />
-          </span>
-        ),
+        render: (brand: Brand) => <TableDateCell value={brand.createdAt} />,
       },
     ],
     [],

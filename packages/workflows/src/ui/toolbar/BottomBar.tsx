@@ -3,6 +3,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@genfeedai/ui/primitives/dropdown-menu';
+import {
   ChevronUp,
   CirclePlay,
   Minus,
@@ -11,7 +18,7 @@ import {
   RotateCcw,
   Square,
 } from 'lucide-react';
-import { type RefObject, useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
 import { useWorkflowStore } from '../stores/workflow';
 
@@ -69,115 +76,72 @@ interface RunOptionsState {
   showResume: boolean;
 }
 
-interface RunOptionsDropdownProps {
-  dropdownRef: RefObject<HTMLDivElement | null>;
-  onClose: () => void;
+interface RunOptionsMenuItemsProps {
   onResume: () => void;
   onRunSelected: () => void;
   onRunWorkflow: () => void;
   state: RunOptionsState;
 }
 
-function RunOptionsDropdown({
-  dropdownRef,
-  onClose,
+function RunOptionsMenuItems({
   onResume,
   onRunSelected,
   onRunWorkflow,
   state,
-}: RunOptionsDropdownProps) {
+}: RunOptionsMenuItemsProps) {
   const { canRunWorkflow, hasSelection, isRunning, selectedCount, showResume } =
     state;
 
   return (
-    <>
-      <Button
-        withWrapper={false}
-        type="button"
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.ICON}
-        className="fixed inset-0 z-40 size-full p-0 opacity-0"
-        onClick={onClose}
-        aria-label="Close run options"
-      />
-      <div
-        ref={dropdownRef}
-        className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] bg-muted py-0.5 shadow-dropdown"
+    <DropdownMenuContent align="start" className="min-w-[180px]" side="top">
+      <DropdownMenuItem disabled={!canRunWorkflow} onSelect={onRunWorkflow}>
+        <Play className="size-3" />
+        Run Workflow
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={!hasSelection || isRunning}
+        onSelect={onRunSelected}
       >
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
-          onClick={onRunWorkflow}
-          disabled={!canRunWorkflow}
-          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
-        >
-          <Play className="size-3" />
-          Run Workflow
-        </Button>
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
-          onClick={onRunSelected}
-          disabled={!hasSelection || isRunning}
-          className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
-        >
-          <CirclePlay className="size-3" />
-          Run Selected ({selectedCount})
-        </Button>
-        {showResume && (
-          <>
-            <div className="mx-2 my-0.5 h-px bg-border" />
-            <Button
-              withWrapper={false}
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              onClick={onResume}
-              className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
-            >
-              <RotateCcw className="size-3" />
-              Resume from Failed
-            </Button>
-          </>
-        )}
-      </div>
-    </>
+        <CirclePlay className="size-3" />
+        Run Selected ({selectedCount})
+      </DropdownMenuItem>
+      {showResume && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onResume}>
+            <RotateCcw className="size-3" />
+            Resume from Failed
+          </DropdownMenuItem>
+        </>
+      )}
+    </DropdownMenuContent>
   );
 }
 
 interface RunControlsState extends RunOptionsState {
   canRunWorkflow: boolean;
   isActive: boolean;
-  isDropdownOpen: boolean;
 }
 
 interface RunControlsProps {
-  dropdownRef: RefObject<HTMLDivElement | null>;
-  onCloseDropdown: () => void;
   onPrimaryClick: () => void;
   onResume: () => void;
   onRunSelected: () => void;
   onRunWorkflow: () => void;
-  onToggleDropdown: () => void;
   state: RunControlsState;
 }
 
 function RunControls({
-  dropdownRef,
-  onCloseDropdown,
   onPrimaryClick,
   onResume,
   onRunSelected,
   onRunWorkflow,
-  onToggleDropdown,
   state,
 }: RunControlsProps) {
   const {
     canRunWorkflow,
     hasSelection,
     isActive,
-    isDropdownOpen,
     isRunning,
     selectedCount,
     showResume,
@@ -219,34 +183,26 @@ function RunControls({
           </>
         )}
       </Button>
-      <Button
-        withWrapper={false}
-        variant={variant}
-        size={ButtonSize.SM}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleDropdown();
-        }}
-        disabled={isActive}
-        className={`rounded-l-none rounded-r border-l px-1.5 ${
-          isActive
-            ? 'border-destructive/20 bg-destructive/90'
-            : canRunWorkflow
-              ? 'border-border-strong'
-              : 'border-border bg-muted text-muted-foreground'
-        }`}
-      >
-        <ChevronUp className="size-3.5" />
-      </Button>
-
-      {isDropdownOpen && (
-        <RunOptionsDropdown
-          dropdownRef={dropdownRef}
-          onClose={onCloseDropdown}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ariaLabel="Run options"
+            withWrapper={false}
+            variant={variant}
+            size={ButtonSize.SM}
+            disabled={isActive}
+            className={`rounded-l-none rounded-r border-l px-1.5 ${
+              isActive
+                ? 'border-destructive/20 bg-destructive/90'
+                : canRunWorkflow
+                  ? 'border-border-strong'
+                  : 'border-border bg-muted text-muted-foreground'
+            }`}
+          >
+            <ChevronUp className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <RunOptionsMenuItems
           onResume={onResume}
           onRunSelected={onRunSelected}
           onRunWorkflow={onRunWorkflow}
@@ -258,7 +214,7 @@ function RunControls({
             showResume,
           }}
         />
-      )}
+      </DropdownMenu>
     </div>
   );
 }
@@ -284,9 +240,7 @@ export function BottomBar() {
   const [batchCount, setBatchCount] = useState(1);
   const [currentBatchRun, setCurrentBatchRun] = useState(0);
   const [isBatchRunning, setIsBatchRunning] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const batchCancelledRef = useRef(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isRunning = useExecutionStore((s) => s.isRunning);
   const executeWorkflow = useExecutionStore((s) => s.executeWorkflow);
@@ -402,29 +356,18 @@ export function BottomBar() {
   const handleRunSelected = useCallback(() => {
     if (!isRunning && hasSelection) {
       executeSelectedNodes();
-      setDropdownOpen(false);
     }
   }, [isRunning, hasSelection, executeSelectedNodes]);
 
   const handleResume = useCallback(() => {
     if (canResumeFromFailed()) {
       resumeFromFailed();
-      setDropdownOpen(false);
     }
   }, [canResumeFromFailed, resumeFromFailed]);
 
   const handleRunWorkflowFromMenu = useCallback(() => {
     executeWorkflow();
-    setDropdownOpen(false);
   }, [executeWorkflow]);
-
-  const closeDropdown = useCallback(() => {
-    setDropdownOpen(false);
-  }, []);
-
-  const toggleDropdown = useCallback(() => {
-    setDropdownOpen((prev) => !prev);
-  }, []);
 
   const isActive = isRunning || isBatchRunning;
 
@@ -439,18 +382,14 @@ export function BottomBar() {
         />
         <div className="mx-1 h-4 w-px bg-border" />
         <RunControls
-          dropdownRef={dropdownRef}
-          onCloseDropdown={closeDropdown}
           onPrimaryClick={handlePrimaryClick}
           onResume={handleResume}
           onRunSelected={handleRunSelected}
           onRunWorkflow={handleRunWorkflowFromMenu}
-          onToggleDropdown={toggleDropdown}
           state={{
             canRunWorkflow,
             hasSelection,
             isActive,
-            isDropdownOpen: dropdownOpen,
             isRunning,
             selectedCount: selectedNodeIds.length,
             showResume,

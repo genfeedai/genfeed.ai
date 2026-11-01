@@ -1,5 +1,4 @@
 'use client';
-
 import {
   BotStatus,
   ComponentSize,
@@ -12,6 +11,7 @@ import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';

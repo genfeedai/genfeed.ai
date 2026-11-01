@@ -1,6 +1,10 @@
 'use client';
-
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   ContentRunAnalyticsSummary,
@@ -19,6 +23,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -186,10 +191,6 @@ function Panel({
   );
 }
 
-function Pill({ children }: { children: ReactNode }) {
-  return <Badge variant="secondary">{children}</Badge>;
-}
-
 function Section({
   children,
   icon,
@@ -201,7 +202,7 @@ function Section({
 }) {
   return (
     <section>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <div className="mb-4 flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/80 shadow-border">
             {icon}
@@ -270,12 +271,14 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
       {variants.map((variant) => (
         <Panel as="article" key={variant.id} className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Pill>{variant.format ?? variant.type}</Pill>
+            <Badge variant="secondary">{variant.format ?? variant.type}</Badge>
             <PlatformBadge
               platform={variant.platform}
               size={ComponentSize.SM}
             />
-            {variant.status ? <Pill>{variant.status}</Pill> : null}
+            {variant.status ? (
+              <Badge variant="secondary">{variant.status}</Badge>
+            ) : null}
           </div>
           <h3 className="text-sm font-medium">{variant.angle ?? variant.id}</h3>
           {variant.hypothesis ? (
@@ -395,9 +398,11 @@ function RecommendationsSection({
       ).map(({ item: recommendation, key }) => (
         <Panel as="article" key={key} className="p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill>{recommendation.type}</Pill>
+            <Badge variant="secondary">{recommendation.type}</Badge>
             {typeof recommendation.confidence === 'number' ? (
-              <Pill>{formatPercent(recommendation.confidence * 100)}</Pill>
+              <Badge variant="secondary">
+                {formatPercent(recommendation.confidence * 100)}
+              </Badge>
             ) : null}
           </div>
           <h3 className="mt-3 text-sm font-medium">
@@ -419,7 +424,7 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Lifecycle</h2>
         <div className="mt-4 space-y-3">
           {steps.map((step) => (
@@ -470,7 +475,7 @@ function NavigationPanel({
 
   return (
     <aside>
-      <Card bodyClassName="gap-0 p-5">
+      <Card padding={CardPadding.LG} gap={CardGap.NONE}>
         <h2 className="text-sm font-semibold">Actions and Views</h2>
         <div className="mt-4 grid gap-2">
           <Button
@@ -566,9 +571,9 @@ export default function ContentRunDetailPage({
   if (state === 'loading' || state === 'idle') {
     return (
       <Container>
-        <div className="rounded-lg bg-muted p-8 text-sm text-foreground/60 shadow-border">
-          Loading content run…
-        </div>
+        <Card padding={CardPadding.XL}>
+          <div className="text-sm text-foreground/60">Loading content run…</div>
+        </Card>
       </Container>
     );
   }
@@ -576,9 +581,7 @@ export default function ContentRunDetailPage({
   if (state === 'error' || !run) {
     return (
       <Container>
-        <div className="rounded-lg bg-destructive/10 p-8 text-sm text-destructive shadow-border">
-          Content run could not be loaded.
-        </div>
+        <Alert variant="destructive">Content run could not be loaded.</Alert>
       </Container>
     );
   }
@@ -587,11 +590,15 @@ export default function ContentRunDetailPage({
     <Container>
       <div className="flex flex-col gap-6">
         <header>
-          <Card bodyClassName="gap-0 p-5">
+          <Card padding={CardPadding.LG} gap={CardGap.NONE}>
             <div className="flex flex-wrap items-center gap-2">
-              <Pill>{run.status ?? 'unknown'}</Pill>
-              <Pill>{run.skillSlug ?? 'content-run'}</Pill>
-              {run.source ? <Pill>{run.source}</Pill> : null}
+              <Badge variant="secondary">{run.status ?? 'unknown'}</Badge>
+              <Badge variant="secondary">
+                {run.skillSlug ?? 'content-run'}
+              </Badge>
+              {run.source ? (
+                <Badge variant="secondary">{run.source}</Badge>
+              ) : null}
             </div>
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -664,9 +671,7 @@ export default function ContentRunDetailPage({
           <div className="grid content-start gap-5">
             <TimelinePanel run={run} />
             {remixError ? (
-              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive shadow-border">
-                {remixError}
-              </div>
+              <Alert variant="destructive">{remixError}</Alert>
             ) : null}
             <NavigationPanel
               isRemixing={isRemixing}

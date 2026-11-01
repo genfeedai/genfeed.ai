@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Badge } from '@ui/primitives/badge';
 import { badgeVariants } from '@ui/primitives/badge.variants';
 import { CircleCheck } from 'lucide-react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Badge', () => {
   it('uses the shared ship badge styling contract', () => {
@@ -19,13 +19,17 @@ describe('Badge', () => {
     expect(badge.className).not.toContain('text-[10px]');
   });
 
-  it('gives outline a theme-aware neutral tone', () => {
+  it('gives outline a quiet bordered look on theme tokens', () => {
     render(<Badge variant="outline">Outline</Badge>);
 
     const badge = screen.getByText('Outline');
 
-    expect(badge.className).toContain('text-muted-foreground');
-    expect(badge.className).toContain('bg-tertiary');
+    expect(badge).toHaveClass(
+      'border',
+      'border-border',
+      'bg-transparent',
+      'text-muted-foreground',
+    );
     expect(badge.className).not.toContain('slate-');
   });
 
@@ -63,7 +67,6 @@ describe('Badge', () => {
     'default',
     'destructive',
     'info',
-    'outline',
     'secondary',
     'success',
     'warning',
@@ -81,6 +84,82 @@ describe('Badge', () => {
     render(<Badge size="lg">Large</Badge>);
 
     expect(screen.getByText('Large')).toHaveClass('h-6', 'px-2', 'text-xs');
+  });
+
+  it.each([
+    ['pill', { shape: 'pill' }, ['rounded-full']],
+    ['sm size', { size: 'sm' }, ['h-4', 'px-1']],
+    ['xl size', { size: 'xl' }, ['h-7', 'px-3', 'text-sm']],
+    ['normal casing', { casing: 'normal' }, ['normal-case']],
+    ['mono', { isMono: true }, ['font-mono', 'tabular-nums']],
+    ['overlay', { variant: 'overlay' }, ['bg-black/60', 'text-white']],
+    ['inverse', { variant: 'inverse' }, ['bg-foreground', 'text-background']],
+    [
+      'solid default',
+      { isSolid: true },
+      ['bg-primary', 'text-primary-foreground'],
+    ],
+    [
+      'solid success',
+      { isSolid: true, variant: 'success' },
+      ['bg-success', 'text-success-foreground'],
+    ],
+  ] as const)('supports the %s look through props', (_name, props, classes) => {
+    render(<Badge {...props}>Label</Badge>);
+
+    expect(screen.getByText('Label')).toHaveClass(...classes);
+  });
+
+  it('paints a user-picked colour inline for the custom variant', () => {
+    render(
+      <Badge
+        colors={{ backgroundColor: '#000000', textColor: '#ffffff' }}
+        variant="custom"
+      >
+        Tag
+      </Badge>,
+    );
+
+    expect(screen.getByText('Tag')).toHaveStyle({
+      backgroundColor: 'rgb(0, 0, 0)',
+      color: 'rgb(255, 255, 255)',
+    });
+  });
+
+  it('renders a dot with no label and keeps the tone colour', () => {
+    const { container } = render(<Badge isDot variant="info" />);
+    const dot = container.firstElementChild;
+
+    expect(dot).toHaveClass(
+      'size-1.5',
+      'rounded-full',
+      'bg-current',
+      'text-info',
+    );
+    expect(dot).toBeEmptyDOMElement();
+  });
+
+  it('removes from a keyboard-operable button named by the caller', () => {
+    const onRemove = vi.fn();
+    render(
+      <Badge onRemove={onRemove} removeLabel="Remove tag Launch">
+        Launch
+      </Badge>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove tag Launch' }));
+
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('can disable the remove button', () => {
+    render(
+      <Badge isRemoveDisabled onRemove={() => {}} removeLabel="Remove">
+        Launch
+      </Badge>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled();
   });
 
   it('shows a dash instead of an empty chip when there is no label', () => {

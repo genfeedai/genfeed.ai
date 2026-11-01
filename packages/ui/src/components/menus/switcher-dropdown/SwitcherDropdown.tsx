@@ -7,7 +7,7 @@ import type {
   SwitcherDropdownProps,
   SwitcherDropdownTrailingAction,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import SwitcherAvatar from '@ui/menus/switcher-dropdown/SwitcherAvatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Command,
@@ -274,18 +274,17 @@ function SwitcherItem({
         )}
       >
         {/* Avatar */}
-        <SwitcherAvatar
+        <Avatar
           alt={item.label}
-          fallbackClassName={cn(
-            'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-2xs font-bold',
-            item.isActive
-              ? 'bg-primary/20 text-primary'
-              : 'bg-foreground/10 text-foreground/50',
-          )}
-          imageUrl={item.imageUrl}
-          imageWrapperClassName="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background"
-          letter={item.label.charAt(0).toUpperCase()}
-          onImageError={onImageError}
+          name={item.label}
+          onLoadingStatusChange={(status) => {
+            if (status === 'error') {
+              onImageError?.();
+            }
+          }}
+          shape="square"
+          size="xs"
+          src={item.imageUrl}
         />
 
         <span className="flex-1 truncate text-left">{item.label}</span>

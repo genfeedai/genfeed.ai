@@ -5,6 +5,7 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -232,9 +233,9 @@ export function AgentThreadListRow({
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.source === 'proactive' && (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground">
+                <Badge className="shrink-0" variant="secondary">
                   {translate('agent')}
-                </span>
+                </Badge>
               )}
               {conv.isPinned ? (
                 <Pin

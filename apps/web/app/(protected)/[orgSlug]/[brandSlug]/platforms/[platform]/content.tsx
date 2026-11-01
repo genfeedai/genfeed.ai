@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -13,7 +12,7 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import {
   Calendar,
   ChartColumn,
@@ -109,7 +108,8 @@ export default function PlatformHomePage({
     return (
       <Container label={translate('title', { platform: platformLabel })}>
         <div className="mx-auto flex max-w-xl flex-col items-center gap-4">
-          <EmptyStateCard
+          <EmptyState
+            surface="card"
             title={translate('empty.title', { platform: platformLabel })}
             icon={Plug}
             action={{

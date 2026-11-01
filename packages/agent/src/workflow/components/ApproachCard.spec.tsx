@@ -92,14 +92,11 @@ describe('ApproachCard', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('marks the selected card visually', () => {
+  it('announces the selected card as pressed', () => {
     render(
       <ApproachCard approach={makeApproach()} isSelected onSelect={vi.fn()} />,
     );
 
-    expect(screen.getByRole('button')).toHaveClass(
-      'bg-info/10',
-      'shadow-border-strong',
-    );
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
   });
 });

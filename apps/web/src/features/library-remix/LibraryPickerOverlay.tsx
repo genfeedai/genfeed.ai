@@ -8,10 +8,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { Tabs } from '@ui/primitives/tabs';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
@@ -155,20 +156,12 @@ export default function LibraryPickerOverlay({
         ) : null}
 
         {state.status === 'empty' ? (
-          <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center">
-            <FolderOpen
-              aria-hidden="true"
-              className="size-8 text-muted-foreground"
-            />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                No {category} available
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add media in full Library management, then return here.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            className="min-h-56"
+            description="Add media in full Library management, then return here."
+            icon={FolderOpen}
+            title={`No ${category} available`}
+          />
         ) : null}
 
         {state.status === 'ready' ? (

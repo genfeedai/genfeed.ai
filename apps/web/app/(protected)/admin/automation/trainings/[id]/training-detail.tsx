@@ -2,7 +2,12 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  ModalEnum,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
@@ -142,7 +147,7 @@ export default function TrainingDetail({
     return (
       <>
         <Container>
-          <Card className="p-12 text-center">
+          <Card padding={CardPadding.XL} isCentered>
             <div className="mx-auto mb-4 size-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <span className="text-2xl text-destructive">!</span>
             </div>

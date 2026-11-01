@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Tabs } from '@ui/primitives/tabs';
 import { Maximize2, Sparkles } from 'lucide-react';
 import {
   type ReactElement,

@@ -166,11 +166,11 @@ describe('MenuBrandSwitcher', () => {
     );
 
     const trigger = screen.getByTestId('brand-switcher-trigger');
-    const avatar = trigger.querySelector('div');
+    const avatar = trigger.querySelector('[data-shape]');
 
     expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2.5', 'rounded-md');
-    expect(avatar).toHaveClass('size-5', 'rounded-md');
-    expect(avatar).not.toHaveClass('rounded-full');
+    expect(avatar).toHaveAttribute('data-shape', 'square');
+    expect(avatar).toHaveAttribute('data-size', 'xs');
   });
 
   it('exposes the brand-switcher-trigger testid showing the brand label (E2E contract)', () => {

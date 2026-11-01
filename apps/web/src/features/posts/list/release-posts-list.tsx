@@ -1,5 +1,4 @@
 'use client';
-
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   PageScope,
@@ -20,10 +19,7 @@ import {
   getPublishingPostHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -33,10 +29,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -98,7 +95,10 @@ export interface ReleasePostsListProps extends ContentProps {
 }
 
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
-const VIEW_MODE_TO_VIEW_TYPE: Record<PublishingPostsViewMode, ViewType> = {
+const VIEW_MODE_TO_VIEW_TYPE: Record<
+  PublishingPostsViewMode,
+  ViewType.GRID | ViewType.KANBAN | ViewType.LIST
+> = {
   board: ViewType.KANBAN,
   grid: ViewType.GRID,
   list: ViewType.LIST,
@@ -601,7 +601,7 @@ export default function ReleasePostsList({
       ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
-        <EmptyStateCard title={translate('empty.label')} />
+        <EmptyState surface="card" title={translate('empty.label')} />
       ) : (
         <Table
           items={data.releases}
@@ -673,12 +673,12 @@ export default function ReleasePostsList({
             {
               key: 'scheduledDate',
               header: 'Scheduled',
-              render: (release) => {
-                const next = releaseNextInstant(release);
-                return next
-                  ? formatDateInTimezone(next, browserTimezone, 'short')
-                  : '—';
-              },
+              render: (release) => (
+                <TableDateCell
+                  timeZone={browserTimezone}
+                  value={releaseNextInstant(release)}
+                />
+              ),
             },
           ]}
           renderRowActions={(release) => (

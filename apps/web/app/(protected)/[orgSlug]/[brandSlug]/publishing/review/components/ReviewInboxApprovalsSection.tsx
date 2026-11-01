@@ -2,7 +2,7 @@ import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/glo
 import type { IReviewInboxItem } from '@genfeedai/contracts/interfaces';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -115,7 +115,8 @@ export default function ReviewInboxApprovalsSection({
 
   if (approvals.error) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={TriangleAlert}
         title={translate('loadFailed')}
         className="mx-auto mb-6 max-w-xl"

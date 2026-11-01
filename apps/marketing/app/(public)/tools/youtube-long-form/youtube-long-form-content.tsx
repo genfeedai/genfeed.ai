@@ -10,6 +10,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { Sparkles } from 'lucide-react';
@@ -176,28 +177,21 @@ export default function YoutubeLongFormContent(): React.ReactElement {
 
           <fieldset className="grid gap-3">
             <legend className="text-sm font-semibold">Output format</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <OptionTileGroup
+              ariaLabel="Output format"
+              columns={2}
+              onValueChange={setOutputType}
+              value={outputType}
+            >
               {OUTPUT_OPTIONS.map((option) => (
-                <div className="grid gap-2" key={option.value}>
-                  <Button
-                    ariaLabel={`Select ${option.label}`}
-                    label={option.label}
-                    onClick={() => setOutputType(option.value)}
-                    size={ButtonSize.PUBLIC}
-                    type="button"
-                    variant={
-                      outputType === option.value
-                        ? ButtonVariant.DEFAULT
-                        : ButtonVariant.SECONDARY
-                    }
-                    withWrapper={false}
-                  />
-                  <Text className="text-xs leading-5 text-foreground/60">
-                    {option.description}
-                  </Text>
-                </div>
+                <OptionTile
+                  description={option.description}
+                  key={option.value}
+                  title={option.label}
+                  value={option.value}
+                />
               ))}
-            </div>
+            </OptionTileGroup>
           </fieldset>
 
           {error ? (

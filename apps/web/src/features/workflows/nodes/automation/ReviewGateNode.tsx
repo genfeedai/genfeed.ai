@@ -10,16 +10,16 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
+import { SegmentedControl } from '@ui/primitives/segmented-control';
 import type { NodeProps } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { NodeBadge } from '@/features/workflows/components/ui/badge';
+import { NodeButton } from '@/features/workflows/components/ui/button';
 import {
-  NodeButton,
-  SelectableButton,
-} from '@/features/workflows/components/ui/button';
-import {
-  NodeCard,
   NodeDescription,
   NodeHeader,
 } from '@/features/workflows/components/ui/card';
@@ -48,36 +48,41 @@ function getStatusBadge(
     {
       icon: React.JSX.Element;
       label: string;
-      variant: 'green' | 'orange' | 'red' | 'yellow';
+      variant: 'destructive' | 'success' | 'warning';
     }
   > = {
     [ReviewGateStatus.APPROVED]: {
-      icon: <CheckIcon className="size-4" />,
+      icon: <CheckIcon />,
       label: 'Approved',
-      variant: 'green' as const,
+      variant: 'success' as const,
     },
     [ReviewGateStatus.PENDING]: {
-      icon: <ClockIcon className="size-4" />,
+      icon: <ClockIcon />,
       label: 'Pending',
-      variant: 'orange' as const,
+      variant: 'warning' as const,
     },
     [ReviewGateStatus.REJECTED]: {
-      icon: <XIcon className="size-4" />,
+      icon: <XIcon />,
       label: 'Rejected',
-      variant: 'red' as const,
+      variant: 'destructive' as const,
     },
     [ReviewGateStatus.TIMEOUT]: {
-      icon: <ClockIcon className="size-4" />,
+      icon: <ClockIcon />,
       label: 'Timeout',
-      variant: 'yellow' as const,
+      variant: 'warning' as const,
     },
   };
   const badge = badges[status];
   return (
-    <NodeBadge variant={badge.variant}>
-      {badge.icon}
+    <Badge
+      casing="normal"
+      icon={badge.icon}
+      shape="pill"
+      size="lg"
+      variant={badge.variant}
+    >
       {badge.label}
-    </NodeBadge>
+    </Badge>
   );
 }
 
@@ -104,6 +109,7 @@ const CHANNEL_CONFIG: Record<
 };
 
 function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
+  const selectionLabels = useTranslations('ui.selectionGroups');
   const { id } = props;
   const data = coerceNodeData<ReviewGateNodeData>(
     props.data,
@@ -112,15 +118,11 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const { getService } = useNodeExecution();
 
-  const handleNotifyChannelToggle = useCallback(
-    (channel: NotificationChannel) => {
-      const current = data.notifyChannels || [];
-      const updated = current.includes(channel)
-        ? current.filter((c) => c !== channel)
-        : [...current, channel];
-      updateNodeData(id, { notifyChannels: updated });
+  const handleNotifyChannelsChange = useCallback(
+    (channels: NotificationChannel[]) => {
+      updateNodeData(id, { notifyChannels: channels });
     },
-    [id, data.notifyChannels, updateNodeData],
+    [id, updateNodeData],
   );
 
   const handleInputChange = useCallback(
@@ -236,7 +238,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
     isPending && hasReviewInput && Boolean(data.approvalId);
 
   return (
-    <NodeCard minWidth="300px">
+    <Card className="min-w-[300px]">
       <NodeHeader
         icon={<ShieldCheckIcon className="size-4" />}
         title="Review Gate"
@@ -265,23 +267,19 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       {isPending && (
         <div className="space-y-2">
           <span className="text-xs text-muted-foreground">Notify via</span>
-          <div className="flex gap-2">
-            {(
-              Object.entries(CHANNEL_CONFIG) as [
-                NotificationChannel,
-                (typeof CHANNEL_CONFIG)[NotificationChannel],
-              ][]
-            ).map(([channel, config]) => (
-              <SelectableButton
-                key={channel}
-                selected={data.notifyChannels?.includes(channel) ?? false}
-                onClick={() => handleNotifyChannelToggle(channel)}
-                icon={config.icon}
-              >
-                {config.label}
-              </SelectableButton>
-            ))}
-          </div>
+          <SegmentedControl
+            appearance="chip"
+            ariaLabel={selectionLabels('notifyVia')}
+            onValueChange={handleNotifyChannelsChange}
+            options={Object.values(NotificationChannel).map((channel) => ({
+              icon: CHANNEL_CONFIG[channel].icon,
+              label: CHANNEL_CONFIG[channel].label,
+              value: channel,
+            }))}
+            size="sm"
+            type="multiple"
+            value={data.notifyChannels ?? []}
+          />
 
           {data.notifyChannels?.includes(NotificationChannel.EMAIL) && (
             <NodeInput
@@ -380,11 +378,11 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {data.error && !isErrorShownAsRejectionReason && (
-        <div className="rounded border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive">
+        <Alert size="sm" variant="destructive">
           {data.error}
-        </div>
+        </Alert>
       )}
-    </NodeCard>
+    </Card>
   );
 }
 

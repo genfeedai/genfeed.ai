@@ -2,20 +2,24 @@
 
 import type { IEvaluation } from '@genfeedai/client/models';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IImage, IMetadata, ITag } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IMetadata,
+  ITag,
+  TabItem,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import LoadingOverlay from '@ui/primitives/loading-overlay';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import EvaluationCard from '@/components/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@/features/ingredients/components/detail/shared/IngredientWorkspacePanel';
 import IngredientTabsPrompts from '@/features/ingredients/components/ingredients/tabs/prompts/IngredientTabsPrompts';
-import LoadingOverlay from '@/features/ingredients/components/loading/overlay/LoadingOverlay';
 import IngredientTabsChildren from '@/features/ingredients/components/tabs/children/IngredientTabsChildren';
 import IngredientTabsInfo from '@/features/ingredients/components/tabs/info/IngredientTabsInfo';
 import IngredientTabsMetadata from '@/features/ingredients/components/tabs/metadata/IngredientTabsMetadata';

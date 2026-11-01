@@ -1,5 +1,4 @@
 'use client';
-
 import { ViewType } from '@genfeedai/contracts';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { EmptyState } from '@ui/primitives/empty-state';

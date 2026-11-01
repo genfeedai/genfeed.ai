@@ -5,7 +5,7 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EditSettingModal } from '@protected/organizations/components/edit-setting-modal';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import Table from '@ui/display/table/Table';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -262,7 +262,7 @@ export function OrganizationSettingsTable({
   );
 
   if (!isLoading && !settings) {
-    return <EmptyStateCard title="No settings found" />;
+    return <EmptyState surface="card" title="No settings found" />;
   }
 
   return (

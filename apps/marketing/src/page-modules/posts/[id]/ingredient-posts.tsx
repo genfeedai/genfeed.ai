@@ -8,7 +8,7 @@ import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
-import { EmptyStateCard } from '@ui/primitives/empty-state';
+import { EmptyState } from '@ui/primitives/empty-state';
 import PublicListPage from '@web-components/content/PublicListPage';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -29,7 +29,7 @@ export default function IngredientPosts({
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
       <PublicListPage>
-        <EmptyStateCard title="Ingredient not found" />
+        <EmptyState surface="card" title="Ingredient not found" />
       </PublicListPage>
     );
   }
@@ -105,7 +105,7 @@ export default function IngredientPosts({
       </div>
 
       {posts.length === 0 ? (
-        <EmptyStateCard title={EMPTY_STATES.POSTS_YET} />
+        <EmptyState surface="card" title={EMPTY_STATES.POSTS_YET} />
       ) : (
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">
@@ -114,10 +114,7 @@ export default function IngredientPosts({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {posts.map((post) => (
-              <Card
-                key={post.id}
-                className="p-4 hover:shadow-lg transition-shadow duration-300"
-              >
+              <Card key={post.id} isInteractive>
                 <div className="flex flex-col gap-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold truncate flex-1">
