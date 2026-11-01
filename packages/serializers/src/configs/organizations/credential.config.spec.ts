@@ -56,8 +56,10 @@ describe('credential serializer platform contract', () => {
         platform: 'TWITTER',
       });
 
-      expect(output.data.attributes.directMessageCapability).toBe(expected);
-      expect(output.data.attributes).not.toHaveProperty('grantedScopes');
+      expect(output.data).toMatchObject({
+        attributes: { directMessageCapability: expected },
+      });
+      expect(output.data).not.toHaveProperty('attributes.grantedScopes');
     },
   );
 });
