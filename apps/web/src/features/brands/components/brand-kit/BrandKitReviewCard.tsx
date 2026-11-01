@@ -222,7 +222,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
             ariaLabel={
               isScanning ? 'Scanning brand sources' : draft ? 'Rescan' : 'Scan'
             }
-            className="h-8 shrink-0 px-3 text-xs"
+            className="h-8 shrink-0 px-3"
             isDisabled={!websiteUrl.trim()}
             isLoading={isScanning}
             label={draft ? 'Rescan' : 'Scan'}

@@ -20,7 +20,13 @@ import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { ChevronDown, ChevronUp, CircleCheck, CirclePlus, RotateCcw } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  CircleCheck,
+  CirclePlus,
+  RotateCcw,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';

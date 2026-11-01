@@ -14,4 +14,5 @@ export * from '@serializers/configs/organizations/organization-apps-report.confi
 export * from '@serializers/configs/organizations/organization-settings.config';
 export * from '@serializers/configs/organizations/organizations-report.config';
 export * from '@serializers/configs/organizations/profile.config';
+export * from '@serializers/configs/organizations/publish-pipeline.config';
 export * from './brand-font-asset.config';

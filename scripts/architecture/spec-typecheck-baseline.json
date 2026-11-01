@@ -7681,14 +7681,6 @@
       "workspace": "web"
     },
     {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/web/src/features/posts/components/evaluation/badge/EvaluationBadge.test.tsx",
-      "fingerprint": "ed95a88cc1c8fd97052b",
-      "message": "Property 'score' is missing in type '{}' but required in type 'EvaluationBadgeProps'.",
-      "workspace": "web"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/web/src/features/posts/detail/post-detail-preview.helpers.test.ts",

@@ -6,6 +6,7 @@ import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-ico
 import type { PlatformTabBarProps } from '@props/content/platform-tab-bar.props';
 import { Button } from '@ui/primitives/button';
 import { Tabs } from '@ui/primitives/tabs';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -41,10 +42,11 @@ export default function PlatformTabBar({
 
         return {
           badge: (
-            <span
-              className={`size-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
-              title={post.status}
-            />
+            <SimpleTooltip label={post.status}>
+              <span
+                className={`size-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
+              />
+            </SimpleTooltip>
           ),
           icon: Icon,
           id: post.platform,

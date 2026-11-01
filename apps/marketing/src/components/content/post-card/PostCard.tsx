@@ -6,6 +6,7 @@ import { formatDate } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Calendar, CalendarCheck, ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
 
@@ -59,16 +60,17 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
       className={`group ${className}`}
       actions={
         externalUrl ? (
-          <a
-            href={externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm font-medium transition-colors gap-2"
-            title="View"
-          >
-            <ExternalLink />
-            View
-          </a>
+          <SimpleTooltip label="View">
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm font-medium transition-colors gap-2"
+            >
+              <ExternalLink />
+              View
+            </a>
+          </SimpleTooltip>
         ) : undefined
       }
     >

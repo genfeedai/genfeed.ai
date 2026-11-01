@@ -9,7 +9,7 @@ import type {
 } from '@genfeedai/props/ui/agent-output-shell.props';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
 import { Button } from '@ui/primitives/button';
-import { Expand, SquarePen } from 'lucide-react';
+import { Expand, History, SquarePen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
@@ -20,15 +20,17 @@ const CONTEXT_TAB_ID = 'context';
 /**
  * The page-facing half of the shared agent + output layout. A page wraps its
  * output in this and gets the agent on the left (the shell's conversation, or
- * its own agent) and the output on the right with Threads and Context tabs.
+ * its own agent) and the output on the right. There is no tab strip: Context
+ * opens from the topbar's icon, and Threads from the History button in the
+ * agent header.
  *
  * Only routes the workspace shell has opted out of the dock for publish the
  * host; anywhere else this renders the output alone, so a page never shows two
  * agents.
  *
  * Detail the page used to push into the global right panel (`ContextSidebarPanel`)
- * opens in the Context tab here, inside the output pane, so the page stays two
- * columns instead of three.
+ * opens as Context here, inside the output pane, so the page stays two columns
+ * instead of three.
  */
 export default function AgentOutputShell({
   agent,
@@ -42,21 +44,22 @@ export default function AgentOutputShell({
   const host = useAgentOutputHost();
   const contextSidebar = useContextSidebar();
   const translate = useTranslations('common.agentOutput');
-  const [activeTabId, setActiveTabId] = useState(OUTPUT_TAB_ID);
+  const [isThreadsOpen, setIsThreadsOpen] = useState(false);
 
   const selection = contextSidebar?.selection ?? null;
   const selectionKey = selection ? `${selection.kind}:${selection.id}` : null;
   // Only a record the operator picked takes the pane; one the page selected
-  // on its own stays a tab away so the output stays where it was.
+  // on its own stays out of the way so the output stays where it was.
   const isUserSelectionOpen =
     selection?.origin === 'user' &&
     (Boolean(contextSidebar?.isOpen) || Boolean(contextSidebar?.isMobileOpen));
   // A selection already registered when the shell mounts belongs to the page
   // the operator just left (the sidebar state outlives a route change), so it
-  // must not pull this page onto an empty Context tab.
+  // must not pull this page onto an empty Context view.
   const carriedSelectionKeyRef = useRef(selectionKey);
+  const onOpenContext = host?.onOpenContext;
   // A new selection brings its detail forward; the operator can still step
-  // back to the output while it stays selected.
+  // back to the output with the topbar's Context icon.
   useEffect(() => {
     if (!selectionKey) {
       carriedSelectionKeyRef.current = null;
@@ -66,9 +69,9 @@ export default function AgentOutputShell({
       isUserSelectionOpen &&
       selectionKey !== carriedSelectionKeyRef.current
     ) {
-      setActiveTabId(CONTEXT_TAB_ID);
+      onOpenContext?.();
     }
-  }, [isUserSelectionOpen, selectionKey]);
+  }, [isUserSelectionOpen, onOpenContext, selectionKey]);
 
   if (!host) {
     return <>{children}</>;
@@ -76,6 +79,11 @@ export default function AgentOutputShell({
 
   const hasOwnAgent = agent !== undefined;
   const resolvedTitle = agentTitle ?? host.agentTitle ?? translate('agent');
+  const activeTabId = host.isContextOpen
+    ? CONTEXT_TAB_ID
+    : isThreadsOpen && !hasOwnAgent
+      ? THREADS_TAB_ID
+      : OUTPUT_TAB_ID;
   const tabs: AgentOutputTabDefinition[] = [
     {
       content: children,
@@ -110,12 +118,23 @@ export default function AgentOutputShell({
           {hasOwnAgent ? null : (
             <>
               <Button
+                ariaLabel={translate('threads')}
+                aria-pressed={isThreadsOpen}
+                data-testid="agent-output-threads-toggle"
+                icon={<History className="size-4" />}
+                onClick={() => setIsThreadsOpen((current) => !current)}
+                size={ButtonSize.SM}
+                tooltip={translate('threads')}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+              <Button
                 ariaLabel={translate('newThread')}
                 data-testid="agent-output-new-thread"
                 icon={<SquarePen className="size-4" />}
                 onClick={() => {
                   host.onNewThread();
-                  setActiveTabId(OUTPUT_TAB_ID);
+                  setIsThreadsOpen(false);
                 }}
                 size={ButtonSize.SM}
                 tooltip={translate('newThread')}
@@ -147,7 +166,6 @@ export default function AgentOutputShell({
         output: translate('output'),
       }}
       mode={mode}
-      onTabChange={setActiveTabId}
       tabs={tabs}
     />
   );

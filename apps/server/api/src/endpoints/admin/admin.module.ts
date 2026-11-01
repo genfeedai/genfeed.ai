@@ -11,6 +11,7 @@ import { AdminOrganizationCreditsModule } from '@api/endpoints/admin/organizatio
 import { AdminOrganizationMembersModule } from '@api/endpoints/admin/organization-members/organization-members.module';
 import { AdminOrganizationsReportModule } from '@api/endpoints/admin/organizations-report/organizations-report.module';
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
+import { AdminPublishPipelineModule } from '@api/endpoints/admin/publish-pipeline/publish-pipeline.module';
 import { AdminSeedsModule } from '@api/endpoints/admin/seeds/seeds.module';
 import { AdminSystemBrandModule } from '@api/endpoints/admin/system-brand/system-brand.module';
 import { AdminSystemEmailsModule } from '@api/endpoints/admin/system-emails/system-emails.module';
@@ -39,6 +40,7 @@ import { Module } from '@nestjs/common';
     AdminOrganizationCreditsModule,
     AdminOrganizationMembersModule,
     AdminOrganizationsReportModule,
+    AdminPublishPipelineModule,
     AdminUnitEconomicsModule,
   ],
 })

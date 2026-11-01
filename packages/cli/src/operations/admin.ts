@@ -6,6 +6,7 @@ import type {
   IOnboardingFunnelReport,
   IOrganizationAppsReport,
   IOrganizationsReport,
+  IPublishPipelineReport,
   ISystemNotificationOverview,
   ITraining,
   ModelPricingAttentionLevel,
@@ -395,6 +396,12 @@ export async function readTrainingsReport(): Promise<AdminTrainingsReport> {
 export async function readOnboardingFunnel(days: number): Promise<IOnboardingFunnelReport> {
   return flattenSingle<IOnboardingFunnelReport>(
     await adminGet<JsonApiDocument>(`/admin/onboarding-funnel?days=${days}`)
+  );
+}
+
+export async function readPublishPipeline(days: number): Promise<IPublishPipelineReport> {
+  return flattenSingle<IPublishPipelineReport>(
+    await adminGet<JsonApiDocument>(`/admin/publish-pipeline?days=${days}`)
   );
 }
 

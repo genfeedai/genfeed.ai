@@ -28,7 +28,6 @@ export default function AgentOutputLayout({
   isOutputExpandable = false,
   labels,
   mode = 'split',
-  onTabChange,
   tabs,
 }: AgentOutputLayoutProps) {
   const [mobileView, setMobileView] = useState<MobileView>('agent');
@@ -36,6 +35,8 @@ export default function AgentOutputLayout({
   const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const isRail = mode === 'rail' && !isRailExpanded;
   const isAgentHidden = isOutputExpandable && isOutputExpanded;
+  const hasAgentHeader = agentHeader !== undefined || mode === 'rail';
+  const hasOutputHeader = Boolean(headerActions) || isOutputExpandable;
 
   return (
     <div
@@ -78,34 +79,36 @@ export default function AgentOutputLayout({
           )}
           data-testid="agent-output-agent-pane"
         >
-          <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              {agentHeader}
-            </div>
-            {mode === 'rail' ? (
-              <Button
-                ariaLabel={
-                  isRailExpanded ? labels.collapseAgent : labels.expandAgent
-                }
-                className="max-xl:hidden"
-                data-testid="agent-output-rail-toggle"
-                icon={
-                  isRailExpanded ? (
-                    <Minimize2 className="size-4" />
-                  ) : (
-                    <Maximize2 className="size-4" />
-                  )
-                }
-                onClick={() => setIsRailExpanded((current) => !current)}
-                size={ButtonSize.SM}
-                tooltip={
-                  isRailExpanded ? labels.collapseAgent : labels.expandAgent
-                }
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            ) : null}
-          </header>
+          {hasAgentHeader ? (
+            <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {agentHeader}
+              </div>
+              {mode === 'rail' ? (
+                <Button
+                  ariaLabel={
+                    isRailExpanded ? labels.collapseAgent : labels.expandAgent
+                  }
+                  className="max-xl:hidden"
+                  data-testid="agent-output-rail-toggle"
+                  icon={
+                    isRailExpanded ? (
+                      <Minimize2 className="size-4" />
+                    ) : (
+                      <Maximize2 className="size-4" />
+                    )
+                  }
+                  onClick={() => setIsRailExpanded((current) => !current)}
+                  size={ButtonSize.SM}
+                  tooltip={
+                    isRailExpanded ? labels.collapseAgent : labels.expandAgent
+                  }
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
+            </header>
+          ) : null}
           <div className="flex min-h-0 flex-1 flex-col">{agent}</div>
         </section>
 
@@ -117,17 +120,8 @@ export default function AgentOutputLayout({
           )}
           data-testid="agent-output-output-pane"
         >
-          <header className="flex min-h-12 shrink-0 items-center gap-2 border-b border-border px-4 py-2">
-            <Tabs
-              activeTab={activeTabId}
-              ariaLabel={labels.output}
-              className="ml-0 min-w-0 flex-1 justify-start"
-              fullWidth={false}
-              listClassName="mr-auto"
-              onTabChange={onTabChange}
-              tabs={tabs.map(({ id, label }) => ({ id, label }))}
-            />
-            <div className="ml-auto flex items-center gap-2 empty:hidden">
+          {hasOutputHeader ? (
+            <header className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-b border-border px-4 py-2">
               {headerActions}
               {isOutputExpandable ? (
                 <Button
@@ -156,8 +150,8 @@ export default function AgentOutputLayout({
                   withWrapper={false}
                 />
               ) : null}
-            </div>
-          </header>
+            </header>
+          ) : null}
           {/* Every tab stays mounted: the page output keeps its scroll and
               unsaved edits while Threads or Context is showing. */}
           {tabs.map((tab) => (

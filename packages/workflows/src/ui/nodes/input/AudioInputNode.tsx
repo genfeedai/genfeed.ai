@@ -168,7 +168,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             size={ButtonSize.SM}
             onClick={handleUrlSubmit}
             disabled={!urlValue.trim()}
-            className="h-7 px-2 text-xs"
+            className="h-7 px-2"
           >
             Load
           </Button>

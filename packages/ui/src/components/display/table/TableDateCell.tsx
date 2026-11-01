@@ -2,6 +2,7 @@
 
 import { useViewerTimeZone } from '@genfeedai/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
 import type { TableDateCellProps } from '@genfeedai/props/ui/display/table-date-cell.props';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 
 const EMPTY_CELL = '-';
 
@@ -54,13 +55,14 @@ export default function TableDateCell({
   }).format(date);
 
   return (
-    <time
-      className="whitespace-nowrap text-xs tabular-nums text-muted-foreground"
-      dateTime={date.toISOString()}
-      suppressHydrationWarning
-      title={fullLabel}
-    >
-      {label}
-    </time>
+    <SimpleTooltip label={fullLabel}>
+      <time
+        className="whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+        dateTime={date.toISOString()}
+        suppressHydrationWarning
+      >
+        {label}
+      </time>
+    </SimpleTooltip>
   );
 }

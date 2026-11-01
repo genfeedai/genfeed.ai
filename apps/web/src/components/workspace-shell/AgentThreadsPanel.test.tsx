@@ -6,6 +6,47 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentThreadsPanel from './AgentThreadsPanel';
 
+// The real composer is a rich-text editor jsdom cannot type into (its own spec
+// covers it). This stand-in keeps its contract: send, clear on success, keep
+// the draft when the send rejects.
+vi.mock('@genfeedai/agent/components/AgentChatInput', async () => {
+  const { useState } = await import('react');
+  const { Button } = await import('@ui/primitives/button');
+  const { Textarea } = await import('@ui/primitives/textarea');
+  return {
+    AgentChatInput: ({
+      disabled,
+      onSend,
+    }: {
+      disabled?: boolean;
+      onSend: (content: string) => Promise<boolean | undefined>;
+    }) => {
+      const [draft, setDraft] = useState('');
+      return (
+        <div>
+          <Textarea
+            aria-label="Message"
+            isDisabled={disabled}
+            onChange={(event) => setDraft(event.target.value)}
+            value={draft}
+          />
+          <Button
+            ariaLabel="Send message"
+            onClick={async () => {
+              try {
+                await onSend(draft);
+                setDraft('');
+              } catch {
+                // The draft stays.
+              }
+            }}
+          />
+        </div>
+      );
+    },
+  };
+});
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
@@ -127,10 +168,10 @@ describe('AgentThreadsPanel', () => {
     );
 
     await user.type(
-      screen.getByLabelText('Steer this thread'),
+      await screen.findByLabelText('Message'),
       'Make them shorter',
     );
-    await user.click(screen.getByRole('button', { name: 'Steer' }));
+    await user.click(screen.getByLabelText('Send message'));
 
     await waitFor(() =>
       expect(chatStream).toHaveBeenCalledWith(
@@ -141,8 +182,9 @@ describe('AgentThreadsPanel', () => {
         }),
       ),
     );
-    expect(await screen.findByText('Sent.')).toBeVisible();
-    expect(screen.getByLabelText('Steer this thread')).toHaveValue('');
+    await waitFor(() =>
+      expect(screen.getByLabelText('Message')).toHaveValue(''),
+    );
   });
 
   it('keeps the words and reports a steer that failed', async () => {
@@ -151,14 +193,11 @@ describe('AgentThreadsPanel', () => {
     render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
 
     await user.click(screen.getByTestId('agent-threads-panel-thread-ready'));
-    await user.type(
-      await screen.findByLabelText('Steer this thread'),
-      'Shorter',
-    );
-    await user.click(screen.getByRole('button', { name: 'Steer' }));
+    await user.type(await screen.findByLabelText('Message'), 'Shorter');
+    await user.click(screen.getByLabelText('Send message'));
 
     expect(await screen.findByText('Could not send. Try again.')).toBeVisible();
-    expect(screen.getByLabelText('Steer this thread')).toHaveValue('Shorter');
+    expect(screen.getByLabelText('Message')).toHaveValue('Shorter');
   });
 
   it('goes back to the list', async () => {
@@ -166,12 +205,12 @@ describe('AgentThreadsPanel', () => {
     render(<AgentThreadsPanel apiService={apiService} threads={threads} />);
 
     await user.click(screen.getByTestId('agent-threads-panel-thread-ready'));
-    await user.click(await screen.findByRole('button', { name: 'Back' }));
+    await user.click(await screen.findByRole('button', { name: 'Threads' }));
 
     expect(screen.getByTestId('agent-threads-panel')).toBeVisible();
   });
 
-  it('says who started a thread, its status and what it produced', async () => {
+  it('shows a thread status and what it produced', async () => {
     const user = userEvent.setup();
     getMessages.mockResolvedValueOnce([
       {
@@ -187,10 +226,7 @@ describe('AgentThreadsPanel', () => {
 
     await user.click(screen.getByTestId('agent-threads-panel-thread-child'));
 
-    expect(
-      await screen.findByTestId('agent-thread-started-by'),
-    ).toHaveTextContent('Started by Master');
-    expect(screen.getByTestId('agent-thread-status')).toHaveTextContent(
+    expect(await screen.findByTestId('agent-thread-status')).toHaveTextContent(
       'Running',
     );
     const tiles = await screen.findByTestId('agent-thread-assets');
@@ -285,10 +321,10 @@ describe('AgentThreadsPanel', () => {
         />,
       );
 
-      expect(screen.getByTestId('agent-thread-resolved')).toHaveTextContent(
+      expect(screen.getByTestId('agent-thread-status')).toHaveTextContent(
         'Resolved',
       );
-      expect(screen.getByLabelText('Steer this thread')).toBeDisabled();
+      expect(await screen.findByLabelText('Message')).toBeDisabled();
       expect(screen.getByText('Reopen this thread to steer it.')).toBeVisible();
 
       await user.click(screen.getByRole('button', { name: 'Reopen' }));

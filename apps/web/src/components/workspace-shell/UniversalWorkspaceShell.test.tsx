@@ -1578,12 +1578,17 @@ describe('UniversalWorkspaceShell', () => {
       ).toBeVisible();
       const outputPane = screen.getByTestId('agent-output-output-pane');
       expect(within(outputPane).getByText('Board output')).toBeVisible();
-      expect(
-        within(outputPane).getByRole('tab', { name: 'Threads' }),
-      ).toBeVisible();
-      expect(
-        within(outputPane).getByRole('tab', { name: 'Context' }),
-      ).toBeVisible();
+      // No tab strip on the output: Context is the topbar's icon, which swaps
+      // the pane and puts the board back when pressed again.
+      expect(within(outputPane).queryByRole('tab')).toBeNull();
+      expect(dock?.panel?.canShowContext).toBe(true);
+      act(() => dock?.panel?.selectView('details'));
+      expect(await within(outputPane).findByText('Current page')).toBeVisible();
+      expect(within(outputPane).getByText('Board output')).not.toBeVisible();
+      act(() => dock?.panel?.close());
+      await waitFor(() =>
+        expect(within(outputPane).getByText('Board output')).toBeVisible(),
+      );
     });
 
     it('opens a selected record inside the output pane of a split page', async () => {
@@ -1612,11 +1617,9 @@ describe('UniversalWorkspaceShell', () => {
 
       const outputPane = await screen.findByTestId('agent-output-output-pane');
       await waitFor(() =>
-        expect(
-          within(outputPane).getByRole('tab', { name: 'Context' }),
-        ).toHaveAttribute('data-state', 'active'),
+        expect(within(outputPane).getByText('Shot 3 detail')).toBeVisible(),
       );
-      expect(within(outputPane).getByText('Shot 3 detail')).toBeVisible();
+      expect(within(outputPane).getByText('Board output')).not.toBeVisible();
       // Detail never opens the global right rail on a split page.
       expect(
         container.querySelector('#workspace-context-inspector'),

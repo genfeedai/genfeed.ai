@@ -319,23 +319,24 @@ test.describe('Agent master thread and Threads panel', () => {
         .getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`),
     ).toBeVisible();
 
-    // Open a thread: it reads in place and says the master started it.
+    // One conversation design on both sides: no tab strip over the threads and
+    // no "Master" header over the conversation.
+    await expect(output.getByRole('tab')).toHaveCount(0);
+    await expect(agent.locator(':scope > header')).toHaveCount(0);
+
+    // Open a thread: it reads in place.
     await panel.getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`).click();
     const lightView = output.getByTestId('agent-thread-light-view');
     await expect(lightView).toBeVisible();
-    await expect(
-      lightView.getByTestId('agent-thread-started-by'),
-    ).toBeVisible();
     await expect(lightView).toContainText(
       'Five slides drafted, ready for your review.',
     );
 
     // Steer it without leaving the page.
-    await lightView
-      .getByRole('textbox', { name: 'Steer this thread' })
-      .fill('Make slide 3 shorter');
-    await lightView.getByRole('button', { name: 'Steer', exact: true }).click();
-    await expect(lightView.getByRole('status')).toHaveText('Sent.');
+    const steerBox = lightView.getByRole('textbox');
+    await steerBox.fill('Make slide 3 shorter');
+    await lightView.getByRole('button', { name: 'Send message' }).click();
+    await expect(steerBox).toHaveText('');
     expect(mock.steers).toHaveLength(1);
     expect(mock.steers[0]).toMatchObject({
       content: 'Make slide 3 shorter',
@@ -345,8 +346,16 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(page).toHaveURL(/\/agent\/?$/);
 
     // Back to the list.
-    await lightView.getByRole('button', { name: 'Back' }).click();
+    await lightView.getByRole('button', { name: 'Threads' }).click();
     await expect(lightView).toHaveCount(0);
+    await expect(panel).toBeVisible();
+
+    // Context opens from the topbar icon, swapping the right side, and the
+    // same icon brings the threads back.
+    await page.getByTestId('topbar-context-toggle').click();
+    await expect(output.getByTestId('workspace-agent-context')).toBeVisible();
+    await expect(panel).toBeHidden();
+    await page.getByTestId('topbar-context-toggle').click();
     await expect(panel).toBeVisible();
     expect(pageErrors).toEqual([]);
   });

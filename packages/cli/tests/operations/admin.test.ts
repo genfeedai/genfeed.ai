@@ -23,6 +23,7 @@ import {
   readOrganizationAppsReport,
   readOrganizationBrand,
   readOrganizationsReport,
+  readPublishPipeline,
   readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
@@ -193,6 +194,15 @@ describe('operations/admin', () => {
       2,
       '/admin/organizations?page=2&limit=100&includeDeleted=true'
     );
+  });
+
+  it('reads the publish pipeline for the requested window', async () => {
+    mockAdminGet.mockResolvedValueOnce({ data: { windowDays: 2 } });
+
+    const result = await readPublishPipeline(2);
+
+    expect(result).toEqual({ windowDays: 2 });
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/publish-pipeline?days=2');
   });
 
   it('reads the onboarding funnel for the requested window', async () => {

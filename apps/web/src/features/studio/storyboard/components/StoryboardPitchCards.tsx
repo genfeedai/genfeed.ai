@@ -29,6 +29,7 @@ export default function StoryboardPitchCards({
         const title = translate(`items.${pitch.id}.title`);
         const isActive = activePitchId === pitch.id;
         return (
+          // ui-guard-allow:unstyled-look -- pitch card is a card-shaped prefill action, not a selection group
           <Button
             aria-pressed={isActive}
             ariaLabel={translate('prefillAria', { title })}

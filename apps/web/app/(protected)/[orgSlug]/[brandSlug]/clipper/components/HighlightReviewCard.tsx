@@ -229,7 +229,7 @@ export default function HighlightReviewCard({
           {/* Make it viral button */}
           <Button
             variant={ButtonVariant.DEFAULT}
-            className="flex items-center gap-1 rounded px-3 py-1 text-2xs font-medium"
+            className="flex items-center gap-1 rounded px-3 py-1 text-2xs"
             onClick={handleViralRewrite}
             disabled={isRewriting}
           >

@@ -223,7 +223,7 @@ export function ReviewGateCard({
             size={ButtonSize.SM}
             onClick={handleReject}
             isDisabled={!isDecisionAvailable || selected.size === 0}
-            className="bg-destructive/10 text-destructive hover:bg-destructive/10  "
+            className="bg-destructive/10 hover:bg-destructive/10"
           >
             <X className="size-3.5" />
             {translate('reject', { count: selected.size })}

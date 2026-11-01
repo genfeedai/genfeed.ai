@@ -10,7 +10,8 @@ function readTrends(relativePath: string): string {
 
 describe('trends semantic theme surfaces', () => {
   it.each([
-    ['detail/trend-detail.tsx', 'border-white', 'border-border'],
+    // Its error states delegate their surface to `@ui/primitives/alert`.
+    ['detail/trend-detail.tsx', 'border-white', null],
     ['detail/trend-detail-analysis-card.tsx', 'border-white', 'border-border'],
     // Delegates its border to `@ui/card/Card`.
     [

@@ -36,7 +36,6 @@ export function WorkspaceTaskOutputsCard({
             asChild
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="font-semibold"
           >
             <Link href={href(APP_ROUTES.LIBRARY.ASSETS)}>Open library</Link>
           </Button>

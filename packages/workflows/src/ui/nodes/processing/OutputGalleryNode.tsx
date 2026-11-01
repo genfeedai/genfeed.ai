@@ -171,11 +171,12 @@ function OutputGalleryNodeComponent(props: NodeProps) {
             <div className="grid grid-cols-3 gap-1.5 p-1">
               {displayImages.map((img, idx) => (
                 <Button
+                  size={ButtonSize.INLINE}
                   withWrapper={false}
                   key={img}
                   variant={ButtonVariant.GHOST}
                   onClick={() => openLightbox(idx)}
-                  className="aspect-square rounded border border-border hover:border-primary overflow-hidden p-0 h-auto"
+                  className="aspect-square rounded border border-border hover:border-primary overflow-hidden"
                 >
                   <NextImage
                     src={img}

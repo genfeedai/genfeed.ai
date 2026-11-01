@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,8 +18,12 @@ describe('TableDateCell', () => {
     expect(time.tagName).toBe('TIME');
     expect(time).toHaveAttribute('datetime', '2026-10-25T22:41:00.000Z');
     expect(time).toHaveClass('whitespace-nowrap');
-    expect(time).toHaveAttribute(
-      'title',
+
+    fireEvent.pointerMove(time, { pointerType: 'mouse' });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
       'Sunday, October 25, 2026 at 10:41 PM',
     );
   });

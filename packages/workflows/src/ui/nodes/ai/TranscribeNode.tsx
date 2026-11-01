@@ -151,13 +151,11 @@ function TranscribeNodeComponent(props: NodeProps) {
             </div>
             <Button
               withWrapper={false}
-              variant={ButtonVariant.GHOST}
+              variant={ButtonVariant.OVERLAY}
               size={ButtonSize.ICON}
               onClick={handleTranscribe}
               disabled={nodeData.status === 'processing'}
-              className={
-                'absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70' /* design-system-allow-content-color */
-              }
+              className="absolute top-1 right-1 size-6"
             >
               <RefreshCw className="size-3" />
             </Button>
