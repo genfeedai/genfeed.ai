@@ -17,7 +17,7 @@ const area: HandBuiltArea = {
     }),
     ...scanRestyle(source, {
       component: 'Alert',
-      importPaths: ['@ui/primitives/alert'],
+      importPaths: ['@ui/primitives/alert', '@genfeedai/ui/primitives/alert'],
       isSizeOwned: false,
       rule: 'alert-restyle',
     }),

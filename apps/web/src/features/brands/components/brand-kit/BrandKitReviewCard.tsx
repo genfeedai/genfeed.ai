@@ -10,6 +10,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -235,14 +236,7 @@ export default function BrandKitReviewCard(props: BrandKitReviewCardProps) {
           onChange={(event) => setSocialUrls(event.target.value)}
         />
 
-        {error ? (
-          <div
-            className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {error}
-          </div>
-        ) : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
 
         {draft ? (
           <div

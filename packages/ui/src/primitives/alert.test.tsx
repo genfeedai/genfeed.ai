@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('Alert', () => {
@@ -117,5 +122,73 @@ describe('Alert', () => {
     render(<Alert role="region">Persistent guidance</Alert>);
 
     expect(screen.getByRole('region')).not.toHaveAttribute('aria-live');
+  });
+
+  it('announces a note as a static note, not a live region', () => {
+    render(<Alert variant="note">Mode: image</Alert>);
+
+    const note = screen.getByRole('note');
+
+    expect(note).toHaveTextContent('Mode: image');
+    expect(note).not.toHaveAttribute('aria-live');
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('draws no icon for a note unless one is given', () => {
+    const { container, rerender } = render(<Alert variant="note">Quiet</Alert>);
+
+    expect(container.querySelector('[data-slot="alert-icon"]')).toBeNull();
+
+    rerender(
+      <Alert icon={<svg data-testid="lock" />} variant="note">
+        Quiet
+      </Alert>,
+    );
+
+    expect(screen.getByTestId('lock')).toBeInTheDocument();
+  });
+
+  it('sizes the default severity icon to the alert size', () => {
+    const { container } = render(
+      <Alert size="sm" variant="destructive">
+        Small
+      </Alert>,
+    );
+
+    expect(container.querySelector('[data-slot="alert-icon"]')).toHaveClass(
+      '[&>svg]:size-4',
+    );
+    expect(screen.getByRole('alert')).toHaveClass('text-xs');
+  });
+
+  it('honours an explicit role over the variant default', () => {
+    render(
+      <Alert role="status" variant="warning">
+        Reconnecting
+      </Alert>,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Reconnecting');
+  });
+
+  it('renders actions under the text and keeps them clickable', () => {
+    const handleRetry = vi.fn();
+
+    render(
+      <Alert variant="destructive">
+        <AlertTitle>Upload failed</AlertTitle>
+        <AlertDescription>The file was too large.</AlertDescription>
+        <AlertActions>
+          <button onClick={handleRetry} type="button">
+            Retry
+          </button>
+        </AlertActions>
+      </Alert>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(handleRetry).toHaveBeenCalledOnce();
+    expect(screen.getByRole('alert')).toHaveTextContent('Upload failed');
   });
 });

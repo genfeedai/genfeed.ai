@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
@@ -46,21 +47,14 @@ export default function MessagesReplyComposer({
     error || notice ? (
       <div className="flex flex-col">
         {error ? (
-          <p
-            className="bg-destructive/10 px-3.5 py-2 text-xs text-destructive"
-            role="alert"
-          >
+          <Alert size="sm" variant="destructive">
             {error}
-          </p>
+          </Alert>
         ) : null}
         {notice ? (
-          <p
-            aria-live="polite"
-            className="bg-success/10 px-3.5 py-2 text-xs text-success"
-            role="status"
-          >
+          <Alert size="sm" variant="success">
             {notice}
-          </p>
+          </Alert>
         ) : null}
       </div>
     ) : undefined;

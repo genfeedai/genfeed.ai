@@ -10,6 +10,7 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { ArrowUp, ChevronDown } from 'lucide-react';
@@ -489,30 +490,28 @@ function EvaluationCardContent({
   return (
     <div className="space-y-4">
       {lowestScores.length > 0 && lowestScores[0][1] < 50 && (
-        <div className="p-2 bg-warning/10 border border-warning/20 text-sm">
-          <span className="font-medium text-warning">Focus:</span>{' '}
-          <span className="text-foreground/70">
-            {lowestScores
-              .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
-              .join(', ')}
-          </span>
-        </div>
+        <Alert size="sm" variant="warning">
+          <span className="font-medium">Focus:</span>{' '}
+          {lowestScores
+            .map(([key, val]) => `${formatFactorLabel(key)} (${val})`)
+            .join(', ')}
+        </Alert>
       )}
 
       {flags?.isFlagged && (
-        <div
-          className={cn(
-            'p-2 text-sm',
+        <Alert
+          size="sm"
+          variant={
             flags.severity === EvaluationSeverity.CRITICAL
-              ? 'bg-destructive/10 border border-destructive/20 text-destructive'
+              ? 'destructive'
               : flags.severity === EvaluationSeverity.WARNING
-                ? 'bg-warning/10 border border-warning/20 text-warning'
-                : 'bg-info/10 border border-info/20 text-info',
-          )}
+                ? 'warning'
+                : 'info'
+          }
         >
           <span className="font-medium capitalize">{flags.severity}:</span>{' '}
           {flags.reasons.join(', ')}
-        </div>
+        </Alert>
       )}
 
       <div className="space-y-3">

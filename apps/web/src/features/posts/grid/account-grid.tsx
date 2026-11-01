@@ -20,6 +20,7 @@ import { CredentialsService } from '@services/organization/credentials.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Loading from '@ui/loading/default/Loading';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -207,12 +208,14 @@ function AccountGridLaneColumn({
 
       <div className="flex flex-col gap-3 p-3">
         {needsReconnect ? (
-          <div className="flex flex-col gap-2 border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
-            <p>{translate('expiredToken')}</p>
-            <Button asChild size={ButtonSize.SM} withWrapper={false}>
-              <Link href={reconnectHref}>{translate('reconnect')}</Link>
-            </Button>
-          </div>
+          <Alert size="sm" variant="destructive">
+            <AlertDescription>{translate('expiredToken')}</AlertDescription>
+            <AlertActions>
+              <Button asChild size={ButtonSize.SM} withWrapper={false}>
+                <Link href={reconnectHref}>{translate('reconnect')}</Link>
+              </Button>
+            </AlertActions>
+          </Alert>
         ) : null}
 
         {lane.items.length > 0 ? (

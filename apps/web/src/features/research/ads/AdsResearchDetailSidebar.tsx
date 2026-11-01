@@ -51,6 +51,7 @@ type AdPackPanelProps = {
 
 function AdPackPanel({ adPack }: AdPackPanelProps) {
   return (
+    // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole ad pack, not a notice
     <div className="space-y-4 rounded-md bg-emerald-500/5 p-4">
       <div className="flex items-center gap-2">
         <Badge variant="success">Ad Pack Ready</Badge>
@@ -151,6 +152,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
   const { href } = useOrgUrl();
 
   return (
+    // ui-guard-allow:notice-tone-box -- tinted result panel that holds a whole launch plan, not a notice
     <div className="space-y-4 rounded-md bg-amber-500/5 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">

@@ -3,6 +3,7 @@
 import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare } from 'lucide-react';
@@ -104,14 +105,7 @@ export default function SkillDetailPanel({
               variant={ButtonVariant.SECONDARY}
             />
           </div>
-          {error ? (
-            <div
-              role="alert"
-              className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            >
-              {error}
-            </div>
-          ) : null}
+          {error ? <Alert variant="destructive">{error}</Alert> : null}
           <SkillDetailCard
             customizing={customizing}
             draftErrors={draftErrors}

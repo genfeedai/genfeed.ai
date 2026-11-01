@@ -15,6 +15,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
@@ -981,9 +982,9 @@ function WarmupAccountDetail({
           </ol>
         )}
         {account.diagnostics?.error ? (
-          <p className="mt-4 bg-destructive/10 p-3 text-sm text-destructive">
+          <Alert className="mt-4" variant="destructive">
             {account.diagnostics.error}
-          </p>
+          </Alert>
         ) : null}
       </div>
     </aside>

@@ -10,6 +10,12 @@ import type {
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, ChevronDown, Clock3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -220,60 +226,52 @@ export function MutationApprovalCard({
         </dl>
       )}
       {expired && (
-        <div
-          className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3"
+        <Alert
+          className="mt-4"
+          icon={<Clock3 className="size-4" aria-hidden="true" />}
           role="status"
+          variant="warning"
         >
-          <Clock3 className="size-4 shrink-0 text-warning" aria-hidden="true" />
-          <p className="min-w-0 flex-1 basis-48 text-sm font-medium text-warning">
-            {translate('expired')}
-          </p>
-          {reviewPhase !== 'completed' && (
-            <Button
-              withWrapper={false}
-              isDisabled={!onUiAction || isPending}
-              aria-label={translate('prepareAgain')}
-              isLoading={isPending}
-              onClick={() => void recover()}
-            >
-              {translate('prepareAgain')}
-            </Button>
-          )}
+          <AlertTitle>{translate('expired')}</AlertTitle>
           {preparePhase === 'failed' && (
-            <p className="basis-full text-sm text-foreground">
-              {translate('prepareFailed')}
-            </p>
+            <AlertDescription>{translate('prepareFailed')}</AlertDescription>
           )}
-        </div>
+          {reviewPhase !== 'completed' && (
+            <AlertActions>
+              <Button
+                withWrapper={false}
+                isDisabled={!onUiAction || isPending}
+                aria-label={translate('prepareAgain')}
+                isLoading={isPending}
+                onClick={() => void recover()}
+              >
+                {translate('prepareAgain')}
+              </Button>
+            </AlertActions>
+          )}
+        </Alert>
       )}
       {(executionFailed || (hasError && !expired)) && (
-        <div
-          className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3"
-          role="alert"
+        <Alert
+          className="mt-4"
+          icon={<AlertTriangle className="size-4" aria-hidden="true" />}
+          variant="destructive"
         >
-          <div className="flex flex-wrap items-start gap-3">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
-              <AlertTriangle className="size-4" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 flex-1 basis-48">
-              <p className="text-sm font-semibold text-destructive">
-                {translate(
-                  executionFailed ? 'failedTitle' : 'responseFailedTitle',
-                )}
-              </p>
-              <p className="mt-1 text-sm text-foreground">
-                {translate(executionFailed ? 'failedDescription' : 'error')}
-              </p>
-            </div>
-            {executionFailed &&
-              (reviewPhase === 'completed' ? (
+          <AlertTitle>
+            {translate(executionFailed ? 'failedTitle' : 'responseFailedTitle')}
+          </AlertTitle>
+          <AlertDescription>
+            {translate(executionFailed ? 'failedDescription' : 'error')}
+          </AlertDescription>
+          {executionFailed && (
+            <AlertActions>
+              {reviewPhase === 'completed' ? (
                 <p className="text-sm text-muted-foreground">
                   {translate('reviewRequested')}
                 </p>
               ) : (
                 <Button
                   withWrapper={false}
-                  className="ml-11 sm:ml-0"
                   isDisabled={!onUiAction || isPending}
                   aria-label={translate('reviewChanges')}
                   isLoading={isPending}
@@ -281,8 +279,9 @@ export function MutationApprovalCard({
                 >
                   {translate('reviewChanges')}
                 </Button>
-              ))}
-          </div>
+              )}
+            </AlertActions>
+          )}
           {detail && (
             <div className="mt-3 border-t border-border pt-2">
               <Button
@@ -309,7 +308,7 @@ export function MutationApprovalCard({
               )}
             </div>
           )}
-        </div>
+        </Alert>
       )}
       {status === 'pending'
         ? !expired && (

@@ -96,7 +96,7 @@ export default function ModalGalleryHeader({
 
           {/* Format description - explain it comes from promptbar */}
           {(activeTab === 'media' || activeTab === 'references') && (
-            <Alert variant="info" className="mb-3 p-2 text-xs">
+            <Alert className="mb-3" size="sm" variant="info">
               <strong>Note:</strong> References must match the format selected
               in the promptbar.
             </Alert>

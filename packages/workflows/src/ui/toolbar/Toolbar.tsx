@@ -152,6 +152,7 @@ function ValidationErrorsToast({
   if (messages.length === 0) return null;
 
   return (
+    // ui-guard-allow:notice-tone-box -- floating toast; moves to the shared toast with the overlays work
     <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/20 bg-destructive/10 p-4 shadow-xl">
       <div className="flex items-start gap-3">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />

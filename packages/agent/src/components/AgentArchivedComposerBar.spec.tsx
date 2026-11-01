@@ -15,12 +15,6 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   },
 }));
 
-vi.mock('@ui/primitives/alert', () => ({
-  Alert: function MockAlert(props: { children?: React.ReactNode }) {
-    return <div role="alert">{props.children}</div>;
-  },
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
     ariaLabel?: string;
@@ -96,10 +90,12 @@ describe('AgentArchivedComposerBar', () => {
     render(<AgentArchivedComposerBar onUnarchive={onUnarchive} />);
     fireEvent.click(screen.getByRole('button', { name: 'Unarchive thread' }));
     expect(
-      await screen.findByText(
-        'This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready.',
-      ),
-    ).toHaveAttribute('role', 'alert');
+      (
+        await screen.findByText(
+          'This thread is no longer available. Your draft is kept. Choose another conversation or start a new one when you are ready.',
+        )
+      ).closest('[role="alert"]'),
+    ).toBeInTheDocument();
     expect(onUnarchive).toHaveBeenCalledTimes(1);
   });
 });

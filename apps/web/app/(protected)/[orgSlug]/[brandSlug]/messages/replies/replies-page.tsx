@@ -19,6 +19,7 @@ import { EmptyState } from '@ui/card/EmptyState';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageCircleReply } from 'lucide-react';
@@ -394,11 +395,7 @@ export default function RepliesPage() {
         <p className="text-sm text-muted-foreground">
           {translate('description')}
         </p>
-        {inboxError ? (
-          <p className="rounded border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {inboxError}
-          </p>
-        ) : null}
+        {inboxError ? <Alert variant="destructive">{inboxError}</Alert> : null}
       </Card>
 
       {inboxPlatform === Platform.TWITTER ? <RepliesWarmupQueue /> : null}

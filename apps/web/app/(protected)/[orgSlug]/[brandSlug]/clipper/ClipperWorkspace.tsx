@@ -12,6 +12,7 @@ import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -136,9 +137,7 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
         ) : (
           <>
             {listError ? (
-              <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-                {listError}
-              </div>
+              <Alert variant="destructive">{listError}</Alert>
             ) : null}
             {!isListLoading && !hasProjects && !listError && !isSearching ? (
               <ClipperOnboarding />
@@ -360,11 +359,11 @@ function ClipperProjectControls({
           </div>
         ) : project.status === 'failed' ? (
           <div className="space-y-3">
-            <div className="rounded-lg border border-transparent bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <Alert variant="destructive">
               {project.source?.failure?.message ??
                 project.error ??
                 t('sourceProcessingFailed')}
-            </div>
+            </Alert>
             {project.source?.status === 'failed' &&
             project.source.failure?.retryable ? (
               <>
@@ -505,9 +504,9 @@ function ClipperProjectControls({
             ) : null}
 
             {error ? (
-              <div className="mt-4 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+              <Alert className="mt-4" variant="destructive">
                 {error}
-              </div>
+              </Alert>
             ) : null}
 
             <div className="mt-6 flex items-center justify-between">
@@ -567,11 +566,7 @@ function ClipperProjectControls({
   }
 
   if (error) {
-    return (
-      <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-        {error}
-      </div>
-    );
+    return <Alert variant="destructive">{error}</Alert>;
   }
 
   return (

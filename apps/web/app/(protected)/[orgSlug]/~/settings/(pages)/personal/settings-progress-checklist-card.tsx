@@ -31,6 +31,7 @@ export default function SettingsProgressChecklistCard({
 
       <div className="space-y-3">
         {steps.map((step) => (
+          // ui-guard-allow:notice-tone-box -- checklist row whose done state is tinted, not a notice
           <div
             key={step.key}
             className={cn(

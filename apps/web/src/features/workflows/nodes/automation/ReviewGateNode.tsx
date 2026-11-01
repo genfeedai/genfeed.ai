@@ -10,6 +10,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
+import { Alert } from '@ui/primitives/alert';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -380,9 +381,9 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {data.error && !isErrorShownAsRejectionReason && (
-        <div className="rounded border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs text-destructive">
+        <Alert size="sm" variant="destructive">
           {data.error}
-        </div>
+        </Alert>
       )}
     </NodeCard>
   );

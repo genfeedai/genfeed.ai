@@ -5,9 +5,15 @@ import type {
 } from '@genfeedai/agent/models/clipper-run-card.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, ExternalLink, Film, TriangleAlert } from 'lucide-react';
+import { CircleCheck, ExternalLink, Film } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
@@ -168,27 +174,23 @@ export function ClipperRunCard({
         </div>
 
         {state.identity && (
-          <div
-            className={`border px-3 py-2 text-xs ${
-              state.identity.isComplete
-                ? 'border-success/20 bg-success/10 text-success   '
-                : 'border-warning/20 bg-warning/10 text-warning   '
-            }`}
+          <Alert
+            size="sm"
+            variant={state.identity.isComplete ? 'success' : 'warning'}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium">Clip identity</span>
+            <AlertTitle className="flex flex-wrap items-center justify-between gap-2">
+              Clip identity
               <span>{state.identity.label}</span>
-            </div>
-            <p className="mt-1 text-muted-foreground">
+            </AlertTitle>
+            <AlertDescription>
               {getIdentitySummary(state.identity)}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Error state */}
         {state.status === 'failed' && failedStep && (
           <AgentErrorMessage
-            className="text-xs"
             message={`Failed at: ${failedStep.label}\n${failedStep.errorMessage}${
               failedStep.retryable ? '\nThis step can be retried.' : ''
             }`}
@@ -197,14 +199,11 @@ export function ClipperRunCard({
 
         {/* Confirmation prompt */}
         {state.confirmationPending && (
-          <div className="border border-warning/20 bg-warning/10 p-3  ">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-warning ">
-              <TriangleAlert className="size-4" />
-              <span>
-                {state.confirmationMessage ?? 'Confirmation required'}
-              </span>
-            </div>
-            <div className="flex gap-2">
+          <Alert variant="warning">
+            <AlertTitle>
+              {state.confirmationMessage ?? 'Confirmation required'}
+            </AlertTitle>
+            <AlertActions>
               <Button
                 variant={ButtonVariant.DEFAULT}
                 withWrapper={false}
@@ -222,14 +221,13 @@ export function ClipperRunCard({
               >
                 Cancel
               </Button>
-            </div>
-          </div>
+            </AlertActions>
+          </Alert>
         )}
 
         {/* Final output link */}
         {state.status === 'done' && state.finalOutputUrl && (
-          <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2  ">
-            <CircleCheck className="size-4 text-success " />
+          <Alert size="sm" variant="success">
             <a
               href={state.finalOutputUrl}
               target="_blank"
@@ -239,7 +237,7 @@ export function ClipperRunCard({
               View Final Output
               <ExternalLink className="size-3" />
             </a>
-          </div>
+          </Alert>
         )}
       </div>
     </div>
