@@ -9,7 +9,6 @@ import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { EmptyState } from '@ui/primitives/empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
-import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';

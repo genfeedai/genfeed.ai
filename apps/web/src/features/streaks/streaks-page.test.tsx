@@ -110,9 +110,9 @@ describe('StreaksPage', () => {
     expect(screen.getAllByRole('img', { name: /: \d+ items?$/ })).toHaveLength(
       90,
     );
-    expect(
-      screen.getByRole('img', { name: `${today}: 5 items` }),
-    ).toHaveClass('bg-foreground/80');
+    expect(screen.getByRole('img', { name: `${today}: 5 items` })).toHaveClass(
+      'bg-foreground/80',
+    );
     expect(screen.getByText('Less')).toBeInTheDocument();
     expect(screen.getByText('More')).toBeInTheDocument();
   });
