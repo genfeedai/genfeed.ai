@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -21,8 +20,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -34,11 +33,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
 import Spinner from '@ui/primitives/spinner';
 import { Download, Plus, Search, UserPlus } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
@@ -512,7 +511,7 @@ export default function FollowSourceModal({
           !postReference &&
           hasSearched &&
           !candidates.length ? (
-            <CardEmptyContent label={translate('noAccounts')} />
+            <EmptyState title={translate('noAccounts')} />
           ) : null}
 
           {!isSearching && !postReference && candidates.length > 0 ? (
@@ -583,13 +582,11 @@ export default function FollowSourceModal({
                       )}
 
                       {avatarUrl ? (
-                        <Image
+                        <Avatar
                           alt={candidate.displayName || `@${candidate.handle}`}
-                          className="size-10 shrink-0 rounded-full object-cover"
-                          height={40}
+                          name={candidate.displayName || candidate.handle}
+                          size="lg"
                           src={avatarUrl}
-                          unoptimized
-                          width={40}
                         />
                       ) : null}
 
@@ -673,7 +670,7 @@ export default function FollowSourceModal({
           ) : null}
 
           {!isSearching && !postReference && !hasSearched ? (
-            <CardEmptyContent label={translate('emptyHint')} />
+            <EmptyState title={translate('emptyHint')} />
           ) : null}
         </div>
 

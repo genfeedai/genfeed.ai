@@ -214,16 +214,6 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/avatar', () => ({
-  Avatar: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  AvatarFallback: ({ children }: { children: ReactNode }) => (
-    <span>{children}</span>
-  ),
-  AvatarImage: ({ alt, src }: { alt: string; src: string }) => (
-    <img alt={alt} src={src} />
-  ),
-}));
-
 const openSpy = vi.fn();
 Object.defineProperty(window, 'open', {
   value: openSpy,
@@ -646,7 +636,7 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.queryByText('X Ads')).not.toBeInTheDocument();
   });
 
-  it('renders connected social links', () => {
+  it('renders connected social links', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -669,6 +659,7 @@ describe('BrandDetailSocialMediaCard', () => {
       screen.getByRole('link', { name: 'Open Genfeed on twitter' }),
     ).toHaveAttribute('href', 'https://x.com/genfeed');
     // The avatar renders in both the account row and the platform card.
+    await screen.findAllByAltText('Genfeed profile picture');
     for (const avatar of screen.getAllByAltText('Genfeed profile picture')) {
       expect(avatar).toHaveAttribute(
         'src',

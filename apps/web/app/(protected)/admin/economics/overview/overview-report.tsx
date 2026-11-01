@@ -82,7 +82,7 @@ export default function EconomicsOverviewReport() {
         }),
         label: translate('overview.kpis.grossMargin'),
         value: formatUsd(totals.grossMarginUsd),
-        valueClassName: totals.grossMarginUsd < 0 ? 'text-destructive' : '',
+        tone: totals.grossMarginUsd < 0 ? ('destructive' as const) : undefined,
       },
       {
         description: translate('overview.kpis.creditValueDescription', {
@@ -100,7 +100,8 @@ export default function EconomicsOverviewReport() {
         }),
         label: translate('overview.kpis.pricingMargin'),
         value: formatUsd(totals.pricingMarginUsd),
-        valueClassName: totals.pricingMarginUsd < 0 ? 'text-destructive' : '',
+        tone:
+          totals.pricingMarginUsd < 0 ? ('destructive' as const) : undefined,
       },
       {
         description: translate('overview.kpis.callsDescription', {

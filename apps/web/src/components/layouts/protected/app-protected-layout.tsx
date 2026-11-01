@@ -154,7 +154,6 @@ function AppLayoutWithDynamicMenu({
     settingsScope,
     agentApiService,
     threads,
-    agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
     libraryMenuItems,
@@ -250,12 +249,17 @@ function AppLayoutWithDynamicMenu({
       return undefined;
     }
 
+    // The agent is chat on the left and its Threads/Context panel on the
+    // right; a nav column beside it would be a third pane.
+    if (isConversationRoute) {
+      return undefined;
+    }
+
     return (
       <AppProtectedLayoutSidebar
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
-        isConversationRoute={isConversationRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
@@ -266,7 +270,6 @@ function AppLayoutWithDynamicMenu({
         isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
-        agentMenuItems={agentMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
@@ -283,7 +286,6 @@ function AppLayoutWithDynamicMenu({
     );
   }, [
     adminMenuItems,
-    agentMenuItems,
     analyticsMenuItems,
     currentApp,
     activeNavPanel,
@@ -332,23 +334,21 @@ function AppLayoutWithDynamicMenu({
     ? adminMenuItems
     : isSettingsRoute
       ? settingsMenuItems
-      : isConversationRoute
-        ? agentMenuItems
-        : isLibraryRoute
-          ? libraryMenuItems
-          : isStudioRoute
-            ? studioMenuItems
-            : isAutomationRoute
-              ? automationMenuItems
-              : isMessagesRoute
-                ? messagesMenuItems
-                : isAnalyticsRoute
-                  ? analyticsMenuItems
-                  : isDiscoveryRoute
-                    ? discoveryMenuItems
-                    : isOrgRoute
-                      ? orgMenuItems
-                      : menuItems;
+      : isLibraryRoute
+        ? libraryMenuItems
+        : isStudioRoute
+          ? studioMenuItems
+          : isAutomationRoute
+            ? automationMenuItems
+            : isMessagesRoute
+              ? messagesMenuItems
+              : isAnalyticsRoute
+                ? analyticsMenuItems
+                : isDiscoveryRoute
+                  ? discoveryMenuItems
+                  : isOrgRoute
+                    ? orgMenuItems
+                    : menuItems;
   const lowCreditsBanner =
     hasOrganizationBillingHint() &&
     !suppressShellLowCreditsBanner &&

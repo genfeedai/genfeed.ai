@@ -36,6 +36,7 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -44,7 +45,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
-import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
 
 type HealthBadgeLabelKey =
@@ -362,10 +362,12 @@ export default function AnalyticsAccounts() {
               render: (row: IAccountAnalytics) =>
                 row.identity.brandLabel ? (
                   <span className="flex min-w-0 items-center gap-2">
-                    <BrandAvatar
-                      logoUrl={brandLogoById.get(row.identity.brandId)}
+                    <Avatar
+                      alt={row.identity.brandLabel}
                       name={row.identity.brandLabel}
+                      shape="square"
                       size="sm"
+                      src={brandLogoById.get(row.identity.brandId)}
                     />
                     <span className="truncate text-sm">
                       {row.identity.brandLabel}

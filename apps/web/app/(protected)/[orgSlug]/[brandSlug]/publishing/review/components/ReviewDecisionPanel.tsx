@@ -3,6 +3,8 @@ import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 import type { ReviewDecisionPanelProps } from '@/features/posts/props/review-decision-panel.props';
 import type { ReviewPanelItem } from '@/props/publishing/review-panel-item.props';
 
@@ -56,6 +58,10 @@ export default function ReviewDecisionPanel({
   setFeedback,
 }: ReviewDecisionPanelProps) {
   const translate = useTranslations('pages.publishing.review');
+  // A rule save and a decision both rewrite the brand's harness profile, so a
+  // decision waits until the save the reviewer just started has finished.
+  const [isSavingRule, setIsSavingRule] = useState(false);
+  const isDecisionDisabled = isActioning || isSavingRule;
   return (
     <div className="space-y-3">
       <div>
@@ -76,6 +82,13 @@ export default function ReviewDecisionPanel({
       />
 
       {isReady ? (
+        <BrandRuleProposals
+          reason={feedback}
+          onSavingChange={setIsSavingRule}
+        />
+      ) : null}
+
+      {isReady ? (
         <div className="flex flex-col gap-2">
           {/* Match ModalConfirm / app-wide grammar: secondary paths first,
               primary next, destructive last (right/bottom). */}
@@ -83,7 +96,7 @@ export default function ReviewDecisionPanel({
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
-            isDisabled={isActioning}
+            isDisabled={isDecisionDisabled}
             onClick={() => onRequestChanges(item.id, feedback)}
             className="w-full justify-start gap-2"
             icon={<Sparkles className="size-3.5" />}
@@ -94,7 +107,7 @@ export default function ReviewDecisionPanel({
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
-            isDisabled={isActioning}
+            isDisabled={isDecisionDisabled}
             action="publishing.review-approve"
             onClick={() => onApprove(item.id)}
             className="w-full justify-start gap-2"
@@ -106,7 +119,7 @@ export default function ReviewDecisionPanel({
             size={ButtonSize.SM}
             variant={ButtonVariant.DESTRUCTIVE}
             withWrapper={false}
-            isDisabled={isActioning}
+            isDisabled={isDecisionDisabled}
             onClick={() => onReject(item.id, feedback)}
             className="w-full justify-start gap-2"
             icon={<X className="size-3.5" />}

@@ -4,14 +4,12 @@ import { PostStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
 import { ExternalLink, FileText } from 'lucide-react';
 import Image from 'next/image';
@@ -177,9 +175,7 @@ export default function AdminPostsTable({
         render: (post: IPost) => {
           const date = post.scheduledDate || post.publicationDate;
           return date ? (
-            <span className="font-mono text-muted-foreground">
-              {formatDateInTimezone(date, browserTimezone, 'short')}
-            </span>
+            <TableDateCell timeZone={browserTimezone} value={date} />
           ) : (
             <span className="text-muted-foreground">
               {translate('notScheduled')}

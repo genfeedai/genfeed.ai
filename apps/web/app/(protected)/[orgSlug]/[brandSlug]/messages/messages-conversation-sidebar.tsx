@@ -2,7 +2,6 @@ import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthCon
 import {
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
   Platform,
   SocialConversationType,
 } from '@genfeedai/contracts';
@@ -16,7 +15,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { MessageSquare, RefreshCw } from 'lucide-react';
@@ -114,11 +113,6 @@ function ConversationRow({
   const needsReview =
     conversation.needsReview || conversation.status === 'needs_review';
   const participantLabel = getParticipantLabel(conversation);
-  const participantInitials = participantLabel
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
   const isReadOnly = conversation.platform === Platform.TIKTOK;
 
   return (
@@ -134,26 +128,20 @@ function ConversationRow({
       )}
       onClick={() => onSelect(conversation.id)}
     >
-      <span className="relative mt-0.5 shrink-0">
-        <Avatar className="size-8 bg-card shadow-border">
-          {conversation.participantAvatarUrl ? (
-            <AvatarImage
-              alt={`${participantLabel} profile picture`}
-              className="object-cover"
-              src={conversation.participantAvatarUrl}
-            />
-          ) : null}
-          <AvatarFallback className="text-2xs font-semibold text-foreground/70">
-            {participantInitials || '?'}
-          </AvatarFallback>
-        </Avatar>
-        <PlatformBadge
-          className="absolute -bottom-1 -right-1 size-4 justify-center rounded-full border border-background p-0"
-          platform={conversation.platform}
-          showLabel={false}
-          size={ComponentSize.SM}
-        />
-      </span>
+      <Avatar
+        alt={`${participantLabel} profile picture`}
+        badge={
+          <PlatformBadge
+            platform={conversation.platform}
+            showLabel={false}
+            variant="solid"
+          />
+        }
+        className="mt-0.5"
+        name={participantLabel}
+        size="md"
+        src={conversation.participantAvatarUrl}
+      />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span

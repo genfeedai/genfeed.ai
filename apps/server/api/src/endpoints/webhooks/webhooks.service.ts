@@ -605,6 +605,8 @@ export class WebhooksService {
           ],
         },
         { path: 'brand', select: ['label'] },
+        { path: 'organization', select: ['label'] },
+        { path: 'user', select: ['email', 'firstName', 'lastName'] },
       ],
     );
 
@@ -612,6 +614,8 @@ export class WebhooksService {
       return;
     }
 
+    const owner =
+      await this.postProcessingOrchestrator.findNotificationOwner(ingredient);
     const storyboard =
       await this.postProcessingOrchestrator.findStoryboardContext(ingredient);
 
@@ -681,6 +685,7 @@ export class WebhooksService {
                   ...metadata,
                   model: metadata?.model || integration,
                 },
+                owner,
                 prompt,
                 thumbnailUrl,
               },

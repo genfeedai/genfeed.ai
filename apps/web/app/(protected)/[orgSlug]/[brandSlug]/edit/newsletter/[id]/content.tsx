@@ -1,9 +1,8 @@
 'use client';
-
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';
@@ -43,7 +42,7 @@ export default function NewsletterEditorContent({
         {isLoading ? (
           <SkeletonCard />
         ) : (
-          <CardEmptyContent label="This newsletter is unavailable. It may have been archived or removed." />
+          <EmptyState title="This newsletter is unavailable. It may have been archived or removed." />
         )}
       </ArtifactEditorShell>
     );

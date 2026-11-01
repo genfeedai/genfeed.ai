@@ -249,15 +249,27 @@ function isCardSurfaceTag(tagName: string): boolean {
 function isInsetCard(
   element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
 ): boolean {
-  if (getTagName(element.tagName) !== 'Card') {
+  const tagName = getTagName(element.tagName);
+  // `<Card variant={CardVariant.INSET}>` and `<MetricCard appearance="inset">`
+  // are recessed panels, not card surfaces.
+  const insetProp =
+    tagName === 'Card'
+      ? { name: 'variant', value: 'CardVariant.INSET' }
+      : tagName === 'MetricCard'
+        ? { name: 'appearance', value: "'inset'" }
+        : null;
+  if (!insetProp) {
     return false;
   }
 
   return element.attributes.properties.some(
     (property) =>
       ts.isJsxAttribute(property) &&
-      property.name.text === 'variant' &&
-      property.initializer?.getText().includes('CardVariant.INSET') === true,
+      property.name.text === insetProp.name &&
+      property.initializer
+        ?.getText()
+        .replaceAll('"', "'")
+        .includes(insetProp.value) === true,
   );
 }
 

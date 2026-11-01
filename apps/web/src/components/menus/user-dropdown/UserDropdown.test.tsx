@@ -31,29 +31,19 @@ vi.mock('@/components/topbars/credits-bar/AccountCredits', () => ({
   default: () => <div data-testid="account-credits-mock" />,
 }));
 
-vi.mock('next/image', () => ({
-  default: ({
-    alt,
-    className,
-    src,
-  }: {
-    alt: string;
-    className?: string;
-    src: string;
-  }) => <img src={src} alt={alt} className={className} />,
-}));
-
 describe('UserDropdown', () => {
   it('renders an initials avatar trigger when no image is provided', () => {
     render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
 
     const trigger = screen.getByRole('button', { name: 'Open account menu' });
-    expect(trigger).toHaveTextContent('T');
-    expect(trigger).toHaveClass('rounded-full');
-    expect(screen.getByText('T')).toHaveClass('rounded-full');
+    expect(trigger).toHaveTextContent('TU');
+    expect(trigger.querySelector('[data-shape]')).toHaveAttribute(
+      'data-shape',
+      'circle',
+    );
   });
 
-  it('renders the user avatar image when provided', () => {
+  it('renders the user avatar image when provided', async () => {
     render(
       <UserDropdown
         userName="Test User"
@@ -62,13 +52,9 @@ describe('UserDropdown', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Test User' })).toHaveAttribute(
-      'src',
-      'https://cdn.example.com/avatar.png',
-    );
-    expect(screen.getByRole('img', { name: 'Test User' })).toHaveClass(
-      'rounded-full',
-    );
+    expect(
+      await screen.findByRole('img', { name: 'Test User' }),
+    ).toHaveAttribute('src', 'https://cdn.example.com/avatar.png');
   });
 
   it('keeps identity context in the account menu', () => {

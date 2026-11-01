@@ -29,7 +29,6 @@ vi.mock('@/components/shell/menus/AppSidebar', () => ({
 const baseProps: ComponentProps<typeof AppProtectedLayoutSidebar> = {
   isAdminRoute: false,
   isAnalyticsRoute: false,
-  isConversationRoute: false,
   isLibraryRoute: false,
   isOrgRoute: false,
   isPublishingRoute: false,
@@ -48,7 +47,6 @@ const baseProps: ComponentProps<typeof AppProtectedLayoutSidebar> = {
   settingsMenuItems: [],
   studioMenuItems: [],
   automationMenuItems: [],
-  agentMenuItems: [],
   messagesMenuItems: [],
 };
 

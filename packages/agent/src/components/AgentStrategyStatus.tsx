@@ -1,6 +1,6 @@
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import {
   formatCreditBalanceExact,
   formatCreditCost,
@@ -8,7 +8,9 @@ import {
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useId, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
@@ -60,6 +62,7 @@ function formatFutureTime(dateStr: string): string {
 export function AgentStrategyStatus({
   apiService,
 }: AgentStrategyStatusProps): ReactElement {
+  const translate = useTranslations('agent.strategyStatus');
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
   const abortRef = useRef<AbortController | null>(null);
@@ -107,11 +110,12 @@ export function AgentStrategyStatus({
 
   if (!strategy) {
     return (
-      <div className="border border-border p-6 text-center">
-        <p className="text-xs text-muted-foreground">
-          No strategy configured yet. Create one in the configuration above.
-        </p>
-      </div>
+      <EmptyState
+        description={translate('emptyDescription')}
+        size={CardEmptySize.SM}
+        surface="card"
+        title={translate('emptyTitle')}
+      />
     );
   }
 

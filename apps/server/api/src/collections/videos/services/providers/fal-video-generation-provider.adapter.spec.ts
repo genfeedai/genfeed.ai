@@ -5,8 +5,33 @@ import {
 import type { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
+  it('refuses a reference image on a text-to-video endpoint instead of dropping it', () => {
+    const params = {
+      model: 'fal-ai/kling-video/v3/pro',
+      modelEndpoint: 'fal-ai/kling-video/v3/pro/text-to-video',
+      modelSchemaFamily: FalSchemaFamily.VIDEO_TEXT,
+      modelInputSchema: {
+        properties: { prompt: { type: 'string' } },
+        required: ['prompt'],
+      },
+      prompt: 'a slow pan',
+      promptParams: {},
+      width: 1920,
+      height: 1080,
+    };
+    expect(prepareFalVideoDispatch(params).input).toEqual({
+      prompt: 'a slow pan',
+    });
+    expect(() =>
+      prepareFalVideoDispatch({
+        ...params,
+        imageUrl: 'https://cdn.test/start.png',
+      }),
+    ).toThrow(BadRequestException);
+  });
   it('uses the provider fixed image aspect before validating or pricing a Seedance request', () => {
     expect(
       prepareFalVideoDispatch({

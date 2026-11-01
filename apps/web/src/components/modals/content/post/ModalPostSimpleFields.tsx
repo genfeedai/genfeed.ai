@@ -16,8 +16,8 @@ import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
-import BrandRuleProposals from '@/components/modals/content/post/BrandRuleProposals';
 import ModalPostDestinations from '@/components/modals/content/post/ModalPostDestinations';
 import PostDraftGenerator from '@/components/modals/content/post/PostDraftGenerator';
 

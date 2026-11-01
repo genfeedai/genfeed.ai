@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
@@ -116,41 +117,45 @@ export default function CadenceFormSheet({
         }
       }}
     >
-      <DialogContent>
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? translate('editCadence') : translate('newCadence')}
           </DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
-        <DialogBody className="space-y-3">
-          <SelectField
-            label="Format"
-            name="cadence-format"
-            onChange={(event) => setFormat(event.target.value as PostCategory)}
-            value={format}
-          >
-            {CADENCE_FORMATS.map((value) => (
-              <option key={value} value={value}>
-                {value}
+        <DialogBody className="space-y-4">
+          <FormRow>
+            <SelectField
+              label="Format"
+              name="cadence-format"
+              onChange={(event) =>
+                setFormat(event.target.value as PostCategory)
+              }
+              value={format}
+            >
+              {CADENCE_FORMATS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField
+              label="On generate"
+              name="cadence-landing"
+              onChange={(event) =>
+                setGenerateLanding(event.target.value as CadenceGenerateLanding)
+              }
+              value={generateLanding}
+            >
+              <option value={CadenceGenerateLanding.DRAFT}>
+                {translate('landingDraft')}
               </option>
-            ))}
-          </SelectField>
-          <SelectField
-            label="On generate"
-            name="cadence-landing"
-            onChange={(event) =>
-              setGenerateLanding(event.target.value as CadenceGenerateLanding)
-            }
-            value={generateLanding}
-          >
-            <option value={CadenceGenerateLanding.DRAFT}>
-              {translate('landingDraft')}
-            </option>
-            <option value={CadenceGenerateLanding.SCHEDULED}>
-              {translate('landingScheduled')}
-            </option>
-          </SelectField>
+              <option value={CadenceGenerateLanding.SCHEDULED}>
+                {translate('landingScheduled')}
+              </option>
+            </SelectField>
+          </FormRow>
           <Input
             label="Every (hours)"
             name="interval-hours"
@@ -158,34 +163,38 @@ export default function CadenceFormSheet({
             type="number"
             value={intervalHours}
           />
-          <Input
-            label="Window start"
-            name="window-start"
-            onChange={(event) => setWindowStart(event.target.value)}
-            type="time"
-            value={windowStart}
-          />
-          <Input
-            label="Window end"
-            name="window-end"
-            onChange={(event) => setWindowEnd(event.target.value)}
-            type="time"
-            value={windowEnd}
-          />
-          <Input
-            label="Starts"
-            name="starts-at"
-            onChange={(event) => setStartDate(event.target.value)}
-            type="date"
-            value={startDate}
-          />
-          <Input
-            label="Ends"
-            name="ends-at"
-            onChange={(event) => setEndDate(event.target.value)}
-            type="date"
-            value={endDate}
-          />
+          <FormRow>
+            <Input
+              label="Window start"
+              name="window-start"
+              onChange={(event) => setWindowStart(event.target.value)}
+              type="time"
+              value={windowStart}
+            />
+            <Input
+              label="Window end"
+              name="window-end"
+              onChange={(event) => setWindowEnd(event.target.value)}
+              type="time"
+              value={windowEnd}
+            />
+          </FormRow>
+          <FormRow>
+            <Input
+              label="Starts"
+              name="starts-at"
+              onChange={(event) => setStartDate(event.target.value)}
+              type="date"
+              value={startDate}
+            />
+            <Input
+              label="Ends"
+              name="ends-at"
+              onChange={(event) => setEndDate(event.target.value)}
+              type="date"
+              value={endDate}
+            />
+          </FormRow>
           <Input
             label="Brief"
             name="cadence-brief"

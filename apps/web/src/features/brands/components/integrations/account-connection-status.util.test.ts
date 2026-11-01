@@ -3,7 +3,6 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import { describe, expect, it } from 'vitest';
 import {
   getAccountConnectionStatus,
-  getConnectionInitials,
   getConnectionLabel,
   isAccessTokenExpired,
   needsDirectMessageReconnect,
@@ -87,26 +86,6 @@ describe('getConnectionLabel', () => {
     ).toBe('acme');
     expect(
       getConnectionLabel(
-        buildConnection({
-          handle: undefined,
-          label: undefined,
-          name: undefined,
-        }),
-      ),
-    ).toBe('X');
-  });
-});
-
-describe('getConnectionInitials', () => {
-  it('builds initials from up to two words in the label', () => {
-    expect(
-      getConnectionInitials(buildConnection({ name: 'Acme Studio' })),
-    ).toBe('AS');
-  });
-
-  it('takes a single initial from a one-word label, such as the platform fallback', () => {
-    expect(
-      getConnectionInitials(
         buildConnection({
           handle: undefined,
           label: undefined,

@@ -10,12 +10,17 @@ import {
   LIBRARY_MAX_TAG_FILTERS,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
+import {
+  getIngredientPreviewUrl,
+  isRasterPreviewUrl,
+} from '@genfeedai/utils/media/ingredient-preview.util';
+import { Avatar } from '@ui/primitives/avatar';
 import { UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
-import IngredientThumbnail from '@/components/ingredients/ingredient-thumbnail/IngredientThumbnail';
 import type {
   LibraryCharacterOption,
   LibraryFiltersMenuProps,
@@ -31,20 +36,18 @@ function CharacterAvatar({
   character: LibraryCharacterOption;
   ingredient: IIngredient | undefined;
 }) {
-  if (!character.avatarIngredientId) {
-    return (
-      <span className="flex size-4 items-center justify-center rounded-full bg-tertiary text-muted-foreground">
-        <UserRound className="size-2.5" />
-      </span>
-    );
-  }
+  const grant = useAuthorizedMediaPreview(ingredient ?? null);
+  const src = grant
+    ? isRasterPreviewUrl(grant.url)
+      ? grant.url
+      : undefined
+    : getIngredientPreviewUrl(ingredient);
 
   return (
-    <IngredientThumbnail
-      alt=""
-      className="size-4 rounded-full object-cover outline-media"
-      ingredient={ingredient}
-      size={16}
+    <Avatar
+      fallback={<UserRound className="size-2.5" />}
+      size="2xs"
+      src={character.avatarIngredientId ? src : undefined}
     />
   );
 }

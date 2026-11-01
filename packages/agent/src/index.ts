@@ -25,6 +25,11 @@ export {
   AgentThreadOpenProvider,
   useAgentThreadOpen,
 } from '@genfeedai/agent/components/AgentThreadOpenContext';
+export {
+  type AgentThreadResolution,
+  AgentThreadResolutionProvider,
+  useAgentThreadResolution,
+} from '@genfeedai/agent/components/AgentThreadResolutionContext';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 // Block renderers
 export {

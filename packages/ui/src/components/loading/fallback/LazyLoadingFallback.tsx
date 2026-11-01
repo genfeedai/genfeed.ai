@@ -3,6 +3,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LazyLoadingFallbackProps } from '@genfeedai/props/ui/feedback/lazy-loading-fallback.props';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Loading from '@ui/loading/default/Loading';
+import { Skeleton } from '@ui/primitives/skeleton';
 import Spinner from '@ui/primitives/spinner';
 
 export default function LazyLoadingFallback({
@@ -46,17 +47,11 @@ export default function LazyLoadingFallback({
   const aspectClass = getAspectClass();
 
   return (
-    <div
-      className={cn(
-        'relative bg-muted overflow-hidden',
-        aspectClass,
-        className,
-      )}
+    <Skeleton
       aria-label="Loading content"
+      className={cn('rounded-none', aspectClass, className)}
       role="status"
     >
-      <div className="absolute inset-0 animate-shimmer" />
-
       {isSpinnerEnabled && (
         <div
           className={
@@ -66,6 +61,6 @@ export default function LazyLoadingFallback({
           <Spinner size={ComponentSize.MD} className="text-foreground/70" />
         </div>
       )}
-    </div>
+    </Skeleton>
   );
 }

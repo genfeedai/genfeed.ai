@@ -17,6 +17,15 @@ export interface CalendarItem {
 export type CalendarViewKey = 'day' | 'week' | 'month' | 'list';
 
 /**
+ * The calendar's own chrome: the period navigation (prev, next, range, Today)
+ * and the view dropdown. A host with a sub bar mounts both there.
+ */
+export interface CalendarToolbar {
+  navigation: ReactNode;
+  viewMenu: ReactNode;
+}
+
+/**
  * Visual weight of an event badge. Tones map to classes in
  * `packages/styles/calendar.css` rather than utility classes: the badge DOM is
  * constructed at runtime inside FullCalendar's `eventContent`, and Tailwind
@@ -146,6 +155,12 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    */
   views?: CalendarViewKey[];
   embedded?: boolean;
+  /**
+   * Hands the calendar's navigation and view dropdown to the host's sub bar.
+   * When set, the calendar renders no toolbar of its own and `filterControls`
+   * is ignored: the host mounts its controls in the same sub bar.
+   */
+  onToolbarChange?: (toolbar: CalendarToolbar) => void;
   filterControls?: ReactNode;
   modal?: ReactNode;
   /**

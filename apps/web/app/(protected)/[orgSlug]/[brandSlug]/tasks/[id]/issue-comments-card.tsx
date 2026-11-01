@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, ChevronsDown, MessageCircle } from 'lucide-react';
 import type { IssueCommentsCardProps } from '@/features/tasks/props/issue-comments-card.props';
@@ -70,7 +70,7 @@ export default function IssueCommentsCard({
           ))}
         </>
       ) : (
-        <CardEmptyContent label="No comments yet" />
+        <EmptyState title="No comments yet" />
       )}
       <div className="border-t border-border p-4">
         <Textarea

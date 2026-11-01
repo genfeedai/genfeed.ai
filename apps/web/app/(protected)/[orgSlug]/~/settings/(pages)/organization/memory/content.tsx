@@ -1,5 +1,4 @@
 'use client';
-
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -11,12 +10,13 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { AgentMemoriesService } from '@services/automation/agent-memories.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Archive, Lock, Pencil, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -193,7 +193,7 @@ export default function SettingsOrganizationMemoryPage() {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
+      render: (entry) => <TableDateCell value={entry.createdAt} />,
     },
   ];
 
@@ -276,7 +276,8 @@ export default function SettingsOrganizationMemoryPage() {
 
   if (!isBillingEnabled) {
     return (
-      <CardEmpty
+      <EmptyState
+        surface="card"
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
@@ -285,7 +286,7 @@ export default function SettingsOrganizationMemoryPage() {
           </Button>
         }
         icon={Lock}
-        label={translate('billedTitle')}
+        title={translate('billedTitle')}
       />
     );
   }

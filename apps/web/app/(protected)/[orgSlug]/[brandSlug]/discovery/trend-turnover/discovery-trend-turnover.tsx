@@ -1,5 +1,4 @@
 'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -16,13 +15,13 @@ import type {
 } from '@services/social/trends.service';
 import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
@@ -136,9 +135,10 @@ export default function DiscoveryTrendTurnover() {
       ) : null}
 
       {isEmpty ? (
-        <CardEmpty
+        <EmptyState
+          surface="card"
           icon={Repeat}
-          label={translate('emptyState.title')}
+          title={translate('emptyState.title')}
           actions={
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
               <Button

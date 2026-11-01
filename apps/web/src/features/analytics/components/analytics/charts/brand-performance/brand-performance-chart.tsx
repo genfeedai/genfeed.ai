@@ -1,14 +1,13 @@
 'use client';
-
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import LoadingOverlay from '@ui/primitives/loading-overlay';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
@@ -131,10 +130,7 @@ export function BrandPerformanceChart({
           {isLoading && <LoadingOverlay tone="veil" />}
 
           {isEmpty && !isLoading ? (
-            <CardEmptyContent
-              className="absolute inset-0 py-0"
-              label="No brand performance yet"
-            />
+            <EmptyState isFill title="No brand performance yet" />
           ) : null}
 
           {!isEmpty ? (

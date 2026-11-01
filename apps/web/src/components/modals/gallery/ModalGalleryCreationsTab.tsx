@@ -1,9 +1,8 @@
 'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import { EmptyState } from '@ui/primitives/empty-state';
 import Spinner from '@ui/primitives/spinner';
 import { Image } from 'lucide-react';
 import ModalGalleryItemImage from '@/components/modals/gallery/items/ModalGalleryItemImage';
@@ -27,9 +26,9 @@ export default function ModalGalleryCreationsTab({
 
   if (creations.length === 0) {
     return (
-      <CardEmptyContent
+      <EmptyState
         icon={Image}
-        label="No creations yet"
+        title="No creations yet"
         description="Generate some images to see them here"
       />
     );

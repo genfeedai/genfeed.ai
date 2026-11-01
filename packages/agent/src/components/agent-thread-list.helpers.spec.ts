@@ -597,4 +597,21 @@ describe('groupChildThreads', () => {
     expect(ids(groups.needsYou)).toEqual(['both']);
     expect(groups.readyForReview).toEqual([]);
   });
+
+  it('moves an archived thread to resolved whatever it was doing', () => {
+    const groups = groupChildThreads(
+      [
+        createThread('done', {
+          attentionState: 'updated',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+        createThread('still-open', { runStatus: 'running' }),
+      ],
+      { searchQuery: '' },
+    );
+
+    expect(ids(groups.resolved)).toEqual(['done']);
+    expect(ids(groups.readyForReview)).toEqual([]);
+    expect(ids(groups.working)).toEqual(['still-open']);
+  });
 });

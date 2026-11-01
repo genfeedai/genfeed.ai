@@ -233,10 +233,8 @@ describe('buildModelsTableColumns', () => {
     (category) => {
       renderColumn('Label', buildModel({ category }), true);
       expect(
-        screen
-          .getByRole('img', { name: getModelCategoryLabel(category) })
-          .querySelector('svg'),
-      ).toHaveClass('size-3.5');
+        screen.getByRole('img', { name: getModelCategoryLabel(category) }),
+      ).toBeInTheDocument();
     },
   );
 
@@ -253,9 +251,9 @@ describe('buildModelsTableColumns', () => {
     );
 
     expect(screen.getByRole('img', { name: 'HeyGen' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: 'Avatar' }).querySelector('svg'),
-    ).toHaveClass('lucide-square-user', 'size-3.5');
+    expect(screen.getByRole('img', { name: 'Avatar' })).toHaveClass(
+      'lucide-square-user',
+    );
     expect(
       screen.queryByRole('img', { name: 'Voice' }),
     ).not.toBeInTheDocument();
@@ -284,9 +282,9 @@ describe('buildModelsTableColumns', () => {
     });
     renderColumn('Label', model, true);
 
-    expect(
-      screen.getByRole('img', { name: 'Avatar' }).querySelector('svg'),
-    ).toHaveClass('lucide-square-user');
+    expect(screen.getByRole('img', { name: 'Avatar' })).toHaveClass(
+      'lucide-square-user',
+    );
     expect(
       screen.queryByRole('img', { name: 'Voice' }),
     ).not.toBeInTheDocument();
@@ -305,9 +303,9 @@ describe('buildModelsTableColumns', () => {
       true,
     );
 
-    expect(
-      screen.getByRole('img', { name: 'Voice' }).querySelector('svg'),
-    ).toHaveClass('lucide-mic-2');
+    expect(screen.getByRole('img', { name: 'Voice' })).toHaveClass(
+      'lucide-mic-2',
+    );
     expect(
       screen.queryByRole('img', { name: 'Avatar' }),
     ).not.toBeInTheDocument();

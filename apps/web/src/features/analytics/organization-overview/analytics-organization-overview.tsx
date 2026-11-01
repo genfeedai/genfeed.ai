@@ -1,5 +1,4 @@
 'use client';
-
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -24,14 +23,14 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
-import { EmptyStateCard } from '@ui/feedback';
+import { Avatar } from '@ui/primitives/avatar';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
@@ -131,7 +130,8 @@ function OrganizationMetricStrip({
   // "Organization Metrics" page title.
   if (hasNoData) {
     return (
-      <EmptyStateCard
+      <EmptyState
+        surface="card"
         icon={Building2}
         title="No organization activity yet"
         action={{
@@ -146,31 +146,14 @@ function OrganizationMetricStrip({
     <section aria-label="Organization metrics">
       <DashboardGrid>
         {metrics.map((metric) => (
-          <Card key={metric.label}>
-            {isLoading ? (
-              <Skeleton variant="text" height={32} className="w-16" />
-            ) : (
-              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                {metric.value}
-              </div>
-            )}
-            <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/60">
-              {metric.analyticsMetric ? (
-                <AnalyticsMetricLabel metric={metric.analyticsMetric}>
-                  {metric.label}
-                </AnalyticsMetricLabel>
-              ) : (
-                metric.label
-              )}
-            </p>
-            {isLoading ? (
-              <Skeleton variant="text" height={12} className="mt-2 w-28" />
-            ) : (
-              <p className="mt-1.5 text-2xs text-muted-foreground">
-                {metric.accent}
-              </p>
-            )}
-          </Card>
+          <MetricCard
+            key={metric.label}
+            analyticsMetric={metric.analyticsMetric}
+            description={metric.accent}
+            isLoading={isLoading}
+            label={metric.label}
+            value={metric.value}
+          />
         ))}
       </DashboardGrid>
     </section>
@@ -370,19 +353,13 @@ export default function AnalyticsOrganizationOverview({
               key: 'name',
               render: (brand) => (
                 <div className="flex items-center gap-3">
-                  {brand.logo ? (
-                    <Image
-                      src={brand.logo}
-                      alt={brand.name}
-                      width={40}
-                      height={40}
-                      className="size-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary">
-                      {brand.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    alt={brand.name}
+                    name={brand.name}
+                    shape="square"
+                    size="lg"
+                    src={brand.logo}
+                  />
                   <div>
                     <div className="font-medium">{brand.name}</div>
                     <div className="text-xs text-foreground/60">

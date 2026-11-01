@@ -13,12 +13,12 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Alert } from '@ui/primitives/alert';
+import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { EmptyState } from '@ui/primitives/empty-state';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight, Calendar, Clock, User } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
@@ -139,13 +139,12 @@ export function ArticleAbout({
       <div className="space-y-4">
         {logoUrl && (
           <div className="flex justify-center lg:justify-start">
-            <Image
+            <Avatar
               alt={`${label} logo`}
-              className="size-20 rounded-full object-cover ring-4 ring-foreground/20 md:size-24"
-              height={96}
-              priority
+              name={label}
+              shape="square"
+              size="2xl"
               src={logoUrl}
-              width={96}
             />
           </div>
         )}
@@ -189,8 +188,9 @@ export default function ArticleDetail({
   if (!article || article?.id === 'undefined') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <CardEmpty
-          label="Article not found"
+        <EmptyState
+          surface="card"
+          title="Article not found"
           actions={
             <Link
               href="/articles"
@@ -252,8 +252,8 @@ export default function ArticleDetail({
             <header className="mb-6 md:mb-8">
               {article.category && (
                 <Badge
-                  variant="default"
-                  className="mb-3 bg-foreground/20 text-foreground border-foreground/20 md:mb-4 md:text-sm"
+                  variant="secondary"
+                  className="mb-3 md:mb-4"
                 >
                   {article.category}
                 </Badge>

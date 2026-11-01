@@ -23,10 +23,32 @@ const checks = [
     required: true,
   },
   {
+    // Avatars are the shared Avatar: no restyling it with classes, no
+    // hand-built letter or picture circles, no private initials helpers.
+    // Escape hatch: `// ui-guard-allow:<rule> -- reason`.
+    command: ['bun', 'run', 'scripts/ui/hand-built/avatars.ts'],
+    name: 'Hand-built avatars (shared Avatar, getInitials)',
+    required: true,
+  },
+  {
     // Progress bars and step circles come from Progress (size, tone) and
     // Stepper; hand-built fills, className restyles and indicatorClassName fail.
     command: ['bun', 'run', 'scripts/ui/hand-built/progress.ts'],
     name: 'Hand-built progress bars and steppers',
+    required: true,
+  },
+  {
+    // Table cells hold content: dates render through TableDateCell (relative
+    // times allowed) and row controls live in the table's hover row actions.
+    command: ['bun', 'run', 'scripts/ui/hand-built/table-columns.ts'],
+    name: 'Table columns (TableDateCell dates, controls as row actions)',
+    required: true,
+  },
+  {
+    // Views and filters are dropdowns in the sub bar (ViewMenu, FilterMenu),
+    // never tab bars. Baseline: scripts/ui/hand-built/view-tabs.baseline.json.
+    command: ['bun', 'run', 'scripts/ui/hand-built/view-tabs.ts'],
+    name: 'View and filter tabs (ViewMenu / FilterMenu dropdowns)',
     required: true,
   },
   {
@@ -65,6 +87,13 @@ const checks = [
     // scripts/ui/hand-built/areas with its own shrink-only baseline.
     command: ['bun', 'run', 'scripts/ui/hand-built/check-hand-built.ts'],
     name: 'Hand-built UI (shared components are not restyled or rebuilt)',
+    required: true,
+  },
+  {
+    // Blocks hand-built empty states and className restyles of EmptyState.
+    // Baseline: scripts/ui/hand-built/empty-states.baseline.json (empty).
+    command: ['bun', 'run', 'scripts/ui/hand-built/empty-states.ts'],
+    name: 'Empty states (shared EmptyState, no hand-built blocks or restyles)',
     required: true,
   },
   {

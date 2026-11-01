@@ -8,6 +8,8 @@ const IDENTITY_404 =
   'The public provider page returned 404; the model identity is unavailable.';
 const FAL_ENDPOINT_GONE =
   'fal no longer serves this endpoint (no OpenAPI document or a redirect, 2026-10-21); the model identity is unavailable.';
+const FAL_ENDPOINT_MOVED =
+  'fal serves this model under a new endpoint id (checked 2026-11-01); it has no reviewed rate until the fal price refresh reads one for the new id and an operator approves it.';
 const FAL_NO_PUBLIC_RATE =
   'The fal model page publishes no list price (2026-10-21).';
 const LEGACY_KEY =
@@ -37,19 +39,19 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'black-forest-labs/flux-2-max': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-pro': INPUT_MEGAPIXELS,
   'fal-ai/clarity-upscaler': FAL_NO_PUBLIC_RATE,
-  'fal-ai/eleven-labs-tts': FAL_ENDPOINT_GONE,
+  'fal-ai/eleven-labs-tts': FAL_ENDPOINT_MOVED,
   'fal-ai/face-swap': FAL_ENDPOINT_GONE,
   'fal-ai/flux-2-pro': INPUT_MEGAPIXELS,
   'fal-ai/flux-pro': FAL_NO_PUBLIC_RATE,
-  'fal-ai/gpt-image-2': FAL_ENDPOINT_GONE,
+  'fal-ai/gpt-image-2': FAL_ENDPOINT_MOVED,
   'fal-ai/kling-video':
     'A fal model family page, not a callable endpoint, so it has no single price.',
-  'fal-ai/kling-video/v3/pro': FAL_ENDPOINT_GONE,
+  'fal-ai/kling-video/v3/pro': FAL_ENDPOINT_MOVED,
   'fal-ai/luma-dream-machine': FAL_NO_PUBLIC_RATE,
-  'fal-ai/pixverse/v6': FAL_ENDPOINT_GONE,
-  'fal-ai/recraft/v4/pro': FAL_ENDPOINT_GONE,
+  'fal-ai/pixverse/v6': FAL_ENDPOINT_MOVED,
+  'fal-ai/recraft/v4/pro': FAL_ENDPOINT_MOVED,
   'fal-ai/runway-gen3': FAL_ENDPOINT_GONE,
-  'fal-ai/seedance-2.0': FAL_ENDPOINT_GONE,
+  'fal-ai/seedance-2.0': FAL_ENDPOINT_MOVED,
   'fal-ai/stable-video-diffusion': FAL_ENDPOINT_GONE,
   'fal-ai/topaz/upscale/video':
     'fal prices per second by output resolution band and frame rate; dispatch does not supply the output band.',

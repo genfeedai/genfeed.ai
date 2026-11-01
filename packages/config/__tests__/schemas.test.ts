@@ -424,11 +424,11 @@ describe('Config Schemas', () => {
     it('should allow an empty optional ComfyUI URL from env templates', () => {
       const schema = Joi.object(fleetSchema);
       const { error, value } = schema.validate({
-        FLEET_COMFYUI_URL: '',
+        COMFYUI_URL: '',
       });
 
       expect(error).toBeUndefined();
-      expect(value.FLEET_COMFYUI_URL).toBe('');
+      expect(value.COMFYUI_URL).toBe('');
     });
   });
 

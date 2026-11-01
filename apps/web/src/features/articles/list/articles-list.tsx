@@ -1,12 +1,10 @@
 'use client';
-
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -24,11 +22,13 @@ import type {
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -93,8 +93,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       header: translate('created'),
       key: 'createdAt',
       sortable: true,
-      render: (article: Article) =>
-        article.createdAt ? formatDate(article.createdAt) : '-',
+      render: (article: Article) => <TableDateCell value={article.createdAt} />,
     },
   ];
 
@@ -210,9 +209,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         onSortChange={onSortChange}
         emptyLabel={translate('emptyLabel')}
         emptyState={
-          <CardEmptyContent
+          <EmptyState
             icon={Newspaper}
-            label={translate('emptyTitle')}
+            title={translate('emptyTitle')}
             action={{
               label: translate('create'),
               onClick: openCreateArticleModal,

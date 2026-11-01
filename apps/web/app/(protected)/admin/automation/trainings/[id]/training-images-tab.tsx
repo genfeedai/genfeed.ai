@@ -1,5 +1,4 @@
 'use client';
-
 import { useTraining } from '@contexts/content/training-context/training-context';
 import { PageScope, TrainingStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -10,8 +9,8 @@ import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Image as LucideImage } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -72,35 +71,30 @@ export default function TrainingImagesTab({
 
   if (error) {
     return (
-      <CardEmptyContent
-        icon={LucideImage}
-        label="Generated assets failed to load"
-      />
+      <EmptyState icon={LucideImage} title="Generated assets failed to load" />
     );
   }
 
   if (!hasTrainingModel) {
-    return (
-      <CardEmptyContent icon={LucideImage} label="Training model unavailable" />
-    );
+    return <EmptyState icon={LucideImage} title="Training model unavailable" />;
   }
 
   const content =
     isLoading && generatedAssets.length === 0 ? (
       <IngredientsMediaGrid isLoading items={[]} />
     ) : generatedAssets.length === 0 ? (
-      <div className="text-center py-12">
-        <LucideImage className="mx-auto size-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">
-          No assets have been generated with this training model yet.
-        </p>
-
-        {training?.status === TrainingStatus.COMPLETED && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Use the trigger word <Code>{training.trigger}</Code> in your prompts
-          </p>
-        )}
-      </div>
+      <EmptyState
+        description={
+          training?.status === TrainingStatus.COMPLETED ? (
+            <>
+              Use the trigger word <Code>{training.trigger}</Code> in your
+              prompts
+            </>
+          ) : undefined
+        }
+        icon={LucideImage}
+        title="No assets have been generated with this training model yet."
+      />
     ) : (
       <IngredientsMediaGrid
         isActionsEnabled={false}

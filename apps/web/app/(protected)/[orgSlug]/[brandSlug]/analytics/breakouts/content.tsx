@@ -1,5 +1,4 @@
 'use client';
-
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import type {
   BreakoutResponsePage,
@@ -9,11 +8,11 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { BreakoutResponsesService } from '@services/analytics/breakout-responses.service';
-import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
@@ -121,7 +120,7 @@ function ScopedBreakoutResponses({
           {error}
         </Text>
       ) : currentResult?.docs.length === 0 ? (
-        <CardEmptyContent label={t('empty')} />
+        <EmptyState title={t('empty')} />
       ) : (
         <div className="space-y-3">
           {currentResult?.docs.map((response) => (

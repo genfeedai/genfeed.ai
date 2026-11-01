@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -14,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Building2, CircleQuestionMark, LogOut, Tag, User } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import AccountCredits from '@/components/topbars/credits-bar/AccountCredits';
 
@@ -40,7 +40,6 @@ export default function UserDropdown({
   userEmail,
 }: UserDropdownProps) {
   const { orgHref } = useOrgUrl();
-  const initial = userName.trim().charAt(0).toUpperCase() || 'U';
   // Cross-scope switcher for the scope-specific Settings sidebar: each entry
   // enters a settings scope, whose sidebar then shows only that scope's pages
   // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
@@ -76,23 +75,10 @@ export default function UserDropdown({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           textTransform="none"
-          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 cursor-pointer rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           ariaLabel="Open account menu"
         >
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={userName}
-              width={32}
-              height={32}
-              className="size-8 rounded-full object-cover object-center outline-media"
-              sizes="32px"
-            />
-          ) : (
-            <span className="flex size-8 items-center justify-center rounded-full bg-foreground/10 text-sm font-semibold text-foreground/90">
-              {initial}
-            </span>
-          )}
+          <Avatar alt={userName} name={userName} size="md" src={imageUrl} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

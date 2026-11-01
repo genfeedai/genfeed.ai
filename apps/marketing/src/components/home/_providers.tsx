@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getProviderBrands } from '@genfeedai/helpers';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
+import { Avatar } from '@ui/primitives/avatar';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -74,12 +75,12 @@ export default function HomeProviders(): React.ReactElement {
                 {Icon ? (
                   <Icon aria-hidden className="size-6 shrink-0" />
                 ) : (
-                  <span
+                  <Avatar
                     aria-hidden
-                    className="flex size-6 shrink-0 items-center justify-center text-sm font-semibold"
-                  >
-                    {brand.label.charAt(0)}
-                  </span>
+                    name={brand.label}
+                    shape="square"
+                    size="sm"
+                  />
                 )}
                 <Text className="text-base font-semibold text-foreground">
                   {brand.label}

@@ -10,14 +10,12 @@ import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import CardIcon from '@ui/card/icon/CardIcon';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
+import {
+  CARD_SURFACE_BASE_CLASS,
+  CARD_SURFACE_VARIANT_CLASSES,
+} from '@ui/styles/card-surface';
 import Image from 'next/image';
 import { createElement, memo } from 'react';
-
-const VARIANT_CLASSES: Record<CardVariant, string> = {
-  [CardVariant.DEFAULT]: 'shadow-border bg-card text-card-foreground',
-  [CardVariant.BORDERED]: 'border border-border bg-card text-card-foreground',
-  [CardVariant.INSET]: 'bg-tertiary text-card-foreground',
-};
 
 const INTERACTIVE_VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'hover:shadow-border-strong',
@@ -82,13 +80,14 @@ const Card = memo(function Card({
   ...surfaceProps
 }: CardProps) {
   const cardClasses = cn(
-    'relative rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
+    CARD_SURFACE_BASE_CLASS,
+    'text-left transition-[border-color,background-color] duration-150 ease-out',
     // Overlay images clip to the radius. overflow-hidden on every card is a
     // clipping ancestor for Radix popovers (model picker, select) and shrinks
     // --radix-popover-content-available-height to the card interior.
     overlay && 'overflow-hidden',
     id && 'scroll-mt-20',
-    VARIANT_CLASSES[variant],
+    CARD_SURFACE_VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
     onClick && 'cursor-pointer',
     isDisabled && 'cursor-not-allowed opacity-60',

@@ -34,14 +34,6 @@ vi.mock('@ui/display/platform-badge/PlatformBadge', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/avatar', () => ({
-  Avatar: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  AvatarFallback: ({ children }: { children?: ReactNode }) => (
-    <span>{children}</span>
-  ),
-  AvatarImage: ({ alt }: { alt?: string }) => <span>{alt}</span>,
-}));
-
 import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
 

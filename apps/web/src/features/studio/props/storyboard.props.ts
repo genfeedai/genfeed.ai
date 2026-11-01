@@ -303,6 +303,8 @@ export interface StoryboardPromptBarProps {
   readonly error?: string;
   readonly hasShots: boolean;
   readonly isDisabled: boolean;
+  /** Slideshow plans talk about slides, not shots. */
+  readonly isSlideshow?: boolean;
   readonly onRetry: () => void;
   /** Handles the request; failures are reported back through `error`. */
   readonly onSubmit: (text: string) => void | Promise<void>;
