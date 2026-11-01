@@ -238,7 +238,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -264,8 +264,8 @@ describe('Storyboard shared composer', () => {
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
-    fireEvent.click(screen.getByRole('button', { name: 'From a brief' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Slideshow' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'From a brief' }));
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });
