@@ -221,6 +221,36 @@
     "scratchTitle": "Start from scratch",
     "title": "Turn an idea into a storyboard"
   },
+  "pitches": {
+    "groupAria": "Starter ideas",
+    "items": {
+      "explainer": {
+        "description": "Correct a common mistake and show a better way.",
+        "title": "Explain an idea"
+      },
+      "howTo": {
+        "description": "One clear step per slide, from start to result.",
+        "title": "Step-by-step guide"
+      },
+      "lessons": {
+        "description": "Five lessons, each with a real example.",
+        "title": "Lessons learned"
+      },
+      "story": {
+        "description": "Where you started, what changed, where you are now.",
+        "title": "A story in slides"
+      },
+      "tips": {
+        "description": "A hook, five quick tips and a save-this close.",
+        "title": "Quick tips"
+      },
+      "voiceNote": {
+        "description": "Talk through the biggest lesson of your year.",
+        "title": "Voice note"
+      }
+    },
+    "prefillAria": "Start from the {title} idea"
+  },
   "presets": {
     "chipsAria": "Storyboard presets",
     "create": "Try this",
