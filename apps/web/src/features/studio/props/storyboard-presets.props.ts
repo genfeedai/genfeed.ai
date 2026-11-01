@@ -78,11 +78,7 @@ export interface StoryboardPitch {
 }
 
 export interface StoryboardPitchCardsProps {
-  /** Pitch whose brief is currently in the composer, highlighted as selected. */
-  activePitchId?: StoryboardPitchId;
   isDisabled?: boolean;
-  /** One card per row, for a narrow agent column. */
-  isStacked?: boolean;
   kind: StoryboardPitchKind;
   onSelect: (pitch: StoryboardPitch) => void;
 }

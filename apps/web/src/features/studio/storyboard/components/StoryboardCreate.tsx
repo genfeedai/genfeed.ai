@@ -262,54 +262,33 @@ export default function StoryboardCreate({
       /* The hook keeps the source and exposes the retryable error. */
     }
   }
-  const sourceModes = (
-    <div
-      role="group"
-      aria-label={translate('sourceAria')}
-      className="flex flex-wrap gap-2"
-    >
-      <Button
-        label={translate('fromBrief')}
-        aria-pressed={mode === 'brief'}
-        variant={
-          mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-        }
-        disabled={isCreating}
-        onClick={() => {
-          setMode('brief');
-          if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
-        }}
-      />
-      <Button
-        label={translate('longFormTitle')}
-        aria-pressed={isLongForm}
-        variant={isLongForm ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
-        disabled={isCreating}
-        onClick={() => {
-          setMode('longForm');
-          setFormat('16:9');
-        }}
-      />
-      <Button
-        label={translate('slideshowTitle')}
-        aria-pressed={isSlideshow}
-        variant={isSlideshow ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
-        disabled={isCreating}
-        onClick={() => {
-          setMode('slideshow');
-          setFormat('4:5');
-        }}
-      />
-      <Button
-        label={translate('remixTitle')}
-        aria-pressed={mode === 'video'}
-        variant={
-          mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
-        }
-        disabled={isCreating}
-        onClick={() => setMode('video')}
-      />
-    </div>
+  function selectMode(next: string) {
+    if (next === 'brief') {
+      setMode('brief');
+      if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
+    } else if (next === 'longForm') {
+      setMode('longForm');
+      setFormat('16:9');
+    } else if (next === 'slideshow') {
+      setMode('slideshow');
+      setFormat('4:5');
+    } else if (next === 'video') {
+      setMode('video');
+    }
+  }
+  const modeSelect = (
+    <PromptBarCompactSelect
+      ariaLabel={translate('sourceAria')}
+      isDisabled={isCreating}
+      options={[
+        { label: translate('fromBrief'), value: 'brief' },
+        { label: translate('longFormTitle'), value: 'longForm' },
+        { label: translate('slideshowTitle'), value: 'slideshow' },
+        { label: translate('remixTitle'), value: 'video' },
+      ]}
+      value={mode}
+      onChange={selectMode}
+    />
   );
   const composer = (
     <PromptBarContainer layoutMode="inflow" maxWidth="full">
@@ -343,28 +322,31 @@ export default function StoryboardCreate({
         ) : null}
         <PromptBarToolbar
           leading={
-            mode !== 'video' ? (
-              <>
-                <PromptBarCompactSelect
-                  ariaLabel={translate('formatAria')}
-                  isDisabled={isCreating}
-                  options={formatOptions(formats)}
-                  value={format}
-                  onChange={(value) => {
-                    if (isFormatIn(formats, value)) setFormat(value);
-                  }}
-                />
-                {isLongForm || isSlideshow ? null : (
+            <>
+              {modeSelect}
+              {mode !== 'video' ? (
+                <>
                   <PromptBarCompactSelect
-                    ariaLabel={translate('runtimeBudget')}
+                    ariaLabel={translate('formatAria')}
                     isDisabled={isCreating}
-                    options={budgetOptions}
-                    value={budget}
-                    onChange={setBudget}
+                    options={formatOptions(formats)}
+                    value={format}
+                    onChange={(value) => {
+                      if (isFormatIn(formats, value)) setFormat(value);
+                    }}
                   />
-                )}
-              </>
-            ) : null
+                  {isLongForm || isSlideshow ? null : (
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('runtimeBudget')}
+                      isDisabled={isCreating}
+                      options={budgetOptions}
+                      value={budget}
+                      onChange={setBudget}
+                    />
+                  )}
+                </>
+              ) : null}
+            </>
           }
           reference={
             mode === 'brief' ? (
@@ -406,6 +388,11 @@ export default function StoryboardCreate({
       </PromptBarComposer>
     </PromptBarContainer>
   );
+  const modeHint = isSlideshow
+    ? translate('slideshowHint')
+    : isLongForm
+      ? translate('longFormHint')
+      : translate('heroDescription');
   const guidance =
     mode === 'video' ? (
       <p role="status" className="text-sm">
@@ -413,15 +400,10 @@ export default function StoryboardCreate({
       </p>
     ) : isLongForm || isSlideshow ? (
       <>
-        <p className="text-sm text-muted-foreground">
-          {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
-        </p>
+        {hasAgentColumn ? null : (
+          <p className="text-sm text-muted-foreground">{modeHint}</p>
+        )}
         <StoryboardPitchCards
-          isStacked={hasAgentColumn}
-          activePitchId={
-            STORYBOARD_PITCHES[pitchKind].find((pitch) => pitch.brief === brief)
-              ?.id
-          }
           isDisabled={isCreating}
           kind={pitchKind}
           onSelect={applyPitch}
@@ -616,14 +598,27 @@ export default function StoryboardCreate({
       <AgentOutputShell
         agent={
           <div
-            className="flex min-h-0 flex-1 flex-col"
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
             data-testid="storyboard-agent"
           >
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-              {sourceModes}
-              {guidance}
+            {/* Centered on the column like the main agent's empty state; the
+                cap keeps a tall block scrolling clear of the composer. */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6">
+              <div className="pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto">
+                <div className="w-full text-center">
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-[1.75rem]">
+                    {translate('heroTitle')}
+                  </h2>
+                  <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">
+                    {mode === 'video' ? null : modeHint}
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-4">{guidance}</div>
+              </div>
             </div>
-            <div className="shrink-0 px-4 pb-4">{composer}</div>
+            <div className="mt-auto shrink-0 px-4 pb-4 md:px-6">
+              <div className="mx-auto w-full max-w-2xl">{composer}</div>
+            </div>
           </div>
         }
         agentTitle={translateAgent('title')}
@@ -643,7 +638,6 @@ export default function StoryboardCreate({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
-        {sourceModes}
         {composer}
         {guidance}
       </div>

@@ -119,6 +119,17 @@ function image(id: string, brandId = mocks.brandId, isDeleted = false) {
   });
 }
 
+/** Picks a source from the prompt bar's dropdown, like a person would. */
+function chooseSource(name: string) {
+  fireEvent.keyDown(
+    screen.getByRole('combobox', { name: 'Storyboard source' }),
+    {
+      key: 'ArrowDown',
+    },
+  );
+  fireEvent.click(screen.getByRole('option', { name }));
+}
+
 describe('Storyboard shared composer', () => {
   beforeEach(() => {
     mocks.brandId = 'brand-a';
@@ -218,7 +229,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    chooseSource('Long video');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -244,7 +255,7 @@ describe('Storyboard shared composer', () => {
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    chooseSource('Slideshow');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'Five habits of calm founders' },
@@ -270,13 +281,13 @@ describe('Storyboard shared composer', () => {
   });
   it('offers three slideshow ideas that fill the brief without saving', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
+    chooseSource('Slideshow');
     expect(
-      screen.getAllByRole('button', { name: /^Start from the .* idea$/ }),
+      within(screen.getByTestId('storyboard-pitch-cards')).getAllByRole(
+        'button',
+      ),
     ).toHaveLength(3);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Start from the Quick tips idea' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Quick tips' }));
     expect(screen.getByLabelText('Brief')).toHaveDisplayValue(
       /^Five small habits that make a big difference\./,
     );
@@ -284,12 +295,12 @@ describe('Storyboard shared composer', () => {
   });
   it('offers long-video ideas and none for a remix', () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Long video' }));
+    chooseSource('Long video');
     expect(
-      screen.getByRole('button', { name: 'Start from the Voice note idea' }),
+      screen.getByRole('button', { name: 'Voice note' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Remix a video' }));
-    expect(screen.queryByRole('group', { name: 'Starter ideas' })).toBeNull();
+    chooseSource('Remix a video');
+    expect(screen.queryByTestId('storyboard-pitch-cards')).toBeNull();
   });
   it('pitches in the agent column and leaves the result on the right', () => {
     render(
@@ -310,7 +321,10 @@ describe('Storyboard shared composer', () => {
 
     expect(within(agentPane).getByLabelText('Brief')).toBeInTheDocument();
     expect(
-      within(agentPane).getByRole('button', { name: 'Slideshow' }),
+      within(agentPane).getByRole('combobox', { name: 'Storyboard source' }),
+    ).toBeInTheDocument();
+    expect(
+      within(agentPane).getByRole('heading', { name: 'Start a storyboard' }),
     ).toBeInTheDocument();
     expect(within(outputPane).queryByLabelText('Brief')).toBeNull();
     expect(
@@ -322,8 +336,8 @@ describe('Storyboard shared composer', () => {
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
     render(<StoryboardCreate />);
-    fireEvent.click(screen.getByRole('button', { name: 'Slideshow' }));
-    fireEvent.click(screen.getByRole('button', { name: 'From a brief' }));
+    chooseSource('Slideshow');
+    chooseSource('From a brief');
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'A product launch' },
     });
