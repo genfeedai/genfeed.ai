@@ -233,7 +233,11 @@ describe('useAgentCliTerminal', () => {
   });
 });
 
-function SelectionHarness() {
+function SelectionHarness({
+  isSearchOpen = false,
+}: {
+  isSearchOpen?: boolean;
+}) {
   const [sent, setSent] = useState('nothing');
 
   return (
@@ -241,6 +245,7 @@ function SelectionHarness() {
       <output aria-label="Sent selection">{sent}</output>
       <AgentCliTerminalBody
         containerRef={createRef<HTMLDivElement>()}
+        isSearchOpen={isSearchOpen}
         onSendSelection={setSent}
       />
     </>
@@ -256,7 +261,9 @@ describe('AgentCliTerminalBody context menu', () => {
     };
     render(<SelectionHarness />);
 
-    fireEvent.contextMenu(screen.getByTestId('agent-cli-terminal'));
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Genfeed terminal' }),
+    );
     expect(
       screen.getByRole('menuitem', { name: 'Send selection to agent' }),
     ).toBeInTheDocument();
@@ -271,11 +278,23 @@ describe('AgentCliTerminalBody context menu', () => {
     } as Selection);
     render(<SelectionHarness />);
 
-    fireEvent.contextMenu(screen.getByTestId('agent-cli-terminal'));
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Genfeed terminal' }),
+    );
     fireEvent.click(
       screen.getByRole('menuitem', { name: 'Send selection to agent' }),
     );
 
     expect(screen.getByLabelText('Sent selection')).toHaveTextContent('ls -la');
+  });
+
+  it('leaves the native context menu on the search input', () => {
+    render(<SelectionHarness isSearchOpen />);
+
+    fireEvent.contextMenu(
+      screen.getByRole('textbox', { name: 'Terminal search' }),
+    );
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

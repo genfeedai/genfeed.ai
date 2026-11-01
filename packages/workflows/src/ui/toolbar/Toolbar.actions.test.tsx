@@ -144,6 +144,19 @@ describe('Toolbar actions', () => {
     });
   });
 
+  it('keeps the validation errors when the toolbar unmounts', async () => {
+    render(<Toaster theme="light" />);
+    const { unmount } = render(<Toolbar />);
+    expect(await screen.findByText('Cannot run workflow')).toBeInTheDocument();
+
+    unmount();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Cannot run workflow')).not.toBeInTheDocument();
+    });
+    expect(stores.clearValidationErrors).not.toHaveBeenCalled();
+  });
+
   it('exports the workflow as a JSON download', () => {
     const createObjectURL = vi.fn(() => 'blob:workflow');
     const revokeObjectURL = vi.fn();

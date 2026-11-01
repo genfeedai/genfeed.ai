@@ -21,6 +21,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useExecutionStore } from '../stores/execution';
@@ -159,12 +160,24 @@ function ValidationErrorList({ messages }: { messages: string[] }) {
 
 /**
  * Surfaces workflow validation failures through the shared toaster. The toast
- * stays until dismissed; dismissing it clears the validation errors.
+ * stays until dismissed; dismissing it clears the validation errors. Sonner also
+ * calls `onDismiss` for programmatic dismissal, so unmounting the toolbar must
+ * not clear the errors: the guard ref skips `onClear` once the hook is gone.
  */
 function useValidationErrorToast(
   messages: string[],
   onClear: () => void,
 ): void {
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      toast.dismiss(VALIDATION_TOAST_ID);
+    };
+  }, []);
+
   useEffect(() => {
     if (messages.length === 0) {
       toast.dismiss(VALIDATION_TOAST_ID);
@@ -175,11 +188,13 @@ function useValidationErrorToast(
       description: <ValidationErrorList messages={messages} />,
       duration: Number.POSITIVE_INFINITY,
       id: VALIDATION_TOAST_ID,
-      onDismiss: onClear,
+      onDismiss: () => {
+        if (isMountedRef.current) {
+          onClear();
+        }
+      },
     });
   }, [messages, onClear]);
-
-  useEffect(() => () => void toast.dismiss(VALIDATION_TOAST_ID), []);
 }
 
 export function Toolbar({

@@ -654,43 +654,42 @@ export function AgentCliTerminalBody({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className="relative flex h-full flex-col font-mono text-sm leading-relaxed"
-          data-testid="agent-cli-terminal"
-          onClick={() =>
-            containerRef.current?.querySelector('textarea')?.focus()
-          }
-          role="presentation"
-        >
-          {/* T7: Inline search bar */}
-          {isSearchOpen && (
-            <div className="flex shrink-0 items-center gap-1 border-b border-border/20 bg-background/80 px-3 py-1 backdrop-blur-sm">
-              <Input
-                aria-label="Terminal search"
-                autoFocus
-                className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/20 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/40 focus:border-success/50"
-                onChange={(event) => onSearchQueryChange?.(event.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search..."
-                spellCheck={false}
-                value={searchQuery}
-              />
-              <Button
-                aria-label="Close search"
-                className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
-                label="✕"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onCloseSearch?.();
-                }}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              />
-            </div>
-          )}
+      <div
+        className="relative flex h-full flex-col font-mono text-sm leading-relaxed"
+        data-testid="agent-cli-terminal"
+        onClick={() => containerRef.current?.querySelector('textarea')?.focus()}
+        role="presentation"
+      >
+        {/* T7: Inline search bar */}
+        {isSearchOpen && (
+          <div className="flex shrink-0 items-center gap-1 border-b border-border/20 bg-background/80 px-3 py-1 backdrop-blur-sm">
+            <Input
+              aria-label="Terminal search"
+              autoFocus
+              className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/20 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/40 focus:border-success/50"
+              onChange={(event) => onSearchQueryChange?.(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search..."
+              spellCheck={false}
+              value={searchQuery}
+            />
+            <Button
+              aria-label="Close search"
+              className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/60 transition-colors hover:border-success/50 hover:text-success"
+              label="✕"
+              onClick={(event) => {
+                event.stopPropagation();
+                onCloseSearch?.();
+              }}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            />
+          </div>
+        )}
 
+        {/* The trigger wraps only the terminal viewport so the search input keeps its native text-edit menu. */}
+        <ContextMenuTrigger asChild>
           {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- xterm mounts into a div host, not a native <input>. */}
           <div
             ref={containerRef}
@@ -699,8 +698,8 @@ export function AgentCliTerminalBody({
             role="textbox"
             tabIndex={0}
           />
-        </div>
-      </ContextMenuTrigger>
+        </ContextMenuTrigger>
+      </div>
       {/* T8: Right-click context menu */}
       <ContextMenuContent className="min-w-[160px]">
         <ContextMenuItem onSelect={handleSendSelection}>

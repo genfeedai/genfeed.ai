@@ -50,6 +50,7 @@ import {
 import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
+import { useContextMenuStore } from '../stores/contextMenuStore';
 import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -701,6 +702,48 @@ export function WorkflowCanvas({
     close: closeContextMenu,
   } = useContextMenu();
 
+  // A touch long-press opens the Radix menu without a React Flow context-menu
+  // event, so remember the last pointer-down and fall back to the node or pane
+  // menu under it when the menu opens with nothing recorded.
+  const lastPointerRef = useRef<{
+    target: EventTarget | null;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleTriggerPointerDown = useCallback((event: React.PointerEvent) => {
+    lastPointerRef.current = {
+      target: event.target,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }, []);
+
+  const handleContextMenuOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        closeContextMenu();
+        return;
+      }
+      // Read the store, not the render value: a right-click records its target
+      // in the same event, just before Radix reports the open.
+      const pointer = lastPointerRef.current;
+      if (useContextMenuStore.getState().isOpen || !pointer) {
+        return;
+      }
+      const nodeId =
+        pointer.target instanceof Element
+          ? pointer.target.closest('.react-flow__node')?.getAttribute('data-id')
+          : null;
+      if (nodeId) {
+        openNodeMenu(nodeId, pointer.x, pointer.y);
+      } else {
+        openPaneMenu(pointer.x, pointer.y);
+      }
+    },
+    [closeContextMenu, openNodeMenu, openPaneMenu],
+  );
+
   useSelectionHighlight({
     getConnectedNodeIds,
     selectedNodeIds,
@@ -767,19 +810,14 @@ export function WorkflowCanvas({
   });
 
   return (
-    <ContextMenu
-      onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          closeContextMenu();
-        }
-      }}
-    >
+    <ContextMenu onOpenChange={handleContextMenuOpenChange}>
       <ContextMenuTrigger asChild>
         <div
           role="application"
           className="size-full relative"
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onPointerDown={handleTriggerPointerDown}
         >
           <ReactFlow<WorkflowNode, WorkflowEdge>
             nodes={nodes}
