@@ -145,10 +145,13 @@ export interface IEnvConfig {
   /** Overrides the documented host `https://api.higgsfield.ai`. */
   HIGGSFIELD_API_BASE_URL?: string;
 
-  FLEET_COMFYUI_URL?: string;
+  /** A ComfyUI server a self-hoster runs; used only when GPU_IMAGES_URL is unset. */
+  COMFYUI_URL?: string;
   FLEET_CLOUDFRONT_DISTRIBUTION_ID?: string;
 
   GPU_IMAGES_URL?: string;
+  /** Bearer key the GPU runtimes require on internal calls. */
+  GPU_INTERNAL_API_KEY?: string;
   GPU_VOICES_URL?: string;
   GPU_VIDEOS_URL?: string;
   GPU_LLM_URL?: string;
