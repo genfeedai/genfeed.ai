@@ -8,9 +8,11 @@ import {
   cloneElement,
   type ReactElement,
   type ReactNode,
+  Suspense,
   useLayoutEffect,
   useRef,
 } from 'react';
+import NavigationProgress from '@/components/shell/NavigationProgress';
 import type { AppLayoutProps } from '@/props/layout/app-layout.props';
 import {
   SIDEBAR_TRANSITION_DURATION_MS,
@@ -144,6 +146,10 @@ export default function AppLayout({
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
         style={layoutStyle}
       >
+        {/* Search params are read on the client only; keep them out of the shell. */}
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {railComponent ? (
           <DesktopRail
             hasStaticMark={!menuComponent && !isSidebarToggleInTitlebar}
