@@ -147,7 +147,7 @@ export {
 export { Pre, type PreProps } from './pre';
 export { preVariants } from './pre.variants';
 export { Progress, type ProgressProps } from './progress';
-export type { ProgressSize, ProgressTone } from './progress.variants';
+export type { ProgressTone } from './progress.variants';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { default as RangeField, type RangeFieldProps } from './range-field';
 export { ScrollArea, ScrollBar } from './scroll-area';
