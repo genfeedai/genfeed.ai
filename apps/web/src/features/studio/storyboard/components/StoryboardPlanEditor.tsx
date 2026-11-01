@@ -852,7 +852,7 @@ export default function StoryboardPlanEditor({
       <ContextSidebarPanel
         selection={{
           id: run.id,
-          isOpenByDefault: false,
+          isOpenByDefault: true,
           kind: 'run',
           origin: 'automatic',
           subtitle: translateInspector('subtitle', {

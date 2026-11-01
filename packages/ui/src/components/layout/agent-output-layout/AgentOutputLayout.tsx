@@ -129,17 +129,7 @@ export default function AgentOutputLayout({
               fullWidth={false}
               listClassName="mr-auto"
               onTabChange={onTabChange}
-              tabs={tabs
-                // A hidden tab only joins the strip while it is the active
-                // one, so the primitive does not fall back to the first tab.
-                .filter(
-                  (tab) => !tab.isHiddenFromStrip || tab.id === activeTabId,
-                )
-                .map(({ id, isHiddenFromStrip, label }) => ({
-                  id,
-                  isHidden: isHiddenFromStrip,
-                  label,
-                }))}
+              tabs={tabs.map(({ id, label }) => ({ id, label }))}
             />
             <div className="ml-auto flex items-center gap-2 empty:hidden">
               {headerActions}

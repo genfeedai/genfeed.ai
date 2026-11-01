@@ -10,11 +10,6 @@ export type AgentOutputLayoutMode = 'rail' | 'split';
 export interface AgentOutputTabDefinition {
   readonly content: ReactNode;
   readonly id: string;
-  /**
-   * Keeps the panel mounted and selectable by `activeTabId` without a button
-   * in the strip, for a view something else (the topbar) opens.
-   */
-  readonly isHiddenFromStrip?: boolean;
   readonly label: string;
 }
 
@@ -61,12 +56,6 @@ export interface AgentOutputHostValue {
   readonly contextPanel: ReactNode;
   readonly onNewThread: () => void;
   readonly onOpenFullPage: () => void;
-  /**
-   * A page that has no Context tab calls this while mounted so the topbar's
-   * context toggle shows and opens the page's selection in the output pane.
-   * Returns the unregister.
-   */
-  readonly registerContextToggle: () => () => void;
   readonly threadsPanel: ReactNode;
 }
 
@@ -80,12 +69,6 @@ export interface AgentOutputShellProps {
   readonly agentTitle?: string;
   /** The page output. */
   readonly children: ReactNode;
-  /**
-   * Drops the Context tab from the strip: the topbar's context toggle is then
-   * the only way to the page's selection, which replaces the output while it
-   * is open. Defaults to true.
-   */
-  readonly hasContextTab?: boolean;
   readonly headerActions?: ReactNode;
   /** Lets the operator hide the agent to see the output full size. */
   readonly isOutputExpandable?: boolean;
