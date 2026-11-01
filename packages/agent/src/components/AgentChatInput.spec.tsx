@@ -7,6 +7,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -87,6 +88,26 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
+
+function SwapsComposerOnSend() {
+  const [hasSent, setHasSent] = useState(false);
+  return (
+    <ConversationComposerShellProvider
+      contextLabel="Conversation"
+      draftScopeKey="acme:thread-1:3"
+      portalTarget={null}
+      shellState="canvas"
+    >
+      <AgentChatInput
+        key={hasSent ? 'thread' : 'empty'}
+        onSend={() => {
+          setHasSent(true);
+          return true;
+        }}
+      />
+    </ConversationComposerShellProvider>
+  );
+}
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
@@ -442,6 +463,25 @@ describe('AgentChatInput', () => {
     expect(screen.getByRole('textbox')).not.toHaveTextContent(
       'Three viral hook patterns',
     );
+  });
+
+  it('leaves the next composer empty when sending swaps the composer out', async () => {
+    // The first message of a conversation replaces the empty-state composer
+    // with the thread's: the new one reads the saved draft on mount.
+    render(<SwapsComposerOnSend />);
+
+    const user = userEvent.setup();
+    await user.type(
+      await screen.findByRole('textbox'),
+      'schedule my posts for the week',
+    );
+    fireEvent.click(await screen.findByLabelText('Send message'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).not.toHaveTextContent(
+        'schedule my posts',
+      );
+    });
   });
 
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {

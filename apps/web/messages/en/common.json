@@ -1249,8 +1249,8 @@
   },
   "agentThreads": {
     "allBrands": "All brands",
-    "back": "Back",
     "brandFilter": "Filter by brand",
+    "breadcrumb": "Thread location",
     "empty": "No threads yet. Ask the master to start one.",
     "groups": {
       "needsYou": "Needs you",
@@ -1271,16 +1271,11 @@
     "reopenToSteer": "Reopen this thread to steer it.",
     "resolve": "Resolve",
     "resolved": "Resolved",
-    "roleAgent": "Agent",
-    "roleYou": "You",
     "search": "Search threads",
-    "startedByMaster": "Started by Master",
     "statusIdle": "Idle",
-    "steer": "Steer",
     "steerFailed": "Could not send. Try again.",
-    "steerLabel": "Steer this thread",
     "steerPlaceholder": "Tell this thread what to change",
-    "steerSent": "Sent.",
+    "threads": "Threads",
     "untitled": "Untitled"
   },
   "contextSidebar": {
