@@ -7,6 +7,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
+import { IngredientNotificationOwnerService } from '@api/endpoints/webhooks/services/ingredient-notification-owner.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
@@ -58,6 +59,7 @@ import { Module } from '@nestjs/common';
   providers: [
     ActivityUpdateService,
     AutoMergeService,
+    IngredientNotificationOwnerService,
     MediaUploadService,
     MetadataLookupService,
     PostProcessingOrchestratorService,

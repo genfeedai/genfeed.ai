@@ -2,6 +2,7 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IChannelDeliveryRequest,
   IChannelDeliveryResponse,
+  IIngredientNotificationOwner,
   IReviewGatePendingEmailPayload,
 } from '@genfeedai/contracts/interfaces';
 import {
@@ -138,6 +139,10 @@ export class ChannelMessageDispatcherService {
                 ? (ingredient.brand as { label?: string })
                 : undefined,
             id: ingredientId,
+            owner:
+              ingredient.owner && typeof ingredient.owner === 'object'
+                ? (ingredient.owner as IIngredientNotificationOwner)
+                : undefined,
             metadata:
               ingredient.metadata && typeof ingredient.metadata === 'object'
                 ? (ingredient.metadata as {

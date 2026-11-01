@@ -167,9 +167,20 @@ export interface IStoryboardNotificationContext {
   layoutPath?: string;
 }
 
+/** Who a generation ran for, so the operator feed can tell accounts apart. */
+export interface IIngredientNotificationOwner {
+  /** Credits left in the organization wallet after the generation. */
+  creditBalance?: number;
+  organizationId?: string;
+  organizationLabel?: string;
+  userEmail?: string;
+  userName?: string;
+}
+
 export interface IIngredientNotificationData {
   id: string;
   brand?: { label?: string };
+  owner?: IIngredientNotificationOwner;
   label?: string;
   metadata?: {
     duration?: number;
