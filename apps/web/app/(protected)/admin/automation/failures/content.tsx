@@ -15,6 +15,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
@@ -167,8 +168,9 @@ export default function AgentFailuresPage() {
     {
       header: translate('columns.failedAt'),
       key: 'completedAt',
-      render: (run) =>
-        new Date(run.completedAt ?? run.createdAt).toLocaleString('en-US'),
+      render: (run) => (
+        <TableDateCell value={run.completedAt ?? run.createdAt} />
+      ),
     },
     {
       header: translate('columns.status'),

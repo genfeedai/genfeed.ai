@@ -20,10 +20,7 @@ import {
   getPublishingPostHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -34,6 +31,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -676,12 +674,12 @@ export default function ReleasePostsList({
             {
               key: 'scheduledDate',
               header: 'Scheduled',
-              render: (release) => {
-                const next = releaseNextInstant(release);
-                return next
-                  ? formatDateInTimezone(next, browserTimezone, 'short')
-                  : '—';
-              },
+              render: (release) => (
+                <TableDateCell
+                  timeZone={browserTimezone}
+                  value={releaseNextInstant(release)}
+                />
+              ),
             },
           ]}
           renderRowActions={(release) => (

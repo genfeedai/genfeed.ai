@@ -38,6 +38,13 @@ const checks = [
     required: true,
   },
   {
+    // Dates in table columns render through TableDateCell: one line, compact,
+    // the full date in the tooltip. Relative times stay allowed.
+    command: ['bun', 'run', 'scripts/ui/hand-built/table-dates.ts'],
+    name: 'Table dates (TableDateCell, no hand-formatted dates in columns)',
+    required: true,
+  },
+  {
     // Views and filters are dropdowns in the sub bar (ViewMenu, FilterMenu),
     // never tab bars. Baseline: scripts/ui/hand-built/view-tabs.baseline.json.
     command: ['bun', 'run', 'scripts/ui/hand-built/view-tabs.ts'],

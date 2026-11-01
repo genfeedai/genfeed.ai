@@ -14,7 +14,6 @@ import type {
   KnowledgeSourceCaptureRequest,
   KnowledgeSourceUpdateRequest,
 } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   KnowledgeSourceRow,
@@ -27,6 +26,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isServiceOperationError } from '@services/core/operation-error';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { RotateCcw } from 'lucide-react';
@@ -506,7 +506,7 @@ export default function KnowledgeSourcesList({
     {
       header: translate('captured'),
       key: 'observedAt',
-      render: (row) => (row.version ? formatDate(row.version.observedAt) : '-'),
+      render: (row) => <TableDateCell value={row.version?.observedAt} />,
     },
   ];
 

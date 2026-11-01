@@ -2,13 +2,13 @@
 
 import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
-import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame, Play } from 'lucide-react';
@@ -147,9 +147,13 @@ export function ViralVideoLeaderboard({
                 <span className="font-medium text-foreground truncate">
                   {video.title || video.hook || 'Untitled video'}
                 </span>
-                <span className="text-xs text-foreground/60 truncate">
-                  @{video.creatorHandle}
-                  {video.publishedAt && ` - ${formatDate(video.publishedAt)}`}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="text-xs text-foreground/60 truncate">
+                    @{video.creatorHandle}
+                  </span>
+                  {video.publishedAt ? (
+                    <TableDateCell hasTime={false} value={video.publishedAt} />
+                  ) : null}
                 </span>
               </div>
             ),

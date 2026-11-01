@@ -17,7 +17,6 @@ import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
-import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -30,6 +29,7 @@ import { MembersService } from '@services/organization/members.service';
 import { RolesService } from '@services/organization/roles.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
@@ -203,8 +203,7 @@ function MembersListContent() {
       header: 'Joined',
       key: 'createdAt',
       sortable: true,
-      render: (member: Member) =>
-        member.createdAt ? formatDate(member.createdAt) : '-',
+      render: (member: Member) => <TableDateCell value={member.createdAt} />,
     },
   ];
 
@@ -269,8 +268,9 @@ function MembersListContent() {
     {
       header: 'Expires',
       key: 'expiresAt',
-      render: (invitation) =>
-        invitation.expiresAt ? formatDate(invitation.expiresAt) : '-',
+      render: (invitation) => (
+        <TableDateCell hasTime={false} value={invitation.expiresAt} />
+      ),
     },
   ];
 

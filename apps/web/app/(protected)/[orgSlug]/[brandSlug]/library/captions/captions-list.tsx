@@ -12,6 +12,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -53,8 +54,7 @@ function CaptionsListContent() {
       header: 'Created',
       key: 'createdAt',
       sortable: true,
-      render: (caption: Caption) =>
-        caption.createdAt ? formatDate(caption.createdAt) : '-',
+      render: (caption: Caption) => <TableDateCell value={caption.createdAt} />,
     },
   ];
 

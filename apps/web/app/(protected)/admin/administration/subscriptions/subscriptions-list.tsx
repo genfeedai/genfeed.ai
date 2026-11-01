@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
+import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
@@ -215,10 +216,9 @@ export default function SubscriptionsList() {
     {
       header: t('columnPeriodEnd'),
       key: 'currentPeriodEnd',
-      render: (row: IOrganizationBilling) =>
-        row.currentPeriodEnd
-          ? new Date(row.currentPeriodEnd).toLocaleDateString('en-US')
-          : EMPTY_CELL,
+      render: (row: IOrganizationBilling) => (
+        <TableDateCell hasTime={false} value={row.currentPeriodEnd} />
+      ),
     },
   ];
 

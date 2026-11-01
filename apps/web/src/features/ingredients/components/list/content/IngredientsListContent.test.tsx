@@ -14,7 +14,6 @@ import {
   within,
 } from '@testing-library/react';
 import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import { format } from 'date-fns';
 import type { ComponentProps, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import IngredientsListContent from '@/features/ingredients/components/list/content/IngredientsListContent';
@@ -303,9 +302,8 @@ const voiceIngredient = {
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
 
-// A local, non-UTC-parsed Date so `format(createdAt, ...)` below and the
-// component's own `format(new Date(ingredient.createdAt), ...)` always agree,
-// regardless of the machine's timezone — both derive from the same instant.
+// A local Date: the table shows it in the viewer's (the machine's) zone, so it
+// reads Jan 15 whatever that zone is.
 const ledgerCreatedAt = new Date(2026, 0, 15, 9, 30);
 
 const ledgerIngredient = {
@@ -1119,12 +1117,10 @@ describe('IngredientsListContent generation ledger columns', () => {
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
     expect(screen.getByText('genfeedai')).toBeInTheDocument();
     expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
-    expect(
-      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
-    ).toHaveAttribute('title', format(ledgerCreatedAt, 'd MMM yyyy'));
-    expect(
-      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
-    ).toHaveAttribute('datetime', ledgerCreatedAt.toISOString());
+    expect(screen.getByText(/^Jan 15/)).toHaveAttribute(
+      'datetime',
+      ledgerCreatedAt.toISOString(),
+    );
     expect(
       screen.getByRole('region', { name: 'Scroll table horizontally' }),
     ).toHaveAttribute('tabindex', '0');

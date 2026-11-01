@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useViewerTimeZone } from '@/hooks/ui/use-viewer-time-zone/use-viewer-time-zone';
+import { useViewerTimeZone } from './use-viewer-time-zone';
 
 function mockBrowserTimeZone(timeZone: string | undefined) {
   const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
