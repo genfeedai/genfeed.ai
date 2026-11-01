@@ -68,10 +68,10 @@ const DEFAULT_HEADER_TITLE = 'Your Trend Summary';
 /** Human-readable compact number (1.2K / 3.4M). */
 export function formatTrendCount(num: number): string {
   if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
+    return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   }
   if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}K`;
+    return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   }
   return num.toString();
 }
@@ -147,6 +147,19 @@ export function buildTrendDigestMessage(
   return lines.join('\n');
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  tiktok: 'TikTok',
+  twitter: 'X',
+  youtube: 'YouTube',
+};
+
+/** The name readers know the platform by; unknown platforms pass through. */
+function platformLabel(platform: string): string {
+  return PLATFORM_LABELS[platform.toLowerCase()] ?? platform;
+}
+
 /** Drafts shown under "Ready to post today". */
 const DIGEST_DRAFT_LIMIT = 3;
 
@@ -189,7 +202,7 @@ function linked(
 }
 
 function metaHtml(trend: TrendDigestItem): string {
-  const parts = [escapeTrendHtml(trend.platform)];
+  const parts = [escapeTrendHtml(platformLabel(trend.platform))];
   if (trend.usageCount) {
     parts.push(`${formatTrendCount(trend.usageCount)} views`);
   }
@@ -230,7 +243,7 @@ function postCardHtml(post: TrendDigestSourcePost): string {
   const text = post.text?.trim();
   return `
     <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:12px;">
-      <div style="color:${COLORS.text};font-size:13px;font-weight:600;line-height:20px;">${escapeTrendHtml(post.authorHandle ?? post.platform)}<span style="color:${COLORS.mute};font-weight:400;"> &middot; ${escapeTrendHtml(post.platform)}</span></div>
+      <div style="color:${COLORS.text};font-size:13px;font-weight:600;line-height:20px;">${escapeTrendHtml(post.authorHandle ?? platformLabel(post.platform))}<span style="color:${COLORS.mute};font-weight:400;"> &middot; ${escapeTrendHtml(platformLabel(post.platform))}</span></div>
       ${text ? `<div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:4px;">${escapeTrendHtml(text.length > 280 ? `${text.slice(0, 277)}...` : text)}</div>` : ''}
       <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:6px;">${[...stats.map(escapeTrendHtml), linked(url, 'View post', COLORS.sub)].join(' &middot; ')}</div>
     </div>`;
@@ -290,7 +303,7 @@ function draftHtml(trend: TrendDigestItem): string {
   }
   return `
     <div style="border:1px solid ${COLORS.border};border-radius:8px;padding:14px;">
-      ${eyebrowHtml(`${trend.platform} · ${idea.format}`)}
+      ${eyebrowHtml(`${platformLabel(trend.platform)} · ${idea.format}`)}
       <div style="color:${COLORS.text};font-size:14px;line-height:21px;margin-top:6px;white-space:pre-line;">${escapeTrendHtml(`${idea.hook}\n\n${idea.caption}`)}</div>
       <div style="color:${COLORS.mute};font-size:12px;line-height:18px;margin-top:8px;">From: ${escapeTrendHtml(trend.topic)}</div>
     </div>`;
