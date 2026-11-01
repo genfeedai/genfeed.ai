@@ -14,8 +14,6 @@ import AppProtectedLayout from './app-protected-layout';
 import { useAppProtectedLayout } from './useAppProtectedLayout';
 
 const SIDEBAR_TRANSLATIONS: Record<string, string> = {
-  newConversation: 'New Conversation',
-  newConversationAriaLabel: 'Start a new conversation',
   newTask: 'New Task',
   newTaskAriaLabel: 'Open new task modal',
   search: 'Search',
@@ -925,23 +923,28 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('has no Conversations panel on agent routes; the Threads panel lives beside the master', () => {
-    mockPathname.value = '/agent/new';
+  it.each(['/agent', '/agent/new', '/agent/thread-123'])(
+    'renders no nav column on %s; the Threads panel lives beside the master',
+    (pathname) => {
+      mockPathname.value = pathname;
 
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
 
-    expect(
-      screen.getByRole('button', { name: 'New Conversation' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
-    expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
-    expect(agentThreadListSpy).not.toHaveBeenCalled();
-  });
+      expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+      expect(appSidebarSpy).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', { name: 'New Conversation' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
+      expect(screen.queryByText('Scheduled')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+      expect(agentThreadListSpy).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps the global new-task shortcut available in the agent-first shell', () => {
     render(
@@ -1043,44 +1046,15 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
+        railComponent: expect.anything(),
         topbarComponent: expect.any(Function),
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
-  });
-
-  it('renders a focused agent sidebar instead of the workspace navigation', () => {
-    mockPathname.value = '/agent/new';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    // Search stays: it opens the same command palette here as everywhere
-    // else, rather than the conversation column growing a field of its own.
-    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Back to Workspace' }),
-    ).not.toBeInTheDocument();
-    // Threads live in the panel beside the master, not in the nav column.
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
-    expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Workspace' }),
-    ).not.toBeInTheDocument();
-    const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
-    // No nav panel body: the agent scope is menu items only.
-    expect(sidebarProps.renderBody).toBeUndefined();
-    expect(
-      sidebarProps.items.map((item: { label: string }) => item.label),
-    ).toEqual(['New conversation', 'Runs', 'Outputs', 'Scheduled']);
   });
 
   it('marks the focused agent route as the Agent app', async () => {
@@ -1109,7 +1083,6 @@ describe('AppProtectedLayout', () => {
     ['/analytics', 'Overview'],
     ['/automation/runs', 'Runs'],
     ['/admin', 'Overview'],
-    ['/agent/new', 'New conversation'],
   ])(
     'feeds the active surface navigation to breadcrumbs on %s',
     (pathname, expectedLabel) => {
@@ -1594,7 +1567,6 @@ describe('AppProtectedLayout', () => {
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
-        isConversationRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1613,7 +1585,6 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automationMenuItems={[]}
-        agentMenuItems={[]}
         messagesMenuItems={[]}
       />,
     );
@@ -1634,7 +1605,6 @@ describe('AppProtectedLayout', () => {
         currentApp="workspace"
         isAdminRoute={false}
         isAnalyticsRoute={false}
-        isConversationRoute={false}
         isLibraryRoute={false}
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1653,7 +1623,6 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[{ href: '/settings', label: 'Personal' }]}
         studioMenuItems={[]}
         automationMenuItems={[]}
-        agentMenuItems={[]}
         messagesMenuItems={[]}
       />,
     );
@@ -1679,7 +1648,6 @@ describe('AppProtectedLayout', () => {
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
-        isConversationRoute={false}
         isLibraryRoute
         isOrgRoute={false}
         isPublishingRoute={false}
@@ -1698,7 +1666,6 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         automationMenuItems={[]}
-        agentMenuItems={[]}
         messagesMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
