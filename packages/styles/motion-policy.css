@@ -8,7 +8,7 @@
    - sidebar geometry and content fade, opted in with `data-motion="layout"`
      on the moving element only (its descendants keep the product policy);
    - progress indicators that must read as alive: the Genfeed loader,
-     spinners, skeletons and progress bars.
+     spinners, skeletons (`data-slot="skeleton"`) and progress bars.
 
    Durations collapse instead of resetting to `none`, matching the
    reduced-motion block in globals.css: `forwards` entrance animations land
@@ -21,9 +21,9 @@
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],
+  [data-slot="skeleton"],
   .animate-spin,
   .animate-pulse,
-  .animate-shimmer,
   .animate-text-shimmer,
   .masonry-skeleton,
   [role="progressbar"],
@@ -34,9 +34,9 @@
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],
+  [data-slot="skeleton"],
   .animate-spin,
   .animate-pulse,
-  .animate-shimmer,
   .animate-text-shimmer,
   .masonry-skeleton,
   [role="progressbar"],
@@ -47,9 +47,9 @@
   [data-motion="allow"],
   [data-motion="allow"] *,
   [class*="genfeed-loader"],
+  [data-slot="skeleton"],
   .animate-spin,
   .animate-pulse,
-  .animate-shimmer,
   .animate-text-shimmer,
   .masonry-skeleton,
   [role="progressbar"],

@@ -28,7 +28,7 @@ describe('RunStatsStrip', () => {
     expect(screen.getByText('Total')).toBeVisible();
     expect(screen.getByText('Active')).toBeVisible();
     expect(screen.getByText('Credits')).toBeVisible();
-    expect(document.querySelectorAll('.animate-pulse')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(5);
   });
 
   it('renders formatted execution stats', () => {
@@ -37,7 +37,7 @@ describe('RunStatsStrip', () => {
     expect(screen.getByText('1,206')).toBeVisible();
     expect(screen.getByText('1,200')).toBeVisible();
     expect(screen.getByText('5,500')).toBeVisible();
-    expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
+    expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0);
   });
 
   it('surfaces a degraded note on the stale fallback counters but not on Active', () => {
