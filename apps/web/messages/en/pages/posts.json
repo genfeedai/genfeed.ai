@@ -209,9 +209,7 @@
       }
     },
     "viewToggle": {
-      "approvals": "Approvals",
       "board": "Board",
-      "calendar": "Calendar view",
       "grid": "Grid",
       "list": "List"
     },

@@ -85,4 +85,29 @@ describe('ViewMenu', () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('names the active view on a label trigger', async () => {
+    const user = userEvent.setup();
+    render(
+      <ViewMenu
+        activeView="week"
+        onChange={vi.fn()}
+        options={[
+          { icon: null, label: 'Day', type: 'day' },
+          { icon: null, label: 'Week', type: 'week' },
+          { icon: null, label: 'Month', type: 'month' },
+        ]}
+        trigger="label"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'View: Week' });
+    expect(trigger).toHaveTextContent('Week');
+
+    await user.click(trigger);
+
+    expect(
+      await screen.findByRole('menuitemradio', { name: 'Week' }),
+    ).toBeChecked();
+  });
 });

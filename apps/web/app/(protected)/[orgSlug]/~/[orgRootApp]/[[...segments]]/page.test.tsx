@@ -230,12 +230,6 @@ vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
   default: () => <div data-testid="publishing-overview-page" />,
 }));
 
-vi.mock('@/features/posts/library/publishing-desk-view-toggle', () => ({
-  default: ({ activeView }: { activeView: string }) => (
-    <div data-active-view={activeView} data-testid="publishing-view-toggle" />
-  ),
-}));
-
 vi.mock('../../../[brandSlug]/publishing/review/review-queue-content', () => ({
   default: () => <div data-testid="publishing-review-queue" />,
 }));
@@ -707,10 +701,6 @@ describe('OrgRootAppPage', () => {
 
     expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('campaign-calendar-page')).toBeInTheDocument();
-    expect(screen.getByTestId('publishing-view-toggle')).toHaveAttribute(
-      'data-active-view',
-      'calendar',
-    );
   });
 
   it.each([
@@ -729,10 +719,6 @@ describe('OrgRootAppPage', () => {
     render(element);
 
     expect(screen.getByTestId('publishing-review-queue')).toBeInTheDocument();
-    expect(screen.getByTestId('publishing-view-toggle')).toHaveAttribute(
-      'data-active-view',
-      'approvals',
-    );
   });
 
   it('returns not found for approvals paths deeper than run and item', async () => {
