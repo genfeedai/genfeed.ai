@@ -41,4 +41,17 @@ describe('buildIngredientFields', () => {
   it('adds nothing about an account when the owner is unknown', () => {
     expect(buildIngredientFields({ id: 'ingredient-3' })).toEqual([]);
   });
+
+  it('keeps long account values inside the Discord field limit', () => {
+    const fields = buildIngredientFields({
+      id: 'ingredient-4',
+      owner: {
+        organizationLabel: 'o'.repeat(1500),
+        userEmail: 'u'.repeat(1500),
+      },
+    });
+
+    expect(fields.map((field) => field.value.length)).toEqual([1024, 1024]);
+    expect(fields[0].value.endsWith('...')).toBe(true);
+  });
 });

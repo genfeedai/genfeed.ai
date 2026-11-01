@@ -11,6 +11,15 @@ export function getIngredientEmbedColor(category: IngredientCategory): number {
   return colorMap[category] ?? 0xff00ff;
 }
 
+const DISCORD_FIELD_VALUE_LIMIT = 1024;
+
+/** Discord rejects the whole embed when one field value passes 1024 characters. */
+function fitFieldValue(value: string): string {
+  return value.length > DISCORD_FIELD_VALUE_LIMIT
+    ? `${value.substring(0, DISCORD_FIELD_VALUE_LIMIT - 3)}...`
+    : value;
+}
+
 export function buildIngredientFields(
   ingredient: IIngredientNotificationData,
 ): Array<{ name: string; value: string; inline: boolean }> {
@@ -31,14 +40,20 @@ export function buildIngredientFields(
     .filter(Boolean)
     .join(' · ');
   if (account) {
-    fields.push({ inline: false, name: 'User', value: account });
+    fields.push({
+      inline: false,
+      name: 'User',
+      value: fitFieldValue(account),
+    });
   }
 
   if (owner?.organizationLabel || owner?.organizationId) {
     fields.push({
       inline: true,
       name: 'Organization',
-      value: owner.organizationLabel ?? String(owner.organizationId),
+      value: fitFieldValue(
+        owner.organizationLabel ?? String(owner.organizationId),
+      ),
     });
   }
 
