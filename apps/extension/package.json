@@ -107,6 +107,7 @@
     "@genfeedai/contracts": "../../packages/contracts/src/index.ts",
     "@genfeedai/contracts/*": "../../packages/contracts/src/$1",
     "@genfeedai/auth-client/react": "../../packages/auth-client/src/react.tsx",
+    "next/image": "./src/components/ui/NextImage.tsx",
     "zod": "../../node_modules/zod/index.cjs"
   }
 }

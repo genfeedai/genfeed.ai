@@ -15,6 +15,10 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import { buildMenuGroups } from '~platforms/menu-actions';
+import {
+  meaningfulMutations,
+  observeAddedElements,
+} from '~platforms/mutation-filter';
 import { readPagePost } from '~platforms/page-post';
 import { extractPostContext } from '~platforms/post-context';
 import {
@@ -44,6 +48,7 @@ import { watchContentTheme } from '~theme/content-theme';
 import type { PagePost } from '~types/extension';
 
 const DEBOUNCE_DELAY_MS = 300;
+const IMAGE_SCAN_DELAY_MS = 250;
 const URL_POLL_MS = 400;
 const POST_RENDER_RETRY_MS = 300;
 const POST_RENDER_ATTEMPTS = 10;
@@ -143,7 +148,8 @@ function initializePlatformIntegration(): void {
   observer = new MutationObserver((mutations) => {
     const actionsContainerSelector = platform?.selectors.actionsContainer;
 
-    const isRelevant = mutations.some((mutation) =>
+    // Typing in the composer, and Genfeed's own nodes, never add a submit button.
+    const isRelevant = meaningfulMutations(mutations).some((mutation) =>
       Array.from(mutation.addedNodes).some(
         (node) =>
           node.nodeType === 1 &&
@@ -595,14 +601,9 @@ function initializeTwitterImageHover(): void {
     });
   }
 
-  const observer = new MutationObserver(() => {
-    scanImages();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
+  // X re-renders the timeline and the editor constantly; one scan after the
+  // page settles is enough, and typing never triggers it.
+  observeAddedElements(document.body, scanImages, IMAGE_SCAN_DELAY_MS);
 
   if (document.readyState === 'complete') {
     scanImages();

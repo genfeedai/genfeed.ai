@@ -208,7 +208,7 @@ function SidePanelContent() {
   };
   useAccountThemeSync(workspace.status === 'ready');
   const [panelState, dispatchPanel] = useReducer(panelReducer, {
-    activeTab: 'chat',
+    activeTab: 'reply',
     pendingAuthor: '',
     pendingContent: '',
     pendingPlatform: '',

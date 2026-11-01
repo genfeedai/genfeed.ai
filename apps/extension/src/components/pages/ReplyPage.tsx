@@ -483,7 +483,7 @@ export function ReplyPage({
             className="text-xs text-muted-foreground"
             htmlFor="reply-post-content"
           >
-            Open a post to reply to it, or paste one here
+            Open a post on X to reply to it, or paste one here
           </Label>
           <Textarea
             id="reply-post-content"

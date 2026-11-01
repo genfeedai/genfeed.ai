@@ -28,6 +28,7 @@ import type {
   XPublicationModalComposer,
   XPublicationReplyTarget,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
+import { meaningfulMutations } from '~platforms/mutation-filter';
 import {
   removePublicationStatus,
   showPublicationStatus,
@@ -41,6 +42,7 @@ import {
 } from '~services/publication-capture-validation';
 import { NOT_WRITTEN_BY_GENFEED } from '~services/publication-capture-written';
 
+const EDITOR_MUTATION_THROTTLE_MS = 250;
 const normalize = (text: string) => text.replace(/\r\n/g, '\n').trim();
 const textOf = (element: HTMLElement) =>
   normalize(element.innerText ?? element.textContent ?? '');
@@ -74,6 +76,7 @@ export function attachXPublicationObserver(): () => void {
   let returnUrl: string | null = compose(location.href)
     ? null
     : (page(location.href)?.href ?? null);
+  let lastEditorCheck = 0;
   let scanTimer: ReturnType<typeof setTimeout> | undefined;
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
   let expiryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -400,7 +403,17 @@ export function attachXPublicationObserver(): () => void {
       }, 250);
     }
   }
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver((mutations) => {
+    // Without a reply intent or a publication attempt there is nothing to
+    // follow; navigation away is handled by `navigation`.
+    if (!intent && !active) return;
+    // Keystrokes in the editor are still checked while a reply or attempt is
+    // pending, but at most once per throttle window.
+    if (meaningfulMutations(mutations).length === 0) {
+      const now = Date.now();
+      if (now - lastEditorCheck < EDITOR_MUTATION_THROTTLE_MS) return;
+      lastEditorCheck = now;
+    }
     if (!isXPublicationPage(location.href)) {
       cleanup();
       return;

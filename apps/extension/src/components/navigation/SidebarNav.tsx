@@ -35,8 +35,8 @@ interface SidebarNavProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'chat', label: 'Create', icon: MessageSquare },
   { id: 'reply', label: 'Reply', icon: Reply },
+  { id: 'chat', label: 'Create', icon: MessageSquare },
   { id: 'remix', label: 'Remix', icon: Shuffle },
   { id: 'imported', label: 'Imported', icon: Import },
   { id: 'knowledge', label: 'Knowledge', icon: BookOpen },

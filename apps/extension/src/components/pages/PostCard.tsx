@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Image from 'next/image';
-import type { ReactElement } from 'react';
+import { type ReactElement, useState } from 'react';
 import type { PagePost } from '~types/extension';
 
 interface PostCardProps {
@@ -17,6 +17,9 @@ export default function PostCard({
   post,
 }: PostCardProps): ReactElement {
   const name = post.authorName || post.authorHandle || 'Post';
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const hasAvatar =
+    Boolean(post.avatarUrl) && failedAvatarUrl !== post.avatarUrl;
   return (
     <article
       className={cn(
@@ -24,9 +27,10 @@ export default function PostCard({
         className,
       )}
     >
-      {post.avatarUrl ? (
+      {post.avatarUrl && hasAvatar ? (
         <Image
           src={post.avatarUrl}
+          onError={() => setFailedAvatarUrl(post.avatarUrl ?? null)}
           width={40}
           height={40}
           alt=""
