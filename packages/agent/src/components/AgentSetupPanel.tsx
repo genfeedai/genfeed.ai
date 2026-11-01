@@ -2,7 +2,12 @@
 
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
@@ -38,7 +43,12 @@ function ConnectedAccountChip({
   const label = getConnectionLabel(connection);
 
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-md bg-card px-2.5 py-1.5 shadow-border">
+    <Card
+      padding={CardPadding.SM}
+      gap={CardGap.SM}
+      className="min-w-0"
+      bodyClassName="flex-row items-center"
+    >
       <Avatar
         alt={`${label} profile picture`}
         badge={
@@ -63,7 +73,7 @@ function ConnectedAccountChip({
           </span>
         ) : null}
       </span>
-    </div>
+    </Card>
   );
 }
 
@@ -110,7 +120,8 @@ export function AgentSetupPanel({
         <BrandCompletenessCard brand={brand ?? {}} />
 
         <Card
-          bodyClassName="gap-0 p-3 sm:p-3"
+          padding={CardPadding.SM}
+          gap={CardGap.NONE}
           data-testid="agent-setup-social-card"
         >
           <div className="mb-2 flex items-center justify-between">
@@ -132,10 +143,17 @@ export function AgentSetupPanel({
               ))}
             </div>
           ) : (
-            <div className="mb-3 flex items-center gap-2 rounded-md bg-card px-3 py-2.5 text-2xs text-muted-foreground shadow-border">
-              <LayoutGrid className="size-4 shrink-0 text-muted-foreground" />
-              No channels connected yet.
-            </div>
+            <Card
+              padding={CardPadding.SM}
+              gap={CardGap.SM}
+              className="mb-3"
+              bodyClassName="flex-row items-center"
+            >
+              <div className="text-2xs text-muted-foreground">
+                <LayoutGrid className="size-4 shrink-0 text-muted-foreground" />
+                No channels connected yet.
+              </div>
+            </Card>
           )}
 
           <AgentOAuthConnectMenu

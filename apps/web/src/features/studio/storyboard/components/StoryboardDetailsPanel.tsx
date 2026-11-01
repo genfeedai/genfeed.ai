@@ -13,6 +13,7 @@ const AUTOMATIC_MODEL = '__automatic__';
 /** Plan-level settings. Every field edits the plan and rides the same autosave. */
 export default function StoryboardDetailsPanel({
   isDisabled,
+  isSlideshow = false,
   isTimingDisabled,
   modelCapabilities,
   onChange,
@@ -54,62 +55,71 @@ export default function StoryboardDetailsPanel({
           }
         />
       </Field>
-      <Field label={translate('videoModel')}>
-        <StoryboardSelect
-          ariaLabel={translate('videoModel')}
-          value={plan.videoModelKey ?? AUTOMATIC_MODEL}
-          placeholder={translate('chooseVideoModel')}
-          isDisabled={isDisabled || !modelCapabilities?.eligibleModels.length}
-          options={[
-            ...(modelCapabilities?.requestedModelKey === null &&
-            modelCapabilities.effectiveModel
-              ? [
-                  {
-                    value: AUTOMATIC_MODEL,
-                    label: translate('automaticModel', {
-                      label: modelCapabilities.effectiveModel.label,
-                    }),
-                  },
-                ]
-              : []),
-            ...(modelCapabilities?.eligibleModels.map((candidate) => ({
-              value: candidate.key,
-              label: candidate.label,
-            })) ?? []),
-          ]}
-          onChange={onChangeModel}
-        />
-      </Field>
-      <Field label={translate('format')}>
-        <StoryboardSelect
-          ariaLabel={translate('format')}
-          value={plan.format}
-          placeholder={translate('chooseFormat')}
-          isDisabled={isDisabled || isTimingDisabled}
-          options={supportedFormats.map((value) => ({ value, label: value }))}
-          onChange={(value) => {
-            if (value === '9:16' || value === '16:9' || value === '1:1')
-              onChange({ ...plan, format: value });
-          }}
-        />
-      </Field>
-      <Field label={translate('runtimeBudget')}>
-        <Input
-          type="number"
-          min={1}
-          max={60}
-          value={plan.runtimeBudgetSeconds ?? ''}
-          disabled={isDisabled || isTimingDisabled}
-          onChange={(event) =>
-            onChange({
-              ...plan,
-              runtimeBudgetSeconds: event.target.value
-                ? Number(event.target.value)
-                : null,
-            })
-          }
-        />
-      </Field>
+      {isSlideshow ? null : (
+        <>
+          <Field label={translate('videoModel')}>
+            <StoryboardSelect
+              ariaLabel={translate('videoModel')}
+              value={plan.videoModelKey ?? AUTOMATIC_MODEL}
+              placeholder={translate('chooseVideoModel')}
+              isDisabled={
+                isDisabled || !modelCapabilities?.eligibleModels.length
+              }
+              options={[
+                ...(modelCapabilities?.requestedModelKey === null &&
+                modelCapabilities.effectiveModel
+                  ? [
+                      {
+                        value: AUTOMATIC_MODEL,
+                        label: translate('automaticModel', {
+                          label: modelCapabilities.effectiveModel.label,
+                        }),
+                      },
+                    ]
+                  : []),
+                ...(modelCapabilities?.eligibleModels.map((candidate) => ({
+                  value: candidate.key,
+                  label: candidate.label,
+                })) ?? []),
+              ]}
+              onChange={onChangeModel}
+            />
+          </Field>
+          <Field label={translate('format')}>
+            <StoryboardSelect
+              ariaLabel={translate('format')}
+              value={plan.format}
+              placeholder={translate('chooseFormat')}
+              isDisabled={isDisabled || isTimingDisabled}
+              options={supportedFormats.map((value) => ({
+                value,
+                label: value,
+              }))}
+              onChange={(value) => {
+                if (value === '9:16' || value === '16:9' || value === '1:1')
+                  onChange({ ...plan, format: value });
+              }}
+            />
+          </Field>
+          <Field label={translate('runtimeBudget')}>
+            <Input
+              type="number"
+              min={1}
+              max={60}
+              value={plan.runtimeBudgetSeconds ?? ''}
+              disabled={isDisabled || isTimingDisabled}
+              onChange={(event) =>
+                onChange({
+                  ...plan,
+                  runtimeBudgetSeconds: event.target.value
+                    ? Number(event.target.value)
+                    : null,
+                })
+              }
+            />
+          </Field>
+        </>
+      )}
       {sourceBrief ? (
         <Field label={translate('brief')} helpText={translate('briefHelp')}>
           <Textarea value={sourceBrief} isReadOnly />

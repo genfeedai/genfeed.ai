@@ -146,7 +146,7 @@ function OrganizationMetricStrip({
     <section aria-label="Organization metrics">
       <DashboardGrid>
         {metrics.map((metric) => (
-          <Card key={metric.label} bodyClassName="p-4">
+          <Card key={metric.label}>
             {isLoading ? (
               <Skeleton variant="text" height={32} className="w-16" />
             ) : (

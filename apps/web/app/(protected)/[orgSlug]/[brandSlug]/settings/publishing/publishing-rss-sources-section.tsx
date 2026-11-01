@@ -1,6 +1,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardVariant,
   ComponentSize,
   RssApprovalMode,
   RssImportPolicy,
@@ -180,7 +181,7 @@ export default function PublishingRssSourcesSection({
   );
 
   return (
-    <Card label="RSS sources" bodyClassName="gap-3 p-4">
+    <Card label="RSS sources">
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading RSS sources…</p>
       ) : sources.length === 0 ? (
@@ -190,10 +191,7 @@ export default function PublishingRssSourcesSection({
       ) : (
         <div className="space-y-3">
           {sources.map((source) => (
-            <div
-              key={source.id}
-              className="space-y-3 rounded-card bg-card/40 p-4 shadow-border"
-            >
+            <Card variant={CardVariant.INSET} key={source.id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{source.label}</p>
@@ -253,7 +251,7 @@ export default function PublishingRssSourcesSection({
                   }}
                 />
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

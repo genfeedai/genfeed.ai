@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   LivestreamTranscriptSource,
 } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
@@ -69,7 +70,7 @@ export default function LivestreamBotConfigCard({
 }: Props) {
   const translate = useTranslations('common.livestreamBot');
   return (
-    <Card className="p-6">
+    <Card padding={CardPadding.XL}>
       <div className="grid gap-4 md:grid-cols-2">
         <Input
           label="Bot Label"

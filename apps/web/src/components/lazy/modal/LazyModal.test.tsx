@@ -51,11 +51,6 @@ describe('LazyModal', () => {
       expect(LazyModals.LazyModalAvatar).toBeDefined();
       expect(typeof LazyModals.LazyModalAvatar).toBe('function');
     });
-
-    it('should export LazyModalVideo', () => {
-      expect(LazyModals.LazyModalVideo).toBeDefined();
-      expect(typeof LazyModals.LazyModalVideo).toBe('function');
-    });
   });
 
   describe('Element Modals', () => {
@@ -171,9 +166,9 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    // 46 -> 43: the ingredient, credential and post-metadata overlays are gone
+    // 43 -> 42: the unused video picker is gone. 46 -> 43: the ingredient, credential and post-metadata overlays are gone
     // (ingredients open in the context sidebar). Earlier: 47 -> 46,
     // LazyModalCreateThread removed; threads come from the post composer (#5980).
-    expect(exports.length).toBe(43); // Count of all exported modals
+    expect(exports.length).toBe(42); // Count of all exported modals
   });
 });

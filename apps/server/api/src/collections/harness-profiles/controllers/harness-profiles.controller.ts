@@ -1,8 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  ProposeBrandRulesDto,
+  SaveBrandRulesDto,
+} from '@api/collections/harness-profiles/dto/brand-rules.dto';
 import { PromoteWinnersDto } from '@api/collections/harness-profiles/dto/promote-winners.dto';
 import { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { deriveBrandRuleProposals } from '@api/collections/harness-profiles/utils/brand-rule-proposals.util';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -15,6 +20,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import {
@@ -86,6 +92,39 @@ export class HarnessProfilesController {
     );
 
     return serializeSingle(request, HarnessProfileSerializer, profile);
+  }
+
+  /**
+   * Short brand rules suggested by a correction: an edit to generated text, or
+   * the reason a draft was rejected. Saves nothing; the user accepts a rule
+   * through `POST /harness-profiles/rules`.
+   */
+  @Post('rule-proposals')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  proposeRules(@Body() dto: ProposeBrandRulesDto) {
+    return {
+      proposals: deriveBrandRuleProposals({
+        edited: dto.edited === undefined ? undefined : htmlToText(dto.edited),
+        original:
+          dto.original === undefined ? undefined : htmlToText(dto.original),
+        reason: dto.reason,
+      }),
+    };
+  }
+
+  /** Saves the rules the user accepted to the brand's content rules. */
+  @Post('rules')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async saveRules(@CurrentUser() user: User, @Body() dto: SaveBrandRulesDto) {
+    const { added, profile } =
+      await this.harnessProfilesService.saveAcceptedRules({
+        brandId: dto.brandId,
+        organizationId: user.organizationId,
+        rules: dto.rules,
+        userId: user.userId ?? user.id,
+      });
+
+    return { added, guardrails: profile.guardrails, profileId: profile.id };
   }
 
   /**

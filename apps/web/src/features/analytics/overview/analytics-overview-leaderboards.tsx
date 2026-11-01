@@ -231,7 +231,6 @@ export default function AnalyticsOverviewLeaderboards({
           (hasOrgLeaderboard || isLeaderboardLoading ? (
             <Card
               variant={CardVariant.DEFAULT}
-              bodyClassName="p-4"
               isLoading={isLeaderboardLoading && !hasOrgLeaderboard}
             >
               <div className="mb-4 flex items-center justify-between">
@@ -308,7 +307,6 @@ export default function AnalyticsOverviewLeaderboards({
         {hasBrandLeaderboard || isLeaderboardLoading ? (
           <Card
             variant={CardVariant.DEFAULT}
-            bodyClassName="p-4"
             isLoading={isLeaderboardLoading && !hasBrandLeaderboard}
           >
             <div className="mb-4 flex items-center justify-between">

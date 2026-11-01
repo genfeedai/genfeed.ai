@@ -162,7 +162,6 @@ export default function SettingsNotificationsPage() {
       <Card
         id={PERSONAL_SETTINGS_ANCHOR.EMAIL_NOTIFICATIONS}
         label={translate('settings.profile.workflowEmail.cardTitle')}
-        bodyClassName="gap-3 p-4"
       >
         <div className="space-y-3">
           <Switch

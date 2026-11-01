@@ -75,7 +75,8 @@ function ProgressBar({ label, percent }: { label: string; percent: number }) {
     <div className="flex items-center gap-3">
       <Progress
         aria-label={label}
-        className="h-1.5 min-w-0 flex-1 bg-foreground/5"
+        className="min-w-0 flex-1"
+        size="sm"
         value={Math.max(0, Math.min(100, percent))}
       />
       <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
@@ -321,7 +322,7 @@ function InterviewStepsSidebar({
   }
 
   return (
-    <Card className="xl:sticky xl:top-4" bodyClassName="gap-3 p-4">
+    <Card className="xl:sticky xl:top-4">
       <div className="mb-3 space-y-1">
         <h2 className="text-sm font-semibold">Steps</h2>
         <p className="text-xs text-muted-foreground">
@@ -633,7 +634,7 @@ export default function BrandGuidedSetupPage() {
 
   if (!brand) {
     return (
-      <Card bodyClassName="gap-3 p-4">
+      <Card>
         <p className="text-sm text-muted-foreground">Brand not found.</p>
       </Card>
     );
@@ -642,7 +643,7 @@ export default function BrandGuidedSetupPage() {
   if (status === 'idle') {
     return (
       <div className="space-y-4">
-        <Card bodyClassName="gap-3 p-4">
+        <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -691,7 +692,7 @@ export default function BrandGuidedSetupPage() {
   if (status === 'complete') {
     return (
       <div className="space-y-4">
-        <Card bodyClassName="gap-3 p-4">
+        <Card>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -728,7 +729,7 @@ export default function BrandGuidedSetupPage() {
   return (
     <div className="space-y-4">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.75fr)]">
-        <Card bodyClassName="gap-3 p-4">
+        <Card>
           <div className="mb-6 space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">

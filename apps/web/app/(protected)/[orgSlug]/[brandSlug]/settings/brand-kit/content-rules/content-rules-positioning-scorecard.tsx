@@ -1,3 +1,4 @@
+import { CardGap } from '@genfeedai/contracts';
 import { getExpertPositioningRatingLabel } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -24,7 +25,7 @@ export default function ContentRulesPositioningScorecard({
   );
 
   return (
-    <Card bodyClassName="gap-4 p-4" label={translate('title')}>
+    <Card gap={CardGap.LG} label={translate('title')}>
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-2xl font-semibold text-foreground">
           {translate('scoreValue', {

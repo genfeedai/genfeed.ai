@@ -3,6 +3,7 @@
 import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import Badge from '@ui/display/badge/Badge';
+import { Progress } from '@ui/primitives/progress';
 
 type FileStatusVariant = 'success' | 'error' | 'info' | 'ghost';
 
@@ -134,12 +135,7 @@ export default function TrainingFileList({
                 </div>
 
                 {fileStatus && fileStatus.status === UploadStatus.UPLOADING && (
-                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-primary h-full rounded-full transition-[width] duration-300 ease-out"
-                      style={{ width: `${fileStatus.progress}%` }}
-                    />
-                  </div>
+                  <Progress aria-label={f.name} value={fileStatus.progress} />
                 )}
 
                 {fileStatus &&

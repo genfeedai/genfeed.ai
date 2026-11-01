@@ -65,7 +65,7 @@ export default function SettingsOrganizationPolicyPage() {
 
   return (
     <div className="space-y-4">
-      <Card label="Assistant Reply Style" bodyClassName="gap-3 p-4">
+      <Card label="Assistant Reply Style">
         <div>
           <p className="text-sm font-medium">Organization Default</p>
           {isSettingsLoading ? (

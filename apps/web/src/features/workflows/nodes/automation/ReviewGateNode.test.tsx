@@ -97,13 +97,6 @@ vi.mock('@/features/workflows/components/ui/button', () => ({
 }));
 
 vi.mock('@/features/workflows/components/ui/card', () => ({
-  NodeCard: ({
-    children,
-    minWidth,
-  }: {
-    children?: ReactNode;
-    minWidth?: string;
-  }) => <section data-min-width={minWidth}>{children}</section>,
   NodeDescription: ({ children }: { children?: ReactNode }) => (
     <p>{children}</p>
   ),

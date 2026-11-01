@@ -187,8 +187,9 @@ function CampaignProgress({
     <div className={cn('flex items-center gap-2', className)}>
       <Progress
         aria-label={translate('creditsProgress', { percent })}
-        className="h-1.5 w-full min-w-16 bg-foreground/5"
-        indicatorClassName="bg-foreground/60"
+        className="w-full min-w-16"
+        size="sm"
+        tone="neutral"
         value={percent}
       />
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -288,7 +289,7 @@ function CampaignCard({ campaign }: AgentCampaignItemProps) {
   const facts = useCampaignFacts(campaign);
 
   return (
-    <Card bodyClassName="gap-3 p-4" data-testid="campaign-card">
+    <Card data-testid="campaign-card">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1.5">
           <CampaignStatusBadge campaign={campaign} />

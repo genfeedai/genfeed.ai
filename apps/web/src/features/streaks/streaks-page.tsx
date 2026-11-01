@@ -1,12 +1,17 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardPadding,
+  CardTone,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
+import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -84,7 +89,12 @@ export default function StreaksPage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <section className="relative overflow-hidden rounded-3xl bg-muted p-6 shadow-border">
+      <Card
+        variant={CardVariant.INSET}
+        padding={CardPadding.XL}
+        as="section"
+        className="relative overflow-hidden"
+      >
         <StreakCelebrationBurst isVisible={isCelebrating} />
         <h1 className="sr-only">{heroTitle}</h1>
 
@@ -119,18 +129,18 @@ export default function StreaksPage() {
             value={nextMilestone ? `${nextMilestone.days}` : 'Done'}
           />
         </MetricCardGrid>
-      </section>
+      </Card>
 
       <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-        <div
+        <Card
+          padding={CardPadding.LG}
           aria-label="Creation heatmap, last 90 days"
-          className="rounded-3xl bg-muted p-5 shadow-border"
           role="group"
         >
           <CreationHeatmap calendar={calendar} isLoading={isLoading} />
-        </div>
+        </Card>
 
-        <div className="rounded-3xl bg-muted p-5 shadow-border">
+        <Card padding={CardPadding.LG}>
           {isLoading ? (
             <div
               className="space-y-3"
@@ -155,16 +165,16 @@ export default function StreaksPage() {
 
               <div className="space-y-3">
                 {milestoneStates.map((milestone) => (
-                  <div
+                  <Card
                     key={milestone.days}
-                    className={cn(
-                      'rounded-2xl p-4',
+                    variant={CardVariant.INSET}
+                    tone={
                       milestone.isAchieved
-                        ? 'bg-success/10 shadow-border'
+                        ? CardTone.SUCCESS
                         : milestone.isNext
-                          ? 'bg-warning/10 shadow-border'
-                          : 'bg-muted shadow-border',
-                    )}
+                          ? CardTone.WARNING
+                          : undefined
+                    }
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -201,12 +211,12 @@ export default function StreaksPage() {
                             : 'Locked'}
                       </Badge>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             </>
           )}
-        </div>
+        </Card>
       </section>
     </div>
   );

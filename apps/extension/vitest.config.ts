@@ -44,6 +44,10 @@ export default defineConfig({
         // The editor and prompt bars import each other through `@ui/prompt-*`
         // and the shell constants through `@ui/constants`, which tsconfig
         // resolves via its `components/*` fallback.
+        '@ui/card': path.resolve(
+          extensionAppDir,
+          '../../packages/ui/src/components/card',
+        ),
         '@ui/constants': path.resolve(
           extensionAppDir,
           '../../packages/ui/src/components/constants',

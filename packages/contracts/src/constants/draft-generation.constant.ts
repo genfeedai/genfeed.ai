@@ -37,3 +37,15 @@ export const DRAFT_GENERATION_CONFIG = {
   sketchStyle:
     'Black-and-white storyboard pencil sketch, clean line art, grey shading, no colour, no text, no watermark.',
 } as const;
+
+/**
+ * Slideshow slides (#8896) are the finished output, not sketches, so they take
+ * a full-colour prompt in the plan's style. They share the draft model's
+ * reference handling and price; a higher-quality slide model is a one-line
+ * change here once its pricing and reference support are verified.
+ */
+export const SLIDESHOW_GENERATION_CONFIG = {
+  modelKey: DRAFT_GENERATION_CONFIG.draftModelKey,
+  slideStyle:
+    'Finished full-colour image, one clear subject, the same visual look as every other slide in the set, no text, no watermark.',
+} as const;

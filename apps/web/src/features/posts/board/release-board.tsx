@@ -1,6 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ReleaseStatus } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+  ReleaseStatus,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -10,6 +17,7 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import Loading from '@ui/loading/default/Loading';
@@ -403,8 +411,12 @@ export default function ReleaseBoard({
         {BOARD_COLUMNS.map((column) => {
           const columnReleases = columns.get(column) ?? [];
           return (
-            <div
-              className="flex min-w-0 flex-col gap-2 rounded-md border border-border bg-muted/20 p-2"
+            <Card
+              variant={CardVariant.INSET}
+              padding={CardPadding.SM}
+              gap={CardGap.SM}
+              className="min-w-0"
+              bodyClassName="flex-col"
               key={column}
               onDragOver={(event) => {
                 if (!REFUSED_DROP_COLUMNS.has(column)) {
@@ -472,7 +484,7 @@ export default function ReleaseBoard({
                   );
                 })}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>

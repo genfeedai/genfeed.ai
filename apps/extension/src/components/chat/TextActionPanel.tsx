@@ -1,4 +1,11 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import type { ReactElement } from 'react';
@@ -74,7 +81,11 @@ export function TextActionPanel({
       ) : null}
 
       {result && (phase === 'preview' || phase === 'applied') ? (
-        <div className="space-y-2 rounded-lg border border-border bg-card p-3">
+        <Card
+          variant={CardVariant.BORDERED}
+          padding={CardPadding.SM}
+          gap={CardGap.SM}
+        >
           <p className="whitespace-pre-wrap text-sm text-foreground">
             {result.text}
           </p>
@@ -128,7 +139,7 @@ export function TextActionPanel({
               </>
             )}
           </div>
-        </div>
+        </Card>
       ) : null}
     </section>
   );

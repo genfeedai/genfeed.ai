@@ -65,6 +65,10 @@ import {
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import {
+  type StoryboardSlideshowPost,
+  storyboardSlideshowPostSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-slideshow-tool.contract';
+import {
   type GenerateStoryboardStills,
   type QuoteStoryboardStills,
   type StoryboardStillQuote,
@@ -392,6 +396,19 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return storyboardLongFormEstimateSchema.parse(response.data);
+  }
+
+  /** One draft post from an approved slideshow; nothing is scheduled or published. */
+  async createStoryboardSlideshowPost(
+    brandId: string,
+    runId: string,
+    input: ControlStoryboardRun,
+  ): Promise<StoryboardSlideshowPost> {
+    const response = await this.instance.post<StoryboardSlideshowPost>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/slideshow/post`,
+      input,
+    );
+    return storyboardSlideshowPostSchema.parse(response.data);
   }
 
   /** A new storyboard with the long-form script in another language. */

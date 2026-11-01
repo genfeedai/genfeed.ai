@@ -25,7 +25,6 @@ export default function SettingsProgressOverviewCard({
   return (
     <Card
       label="Progress"
-      bodyClassName="gap-3 p-4"
       headerAction={
         nextSetupStep ? (
           <Button

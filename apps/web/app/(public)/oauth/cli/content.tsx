@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import {
   type AuthTokenGetter,
   resolveAuthToken,
@@ -8,6 +13,7 @@ import {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { EnvironmentService } from '@services/core/environment.service';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
@@ -24,7 +30,6 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AuthFormLayout from '@/components/layouts/auth/AuthFormLayout';
-import { Card, CardContent } from '@/components/ui/card';
 import type {
   DesktopAuthCodeStatus,
   DesktopAuthorizeResponse,
@@ -628,164 +633,162 @@ function CliAuthPageContent() {
           )}
         </div>
 
-        <Card className="shadow-border border-transparent">
-          <CardContent className="p-8">
-            {(!isLoaded || flowState.step === 'validating') && (
+        <Card padding={CardPadding.XL}>
+          {(!isLoaded || flowState.step === 'validating') && (
+            <StepDisplay
+              icon={<Spinner size={ComponentSize.LG} />}
+              title={translate('initializing.title')}
+              description={translate('initializing.description')}
+            />
+          )}
+
+          {isLoaded && flowState.step === 'signing-in' && (
+            <div className="space-y-4">
+              <StepDisplay
+                icon={<Terminal className="size-8 text-muted-foreground" />}
+                title={translate(`signIn.title.${authIntent}`)}
+                description={translate(`signIn.description.${authIntent}`)}
+              />
+              <Button asChild className="w-full" withWrapper={false}>
+                <Link href={authHref}>
+                  {translate(`signIn.action.${authIntent}`)}
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {flowState.step === 'requesting-token' && (
+            <div className="space-y-4">
               <StepDisplay
                 icon={<Spinner size={ComponentSize.LG} />}
-                title={translate('initializing.title')}
-                description={translate('initializing.description')}
+                title={translate('requesting.title')}
+                description={translate(
+                  isDesktopMode
+                    ? 'requesting.description.desktop'
+                    : 'requesting.description.cli',
+                )}
               />
-            )}
+              {user?.primaryEmailAddress?.emailAddress && (
+                <div className="text-center">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary border border-border text-xs text-muted-foreground">
+                    {translate('requesting.signedInAs', {
+                      email: user.primaryEmailAddress.emailAddress,
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
-            {isLoaded && flowState.step === 'signing-in' && (
-              <div className="space-y-4">
-                <StepDisplay
-                  icon={<Terminal className="size-8 text-muted-foreground" />}
-                  title={translate(`signIn.title.${authIntent}`)}
-                  description={translate(`signIn.description.${authIntent}`)}
+          {flowState.step === 'redirecting' && (
+            <div className="space-y-6">
+              <StepDisplay
+                icon={<Spinner size={ComponentSize.LG} />}
+                title={translate(
+                  isDesktopMode
+                    ? 'redirecting.title.desktop'
+                    : 'redirecting.title.cli',
+                )}
+                description={translate(
+                  isDesktopMode
+                    ? 'redirecting.description.desktop'
+                    : 'redirecting.description.cli',
+                )}
+              />
+              {flowState.apiKey && (
+                <CopyKeyFallback
+                  apiKey={flowState.apiKey}
+                  copied={copied}
+                  copyError={copyError}
+                  isDesktopMode={isDesktopMode}
+                  onCopy={handleCopyKey}
                 />
-                <Button asChild className="w-full" withWrapper={false}>
-                  <Link href={authHref}>
-                    {translate(`signIn.action.${authIntent}`)}
-                  </Link>
+              )}
+            </div>
+          )}
+
+          {flowState.step === 'awaiting-desktop' && (
+            <div className="space-y-6">
+              <StepDisplay
+                icon={<AppWindow className="size-8 text-muted-foreground" />}
+                title={translate('awaiting.title')}
+                description={translate('awaiting.description')}
+              />
+              {flowState.apiKey && (
+                <CopyKeyFallback
+                  apiKey={flowState.apiKey}
+                  copied={copied}
+                  copyError={copyError}
+                  isDesktopMode={isDesktopMode}
+                  onCopy={handleCopyKey}
+                />
+              )}
+              <div className="flex justify-center">
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.DEFAULT}
+                  onClick={handleRetry}
+                >
+                  {translate('actions.tryAgain')}
                 </Button>
               </div>
-            )}
+            </div>
+          )}
 
-            {flowState.step === 'requesting-token' && (
-              <div className="space-y-4">
-                <StepDisplay
-                  icon={<Spinner size={ComponentSize.LG} />}
-                  title={translate('requesting.title')}
-                  description={translate(
-                    isDesktopMode
-                      ? 'requesting.description.desktop'
-                      : 'requesting.description.cli',
-                  )}
-                />
-                {user?.primaryEmailAddress?.emailAddress && (
-                  <div className="text-center">
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary border border-border text-xs text-muted-foreground">
-                      {translate('requesting.signedInAs', {
-                        email: user.primaryEmailAddress.emailAddress,
-                      })}
-                    </span>
-                  </div>
+          {flowState.step === 'success' && (
+            <div className="space-y-6">
+              <StepDisplay
+                icon={<CircleCheck className="size-8 text-success" />}
+                title={translate(
+                  isDesktopMode ? 'success.desktopTitle' : 'success.title',
                 )}
-              </div>
-            )}
+                description={translate(
+                  isDesktopMode
+                    ? 'success.description.desktop'
+                    : 'success.description.cli',
+                )}
+              />
+              {!isDesktopMode && flowState.apiKey && (
+                <CopyKeyFallback
+                  apiKey={flowState.apiKey}
+                  copied={copied}
+                  copyError={copyError}
+                  isDesktopMode={isDesktopMode}
+                  onCopy={handleCopyKey}
+                />
+              )}
+            </div>
+          )}
 
-            {flowState.step === 'redirecting' && (
-              <div className="space-y-6">
-                <StepDisplay
-                  icon={<Spinner size={ComponentSize.LG} />}
-                  title={translate(
-                    isDesktopMode
-                      ? 'redirecting.title.desktop'
-                      : 'redirecting.title.cli',
-                  )}
-                  description={translate(
-                    isDesktopMode
-                      ? 'redirecting.description.desktop'
-                      : 'redirecting.description.cli',
-                  )}
+          {flowState.step === 'error' && (
+            <div className="space-y-6">
+              <StepDisplay
+                icon={<CircleX className="size-8 text-destructive" />}
+                title={translate('error.title')}
+                description={flowState.error || translate('error.unknown')}
+              />
+              {flowState.apiKey && (
+                <CopyKeyFallback
+                  apiKey={flowState.apiKey}
+                  copied={copied}
+                  copyError={copyError}
+                  isDesktopMode={isDesktopMode}
+                  onCopy={handleCopyKey}
                 />
-                {flowState.apiKey && (
-                  <CopyKeyFallback
-                    apiKey={flowState.apiKey}
-                    copied={copied}
-                    copyError={copyError}
-                    isDesktopMode={isDesktopMode}
-                    onCopy={handleCopyKey}
-                  />
-                )}
-              </div>
-            )}
-
-            {flowState.step === 'awaiting-desktop' && (
-              <div className="space-y-6">
-                <StepDisplay
-                  icon={<AppWindow className="size-8 text-muted-foreground" />}
-                  title={translate('awaiting.title')}
-                  description={translate('awaiting.description')}
-                />
-                {flowState.apiKey && (
-                  <CopyKeyFallback
-                    apiKey={flowState.apiKey}
-                    copied={copied}
-                    copyError={copyError}
-                    isDesktopMode={isDesktopMode}
-                    onCopy={handleCopyKey}
-                  />
-                )}
+              )}
+              {(isDesktopMode || port !== null) && (
                 <div className="flex justify-center">
                   <Button
-                    variant={ButtonVariant.SECONDARY}
+                    variant={ButtonVariant.DEFAULT}
                     size={ButtonSize.DEFAULT}
                     onClick={handleRetry}
                   >
                     {translate('actions.tryAgain')}
                   </Button>
                 </div>
-              </div>
-            )}
-
-            {flowState.step === 'success' && (
-              <div className="space-y-6">
-                <StepDisplay
-                  icon={<CircleCheck className="size-8 text-success" />}
-                  title={translate(
-                    isDesktopMode ? 'success.desktopTitle' : 'success.title',
-                  )}
-                  description={translate(
-                    isDesktopMode
-                      ? 'success.description.desktop'
-                      : 'success.description.cli',
-                  )}
-                />
-                {!isDesktopMode && flowState.apiKey && (
-                  <CopyKeyFallback
-                    apiKey={flowState.apiKey}
-                    copied={copied}
-                    copyError={copyError}
-                    isDesktopMode={isDesktopMode}
-                    onCopy={handleCopyKey}
-                  />
-                )}
-              </div>
-            )}
-
-            {flowState.step === 'error' && (
-              <div className="space-y-6">
-                <StepDisplay
-                  icon={<CircleX className="size-8 text-destructive" />}
-                  title={translate('error.title')}
-                  description={flowState.error || translate('error.unknown')}
-                />
-                {flowState.apiKey && (
-                  <CopyKeyFallback
-                    apiKey={flowState.apiKey}
-                    copied={copied}
-                    copyError={copyError}
-                    isDesktopMode={isDesktopMode}
-                    onCopy={handleCopyKey}
-                  />
-                )}
-                {(isDesktopMode || port !== null) && (
-                  <div className="flex justify-center">
-                    <Button
-                      variant={ButtonVariant.DEFAULT}
-                      size={ButtonSize.DEFAULT}
-                      onClick={handleRetry}
-                    >
-                      {translate('actions.tryAgain')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
+              )}
+            </div>
+          )}
         </Card>
 
         {flowState.step !== 'success' && (

@@ -3,11 +3,13 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   ComponentSize,
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Card from '@ui/card/Card';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
@@ -418,15 +420,15 @@ function ClipperProjectControls({
               ))}
             </div>
 
-            <div className="mt-6 rounded-md bg-muted p-4 shadow-border">
+            <Card className="mt-6">
               <ClipperModeSelector
                 mode={generationMode}
                 onModeChange={setGenerationMode}
               />
-            </div>
+            </Card>
 
             {generationMode === 'avatar' ? (
-              <div className="mt-4 space-y-4 rounded-md bg-muted p-4 shadow-border">
+              <Card gap={CardGap.LG} className="mt-4">
                 <h3 className="text-sm font-medium text-foreground">
                   Avatar Configuration
                 </h3>
@@ -501,7 +503,7 @@ function ClipperProjectControls({
                     </Button>
                   ))}
                 </div>
-              </div>
+              </Card>
             ) : null}
 
             {error ? (

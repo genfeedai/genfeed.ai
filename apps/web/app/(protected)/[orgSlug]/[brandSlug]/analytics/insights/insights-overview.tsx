@@ -1,5 +1,6 @@
 'use client';
 
+import { CardTone } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import Card from '@ui/card/Card';
@@ -28,7 +29,7 @@ const InsightsOverview = memo(function InsightsOverview({
   return (
     <div className={cn('space-y-6', className)}>
       {status === 'unavailable' ? (
-        <Card className="border-warning/20 bg-warning/5">
+        <Card tone={CardTone.WARNING}>
           <div role="status" className="space-y-1">
             <p className="text-sm font-medium text-warning">
               Analytics insights unavailable

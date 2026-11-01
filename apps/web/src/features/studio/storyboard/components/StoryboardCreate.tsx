@@ -35,10 +35,19 @@ import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-crea
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
 import { storyboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-plan';
 
-const FORMAT_OPTIONS = ['9:16', '16:9', '1:1'].map((value) => ({
-  label: value,
-  value,
-}));
+const VIDEO_FORMATS = ['9:16', '16:9', '1:1'] as const;
+/** Slides are posted as photos, so the portrait feed format is offered too. */
+const SLIDESHOW_FORMATS = ['4:5', '1:1', '9:16'] as const;
+type StoryboardFormat = (typeof VIDEO_FORMATS)[number] | '4:5';
+function formatOptions(values: readonly StoryboardFormat[]) {
+  return values.map((value) => ({ label: value, value }));
+}
+function isFormatIn(
+  values: readonly StoryboardFormat[],
+  value: string,
+): value is StoryboardFormat {
+  return values.some((candidate) => candidate === value);
+}
 const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
 const MAX_BRIEF_LENGTH = 2000;
 /** A long-form brief is a voice-note transcript or an idea dump. */
@@ -55,15 +64,19 @@ export default function StoryboardCreate() {
   const { href } = useOrgUrl();
   const router = useRouter();
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
-  const [mode, setMode] = useState<'brief' | 'longForm' | 'video'>('brief');
+  const [mode, setMode] = useState<
+    'brief' | 'longForm' | 'slideshow' | 'video'
+  >('brief');
   const isLongForm = mode === 'longForm';
+  const isSlideshow = mode === 'slideshow';
+  const formats = isSlideshow ? SLIDESHOW_FORMATS : VIDEO_FORMATS;
   const maxBriefLength = isLongForm
     ? MAX_LONG_FORM_BRIEF_LENGTH
     : MAX_BRIEF_LENGTH;
   const [brief, setBrief] = useState('');
   // The agent brief the composer was last filled from, for provenance.
   const [agentBrief, setAgentBrief] = useState<string | null>(null);
-  const [format, setFormat] = useState<'9:16' | '16:9' | '1:1'>('9:16');
+  const [format, setFormat] = useState<StoryboardFormat>('9:16');
   const [budget, setBudget] = useState('30');
   const [seed, setSeed] = useState<{
     brandId: string;
@@ -122,7 +135,9 @@ export default function StoryboardCreate() {
       : isLongForm
         ? brief.trim().length > 0 &&
           brief.trim().length <= MAX_LONG_FORM_BRIEF_LENGTH
-        : Boolean(video);
+        : isSlideshow
+          ? brief.trim().length > 0 && brief.trim().length <= MAX_BRIEF_LENGTH
+          : Boolean(video);
   function chooseStartingImage() {
     openGallery({
       category: IngredientCategory.IMAGE,
@@ -165,14 +180,15 @@ export default function StoryboardCreate() {
   async function submit() {
     if (!valid || isCreating) return;
     const author = resolveAgentPromptAuthor(agentBrief, brief);
-    const input = isLongForm
+    const input = isSlideshow
       ? {
           source: {
             kind: 'brief' as const,
             brief: brief.trim(),
-            length: 'long_form' as const,
+            length: 'slideshow' as const,
           },
           planSettings: {
+            kind: 'slideshow' as const,
             format,
             videoModelKey: null,
             runtimeBudgetSeconds: null,
@@ -180,28 +196,43 @@ export default function StoryboardCreate() {
             cast: [],
           },
         }
-      : mode === 'brief'
+      : isLongForm
         ? {
             source: {
               kind: 'brief' as const,
               brief: brief.trim(),
-              ...(image ? { seedImageAssetId: image.id } : {}),
-              ...(author ? { author } : {}),
+              length: 'long_form' as const,
             },
             planSettings: {
               format,
               videoModelKey: null,
-              runtimeBudgetSeconds: Number(budget),
+              runtimeBudgetSeconds: null,
               styleReferenceAssetIds: styles.map((reference) => reference.id),
               cast: [],
             },
           }
-        : {
-            source: {
-              kind: 'uploaded_video' as const,
-              assetId: video?.id ?? '',
-            },
-          };
+        : mode === 'brief'
+          ? {
+              source: {
+                kind: 'brief' as const,
+                brief: brief.trim(),
+                ...(image ? { seedImageAssetId: image.id } : {}),
+                ...(author ? { author } : {}),
+              },
+              planSettings: {
+                format,
+                videoModelKey: null,
+                runtimeBudgetSeconds: Number(budget),
+                styleReferenceAssetIds: styles.map((reference) => reference.id),
+                cast: [],
+              },
+            }
+          : {
+              source: {
+                kind: 'uploaded_video' as const,
+                assetId: video?.id ?? '',
+              },
+            };
     try {
       const id = await create(input);
       if (!isCurrentResult(id)) return;
@@ -227,7 +258,10 @@ export default function StoryboardCreate() {
               mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
             }
             disabled={isCreating}
-            onClick={() => setMode('brief')}
+            onClick={() => {
+              setMode('brief');
+              if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
+            }}
           />
           <Button
             label={translate('longFormTitle')}
@@ -239,6 +273,18 @@ export default function StoryboardCreate() {
             onClick={() => {
               setMode('longForm');
               setFormat('16:9');
+            }}
+          />
+          <Button
+            label={translate('slideshowTitle')}
+            aria-pressed={isSlideshow}
+            variant={
+              isSlideshow ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            disabled={isCreating}
+            onClick={() => {
+              setMode('slideshow');
+              setFormat('4:5');
             }}
           />
           <Button
@@ -269,7 +315,11 @@ export default function StoryboardCreate() {
                 value={brief}
                 isDisabled={isCreating}
                 placeholder={translate(
-                  isLongForm ? 'longFormPlaceholder' : 'briefPlaceholder',
+                  isLongForm
+                    ? 'longFormPlaceholder'
+                    : isSlideshow
+                      ? 'slideshowPlaceholder'
+                      : 'briefPlaceholder',
                 )}
                 onValueChange={setBrief}
                 onSubmit={() => void submit()}
@@ -283,18 +333,13 @@ export default function StoryboardCreate() {
                     <PromptBarCompactSelect
                       ariaLabel={translate('formatAria')}
                       isDisabled={isCreating}
-                      options={FORMAT_OPTIONS}
+                      options={formatOptions(formats)}
                       value={format}
                       onChange={(value) => {
-                        if (
-                          value === '9:16' ||
-                          value === '16:9' ||
-                          value === '1:1'
-                        )
-                          setFormat(value);
+                        if (isFormatIn(formats, value)) setFormat(value);
                       }}
                     />
-                    {isLongForm ? null : (
+                    {isLongForm || isSlideshow ? null : (
                       <PromptBarCompactSelect
                         ariaLabel={translate('runtimeBudget')}
                         isDisabled={isCreating}
@@ -349,9 +394,9 @@ export default function StoryboardCreate() {
           <p role="status" className="text-sm">
             {video?.title || translate('chooseOwnedVideo')}
           </p>
-        ) : isLongForm ? (
+        ) : isLongForm || isSlideshow ? (
           <p className="text-sm text-muted-foreground">
-            {translate('longFormHint')}
+            {translate(isSlideshow ? 'slideshowHint' : 'longFormHint')}
           </p>
         ) : (
           <>
@@ -414,14 +459,16 @@ export default function StoryboardCreate() {
             : []),
         ]}
         actions={
-          mode === 'brief' ? (
+          mode === 'brief' || isSlideshow ? (
             <>
-              <Button
-                label={translate('chooseStartingImage')}
-                variant={ButtonVariant.SECONDARY}
-                disabled={isCreating}
-                onClick={chooseStartingImage}
-              />
+              {mode === 'brief' ? (
+                <Button
+                  label={translate('chooseStartingImage')}
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isCreating}
+                  onClick={chooseStartingImage}
+                />
+              ) : null}
               <Button
                 label={translatePlan('addStyleReferences')}
                 variant={ButtonVariant.SECONDARY}

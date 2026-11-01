@@ -5147,7 +5147,7 @@ test('actual spawn guard is synchronous and immediately precedes spawn, while ex
 const FROZEN_CRUN = {
   image: {
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-    sha256: '1e6daa4610c60b40c62be9d3cd29a371b206cd3b32e424a91ed836e8bc15a646',
+    sha256: '477f150b983f97a09faef2893337dffb196d66b37dfcd0dfc1781f971b038b1c',
     count: 17,
     passedTitles: [
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
@@ -5171,7 +5171,7 @@ const FROZEN_CRUN = {
   },
   video: {
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: 'ef9fa67cbc822f8ec15f671d8d9bdf54a9775bf66f1e9672314182b14e47322c',
+    sha256: 'baf0a7206a2090cf78a194a577d3929e8376f8a8d2c43b07b634caf346a1b571',
     count: 22,
     passedTitles: [
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
@@ -5223,6 +5223,13 @@ function crunReportContract(mediaKind) {
     titles: entry.passedTitles,
   };
 }
+test('committed Crun flow specs match the pinned hashes before allocation', async () => {
+  const repo = await realpath(new URL('../..', import.meta.url));
+  await verifyFrozenSources(repo, [
+    CRUN_SOURCE_CONTRACT.image,
+    CRUN_SOURCE_CONTRACT.video,
+  ]);
+});
 test('Crun source qualification freezes the exact independent image18/video23 inventories', () => {
   assert.deepEqual(CRUN_SOURCE_CONTRACT, FROZEN_CRUN);
   assert.equal(Object.isFrozen(CRUN_SOURCE_CONTRACT), true);

@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardGap } from '@genfeedai/contracts';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
@@ -143,7 +143,8 @@ export function useWorkflowTemplateItems({
         className="h-full"
         label={item.title}
         description={item.description}
-        bodyClassName="h-full justify-between gap-4"
+        gap={CardGap.LG}
+        bodyClassName="h-full justify-between"
         data-testid="workflow-template-card"
       >
         <WorkflowTemplateCardPreview

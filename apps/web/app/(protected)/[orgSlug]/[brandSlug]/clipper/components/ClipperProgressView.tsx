@@ -1,4 +1,10 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
@@ -157,7 +163,8 @@ export default function ClipperProgressView({
               <Progress
                 isIndeterminate
                 aria-label={project.status}
-                className="h-1.5 flex-1 bg-muted"
+                className="flex-1"
+                size="sm"
               />
               <span className="text-xs capitalize text-muted-foreground">
                 {project.status}
@@ -168,7 +175,7 @@ export default function ClipperProgressView({
 
       {project.source?.status === 'failed' &&
       project.source.failure?.retryable ? (
-        <Card bodyClassName="space-y-3 p-5" className="mb-6">
+        <Card padding={CardPadding.LG} className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
               {t('sourceProcessingFailed')}
@@ -195,7 +202,7 @@ export default function ClipperProgressView({
       ) : null}
 
       {canRetryFailedClips ? (
-        <Card bodyClassName="space-y-3 p-5" className="mb-6">
+        <Card padding={CardPadding.LG} className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
               {t('someClipsFailed')}
@@ -217,7 +224,7 @@ export default function ClipperProgressView({
       ) : null}
 
       {isAwaitingHookApproval ? (
-        <Card bodyClassName="space-y-4 p-5" className="mb-6">
+        <Card padding={CardPadding.LG} gap={CardGap.LG} className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
               {t('hookApproval')}
@@ -292,7 +299,10 @@ export default function ClipperProgressView({
         project.status !== 'completed' &&
         project.status !== 'partially-completed' &&
         project.status !== 'failed' && (
-          <Card bodyClassName="items-center justify-center py-20">
+          <Card
+            padding={CardPadding.XL}
+            bodyClassName="min-h-48 items-center justify-center"
+          >
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-muted-foreground">
               {project.mode === 'raw-cut'

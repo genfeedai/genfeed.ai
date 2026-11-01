@@ -1,64 +1,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Check, ChevronRight, Circle, Lock } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { Stepper } from '@ui/primitives/stepper';
+import { Lock } from 'lucide-react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { getPhaseIndex } from '../machine';
 import { useAgentWorkflowStore } from '../store';
 import { PHASE_LABELS, WORKFLOW_PHASES, type WorkflowPhase } from '../types';
-
-function PhaseStep({
-  phase,
-  currentPhase,
-  onRollback,
-}: {
-  phase: WorkflowPhase;
-  currentPhase: WorkflowPhase;
-  onRollback: (phase: WorkflowPhase) => void;
-}) {
-  const currentIndex = getPhaseIndex(currentPhase);
-  const stepIndex = getPhaseIndex(phase);
-  const isComplete = stepIndex < currentIndex;
-  const isCurrent = phase === currentPhase;
-  const isFuture = stepIndex > currentIndex;
-  const canRollback = isComplete && currentPhase !== 'complete';
-
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => canRollback && onRollback(phase)}
-      isDisabled={!canRollback}
-      className={cn(
-        'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-        isComplete &&
-          'bg-success/10 text-success hover:bg-success/10 cursor-pointer',
-        isCurrent &&
-          'bg-foreground/10 text-foreground ring-1 ring-foreground/20',
-        isFuture && 'text-muted-foreground',
-        canRollback && 'hover:ring-1 hover:ring-emerald-500/20',
-      )}
-    >
-      <span
-        className={cn(
-          'flex items-center justify-center size-6 rounded-full text-xs',
-          isComplete && 'bg-success/10',
-          isCurrent && 'bg-foreground/10',
-          isFuture && 'bg-foreground/5',
-        )}
-      >
-        {isComplete ? (
-          <Check className="size-3.5" />
-        ) : isCurrent ? (
-          <Circle className="size-3 fill-current" />
-        ) : (
-          <span>{stepIndex + 1}</span>
-        )}
-      </span>
-      <span className="hidden sm:inline">{PHASE_LABELS[phase]}</span>
-    </Button>
-  );
-}
 
 function PhaseProgressInner() {
   const phase = useAgentWorkflowStore((s) => s.phase);
@@ -76,6 +23,17 @@ function PhaseProgressInner() {
     [isLocked],
   );
 
+  const currentIndex = getPhaseIndex(phase);
+  const steps = useMemo(
+    () =>
+      WORKFLOW_PHASES.map((p, index) => ({
+        id: p,
+        isDisabled: index >= currentIndex || phase === 'complete',
+        label: PHASE_LABELS[p],
+      })),
+    [currentIndex, phase],
+  );
+
   const confirmRollback = useCallback(() => {
     if (confirmTarget) {
       rollback(confirmTarget);
@@ -87,18 +45,12 @@ function PhaseProgressInner() {
     <div className="relative">
       <div className="flex items-center gap-1 overflow-x-auto p-2 rounded-xl bg-foreground/5 border border-foreground/10">
         {isLocked && <Lock className="size-4 text-warning shrink-0 mr-1" />}
-        {WORKFLOW_PHASES.map((p, i) => (
-          <div key={p} className="flex items-center">
-            <PhaseStep
-              phase={p}
-              currentPhase={phase}
-              onRollback={handleRollback}
-            />
-            {i < WORKFLOW_PHASES.length - 1 && (
-              <ChevronRight className="size-4 text-foreground/20 shrink-0 mx-0.5" />
-            )}
-          </div>
-        ))}
+        <Stepper
+          className="flex-1 gap-1"
+          currentStep={currentIndex}
+          onStepSelect={(index) => handleRollback(WORKFLOW_PHASES[index])}
+          steps={steps}
+        />
       </div>
 
       {confirmTarget && (

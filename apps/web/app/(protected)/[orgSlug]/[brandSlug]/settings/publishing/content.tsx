@@ -1,6 +1,12 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
@@ -84,7 +90,11 @@ function SettingsToggleRow({
   onCheckedChange: (checked: boolean) => void;
 }): ReactNode {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-card bg-card/40 px-4 py-3 shadow-border">
+    <Card
+      padding={CardPadding.SM}
+      gap={CardGap.LG}
+      bodyClassName="flex-row items-start justify-between"
+    >
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs leading-5 text-muted-foreground">{description}</p>
@@ -98,7 +108,7 @@ function SettingsToggleRow({
           onCheckedChange(event.target.checked);
         }}
       />
-    </div>
+    </Card>
   );
 }
 
@@ -441,7 +451,7 @@ export default function BrandSettingsPublishingPage() {
 
   if (!brand) {
     return (
-      <Card bodyClassName="gap-3 p-4">
+      <Card>
         <p className="text-sm text-muted-foreground">Brand not found.</p>
       </Card>
     );
@@ -449,7 +459,7 @@ export default function BrandSettingsPublishingPage() {
 
   return (
     <div className="space-y-4">
-      <Card label="Publishing defaults" labelAs="h1" bodyClassName="gap-3 p-4">
+      <Card label="Publishing defaults" labelAs="h1">
         <div className="space-y-3">
           <SettingsToggleRow
             description="Generate recurring content for this brand on the cadence and timezone below."
@@ -620,7 +630,7 @@ export default function BrandSettingsPublishingPage() {
         />
       ) : null}
 
-      <Card label="Connected account readiness" bodyClassName="gap-3 p-4">
+      <Card label="Connected account readiness">
         {connectedCredentials.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No connected accounts are available for this brand.
@@ -635,10 +645,7 @@ export default function BrandSettingsPublishingPage() {
 
               if (!context) {
                 return (
-                  <div
-                    key={credential.id}
-                    className="rounded-card bg-card p-4 shadow-border"
-                  >
+                  <Card variant={CardVariant.INSET} key={credential.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium">
@@ -663,15 +670,12 @@ export default function BrandSettingsPublishingPage() {
                         account. Retry by refreshing this page.
                       </p>
                     ) : null}
-                  </div>
+                  </Card>
                 );
               }
 
               return (
-                <div
-                  key={credential.id}
-                  className="rounded-card bg-card p-4 shadow-border"
-                >
+                <Card variant={CardVariant.INSET} key={credential.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">
@@ -742,7 +746,7 @@ export default function BrandSettingsPublishingPage() {
                       onClick={() => handleCopyReadiness(context)}
                     />
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>

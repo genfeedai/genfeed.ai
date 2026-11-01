@@ -127,7 +127,7 @@ export default function OrganizationIdentityCard({
   ]);
 
   return (
-    <Card label={translate('title')} bodyClassName="p-4">
+    <Card label={translate('title')}>
       {organization ? (
         <OrganizationIdentityEditor
           key={organization.id}

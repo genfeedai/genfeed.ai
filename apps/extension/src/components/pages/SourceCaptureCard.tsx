@@ -1,4 +1,5 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -32,9 +33,11 @@ export function SourceCaptureCard({
 }: SourceCaptureCardProps): ReactElement {
   const chosen = mediaIndex === null ? undefined : preview.media[mediaIndex];
   return (
-    <section
+    <Card
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      as="section"
       aria-label="Captured source"
-      className="space-y-3 rounded-xl border border-border bg-card p-3"
     >
       <div className="space-y-1">
         <p className="text-sm font-medium">{preview.title}</p>
@@ -133,6 +136,6 @@ export function SourceCaptureCard({
         Saving keeps the original for later. It does not start generation or
         change brand Knowledge.
       </p>
-    </section>
+    </Card>
   );
 }

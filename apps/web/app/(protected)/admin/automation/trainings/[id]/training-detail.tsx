@@ -5,6 +5,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
+  CardPadding,
   ComponentSize,
   ModalEnum,
 } from '@genfeedai/contracts';
@@ -155,7 +156,7 @@ export default function TrainingDetail({
     return (
       <>
         <Container>
-          <Card className="p-12 text-center">
+          <Card padding={CardPadding.XL} isCentered>
             <div className="mx-auto mb-4 size-12 rounded-full bg-destructive/10 flex items-center justify-center">
               <span className="text-2xl text-destructive">!</span>
             </div>

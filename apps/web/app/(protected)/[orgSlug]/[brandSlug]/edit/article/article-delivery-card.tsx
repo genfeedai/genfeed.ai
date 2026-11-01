@@ -3,6 +3,7 @@ import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/glo
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import {
@@ -119,7 +120,7 @@ export default function ArticleDeliveryCard({
   );
 
   return (
-    <Card bodyClassName="space-y-4">
+    <Card gap={CardGap.LG}>
       <div className="space-y-1">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground/60">
           {translate('title')}

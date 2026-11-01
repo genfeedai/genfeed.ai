@@ -1,4 +1,9 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardVariant,
+  ComponentSize,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -142,10 +147,10 @@ export default function HighlightReviewCard({
 
   return (
     <Card
-      bodyClassName="gap-0 p-4"
-      className={`border transition-[background-color,border-color,box-shadow] ${
-        selected ? 'border-primary/50 bg-primary/5' : 'bg-muted opacity-60'
-      }`}
+      gap={CardGap.NONE}
+      variant={CardVariant.INSET}
+      isSelected={selected}
+      className={selected ? undefined : 'opacity-60'}
     >
       {/* Header: checkbox + title + badges */}
       <div className="mb-3 flex items-start gap-3">

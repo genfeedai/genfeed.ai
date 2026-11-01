@@ -10,7 +10,7 @@ export default function BrandDetailAccountSettingsCard({
   onToggle,
 }: BrandDetailAccountSettingsCardProps) {
   return (
-    <Card bodyClassName="p-4">
+    <Card>
       <Switch
         aria-label="Public Profile"
         label="Public Profile"

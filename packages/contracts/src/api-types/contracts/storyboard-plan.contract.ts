@@ -106,13 +106,24 @@ export const storyboardLongFormSchema = z
       .max(STORYBOARD_LONG_FORM_LIMITS.maxSegments),
   })
   .strict();
+/**
+ * A slideshow (#8896) is a storyboard that stops at stills: each shot is one
+ * slide, the stills are the output, and they become one multi-image post in
+ * slide order. A plan without a kind is a video.
+ */
+export const STORYBOARD_SLIDESHOW_LIMITS = {
+  maxSlides: 12,
+  minSlides: 2,
+} as const;
+export const storyboardPlanKindSchema = z.enum(['video', 'slideshow']);
 export const storyboardPlanSettingsSchema = z
   .object({
+    kind: storyboardPlanKindSchema.optional(),
     videoModelKey: storyboardModelKeySchema
       .nullable()
       .optional()
       .transform((value) => value ?? null),
-    format: z.enum(['9:16', '16:9', '1:1']),
+    format: z.enum(['9:16', '16:9', '1:1', '4:5']),
     runtimeBudgetSeconds: z.number().finite().positive().max(60).nullable(),
     styleLabel: z.string().trim().max(60).optional(),
     styleReferenceAssetIds: z.array(storyboardIdSchema).max(20),
@@ -187,10 +198,51 @@ function validateStoryboardLongForm(
   });
 }
 
+/** True when the plan is a slideshow: stills only, posted as a carousel. */
+export function isStoryboardSlideshow(plan: {
+  kind?: z.infer<typeof storyboardPlanKindSchema>;
+}): boolean {
+  return plan.kind === 'slideshow';
+}
+
+function validateStoryboardSlideshow(
+  plan: z.infer<typeof storyboardPlanDraftSchema>,
+  ctx: z.RefinementCtx,
+) {
+  if (!isStoryboardSlideshow(plan)) return;
+  if (plan.longForm)
+    ctx.addIssue({
+      code: 'custom',
+      path: ['longForm'],
+      message: 'A slideshow cannot be a long-form video.',
+    });
+  if (plan.runtimeBudgetSeconds !== null)
+    ctx.addIssue({
+      code: 'custom',
+      path: ['runtimeBudgetSeconds'],
+      message: 'A slideshow has no runtime.',
+    });
+  plan.shots.forEach((shot, index) => {
+    if (
+      shot.durationSeconds !== null ||
+      shot.dialogue ||
+      shot.speakerId ||
+      shot.onScreenSpeaker ||
+      shot.transition !== 'cut'
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['shots', index],
+        message: 'A slide has no duration, dialogue or transition.',
+      });
+  });
+}
+
 function validateStoryboardPlan(
   plan: z.infer<typeof storyboardPlanDraftSchema>,
   ctx: z.RefinementCtx,
 ) {
+  validateStoryboardSlideshow(plan, ctx);
   validateStoryboardLongForm(plan, ctx);
   if (
     plan.runtimeBudgetSeconds !== null &&
@@ -268,6 +320,7 @@ export type StoryboardPlanSettings = z.infer<
   typeof storyboardPlanSettingsSchema
 >;
 export type StoryboardPlan = z.infer<typeof storyboardPlanSchema>;
+export type StoryboardPlanKind = z.infer<typeof storyboardPlanKindSchema>;
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
 export type StoryboardCastMember = z.infer<typeof storyboardCastMemberSchema>;
 export type StoryboardCutaway = z.infer<typeof storyboardCutawaySchema>;

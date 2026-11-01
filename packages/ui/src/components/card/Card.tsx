@@ -1,25 +1,61 @@
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardTone,
+  CardVariant,
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import CardIcon from '@ui/card/icon/CardIcon';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import { memo } from 'react';
+import { createElement, memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'shadow-border bg-card text-card-foreground',
   [CardVariant.BORDERED]: 'border border-border bg-card text-card-foreground',
+  [CardVariant.INSET]: 'bg-tertiary text-card-foreground',
 };
 
 const INTERACTIVE_VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'hover:shadow-border-strong',
   [CardVariant.BORDERED]: 'hover:border-border-strong',
+  [CardVariant.INSET]: 'hover:bg-muted',
+};
+
+const TONE_CLASSES: Record<CardTone, string> = {
+  [CardTone.SUCCESS]: 'border-l-2 border-l-success/40',
+  [CardTone.WARNING]: 'border-l-2 border-l-warning/40',
+  [CardTone.DESTRUCTIVE]: 'border-l-2 border-l-destructive/40',
+};
+
+const PADDING_CLASSES: Record<CardPadding, string> = {
+  [CardPadding.NONE]: 'p-0',
+  [CardPadding.SM]: 'p-3',
+  [CardPadding.MD]: 'p-4',
+  [CardPadding.LG]: 'p-5',
+  [CardPadding.XL]: 'p-6',
+};
+
+const GAP_CLASSES: Record<CardGap, string> = {
+  [CardGap.NONE]: 'gap-0',
+  [CardGap.SM]: 'gap-2',
+  [CardGap.MD]: 'gap-3',
+  [CardGap.LG]: 'gap-4',
 };
 
 const Card = memo(function Card({
   index = 0,
   variant = CardVariant.DEFAULT,
+  padding = CardPadding.MD,
+  gap = CardGap.MD,
+  as: surfaceTag = 'div',
+  tone,
+  isCentered = false,
+  isSelected = false,
+  isInteractive = false,
   children,
   actions,
   headerAction,
@@ -42,6 +78,8 @@ const Card = memo(function Card({
   onClick,
   onDescriptionClick,
   'data-testid': dataTestId,
+  ref,
+  ...surfaceProps
 }: CardProps) {
   const cardClasses = cn(
     'relative rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
@@ -54,7 +92,9 @@ const Card = memo(function Card({
     figure && 'flex flex-row',
     onClick && 'cursor-pointer',
     isDisabled && 'cursor-not-allowed opacity-60',
-    onClick && INTERACTIVE_VARIANT_CLASSES[variant],
+    (onClick || isInteractive) && INTERACTIVE_VARIANT_CLASSES[variant],
+    isSelected && 'ring-1 ring-inset ring-primary/50',
+    tone && TONE_CLASSES[tone],
     className,
   );
 
@@ -64,7 +104,7 @@ const Card = memo(function Card({
         <figure className="absolute inset-0 z-0">
           <Image
             src={overlay}
-            alt="Overlay"
+            alt=""
             fill
             sizes="100vw"
             className="object-cover object-center outline-media"
@@ -78,7 +118,10 @@ const Card = memo(function Card({
         aria-hidden={isLoading || undefined}
         inert={isLoading || undefined}
         className={cn(
-          'relative z-10 flex flex-col gap-3 p-4',
+          'relative z-10 flex flex-col',
+          GAP_CLASSES[gap],
+          PADDING_CLASSES[padding],
+          isCentered && 'items-center text-center',
           isLoading && 'invisible',
           bodyClassName,
         )}
@@ -160,7 +203,10 @@ const Card = memo(function Card({
   if (onClick) {
     return (
       <Button
-        aria-label={typeof label === 'string' ? label : undefined}
+        aria-label={
+          surfaceProps['aria-label'] ??
+          (typeof label === 'string' ? label : undefined)
+        }
         aria-pressed={isPressed}
         data-card-index={index}
         data-testid={dataTestId}
@@ -178,16 +224,18 @@ const Card = memo(function Card({
     );
   }
 
-  return (
-    <div
-      aria-busy={isLoading || undefined}
-      className={cardClasses}
-      data-card-index={index}
-      data-testid={dataTestId}
-      id={id}
-    >
-      {cardContent}
-    </div>
+  return createElement(
+    surfaceTag,
+    {
+      ...surfaceProps,
+      ref,
+      'aria-busy': isLoading || surfaceProps['aria-busy'] || undefined,
+      className: cardClasses,
+      'data-card-index': index,
+      'data-testid': dataTestId,
+      id,
+    },
+    cardContent,
   );
 });
 

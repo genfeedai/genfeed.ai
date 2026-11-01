@@ -24,7 +24,7 @@ export default function RelatedMetricCard({
   title,
 }: RelatedMetricCardProps) {
   return (
-    <Card bodyClassName="p-4">
+    <Card>
       <div className="space-y-2">
         <div className="truncate text-sm font-medium text-foreground">
           {title}

@@ -5,6 +5,7 @@ import {
   getAccountConnectionStatus,
   getConnectionLabel,
   isAccessTokenExpired,
+  needsDirectMessageReconnect,
 } from './account-connection-status.util';
 
 function buildConnection(
@@ -93,4 +94,23 @@ describe('getConnectionLabel', () => {
       ),
     ).toBe('X');
   });
+});
+
+describe('needsDirectMessageReconnect', () => {
+  it.each([
+    [CredentialPlatform.TWITTER, 'reconnect', true],
+    [CredentialPlatform.TWITTER, 'ok', false],
+    [CredentialPlatform.TWITTER, 'unknown', false],
+    [CredentialPlatform.TWITTER, undefined, false],
+    [CredentialPlatform.LINKEDIN, 'reconnect', false],
+  ] as const)(
+    '%s with %s → %s',
+    (platform, directMessageCapability, expected) => {
+      expect(
+        needsDirectMessageReconnect(
+          buildConnection({ directMessageCapability, platform }),
+        ),
+      ).toBe(expected);
+    },
+  );
 });

@@ -1,4 +1,5 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
@@ -194,9 +195,11 @@ export function SourceRemixPanel({
   const progress = run ? variantProgress(run) : null;
 
   return (
-    <section
+    <Card
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      as="section"
       aria-label="Remix now"
-      className="space-y-3 rounded-xl border border-border bg-card p-3"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 space-y-1">
@@ -332,6 +335,6 @@ export function SourceRemixPanel({
           </Button>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

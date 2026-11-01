@@ -10,15 +10,20 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Link2, Plus, RefreshCw, Settings, Unlink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import DirectMessageReconnectNotice from '@/features/messages/components/DirectMessageReconnectNotice';
 import AccountCell from './AccountCell';
 import AccountStatusBadge from './AccountStatusBadge';
-import { getConnectionLabel } from './account-connection-status.util';
+import {
+  getConnectionLabel,
+  needsDirectMessageReconnect,
+} from './account-connection-status.util';
 
 function sortConnections(
   connections: BrandDetailSocialConnection[],
@@ -78,10 +83,15 @@ export default function AccountsTable({
         header: translate('accountsTableStatus'),
         key: 'status',
         render: (connection) => (
-          <AccountStatusBadge
-            connection={connection}
-            health={healthByCredentialId.get(connection.credentialId)}
-          />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <AccountStatusBadge
+              connection={connection}
+              health={healthByCredentialId.get(connection.credentialId)}
+            />
+            {needsDirectMessageReconnect(connection) ? (
+              <Badge variant="warning">{translate('dmReconnectBadge')}</Badge>
+            ) : null}
+          </div>
         ),
       },
     ],
@@ -149,32 +159,47 @@ export default function AccountsTable({
         getTitle: getConnectionLabel,
         kind: 'account',
         renderExtra: (connection) => (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              icon={<RefreshCw aria-hidden="true" className="size-3.5" />}
-              isDisabled={
-                unavailablePlatforms.has(connection.platform) ||
-                reconnectingCredentialId === connection.credentialId
-              }
-              label={translate('reconnect')}
-              onClick={() => onReconnect(connection)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-            <Button
-              icon={<Settings aria-hidden="true" className="size-3.5" />}
-              label={translate('settings')}
-              onClick={() => onOpenSettings(connection)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-            <Button
-              icon={<Unlink aria-hidden="true" className="size-3.5" />}
-              label={translate('disconnect')}
-              onClick={() => onDisconnect(connection)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DESTRUCTIVE}
-            />
+          <div className="flex flex-col gap-3">
+            {needsDirectMessageReconnect(connection) ? (
+              <DirectMessageReconnectNotice
+                accounts={[
+                  {
+                    credentialId: connection.credentialId,
+                    label: getConnectionLabel(connection),
+                  },
+                ]}
+                isDisabled={unavailablePlatforms.has(connection.platform)}
+                onReconnect={() => onReconnect(connection)}
+                reconnectingCredentialId={reconnectingCredentialId}
+              />
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                icon={<RefreshCw aria-hidden="true" className="size-3.5" />}
+                isDisabled={
+                  unavailablePlatforms.has(connection.platform) ||
+                  reconnectingCredentialId === connection.credentialId
+                }
+                label={translate('reconnect')}
+                onClick={() => onReconnect(connection)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+              <Button
+                icon={<Settings aria-hidden="true" className="size-3.5" />}
+                label={translate('settings')}
+                onClick={() => onOpenSettings(connection)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              />
+              <Button
+                icon={<Unlink aria-hidden="true" className="size-3.5" />}
+                label={translate('disconnect')}
+                onClick={() => onDisconnect(connection)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DESTRUCTIVE}
+              />
+            </div>
           </div>
         ),
       }),

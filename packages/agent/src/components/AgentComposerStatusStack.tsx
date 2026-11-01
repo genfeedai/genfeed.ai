@@ -712,7 +712,7 @@ export function AgentComposerStatusStack({
                   <Progress
                     aria-label={`${progressEventLabel} progress`}
                     aria-valuetext={`${Math.round(determinateProgress)} percent`}
-                    className="h-1"
+                    size="xs"
                     value={determinateProgress}
                   />
                 </li>

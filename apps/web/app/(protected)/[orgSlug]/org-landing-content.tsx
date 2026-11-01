@@ -108,7 +108,7 @@ function BrandFacts({ brand, className }: OrgLandingBrandFactsProps) {
 function BrandCard({ brand, href }: OrgLandingBrandItemProps) {
   return (
     <Link className="block h-full" data-testid="org-brand-card" href={href}>
-      <Card className="h-full hover:shadow-border-strong">
+      <Card isInteractive className="h-full">
         <div className="flex items-center gap-3">
           <Avatar
             alt={brand.label}

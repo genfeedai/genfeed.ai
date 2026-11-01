@@ -1,3 +1,4 @@
+import { CardPadding } from '@genfeedai/contracts';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
@@ -43,7 +44,11 @@ export default function PostsIngredientsList({
                 href={`/posts/${ingredient.id}`}
                 className="block"
               >
-                <Card className="p-0 hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
+                <Card
+                  padding={CardPadding.NONE}
+                  isInteractive
+                  className="overflow-hidden group"
+                >
                   {/* Thumbnail */}
                   <div className="relative w-full aspect-square bg-background overflow-hidden">
                     {ingredient.thumbnailUrl ? (

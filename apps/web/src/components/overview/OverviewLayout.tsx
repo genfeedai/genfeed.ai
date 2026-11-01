@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
@@ -70,7 +75,9 @@ export function OverviewContent({
               <Card
                 key={card.id}
                 className="h-full"
-                bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
+                padding={CardPadding.LG}
+                gap={CardGap.LG}
+                bodyClassName="h-full justify-between"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">

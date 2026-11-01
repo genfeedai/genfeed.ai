@@ -1,4 +1,6 @@
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Avatar } from '@ui/primitives/avatar';
 import type { ReactElement } from 'react';
 import type { PagePost } from '~types/extension';
@@ -18,11 +20,12 @@ export default function PostCard({
 }: PostCardProps): ReactElement {
   const name = post.authorName || post.authorHandle || 'Post';
   return (
-    <article
-      className={cn(
-        'flex gap-3 rounded-xl border border-border bg-card p-3',
-        className,
-      )}
+    <Card
+      as="article"
+      variant={CardVariant.BORDERED}
+      padding={CardPadding.SM}
+      className={className}
+      bodyClassName="flex-row"
     >
       <Avatar aria-hidden="true" name={name} size="lg" src={post.avatarUrl} />
       <div className="min-w-0 flex-1">
@@ -43,6 +46,6 @@ export default function PostCard({
           {post.text}
         </p>
       </div>
-    </article>
+    </Card>
   );
 }

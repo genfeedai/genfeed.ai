@@ -121,7 +121,7 @@ test.describe('Admin Business Analytics', () => {
     // randomized, so assert the series length and range, not amounts).
     const chart = adminPage
       .locator('main')
-      .locator('div.p-4')
+      .locator('[data-card-index]')
       .filter({
         has: adminPage.getByRole('heading', { name: 'Daily Revenue (30d)' }),
       });
@@ -140,7 +140,7 @@ test.describe('Admin Business Analytics', () => {
 
     const chart = adminPage
       .locator('main')
-      .locator('div.p-4')
+      .locator('[data-card-index]')
       .filter({
         has: adminPage.getByRole('heading', {
           name: 'Daily Ingredients (30d)',

@@ -1,6 +1,8 @@
 'use client';
 
+import { CardPadding, CardVariant } from '@genfeedai/contracts';
 import type { PlatformPreviewRendererProps } from '@genfeedai/props/components/platform-preview.props';
+import Card from '@ui/card/Card';
 import CaptionText, {
   CharacterCounter,
   LinkPreviewCard,
@@ -108,12 +110,16 @@ export function YouTubePreviewRenderer({
           <CharacterCounter state={target.captionState} />
         </div>
       </div>
-      <div className="mt-3 rounded-lg bg-muted/40 p-3">
+      <Card
+        variant={CardVariant.INSET}
+        padding={CardPadding.SM}
+        className="mt-3"
+      >
         <CaptionText
           target={target}
           emptyMessage={translate('emptyDescription')}
         />
-      </div>
+      </Card>
       <ValidationIssues target={target} />
     </PreviewShell>
   );

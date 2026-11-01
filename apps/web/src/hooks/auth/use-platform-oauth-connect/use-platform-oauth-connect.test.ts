@@ -116,6 +116,24 @@ describe('usePlatformOAuthConnect', () => {
     );
   });
 
+  it('reconnects an existing account on its own brand', async () => {
+    const { result } = renderHook(() =>
+      usePlatformOAuthConnect({ brandId: null }),
+    );
+
+    await act(async () => {
+      await result.current('twitter', {
+        brandId: 'brand-x',
+        credentialId: 'credential-x',
+      });
+    });
+
+    expect(mockPostConnect).toHaveBeenCalledWith('twitter', 'token-abc', {
+      brandId: 'brand-x',
+      credentialId: 'credential-x',
+    });
+  });
+
   it('appends return_to with & when the provider url has a query', async () => {
     mockPostConnect.mockResolvedValue({
       url: 'https://provider.test/oauth?state=1',

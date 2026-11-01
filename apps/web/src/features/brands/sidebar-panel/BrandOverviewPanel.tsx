@@ -66,7 +66,7 @@ export default function BrandOverviewPanel({
         onGenerateBanner={onGenerateBanner}
       />
 
-      <Card className="bg-card/80 backdrop-blur-sm" bodyClassName="p-4">
+      <Card>
         <BrandDetailOverview
           brand={activeBrand}
           isGeneratingLogo={false}
@@ -85,7 +85,7 @@ export default function BrandOverviewPanel({
       </Card>
 
       {activeBrand.text ? (
-        <Card className="bg-card/80 backdrop-blur-sm" bodyClassName="p-4">
+        <Card>
           <BrandDetailSystemPrompt text={activeBrand.text} onCopy={onCopy} />
         </Card>
       ) : null}

@@ -1,5 +1,9 @@
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
-import { createEntityAttributes } from '@genfeedai/helpers';
+import type { DirectMessageCapability } from '@genfeedai/contracts/interfaces';
+import {
+  createEntityAttributes,
+  resolveDirectMessageCapability,
+} from '@genfeedai/helpers';
 
 /**
  * Prisma `credentials.platform` is SCREAMING; API JSON stays domain lowercase.
@@ -47,6 +51,35 @@ export function computeNeedsAccountSelection(
   );
 }
 
+/**
+ * DM read capability from the stored grant (see
+ * `resolveDirectMessageCapability`). Derived here so the raw scope list never
+ * leaves the API; only the verdict does. Runs after the `platform` transform.
+ */
+export function computeDirectMessageCapability(
+  record: Record<string, unknown>,
+): DirectMessageCapability | undefined {
+  if (typeof record.platform !== 'string') {
+    return undefined;
+  }
+
+  const grantedScopes = Array.isArray(record.grantedScopes)
+    ? record.grantedScopes.filter(
+        (scope): scope is string => typeof scope === 'string',
+      )
+    : [];
+  const capturedAt = record.grantedScopesCapturedAt;
+
+  return resolveDirectMessageCapability({
+    grantedScopes,
+    grantedScopesCapturedAt:
+      capturedAt instanceof Date || typeof capturedAt === 'string'
+        ? capturedAt
+        : null,
+    platform: record.platform,
+  });
+}
+
 const publicFields = [
   'organizationId',
   'brandId',
@@ -57,6 +90,7 @@ const publicFields = [
   'externalName',
   'externalAvatar',
   'needsAccountSelection',
+  'directMessageCapability',
   'accessTokenExpiry',
   'label',
   'description',

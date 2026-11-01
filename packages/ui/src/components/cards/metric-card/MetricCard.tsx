@@ -1,5 +1,6 @@
 'use client';
 
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
@@ -16,10 +17,10 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
 
-const BODY_PADDING: Record<MetricCardSize, string> = {
-  lg: 'p-5 sm:p-6',
-  md: 'p-4',
-  sm: 'p-3',
+const BODY_PADDING: Record<MetricCardSize, CardPadding> = {
+  lg: CardPadding.LG,
+  md: CardPadding.MD,
+  sm: CardPadding.SM,
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
@@ -186,7 +187,9 @@ const MetricCard = memo(function MetricCard({
 
   return (
     <Card
-      bodyClassName={cn('flex h-full flex-col gap-0', BODY_PADDING[size])}
+      bodyClassName="h-full"
+      gap={CardGap.NONE}
+      padding={BODY_PADDING[size]}
       className={cn('h-full', className)}
       data-testid="metric-card"
       isLoading={isLoading}

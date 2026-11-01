@@ -3,6 +3,8 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardGap,
+  CardPadding,
   CardVariant,
   ComponentSize,
   formatEnumLabel,
@@ -404,9 +406,9 @@ export function WorkflowSurfaceInspector({
       ) : null}
 
       <Card
-        variant={CardVariant.BORDERED}
-        className="bg-background"
-        bodyClassName="gap-0 p-3"
+        variant={CardVariant.INSET}
+        padding={CardPadding.SM}
+        gap={CardGap.NONE}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -438,7 +440,7 @@ export function WorkflowSurfaceInspector({
               </span>
             </div>
             <Progress
-              className="h-1.5 bg-muted"
+              size="sm"
               value={Math.max(0, Math.min(100, execution.progress))}
             />
           </div>
@@ -446,9 +448,9 @@ export function WorkflowSurfaceInspector({
       </Card>
 
       <Card
-        variant={CardVariant.BORDERED}
-        className="bg-background"
-        bodyClassName="gap-0 p-3"
+        variant={CardVariant.INSET}
+        padding={CardPadding.SM}
+        gap={CardGap.NONE}
       >
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Required input
@@ -476,9 +478,9 @@ export function WorkflowSurfaceInspector({
       </Card>
 
       <Card
-        variant={CardVariant.BORDERED}
-        className="bg-background"
-        bodyClassName="gap-0 p-3"
+        variant={CardVariant.INSET}
+        padding={CardPadding.SM}
+        gap={CardGap.NONE}
       >
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Provenance
@@ -509,9 +511,9 @@ export function WorkflowSurfaceInspector({
       </Card>
 
       <Card
-        variant={CardVariant.BORDERED}
-        className="bg-background"
-        bodyClassName="gap-0 p-3"
+        variant={CardVariant.INSET}
+        padding={CardPadding.SM}
+        gap={CardGap.NONE}
       >
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-muted-foreground" />
@@ -570,9 +572,9 @@ export function WorkflowSurfaceInspector({
 
       {workflow?.schedule ? (
         <Card
-          variant={CardVariant.BORDERED}
-          className="bg-background"
-          bodyClassName="gap-0 p-3"
+          variant={CardVariant.INSET}
+          padding={CardPadding.SM}
+          gap={CardGap.NONE}
         >
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-muted-foreground" />

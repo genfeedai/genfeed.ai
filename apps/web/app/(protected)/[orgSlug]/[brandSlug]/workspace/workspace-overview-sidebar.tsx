@@ -117,10 +117,7 @@ export function WorkspaceOverviewSidebar({
   return (
     <div className={WORKSPACE_SECTION_STACK_CLASS}>
       <section aria-busy={isTasksLoading} data-testid="workspace-in-progress">
-        <Card
-          label={translate('sidebarCards.inProgress.label')}
-          bodyClassName="space-y-3 p-4"
-        >
+        <Card label={translate('sidebarCards.inProgress.label')}>
           {taskStreamContent}
 
           <div className="border-t border-border pt-4">
@@ -146,7 +143,6 @@ export function WorkspaceOverviewSidebar({
               </Link>
             </Button>
           }
-          bodyClassName="p-4"
         >
           {initialReviewInbox.recentItems.length > 0 ? (
             <div className="divide-y divide-border/60">
@@ -260,17 +256,13 @@ export function WorkspaceOverviewSidebar({
               </Link>
             </Button>
           }
-          bodyClassName="p-4"
         >
           {historyContent}
         </Card>
       </section>
 
       <section data-testid="workspace-library-snapshot">
-        <Card
-          label={translate('sidebarCards.librarySnapshot.label')}
-          bodyClassName="p-4"
-        >
+        <Card label={translate('sidebarCards.librarySnapshot.label')}>
           <div className="divide-y divide-border/60">
             {librarySnapshotLinks.map((item) => (
               <Link
@@ -291,10 +283,7 @@ export function WorkspaceOverviewSidebar({
       </section>
 
       <section data-testid="workspace-advanced-tools">
-        <Card
-          label={translate('sidebarCards.operatorTools.label')}
-          bodyClassName="p-4"
-        >
+        <Card label={translate('sidebarCards.operatorTools.label')}>
           <div className="divide-y divide-border/60">
             {availableAdvancedTools.map((tool) => (
               <Link

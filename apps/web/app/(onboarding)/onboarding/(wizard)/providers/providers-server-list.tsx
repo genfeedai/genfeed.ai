@@ -1,3 +1,4 @@
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import type { ProvidersServerListProps } from '@/features/onboarding/props/providers-server-list.props';
 
@@ -7,7 +8,11 @@ export default function ProvidersServerList({
   providerRows,
 }: ProvidersServerListProps) {
   return (
-    <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
+    <Card
+      className="provider-card opacity-0"
+      padding={CardPadding.LG}
+      gap={CardGap.NONE}
+    >
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-foreground">
           Server-configured providers

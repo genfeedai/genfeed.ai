@@ -84,7 +84,6 @@ export default function CreditTopUpPanel({
     <Card
       label={title}
       description="Credits land within a few minutes and expire after one year."
-      bodyClassName="gap-3 p-4"
     >
       <div className="space-y-3">
         <div className="space-y-2">

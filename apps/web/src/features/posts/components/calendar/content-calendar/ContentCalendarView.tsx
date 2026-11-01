@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import {
   buildDayViewRows,
   formatClockTime,
@@ -776,7 +781,11 @@ export default function ContentCalendarView<T extends CalendarItem>({
         }
       />
       <div className={embedded ? undefined : 'px-5 py-5 sm:px-6 sm:py-6'}>
-        <Card className="w-full border border-border" bodyClassName="p-0">
+        <Card
+          variant={CardVariant.BORDERED}
+          className="w-full"
+          padding={CardPadding.NONE}
+        >
           {isLoading ? (
             <div
               className="fullcalendar-container p-6"

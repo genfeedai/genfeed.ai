@@ -1,3 +1,4 @@
+import { CardPadding } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionSectionProps } from '@genfeedai/props/ui/collection/collection.props';
 import Card from '@ui/card/Card';
@@ -67,8 +68,8 @@ export default function CollectionSection({
 
       {error ? (
         <div role="alert">
-          <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
-            {error}
+          <Card padding={CardPadding.SM}>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </Card>
         </div>
       ) : (

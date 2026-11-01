@@ -49,6 +49,7 @@ export default function StoryboardDraftPage({
   quoteStills,
   generateStills,
   longForm,
+  slideshow,
 }: StoryboardDraftPageProps) {
   const translate = useTranslations('pages.studioStoryboard');
   const translateAction = useTranslations('ui.quickActions');
@@ -226,6 +227,7 @@ export default function StoryboardDraftPage({
       quoteStills={quoteStills}
       generateStills={generateStills}
       longForm={longForm}
+      slideshow={slideshow}
       capabilities={capabilities}
       capabilityError={capabilityError}
       refreshCapabilities={refreshCapabilities}

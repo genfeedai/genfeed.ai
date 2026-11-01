@@ -137,6 +137,8 @@ describe('ToolRegistryService.classify', () => {
     ['replace_storyboard_character', 'storyboard-capabilities'],
     ['storyboard_long_form', 'agent-executor'],
     ['start_storyboard_long_form', 'agent-executor'],
+    ['storyboard_slideshow', 'agent-executor'],
+    ['start_storyboard_slideshow', 'agent-executor'],
     ['update_remix_concept', 'remix'],
     ['attach_remix_analysis_source', 'remix'],
     ['quote_remix_generation', 'remix'],

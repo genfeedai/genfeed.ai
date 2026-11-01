@@ -7,7 +7,6 @@ describe('useUIStore', () => {
     // Reset store to initial state
     useUIStore.setState({
       activeModal: null,
-      notifications: [],
       selectedEdgeId: null,
       selectedNodeId: null,
       showMinimap: true,
@@ -31,7 +30,6 @@ describe('useUIStore', () => {
       expect(state.selectedNodeId).toBeNull();
       expect(state.selectedEdgeId).toBeNull();
       expect(state.activeModal).toBeNull();
-      expect(state.notifications).toEqual([]);
     });
   });
 
@@ -133,123 +131,6 @@ describe('useUIStore', () => {
       closeModal();
 
       expect(useUIStore.getState().activeModal).toBeNull();
-    });
-  });
-
-  describe('addNotification', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('should add a notification with generated id', () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({
-        message: 'This is a test',
-        title: 'Test notification',
-        type: 'success',
-      });
-
-      const notifications = useUIStore.getState().notifications;
-      expect(notifications).toHaveLength(1);
-      expect(notifications[0].type).toBe('success');
-      expect(notifications[0].title).toBe('Test notification');
-      expect(notifications[0].message).toBe('This is a test');
-      expect(notifications[0].id).toMatch(/^notification-\d+$/);
-    });
-
-    it('should add multiple notifications', () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({ title: 'First', type: 'success' });
-      addNotification({ title: 'Second', type: 'error' });
-      addNotification({ title: 'Third', type: 'warning' });
-
-      const notifications = useUIStore.getState().notifications;
-      expect(notifications).toHaveLength(3);
-    });
-
-    it('should auto-remove notification after default duration', async () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({ title: 'Auto-remove test', type: 'info' });
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-
-      // Fast-forward 5 seconds (default duration)
-      vi.advanceTimersByTime(5000);
-
-      expect(useUIStore.getState().notifications).toHaveLength(0);
-    });
-
-    it('should use custom duration when specified', async () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({
-        duration: 2000,
-        title: 'Custom duration',
-        type: 'info',
-      });
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-
-      vi.advanceTimersByTime(1999);
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-
-      vi.advanceTimersByTime(1);
-      expect(useUIStore.getState().notifications).toHaveLength(0);
-    });
-
-    it('should not auto-remove when duration is 0', async () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({
-        duration: 0,
-        title: 'Persistent',
-        type: 'info',
-      });
-
-      vi.advanceTimersByTime(10000);
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-    });
-  });
-
-  describe('removeNotification', () => {
-    it('should remove a specific notification', () => {
-      useUIStore.setState({
-        notifications: [
-          { id: 'notification-1', title: 'First', type: 'success' },
-          { id: 'notification-2', title: 'Second', type: 'error' },
-          { id: 'notification-3', title: 'Third', type: 'warning' },
-        ],
-      });
-
-      const { removeNotification } = useUIStore.getState();
-      removeNotification('notification-2');
-
-      const notifications = useUIStore.getState().notifications;
-      expect(notifications).toHaveLength(2);
-      expect(
-        notifications.find((n) => n.id === 'notification-2'),
-      ).toBeUndefined();
-    });
-
-    it('should do nothing for non-existent notification', () => {
-      useUIStore.setState({
-        notifications: [
-          { id: 'notification-1', title: 'First', type: 'success' },
-        ],
-      });
-
-      const { removeNotification } = useUIStore.getState();
-      removeNotification('non-existent');
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
     });
   });
 });

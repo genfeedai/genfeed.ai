@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  ButtonVariant,
+  CardGap,
+  CardPadding,
+  CardVariant,
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
@@ -25,11 +29,12 @@ export default function AppCatalogCard({
 
   return (
     <Card
-      bodyClassName="h-full gap-0 p-0"
-      className={cn(
-        'group h-full hover:border-border-strong',
-        isSelected && 'border-foreground hover:border-foreground',
-      )}
+      padding={CardPadding.NONE}
+      gap={CardGap.NONE}
+      bodyClassName="h-full"
+      isInteractive
+      isSelected={isSelected}
+      className="group h-full"
       data-testid={`apps-app-${app.appId}`}
       variant={CardVariant.BORDERED}
     >

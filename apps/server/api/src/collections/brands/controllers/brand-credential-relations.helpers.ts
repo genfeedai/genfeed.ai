@@ -1,6 +1,7 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
+import { resolveDirectMessageCapability } from '@genfeedai/helpers';
 
 /**
  * Resolve the brand's connected accounts onto the response.
@@ -13,6 +14,10 @@ import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
  * `platform` crosses to the domain vocabulary here: the column is the
  * SCREAMING `CredentialPlatform` Prisma enum, while the UI, posts and OAuth
  * routes all speak the lowercase domain `Platform` ids.
+ *
+ * `directMessageCapability` is derived here because the brand serializer's
+ * nested credential relation does not run the credential serializer's
+ * derivations.
  */
 export async function attachBrandCredentialRelations(
   credentialsService: Pick<CredentialsService, 'find'>,
@@ -30,11 +35,19 @@ export async function attachBrandCredentialRelations(
   // any cache entry or caller-held reference pointing at the same object.
   return {
     ...brand,
-    credentials: credentials.map((credential) => ({
-      ...credential,
-      platform:
+    credentials: credentials.map((credential) => {
+      const platform =
         fromPrismaCredentialPlatform(credential.platform) ??
-        credential.platform,
-    })),
+        credential.platform;
+      return {
+        ...credential,
+        directMessageCapability: resolveDirectMessageCapability({
+          grantedScopes: credential.grantedScopes,
+          grantedScopesCapturedAt: credential.grantedScopesCapturedAt,
+          platform,
+        }),
+        platform,
+      };
+    }),
   };
 }
