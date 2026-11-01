@@ -14,7 +14,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import {
@@ -23,6 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@ui/primitives/accordion';
+import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -170,7 +171,7 @@ export default function SystemEmailsPage() {
                             {email.name}
                           </span>
                           <Badge variant="outline">{email.sequence}</Badge>
-                          <Badge variant="ghost">{email.visibility}</Badge>
+                          <Badge variant="secondary">{email.visibility}</Badge>
                         </span>
                         <span className="text-xs font-normal text-foreground/60">
                           {email.schedule}

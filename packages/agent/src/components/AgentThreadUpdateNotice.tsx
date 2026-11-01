@@ -1,4 +1,5 @@
 import type { AgentThreadUpdateFailure } from '@genfeedai/agent/hooks/use-agent-thread-update';
+import { Alert } from '@ui/primitives/alert';
 import { useTranslations } from 'next-intl';
 
 interface AgentThreadUpdateNoticeProps {
@@ -12,8 +13,8 @@ export function AgentThreadUpdateNotice({
   if (!failure) return null;
 
   return (
-    <p className="text-xs text-destructive" role="alert">
+    <Alert size="sm" variant="destructive">
       {translate(failure === 'missing-thread' ? 'unavailable' : 'failed')}
-    </p>
+    </Alert>
   );
 }

@@ -1,4 +1,4 @@
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { PublishingOverviewHealthSectionProps } from '@/features/posts/props/publishing-overview.props';

@@ -3,10 +3,10 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { AgentOpportunityPanelProps } from '@/features/automation/props/agent-opportunity-panel.props';
 

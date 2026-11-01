@@ -636,8 +636,10 @@ export default function ConnectGenfeedFlow() {
                 ) : null}
 
                 {createdPlainKey ? (
-                  <Alert variant="warning">
-                    <Key aria-hidden="true" className="size-4" />
+                  <Alert
+                    variant="warning"
+                    icon={<Key aria-hidden="true" className="size-4" />}
+                  >
                     <AlertTitle>{translate('copyKeyTitle')}</AlertTitle>
                     <AlertDescription>
                       <p className="break-all font-mono text-xs">
@@ -806,6 +808,7 @@ export default function ConnectGenfeedFlow() {
                         ? 'warning'
                         : 'destructive'
                     }
+                    icon={false}
                   >
                     <AlertTitle>
                       {verification.reason === 'invalid_scope'
@@ -876,7 +879,7 @@ export default function ConnectGenfeedFlow() {
                     </Button>
                   </>
                 ) : (
-                  <Alert variant="warning">
+                  <Alert variant="warning" icon={false}>
                     <AlertTitle>
                       {translate('connectPublishingTitle')}
                     </AlertTitle>

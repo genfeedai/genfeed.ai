@@ -4,7 +4,7 @@ import type {
   ICreativePattern,
   PatternType,
 } from '@genfeedai/contracts/interfaces';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
 import UsePatternButton from '@/features/analytics/performance-lab/UsePatternButton';
 import type {
@@ -14,11 +14,11 @@ import type {
 } from '@/props/analytics/performance-lab.props';
 
 const PATTERN_TYPE_VARIANT: PatternTypeVariantMap = {
-  caption_formula: 'accent',
-  content_structure: 'amber',
+  caption_formula: 'default',
+  content_structure: 'warning',
   cta_formula: 'success',
-  hook_formula: 'blue',
-  visual_style: 'multimodal',
+  hook_formula: 'info',
+  visual_style: 'default',
 };
 
 const PATTERN_TYPE_LABEL: Record<PatternType, string> = {
@@ -78,7 +78,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Badge variant={typeVariant}>{typeLabel}</Badge>
-          <Badge variant="ghost">{sourceLabel}</Badge>
+          <Badge variant="secondary">{sourceLabel}</Badge>
         </div>
         <span className="text-2xs text-muted-foreground font-mono">
           n={pattern.sampleSize}

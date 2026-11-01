@@ -1,8 +1,8 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ModalBrandCreateProps } from '@genfeedai/props/modals/modal.props';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -83,13 +83,13 @@ export default function ModalBrandCreate({
         >
           <DialogBody className="space-y-4">
             {error ? (
-              <Alert type={AlertCategory.ERROR}>
+              <Alert variant="destructive">
                 <div className="space-y-1">{error}</div>
               </Alert>
             ) : null}
 
             {websiteLoadError ? (
-              <Alert type={AlertCategory.ERROR}>
+              <Alert variant="destructive">
                 <div className="space-y-1">{websiteLoadError}</div>
               </Alert>
             ) : null}

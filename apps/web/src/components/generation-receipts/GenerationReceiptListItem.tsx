@@ -1,11 +1,10 @@
 'use client';
-import { ComponentSize } from '@genfeedai/contracts';
 import type {
   GenerationReceiptListItemProps,
   GenerationReceiptStatusKey,
 } from '@genfeedai/props/content/branded-generation-receipt.props';
-import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
-import Badge from '@ui/display/badge/Badge';
+import type { BadgeProps } from '@ui/primitives/badge';
+import { Badge } from '@ui/primitives/badge';
 import { FileText, Film, ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -36,7 +35,7 @@ const STATUS_VARIANT: Readonly<
   completed: 'success',
   needsReview: 'warning',
   blocked: 'warning',
-  failed: 'error',
+  failed: 'destructive',
   cancelled: 'secondary',
 };
 
@@ -89,7 +88,7 @@ export default function GenerationReceiptListItem({
           >
             {`${kindLabel} · ${receipt.id}`}
           </Link>
-          <Badge size={ComponentSize.SM} variant={STATUS_VARIANT[status]}>
+          <Badge variant={STATUS_VARIANT[status]}>
             {t(`status.${status}`)}
           </Badge>
         </div>

@@ -1,8 +1,7 @@
 'use client';
 
-import { CardPadding } from '@genfeedai/contracts';
 import type { BrandKitAssetGridProps } from '@props/pages/brand-detail.props';
-import Card from '@ui/card/Card';
+import { Alert } from '@ui/primitives/alert';
 import BrandKitAssetTile from './BrandKitAssetTile';
 
 /**
@@ -20,9 +19,9 @@ export default function BrandKitAssetGrid({
 }: BrandKitAssetGridProps) {
   if (assets.length === 0) {
     return (
-      <Card padding={CardPadding.SM} bodyClassName="min-h-12">
-        <div className="text-xs text-muted-foreground">{emptyLabel}</div>
-      </Card>
+      <Alert className="min-h-12" size="sm" variant="note">
+        {emptyLabel}
+      </Alert>
     );
   }
 

@@ -1,7 +1,7 @@
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Flame, Gift, ShieldCheck } from 'lucide-react';
 import type { Props } from '@/features/settings/props/settings-progress-rewards-card.props';
 
@@ -74,7 +74,7 @@ export default function SettingsProgressRewardsCard({
                     ? 'success'
                     : milestone.isNext
                       ? 'warning'
-                      : 'ghost'
+                      : 'secondary'
                 }
               >
                 {milestone.isAchieved

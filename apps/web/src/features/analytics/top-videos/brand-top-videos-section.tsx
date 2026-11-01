@@ -1,15 +1,15 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
-import Alert from '@ui/feedback/alert/Alert';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -62,11 +62,7 @@ export default function BrandTopVideosSection() {
   return (
     <div className="space-y-4">
       {hasReadError && (
-        <Alert
-          type={
-            isUsingCachedVideos ? AlertCategory.WARNING : AlertCategory.ERROR
-          }
-        >
+        <Alert variant={isUsingCachedVideos ? 'warning' : 'destructive'}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Text as="p" size="sm">
               {isUsingCachedVideos
@@ -183,7 +179,7 @@ export default function BrandTopVideosSection() {
                 <div className="max-w-sm space-y-2 break-words">
                   <Badge
                     value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
-                    className="bg-muted/10 text-muted-foreground"
+                    variant="secondary"
                   />
                   {video.persuasionHighlight.analysisNote ? (
                     <Collapsible>

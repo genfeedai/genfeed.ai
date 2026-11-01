@@ -1,13 +1,13 @@
 'use client';
 
 import type { MemberEditSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { IBrand, IMember } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@helpers/ui/form-error/form-error.helper';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Form } from '@ui/primitives/form';
@@ -52,7 +52,7 @@ export default function EditMemberForm({
 
         <Form onSubmit={onSubmit}>
           {hasFormErrors(formState.errors) && (
-            <Alert type={AlertCategory.ERROR}>
+            <Alert variant="destructive">
               <div className="space-y-1">
                 {parseFormErrors(formState.errors).map((error) => (
                   <div key={error}>{error}</div>

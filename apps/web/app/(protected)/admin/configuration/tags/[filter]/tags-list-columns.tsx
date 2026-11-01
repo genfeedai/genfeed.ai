@@ -1,5 +1,4 @@
-import { ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import type { TagCellProps } from '@/features/admin/props/tags.props';
 
 export function TagLabelCell({ tag }: TagCellProps) {
@@ -23,11 +22,7 @@ export function TagKeyCell({ tag }: TagCellProps) {
 }
 
 export function TagCategoryCell({ tag }: TagCellProps) {
-  return (
-    <Badge variant="outline" size={ComponentSize.SM}>
-      {tag.category ?? '-'}
-    </Badge>
-  );
+  return <Badge variant="outline">{tag.category ?? '-'}</Badge>;
 }
 
 export function TagOrgCell({ tag }: TagCellProps) {

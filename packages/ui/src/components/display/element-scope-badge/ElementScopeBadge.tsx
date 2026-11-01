@@ -1,4 +1,4 @@
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 interface ElementScopeBadgeProps {
@@ -15,7 +15,7 @@ export default function ElementScopeBadge({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Badge variant={isPlatformDefault ? 'primary' : 'outline'}>
+      <Badge variant={isPlatformDefault ? 'default' : 'outline'}>
         {translate(isPlatformDefault ? 'scopePlatform' : 'scopeOrganization')}
       </Badge>
       {isActive ? null : (

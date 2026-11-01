@@ -1,4 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -29,14 +30,10 @@ export function BrandInterviewCompleteCard({
       ) : null}
 
       {completenessScore !== null ? (
-        <div className="border border-success/20 bg-success/10 p-3">
-          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-            Brand context completeness
-          </p>
-          <p className="mt-1 text-sm font-semibold text-success">
-            {completenessScore}%
-          </p>
-        </div>
+        <Alert icon={false} size="sm" variant="success">
+          <AlertTitle>Brand context completeness</AlertTitle>
+          <AlertDescription>{completenessScore}%</AlertDescription>
+        </Alert>
       ) : null}
     </div>
   );

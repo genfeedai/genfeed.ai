@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
+import { Alert } from '@genfeedai/ui/primitives/alert';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
 import {
@@ -80,9 +81,9 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        <div className="text-2xs text-muted-foreground bg-muted/50 rounded px-2 py-1.5 text-center">
+        <Alert className="text-center" size="sm" variant="note">
           Defines an output port when this workflow is used as a subworkflow
-        </div>
+        </Alert>
 
         {/* Output Name */}
         <div className="space-y-1.5">

@@ -1,5 +1,5 @@
 import type { PerformanceDatasetConfidence } from '@genfeedai/contracts/interfaces';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 
 export interface PerformanceDatasetBadgeProps {

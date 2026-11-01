@@ -9,7 +9,7 @@ import type { ISocialSource } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AccountHistoryImportPanelProps } from '@props/pages/brand-integrations.props';
 import { SocialSourcesService } from '@services/social/social-sources.service';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -118,7 +118,7 @@ export default function AccountHistoryImportPanel({
               <Badge variant={STATUS_VARIANT[importStatus]}>
                 {translate(`status.${importStatus}`)}
               </Badge>
-              <Badge variant="ghost">{translate('notGenerated')}</Badge>
+              <Badge variant="secondary">{translate('notGenerated')}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
               {importStatus === SocialSourceHistoryImportStatus.COMPLETED &&

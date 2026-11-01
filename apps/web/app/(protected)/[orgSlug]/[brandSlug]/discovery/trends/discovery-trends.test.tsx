@@ -137,8 +137,8 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({
     children,
     value,
   }: {

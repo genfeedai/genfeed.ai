@@ -8,10 +8,11 @@ import {
   resolveTurboRunPricingOptions,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import { Check, DollarSign, Layers } from 'lucide-react';
+import { DollarSign, Layers } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 interface TurboRunCardProps {
@@ -114,14 +115,9 @@ export function TurboRunCard({
 
   if (isGenerated) {
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            TurboRun generation started for {count} items
-          </span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        TurboRun generation started for {count} items
+      </Alert>
     );
   }
 

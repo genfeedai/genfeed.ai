@@ -1,13 +1,13 @@
 'use client';
 
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import type { FieldErrors } from 'react-hook-form';
 
@@ -27,7 +27,7 @@ export default function ModalPostBatchFormAlerts({
   return (
     <>
       {hasFormErrors(formErrors) && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="space-y-1">
             {parseFormErrors(formErrors).map((error) => (
               <div key={error}>{error}</div>
@@ -37,7 +37,7 @@ export default function ModalPostBatchFormAlerts({
       )}
 
       {invalidCredentialConfigs.length > 0 && (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">

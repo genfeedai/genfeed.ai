@@ -286,8 +286,8 @@ vi.mock('@ui/display/table/Table', () => ({
   default: () => <div data-testid="table" />,
 }));
 
-vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: () => <div data-testid="alert" />,
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: () => <div data-testid="alert" />,
 }));
 
 vi.mock('@ui/kpi/kpi-section/KPISection', () => ({

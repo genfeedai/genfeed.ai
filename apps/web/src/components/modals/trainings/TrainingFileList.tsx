@@ -2,10 +2,10 @@
 
 import { UploadStatus } from '@genfeedai/contracts';
 import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
 
-type FileStatusVariant = 'success' | 'error' | 'info' | 'ghost';
+type FileStatusVariant = 'success' | 'destructive' | 'info' | 'secondary';
 
 function getStatusBadgeVariant(
   status: FileUploadStatus['status'],
@@ -14,11 +14,11 @@ function getStatusBadgeVariant(
     case UploadStatus.COMPLETED:
       return 'success';
     case UploadStatus.FAILED:
-      return 'error';
+      return 'destructive';
     case UploadStatus.UPLOADING:
       return 'info';
     default:
-      return 'ghost';
+      return 'secondary';
   }
 }
 
@@ -83,7 +83,7 @@ export default function TrainingFileList({
             )}
 
             {failedCount > 0 && (
-              <Badge variant="error" className="tabular-nums">
+              <Badge variant="destructive" className="tabular-nums">
                 {failedCount} failed
               </Badge>
             )}
@@ -117,7 +117,9 @@ export default function TrainingFileList({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant={
-                        f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'
+                        f.size > maxSize * 1024 * 1024
+                          ? 'destructive'
+                          : 'secondary'
                       }
                       className="whitespace-nowrap text-xs tabular-nums"
                     >

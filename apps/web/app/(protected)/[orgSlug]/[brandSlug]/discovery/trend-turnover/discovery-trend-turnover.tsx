@@ -1,6 +1,5 @@
 'use client';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   CardGap,
@@ -18,9 +17,9 @@ import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Progress } from '@ui/primitives/progress';
@@ -132,7 +131,7 @@ export default function DiscoveryTrendTurnover() {
       bodyClassName="space-y-8"
     >
       {hasError ? (
-        <Alert type={AlertCategory.ERROR}>{translate('errors.load')}</Alert>
+        <Alert variant="destructive">{translate('errors.load')}</Alert>
       ) : null}
 
       {isEmpty ? (

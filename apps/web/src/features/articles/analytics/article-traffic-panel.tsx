@@ -12,8 +12,8 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { ArticlesService } from '@services/content/articles.service';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import Badge from '@ui/display/badge/Badge';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';

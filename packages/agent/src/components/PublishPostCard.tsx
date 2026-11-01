@@ -8,6 +8,7 @@ import type {
 import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -714,35 +715,29 @@ export function PublishPostCard({
                       ) : null}
 
                       {blockers.length > 0 ? (
-                        <div className="mb-2 space-y-1 border border-destructive/20 bg-destructive/5 p-2">
-                          <p className="text-2xs font-medium uppercase tracking-wider text-destructive">
-                            {translate('cannotPublish')}
-                          </p>
+                        <Alert className="mb-2" size="sm" variant="destructive">
+                          <AlertTitle>{translate('cannotPublish')}</AlertTitle>
                           {blockers.map((blocker) => (
-                            <p
+                            <AlertDescription
                               key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
-                              className="text-xs text-destructive"
                             >
                               {blocker.message}
-                            </p>
+                            </AlertDescription>
                           ))}
-                        </div>
+                        </Alert>
                       ) : null}
 
                       {warnings.length > 0 ? (
-                        <div className="space-y-1 border border-amber-500/20 bg-warning/10 p-2">
-                          <p className="text-2xs font-medium uppercase tracking-wider text-warning">
-                            {translate('reviewWarnings')}
-                          </p>
+                        <Alert size="sm" variant="warning">
+                          <AlertTitle>{translate('reviewWarnings')}</AlertTitle>
                           {warnings.map((warning) => (
-                            <p
+                            <AlertDescription
                               key={`${warning.code}:${warning.field ?? ''}:${warning.message}`}
-                              className="text-xs text-warning "
                             >
                               {warning.message}
-                            </p>
+                            </AlertDescription>
                           ))}
-                        </div>
+                        </Alert>
                       ) : null}
                     </>
                   ) : null}

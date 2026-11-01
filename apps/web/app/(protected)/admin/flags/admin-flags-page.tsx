@@ -184,7 +184,7 @@ export default function AdminFlagsPage() {
 
     if (loadErrorMessage) {
       return (
-        <Alert variant="destructive" className="max-w-xl">
+        <Alert variant="destructive" className="max-w-xl" icon={false}>
           <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
           <AlertDescription>{loadErrorMessage}</AlertDescription>
         </Alert>

@@ -2,9 +2,9 @@
 
 import { ComponentSize } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { TrendRowSummaryProps } from '@/features/trends/props/trend-row-summary.props';
 

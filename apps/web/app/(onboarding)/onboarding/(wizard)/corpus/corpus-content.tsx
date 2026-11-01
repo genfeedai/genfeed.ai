@@ -6,7 +6,6 @@ import ExpertStepHeader from '@app/(onboarding)/onboarding/(wizard)/_expert/expe
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  AlertCategory,
   ButtonSize,
   ButtonVariant,
   KnowledgeMemoryScope,
@@ -17,7 +16,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
 import { logger } from '@services/core/logger.service';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -351,7 +350,7 @@ export default function CorpusContent() {
 
       {errorKey ? (
         <div className="max-w-2xl">
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               <div className="font-medium">
                 {translate('common.errorTitle')}

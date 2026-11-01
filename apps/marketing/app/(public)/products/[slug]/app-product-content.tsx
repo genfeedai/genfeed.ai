@@ -3,8 +3,8 @@ import {
   type AppProduct,
   getRelatedAppProducts,
 } from '@data/app-products.data';
-import Badge from '@ui/display/badge/Badge';
 import PricingStrip from '@ui/marketing/PricingStrip';
+import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';

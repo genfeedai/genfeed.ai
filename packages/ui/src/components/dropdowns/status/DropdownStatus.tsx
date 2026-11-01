@@ -26,13 +26,14 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
-import { badgeVariants } from '@ui/display/badge/badge.variants';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
-import { badgeVariants as badgeShapeVariants } from '@ui/primitives/badge.variants';
+import {
+  type BadgeVariant,
+  badgeVariants,
+} from '@ui/primitives/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
-import type { VariantProps } from 'class-variance-authority';
 import { Archive, Check, Clock, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -102,27 +103,19 @@ function getVariantColorClass(variant: string): string {
   return matchedKey ? VARIANT_COLORS[matchedKey] : DEFAULT_VARIANT_COLOR;
 }
 
-const STATUS_BADGE_VARIANTS = new Set([
-  'destructive',
-  'error',
-  'ghost',
-  'info',
-  'success',
-  'warning',
-  'secondary',
-  'outline',
-]);
+const STATUS_BADGE_VARIANTS: Record<string, BadgeVariant> = {
+  destructive: 'destructive',
+  error: 'destructive',
+  ghost: 'secondary',
+  info: 'info',
+  outline: 'outline',
+  secondary: 'secondary',
+  success: 'success',
+  warning: 'warning',
+};
 
-function getStatusBadgeVariant(
-  variant: string,
-): VariantProps<typeof badgeVariants>['variant'] {
-  const normalizedVariant = variant.toLowerCase();
-
-  if (STATUS_BADGE_VARIANTS.has(normalizedVariant)) {
-    return normalizedVariant as VariantProps<typeof badgeVariants>['variant'];
-  }
-
-  return 'slate';
+function getStatusBadgeVariant(variant: string): BadgeVariant {
+  return STATUS_BADGE_VARIANTS[variant.toLowerCase()] ?? 'secondary';
 }
 
 /**
@@ -360,12 +353,10 @@ export default function DropdownStatus({
       <div className={className}>
         <div
           className={cn(
-            badgeShapeVariants({ variant: null }),
-            'border opacity-75 cursor-not-allowed',
             badgeVariants({
-              size: 'sm',
               variant: getStatusBadgeVariant(currentMeta.variant),
             }),
+            'border opacity-75 cursor-not-allowed',
           )}
         >
           {currentMeta.label}
@@ -394,12 +385,10 @@ export default function DropdownStatus({
             isIconOnly
               ? cn(className)
               : cn(
-                  badgeShapeVariants({ variant: null }),
-                  'border cursor-pointer transition-opacity hover:opacity-80',
                   badgeVariants({
-                    size: 'sm',
                     variant: getStatusBadgeVariant(currentMeta.variant),
                   }),
+                  'border cursor-pointer transition-opacity hover:opacity-80',
                 )
           }
         >

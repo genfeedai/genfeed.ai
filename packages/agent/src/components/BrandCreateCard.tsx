@@ -1,10 +1,11 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
-import { Check, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface BrandCreateCardProps {
@@ -45,14 +46,9 @@ export function BrandCreateCard({
 
   if (isCreated) {
     return (
-      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
-        <div className="flex items-center gap-2 text-success ">
-          <Check className="size-5" />
-          <span className="text-sm font-medium">
-            Brand &quot;{name}&quot; created
-          </span>
-        </div>
-      </div>
+      <Alert className="my-2" variant="success">
+        Brand &quot;{name}&quot; created
+      </Alert>
     );
   }
 

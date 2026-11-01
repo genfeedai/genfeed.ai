@@ -21,6 +21,7 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -582,9 +583,7 @@ export default function ContentRunDetailPage({
   if (state === 'error' || !run) {
     return (
       <Container>
-        <div className="rounded-lg bg-destructive/10 p-8 text-sm text-destructive shadow-border">
-          Content run could not be loaded.
-        </div>
+        <Alert variant="destructive">Content run could not be loaded.</Alert>
       </Container>
     );
   }
@@ -670,9 +669,7 @@ export default function ContentRunDetailPage({
           <div className="grid content-start gap-5">
             <TimelinePanel run={run} />
             {remixError ? (
-              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive shadow-border">
-                {remixError}
-              </div>
+              <Alert variant="destructive">{remixError}</Alert>
             ) : null}
             <NavigationPanel
               isRemixing={isRemixing}

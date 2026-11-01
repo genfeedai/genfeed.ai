@@ -1,5 +1,5 @@
 'use client';
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
@@ -154,12 +154,7 @@ export default function IngredientTabsTags({
         ) : (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <Badge
-                key={tag.id}
-                size={ComponentSize.LG}
-                className="gap-2"
-                style={libraryTagStyle(tag)}
-              >
+              <Badge key={tag.id} size="lg" style={libraryTagStyle(tag)}>
                 <Tag className="size-3" />
                 <span>{tag.label}</span>
                 <Button

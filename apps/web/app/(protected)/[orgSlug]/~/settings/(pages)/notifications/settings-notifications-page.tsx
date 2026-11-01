@@ -3,7 +3,7 @@
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -12,7 +12,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import Spinner from '@ui/primitives/spinner';
 import Card from '@ui/card/Card';
-import Alert from '@ui/feedback/alert/Alert';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 
@@ -177,7 +177,7 @@ export default function SettingsNotificationsPage() {
             }
           />
           {workflowPreferenceLoadState === 'error' ? (
-            <Alert type={AlertCategory.WARNING}>
+            <Alert variant="warning">
               <div className="flex items-center justify-between gap-3">
                 <span>
                   {translate('settings.profile.workflowEmail.loadError')}
@@ -202,7 +202,7 @@ export default function SettingsNotificationsPage() {
             onChange={(e) => handleAgentEmailPreferenceChange(e.target.checked)}
           />
           {agentPreferenceLoadState === 'error' ? (
-            <Alert type={AlertCategory.WARNING}>
+            <Alert variant="warning">
               <div className="flex items-center justify-between gap-3">
                 <span>
                   {translate('settings.profile.agentEmail.loadError')}

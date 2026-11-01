@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
-import Alert from '@ui/feedback/alert/Alert';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 
@@ -27,7 +27,7 @@ export default function AnalyticsOverviewAlerts({
   return (
     <>
       {healthAlertMessage && (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">{healthAlertMessage}</div>
@@ -47,7 +47,7 @@ export default function AnalyticsOverviewAlerts({
       )}
 
       {isUsingAnyCache && (
-        <Alert type={AlertCategory.WARNING}>
+        <Alert variant="warning">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">
@@ -67,7 +67,7 @@ export default function AnalyticsOverviewAlerts({
       )}
 
       {hasAnalyticsError && !isUsingAnyCache && (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">Analytics failed to load.</div>

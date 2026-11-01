@@ -11,12 +11,13 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Badge from '@ui/display/badge/Badge';
+
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import {
@@ -295,7 +296,7 @@ export default function AgentFailuresPage() {
         {state === 'loading' ? (
           <LazyLoadingFallback variant="grid" />
         ) : state === 'error' ? (
-          <Alert variant="destructive">
+          <Alert variant="destructive" icon={false}>
             <AlertDescription>{translate('loadError')}</AlertDescription>
             <Button label={translate('retry')} onClick={refreshFailures} />
           </Alert>

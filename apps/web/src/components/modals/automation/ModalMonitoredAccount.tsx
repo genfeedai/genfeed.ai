@@ -3,7 +3,6 @@ import {
   monitoredAccountSchema,
 } from '@genfeedai/client/schemas';
 import {
-  AlertCategory,
   ButtonVariant,
   ModalEnum,
   ReplyBotPlatform,
@@ -22,9 +21,9 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import type { ModalMonitoredAccountProps } from '@genfeedai/props/modals/modal.props';
 import { MonitoredAccountsService } from '@genfeedai/services/automation/monitored-accounts.service';
-import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -134,7 +133,7 @@ export default function ModalMonitoredAccount({
     >
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>

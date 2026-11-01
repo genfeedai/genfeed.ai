@@ -1,5 +1,5 @@
 'use client';
-import { AlertCategory, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -9,11 +9,11 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Alert } from '@ui/primitives/alert';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { FileText } from 'lucide-react';
@@ -110,7 +110,7 @@ function TemplatesPageContent() {
 
   const facts = (template: TemplateView) => (
     <>
-      {template.isSystem && <Badge variant="primary">{t('system')}</Badge>}
+      {template.isSystem && <Badge variant="default">{t('system')}</Badge>}
       {template.isActive !== undefined && (
         <Badge variant={template.isActive ? 'success' : 'warning'}>
           {t(template.isActive ? 'active' : 'inactive')}
@@ -147,7 +147,7 @@ function TemplatesPageContent() {
       isRefreshing={templates === null}
     >
       {hasError ? (
-        <Alert type={AlertCategory.ERROR}>
+        <Alert variant="destructive">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{t('loadError')}</span>
             <Button

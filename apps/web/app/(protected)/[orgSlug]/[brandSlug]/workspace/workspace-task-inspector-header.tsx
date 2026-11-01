@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -39,14 +39,10 @@ export function WorkspaceTaskInspectorHeader({
       <div className="flex flex-col gap-4">
         <div className="flex min-w-0 flex-col space-y-3 text-left">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
-              {statusLabel}
-            </Badge>
-            <Badge variant="secondary" size={ComponentSize.SM}>
-              {task.outputType}
-            </Badge>
+            <Badge status={getTaskBadgeStatus(task)}>{statusLabel}</Badge>
+            <Badge variant="secondary">{task.outputType}</Badge>
             {task.executionPathUsed ? (
-              <Badge variant="secondary" size={ComponentSize.SM}>
+              <Badge variant="secondary">
                 {task.executionPathUsed.replaceAll('_', ' ')}
               </Badge>
             ) : null}

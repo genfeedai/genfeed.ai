@@ -4,7 +4,7 @@ import {
   AnalyticsProvider,
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
-import { AlertCategory, Timeframe } from '@genfeedai/contracts';
+import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { OrganizationDetailPageProps } from '@genfeedai/props/admin/organization-detail-page.props';
@@ -13,8 +13,8 @@ import OrganizationReleaseGrants from '@protected/organizations/components/organ
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
 import { useOrganizationProfile } from '@protected/organizations/hooks/use-organization-profile';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
-import Alert from '@ui/feedback/alert/Alert';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Alert } from '@ui/primitives/alert';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -45,7 +45,7 @@ function OrganizationDetailPageContent({
   if (!organizationId) {
     return (
       <AdminPageShell title={translate('detailTitle')} icon={Building2}>
-        <Alert type={AlertCategory.WARNING}>{translate('missingId')}</Alert>
+        <Alert variant="warning">{translate('missingId')}</Alert>
       </AdminPageShell>
     );
   }
@@ -90,7 +90,7 @@ function OrganizationDetailPageContent({
         />
         {isSettingsTab ? (
           error ? (
-            <Alert type={AlertCategory.ERROR}>
+            <Alert variant="destructive">
               {translate('settingsLoadError')}
             </Alert>
           ) : (

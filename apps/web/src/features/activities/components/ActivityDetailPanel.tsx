@@ -9,6 +9,7 @@ import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   DefinitionDetail,
@@ -162,12 +163,7 @@ export default function ActivityDetailPanel({
         ) : null}
 
         {fields.error ? (
-          <p
-            className="bg-destructive/10 p-3 text-sm text-destructive"
-            role="alert"
-          >
-            {fields.error}
-          </p>
+          <Alert variant="destructive">{fields.error}</Alert>
         ) : null}
 
         <DefinitionList variant="compact">

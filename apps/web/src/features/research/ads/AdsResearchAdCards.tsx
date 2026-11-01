@@ -14,9 +14,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Bookmark, BookmarkCheck, Megaphone } from 'lucide-react';
@@ -79,7 +79,7 @@ export function AdGridCard({
                 {item.title}
               </h3>
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+                <Badge variant={item.source === 'public' ? 'info' : 'default'}>
                   {item.source === 'public' ? 'Public' : 'Connected'}
                 </Badge>
                 <PlatformBadge
@@ -87,11 +87,13 @@ export function AdGridCard({
                   size={ComponentSize.SM}
                 />
                 {item.channel !== AdsChannel.ALL && (
-                  <Badge variant="ghost">{item.channel}</Badge>
+                  <Badge variant="secondary">{item.channel}</Badge>
                 )}
                 {longevityLabel && (
                   <Badge
-                    variant={item.longevity?.isStillRunning ? 'blue' : 'ghost'}
+                    variant={
+                      item.longevity?.isStillRunning ? 'info' : 'secondary'
+                    }
                   >
                     {longevityLabel}
                   </Badge>
@@ -279,7 +281,7 @@ export function AdsResearchAdTable({
       header: translate('source'),
       key: 'source',
       render: (item) => (
-        <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+        <Badge variant={item.source === 'public' ? 'info' : 'default'}>
           {item.source === 'public' ? 'Public' : 'Connected'}
         </Badge>
       ),

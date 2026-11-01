@@ -1,4 +1,4 @@
-import Badge from '@ui/display/badge/Badge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { ActiveRunsPanelProps } from '@/features/automation/props/active-runs-panel.props';
 import WorkflowExecutionCard from './WorkflowExecutionCard';

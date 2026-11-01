@@ -1,7 +1,7 @@
 'use client';
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Badge } from '@ui/primitives/badge';
 import { EmptyState } from '@ui/primitives/empty-state';
 import type { ArtifactEditorPageProps } from '@/props/content/artifact-editor.props';
 import ArtifactEditorShell from '../../artifact-editor-shell';

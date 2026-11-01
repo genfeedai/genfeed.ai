@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  AlertCategory,
   ButtonVariant,
   CardEmptySize,
   CardPadding,
@@ -13,9 +12,9 @@ import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -300,7 +299,7 @@ export default function OverviewPage() {
     >
       <div className="flex w-full flex-col gap-5">
         {hasFailedStats ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert variant="destructive">
             <span className="flex flex-wrap items-center gap-3">
               {translate('adminDashboard.loadFailed')}
               <Button

@@ -344,10 +344,12 @@ describe('DynamicBlockGrid', () => {
         } as AgentUIBlock),
       ]);
 
-      expect(screen.getByText('Info')).toHaveClass('text-info');
-      expect(screen.getByText('Warn')).toHaveClass('text-warning');
-      expect(screen.getByText('Err')).toHaveClass('text-destructive');
-      expect(screen.getByText('Yay')).toHaveClass('text-success');
+      expect(
+        screen.getAllByRole('status').map((element) => element.textContent),
+      ).toEqual(['Info', 'Yay']);
+      expect(
+        screen.getAllByRole('alert').map((element) => element.textContent),
+      ).toEqual(['Warn', 'Err']);
     });
 
     it('renders paragraph content', () => {

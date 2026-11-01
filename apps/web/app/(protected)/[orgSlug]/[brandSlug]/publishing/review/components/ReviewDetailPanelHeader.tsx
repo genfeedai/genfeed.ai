@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/contracts';
-import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { ReviewDetailPanelHeaderProps } from '@/features/posts/props/review-detail-panel-header.props';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
@@ -33,12 +33,8 @@ export default function ReviewDetailPanelHeader({
         {item.platform ? (
           <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
         ) : null}
-        <Badge status={getReviewItemBadgeStatus(item)} size={ComponentSize.SM}>
-          {statusLabel}
-        </Badge>
-        {item.format ? (
-          <Badge status={item.format} size={ComponentSize.SM} />
-        ) : null}
+        <Badge status={getReviewItemBadgeStatus(item)}>{statusLabel}</Badge>
+        {item.format ? <Badge status={item.format} /> : null}
       </div>
     </div>
   );
