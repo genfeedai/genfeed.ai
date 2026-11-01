@@ -1,10 +1,10 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
-  LINKEDIN_MULTI_IMAGE_LIMITS,
   LinkedInService,
   resolveLinkedInVisibility,
 } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LINKEDIN_MULTI_IMAGE_LIMITS } from '@api/services/integrations/linkedin/services/linkedin-image-upload.util';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
