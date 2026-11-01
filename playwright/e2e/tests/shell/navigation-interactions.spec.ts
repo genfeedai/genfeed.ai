@@ -260,8 +260,13 @@ test.describe('Shell — navigation interactions', () => {
         .toBe(true);
     }
 
-    await authenticatedPage.keyboard.press('Escape');
-    await expect(drawer).toBeHidden();
+    // Focus can rest on a rail link whose tooltip opened on focus. Escape
+    // dismisses the topmost layer first, so the tooltip may take one press and
+    // the drawer the next. Press until the drawer is gone.
+    await expect(async () => {
+      await authenticatedPage.keyboard.press('Escape');
+      await expect(drawer).toBeHidden({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
     await expect(toggle).toBeFocused();
 
     // A tap on the scrim, right of the 85vw panel, dismisses it too.
