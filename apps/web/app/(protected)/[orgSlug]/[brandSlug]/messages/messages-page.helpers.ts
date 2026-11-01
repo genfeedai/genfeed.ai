@@ -329,11 +329,6 @@ export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
   return items;
 }
 
-export interface MessagesDirectMessageReconnectAccount
-  extends DirectMessageReconnectAccount {
-  readonly brandId?: string;
-}
-
 /**
  * X accounts in the inbox scope whose stored grant has no DM scope, so the
  * DM sync skips them. Hidden on the Comments surface, where DMs never show.
@@ -350,7 +345,7 @@ export function getDirectMessageReconnectAccounts(
     | 'platform'
   >[],
   surface: MessagesSurface,
-): MessagesDirectMessageReconnectAccount[] {
+): DirectMessageReconnectAccount[] {
   if (surface === SocialConversationType.COMMENT) {
     return [];
   }

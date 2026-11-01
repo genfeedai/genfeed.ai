@@ -1,4 +1,6 @@
 export interface DirectMessageReconnectAccount {
+  /** The account's own brand, so a reconnect re-links it there. */
+  readonly brandId?: string;
   readonly credentialId: string;
   readonly label: string;
 }
