@@ -18,7 +18,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import Card from '@ui/card/Card';
-import { Tabs } from '@ui/primitives/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';

@@ -149,15 +149,11 @@ describe('ReplyPage', () => {
         .getAttribute('aria-checked'),
     ).toBe('true');
     expect(
-      screen
-        .getByRole('radio', { name: /Funny/ })
-        .getAttribute('aria-checked'),
+      screen.getByRole('radio', { name: /Funny/ }).getAttribute('aria-checked'),
     ).toBe('false');
     fireEvent.click(screen.getByRole('radio', { name: /Funny/ }));
     expect(
-      screen
-        .getByRole('radio', { name: /Funny/ })
-        .getAttribute('aria-checked'),
+      screen.getByRole('radio', { name: /Funny/ }).getAttribute('aria-checked'),
     ).toBe('true');
   });
 

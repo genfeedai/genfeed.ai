@@ -1,5 +1,4 @@
 import {
-  ButtonSize,
   ButtonVariant,
   CardPadding,
   CardVariant,

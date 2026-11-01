@@ -548,9 +548,7 @@ describe('ModelSelectorPopover', () => {
     const filterGroup = screen.getByRole('group', {
       name: 'Model capabilities',
     });
-    await user.click(
-      within(filterGroup).getByRole('radio', { name: 'Audio' }),
-    );
+    await user.click(within(filterGroup).getByRole('radio', { name: 'Audio' }));
 
     expect(screen.getByText('Veo 3')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();

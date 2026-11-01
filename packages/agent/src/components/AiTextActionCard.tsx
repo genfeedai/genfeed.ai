@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
-import { Check, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useState } from 'react';
 

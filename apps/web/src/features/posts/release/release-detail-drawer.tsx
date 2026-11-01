@@ -25,7 +25,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@ui/primitives/alert';
-import { Tabs } from '@ui/primitives/tabs';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Tabs } from '@ui/primitives/tabs';

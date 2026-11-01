@@ -10,7 +10,6 @@ import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import { Tabs } from '@ui/primitives/tabs';
 import {
   Select,
   SelectContent,
