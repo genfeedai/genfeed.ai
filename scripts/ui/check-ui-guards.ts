@@ -23,6 +23,13 @@ const checks = [
     required: true,
   },
   {
+    // Progress bars and step circles come from Progress (size, tone) and
+    // Stepper; hand-built fills, className restyles and indicatorClassName fail.
+    command: ['bun', 'run', 'scripts/ui/hand-built/progress.ts'],
+    name: 'Hand-built progress bars and steppers',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,

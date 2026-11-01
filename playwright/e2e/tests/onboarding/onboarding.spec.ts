@@ -17,6 +17,9 @@ test.describe('Output-first onboarding', () => {
     for (const platform of ['twitter', 'instagram', 'tiktok', 'linkedin'])
       await expect(page.getByText(`Round 1 ${platform} draft`)).toBeVisible();
     await expect(page.getByTestId('preview-account-header')).toHaveCount(4);
+    await expect(
+      page.getByRole('button', { name: 'Review drafts' }),
+    ).toHaveAttribute('aria-current', 'step');
     await expect(page.getByRole('button', { name: /edit/i })).toHaveCount(0);
     await page.reload();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
@@ -24,8 +27,14 @@ test.describe('Output-first onboarding', () => {
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     for (const platform of ['instagram', 'tiktok', 'twitter', 'linkedin'])
       await expect(page.getByTestId(`connect-card-${platform}`)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Connect accounts' }),
+    ).toHaveAttribute('aria-current', 'step');
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(page.getByText('Round 1 twitter draft')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Review drafts' }),
+    ).toHaveAttribute('aria-current', 'step');
     expect(draftRequests).toHaveLength(1);
   });
 

@@ -157,7 +157,8 @@ export default function ClipperProgressView({
               <Progress
                 isIndeterminate
                 aria-label={project.status}
-                className="h-1.5 flex-1 bg-muted"
+                className="flex-1"
+                size="sm"
               />
               <span className="text-xs capitalize text-muted-foreground">
                 {project.status}

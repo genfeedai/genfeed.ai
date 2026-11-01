@@ -21,11 +21,7 @@ export default function IssueSubIssuesCard({
             Sub-issues ({subIssues.length})
           </h3>
           <div className="flex items-center gap-2">
-            <Progress
-              className="h-1.5 w-16 bg-muted"
-              indicatorClassName="bg-success/60"
-              value={pct}
-            />
+            <Progress className="w-16" size="sm" tone="success" value={pct} />
             <span className="text-2xs text-gray-800">
               {doneCount}/{subIssues.length}
             </span>

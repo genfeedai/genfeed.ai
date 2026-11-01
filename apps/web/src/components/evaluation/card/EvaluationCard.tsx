@@ -10,7 +10,9 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
+import type { ProgressTone } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
 import { ArrowUp, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -19,20 +21,20 @@ import type { EvaluationCardProps } from '@/props/components/evaluation-card.pro
 
 const SCORE_THRESHOLDS = [
   {
-    bar: 'bg-success',
+    tone: 'success',
     bg: 'bg-success/20 text-success',
     min: 90,
     text: 'text-success',
   },
-  { bar: 'bg-info', bg: 'bg-info/20 text-info', min: 70, text: 'text-info' },
+  { tone: 'info', bg: 'bg-info/20 text-info', min: 70, text: 'text-info' },
   {
-    bar: 'bg-warning',
+    tone: 'warning',
     bg: 'bg-warning/20 text-warning',
     min: 50,
     text: 'text-warning',
   },
   {
-    bar: 'bg-destructive',
+    tone: 'destructive',
     bg: 'bg-destructive/20 text-destructive',
     min: 0,
     text: 'text-destructive',
@@ -42,11 +44,11 @@ const SCORE_THRESHOLDS = [
 function getScoreColors(score: number): {
   text: string;
   bg: string;
-  bar: string;
+  tone: ProgressTone;
 } {
   const threshold =
     SCORE_THRESHOLDS.find((t) => score >= t.min) ?? SCORE_THRESHOLDS[3];
-  return { bar: threshold.bar, bg: threshold.bg, text: threshold.text };
+  return { bg: threshold.bg, text: threshold.text, tone: threshold.tone };
 }
 
 const FACTOR_LABELS: Record<string, string> = {
@@ -120,12 +122,13 @@ function ScoreSection({
             <span className="text-xs w-28 text-foreground/60">
               {formatFactorLabel(key)}
             </span>
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn('h-full', getScoreColors(value as number).bar)}
-                style={{ width: `${value}%` }}
-              />
-            </div>
+            <Progress
+              aria-label={formatFactorLabel(key)}
+              className="flex-1"
+              size="sm"
+              tone={getScoreColors(value as number).tone}
+              value={value as number}
+            />
             <span className="text-xs w-8 text-right font-medium">
               {String(value)}
             </span>

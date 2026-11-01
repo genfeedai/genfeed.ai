@@ -40,10 +40,11 @@ function makeApi(overrides: ApiOverrides = {}): AgentStrategyApiService {
   } as unknown as AgentStrategyApiService;
 }
 
-function progressWidths(container: HTMLElement): string[] {
-  return Array.from(
-    container.querySelectorAll<HTMLElement>('.h-1\\.5'),
-  ).flatMap((node) => (node.style.width ? [node.style.width] : []));
+function budgetValues(): string[] {
+  return [
+    screen.getByRole('progressbar', { name: 'Daily credits' }),
+    screen.getByRole('progressbar', { name: 'Weekly credits' }),
+  ].map((bar) => bar.getAttribute('aria-valuenow') ?? '');
 }
 
 describe('AgentStrategyStatus', () => {
@@ -165,11 +166,9 @@ describe('AgentStrategyStatus', () => {
       }),
     });
 
-    const { container } = render(
-      <AgentStrategyStatus apiService={makeApi()} />,
-    );
+    render(<AgentStrategyStatus apiService={makeApi()} />);
 
-    expect(progressWidths(container)).toEqual(['20%', '50%']);
+    expect(budgetValues()).toEqual(['20', '50']);
     expect(screen.getByText('20 / 100')).toBeInTheDocument();
     expect(screen.getByText('250 / 500')).toBeInTheDocument();
   });
@@ -183,11 +182,9 @@ describe('AgentStrategyStatus', () => {
       }),
     });
 
-    const { container } = render(
-      <AgentStrategyStatus apiService={makeApi()} />,
-    );
+    render(<AgentStrategyStatus apiService={makeApi()} />);
 
-    expect(progressWidths(container)).toEqual(['100%', '0%']);
+    expect(budgetValues()).toEqual(['100', '0']);
   });
 
   it('warns on consecutive failures with correct pluralization', () => {

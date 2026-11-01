@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/config/license';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -163,7 +162,8 @@ function SettingsCreditsContent() {
           </div>
           <Progress
             aria-label={translate('progressLabel')}
-            className={cn('h-2.5', isLowCredits && 'bg-warning/20')}
+            size="lg"
+            tone={isLowCredits ? 'warning' : 'primary'}
             value={remainingPercent ?? 0}
           />
           <Text as="p" size="xs" color="muted">

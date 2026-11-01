@@ -23,6 +23,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Progress } from '@ui/primitives/progress';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Text } from '@ui/typography/text';
 import {
@@ -297,12 +298,11 @@ export default function DiscoveryTrendTurnover() {
                         {item.turnoverRate}%
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-tertiary overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-[width] duration-500"
-                        style={{ width: `${item.turnoverRate}%` }}
-                      />
-                    </div>
+                    <Progress
+                      aria-label={`${item.platform} ${item.turnoverRate}%`}
+                      size="sm"
+                      value={item.turnoverRate}
+                    />
                   </div>
                 );
               })}

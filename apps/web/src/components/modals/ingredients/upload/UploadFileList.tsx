@@ -98,7 +98,7 @@ export default function UploadFileList({
               {isUploading ? (
                 <Progress
                   aria-label={translate('uploadingFile', { name: file.name })}
-                  className="h-1"
+                  size="xs"
                   value={fileStatus?.progress ?? 0}
                 />
               ) : (

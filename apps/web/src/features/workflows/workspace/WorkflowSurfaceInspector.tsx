@@ -438,7 +438,7 @@ export function WorkflowSurfaceInspector({
               </span>
             </div>
             <Progress
-              className="h-1.5 bg-muted"
+              size="sm"
               value={Math.max(0, Math.min(100, execution.progress))}
             />
           </div>

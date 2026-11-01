@@ -187,8 +187,9 @@ function CampaignProgress({
     <div className={cn('flex items-center gap-2', className)}>
       <Progress
         aria-label={translate('creditsProgress', { percent })}
-        className="h-1.5 w-full min-w-16 bg-foreground/5"
-        indicatorClassName="bg-foreground/60"
+        className="w-full min-w-16"
+        size="sm"
+        tone="neutral"
         value={percent}
       />
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">

@@ -120,8 +120,8 @@ export default function OutreachCampaignsTable({
             <div className="flex flex-col gap-1">
               <Progress
                 aria-label={`${percent}%`}
-                className="w-24 bg-foreground/10"
-                indicatorClassName="bg-success"
+                className="w-24"
+                tone="success"
                 value={percent}
               />
               <span className="text-xs text-foreground/60">{percent}%</span>
