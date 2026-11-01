@@ -20,6 +20,11 @@ import { selectVisibleRadixOption } from '../../utils/radix-select';
 const USER_NAME = 'Test User';
 const USER_EMAIL = 'test@genfeed.ai';
 const ME_SETTINGS_PATTERN = '**/api.genfeed.ai/v1/users/me/settings*';
+const USER_AVATAR_URL = 'https://cdn.genfeed.ai/avatars/default.png';
+const ONE_PIXEL_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=',
+  'base64',
+);
 
 /**
  * Capture PATCH /users/me/settings bodies and answer with `status`.
@@ -114,6 +119,13 @@ test.describe('Personal Settings', () => {
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
+      await authenticatedPage.route(USER_AVATAR_URL, (route) =>
+        route.fulfill({
+          body: ONE_PIXEL_PNG,
+          contentType: 'image/png',
+          status: 200,
+        }),
+      );
 
       await settingsPage.goto();
 
@@ -121,6 +133,22 @@ test.describe('Personal Settings', () => {
       await expect(settingsPage.accountMenuAvatar).toHaveAccessibleName(
         USER_NAME,
       );
+    });
+
+    test('falls back to the account initials when the avatar does not load', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await authenticatedPage.route(USER_AVATAR_URL, (route) => route.abort());
+
+      await settingsPage.goto();
+
+      await expect(settingsPage.accountMenuAvatar).toHaveCount(0);
+      await expect(
+        authenticatedPage
+          .getByTestId('app-rail-account')
+          .getByRole('button', { name: 'Open account menu' }),
+      ).toHaveText('TU');
     });
   });
 

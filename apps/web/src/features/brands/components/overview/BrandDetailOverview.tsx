@@ -6,11 +6,11 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -30,19 +30,13 @@ export default function BrandDetailOverview({
 
   return (
     <div className="flex items-start gap-6">
-      <div className="group relative flex size-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-background">
-        <Image
-          src={
-            brand.logoUrl
-              ? brand.logoUrl
-              : `${EnvironmentService.assetsEndpoint}/placeholders/square.jpg`
-          }
-          alt={`${brand.label} logo`}
-          className="size-full object-cover object-center"
-          width={128}
-          height={128}
-          priority
-        />
+      <Avatar
+        alt={`${brand.label} logo`}
+        name={brand.label}
+        shape="square"
+        size="3xl"
+        src={brand.logoUrl}
+      >
         <div
           className={cn(
             'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity' /* design-system-allow-content-color */,
@@ -69,7 +63,7 @@ export default function BrandDetailOverview({
             />
           </div>
         </div>
-      </div>
+      </Avatar>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-4">

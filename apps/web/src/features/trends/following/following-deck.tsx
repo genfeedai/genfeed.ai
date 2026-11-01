@@ -10,7 +10,7 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Text } from '@ui/typography/text';
@@ -160,9 +160,6 @@ function FollowingDeckPost({
   const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
   const hasDistinctTitle = Boolean(item.title && item.title !== item.text);
   const body = item.text || (hasDistinctTitle ? undefined : item.title);
-  const initials = (displayName || item.authorHandle || item.platform)
-    .slice(0, 2)
-    .toUpperCase();
 
   const handleActivate = useCallback(() => {
     onCursor(item.key);
@@ -200,12 +197,11 @@ function FollowingDeckPost({
       />
 
       <header className="relative flex items-start gap-3">
-        <Avatar className="size-9">
-          {avatarUrl ? <AvatarImage alt="" src={avatarUrl} /> : null}
-          <AvatarFallback className="text-xs font-semibold text-foreground/70">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <Avatar
+          name={displayName || item.authorHandle || item.platform}
+          size="lg"
+          src={avatarUrl}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <Text as="p" className="truncate" size="sm" weight="semibold">

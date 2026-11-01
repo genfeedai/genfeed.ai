@@ -8,12 +8,12 @@ import type { BadgeProps } from '@props/ui/display/badge.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import BrandAvatar from '@/features/analytics/components/display/brand-avatar/BrandAvatar';
 import type { ReviewInboxApprovalsTableProps } from '@/props/publishing/review-inbox-approvals.props';
 import ReviewInboxPreview from './ReviewInboxPreview';
 import { REVIEW_INBOX_SOURCE_MESSAGE_KEYS } from './review-inbox.helpers';
@@ -53,10 +53,12 @@ export default function ReviewInboxApprovalsTable({
         render: (item) =>
           item.brandLabel ? (
             <span className="flex min-w-0 items-center gap-2">
-              <BrandAvatar
-                logoUrl={item.brandLogoUrl ?? undefined}
+              <Avatar
+                alt={item.brandLabel}
                 name={item.brandLabel}
+                shape="square"
                 size="sm"
+                src={item.brandLogoUrl}
               />
               <span className="min-w-0 break-words text-sm text-foreground">
                 {item.brandLabel}

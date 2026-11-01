@@ -23,6 +23,14 @@ const checks = [
     required: true,
   },
   {
+    // Avatars are the shared Avatar: no restyling it with classes, no
+    // hand-built letter or picture circles, no private initials helpers.
+    // Escape hatch: `// ui-guard-allow:<rule> -- reason`.
+    command: ['bun', 'run', 'scripts/ui/hand-built/avatars.ts'],
+    name: 'Hand-built avatars (shared Avatar, getInitials)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
     name: 'No Storybook story files (Storybook is not installed)',
     required: true,

@@ -168,7 +168,7 @@ describe('FollowSourceModal', () => {
     });
     expect(row).toHaveAttribute('aria-checked', 'true');
     expect(
-      within(row).getByRole('img', { name: 'Vincent e/acc' }),
+      await within(row).findByRole('img', { name: 'Vincent e/acc' }),
     ).toHaveAttribute(
       'src',
       'https://pbs.twimg.com/profile_images/abc_normal.jpg',

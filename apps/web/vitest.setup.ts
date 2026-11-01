@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import { afterEach, beforeAll } from 'vitest';
+import './tests/image-loading.stub';
 import './tests/server-only.stub';
 
 // The preload is a cold dynamic import of Radix Tooltip through Vite's

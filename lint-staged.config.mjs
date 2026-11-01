@@ -9,5 +9,8 @@ export default {
   // included so dead-wrapper imports in plain modules are caught too.
   '*.{ts,tsx,jsx}': (files) =>
     `bun scripts/ui/control-guard.ts ${files.join(' ')}`,
-  '*.tsx': ['bash scripts/lint-no-bespoke-card.sh'],
+  '*.tsx': (files) => [
+    'bash scripts/lint-no-bespoke-card.sh',
+    `bun scripts/ui/hand-built/avatars.ts ${files.join(' ')}`,
+  ],
 };

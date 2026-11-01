@@ -9,9 +9,6 @@ export const SWITCHER_TRIGGER_CLASSNAME =
 
 export const SWITCHER_TRIGGER_OPEN_CLASSNAME = 'bg-foreground/5';
 
-export const SWITCHER_AVATAR_CLASSNAME =
-  'flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/20 text-2xs font-bold text-primary';
-
 export const SWITCHER_LABEL_CLASSNAME =
   'min-w-0 flex-1 truncate text-left text-sm font-semibold leading-none text-foreground';
 

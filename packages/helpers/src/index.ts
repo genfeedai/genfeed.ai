@@ -24,6 +24,7 @@ export * from './deserializer.helper';
 export * from './email/system-email.helper';
 export * from './formatting/cn/cn.util';
 export * from './formatting/duration/duration.helper';
+export * from './formatting/initials/initials.helper';
 export * from './generation-context.helper';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';

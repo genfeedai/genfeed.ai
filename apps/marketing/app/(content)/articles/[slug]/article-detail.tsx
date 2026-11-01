@@ -15,9 +15,9 @@ import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
+import { Avatar } from '@ui/primitives/avatar';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
@@ -138,13 +138,12 @@ export function ArticleAbout({
       <div className="space-y-4">
         {logoUrl && (
           <div className="flex justify-center lg:justify-start">
-            <Image
+            <Avatar
               alt={`${label} logo`}
-              className="size-20 rounded-full object-cover ring-4 ring-foreground/20 md:size-24"
-              height={96}
-              priority
+              name={label}
+              shape="square"
+              size="2xl"
               src={logoUrl}
-              width={96}
             />
           </div>
         )}

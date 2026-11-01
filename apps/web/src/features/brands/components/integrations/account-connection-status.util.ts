@@ -73,16 +73,3 @@ export function getConnectionLabel(
     ? (formatPlatformLabel(connection.platform) ?? label)
     : label;
 }
-
-export function getConnectionInitials(
-  connection: BrandDetailSocialConnection,
-): string {
-  const label = getConnectionLabel(connection).trim();
-  const initials = label
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || connection.platform.slice(0, 2).toUpperCase();
-}

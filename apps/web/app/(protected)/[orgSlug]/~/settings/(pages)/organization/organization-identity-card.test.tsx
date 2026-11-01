@@ -57,12 +57,6 @@ vi.mock(
   }),
 );
 
-vi.mock('next/image', () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span data-alt={alt} data-src={src} data-testid="org-logo" />
-  ),
-}));
-
 function commitEdit(label: string, value: string) {
   fireEvent.click(screen.getByRole('button', { name: label }));
   const input = screen.getByRole('textbox', { name: label });
@@ -102,11 +96,11 @@ describe('OrganizationIdentityCard', () => {
     expect(screen.getByText('Genfeed.ai')).toBeInTheDocument();
     expect(screen.getByText('@genfeed')).toBeInTheDocument();
     expect(screen.getByText('G')).toBeInTheDocument();
-    expect(screen.queryByTestId('org-logo')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.queryByText('org-1')).not.toBeInTheDocument();
   });
 
-  it('renders the uploaded logo', () => {
+  it('renders the uploaded logo', async () => {
     routedOrganization.mockReturnValue({
       organizations: [
         {
@@ -124,8 +118,8 @@ describe('OrganizationIdentityCard', () => {
 
     render(<OrganizationIdentityCard organizationId="org-1" />);
 
-    expect(screen.getByTestId('org-logo')).toHaveAttribute(
-      'data-src',
+    expect(await screen.findByRole('img')).toHaveAttribute(
+      'src',
       'https://cdn.test/logos/a1',
     );
   });

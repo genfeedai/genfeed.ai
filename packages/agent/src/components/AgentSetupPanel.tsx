@@ -2,13 +2,13 @@
 
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Avatar } from '@ui/primitives/avatar';
 import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
@@ -30,17 +30,6 @@ function getConnectionLabel(connection: AgentSetupConnection): string {
   );
 }
 
-function getConnectionInitials(connection: AgentSetupConnection): string {
-  const label = getConnectionLabel(connection).trim();
-  const initials = label
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || connection.platform.slice(0, 2).toUpperCase();
-}
-
 function ConnectedAccountChip({
   connection,
 }: {
@@ -50,28 +39,19 @@ function ConnectedAccountChip({
 
   return (
     <div className="flex min-w-0 items-center gap-2.5 rounded-md bg-card px-2.5 py-1.5 shadow-border">
-      <span className="relative shrink-0">
-        <Avatar className="size-8 bg-background shadow-border">
-          {connection.avatarUrl ? (
-            <AvatarImage
-              src={connection.avatarUrl}
-              alt={`${label} profile picture`}
-              className="object-cover"
-            />
-          ) : null}
-          <AvatarFallback className="text-2xs font-semibold text-foreground/70">
-            {getConnectionInitials(connection)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
+      <Avatar
+        alt={`${label} profile picture`}
+        badge={
           <PlatformBadge
             platform={connection.platform}
             showLabel={false}
-            size={ComponentSize.SM}
-            className="size-3.5 justify-center rounded-full p-0"
+            variant="solid"
           />
-        </span>
-      </span>
+        }
+        name={label}
+        size="md"
+        src={connection.avatarUrl}
+      />
 
       <span className="min-w-0 text-left">
         <span className="block truncate text-xs font-medium text-foreground">
