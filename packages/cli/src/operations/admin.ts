@@ -186,7 +186,9 @@ export interface WarmupContextDecisions {
 export interface WarmupPrepareInput {
   action: string;
   amount?: number;
+  assetCandidateId?: string;
   contextDecisions?: WarmupContextDecisions;
+  prompt?: string;
   publicProfileUrl?: string;
   reason?: string;
   sourceUrl?: string;
