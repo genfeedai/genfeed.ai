@@ -11,10 +11,8 @@ vi.mock('next-intl', async () => {
 });
 
 // Mock Button — avoids deep @genfeedai/contracts + CVA dependency chain
-vi.mock('lucide-react', () => ({
-  Check: () => <span data-testid="icon-check" />,
-  ChevronDown: () => <span data-testid="icon-chevron" />,
-  Circle: () => <span data-testid="icon-circle" />,
+vi.mock('lucide-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('lucide-react')>()),
   Maximize2: () => <span data-testid="icon-expand" />,
   Sparkles: () => <span data-testid="icon-sparkles" />,
 }));
