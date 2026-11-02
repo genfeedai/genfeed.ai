@@ -1,8 +1,15 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import { LayoutGroup, MotionConfig, motion } from 'motion/react';
+import { LayoutGroup, LazyMotion, m, MotionConfig } from 'motion/react';
 import { type ReactNode, useId } from 'react';
+
+/**
+ * Layout animation is the heavy part of motion, so it loads after first paint.
+ * Until it arrives the highlight renders in place without the slide.
+ */
+const loadHighlightFeatures = () =>
+  import('./sidebar-highlight-features').then((module) => module.default);
 
 const HIGHLIGHT_LAYOUT_ID = 'sidebar-active-highlight';
 
@@ -31,9 +38,11 @@ export function SidebarHighlightGroup({
   const groupId = useId();
 
   return (
-    <MotionConfig reducedMotion="user">
-      <LayoutGroup id={groupId}>{children}</LayoutGroup>
-    </MotionConfig>
+    <LazyMotion features={loadHighlightFeatures}>
+      <MotionConfig reducedMotion="user">
+        <LayoutGroup id={groupId}>{children}</LayoutGroup>
+      </MotionConfig>
+    </LazyMotion>
   );
 }
 
@@ -51,7 +60,7 @@ export function SidebarActiveHighlight({
   className,
 }: SidebarActiveHighlightProps) {
   return (
-    <motion.span
+    <m.span
       aria-hidden="true"
       className={cn(
         'pointer-events-none absolute inset-0 rounded-[inherit]',
