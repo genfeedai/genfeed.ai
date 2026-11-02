@@ -1,22 +1,21 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import type { ModalEnum } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   ContentScope,
   IQueryParams,
   ITag,
 } from '@genfeedai/contracts/interfaces';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type { TagsListProps } from '@/features/admin/props/tags-list.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const SUPERADMIN: ContentScope = 'superadmin';
@@ -53,8 +52,6 @@ export function useTagsList({
   );
 
   const notificationsService = NotificationsService.getInstance();
-
-  const [selectedTag, setSelectedTag] = useState<ITag | null>(null);
 
   const { openConfirm } = useConfirmModal();
 
@@ -254,10 +251,11 @@ export function useTagsList({
     [organizationId],
   );
 
-  const openTagModal = useCallback((modalId: ModalEnum, tag?: ITag) => {
-    setSelectedTag(tag ?? null);
-    openModal(modalId);
-  }, []);
+  const saveTag = useInlineRecordSave<Partial<ITag>>({
+    errorMessage: 'Failed to update tag',
+    onSaved: refresh,
+    save: async (id, patch) => (await getTagsService()).patch(id, patch),
+  });
 
   const handleDeleteTag = useCallback(
     async (tag: ITag) => {
@@ -267,12 +265,10 @@ export function useTagsList({
         const data = await service.delete(tag.id);
         logger.info(`${url} success`, data);
         notificationsService.success('Tag deleted successfully');
-        setSelectedTag(null);
         await refresh();
       } catch (error) {
         logger.error('Failed to delete tag', error);
         notificationsService.error('Failed to delete tag');
-        setSelectedTag(null);
       }
     },
     [getTagsService, notificationsService, refresh],
@@ -280,7 +276,6 @@ export function useTagsList({
 
   const openDeleteConfirm = useCallback(
     (tag: ITag) => {
-      setSelectedTag(tag);
       openConfirm({
         confirmLabel: 'Delete',
         isError: true,
@@ -303,12 +298,10 @@ export function useTagsList({
     isRefreshing,
     onSortChange: tableSort.onSortChange,
     openDeleteConfirm,
-    openTagModal,
     organizationId,
     refresh,
+    saveTag,
     scope,
-    selectedTag,
-    setSelectedTag,
     sortDirection: tableSort.sortDirection,
     sortKey: tableSort.sortKey,
   };

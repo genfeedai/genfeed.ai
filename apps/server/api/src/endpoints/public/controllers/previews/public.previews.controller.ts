@@ -60,15 +60,15 @@ export class PublicPreviewsController {
     await this.previews.recordView(token);
   }
 
-  @Post(':token/cta')
+  @Post(':token/claim')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Header('Cache-Control', 'no-store')
-  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
-  async cta(
+  @RateLimit({ limit: 5, scope: 'ip', windowMs: 60_000 })
+  async claim(
     @Req() request: Request,
     @Param('token') token: string,
   ): Promise<void> {
     if (isAutomatedVisitor(request.headers['user-agent'])) return;
-    await this.previews.recordCtaClick(token);
+    await this.previews.requestClaim(token);
   }
 }

@@ -298,9 +298,6 @@
     "apps/web/src/components/modals/system/confirm/ModalConfirm.tsx": {
       "button-restyle": 2
     },
-    "apps/web/src/components/modals/trainings/ModalTraining.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/modals/trainings/ModalTrainingNew.tsx": {
       "button-restyle": 2
     },

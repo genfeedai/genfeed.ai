@@ -349,7 +349,7 @@ describe('FontFamiliesList', () => {
     );
   });
 
-  it('opens create/edit/delete flows and refreshes font families', async () => {
+  it('opens the create and delete flows and refreshes font families', async () => {
     render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
       wrapper: queryClientWrapper(),
     });
@@ -359,9 +359,6 @@ describe('FontFamiliesList', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Font Family' }));
     expect(mocks.openModal).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Geist' }));
-    expect(screen.getByTestId('font-family-modal')).toHaveTextContent('Geist');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Geist' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(

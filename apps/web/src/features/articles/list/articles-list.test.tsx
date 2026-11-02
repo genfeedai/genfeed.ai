@@ -2,12 +2,17 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   act,
   render as rtlRender,
@@ -41,8 +46,17 @@ function IntlWrapper({ children }: PropsWithChildren) {
     </NextIntlClientProvider>
   );
 }
-function render(ui: ReactElement) {
-  return rtlRender(ui, { wrapper: IntlWrapper });
+let QueryWrapper = queryClientWrapper();
+function TestWrapper({ children }: PropsWithChildren) {
+  return (
+    <QueryWrapper>
+      <IntlWrapper>{children}</IntlWrapper>
+    </QueryWrapper>
+  );
+}
+function render(ui: ReactElement, client?: QueryClient) {
+  QueryWrapper = queryClientWrapper(client);
+  return rtlRender(ui, { wrapper: TestWrapper });
 }
 
 const mockFindAll = vi.fn();
@@ -60,8 +74,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-// The fetch effect depends on the service getter's identity, so it must be
-// stable across renders or the list refetches forever.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getArticlesServiceMock,
 }));
@@ -87,17 +104,6 @@ vi.mock('@services/core/notifications.service', () => ({
       success: vi.fn(),
     }),
   },
-}));
-
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: [],
-    isLoading: false,
-    refetch: vi.fn(),
-  })),
-  useQueryClient: vi.fn(() => ({
-    setQueryData: vi.fn(),
-  })),
 }));
 
 vi.mock(
@@ -136,7 +142,11 @@ vi.mock('@/components/lazy/modal/LazyModal', async () => {
   );
 
   return {
-    LazyModalArticle: function LazyModalArticleMock() {
+    LazyModalArticle: function LazyModalArticleMock({
+      onConfirm,
+    }: {
+      onConfirm: () => void;
+    }) {
       const isOpen = React.useSyncExternalStore(
         (listener) => subscribeModal(ArticleModalEnum.ARTICLE, listener),
         () => isModalOpen(ArticleModalEnum.ARTICLE),
@@ -147,7 +157,14 @@ vi.mock('@/components/lazy/modal/LazyModal', async () => {
         return null;
       }
 
-      return <div>Create New Article</div>;
+      return (
+        <div>
+          Create New Article
+          <button onClick={onConfirm} type="button">
+            Confirm new article
+          </button>
+        </div>
+      );
     },
   };
 });
@@ -181,13 +198,44 @@ describe('ArticlesList', () => {
     } as unknown as ReturnType<typeof useSearchParams>);
   });
 
-  it('retains loaded rows and bounded retry progress until a failed refresh retry settles', async () => {
+  it('shows the skeleton, not the empty state, while the first read is in flight', () => {
+    mockFindAll.mockReturnValue(new Promise(() => {}));
+
+    render(<ArticlesList />);
+
+    expect(screen.queryByText('No articles yet')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create Article' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('paints the cached articles at once when coming back while it revalidates', async () => {
+    mockFindAll.mockResolvedValue([buildArticle()]);
+    const client = createTestQueryClient();
+    const firstVisit = render(<ArticlesList />, client);
+    expect(await screen.findByText('My Draft')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mockFindAll.mockReturnValue(new Promise(() => {}));
+    render(<ArticlesList />, client);
+
+    expect(screen.getByText('My Draft')).toBeInTheDocument();
+  });
+
+  it('keeps the loaded rows under the error when a refresh fails, until its retry settles', async () => {
+    const user = userEvent.setup();
     mockFindAll.mockResolvedValueOnce([buildArticle()]);
-    const { rerender } = render(<ArticlesList />);
+    render(<ArticlesList />);
     await screen.findByText('My Draft');
+
     mockFindAll.mockRejectedValueOnce(new Error('Refresh failed'));
-    rerender(<ArticlesList status="published" />);
+    await user.click(screen.getByRole('button', { name: 'Create Article' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Confirm new article' }),
+    );
     await screen.findByText('Failed to load articles');
+    expect(screen.getByText('My Draft')).toBeInTheDocument();
+
     let resolveRetry: (articles: Article[]) => void = () => {};
     mockFindAll.mockImplementationOnce(
       () =>
@@ -195,7 +243,7 @@ describe('ArticlesList', () => {
           resolveRetry = resolve;
         }),
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(screen.getByText('My Draft')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
     await act(async () =>
@@ -271,6 +319,7 @@ describe('ArticlesList', () => {
       await waitFor(() => {
         expect(mockFindAll).toHaveBeenLastCalledWith(
           expect.objectContaining(expected),
+          expect.any(AbortSignal),
         );
       });
     },
@@ -291,6 +340,7 @@ describe('ArticlesList', () => {
       });
       expect(mockFindAll).toHaveBeenLastCalledWith(
         expect.not.objectContaining({ sortBy: expect.anything() }),
+        expect.any(AbortSignal),
       );
     },
   );

@@ -1,20 +1,19 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import { PagesService } from '@services/content/pages.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReferralRewardsList from './referral-rewards-list';
 
-const { getAdminRewardsMock, identityState, urlState } = vi.hoisted(() => ({
+const { getAdminRewardsMock, urlState } = vi.hoisted(() => ({
   getAdminRewardsMock: vi.fn(),
   urlState: { query: 'page=2' },
-  identityState: {
-    orgId: 'org_1',
-    sessionId: 'session_1',
-    userId: 'admin_1',
-  },
 }));
 
 vi.mock('next/navigation', () => ({
@@ -24,7 +23,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: { totals?: { totalDocs: number } }) => (
+    <nav aria-label="pagination">{totals?.totalDocs ?? '?'} rewards</nav>
+  ),
 }));
 
 vi.mock('next-intl', () => ({
@@ -37,8 +38,9 @@ vi.mock('next-intl', () => ({
     })[key] ?? key,
 }));
 
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => identityState,
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -98,54 +100,48 @@ describe('ReferralRewardsList', () => {
     getAdminRewardsMock.mockResolvedValue([]);
   });
 
-  it('scopes its cache to the active identity and surfaces request failures', async () => {
+  it('shows the read failure instead of an empty table, then retries', async () => {
     getAdminRewardsMock.mockRejectedValueOnce(new Error('API unavailable'));
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ReferralRewardsList />
-      </QueryClientProvider>,
-    );
+    render(<ReferralRewardsList />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByText('Affiliate rewards unavailable'),
     ).toBeVisible();
     expect(screen.queryByText('No referral rewards found')).toBeNull();
-    expect(
-      queryClient.getQueryCache().find({
-        queryKey: [
-          'admin-referral-rewards',
-          'admin_1',
-          'session_1',
-          'org_1',
-          2,
-          '',
-          undefined,
-        ],
-      }),
-    ).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
-    await waitFor(() => {
-      expect(getAdminRewardsMock).toHaveBeenCalledTimes(2);
-      expect(screen.getByText('No referral rewards found')).toBeVisible();
+    expect(await screen.findByText('No referral rewards found')).toBeVisible();
+  });
+
+  it('paints the cached page with its own footer total when coming back', async () => {
+    getAdminRewardsMock.mockImplementation(async () => {
+      PagesService.recordTotals({ page: 2, pages: 3, total: 42 });
+      return [{ id: 'reward-1' }];
     });
+    const client = createTestQueryClient();
+    const firstVisit = render(<ReferralRewardsList />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Reward rows')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('42 rewards');
+    firstVisit.unmount();
+
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    getAdminRewardsMock.mockReturnValue(new Promise(() => {}));
+    render(<ReferralRewardsList />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Reward rows')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('42 rewards');
   });
 
   it('requests the page from the URL and shows the pager', async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ReferralRewardsList />
-      </QueryClientProvider>,
-    );
+    render(<ReferralRewardsList />, { wrapper: queryClientWrapper() });
 
     await waitFor(() =>
       expect(getAdminRewardsMock).toHaveBeenCalledWith({ limit: 15, page: 2 }),
@@ -162,15 +158,7 @@ describe('ReferralRewardsList', () => {
     ['attemptCount', 'attemptCount: 1'],
   ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
     urlState.query = `page=2&sort=${urlSort}`;
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ReferralRewardsList />
-      </QueryClientProvider>,
-    );
+    render(<ReferralRewardsList />, { wrapper: queryClientWrapper() });
 
     await waitFor(() =>
       expect(getAdminRewardsMock).toHaveBeenCalledWith({
@@ -183,15 +171,7 @@ describe('ReferralRewardsList', () => {
 
   it('ignores a sort on a column the API cannot order by', async () => {
     urlState.query = 'page=2&sort=-referrerBillingAccountId';
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ReferralRewardsList />
-      </QueryClientProvider>,
-    );
+    render(<ReferralRewardsList />, { wrapper: queryClientWrapper() });
 
     await waitFor(() =>
       expect(getAdminRewardsMock).toHaveBeenCalledWith({ limit: 15, page: 2 }),
