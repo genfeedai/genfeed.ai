@@ -58,6 +58,13 @@ test.describe('Admin Content Management', () => {
       await expect(
         voicesList.getByRole('table').or(voicesList.getByTestId('table-empty')),
       ).toBeVisible();
+      // Column headers are plain text, never uppercase eyebrows.
+      const headerTransforms = await voicesList
+        .getByRole('columnheader')
+        .evaluateAll((headers) =>
+          headers.map((header) => getComputedStyle(header).textTransform),
+        );
+      expect(headerTransforms.every((value) => value === 'none')).toBe(true);
     });
   });
 });
