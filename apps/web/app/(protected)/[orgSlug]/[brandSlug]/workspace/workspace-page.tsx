@@ -7,6 +7,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
+import TableGroupHeading from '@ui/display/table/TableGroupHeading';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -330,9 +331,9 @@ function WorkspacePageContentContent({
 
               return {
                 content: (
-                  <h3 className="m-0 border-b border-border px-4 py-2 text-xs font-medium text-muted-foreground">
+                  <TableGroupHeading>
                     {translate(`inbox.groups.${groupKey}`)}
-                  </h3>
+                  </TableGroupHeading>
                 ),
                 key: groupKey,
               };
