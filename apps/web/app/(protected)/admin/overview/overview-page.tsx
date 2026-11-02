@@ -117,11 +117,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       </div>
 
       {/* View All Entities CTA button */}
-      <Button
-        asChild
-        variant={ButtonVariant.SECONDARY}
-        className="w-full mt-6 py-4 border border-border font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
-      >
+      <Button asChild variant={ButtonVariant.SECONDARY} className="w-full">
         <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>View All Entities</Link>
       </Button>
     </WorkspaceSurface>
