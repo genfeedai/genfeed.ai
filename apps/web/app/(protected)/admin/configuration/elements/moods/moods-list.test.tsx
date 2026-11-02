@@ -134,7 +134,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalMood: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,

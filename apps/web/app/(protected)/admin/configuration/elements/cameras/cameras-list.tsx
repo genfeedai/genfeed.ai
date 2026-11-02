@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
@@ -26,7 +26,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalCamera } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
@@ -234,7 +234,10 @@ function CamerasListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalCamera onConfirm={() => refreshCameras()} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.CAMERA}
+          onConfirm={() => refreshCameras()}
+        />
       )}
 
       <div className="mt-4">

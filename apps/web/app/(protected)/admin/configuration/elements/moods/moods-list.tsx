@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
@@ -31,7 +31,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalMood } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   MoodsListAction,
   MoodsListState,
@@ -255,7 +255,10 @@ function MoodsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalMood onConfirm={() => findAllMoods(true)} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.MOOD}
+          onConfirm={() => findAllMoods(true)}
+        />
       )}
 
       <div className="mt-4">

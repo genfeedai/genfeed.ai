@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import {
   EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
@@ -33,7 +33,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
@@ -252,7 +252,10 @@ function LightingsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalLighting onConfirm={() => refreshLightings()} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.LIGHTING}
+          onConfirm={() => refreshLightings()}
+        />
       )}
 
       <div className="mt-4">

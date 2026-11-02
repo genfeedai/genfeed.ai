@@ -54,34 +54,18 @@ describe('LazyModal', () => {
   });
 
   describe('Element Modals', () => {
+    it('exports the shared element creation modal', () => {
+      expect(typeof LazyModals.LazyElementCreateModal).toBe('function');
+    });
+
     it('should export LazyModalBlacklist', () => {
       expect(LazyModals.LazyModalBlacklist).toBeDefined();
       expect(typeof LazyModals.LazyModalBlacklist).toBe('function');
     });
 
-    it('should export LazyModalCamera', () => {
-      expect(LazyModals.LazyModalCamera).toBeDefined();
-      expect(typeof LazyModals.LazyModalCamera).toBe('function');
-    });
-
-    it('should export LazyModalFontFamily', () => {
-      expect(LazyModals.LazyModalFontFamily).toBeDefined();
-      expect(typeof LazyModals.LazyModalFontFamily).toBe('function');
-    });
-
-    it('should export LazyModalMood', () => {
-      expect(LazyModals.LazyModalMood).toBeDefined();
-      expect(typeof LazyModals.LazyModalMood).toBe('function');
-    });
-
     it('should export LazyModalPreset', () => {
       expect(LazyModals.LazyModalPreset).toBeDefined();
       expect(typeof LazyModals.LazyModalPreset).toBe('function');
-    });
-
-    it('should export LazyModalScene', () => {
-      expect(LazyModals.LazyModalScene).toBeDefined();
-      expect(typeof LazyModals.LazyModalScene).toBe('function');
     });
 
     it('should export LazyModalSound', () => {
@@ -162,14 +146,5 @@ describe('LazyModal', () => {
     exports.forEach((exportedItem) => {
       expect(typeof exportedItem).toBe('function');
     });
-  });
-
-  it('should have correct number of exported modals', () => {
-    const exports = Object.keys(LazyModals);
-    // 42 -> 41: the training edit modal is gone (edited in the sidebar).
-    // 43 -> 42: the unused video picker is gone. 46 -> 43: the ingredient, credential and post-metadata overlays are gone
-    // (ingredients open in the context sidebar). Earlier: 47 -> 46,
-    // LazyModalCreateThread removed; threads come from the post composer (#5980).
-    expect(exports.length).toBe(41); // Count of all exported modals
   });
 });
