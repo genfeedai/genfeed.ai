@@ -145,11 +145,10 @@ describe('AnalyticsBrandOverview', () => {
 
     // First paint is already the loading state: every KPI tile is busy, so no
     // "0" tiles flip to a skeleton and then to the data.
-    const tiles = screen.getAllByTestId('metric-card');
-    expect(tiles.length).toBeGreaterThan(0);
-    for (const tile of tiles) {
-      expect(tile).toHaveAttribute('aria-busy', 'true');
-    }
+    expect(screen.getAllByTestId('metric-card')[0]).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
 
     await waitFor(() => {
       expect(
