@@ -1,12 +1,13 @@
 'use client';
 import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboarding-progress';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   ONBOARDING_DRAFT_PLATFORMS,
 } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -194,35 +195,37 @@ export default function FirstDraftsOnboarding() {
               <ScheduleStep brandId={brandId} />
             ) : state.phase === 'review' && result ? (
               <div className="mx-auto flex max-w-5xl flex-col gap-6">
-                <div className="grid items-center gap-6 rounded-lg border border-border bg-card p-4 md:grid-cols-[minmax(0,280px)_1fr]">
-                  {result.imageUrl ? (
-                    <Image
-                      src={result.imageUrl}
-                      alt={t('masterAlt', {
-                        brand:
-                          state.scan?.summary?.name ||
-                          selectedBrand?.label ||
-                          t('brandFallback'),
-                      })}
-                      width={560}
-                      height={560}
-                      unoptimized
-                      className="aspect-square w-full rounded-md object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted">
-                      {state.isGenerating ? <Spinner /> : null}
+                <Card padding={CardPadding.MD}>
+                  <div className="grid items-center gap-6 md:grid-cols-[minmax(0,280px)_1fr]">
+                    {result.imageUrl ? (
+                      <Image
+                        src={result.imageUrl}
+                        alt={t('masterAlt', {
+                          brand:
+                            state.scan?.summary?.name ||
+                            selectedBrand?.label ||
+                            t('brandFallback'),
+                        })}
+                        width={560}
+                        height={560}
+                        unoptimized
+                        className="aspect-square w-full rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted">
+                        {state.isGenerating ? <Spinner /> : null}
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      <h2 className="text-sm font-medium">
+                        {t('review.masterTitle')}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t('review.masterDescription')}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <h2 className="text-sm font-medium">
-                      {t('review.masterTitle')}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {t('review.masterDescription')}
-                    </p>
                   </div>
-                </div>
+                </Card>
                 <h2 className="text-sm font-medium">
                   {t('review.derivedTitle')}
                 </h2>
