@@ -8,7 +8,7 @@ import {
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
@@ -80,18 +80,30 @@ async function showOutputPane(page: Page) {
   await expect(output).toBeVisible();
   return output;
 }
+/**
+ * Sets the Context view open or closed. A click that lands before hydration
+ * after a reload is dropped, so retry until the view is in the wanted state,
+ * and read the state first each time so a retry never undoes a click that did
+ * land.
+ */
+async function setContextOpen(page: Page, output: Locator, isOpen: boolean) {
+  const context = output.getByRole('tabpanel', {
+    exact: true,
+    name: 'Context',
+  });
+  await expect(async () => {
+    if ((await context.isVisible()) !== isOpen)
+      await page.getByTestId('topbar-context-toggle').click();
+    if (isOpen) await expect(context).toBeVisible({ timeout: 2_000 });
+    else await expect(context).toBeHidden({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
+}
 async function openStoryboardTab(
   page: Page,
   name: 'Shots' | 'Details' | 'References' | 'Cast',
 ) {
   const output = await showOutputPane(page);
-  const context = output.getByRole('tabpanel', {
-    exact: true,
-    name: 'Context',
-  });
-  if (!(await context.isVisible()))
-    await page.getByTestId('topbar-context-toggle').click();
-  await expect(context).toBeVisible();
+  await setContextOpen(page, output, true);
   const tabs = page.getByRole('tablist', { name: 'Storyboard details' });
   await expect(tabs).toBeVisible();
   await tabs.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
@@ -99,12 +111,7 @@ async function openStoryboardTab(
 /** Brings the board back after a Context visit. */
 async function showStoryboardBoard(page: Page) {
   const output = await showOutputPane(page);
-  const context = output.getByRole('tabpanel', {
-    exact: true,
-    name: 'Context',
-  });
-  if (await context.isVisible())
-    await page.getByTestId('topbar-context-toggle').click();
+  await setContextOpen(page, output, false);
   await expect(
     output.getByRole('tabpanel', { exact: true, name: 'Shots' }),
   ).toBeVisible();
