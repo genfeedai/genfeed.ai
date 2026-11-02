@@ -33,7 +33,12 @@ function buildContextSidebar(
       origin: 'user',
       title: 'Launch still',
     },
+    headerTargets: {
+      desktop: { actions: null, tabs: null },
+      mobile: { actions: null, tabs: null },
+    },
     setDesktopTarget: vi.fn(),
+    setHeaderTarget: vi.fn(),
     setIsMobileOpen: vi.fn(),
     setMobileTarget: vi.fn(),
     toggle: vi.fn(),

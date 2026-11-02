@@ -48,6 +48,19 @@ export interface ContextSidebarRegistration {
   readonly selection: ContextSidebarSelection;
 }
 
+/**
+ * Where a selected page puts controls in the sidebar header: `actions` sit in
+ * the title row (Preview, Remove), `tabs` are the strip pinned under it.
+ */
+export type ContextSidebarHeaderSlotName = 'actions' | 'tabs';
+
+export type ContextSidebarHeaderTargets = Readonly<
+  Record<
+    'desktop' | 'mobile',
+    Readonly<Record<ContextSidebarHeaderSlotName, HTMLElement | null>>
+  >
+>;
+
 export interface ContextSidebarContextValue {
   /** Closes the sidebar and hands the close to the page (usually a deselect). */
   readonly close: () => void;
@@ -61,6 +74,13 @@ export interface ContextSidebarContextValue {
     registration: ContextSidebarRegistration,
   ) => () => void;
   readonly selection: ContextSidebarSelection | null;
+  /** Header slot nodes the selected page portals into, per rail or drawer. */
+  readonly headerTargets: ContextSidebarHeaderTargets;
+  readonly setHeaderTarget: (
+    mode: 'desktop' | 'mobile',
+    slot: ContextSidebarHeaderSlotName,
+    element: HTMLElement | null,
+  ) => void;
   readonly setDesktopTarget: (element: HTMLElement | null) => void;
   readonly setIsMobileOpen: (isMobileOpen: boolean) => void;
   readonly setMobileTarget: (element: HTMLElement | null) => void;
@@ -82,6 +102,18 @@ export interface ContextSidebarPanelProps {
 export interface ContextSidebarOutletProps {
   readonly className?: string;
   /** The rail outlet, or the drawer outlet used below `xl`. */
+  readonly target?: 'desktop' | 'mobile';
+  readonly testId?: string;
+}
+
+export interface ContextSidebarHeaderSlotProps {
+  readonly children: ReactNode;
+  readonly slot: ContextSidebarHeaderSlotName;
+}
+
+export interface ContextSidebarHeaderOutletProps {
+  readonly className?: string;
+  readonly slot: ContextSidebarHeaderSlotName;
   readonly target?: 'desktop' | 'mobile';
   readonly testId?: string;
 }
