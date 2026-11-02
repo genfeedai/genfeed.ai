@@ -24,10 +24,7 @@ describe('buildAdminGenerationReviewsWhere', () => {
       },
       isDeleted: false,
       status: {
-        in: [
-          IngredientStatus.PROCESSING,
-          IngredientStatus.GENERATED,
-        ],
+        in: [IngredientStatus.PROCESSING, IngredientStatus.GENERATED],
       },
     });
   });
