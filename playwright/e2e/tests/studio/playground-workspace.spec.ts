@@ -152,7 +152,9 @@ test.describe('Playground workspace', () => {
     );
 
     await expect(
-      page.getByText('This asset is no longer available in the current workspace.'),
+      page.getByText(
+        'This asset is no longer available in the current workspace.',
+      ),
     ).toBeVisible();
     await page
       .getByRole('button', { exact: true, name: 'Back to gallery' })

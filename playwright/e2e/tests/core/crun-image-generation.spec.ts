@@ -511,9 +511,7 @@ for (const key of [nanoKey, seedreamKey]) {
       )
       .toBe(true);
     // The open generation lives at /playground/:id, so a reload keeps it open.
-    await expect(page).toHaveURL(
-      new RegExp(`/playground/${fixture.ownedId}$`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/playground/${fixture.ownedId}$`));
     await page.reload();
     await expect(image).toHaveAttribute('src', fixture.ownedUrl);
     expect(fixture.consumes).toHaveLength(1);
