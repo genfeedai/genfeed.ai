@@ -12,6 +12,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => undefined,
   ContextSidebarPanel: ({
     children,
     selection,
