@@ -14,6 +14,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -61,6 +63,32 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
   usePathname: () => '/org/brand/settings/knowledge',
   useRouter: () => ({ replace: mocks.replace }),
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({
+    children,
+    iconActions,
+    leading,
+    refresh,
+    right,
+  }: {
+    children: ReactNode;
+    iconActions?: ReactNode;
+    leading?: ReactNode;
+    refresh?: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <main>
+      <div role="toolbar">
+        {leading}
+        {refresh}
+        {iconActions}
+        {right}
+      </div>
+      {children}
+    </main>
+  ),
 }));
 
 vi.mock('@/features/library/knowledge/hooks/use-knowledge-library', () => ({
@@ -140,6 +168,7 @@ vi.mock('./knowledge-source-detail-panel', async (importOriginal) => {
   };
 });
 
+import { selectFilterOption } from '@app-tests/filter-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -150,6 +179,8 @@ function row(
   id: string,
   processingState: KnowledgeProcessingState,
   processingError: string | null = null,
+  source: Record<string, unknown> = {},
+  spaceIds: string[] = [],
 ) {
   return {
     source: {
@@ -159,8 +190,9 @@ function row(
       kind: KnowledgeSourceKind.URL,
       purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
       title: `Source ${id}`,
+      ...source,
     },
-    spaceIds: [],
+    spaceIds,
     version: {
       id: `${id}-v1`,
       isCurrent: true,
@@ -176,16 +208,7 @@ function row(
 function renderList(
   overrides: Partial<Parameters<typeof KnowledgeSourcesList>[0]> = {},
 ) {
-  return render(
-    <KnowledgeSourcesList
-      brandId="brand-1"
-      isAddOpen={false}
-      onAddClose={vi.fn()}
-      onSeedHandled={vi.fn()}
-      seedRequestId={0}
-      {...overrides}
-    />,
-  );
+  return render(<KnowledgeSourcesList brandId="brand-1" {...overrides} />);
 }
 
 describe('KnowledgeSourcesList', () => {
@@ -237,7 +260,7 @@ describe('KnowledgeSourcesList', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders processing state with the failure reason and retries a failed source', async () => {
+  it('shows a failed capture as a status badge and keeps the raw error out of the list', async () => {
     mocks.useKnowledgeLibrary.mockReturnValue({
       error: null,
       isLoading: false,
@@ -253,7 +276,8 @@ describe('KnowledgeSourcesList', () => {
     renderList();
 
     expect(screen.getByText('Ready')).toBeInTheDocument();
-    expect(screen.getByText('Fetch failed (503)')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.queryByText('Fetch failed (503)')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry ingestion' }));
     await waitFor(() =>
       expect(mocks.retry).toHaveBeenCalledWith('b', 'brand-1'),
@@ -263,9 +287,9 @@ describe('KnowledgeSourcesList', () => {
 
   it('captures a new source through the API and closes the sheet', async () => {
     mocks.capture.mockResolvedValue({ jobId: 'job', source: { id: 'new' } });
-    const onAddClose = vi.fn();
 
-    renderList({ isAddOpen: true, onAddClose });
+    renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
     expect(screen.getByTestId('add-sheet')).toBeInTheDocument();
     await act(async () => {
       await mocks.addSheetSubmit?.({
@@ -286,32 +310,21 @@ describe('KnowledgeSourcesList', () => {
         'brand-1',
       ),
     );
-    expect(onAddClose).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByTestId('add-sheet')).not.toBeInTheDocument(),
+    );
     expect(mocks.notificationSuccess).toHaveBeenCalled();
   });
 
   it('seeds the brand website as a Brand Truth URL source exactly once', async () => {
     mocks.capture.mockResolvedValue({ jobId: 'job', source: { id: 'seed' } });
-    const onSeedHandled = vi.fn();
 
-    const view = renderList({
-      onSeedHandled,
-      seedRequestId: 1,
-      website: 'https://brand.example/',
-    });
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        onSeedHandled={onSeedHandled}
-        seedRequestId={1}
-        website="https://brand.example/"
-      />,
+    renderList({ website: 'https://brand.example/' });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Seed from Brand Kit' }),
     );
 
-    await waitFor(() => expect(onSeedHandled).toHaveBeenCalled());
-    expect(mocks.capture).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mocks.capture).toHaveBeenCalledTimes(1));
     expect(mocks.capture).toHaveBeenCalledWith(
       {
         kind: KnowledgeSourceKind.URL,
@@ -536,15 +549,7 @@ describe('KnowledgeSourcesList', () => {
       '/org/brand/settings/knowledge?page=3&view=all',
       { scroll: false },
     );
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        seedRequestId={0}
-        onSeedHandled={vi.fn()}
-      />,
-    );
+    view.rerender(<KnowledgeSourcesList brandId="brand-1" />);
     expect(screen.queryByTestId('detail')).toBeNull();
   });
 
@@ -568,8 +573,8 @@ describe('KnowledgeSourcesList', () => {
     },
   );
 
-  it('keeps an offpage selected source inspectable outside the local space filter', () => {
-    mocks.search = 'page=3&sourceId=offpage';
+  it('keeps an offpage selected source inspectable outside the space filter', () => {
+    mocks.search = 'page=3&space=inbox&sourceId=offpage';
     mocks.useKnowledgeLibrary.mockReturnValue({
       error: null,
       selectionError: null,
@@ -580,8 +585,6 @@ describe('KnowledgeSourcesList', () => {
       selectedRow: row('offpage', KnowledgeProcessingState.READY),
     });
     renderList();
-    expect(screen.getByText('Source a')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: 'Inbox' }));
     expect(screen.queryByText('Source a')).toBeNull();
     expect(screen.getByTestId('detail')).toHaveTextContent('Source offpage');
     expect(mocks.useKnowledgeLibrary).toHaveBeenLastCalledWith({
@@ -654,15 +657,7 @@ describe('KnowledgeSourcesList', () => {
       spaces: [],
       selectedRow: row('a', KnowledgeProcessingState.READY),
     });
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        seedRequestId={0}
-        onSeedHandled={vi.fn()}
-      />,
-    );
+    view.rerender(<KnowledgeSourcesList brandId="brand-1" />);
     expect(screen.queryByTestId('detail')).toBeNull();
     mocks.useKnowledgeLibrary.mockReturnValue({
       error: null,
@@ -672,15 +667,7 @@ describe('KnowledgeSourcesList', () => {
       spaces: [],
       selectedRow: row('b', KnowledgeProcessingState.READY),
     });
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        seedRequestId={0}
-        onSeedHandled={vi.fn()}
-      />,
-    );
+    view.rerender(<KnowledgeSourcesList brandId="brand-1" />);
     expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
     mocks.search = 'sourceId=a';
     mocks.useKnowledgeLibrary.mockReturnValue({
@@ -691,15 +678,7 @@ describe('KnowledgeSourcesList', () => {
       spaces: [],
       selectedRow: row('a', KnowledgeProcessingState.READY),
     });
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        seedRequestId={0}
-        onSeedHandled={vi.fn()}
-      />,
-    );
+    view.rerender(<KnowledgeSourcesList brandId="brand-1" />);
     expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
   });
 
@@ -733,10 +712,6 @@ describe('KnowledgeSourcesList', () => {
         view.rerender(
           <KnowledgeSourcesList
             brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
-            isAddOpen={false}
-            onAddClose={vi.fn()}
-            seedRequestId={0}
-            onSeedHandled={vi.fn()}
           />,
         );
       }
@@ -784,10 +759,6 @@ describe('KnowledgeSourcesList', () => {
       view.rerender(
         <KnowledgeSourcesList
           brandId={change === 'brand' ? 'brand-2' : 'brand-1'}
-          isAddOpen={false}
-          onAddClose={vi.fn()}
-          seedRequestId={0}
-          onSeedHandled={vi.fn()}
         />,
       );
       await act(async () => {
@@ -828,15 +799,7 @@ describe('KnowledgeSourcesList', () => {
       selectedRow: null,
       selectionError: 'Knowledge could not be loaded.',
     });
-    view.rerender(
-      <KnowledgeSourcesList
-        brandId="brand-1"
-        isAddOpen={false}
-        onAddClose={vi.fn()}
-        seedRequestId={0}
-        onSeedHandled={vi.fn()}
-      />,
-    );
+    view.rerender(<KnowledgeSourcesList brandId="brand-1" />);
     expect(screen.queryByTestId('detail')).toBeNull();
     await act(async () => {
       complete();
@@ -867,13 +830,7 @@ describe('KnowledgeSourcesList', () => {
     render(
       <ContextSidebarProvider>
         <ContextSidebarOutlet testId="real-outlet" />
-        <KnowledgeSourcesList
-          brandId="brand-1"
-          isAddOpen={false}
-          onAddClose={vi.fn()}
-          seedRequestId={0}
-          onSeedHandled={vi.fn()}
-        />
+        <KnowledgeSourcesList brandId="brand-1" />
       </ContextSidebarProvider>,
     );
     expect(screen.getByTestId('real-outlet')).toHaveTextContent(
@@ -891,5 +848,144 @@ describe('KnowledgeSourcesList', () => {
     await waitFor(() =>
       expect(mocks.retry).toHaveBeenCalledWith('offpage', 'brand-1'),
     );
+  });
+
+  describe('documents, links and filters', () => {
+    const spaces = [
+      { id: 'inbox', isInbox: true, title: 'Inbox' },
+      { id: 'launch', isInbox: false, title: 'Launch' },
+    ];
+
+    function showMixedSources() {
+      mocks.useKnowledgeLibrary.mockReturnValue({
+        error: null,
+        isLoading: false,
+        refresh: mocks.refresh,
+        rows: [
+          row(
+            'page',
+            KnowledgeProcessingState.READY,
+            null,
+            {
+              kind: KnowledgeSourceKind.URL,
+              referenceUrl: 'https://www.brand.example/pricing?plan=pro',
+              title: 'Pricing page',
+            },
+            ['inbox'],
+          ),
+          row(
+            'pdf',
+            KnowledgeProcessingState.FAILED,
+            'No extractable text in PDF',
+            {
+              kind: KnowledgeSourceKind.DOCUMENT,
+              referenceUrl: 'https://brand.example/media-kit.pdf',
+              title: 'Media kit',
+            },
+            ['launch'],
+          ),
+          row('notes', KnowledgeProcessingState.PROCESSING, null, {
+            kind: KnowledgeSourceKind.TEXT,
+            title: 'Voice notes',
+          }),
+        ],
+        spaces,
+      });
+    }
+
+    it('shows each source with its kind and a link to where it came from', () => {
+      showMixedSources();
+      renderList();
+
+      expect(
+        screen.getByRole('link', { name: 'Open Pricing page' }),
+      ).toHaveAttribute('href', 'https://www.brand.example/pricing?plan=pro');
+      expect(
+        screen.getByRole('link', { name: 'Open Pricing page' }),
+      ).toHaveTextContent('brand.example/pricing?plan=pro');
+      expect(
+        screen.getByRole('link', { name: 'Open Media kit' }),
+      ).toHaveTextContent('brand.example/media-kit.pdf');
+      expect(screen.getByRole('img', { name: 'Web page' })).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Document' })).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Text' })).toBeInTheDocument();
+      expect(
+        screen.queryByText('No extractable text in PDF'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not open the details when a source link is clicked', () => {
+      showMixedSources();
+      renderList();
+
+      fireEvent.click(screen.getByRole('link', { name: 'Open Media kit' }));
+
+      expect(screen.queryByTestId('detail')).toBeNull();
+    });
+
+    it.each([
+      { expected: ['Media kit'], search: 'status=failed' },
+      { expected: ['Voice notes'], search: 'type=text' },
+      { expected: ['Pricing page'], search: 'space=inbox' },
+      { expected: ['Media kit'], search: 'space=launch&status=failed' },
+      { expected: ['Pricing page'], search: 'q=pricing' },
+      { expected: ['Media kit'], search: 'q=media-kit.pdf' },
+      {
+        expected: ['Pricing page', 'Media kit', 'Voice notes'],
+        search: 'status=bogus&type=bogus',
+      },
+    ])('lists $expected for ?$search', ({ expected, search }) => {
+      mocks.search = search;
+      showMixedSources();
+      renderList();
+
+      for (const title of ['Pricing page', 'Media kit', 'Voice notes']) {
+        if (expected.includes(title))
+          expect(screen.getByText(title)).toBeInTheDocument();
+        else expect(screen.queryByText(title)).not.toBeInTheDocument();
+      }
+    });
+
+    it('says no sources match when filters remove every row', () => {
+      mocks.search = 'status=queued';
+      showMixedSources();
+      renderList();
+
+      expect(
+        screen.getByText('No sources match these filters'),
+      ).toBeInTheDocument();
+    });
+
+    it.each([
+      { facet: 'Status', option: 'Failed', query: '?status=failed' },
+      { facet: 'Type', option: 'Document', query: '?type=document' },
+      { facet: 'Space', option: 'Launch', query: '?space=launch' },
+    ])(
+      'puts the $facet filter in the page URL',
+      async ({ facet, option, query }) => {
+        showMixedSources();
+        renderList();
+
+        await selectFilterOption(userEvent.setup(), facet, option);
+
+        expect(mocks.replace).toHaveBeenCalledWith(
+          `/org/brand/settings/knowledge${query}`,
+          { scroll: false },
+        );
+      },
+    );
+
+    it('keeps the selected source and page when a filter changes', async () => {
+      mocks.search = 'page=2&sourceId=pdf';
+      showMixedSources();
+      renderList();
+
+      await selectFilterOption(userEvent.setup(), 'Status', 'Failed');
+
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/org/brand/settings/knowledge?page=2&sourceId=pdf&status=failed',
+        { scroll: false },
+      );
+    });
   });
 });
