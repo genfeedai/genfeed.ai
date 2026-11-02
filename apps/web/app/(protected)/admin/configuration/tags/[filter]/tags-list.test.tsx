@@ -37,7 +37,6 @@ vi.mock('next-intl', async () => {
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
-    organizationId: 'org-1',
   }),
 }));
 
@@ -179,17 +178,8 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalTag: ({
-    entityId,
-    item,
-    onConfirm,
-  }: {
-    entityId?: string;
-    item?: { label?: string } | null;
-    onConfirm: () => void;
-  }) => (
-    <div data-entity-id={entityId} data-testid="tag-modal">
-      Modal item: {item?.label ?? 'none'}
+  LazyModalTag: ({ onConfirm }: { onConfirm: () => void }) => (
+    <div data-testid="tag-modal">
       <button type="button" onClick={onConfirm}>
         Confirm Modal
       </button>

@@ -11,7 +11,6 @@ import type {
   ModalEnum,
   Platform,
   PostFormat,
-  TagCategory,
 } from '@genfeedai/contracts';
 import type {
   IAsset,
@@ -176,10 +175,7 @@ export interface ModalStoryboardUploadProps {
   isMultiple?: boolean;
 }
 
-export interface ModalTagProps extends ModalCreateProps {
-  entityType?: TagCategory;
-  entityId?: string;
-}
+export type ModalTagProps = ModalCreateProps;
 
 export interface ModalRoleProps {
   onConfirm: (isRefreshing?: boolean) => void;

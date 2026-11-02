@@ -298,7 +298,6 @@ export function useTagsList({
     isRefreshing,
     onSortChange: tableSort.onSortChange,
     openDeleteConfirm,
-    organizationId,
     refresh,
     saveTag,
     scope,
