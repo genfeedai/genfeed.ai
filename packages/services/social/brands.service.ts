@@ -45,6 +45,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import {
   type BrandRelocationDocument,
   type BrandRelocationPollOptions,
@@ -134,7 +135,7 @@ export class BrandsService extends BaseService<Brand> {
   public async findBrandActivities(
     id: string,
     query?: BrandQueryParams,
-  ): Promise<Activity[]> {
+  ): Promise<IPaginatedResponse<Activity>> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
@@ -142,16 +143,11 @@ export class BrandsService extends BaseService<Brand> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-          PagesService.setTotalDocs(pagination.total ?? 0);
-        }
-
-        return deserializeCollection<Partial<IActivity>>(document).map(
-          (item) => new Activity(item),
+        return toPaginatedResponse(
+          deserializeCollection<Partial<IActivity>>(document).map(
+            (item) => new Activity(item),
+          ),
+          document,
         );
       });
   }

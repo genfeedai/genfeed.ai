@@ -45,6 +45,7 @@ import {
 import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeCollection } from '@services/core/json-api';
 import { normalizeOperationError } from '@services/core/operation-error';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import { serializeRequest } from '@services/core/request-serializers';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -307,7 +308,7 @@ export class OrganizationsService extends BaseService<Organization> {
   public async findOrganizationActivities(
     id: string,
     query?: IQueryParams,
-  ): Promise<Activity[]> {
+  ): Promise<IPaginatedResponse<Activity>> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
@@ -315,16 +316,11 @@ export class OrganizationsService extends BaseService<Organization> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-          PagesService.setTotalDocs(pagination.total ?? 0);
-        }
-
         const activities = this.extractCollection<Partial<IActivity>>(document);
-        return activities.map((item) => new Activity(item));
+        return toPaginatedResponse(
+          activities.map((item) => new Activity(item)),
+          document,
+        );
       });
   }
 

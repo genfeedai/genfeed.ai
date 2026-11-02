@@ -20,8 +20,14 @@ import ClipperProjectList from './ClipperProjectList';
  */
 export default function ClipperProjectsPane() {
   const t = useTranslations('pages.studioClipper');
-  const { deleteProject, error, isLoading, projects, renameProject } =
-    useStudioClipperProjects({ isEnabled: true });
+  const {
+    deleteProject,
+    error,
+    isLoading,
+    projects,
+    pageTotals,
+    renameProject,
+  } = useStudioClipperProjects({ isEnabled: true });
   const { search, setSearch } = useAdminSearchParam();
   // The agent hears about the projects on screen once the list has loaded, so
   // a change request is never matched against a half-known list.
@@ -77,7 +83,7 @@ export default function ClipperProjectsPane() {
           />
         ) : null}
         {hasProjects && !isLoading ? (
-          <AutoPagination showTotal totalLabel="projects" />
+          <AutoPagination showTotal totalLabel="projects" totals={pageTotals} />
         ) : null}
       </div>
     </Container>

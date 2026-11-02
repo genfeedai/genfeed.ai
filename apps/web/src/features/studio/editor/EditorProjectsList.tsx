@@ -1,9 +1,14 @@
 'use client';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   CreativeAppAgentContext,
   IEditorProject,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -86,7 +91,12 @@ export default function EditorProjectsList() {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
-  const [projects, setProjects] = useState<IEditorProject[] | null>(null);
+  const [projectsPage, setProjectsPage] =
+    useState<IPaginatedResponse<IEditorProject> | null>(null);
+  const projects = projectsPage?.items ?? null;
+  const pageTotals = projectsPage
+    ? { totalDocs: projectsPage.total, totalPages: projectsPage.totalPages }
+    : EMPTY_PAGE_TOTALS;
   const [hasError, setHasError] = useState(false);
   const [renameTarget, setRenameTarget] = useState<IEditorProject | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -118,10 +128,10 @@ export default function EditorProjectsList() {
   const loadProjects = useCallback(
     async (signal?: AbortSignal) => {
       try {
-        setProjects(null);
+        setProjectsPage(null);
         setHasError(false);
         const service = await getEditorService();
-        const pageProjects = await service.findAll(
+        const pageProjects = await service.findAllPage(
           {
             limit: ITEMS_PER_PAGE,
             page: currentPage,
@@ -132,7 +142,7 @@ export default function EditorProjectsList() {
         if (signal?.aborted) {
           return;
         }
-        setProjects(pageProjects);
+        setProjectsPage(pageProjects);
       } catch (error) {
         if (
           signal?.aborted ||
@@ -158,7 +168,14 @@ export default function EditorProjectsList() {
       try {
         const service = await getEditorService();
         await service.delete(projectId);
-        setProjects((prev) => (prev ?? []).filter((p) => p.id !== projectId));
+        setProjectsPage((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.filter((p) => p.id !== projectId),
+              }
+            : current,
+        );
       } catch (error) {
         logger.error('Failed to delete editor project', {
           error,
@@ -198,12 +215,17 @@ export default function EditorProjectsList() {
       try {
         const service = await getEditorService();
         await service.update(projectId, { name });
-        setProjects((prev) =>
-          (prev ?? []).map((project) =>
-            project.id === projectId
-              ? { ...project, name, updatedAt: new Date().toISOString() }
-              : project,
-          ),
+        setProjectsPage((current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((project) =>
+                  project.id === projectId
+                    ? { ...project, name, updatedAt: new Date().toISOString() }
+                    : project,
+                ),
+              }
+            : current,
         );
         setRenameTarget(null);
       } catch (error) {
@@ -304,7 +326,7 @@ export default function EditorProjectsList() {
           <CollectionList data-testid="editor-projects-all">
             {projects.map(renderProjectRow)}
           </CollectionList>
-          <AutoPagination showTotal totalLabel="projects" />
+          <AutoPagination showTotal totalLabel="projects" totals={pageTotals} />
         </div>
       ) : search ? (
         <EmptyState

@@ -110,9 +110,10 @@ describe('OrganizationsService HTTP methods', () => {
         expect.stringContaining('/activities'),
         { params: { organizationId: orgId, page: 1 } },
       );
-      expect(setCurrentPage).toHaveBeenCalledWith(1);
-      expect(setTotalDocs).toHaveBeenCalledWith(12);
-      expect(result[0].id).toBe('activity_1');
+      expect(setCurrentPage).not.toHaveBeenCalled();
+      expect(setTotalDocs).not.toHaveBeenCalled();
+      expect(result.items[0].id).toBe('activity_1');
+      expect(result).toMatchObject({ total: 12, totalPages: 2 });
     });
   });
 

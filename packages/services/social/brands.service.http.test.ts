@@ -296,7 +296,7 @@ describe('BrandsService HTTP methods', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
-  it('findBrandActivities records pagination when page is set', async () => {
+  it('findBrandActivities returns row metadata without publishing global totals', async () => {
     const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
     const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
     const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
@@ -314,10 +314,11 @@ describe('BrandsService HTTP methods', () => {
       expect.stringContaining('/activities'),
       { params: { brandId, page: 2 } },
     );
-    expect(setCurrentPage).toHaveBeenCalledWith(2);
-    expect(setTotalPages).toHaveBeenCalledWith(3);
-    expect(setTotalDocs).toHaveBeenCalledWith(22);
-    expect(result[0]).toBeInstanceOf(Activity);
+    expect(setCurrentPage).not.toHaveBeenCalled();
+    expect(setTotalPages).not.toHaveBeenCalled();
+    expect(setTotalDocs).not.toHaveBeenCalled();
+    expect(result.items[0]).toBeInstanceOf(Activity);
+    expect(result).toMatchObject({ total: 22, totalPages: 3 });
   });
 
   it('findBrandPosts records pagination and returns items', async () => {
