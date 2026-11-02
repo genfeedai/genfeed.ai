@@ -1,5 +1,8 @@
 'use client';
-import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
+import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -173,8 +176,18 @@ export default function AppTable<T>({
     rowSidebar.getId(sidebarItemRef.current) === sidebarRowId
       ? sidebarItemRef.current
       : null;
+  const contextSidebar = useContextSidebar();
+  // Closing the panel collapses it and keeps the row selected, so the topbar
+  // Context toggle stays and can bring it back. Picking the row again reopens
+  // a collapsed panel (the same selection never reopens it on its own).
+  const isSidebarOpen = Boolean(
+    contextSidebar?.isOpen || contextSidebar?.isMobileOpen,
+  );
   const onActivateRow = rowSidebar
-    ? (item: T) => setSidebarRowId(rowSidebar.getId(item))
+    ? (item: T) => {
+        setSidebarRowId(rowSidebar.getId(item));
+        contextSidebar?.reveal();
+      }
     : onRowClick;
 
   const handleScrollPointerDown = (
@@ -614,6 +627,7 @@ export default function AppTable<T>({
                 const nameLink = rowSidebar ? rowLink : undefined;
                 const isSidebarRow =
                   rowSidebar !== undefined &&
+                  isSidebarOpen &&
                   sidebarRowId === rowSidebar.getId(item);
                 const rowKey = getRowKey ? getRowKey(item, index) : index;
                 const expandedContent = renderExpandedRow?.(item);
@@ -648,7 +662,7 @@ export default function AppTable<T>({
                         coverLink && 'relative cursor-pointer',
                         !coverLink &&
                           onActivateRow &&
-                          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                          'cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:ring-inset',
                         getRowClassName?.(item),
                       )}
                       onClick={
@@ -749,7 +763,7 @@ export default function AppTable<T>({
       </div>
       {rowSidebar ? (
         <ContextSidebarPanel
-          onClose={() => setSidebarRowId(null)}
+          onClose={() => undefined}
           selection={
             sidebarItem
               ? {
