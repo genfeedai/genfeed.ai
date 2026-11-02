@@ -3,9 +3,11 @@
 import { ButtonVariant, CreditHoldRecoveryAction } from '@genfeedai/contracts';
 import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import type { AdminCreditHoldRow } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminCreditHoldsService } from '@services/admin/credit-holds.service';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -25,10 +27,11 @@ export default function CreditHoldsPanel({
   const [reason, setReason] = useState('');
   const [selected, setSelected] = useState<AdminCreditHoldRow>();
   const [action, setAction] = useState(CreditHoldRecoveryAction.RELEASE);
-  const report = useQuery({
-    queryKey: ['admin-credit-holds', organizationId, cursor],
-    queryFn: async ({ signal }) =>
-      (await getService()).list(organizationId, cursor, signal),
+  // Cached per organization and cursor, scoped to the signed-in account.
+  const report = useAuthedQuery({
+    queryFn: (service, signal) => service.list(organizationId, cursor, signal),
+    queryKey: ['admin', 'credit-holds', organizationId, { cursor }],
+    service: (token: string) => AdminCreditHoldsService.getInstance(token),
   });
   const mutation = useMutation({
     mutationFn: async () => {
@@ -43,7 +46,8 @@ export default function CreditHoldsPanel({
       setReason('');
       await Promise.all([
         report.refetch(),
-        queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] }),
+        // The subscriptions list shows the balance the action just changed.
+        queryClient.invalidateQueries({ queryKey: ['admin', 'subscriptions'] }),
       ]);
     },
   });
@@ -61,7 +65,14 @@ export default function CreditHoldsPanel({
         {t('title', { organization: organizationName })}
       </h2>
       <p className="text-muted-foreground text-sm">{t('description')}</p>
-      {report.isLoading && <p>{t('loading')}</p>}
+      {report.isLoading && (
+        <SkeletonCard
+          label={t('loading')}
+          showActions={false}
+          showDescription={false}
+          showImage={false}
+        />
+      )}
       {report.error && <p role="alert">{t('loadError')}</p>}
       {report.data?.rows.length === 0 && <p>{t('empty')}</p>}
       {report.data?.rows.map((hold) => (

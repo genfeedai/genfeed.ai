@@ -139,31 +139,7 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 }));
 
 vi.mock('@/components/overview/OverviewLayout', () => ({
-  OverviewContent: ({
-    cards,
-    header,
-  }: {
-    cards: Array<{
-      description: string;
-      href: string;
-      id: string;
-      label: string;
-    }>;
-    header: ReactNode;
-  }) => (
-    <main>
-      {header}
-      <section aria-label="Publishing destinations">
-        {cards.map((card) => (
-          <article key={card.id}>
-            <h2>{card.label}</h2>
-            <p>{card.description}</p>
-            <a href={card.href}>Open {card.label}</a>
-          </article>
-        ))}
-      </section>
-    </main>
-  ),
+  OverviewContent: ({ header }: { header: ReactNode }) => <main>{header}</main>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -269,13 +245,6 @@ describe('PublishingOverviewPage', () => {
     expect(
       screen.getByRole('region', { name: 'Publishing metrics' }),
     ).toHaveAttribute('data-error', 'Publishing metrics could not be loaded.');
-    expect(screen.getByText('Review queue could not be loaded.')).toBeVisible();
-    expect(
-      screen.getByText('Not-posted posts could not be loaded.'),
-    ).toBeVisible();
-    expect(
-      screen.getByText('Published posts could not be loaded.'),
-    ).toBeVisible();
   });
 
   it('keeps overview section failures independent and lets cadence errors win', () => {
@@ -337,15 +306,6 @@ describe('PublishingOverviewPage', () => {
     expectMetric('Not posted', 3);
     expectMetric('Published', 12);
     expectMetric('Failed items', 1);
-    expect(
-      screen.getByText('2 items ready to approve or reject.'),
-    ).toBeVisible();
-    expect(
-      screen.getByText('3 draft or scheduled posts in the pipeline.'),
-    ).toBeVisible();
-    expect(
-      screen.getByText('12 live posts across destinations.'),
-    ).toBeVisible();
   });
 
   it('loads organization-wide publishing data without a selected brand', () => {

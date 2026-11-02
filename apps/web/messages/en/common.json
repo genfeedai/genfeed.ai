@@ -95,7 +95,8 @@
       "skipped": "{operation, select, import {Skipped importing existing posts from {articleSubject}} other {Skipped {articleSubject}}}"
     },
     "post": {
-      "ready": "Content is ready for review"
+      "ready": "Content is ready for review",
+      "transition": "{fromState, select, none {Post state changed} other {Post moved from {fromState} to {toState}}}"
     },
     "agent": {
       "review_changed": "Agent review updated",
@@ -119,6 +120,12 @@
     "approval": {
       "requested": "Tool approval needed"
     },
+    "brand_os_export": {
+      "download": "Brand OS export downloaded",
+      "public_read": "Brand OS export opened from its public link",
+      "publish": "Brand OS export published",
+      "revoke": "Brand OS export revoked"
+    },
     "view": "View"
   },
   "listSearch": {
@@ -126,7 +133,34 @@
     "scenes": "Search scenes"
   },
   "adminDashboard": {
-    "loadFailed": "Could not load the platform stats. Try again."
+    "activityChart": {
+      "description": "Views and likes across connected platforms",
+      "empty": "No activity in this period",
+      "likes": "Likes",
+      "loading": "Loading chart…",
+      "range30": "30 Days",
+      "range7": "7 Days",
+      "title": "Platform Activity",
+      "views": "Views"
+    },
+    "loadFailed": "Could not load the platform stats. Try again.",
+    "quickActions": {
+      "elements": {
+        "cta": "View Elements",
+        "description": "Manage blacklisted terms and prompt elements.",
+        "label": "Elements"
+      },
+      "posts": {
+        "cta": "View Posts",
+        "description": "Browse posts across every organization.",
+        "label": "Posts"
+      },
+      "users": {
+        "cta": "Manage Users",
+        "description": "Review accounts, roles and access.",
+        "label": "Users"
+      }
+    }
   },
   "adminSearch": {
     "announcements": "Search announcements",
@@ -175,6 +209,36 @@
       },
       "title": "Authorize an agent",
       "unavailableTitle": "Claim unavailable"
+    }
+  },
+  "contentPreview": {
+    "claim": {
+      "action": "Claim this content",
+      "failed": "We could not send the link. Try again in a minute.",
+      "prompt": "This content is worth posting on your socials.",
+      "sent": "Check your email. We sent a link to the address this was prepared for. Open it to claim your content."
+    },
+    "context": {
+      "audience": "Audience",
+      "colors": "Colors",
+      "description": "What we read from your website. You can edit it after you claim.",
+      "messagingPillars": "Messaging",
+      "style": "Style",
+      "title": "What we know about you",
+      "tone": "Tone",
+      "values": "Values"
+    },
+    "feed": {
+      "empty": "Nothing to show yet.",
+      "status": "Preview",
+      "title": "Your feed, made by Genfeed"
+    },
+    "loading": "Loading your preview",
+    "metaTitle": "Your preview | Genfeed",
+    "opensUntil": "Preview · opens until {date}",
+    "unavailable": {
+      "description": "It may have expired or been replaced. Ask the person who sent it for a new link.",
+      "title": "This preview is not available"
     }
   },
   "desktopAuth": {
@@ -1320,7 +1384,6 @@
         "revealLogs": "Reveal logs",
         "title": "Local mode needs attention"
       },
-      "eyebrow": "Local mode",
       "loading": "Starting local workspace…",
       "generation": {
         "description": "Uses the provider configured on this device.",
@@ -1510,9 +1573,6 @@
   },
   "automation": {
     "cadence": {
-      "weeklyTarget": "Weekly posting target",
-      "publishingCeiling": "Weekly publishing ceiling",
-      "draftReserve": "Ready-draft reserve",
       "help": "Targets guide generation within your credit and quality limits. The ceiling limits content groups per calendar week in the agent’s timezone. Reserve drafts stay in review. Existing agents keep their legacy limits until a ceiling or reserve is configured.",
       "invalid": "Use a target of 1–100, a ceiling at least as high as the target (up to 1000), and a reserve of 0–100. Replace configured values instead of leaving them blank; use a reserve of 0 to stop maintaining spare drafts.",
       "title": "Posting and draft supply",
@@ -1585,7 +1645,6 @@
       "attributedVisits": "{impressions} impressions · {clicks} clicks · {visits} visits attributed to this agent.",
       "backToHub": "Back to Agent Hub",
       "bestWindows": "Best posting windows: {windows}",
-      "budget": "Budget: {amount}",
       "deactivate": "Deactivate",
       "factAutonomy": "Autonomy",
       "factBrand": "Brand",

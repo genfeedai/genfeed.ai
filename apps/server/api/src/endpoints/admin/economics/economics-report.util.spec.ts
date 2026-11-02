@@ -2,6 +2,7 @@ import {
   buildDailyPoints,
   buildEconomicsTotals,
   buildOperationCoverage,
+  costPerUnitUsd,
   EMPTY_ECONOMICS_DAILY_AGGREGATE,
   enumerateWindowDays,
   operationForCreditSource,
@@ -184,5 +185,16 @@ describe('operation coverage', () => {
       'avatar',
       'other',
     ]);
+  });
+});
+
+describe('cost per unit', () => {
+  it.each([
+    [0.5, 2, 0.25],
+    [1, 3, 0.333333],
+    [0, 4, 0],
+    [2, 0, null],
+  ])('divides %s over %s units into %s', (costUsd, units, expected) => {
+    expect(costPerUnitUsd(costUsd, units)).toBe(expected);
   });
 });

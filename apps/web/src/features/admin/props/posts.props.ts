@@ -6,7 +6,7 @@ export interface PostsLayoutState {
   isRefreshing: boolean;
   filtersNode: ReactNode;
   leadingNode: ReactNode;
-  exportNode: ReactNode;
+  overflowNode: ReactNode;
   viewToggleNode: ReactNode;
   scheduleActionsNode: ReactNode;
 }
@@ -19,7 +19,7 @@ export type PostsLayoutAction =
   | { type: 'SET_IS_REFRESHING'; payload: boolean }
   | { type: 'SET_FILTERS_NODE'; payload: ReactNode }
   | { type: 'SET_LEADING_NODE'; payload: ReactNode }
-  | { type: 'SET_EXPORT_NODE'; payload: ReactNode }
+  | { type: 'SET_OVERFLOW_NODE'; payload: ReactNode }
   | { type: 'SET_VIEW_TOGGLE_NODE'; payload: ReactNode }
   | { type: 'SET_SCHEDULE_ACTIONS_NODE'; payload: ReactNode };
 

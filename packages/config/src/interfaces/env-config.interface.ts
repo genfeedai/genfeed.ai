@@ -181,6 +181,7 @@ export interface IEnvConfig {
   INSTAGRAM_API_VERSION?: string;
   INSTAGRAM_APP_ID?: string;
   INSTAGRAM_APP_SECRET?: string;
+  INSTAGRAM_WEBHOOK_VERIFY_TOKEN?: string;
   INSTAGRAM_REDIRECT_URI?: string;
   INSTAGRAM_CLIENT_ID?: string;
   INSTAGRAM_CLIENT_SECRET?: string;

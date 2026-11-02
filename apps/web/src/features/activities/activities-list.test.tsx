@@ -88,6 +88,16 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+/** Body rows only: skips the header row and the day-group heading rows. */
+function getActivityRows(): HTMLElement[] {
+  return screen
+    .getAllByRole('row')
+    .filter(
+      (row) =>
+        row.querySelector('td') !== null && !row.querySelector('td[colspan]'),
+    );
+}
+
 function buildActivity(overrides: Partial<IActivity> = {}): IActivity {
   return {
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -148,8 +158,8 @@ describe('ActivitiesList', () => {
       />,
     );
     expect(screen.getByText('Onboarding preview image')).toBeInTheDocument();
-    expect(screen.getByText('−1 credit')).toBeInTheDocument();
-    expect(screen.queryByText('1 credits used')).not.toBeInTheDocument();
+    expect(screen.getByText('−1')).toBeInTheDocument();
+    expect(screen.queryByText('−1 credit')).not.toBeInTheDocument();
   });
 
   it('shows the settled cost on a generation row', () => {
@@ -166,7 +176,7 @@ describe('ActivitiesList', () => {
         isFiltersEnabled={false}
       />,
     );
-    expect(screen.getByText('−4 credits')).toBeInTheDocument();
+    expect(screen.getByText('−4')).toBeInTheDocument();
   });
 
   it('shows a dash when a generation has no recorded charge', () => {
@@ -184,6 +194,109 @@ describe('ActivitiesList', () => {
       />,
     );
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('leads with a UTC clock and groups rows under a day heading', () => {
+    mockActivities = [
+      buildActivity({
+        createdAt: '2026-01-02T09:30:15.000Z',
+        id: 'newer',
+        value: JSON.stringify({
+          completedAt: '2026-01-02T09:31:57.000Z',
+          startedAt: '2026-01-02T09:30:15.000Z',
+        }),
+      }),
+      buildActivity({ createdAt: '2026-01-01T00:00:00.000Z', id: 'older' }),
+    ];
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('Fri, Jan 2 · UTC')).toBeInTheDocument();
+    expect(screen.getByText('Thu, Jan 1 · UTC')).toBeInTheDocument();
+    expect(screen.getByText('09:30:15')).toBeInTheDocument();
+    expect(screen.getByText(/^ran 1m 42s · /)).toBeInTheDocument();
+    expect(screen.getByText('00:00:00')).toBeInTheDocument();
+  });
+
+  it('offers no sort controls on any column header', () => {
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    for (const header of screen.getAllByRole('columnheader')) {
+      expect(within(header).queryByRole('button')).not.toBeInTheDocument();
+    }
+  });
+
+  it('reads a post transition in words and shows the state it moved to', () => {
+    mockActivities = [
+      buildActivity({
+        key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+        value: JSON.stringify({ from: 'scheduled', to: 'publishing' }),
+      }),
+    ];
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(
+      screen.getByText('Post moved from Scheduled to Publishing'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a dash instead of a status for rows that record none', () => {
+    mockActivities = [
+      buildActivity({
+        key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+        value: 'not json',
+      }),
+    ];
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(
+      within(getActivityRows()[0]).getAllByText('—').length,
+    ).toBeGreaterThan(0);
+    expect(within(getActivityRows()[0]).queryByText(/pending/i)).toBeNull();
+  });
+
+  it('renders no thumbnail column or media without a real preview', () => {
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('columnheader', { name: 'Organization' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('columnheader')
+        .map((header) => header.textContent)
+        .filter(Boolean),
+    ).toEqual(['When', 'Description', 'Status', 'Credits']);
+    expect(getActivityRows()[0].querySelector('img, video')).toBeNull();
   });
 
   it('renders the activities container', () => {
@@ -366,7 +479,7 @@ describe('ActivitiesList', () => {
       ];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       const panel = await screen.findByTestId('activity-detail-panel');
       const header = screen.getByTestId('rail-header');
@@ -389,7 +502,7 @@ describe('ActivitiesList', () => {
       mockActivities = [buildActivity({ id: 'read-one', isRead: true })];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       await screen.findByTestId('activity-detail-panel');
       expect(
@@ -412,7 +525,7 @@ describe('ActivitiesList', () => {
       ];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       const panel = await screen.findByTestId('activity-detail-panel');
       const video = panel.querySelector('video');
@@ -435,7 +548,7 @@ describe('ActivitiesList', () => {
       ];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       const panel = await screen.findByTestId('activity-detail-panel');
       expect(panel.querySelector('video')).toBeNull();
@@ -466,7 +579,7 @@ describe('ActivitiesList', () => {
       renderWithSidebar(PageScope.ORGANIZATION);
 
       for (const row of [1, 2]) {
-        await user.click(screen.getAllByRole('row')[row]);
+        await user.click(getActivityRows()[row - 1]);
         const panel = await screen.findByTestId('activity-detail-panel');
         expect(panel.querySelector('video')).toBeNull();
         expect(within(panel).queryByRole('img')).not.toBeInTheDocument();
@@ -483,7 +596,7 @@ describe('ActivitiesList', () => {
       ];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       const panel = await screen.findByTestId('activity-detail-panel');
       const term = within(panel).getByText('Credits');
@@ -495,6 +608,21 @@ describe('ActivitiesList', () => {
     function renderAdmin() {
       return renderWithSidebar(PageScope.SUPERADMIN);
     }
+
+    it('shows the organization name in its own column', () => {
+      mockActivities = [
+        buildActivity({
+          organizationLabel: 'Acme Studio',
+        } as Partial<IActivity>),
+        buildActivity({ id: 'no-org' }),
+      ];
+      renderAdmin();
+
+      expect(
+        screen.getByRole('columnheader', { name: 'Organization' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Acme Studio')).toBeInTheDocument();
+    });
 
     it('never links into the activity owner’s account', () => {
       mockActivities = [
@@ -573,7 +701,7 @@ describe('ActivitiesList', () => {
       ];
       renderAdmin();
 
-      await user.click(screen.getAllByRole('row')[1]);
+      await user.click(getActivityRows()[0]);
 
       const dialog = await screen.findByTestId('activity-detail-panel');
       expect(

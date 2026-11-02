@@ -18,6 +18,7 @@ import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import EconomicsPeriodFilter from '../economics-period-filter';
 import {
   formatCount,
+  formatOptionalUsd,
   formatUsd,
   formatUsdAxis,
 } from '../economics-report.util';
@@ -78,23 +79,18 @@ export default function EconomicsCostsReport() {
         value: formatUsd(totals?.providerCostUsd ?? 0),
       },
       {
-        description: translate('costs.kpis.llmDescription', {
-          calls: formatCount(totals?.llmCalls ?? 0),
-        }),
         label: translate('costs.kpis.llm'),
         value: formatUsd(totals?.llmCostUsd ?? 0),
       },
       {
-        description: translate('costs.kpis.mediaDescription', {
-          calls: formatCount(totals?.mediaGenerations ?? 0),
-        }),
         label: translate('costs.kpis.media'),
         value: formatUsd(totals?.mediaCostUsd ?? 0),
       },
       {
-        description: translate('costs.kpis.unpricedDescription', {
-          byok: formatCount(totals?.byokCalls ?? 0),
-        }),
+        label: translate('costs.kpis.costPerGeneration'),
+        value: formatOptionalUsd(totals?.costPerGenerationUsd ?? null),
+      },
+      {
         label: translate('costs.kpis.unpriced'),
         value: formatCount(totals?.unpricedCalls ?? 0),
         tone:
@@ -190,6 +186,15 @@ export default function EconomicsCostsReport() {
         <span className="tabular-nums">{formatUsd(row.costUsd)}</span>
       ),
     },
+    {
+      header: translate('costs.columns.costPerGeneration'),
+      key: 'costPerGenerationUsd',
+      render: (row) => (
+        <span className="tabular-nums">
+          {formatOptionalUsd(row.costPerGenerationUsd)}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -208,7 +213,7 @@ export default function EconomicsCostsReport() {
         <div className="flex flex-col gap-6">
           <KPISection
             className="mb-0"
-            gridCols={{ desktop: 4, mobile: 1 }}
+            gridCols={{ desktop: 5, mobile: 1 }}
             isLoading={isLoading}
             items={items}
             size="md"

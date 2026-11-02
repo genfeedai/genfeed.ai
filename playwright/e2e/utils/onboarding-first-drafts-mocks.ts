@@ -72,8 +72,6 @@ export async function setupOnboardingFirstDraftsMocks(
         })),
         imageIngredientId: null,
         imageUrl: null,
-        videoStatus: 'failed',
-        videoUrl: null,
         requestKey: `key-twitter-${round}`,
         status: 'partial',
       },

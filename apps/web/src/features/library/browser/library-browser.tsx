@@ -24,7 +24,7 @@ import {
   LIBRARY_SORT_OPTIONS,
 } from './library-browser.config';
 import LibraryBrowserToolbar, {
-  LibraryBrowserIconActions,
+  LibraryBrowserOverflowMenu,
   LibraryBrowserSearch,
 } from './library-browser-toolbar';
 import { useLibraryBrowser } from './use-library-browser';
@@ -201,16 +201,15 @@ export default function LibraryBrowser({
               ) : null}
             </div>
           }
-          iconActionsPlacement="before-controls"
           refresh={
             <ButtonRefresh
               isRefreshing={isRefreshing}
               onClick={handleRefresh}
             />
           }
-          iconActions={
+          overflow={
             isAdminScope ? undefined : (
-              <LibraryBrowserIconActions
+              <LibraryBrowserOverflowMenu
                 reviewUnsortedHref={reviewUnsortedHref}
                 onUpload={handleUpload}
               />

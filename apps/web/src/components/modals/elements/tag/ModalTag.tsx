@@ -5,7 +5,6 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { Tag } from '@genfeedai/models/content/tag.model';
 import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import type { BaseService } from '@genfeedai/services/core/base.service';
@@ -18,28 +17,14 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { TAG_SCOPE_COLORS } from '@ui-constants/tags.constant';
 import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+  TAG_CATEGORY_OPTIONS,
+  TAG_SCOPE_COLORS,
+} from '@ui-constants/tags.constant';
+import { type ChangeEvent, useCallback, useMemo, useRef } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-// Map of category options for the select dropdown
-const TAG_CATEGORY_OPTIONS = [
-  { label: 'None', value: '' },
-  { label: 'Credential', value: TagCategory.CREDENTIAL },
-  { label: 'Ingredient', value: TagCategory.INGREDIENT },
-  { label: 'Prompt', value: TagCategory.PROMPT },
-  { label: 'Article', value: TagCategory.ARTICLE },
-  { label: 'Organization', value: TagCategory.ORGANIZATION },
-];
-
 export default function ModalTag({
-  item,
   entityType,
   entityId,
   onConfirm,
@@ -63,20 +48,10 @@ export default function ModalTag({
   const customSubmitHandler = useCallback(
     async (
       service: BaseService<unknown, unknown, unknown>,
-      entity: ITag | null,
+      _entity: ITag | null,
       formData: TagSchema,
     ): Promise<ITag> => {
       const tagsService = service as TagsService;
-      if (entity) {
-        // Use the base service patch method to send all form data
-        // Cast category to TagCategory since the schema allows string | '' but Tag expects TagCategory
-        const patchData: Partial<Tag> = {
-          ...formData,
-          category: (formData.category || undefined) as TagCategory | undefined,
-        };
-        const result = await tagsService.patch(entity.id, patchData);
-        return result as ITag;
-      }
       if (entityType && entityId) {
         const result = await tagsService.addTagToEntity(
           entityType as TagCategory,
@@ -97,7 +72,7 @@ export default function ModalTag({
   >({
     customSubmitHandler,
     defaultValues,
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.TAG,
     onConfirm,
     schema: tagSchema,
@@ -113,37 +88,6 @@ export default function ModalTag({
   const handleModalClosed = useCallback(() => {
     form.reset(defaultValuesRef.current);
   }, [form]);
-
-  // Populate form when editing - only when item.id changes
-  useEffect(() => {
-    if (item) {
-      form.setValue('label', item.label);
-      form.setValue('key', item.key);
-      form.setValue('description', item.description);
-      form.setValue('category', item.category || TagCategory.INGREDIENT);
-
-      form.setValue(
-        'backgroundColor',
-        item.backgroundColor || TAG_SCOPE_COLORS[TagCategory.INGREDIENT].bg,
-      );
-
-      form.setValue(
-        'textColor',
-        item.textColor || TAG_SCOPE_COLORS[TagCategory.INGREDIENT].text,
-      );
-    } else {
-      form.reset(defaultValuesRef.current);
-    }
-  }, [
-    item?.id,
-    form,
-    item?.backgroundColor,
-    item?.category,
-    item?.description,
-    item?.key,
-    item?.label,
-    item,
-  ]);
 
   const updateModalTag = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -163,11 +107,7 @@ export default function ModalTag({
   );
 
   return (
-    <Modal
-      id={ModalEnum.TAG}
-      title={item ? 'Edit Tag' : 'Add Tag'}
-      onClose={handleModalClosed}
-    >
+    <Modal id={ModalEnum.TAG} title="Add Tag" onClose={handleModalClosed}>
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
           <Alert variant="destructive">

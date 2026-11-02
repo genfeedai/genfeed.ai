@@ -22,14 +22,12 @@ const STATUS_BADGE_VARIANTS: Record<
 
 type Props = {
   campaign: AgentCampaign;
-  creditsPercent: number;
   onBack: () => void;
   status: IAgentCampaignStatusResponse | null;
 };
 
 export default function AgentCampaignDetailHeader({
   campaign,
-  creditsPercent,
   onBack,
   status,
 }: Props) {
@@ -61,7 +59,6 @@ export default function AgentCampaignDetailHeader({
             value: status?.contentProduced ?? 0,
           },
           {
-            description: `${creditsPercent}% of allocated`,
             label: 'Credits Used',
             value: campaign.creditsUsed.toLocaleString(),
           },

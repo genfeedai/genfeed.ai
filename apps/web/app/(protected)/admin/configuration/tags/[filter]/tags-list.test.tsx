@@ -1,7 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TagsList from './tags-list';
@@ -16,7 +22,6 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   patch: vi.fn(),
   refetch: vi.fn(),
   replace: vi.fn(),
@@ -34,10 +39,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
   }),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -114,7 +115,9 @@ vi.mock('@ui/display/table/Table', () => ({
     getRowKey,
     isLoading,
     items,
+    rowSidebar,
   }: {
+    rowSidebar?: { render: (item: Record<string, unknown>) => ReactNode };
     actions: Array<{
       isVisible?: (item: Record<string, unknown>) => boolean;
       onClick: (item: Record<string, unknown>) => void;
@@ -138,34 +141,39 @@ vi.mock('@ui/display/table/Table', () => ({
     }
 
     return (
-      <table>
-        <tbody>
-          {items.map((item) => (
-            <tr key={getRowKey(item)}>
-              {columns.map((column) => (
-                <td key={column.key}>
-                  {column.render
-                    ? column.render(item)
-                    : String(item[column.key])}
+      <>
+        {rowSidebar ? (
+          <aside data-testid="row-sidebar">{rowSidebar.render(items[0])}</aside>
+        ) : null}
+        <table>
+          <tbody>
+            {items.map((item) => (
+              <tr key={getRowKey(item)}>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    {column.render
+                      ? column.render(item)
+                      : String(item[column.key])}
+                  </td>
+                ))}
+                <td>
+                  {actions
+                    .filter((action) => action.isVisible?.(item) ?? true)
+                    .map((action) => (
+                      <button
+                        key={`${getRowKey(item)}-${action.tooltip}`}
+                        type="button"
+                        onClick={() => action.onClick(item)}
+                      >
+                        {action.tooltip} {String(item.label)}
+                      </button>
+                    ))}
                 </td>
-              ))}
-              <td>
-                {actions
-                  .filter((action) => action.isVisible?.(item) ?? true)
-                  .map((action) => (
-                    <button
-                      key={`${getRowKey(item)}-${action.tooltip}`}
-                      type="button"
-                      onClick={() => action.onClick(item)}
-                    >
-                      {action.tooltip} {String(item.label)}
-                    </button>
-                  ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
     );
   },
 }));
@@ -279,9 +287,9 @@ describe('TagsList', () => {
   it('renders superadmin tags, filters by scope, and reads the admin filters from the URL', async () => {
     render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 
-    expect(screen.getByText('Global Tag')).toBeInTheDocument();
-    expect(screen.getByText('Org Tag')).toBeInTheDocument();
-    expect(screen.getByText('Account Tag')).toBeInTheDocument();
+    expect(screen.getAllByText('Global Tag').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Org Tag').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Account Tag').length).toBeGreaterThan(0);
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -334,7 +342,7 @@ describe('TagsList', () => {
     });
   });
 
-  it('uses tags collection queries and only exposes edit actions for owned organization tags', async () => {
+  it('uses tags collection queries and lets an organization edit its own tags in the sidebar', async () => {
     render(
       <TagsList
         filter="organization"
@@ -352,15 +360,14 @@ describe('TagsList', () => {
     );
 
     expect(screen.queryByText('Global Tag')).not.toBeInTheDocument();
-    expect(screen.getByText('Org Tag')).toBeInTheDocument();
-    expect(screen.getByText('External Org Tag')).toBeInTheDocument();
+    expect(screen.getAllByText('Org Tag').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('External Org Tag').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /^Edit / })).toBeNull();
     expect(
-      screen.queryByRole('button', { name: 'Edit Global Tag' }),
-    ).toBeNull();
-    expect(screen.getByRole('button', { name: 'Edit Org Tag' })).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: 'Edit External Org Tag' }),
-    ).toBeNull();
+      within(screen.getByTestId('row-sidebar')).getByRole('button', {
+        name: 'Label',
+      }),
+    ).toHaveTextContent('Org Tag');
 
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalledWith(
@@ -458,12 +465,45 @@ describe('TagsList', () => {
     });
   });
 
-  it('opens edit and delete flows with the selected tag', async () => {
+  it('edits a tag in the sidebar by patching only the changed field', async () => {
+    mockTagsQuery([makeTag({ description: null, key: null })]);
     render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Org Tag' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('tag-modal')).toHaveTextContent('Org Tag');
+    const sidebar = within(screen.getByTestId('row-sidebar'));
+    expect(sidebar.queryByRole('button', { name: 'Edit' })).toBeNull();
+
+    fireEvent.click(sidebar.getByRole('button', { name: 'Description' }));
+    const input = sidebar.getByRole('textbox', { name: 'Description' });
+    fireEvent.change(input, { target: { value: 'Used for launches' } });
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+
+    await waitFor(() => {
+      expect(mocks.patch).toHaveBeenCalledWith('tag-1', {
+        description: 'Used for launches',
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.refetch).toHaveBeenCalled();
+    });
+  });
+
+  it('keeps a tag owned by another organization read-only', () => {
+    mockTagsQuery([
+      makeTag({
+        id: 'tag-3',
+        label: 'External Org Tag',
+        organization: { id: 'org-2', label: 'Other Org' },
+      }),
+    ]);
+    render(<TagsList filter="organization" scope={PageScope.ORGANIZATION} />);
+
+    const sidebar = within(screen.getByTestId('row-sidebar'));
+    expect(sidebar.getAllByText('External Org Tag').length).toBeGreaterThan(0);
+    expect(sidebar.queryByRole('button', { name: 'Label' })).toBeNull();
+  });
+
+  it('opens the delete flow with the selected tag', async () => {
+    render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Org Tag' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(

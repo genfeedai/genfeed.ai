@@ -13,7 +13,7 @@ export function getStoryboardEditorSeed(input: StoryboardEditorSeedInput) {
   ) {
     const ids = clips.flatMap((clip) => (clip.assetId ? [clip.assetId] : []));
     return {
-      href: `${APP_ROUTES.STUDIO.EDITOR_NEW}?${new URLSearchParams(ids.map((id) => ['video', id]))}`,
+      href: `${APP_ROUTES.STUDIO.EDITOR}?${new URLSearchParams(ids.map((id) => ['video', id]))}`,
       ids,
     };
   }
@@ -25,7 +25,7 @@ export function getStoryboardEditorSeed(input: StoryboardEditorSeedInput) {
   if (input.assembly?.state === 'ready' && input.assembly.assetId) {
     const ids = [input.assembly.assetId];
     return {
-      href: `${APP_ROUTES.STUDIO.EDITOR_NEW}?${new URLSearchParams({ video: input.assembly.assetId })}`,
+      href: `${APP_ROUTES.STUDIO.EDITOR}?${new URLSearchParams({ video: input.assembly.assetId })}`,
       ids,
     };
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
+import { LazySafeMarkdown } from '@genfeedai/agent/components/LazySafeMarkdown';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -115,7 +115,7 @@ function NewsletterPreview({
           expanded ? 'min-h-80' : 'max-h-72 overflow-hidden',
         )}
       >
-        <SafeMarkdown
+        <LazySafeMarkdown
           className="max-w-none text-sm leading-7 text-foreground/90"
           content={data.content}
           enhanceStructure
@@ -157,7 +157,7 @@ function ArtifactPreviewBody({
 
   return (
     <Card as="article" aria-label="Text artifact preview">
-      <SafeMarkdown
+      <LazySafeMarkdown
         className="max-w-none text-sm leading-7 text-foreground/90"
         content={data.content}
         enhanceStructure

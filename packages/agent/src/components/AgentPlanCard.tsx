@@ -1,4 +1,4 @@
-import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
+import { LazySafeMarkdown } from '@genfeedai/agent/components/LazySafeMarkdown';
 import { AGENT_ASSISTANT_PROSE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -101,7 +101,7 @@ export function AgentPlanCard({
       ) : null}
 
       {content ? (
-        <SafeMarkdown
+        <LazySafeMarkdown
           className={cn(
             'mt-3 min-w-0 max-w-full break-words [overflow-wrap:anywhere]',
             AGENT_ASSISTANT_PROSE_CLASS,

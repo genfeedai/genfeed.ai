@@ -1,20 +1,23 @@
 import type { IconType } from '@genfeedai/contracts/interfaces';
 import { DevIcon, FluxIcon, GenfeedIcon } from './brands';
 import {
-  AnthropicProviderIcon as AnthropicIcon,
   ArgilIcon,
+  CrunIcon,
+  HeygenIcon,
+  LeonardoIcon,
+  WanIcon,
+} from './brands/lazy-raster-brand-icons';
+import {
+  AnthropicProviderIcon as AnthropicIcon,
   BflIcon,
   BytedanceProviderIcon as BytedanceIcon,
-  CrunIcon,
   DeepseekProviderIcon as DeepseekIcon,
   ElevenLabsIcon,
   FalIcon,
   GoogleProviderIcon as GoogleIcon,
-  HeygenIcon,
   HiggsfieldIcon,
   IdeogramIcon,
   KlingIcon,
-  LeonardoIcon,
   LumaIcon,
   MetaProviderIcon as MetaIcon,
   MinimaxIcon,
@@ -31,7 +34,6 @@ import {
   StabilityIcon,
   TopazIcon,
   ViduIcon,
-  WanIcon,
   XaiIcon,
 } from './brands/model-provider-icons';
 

@@ -186,7 +186,7 @@ describe('IngredientDetailVideo', () => {
 
     expect(
       screen.getByRole('link', { name: /Edit in Studio/ }),
-    ).toHaveAttribute('href', '/acme/brand-slug/editor/new?video=video-1');
+    ).toHaveAttribute('href', '/acme/brand-slug/editor?video=video-1');
   });
 
   it('offers a keyboard-reachable, org-scoped Make clips entry for the video', async () => {
@@ -201,7 +201,7 @@ describe('IngredientDetailVideo', () => {
     const makeClips = screen.getByRole('link', { name: /Make clips/ });
     expect(makeClips).toHaveAttribute(
       'href',
-      '/acme/brand-slug/clipper/new?video=video-1',
+      '/acme/brand-slug/clipper?video=video-1',
     );
 
     const editLink = screen.getByRole('link', { name: /Edit in Studio/ });

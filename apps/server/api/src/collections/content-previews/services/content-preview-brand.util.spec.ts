@@ -68,14 +68,40 @@ describe('buildPublicPreviewBrand', () => {
     };
 
     expect(
-      buildPublicPreviewBrand(brand, accepted, 'https://cdn/logo.png'),
+      buildPublicPreviewBrand(brand, accepted, {
+        logoUrl: 'https://cdn/logo.png',
+      }),
     ).toEqual({ logoUrl: 'https://cdn/logo.png', name: 'Acme' });
     expect(
-      buildPublicPreviewBrand(brand, notAccepted, 'https://cdn/logo.png'),
+      buildPublicPreviewBrand(brand, notAccepted, {
+        logoUrl: 'https://cdn/logo.png',
+      }),
     ).toMatchObject({ name: 'Acme' });
     expect(
-      buildPublicPreviewBrand(brand, notAccepted, 'https://cdn/logo.png'),
+      buildPublicPreviewBrand(brand, notAccepted, {
+        logoUrl: 'https://cdn/logo.png',
+      }),
     ).not.toHaveProperty('logoUrl');
+  });
+
+  it('only shows the banner when the operator accepted it', () => {
+    const accepted: IWarmupPreparation = {
+      appliedContextFields: ['banner'],
+      contextReviewedAt: '2026-11-02T10:00:00.000Z',
+    };
+    const notAccepted: IWarmupPreparation = {
+      appliedContextFields: ['logo'],
+      contextReviewedAt: '2026-11-02T10:00:00.000Z',
+    };
+    const assets = { bannerUrl: 'https://cdn/banner.png' };
+
+    expect(buildPublicPreviewBrand(brand, accepted, assets)).toEqual({
+      bannerUrl: 'https://cdn/banner.png',
+      name: 'Acme',
+    });
+    expect(buildPublicPreviewBrand(brand, notAccepted, assets)).toEqual({
+      name: 'Acme',
+    });
   });
 
   it('for workspaces reviewed before the accepted list existed, shows fields that still equal the reviewed proposal', () => {

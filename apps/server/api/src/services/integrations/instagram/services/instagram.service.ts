@@ -622,6 +622,18 @@ export class InstagramService {
     );
   }
 
+  public async subscribePageToMessageWebhooks(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<void> {
+    return this.publishingService.subscribePageToMessageWebhooks(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+  }
+
   public async sendPrivateReply(
     organizationId: string,
     brandId: string,

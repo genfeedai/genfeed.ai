@@ -27,5 +27,12 @@
   "detailUpdated": "Updated",
   "detailStarted": "Started",
   "detailFinished": "Finished",
-  "title": "Activities"
+  "title": "Activities",
+  "columnWhen": "When",
+  "columnOrganization": "Organization",
+  "columnDescription": "Description",
+  "columnStatus": "Status",
+  "columnCredits": "Credits",
+  "loadError": "Failed to load activities",
+  "empty": "No activity yet"
 }

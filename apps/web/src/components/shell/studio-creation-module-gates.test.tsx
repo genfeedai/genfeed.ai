@@ -1,7 +1,7 @@
-import ClipperNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/page';
-import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/page';
+import ClipperNewPane from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperNewPane';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import EditorCreatePane from '@/features/studio/editor/EditorCreatePane';
 import TurboCreatePane from '@/features/workflows/pages/turbo/TurboCreatePane';
 
 const state = vi.hoisted(() => ({
@@ -33,7 +33,7 @@ vi.mock('@/features/workflows/pages/turbo/TurboNewPane', () => ({
   ),
 }));
 vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/new-clipper-project-page',
+  '@app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperNewPaneContent',
   () => ({
     default: () => (
       <button type="button" onClick={state.create}>
@@ -42,16 +42,13 @@ vi.mock(
     ),
   }),
 );
-vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/new-editor-project-page',
-  () => ({
-    default: () => (
-      <button type="button" onClick={state.create}>
-        Create project
-      </button>
-    ),
-  }),
-);
+vi.mock('@/features/studio/editor/EditorNewPane', () => ({
+  default: () => (
+    <button type="button" onClick={state.create}>
+      Create project
+    </button>
+  ),
+}));
 beforeEach(() => {
   state.settings = {
     hasOrganizationBilling: true,
@@ -63,8 +60,8 @@ beforeEach(() => {
 describe('Studio creation routes', () => {
   it.each([
     ['turbo', TurboCreatePane],
-    ['clipper', ClipperNewPage],
-    ['editor', EditorNewPage],
+    ['clipper', ClipperNewPane],
+    ['editor', EditorCreatePane],
   ] as const)(
     'prevents %s creation until its organization preference is enabled',
     (moduleId, Page) => {

@@ -61,6 +61,61 @@ export class InstagramPublishingService {
     );
   }
 
+  /**
+   * Subscribes the Page linked to the Instagram account to the app's `messages`
+   * webhook so new Direct messages are pushed instead of polled.
+   *
+   * @see https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks
+   */
+  async subscribePageToMessageWebhooks(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<void> {
+    const url = `InstagramService ${CallerUtil.getCallerName()}`;
+
+    try {
+      const credential = await this.resolveCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
+      requireMetaScopes(credential.grantedScopes, [
+        'instagram_manage_messages',
+        'pages_manage_metadata',
+        'pages_show_list',
+      ]);
+      const page = await resolveMetaPageAccess(
+        this.httpService,
+        `${this.graphUrl}/${this.apiVersion}`,
+        EncryptionUtil.decrypt(credential.accessToken),
+        {
+          instagramAccountId: requireString(
+            credential.externalId,
+            'externalId',
+          ),
+        },
+      );
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.graphUrl}/${this.apiVersion}/${page.pageId}/subscribed_apps`,
+          null,
+          {
+            params: {
+              access_token: page.accessToken,
+              subscribed_fields: 'messages',
+            },
+          },
+        ),
+      );
+
+      this.loggerService.log(`${url} succeeded`, response.data);
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   /** Initial comment replies use comment_id, not the commenter's scoped ID. */
   async sendPrivateReply(
     organizationId: string,

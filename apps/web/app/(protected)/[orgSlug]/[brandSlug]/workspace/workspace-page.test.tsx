@@ -505,7 +505,14 @@ describe('WorkspacePageContent', () => {
     Element.prototype.scrollIntoView = vi.fn();
     const user = userEvent.setup();
     const openMoreActions = async () =>
-      user.click(screen.getAllByRole('button', { name: /more actions/i })[0]);
+      user.click(
+        // The task's own menu, not the sub bar's "..." menu.
+        screen
+          .getAllByRole('button', { name: /more actions/i })
+          .filter(
+            (button) => !button.closest('[data-testid="section-topbar"]'),
+          )[0],
+      );
 
     await openMoreActions();
     await user.click(
@@ -608,7 +615,11 @@ describe('WorkspacePageContent', () => {
     expect(
       screen.queryByTestId('workspace-task-inspector'),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Mark all read' }),
+    );
     expect(inboxReadMock.mutate).toHaveBeenCalledWith(null);
   });
 

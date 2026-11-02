@@ -2,6 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalFontFamily from '@/components/modals/elements/font/ModalFontFamily';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({
@@ -27,12 +32,12 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal', () => ({
 
 describe('ModalFontFamily', () => {
   const defaultProps = {
-    item: null,
     onConfirm: vi.fn(),
   };
 
   it('renders font family form', () => {
     render(<ModalFontFamily {...defaultProps} />);
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
   });
 });

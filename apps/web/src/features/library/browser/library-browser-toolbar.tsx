@@ -1,20 +1,24 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ViewType } from '@genfeedai/contracts';
 import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
-import { Button } from '@ui/primitives/button';
+import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import {
-  SHELL_ICON_BUTTON_CLASS,
-  SHELL_ICON_CLASS,
-} from '@ui-constants/shell-chrome.constant';
-import { Frame, LayoutGrid, Rows3, Sparkles, Upload } from 'lucide-react';
-import Link from 'next/link';
+  Frame,
+  LayoutGrid,
+  Rows3,
+  Settings2,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import LibraryTagManagerDialog from '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog';
 import type {
@@ -111,45 +115,49 @@ export default function LibraryBrowserToolbar({
   );
 }
 
-/** Ghost actions only; Refresh goes in the topbar `refresh` slot. */
-export function LibraryBrowserIconActions({
+/**
+ * The Library's "..." menu: review unsorted, tags, upload. Refresh goes in the
+ * topbar `refresh` slot, next to it.
+ */
+export function LibraryBrowserOverflowMenu({
   reviewUnsortedHref,
   onUpload,
 }: Pick<LibraryBrowserToolbarProps, 'onUpload' | 'reviewUnsortedHref'>) {
   const translate = useTranslations('pages.library.browser.toolbar');
+  const translateTags = useTranslations('pages.library.tags');
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const actions: CollectionOverflowAction[] = [
+    ...(reviewUnsortedHref
+      ? [
+          {
+            href: reviewUnsortedHref,
+            icon: <Sparkles className="size-4" />,
+            id: 'review-unsorted',
+            label: translate('startUnsortedReview'),
+          },
+        ]
+      : []),
+    {
+      icon: <Settings2 className="size-4" />,
+      id: 'manage-tags',
+      label: translateTags('manageTags'),
+      onSelect: () => setIsTagManagerOpen(true),
+    },
+    {
+      icon: <Upload className="size-4" />,
+      id: 'upload',
+      label: translate('upload'),
+      onSelect: onUpload,
+    },
+  ];
+
   return (
-    <div
-      className="flex items-center gap-1"
-      data-testid="library-toolbar-icon-actions"
-    >
-      {reviewUnsortedHref ? (
-        <Button
-          asChild
-          className={SHELL_ICON_BUTTON_CLASS}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.GHOST}
-          tooltip={translate('startUnsortedReview')}
-          withWrapper={false}
-        >
-          <Link
-            href={reviewUnsortedHref}
-            aria-label={translate('startUnsortedReview')}
-          >
-            <Sparkles className={SHELL_ICON_CLASS} />
-          </Link>
-        </Button>
-      ) : null}
-      <LibraryTagManagerDialog />
-      <Button
-        ariaLabel={translate('upload')}
-        className={SHELL_ICON_BUTTON_CLASS}
-        icon={<Upload className={SHELL_ICON_CLASS} />}
-        onClick={onUpload}
-        size={ButtonSize.ICON}
-        tooltip={translate('upload')}
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
+    <>
+      <SubbarOverflowMenu actions={actions} />
+      <LibraryTagManagerDialog
+        isOpen={isTagManagerOpen}
+        onOpenChange={setIsTagManagerOpen}
       />
-    </div>
+    </>
   );
 }

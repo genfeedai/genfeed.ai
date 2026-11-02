@@ -26,7 +26,7 @@ const alignVariants = {
 } as const;
 
 export const tableHeadVariants = cva(
-  'h-9 px-2 align-middle text-2xs font-medium uppercase tracking-wide [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+  'h-9 px-2 align-middle text-xs font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
   {
     defaultVariants: {
       align: 'left',

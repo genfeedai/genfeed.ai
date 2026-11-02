@@ -814,7 +814,6 @@
     "openSettings": "Open settings"
   },
   "rowSidebar": {
-    "edit": "Edit",
     "open": "Open",
     "openNamed": "Open {name}",
     "yes": "Yes",
@@ -825,6 +824,7 @@
     "fields": {
       "account": "Account",
       "active": "Active",
+      "backgroundColor": "Background color",
       "balance": "Balance",
       "brand": "Brand",
       "brands": "Brands",
@@ -842,6 +842,7 @@
       "health": "Health",
       "joined": "Joined",
       "key": "Key",
+      "label": "Label",
       "language": "Language",
       "members": "Members",
       "model": "Model",
@@ -855,6 +856,7 @@
       "role": "Role",
       "sortOrder": "Sort order",
       "tags": "Tags",
+      "textColor": "Text color",
       "tier": "Tier",
       "type": "Type",
       "user": "User",
@@ -903,6 +905,12 @@
       "sources": "Sources",
       "steps": "Steps",
       "triggerWord": "Trigger word"
+    },
+    "categories": {
+      "video": "Video",
+      "image": "Image",
+      "text": "Text/Voice",
+      "music": "Music"
     }
   },
   "brandRuleProposals": {
@@ -927,5 +935,19 @@
     "platforms": "Platforms",
     "referenceFrames": "Reference frames",
     "timeframe": "Timeframe"
+  },
+  "createModal": {
+    "create": "Create",
+    "blacklist": "Create Blacklist",
+    "cameraMovement": "Create Camera Movement",
+    "camera": "Create Camera",
+    "fontFamily": "Create Font Family",
+    "lens": "Create Lens",
+    "lighting": "Create Lighting",
+    "mood": "Create Mood",
+    "scene": "Create Scene",
+    "sound": "Create Sound",
+    "style": "Create Style",
+    "role": "Create Role"
   }
 }
