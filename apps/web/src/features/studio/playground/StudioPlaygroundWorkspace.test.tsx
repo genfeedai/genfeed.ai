@@ -46,6 +46,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { Toaster, toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@/features/studio/playground/utils/studio-generation-setup-bridge';
@@ -587,16 +588,29 @@ vi.mock('@services/content/studio-generate-drafts.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({
-      error: vi.fn(),
-      info: mocks.notify,
-      success: vi.fn(),
-      warning: mocks.notify,
-    }),
-  },
-}));
+vi.mock('@services/core/notifications.service', async (importOriginal) => {
+  const { NotificationsService } =
+    await importOriginal<
+      typeof import('@services/core/notifications.service')
+    >();
+  const service = NotificationsService.getInstance();
+  return {
+    NotificationsService: {
+      getInstance: () => ({
+        error: vi.fn(),
+        info: (...args: Parameters<typeof service.info>) => {
+          mocks.notify(...args);
+          service.info(...args);
+        },
+        success: vi.fn(),
+        warning: (...args: Parameters<typeof service.warning>) => {
+          mocks.notify(...args);
+          service.warning(...args);
+        },
+      }),
+    },
+  };
+});
 
 vi.mock(
   '@/features/studio/playground/hooks/useStudioPlaygroundSettings',
@@ -795,6 +809,11 @@ async function renderLoaded(options?: Parameters<typeof render>[1]) {
 describe('StudioPlaygroundWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    toast.dismiss();
+    window.history.replaceState(null, '', '/');
+    mocks.push.mockImplementation((url: string) =>
+      window.history.pushState(null, '', url),
+    );
     mocks.crunQuote.mockReturnValue({
       quote: null,
       status: 'idle',
@@ -1690,9 +1709,7 @@ describe('StudioPlaygroundWorkspace', () => {
 
     act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
 
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/moonrise/playground/card-1',
-    );
+    expect(window.location.pathname).toBe('/acme/moonrise/playground/card-1');
   });
 
   it('puts the prompt in the agent column and the list in the output column', () => {
@@ -1824,12 +1841,10 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-composer')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/moonrise/playground/image-10',
-    );
+    expect(window.location.pathname).toBe('/acme/moonrise/playground/image-10');
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
-    expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
+    expect(window.location.pathname).toBe('/acme/moonrise/playground');
 
     expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
       'Keep this draft',
@@ -1851,7 +1866,7 @@ describe('StudioPlaygroundWorkspace', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'focusedPreview.back' }),
     );
-    expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
+    expect(window.location.pathname).toBe('/acme/moonrise/playground');
   });
 
   it('remixes a selected image as an image reference', async () => {
@@ -1895,6 +1910,7 @@ describe('StudioPlaygroundWorkspace', () => {
   it('defers a continuation until the saved draft has loaded', async () => {
     const pendingDraft = Promise.withResolvers<null>();
     mocks.getDraft.mockReturnValue(pendingDraft.promise);
+    render(<Toaster />);
     render(<StudioPlaygroundWorkspace />);
     await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
@@ -1917,7 +1933,7 @@ describe('StudioPlaygroundWorkspace', () => {
       ),
     );
 
-    expect(mocks.notify).toHaveBeenCalledWith('continuation.draftLoading');
+    expect(await screen.findByText('continuation.draftLoading')).toBeVisible();
     expect(mocks.openConfirm).not.toHaveBeenCalled();
     expect(
       mocks.settings.mock.results.at(-1)?.value.setType,
@@ -2005,7 +2021,7 @@ describe('StudioPlaygroundWorkspace', () => {
       onInspectIngredient: (asset: IIngredient) => void;
     };
     act(() => hookParams.onInspectIngredient(ingredient));
-    expect(mocks.push).toHaveBeenLastCalledWith(
+    expect(window.location.pathname).toBe(
       '/acme/moonrise/playground/local-job',
     );
   });
@@ -2920,6 +2936,7 @@ describe('StudioPlaygroundWorkspace', () => {
         isUploading: false,
         removeAttachment: vi.fn(),
       });
+      render(<Toaster />);
       await renderLoaded();
       act(() =>
         composer().onAddFiles(
@@ -2930,7 +2947,9 @@ describe('StudioPlaygroundWorkspace', () => {
       act(() => composer().onOpenLibrary?.('audioReference'));
       expect(addFiles).not.toHaveBeenCalled();
       expect(mocks.findAllPage).not.toHaveBeenCalled();
-      expect(mocks.notify).toHaveBeenCalledWith('audioReferenceUnsupported');
+      expect(
+        await screen.findByText('audioReferenceUnsupported'),
+      ).toBeVisible();
     });
   });
 
@@ -2978,6 +2997,7 @@ describe('StudioPlaygroundWorkspace', () => {
         },
       ]);
 
+      render(<Toaster />);
       render(<StudioPlaygroundWorkspace />);
 
       await waitFor(() =>
@@ -3017,7 +3037,7 @@ describe('StudioPlaygroundWorkspace', () => {
         ]),
       );
       // One reference the server pruned and one the client could not load.
-      expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
+      expect(await screen.findByText('draft.referencesDropped')).toBeVisible();
     });
 
     it('restores one Library image in both frame roles without merging their draft positions', async () => {
@@ -3914,9 +3934,10 @@ describe('StudioPlaygroundWorkspace', () => {
       const job = recipeJob();
       if (!job.recipe?.crunControls) throw new Error('Expected controls');
       job.recipe.crunControls.contractVersion = 'old';
+      render(<Toaster />);
       await renderLoaded();
       vary(job);
-      expect(mocks.notify).toHaveBeenCalledWith('crun.videoQuoteStale');
+      expect(await screen.findByText('crun.videoQuoteStale')).toBeVisible();
       expect(mocks.findByIds).not.toHaveBeenCalled();
       expect(composer().isCrunRestoreBlocked).toBe(true);
       expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();

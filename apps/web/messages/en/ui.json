@@ -952,6 +952,9 @@
     "scene": "Create Scene",
     "sound": "Create Sound",
     "style": "Create Style",
-    "role": "Create Role"
+    "role": "Create Role",
+    "cancel": "Cancel",
+    "folder": "Create Folder",
+    "preset": "Create Preset"
   }
 }

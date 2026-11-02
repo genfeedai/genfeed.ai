@@ -750,7 +750,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('returns focus to the asset after closing its sidebar', () => {
-    navigation.pathname = '/acme/moonrise/playground';
+    navigation.pathname = '/acme/moonrise/library/assets';
     render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>

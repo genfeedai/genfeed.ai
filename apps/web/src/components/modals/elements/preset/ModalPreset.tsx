@@ -13,6 +13,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   useCallback,
@@ -29,6 +30,7 @@ import ModalPresetFields from './ModalPresetFields';
  * sidebar (see `PresetDescriptionActions` for the AI enhance).
  */
 export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
+  const translateCreate = useTranslations('ui.createModal');
   const { brandId, organizationId } = useBrand();
   const [error, setError] = useState<string | null>(null);
 
@@ -145,7 +147,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
   return (
     <Modal
       id={ModalEnum.PRESET}
-      title="Create Preset"
+      title={translateCreate('preset')}
       error={error}
       onClose={() => setError(null)}
     >
@@ -167,7 +169,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
 
         <ModalActions>
           <Button
-            label="Cancel"
+            label={translateCreate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={() => closeModal()}
             isLoading={isSubmitting}
@@ -175,7 +177,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
 
           <Button
             type="submit"
-            label="Create"
+            label={translateCreate('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

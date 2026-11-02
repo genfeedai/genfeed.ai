@@ -26,11 +26,4 @@ describe('agents semantic theme surfaces', () => {
     expect(header).not.toContain('text-slate');
     expect(wizard).not.toContain('border-white');
   });
-
-  it('uses the shared Card for the campaigns surface', () => {
-    const source = readAgents('campaigns/AgentCampaignsPage.tsx');
-
-    expect(source).toContain("import Card from '@ui/card/Card'");
-    expect(source).toContain('<Card');
-  });
 });

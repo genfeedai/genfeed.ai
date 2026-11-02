@@ -466,7 +466,11 @@
       },
       "pause": "Pause",
       "resume": "Resume",
-      "start": "Start"
+      "start": "Start",
+      "loading": "Loading...",
+      "loadingProgram": "Loading Program",
+      "loadingAgents": "Loading Program agents",
+      "notFound": "Program Not Found"
     },
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
@@ -2017,7 +2021,17 @@
           "creditAmount": "{value} credits",
           "retries": "{count} retries",
           "actualCreditsLabel": "Actual credits"
-        }
+        },
+        "loadingLogs": "Loading execution logs",
+        "loadingNodeResult": "Loading node result",
+        "failedToLoad": "Execution Failed To Load",
+        "backToHistory": "Back to History",
+        "notFound": "Execution Not Found",
+        "notFoundDescription": "The execution run you're looking for doesn't exist.",
+        "nodeExecutionLog": "Node Execution Log",
+        "noNodeResults": "No node results recorded",
+        "errorTitle": "Execution Error",
+        "downloadLogsJson": "Download Logs (JSON)"
       },
       "library": {
         "autopilot": "Agent",

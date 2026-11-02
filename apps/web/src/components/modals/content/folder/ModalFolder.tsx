@@ -18,6 +18,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useEffect, useMemo } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
@@ -39,6 +40,7 @@ export default function ModalFolder({
   brandId: propBrandId,
   scope = PageScope.BRAND,
 }: ModalFolderProps) {
+  const translateCreate = useTranslations('ui.createModal');
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
 
@@ -104,7 +106,7 @@ export default function ModalFolder({
   return (
     <Modal
       id={ModalEnum.FOLDER}
-      title="Create Folder"
+      title={translateCreate('folder')}
       onClose={handleModalClose}
     >
       <Form ref={formRef} onSubmit={onSubmit}>
@@ -160,7 +162,7 @@ export default function ModalFolder({
         )}
         <ModalActions>
           <Button
-            label="Cancel"
+            label={translateCreate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={handleModalClose}
             isLoading={isSubmitting}
@@ -168,7 +170,7 @@ export default function ModalFolder({
 
           <Button
             type="submit"
-            label="Create"
+            label={translateCreate('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

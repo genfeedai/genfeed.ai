@@ -138,5 +138,6 @@
   },
   "search": "Search clip projects",
   "emptySearch": "No clip projects match your search.",
-  "heroTitle": "What should Clipper cut?"
+  "heroTitle": "What should Clipper cut?",
+  "title": "Clipper"
 }
