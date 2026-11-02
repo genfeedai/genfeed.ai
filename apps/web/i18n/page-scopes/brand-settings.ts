@@ -8,6 +8,7 @@ import brandHarnessSettings from '../../messages/en/pages/brandHarnessSettings.j
 import brandIntegrations from '../../messages/en/pages/brandIntegrations.json';
 import brandKitReview from '../../messages/en/pages/brandKitReview.json';
 import brandKitSettings from '../../messages/en/pages/brandKitSettings.json';
+import brandLinks from '../../messages/en/pages/brandLinks.json';
 import brandLut from '../../messages/en/pages/brandLut.json';
 import brandOsSettings from '../../messages/en/pages/brandOsSettings.json';
 import brandPublishingSettings from '../../messages/en/pages/brandPublishingSettings.json';
@@ -28,6 +29,7 @@ const messages = {
   brandHarnessSettings,
   brandKitReview,
   brandKitSettings,
+  brandLinks,
   brandSocialMedia,
   socialWarmup,
   credentialPostingTimes,
