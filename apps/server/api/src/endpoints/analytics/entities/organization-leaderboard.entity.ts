@@ -1,6 +1,7 @@
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IBrandWithStats,
+  IEntityStatsTotals,
   IOrganizationOwner,
   IOrganizationWithStats,
   IOrgLeaderboardItem,
@@ -79,6 +80,7 @@ export class PaginatedOrgsResponse {
 
 export class PaginatedBrandsResponse {
   declare readonly data: BrandWithStatsEntity[];
+  declare readonly totals: IEntityStatsTotals;
   declare readonly pagination: {
     page: number;
     limit: number;

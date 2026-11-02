@@ -6,6 +6,7 @@ import {
 } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IEntityStatsTotals } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
   formatCompactNumberIntl,
@@ -25,6 +26,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -71,6 +73,8 @@ export default function AnalyticsBrandsList({
   );
 
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
+  const [totals, setTotals] = useState<IEntityStatsTotals | null>(null);
+  const [totalBrands, setTotalBrands] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const searchTerm = filters.query ?? '';
@@ -146,6 +150,8 @@ export default function AnalyticsBrandsList({
         }
 
         setBrandsData(response.data);
+        setTotals(response.totals);
+        setTotalBrands(response.pagination?.total ?? response.data.length);
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to fetch brand analytics list', error);
@@ -212,6 +218,31 @@ export default function AnalyticsBrandsList({
 
   return (
     <>
+      <KPISection
+        size="sm"
+        gridCols={{ desktop: 4, mobile: 1 }}
+        isLoading={isLoading && !totals}
+        items={[
+          { label: 'Brands', value: formatCompactNumberIntl(totalBrands) },
+          {
+            analyticsMetric: 'posts',
+            label: 'Posts',
+            value: formatCompactNumberIntl(totals?.totalPosts ?? 0),
+          },
+          {
+            analyticsMetric: 'views',
+            label: 'Views',
+            value: formatCompactNumberIntl(totals?.totalViews ?? 0),
+          },
+          {
+            analyticsMetric: 'engagement',
+            label: 'Engagement',
+            trend: totals?.growth,
+            trendLabel: 'vs last period',
+            value: formatCompactNumberIntl(totals?.totalEngagement ?? 0),
+          },
+        ]}
+      />
       <Table
         ariaLabel="Brands"
         items={brandsData}

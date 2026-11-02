@@ -26,6 +26,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
+  IEntityStatsTotals,
   IOrganizationOwner,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
@@ -388,6 +389,82 @@ export class EntityLeaderboardService {
         organizationId: filters.organizationId,
       },
     });
+  }
+
+  /**
+   * Period totals across every entity the list matches, so the figures above a
+   * paged table describe the whole list and not the page on screen. Ranks all
+   * matching ids, then reuses the same per-id aggregations the rows use; no
+   * entity is hydrated.
+   */
+  private async getEntityTotals(
+    entityType: EntityType,
+    range: DateRange,
+    matchingEntities: number,
+    filters: {
+      brandId?: string;
+      organizationId?: string;
+      search?: string;
+      type?: OrganizationCategory;
+    },
+  ): Promise<IEntityStatsTotals> {
+    if (matchingEntities === 0) {
+      return { growth: 0, totalEngagement: 0, totalPosts: 0, totalViews: 0 };
+    }
+
+    const entityField: EntityField =
+      entityType === 'organization' ? 'organizationId' : 'brandId';
+    const ids = await this.rankEntityIds(
+      entityType,
+      range,
+      LeaderboardSort.ENGAGEMENT,
+      { limit: matchingEntities, offset: 0 },
+      filters,
+    );
+
+    const [analyticsMap, previousEngagementMap, publishedPostsMap] =
+      await Promise.all([
+        this.getCurrentAnalytics(
+          ids,
+          range.startDate,
+          range.endDate,
+          entityField,
+        ),
+        this.getPreviousEngagement(
+          ids,
+          range.previousStartDate,
+          range.previousEndDate,
+          entityField,
+        ),
+        this.getPublishedPostCounts(
+          ids,
+          range.startDate,
+          range.endDate,
+          entityField,
+        ),
+      ]);
+
+    let totalViews = 0;
+    let totalEngagement = 0;
+    for (const stats of analyticsMap.values()) {
+      totalViews += stats.totalViews;
+      totalEngagement += stats.totalEngagement;
+    }
+    let totalPosts = 0;
+    for (const count of publishedPostsMap.values()) {
+      totalPosts += count;
+    }
+    let previousEngagement = 0;
+    for (const engagement of previousEngagementMap.values()) {
+      previousEngagement += engagement;
+    }
+
+    return {
+      growth: this.calculateGrowth(totalEngagement, previousEngagement),
+      totalEngagement,
+      totalPosts,
+      totalViews,
+    };
   }
 
   /**
@@ -888,9 +965,14 @@ export class EntityLeaderboardService {
       this.countEntities('brand', { brandId, organizationId, search: needle }),
     ]);
 
-    const displayByBrandId = await this.resolveBrandDisplay(
-      rows.map(({ entity }) => entity),
-    );
+    const [displayByBrandId, totals] = await Promise.all([
+      this.resolveBrandDisplay(rows.map(({ entity }) => entity)),
+      this.getEntityTotals('brand', range, total, {
+        brandId,
+        organizationId,
+        search: needle,
+      }),
+    ]);
 
     const slice = this.buildPaginationSlice(
       rows.map(({ entity, prevEngagement, stats }) =>
@@ -906,7 +988,7 @@ export class EntityLeaderboardService {
       limit,
     );
 
-    return new PaginatedBrandsResponse(slice);
+    return new PaginatedBrandsResponse({ ...slice, totals });
   }
 
   /**
