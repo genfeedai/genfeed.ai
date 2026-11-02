@@ -82,7 +82,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
 
   it('keeps other apps open when one app is off', () => {
     state.flags = { studio: true, motion: false };
-    state.pathname = '/acme/brand/storyboard/new';
+    state.pathname = '/acme/brand/storyboard';
 
     renderGate();
 

@@ -99,7 +99,6 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/clipper/new', 'Clipper', 'New project'],
     ['/acme/moonrise/clipper/project-1', 'Clipper', 'Project'],
     ['/acme/moonrise/storyboard', 'Storyboard', 'Runs'],
-    ['/acme/moonrise/storyboard/new', 'Storyboard', 'New storyboard'],
     ['/acme/moonrise/storyboard/run-1', 'Storyboard', 'Run'],
     ['/acme/moonrise/editor', 'Editor', 'Projects'],
     ['/acme/moonrise/editor/project-1', 'Editor', 'Project'],

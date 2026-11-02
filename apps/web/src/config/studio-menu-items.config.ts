@@ -48,10 +48,7 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       href: APP_ROUTES.STUDIO.STORYBOARD,
       label: APP_DISPLAY_LABELS.storyboard,
       organizationModule: 'storyboard',
-      matchPaths: [
-        APP_ROUTES.STUDIO.STORYBOARD,
-        APP_ROUTES.STUDIO.STORYBOARD_NEW,
-      ],
+      matchPaths: [APP_ROUTES.STUDIO.STORYBOARD],
       outline: Clapperboard,
       solid: Clapperboard,
     },

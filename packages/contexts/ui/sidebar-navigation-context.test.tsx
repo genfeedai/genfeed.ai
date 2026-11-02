@@ -73,12 +73,7 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it.each([
-    [
-      '/acme/brand/storyboard/new',
-      '/storyboard',
-      '/storyboard/new',
-      'New storyboard',
-    ],
+    ['/acme/brand/library/imported', '/library', '/library/imported', 'Imported'],
     [
       '/acme/brand/analytics/insights',
       '/analytics',

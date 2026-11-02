@@ -59,8 +59,6 @@
     "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
     "remixTitle": "Remix a video",
     "removeAsset": "Remove {title}",
-    "result": "Storyboard",
-    "resultEmpty": "Your storyboard shows up here once you save the idea.",
     "heroDescription": "Pitch your idea, or start from one of these.",
     "heroTitle": "Start a storyboard",
     "retrySaving": "Retry saving storyboard",
@@ -213,18 +211,6 @@
     "shotNameFor": "Name for shot {ordinal}",
     "shotNamePlaceholder": "Name this shot"
   },
-  "onboarding": {
-    "description": "From a one-line idea or an existing video.",
-    "otherWaysTitle": "Or start another way",
-    "presetsTitle": "Start with a preset",
-    "remixAction": "Choose a video",
-    "remixDescription": "Rebuild a post, ad or your own video.",
-    "remixTitle": "Remix a video",
-    "scratchAction": "New storyboard",
-    "scratchDescription": "Write your own brief.",
-    "scratchTitle": "Start from scratch",
-    "title": "Turn an idea into a storyboard"
-  },
   "pitches": {
     "items": {
       "explainer": {
@@ -255,9 +241,6 @@
   },
   "presets": {
     "chipsAria": "Storyboard presets",
-    "create": "Try this",
-    "createAria": "Create a storyboard from {title}",
-    "creating": "Creating…",
     "items": {
       "beforeAfter": {
         "description": "Show the starting point and the finished result side by side.",
@@ -292,14 +275,8 @@
         "title": "3-step explainer"
       }
     },
-    "listAria": "Storyboard presets",
     "prefillAria": "Use the {title} preset",
-    "runtime": "{seconds}s",
-    "seeAll": "See all presets",
-    "selectBrand": "Choose a brand to start a storyboard from a preset.",
-    "shelfTitle": "Start from a preset",
-    "shots": "{count, plural, one {# shot} other {# shots}}",
-    "showFewer": "Show fewer"
+    "runtime": "{seconds}s"
   },
   "recipe": {
     "addReferences": "Add references",
@@ -353,13 +330,12 @@
   },
   "runs": {
     "all": "All storyboards",
+    "emptyDescription": "Pitch one on the left and it shows up here.",
     "emptySearch": "No storyboards match your search.",
+    "emptyTitle": "No storyboards yet",
     "lastEdited": "Edited {time}",
     "more": "Load more",
     "needsYou": "Needs you",
-    "new": "New storyboard",
-    "open": "Open",
-    "openRun": "Open {title}",
     "phases": {
       "approved": "Approved",
       "failed": "Failed",
@@ -453,7 +429,6 @@
     "addImages": "Add images",
     "addImagesTitle": "Add images to storyboard",
     "addVideos": "Add videos",
-    "browseDiscovery": "Browse Discovery",
     "cancel": "Cancel",
     "clear": "Clear",
     "format": "Format",
@@ -477,7 +452,6 @@
         "label": "Scenes"
       }
     },
-    "newTitle": "New storyboard",
     "remixDiscovery": "Remix from Discovery",
     "remixDiscoveryDescription": "Open a saved source and continue its storyboard.",
     "removeVideo": "Remove {label}",

@@ -1,6 +1,5 @@
 'use client';
 
-import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   useGalleryModal,
@@ -15,21 +14,19 @@ import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/co
 import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
-import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Palette } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type {
-  StoryboardCreateProps,
   StoryboardPitch,
   StoryboardPreset,
 } from '@/features/studio/props/storyboard-presets.props';
@@ -64,19 +61,18 @@ const MAX_LONG_FORM_BRIEF_LENGTH = STORYBOARD_LONG_BRIEF_MAX_CHARACTERS;
 // The counter only appears once the brief is close to the limit.
 const COUNTER_THRESHOLD = 0.8;
 
-/** Selection/upload saves media only; creating a draft never dispatches paid work. */
-export default function StoryboardCreate({
-  actions,
-  label,
-}: StoryboardCreateProps) {
+/**
+ * The left side of the Storyboard workspace while no run is open: a centered
+ * prompt with starter cards and the prompt bar. Selection/upload saves media
+ * only; creating a draft never dispatches paid work.
+ */
+export default function StoryboardNewPane() {
   const translate = useTranslations('pages.studioStoryboard.create');
   const brandId = useBrandId();
   const { openGallery } = useGalleryModal();
   const { openUpload } = useUploadModal();
   const { href } = useOrgUrl();
   const router = useRouter();
-  const hasAgentColumn = Boolean(useAgentOutputHost());
-  const translateAgent = useTranslations('pages.studioStoryboard.agentThread');
   const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
   const [mode, setMode] = useState<
     'brief' | 'longForm' | 'slideshow' | 'video'
@@ -170,6 +166,38 @@ export default function StoryboardCreate({
             url: item.cdnUrl ?? undefined,
             title: storyboardAssetLabel(item, translate('startingImage')),
           });
+      },
+    });
+  }
+  function chooseStyleReferences() {
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      format,
+      maxSelectableItems: 20 - styles.length,
+      title: translateWorkspace('styles'),
+      onSelect: (items) => {
+        const selected = items.filter(
+          (item) => item.brandId === brandId && !item.isDeleted,
+        );
+        if (!brandId) return;
+        setStyleReferences((current) =>
+          [
+            ...new Map(
+              [
+                ...current.filter((item) => item.brandId === brandId),
+                ...selected.map((item) => ({
+                  brandId,
+                  id: item.id,
+                  title: storyboardAssetLabel(
+                    item,
+                    translateWorkspace('styles'),
+                  ),
+                  url: item.cdnUrl ?? undefined,
+                })),
+              ].map((item) => [item.id, item]),
+            ).values(),
+          ].slice(0, 20),
+        );
       },
     });
   }
@@ -297,7 +325,12 @@ export default function StoryboardCreate({
     />
   );
   const composer = (
-    <PromptBarContainer layoutMode="inflow" maxWidth="full">
+    <PromptBarContainer
+      className="mx-auto w-full max-w-2xl"
+      layoutMode="inflow"
+      maxWidth="full"
+      zIndex={60}
+    >
       <PromptBarComposer
         data-testid="storyboard-composer"
         density="compact"
@@ -355,18 +388,33 @@ export default function StoryboardCreate({
             </>
           }
           reference={
-            mode === 'brief' ? (
-              <Button
-                ariaLabel={translateWorkspace('references')}
-                icon={<Paperclip className="size-3.5" />}
-                isDisabled={isCreating}
-                onClick={chooseStartingImage}
-                size={ButtonSize.ICON}
-                tooltip={translateWorkspace('references')}
-                tooltipPosition="top"
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
+            mode === 'brief' || isSlideshow ? (
+              <>
+                {mode === 'brief' ? (
+                  <Button
+                    ariaLabel={translate('chooseStartingImage')}
+                    icon={<Paperclip className="size-3.5" />}
+                    isDisabled={isCreating}
+                    onClick={chooseStartingImage}
+                    size={ButtonSize.ICON}
+                    tooltip={translate('chooseStartingImage')}
+                    tooltipPosition="top"
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  />
+                ) : null}
+                <Button
+                  ariaLabel={translatePlan('addStyleReferences')}
+                  icon={<Palette className="size-3.5" />}
+                  isDisabled={isCreating || styles.length >= 20}
+                  onClick={chooseStyleReferences}
+                  size={ButtonSize.ICON}
+                  tooltip={translatePlan('addStyleReferences')}
+                  tooltipPosition="top"
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              </>
             ) : null
           }
           trailing={
@@ -406,9 +454,6 @@ export default function StoryboardCreate({
       </p>
     ) : isLongForm || isSlideshow ? (
       <>
-        {hasAgentColumn ? null : (
-          <p className="text-sm text-muted-foreground">{modeHint}</p>
-        )}
         <StoryboardPitchCards
           isDisabled={isCreating}
           kind={pitchKind}
@@ -431,223 +476,141 @@ export default function StoryboardCreate({
         />
       </>
     );
-  const referencesPanel = (
-    <StoryboardReferencesPanel
-      references={[
-        ...(mode === 'brief' && image
-          ? [
-              {
-                id: `seed:${image.id}`,
-                title: image.title,
-                kind: 'image' as const,
-                url: image.url,
-                group: translate('startingImage'),
-                onRemove: () => setSeed(undefined),
-              },
-            ]
-          : []),
-        ...(mode !== 'video'
-          ? styles.map((reference) => ({
-              id: `style:${reference.id}`,
-              title: reference.title,
-              kind: 'image' as const,
-              url: reference.url,
-              group: translateWorkspace('styles'),
-              onRemove: () =>
-                setStyleReferences((current) =>
-                  current.filter(
-                    (item) =>
-                      item.id !== reference.id || item.brandId !== brandId,
-                  ),
-                ),
-            }))
-          : []),
-        ...(mode === 'video' && video
-          ? [
-              {
-                id: `video:${video.id}`,
-                title: video.title,
-                kind: 'video' as const,
-                url: video.url,
-                group: translate('uploadedVideo'),
-                onRemove: () => setSelected(undefined),
-              },
-            ]
-          : []),
-      ]}
-      actions={
-        mode === 'brief' || isSlideshow ? (
-          <>
-            {mode === 'brief' ? (
+  const referenceItems = [
+    ...(mode === 'brief' && image
+      ? [
+          {
+            id: `seed:${image.id}`,
+            title: image.title,
+            kind: 'image' as const,
+            url: image.url,
+            group: translate('startingImage'),
+            onRemove: () => setSeed(undefined),
+          },
+        ]
+      : []),
+    ...(mode !== 'video'
+      ? styles.map((reference) => ({
+          id: `style:${reference.id}`,
+          title: reference.title,
+          kind: 'image' as const,
+          url: reference.url,
+          group: translateWorkspace('styles'),
+          onRemove: () =>
+            setStyleReferences((current) =>
+              current.filter(
+                (item) => item.id !== reference.id || item.brandId !== brandId,
+              ),
+            ),
+        }))
+      : []),
+    ...(mode === 'video' && video
+      ? [
+          {
+            id: `video:${video.id}`,
+            title: video.title,
+            kind: 'video' as const,
+            url: video.url,
+            group: translate('uploadedVideo'),
+            onRemove: () => setSelected(undefined),
+          },
+        ]
+      : []),
+  ];
+  // A remix needs its video picked here; other modes show what was attached.
+  const referencesPanel =
+    mode === 'video' || referenceItems.length > 0 ? (
+      <StoryboardReferencesPanel
+        references={referenceItems}
+        actions={
+          mode === 'video' ? (
+            <>
               <Button
-                label={translate('chooseStartingImage')}
+                label={translate('chooseFromLibrary')}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isCreating}
-                onClick={chooseStartingImage}
+                onClick={() =>
+                  openGallery({
+                    category: IngredientCategory.VIDEO,
+                    maxSelectableItems: 1,
+                    title: translate('remixTitle'),
+                    onSelect: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          candidate.brandId === brandId && !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
               />
-            ) : null}
-            <Button
-              label={translatePlan('addStyleReferences')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating || styles.length >= 20}
-              onClick={() =>
-                openGallery({
-                  category: IngredientCategory.IMAGE,
-                  format,
-                  maxSelectableItems: 20 - styles.length,
-                  title: translateWorkspace('styles'),
-                  onSelect: (items) => {
-                    const selected = items.filter(
-                      (item) => item.brandId === brandId && !item.isDeleted,
-                    );
-                    if (!brandId) return;
-                    setStyleReferences((current) =>
-                      [
-                        ...new Map(
-                          [
-                            ...current.filter(
-                              (item) => item.brandId === brandId,
-                            ),
-                            ...selected.map((item) => ({
-                              brandId,
-                              id: item.id,
-                              title: storyboardAssetLabel(
-                                item,
-                                translateWorkspace('styles'),
-                              ),
-                              url: item.cdnUrl ?? undefined,
-                            })),
-                          ].map((item) => [item.id, item]),
-                        ).values(),
-                      ].slice(0, 20),
-                    );
-                  },
-                })
-              }
-            />
-          </>
-        ) : (
-          <>
-            <Button
-              label={translate('chooseFromLibrary')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating}
-              onClick={() =>
-                openGallery({
-                  category: IngredientCategory.VIDEO,
-                  maxSelectableItems: 1,
-                  title: translate('remixTitle'),
-                  onSelect: (items) => {
-                    const item = items.find(
-                      (candidate) =>
-                        candidate.brandId === brandId && !candidate.isDeleted,
-                    );
-                    if (item && brandId && 'brandId' in item)
-                      setSelected({
-                        brandId,
-                        id: item.id,
-                        url: item.cdnUrl ?? undefined,
-                        title: storyboardAssetLabel(
-                          item,
-                          translate('uploadedVideo'),
-                        ),
-                      });
-                  },
-                })
-              }
-            />
-            <Button
-              label={translate('uploadVideo')}
-              variant={ButtonVariant.SECONDARY}
-              disabled={isCreating}
-              onClick={() =>
-                openUpload({
-                  category: IngredientCategory.VIDEO,
-                  isMultiple: false,
-                  maxFiles: 1,
-                  onComplete: (items) => {
-                    const item = items.find(
-                      (candidate) =>
-                        'brandId' in candidate &&
-                        candidate.brandId === brandId &&
-                        !candidate.isDeleted,
-                    );
-                    if (item && brandId && 'brandId' in item)
-                      setSelected({
-                        brandId,
-                        id: item.id,
-                        url: item.cdnUrl ?? undefined,
-                        title: storyboardAssetLabel(
-                          item,
-                          translate('uploadedVideo'),
-                        ),
-                      });
-                  },
-                })
-              }
-            />
-            {video ? (
               <Button
-                label={translate('clearVideo')}
+                label={translate('uploadVideo')}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isCreating}
-                onClick={() => setSelected(undefined)}
+                onClick={() =>
+                  openUpload({
+                    category: IngredientCategory.VIDEO,
+                    isMultiple: false,
+                    maxFiles: 1,
+                    onComplete: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          'brandId' in candidate &&
+                          candidate.brandId === brandId &&
+                          !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
               />
-            ) : null}
-          </>
-        )
-      }
-    />
-  );
-  if (hasAgentColumn) {
-    return (
-      <AgentOutputShell
-        agent={
-          <div
-            className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
-            data-testid="storyboard-agent"
-          >
-            {/* Centered on the column like the main agent's empty state; the
-                cap keeps a tall block scrolling clear of the composer. */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6">
-              <div className="pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto">
-                <div className="w-full text-center">
-                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-[1.75rem]">
-                    {translate('heroTitle')}
-                  </h2>
-                  <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">
-                    {mode === 'video' ? null : modeHint}
-                  </p>
-                </div>
-                <div className="flex w-full flex-col gap-4">{guidance}</div>
-              </div>
-            </div>
-            <div className="mt-auto shrink-0 px-4 pb-4 md:px-6">
-              <div className="mx-auto w-full max-w-2xl">{composer}</div>
-            </div>
-          </div>
+              {video ? (
+                <Button
+                  label={translate('clearVideo')}
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isCreating}
+                  onClick={() => setSelected(undefined)}
+                />
+              ) : null}
+            </>
+          ) : undefined
         }
-        agentTitle={translateAgent('title')}
-        outputLabel={translate('result')}
-      >
-        <Container label={label} moduleChrome right={actions}>
-          <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">
-              {translate('resultEmpty')}
-            </p>
-            {referencesPanel}
-          </div>
-        </Container>
-      </AgentOutputShell>
-    );
-  }
+      />
+    ) : null;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-      <div className="flex min-w-0 flex-col gap-6">
-        {composer}
-        {guidance}
-      </div>
-      {referencesPanel}
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      data-testid="storyboard-agent"
+    >
+      <PromptEmptyState
+        description={mode === 'video' ? undefined : modeHint}
+        title={translate('heroTitle')}
+      >
+        <div className="flex flex-col gap-4">
+          {guidance}
+          {referencesPanel}
+        </div>
+      </PromptEmptyState>
+      <div className="mt-auto shrink-0 px-3 pb-3">{composer}</div>
     </div>
   );
 }

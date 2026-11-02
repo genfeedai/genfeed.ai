@@ -1,4 +1,3 @@
-import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { Metadata } from '@genfeedai/models/content/metadata.model';
@@ -14,7 +13,7 @@ import {
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import StoryboardCreate from './StoryboardCreate';
+import StoryboardNewPane from './StoryboardNewPane';
 
 const mocks = vi.hoisted(() => ({
   brandId: 'brand-a',
@@ -130,7 +129,7 @@ function chooseSource(name: string) {
   fireEvent.click(screen.getByRole('option', { name }));
 }
 
-describe('Storyboard shared composer', () => {
+describe('StoryboardNewPane', () => {
   beforeEach(() => {
     mocks.brandId = 'brand-a';
     mocks.error = null;
@@ -140,7 +139,7 @@ describe('Storyboard shared composer', () => {
     mocks.push.mockReset();
   });
   it('prefills the brief, format and runtime from a preset without submitting', () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     fireEvent.click(
       screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
     );
@@ -153,7 +152,7 @@ describe('Storyboard shared composer', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('fills the brief, shot plan and runtime from an agent brief without submitting', () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     const agentBrief = screen.getByRole('button', { name: 'Agent brief' });
     expect(agentBrief).toHaveAttribute('data-brand-id', 'brand-a');
     fireEvent.click(agentBrief);
@@ -166,7 +165,7 @@ describe('Storyboard shared composer', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('saves an agent brief sent unchanged as agent-authored', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() =>
@@ -178,7 +177,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it("saves an edited agent brief as agent_edited, and a preset after it as the member's", async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     fireEvent.click(screen.getByRole('button', { name: 'Agent brief' }));
     const editor = screen.getByLabelText('Brief') as HTMLTextAreaElement;
     fireEvent.change(editor, {
@@ -200,7 +199,7 @@ describe('Storyboard shared composer', () => {
     expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');
   });
   it('saves the brief with a usable default duration, then navigates to its scoped project', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     expect(screen.getByTestId('storyboard-composer')).toBeInTheDocument();
     expect(screen.getByLabelText('Runtime budget (seconds)')).toHaveTextContent(
       '30s',
@@ -228,7 +227,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('saves the runtime picked in the dropdown, not the default', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     fireEvent.keyDown(
       screen.getByRole('combobox', { name: 'Runtime budget (seconds)' }),
       { key: 'ArrowDown' },
@@ -247,7 +246,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('saves a long transcript as a landscape long-form storyboard', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     chooseSource('Long video');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     const transcript = 'So here is the thing about consistency. '.repeat(100);
@@ -273,7 +272,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('saves a brief as a 4:5 slideshow with no runtime', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     chooseSource('Slideshow');
     expect(screen.queryByLabelText('Runtime budget (seconds)')).toBeNull();
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -299,7 +298,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('offers three slideshow ideas that fill the brief without saving', () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     chooseSource('Slideshow');
     expect(
       within(screen.getByTestId('storyboard-pitch-cards')).getAllByRole(
@@ -313,7 +312,7 @@ describe('Storyboard shared composer', () => {
     expect(mocks.create).not.toHaveBeenCalled();
   });
   it('offers long-video ideas and none for a remix', () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     chooseSource('Long video');
     expect(
       screen.getByRole('button', { name: 'Voice note' }),
@@ -321,43 +320,50 @@ describe('Storyboard shared composer', () => {
     chooseSource('Remix a video');
     expect(screen.queryByTestId('storyboard-pitch-cards')).toBeNull();
   });
-  it('pitches in the agent column and leaves the result on the right', () => {
-    render(
-      <AgentOutputHostContext
-        value={{
-          agent: <p>Shell conversation</p>,
-          contextPanel: <p>Shell context</p>,
-          isContextOpen: false,
-          onCloseContext: vi.fn(),
-          onNewThread: vi.fn(),
-          onOpenContext: vi.fn(),
-          onOpenFullPage: vi.fn(),
-          threadsPanel: <p>Shell threads</p>,
-        }}
-      >
-        <StoryboardCreate />
-      </AgentOutputHostContext>,
-    );
-    const agentPane = screen.getByTestId('agent-output-agent-pane');
-    const outputPane = screen.getByTestId('agent-output-output-pane');
+  it('centers the hero and starter cards above the prompt bar, with no result column', () => {
+    render(<StoryboardNewPane />);
 
-    expect(within(agentPane).getByLabelText('Brief')).toBeInTheDocument();
     expect(
-      within(agentPane).getByRole('combobox', { name: 'Storyboard source' }),
+      within(screen.getByTestId('prompt-empty-state')).getByRole('heading', {
+        name: 'Start a storyboard',
+      }),
     ).toBeInTheDocument();
     expect(
-      within(agentPane).getByRole('heading', { name: 'Start a storyboard' }),
+      screen.getByText('Pitch your idea, or start from one of these.'),
     ).toBeInTheDocument();
-    expect(within(outputPane).queryByLabelText('Brief')).toBeNull();
+    expect(screen.getByLabelText('Brief')).toBeInTheDocument();
     expect(
-      within(outputPane).getByText(
-        'Your storyboard shows up here once you save the idea.',
-      ),
+      screen.getByRole('combobox', { name: 'Storyboard source' }),
     ).toBeInTheDocument();
-    expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
+    expect(screen.queryByText('Session references')).toBeNull();
+    expect(screen.queryByTestId('agent-output-output-pane')).toBeNull();
+  });
+  it('picks a video for a remix from the Library and saves it as the source', async () => {
+    mocks.create.mockResolvedValue('remix-run');
+    mocks.openGallery.mockImplementation((config) =>
+      config.onSelect?.([
+        Object.assign(image('video-1'), { category: 'video' }),
+      ] as never),
+    );
+    render(<StoryboardNewPane />);
+    chooseSource('Remix a video');
+
+    expect(screen.queryByLabelText('Brief')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Upload a video' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose from Library' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        source: { kind: 'uploaded_video', assetId: 'video-1' },
+      }),
+    );
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/brand-a/storyboard/remix-run',
+    );
   });
   it('goes back to a video format when a slideshow is switched back to a brief', async () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     chooseSource('Slideshow');
     chooseSource('From a brief');
     fireEvent.change(screen.getByLabelText('Brief'), {
@@ -373,7 +379,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('saves only owned, nondeleted style references and clears them when the brand changes', async () => {
-    const { rerender } = render(<StoryboardCreate />);
+    const { rerender } = render(<StoryboardNewPane />);
     fireEvent.click(
       screen.getByRole('button', { name: 'Add style references' }),
     );
@@ -399,7 +405,7 @@ describe('Storyboard shared composer', () => {
       ),
     );
     mocks.brandId = 'brand-b';
-    rerender(<StoryboardCreate />);
+    rerender(<StoryboardNewPane />);
     expect(screen.queryByText('style-a')).not.toBeInTheDocument();
     mocks.create.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
@@ -412,7 +418,7 @@ describe('Storyboard shared composer', () => {
     );
   });
   it('retains the brief and selected image after a failed save for explicit retry', async () => {
-    const { rerender } = render(<StoryboardCreate />);
+    const { rerender } = render(<StoryboardNewPane />);
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Choose a starting image',
@@ -428,7 +434,7 @@ describe('Storyboard shared composer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
     mocks.error = 'Offline';
-    rerender(<StoryboardCreate />);
+    rerender(<StoryboardNewPane />);
     expect(screen.getByLabelText('Brief')).toHaveValue('Keep this story');
     expect(screen.getByText('starting-image')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Offline');
@@ -441,7 +447,7 @@ describe('Storyboard shared composer', () => {
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
   });
   it('does not dispatch invalid or overlong prompts through keyboard submit', () => {
-    render(<StoryboardCreate />);
+    render(<StoryboardNewPane />);
     fireEvent.keyDown(screen.getByLabelText('Brief'), { key: 'Enter' });
     fireEvent.change(screen.getByLabelText('Brief'), {
       target: { value: 'x'.repeat(2001) },

@@ -232,7 +232,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/clipper': 'Projects',
   '/:orgSlug/:brandSlug/turbo': 'Projects',
   '/:orgSlug/:brandSlug/clipper/new': 'New project',
-  '/:orgSlug/:brandSlug/storyboard/new': 'New storyboard',
   '/:orgSlug/:brandSlug/storyboard/:runId': 'Run',
   '/:orgSlug/:brandSlug/clipper/:projectId': 'Project',
   '/:orgSlug/:brandSlug/editor': 'Projects',
@@ -885,7 +884,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/playground',
       '/:orgSlug/:brandSlug/motion',
       '/:orgSlug/:brandSlug/storyboard',
-      '/:orgSlug/:brandSlug/storyboard/new',
       '/:orgSlug/:brandSlug/storyboard/:runId',
     ],
     {

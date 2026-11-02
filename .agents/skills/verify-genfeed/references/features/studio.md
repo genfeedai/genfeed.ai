@@ -3,7 +3,7 @@
 ## What exists
 There is no bare `/studio` route (hard cut). The studio surfaces are top-level tools:
 `/playground` (single asset, every generatable type behind one prompt bar),
-`/storyboard` (+ `/storyboard/new`), `/clipper` (+ `/clipper/new`), `/editor`
+`/storyboard`, `/clipper` (+ `/clipper/new`), `/editor`
 (+ `/editor/new`), `/turbo` and `/motion`. One-off image and video
 generation also lives in the Agent (`agent-chat.md`). Routes are `APP_ROUTES` in
 `packages/contracts/src/constants/routes.constant.ts`; paths are org-scoped in the app.
