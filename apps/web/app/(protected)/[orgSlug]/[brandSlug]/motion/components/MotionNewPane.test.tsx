@@ -498,9 +498,7 @@ describe('Motion quote review', () => {
         target: { value: 'revise the intro' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
-      fireEvent.click(
-        screen.getByRole('button', { name: 'projectChoiceNew' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'projectChoiceNew' }));
 
       await screen.findByRole('button', { name: 'confirm' });
       expect(mocks.quote).toHaveBeenCalledTimes(1);
@@ -514,7 +512,9 @@ describe('Motion quote review', () => {
       fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
 
       await screen.findByRole('button', { name: 'confirm' });
-      expect(screen.queryByText('projectChoiceQuestion')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('projectChoiceQuestion'),
+      ).not.toBeInTheDocument();
     });
   });
 });

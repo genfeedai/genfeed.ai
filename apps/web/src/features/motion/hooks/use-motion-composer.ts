@@ -28,8 +28,8 @@ import type {
 import type { MotionPreset } from '@/features/motion/props/motion-presets.props';
 import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
-import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
 const SETTLED_STATUSES = ['completed', 'failed', 'cancelled'];
