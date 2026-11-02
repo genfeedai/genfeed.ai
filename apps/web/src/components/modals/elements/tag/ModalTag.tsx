@@ -1,5 +1,10 @@
 import { type TagSchema, tagSchema } from '@genfeedai/client/schemas';
-import { ButtonVariant, ModalEnum, TagCategory } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  ModalEnum,
+  TagCategory,
+  TagScope,
+} from '@genfeedai/contracts';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
@@ -7,7 +12,6 @@ import {
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';
-import type { BaseService } from '@genfeedai/services/core/base.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Alert } from '@ui/primitives/alert';
@@ -24,11 +28,7 @@ import {
 import { type ChangeEvent, useCallback, useMemo, useRef } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalTag({
-  entityType,
-  entityId,
-  onConfirm,
-}: ModalTagProps) {
+export default function ModalTag({ onConfirm }: ModalTagProps) {
   const defaultValues = useMemo(
     () => ({
       backgroundColor: TAG_SCOPE_COLORS[TagCategory.INGREDIENT].bg,
@@ -45,38 +45,22 @@ export default function ModalTag({
   const defaultValuesRef = useRef(defaultValues);
   defaultValuesRef.current = defaultValues;
 
-  const customSubmitHandler = useCallback(
-    async (
-      service: BaseService<unknown, unknown, unknown>,
-      _entity: ITag | null,
-      formData: TagSchema,
-    ): Promise<ITag> => {
-      const tagsService = service as TagsService;
-      if (entityType && entityId) {
-        const result = await tagsService.addTagToEntity(
-          entityType as TagCategory,
-          entityId,
-          formData.label,
-        );
-        return result as ITag;
-      }
-
-      throw new Error('Entity type or entity ID is required');
-    },
-    [entityType, entityId],
-  );
-
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     ITag,
     TagSchema
   >({
-    customSubmitHandler,
     defaultValues,
     entity: null,
     modalId: ModalEnum.TAG,
     onConfirm,
     schema: tagSchema,
     serviceFactory: (token) => TagsService.getInstance(token),
+    // The tags page lists organization-wide tags, so a tag created here is one
+    // too: it does not depend on the admin having a brand selected.
+    transformSubmitData: (formData) => ({
+      ...formData,
+      scope: TagScope.ORGANIZATION,
+    }),
   });
 
   // Called when Cancel button is clicked - initiates the close

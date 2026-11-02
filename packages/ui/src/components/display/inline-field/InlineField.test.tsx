@@ -161,7 +161,8 @@ describe('InlineField', () => {
       />,
     );
 
-    const input = screen.getByLabelText('Color');
+    // The color editor loads on first use.
+    const input = await screen.findByLabelText('Color');
     fireEvent.blur(input);
     expect(saved).toEqual([]);
 

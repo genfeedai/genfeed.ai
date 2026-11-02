@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPreset, IWorkflow } from '@genfeedai/contracts/interfaces';
+import type { IWorkflow } from '@genfeedai/contracts/interfaces';
 import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import type {
   ModalArticleProps,
@@ -114,7 +114,7 @@ export const LazyModalMood = dynamic(
 export const LazyModalPreset = dynamic(
   () => import('@/components/modals/elements/preset/ModalPreset'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IPreset>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalScene = dynamic(
   () => import('@/components/modals/elements/scene/ModalScene'),

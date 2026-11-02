@@ -11,7 +11,6 @@ import type {
   ModalEnum,
   Platform,
   PostFormat,
-  TagCategory,
 } from '@genfeedai/contracts';
 import type {
   IAsset,
@@ -176,10 +175,7 @@ export interface ModalStoryboardUploadProps {
   isMultiple?: boolean;
 }
 
-export interface ModalTagProps extends ModalCreateProps {
-  entityType?: TagCategory;
-  entityId?: string;
-}
+export type ModalTagProps = ModalCreateProps;
 
 export interface ModalRoleProps {
   onConfirm: (isRefreshing?: boolean) => void;
@@ -191,7 +187,7 @@ export interface ModalSoundProps {
   onConfirm: (isRefreshing?: boolean) => void;
 }
 
-export interface ModalFolderProps extends ModalCrudProps<IFolder> {
+export interface ModalFolderProps extends ModalCreateProps {
   scope?: ContentProps['scope'];
   brandId?: string;
 }
@@ -408,11 +404,6 @@ export interface ModalMetadataProps extends ModalVisibilityProps {
   metadata?: IMetadata;
   scope?: AssetScope;
   folder?: IFolder | null;
-  onConfirm: () => void;
-}
-
-export interface ModalOrganizationProps {
-  organizationId?: string | null;
   onConfirm: () => void;
 }
 

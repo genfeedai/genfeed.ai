@@ -91,7 +91,6 @@ export default function IngredientsList({
     hasFilteredEmptyState,
     folders,
     selectedFolderId,
-    selectedFolderForModal,
     selectedIngredientIds,
     setSelectedIngredientIds,
     isActionsEnabled,
@@ -409,7 +408,6 @@ export default function IngredientsList({
         lightboxOpen={lightboxOpen}
         lightboxIndex={lightboxIndex}
         onCloseLightbox={closeLightbox}
-        selectedFolderForModal={selectedFolderForModal}
         onFolderModalConfirm={handleFolderModalConfirm}
         showFolderModal={folderNavigation === 'content'}
       />

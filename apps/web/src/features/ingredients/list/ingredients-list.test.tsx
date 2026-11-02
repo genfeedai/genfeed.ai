@@ -209,7 +209,6 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
     openIngredientModal: vi.fn(),
     openLightboxForIngredient: vi.fn(),
     presets: [],
-    selectedFolderForModal: undefined,
     selectedFolderId: undefined,
     selectedIngredientIds: [],
     setIngredients: vi.fn(),

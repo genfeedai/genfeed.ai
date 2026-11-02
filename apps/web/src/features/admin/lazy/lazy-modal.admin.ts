@@ -6,10 +6,3 @@ export const LazyModalRole = dynamic(
     ssr: false,
   },
 );
-
-export const LazyModalSubscription = dynamic(
-  () => import('@/features/admin/modals/ModalSubscription'),
-  {
-    ssr: false,
-  },
-);

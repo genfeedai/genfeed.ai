@@ -7,50 +7,32 @@ import {
   ButtonVariant,
   ModalEnum,
   ModelCategory,
-  SystemPromptKey,
 } from '@genfeedai/contracts';
 import type { IPreset } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import { Prompt } from '@genfeedai/models/content/prompt.model';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
-import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
-import { logger } from '@genfeedai/services/core/logger.service';
-import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { PresetsService } from '@genfeedai/services/elements/presets.service';
-import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
+import { usePromptEnhance } from '@/hooks/ui/use-prompt-enhance/use-prompt-enhance';
 import ModalPresetFields from './ModalPresetFields';
 
-export default function ModalPreset({
-  item,
-  onConfirm,
-  onClose,
-}: ModalCrudProps<IPreset>) {
+/**
+ * Creates a preset. Existing presets are edited in place in the context
+ * sidebar (see `PresetDescriptionActions` for the AI enhance).
+ */
+export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
   const { brandId, organizationId } = useBrand();
   const [error, setError] = useState<string | null>(null);
 
   const clipboardService = ClipboardService.getInstance();
+  const { enhance, isEnhancing } = usePromptEnhance();
 
-  const getPromptsService = useAuthedService((token: string) =>
-    PromptsService.getInstance(token),
-  );
-  const { subscribe } = useSocketManager();
-
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -76,61 +58,18 @@ export default function ModalPreset({
       scene: '',
       style: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.PRESET,
     onClose,
     onConfirm,
     schema: presetElementSchema,
     serviceFactory: (token) => PresetsService.getInstance(token),
-    transformSubmitData: (formData) => {
-      // Include canonical scope identifiers when provided (for admin use).
-      const data = {
-        ...formData,
-      };
-
-      // Editing never retargets a platform/org-wide preset to the current brand.
-      // Omitted scope fields leave stored null/unknown scope unchanged.
-      if (item?.id) {
-        delete data.organizationId;
-        delete data.brandId;
-        if (typeof item.organizationId === 'string')
-          data.organizationId = item.organizationId;
-        if (typeof item.brandId === 'string') data.brandId = item.brandId;
-        // An emptied Duration is omitted by the form, and an omitted field
-        // keeps its stored value, so clear it explicitly.
-        if (data.duration === undefined && typeof item.duration === 'number') {
-          return { ...data, duration: null };
-        }
-        return data;
-      }
-
-      if (organizationId) {
-        data.organizationId = organizationId;
-      }
-
-      if (brandId) {
-        data.brandId = brandId;
-      }
-
-      return data;
-    },
+    transformSubmitData: (formData) => ({
+      ...formData,
+      ...(organizationId ? { organizationId } : {}),
+      ...(brandId ? { brandId } : {}),
+    }),
   });
-  const promptSubscriptionRef = useRef<(() => void) | null>(null);
-
-  // Custom close handler that resets local states
-  const closeModalPreset = () => {
-    setIsEnhancing(false);
-    setIsCopying(false);
-    onClose?.();
-    closeModal();
-  };
-
-  const cleanupPromptSubscription = useCallback(() => {
-    if (promptSubscriptionRef.current) {
-      promptSubscriptionRef.current();
-      promptSubscriptionRef.current = null;
-    }
-  }, []);
 
   // Watch the description field for reactive updates
   const watchedDescription = form.watch('description');
@@ -148,71 +87,24 @@ export default function ModalPreset({
       form.setValue(name as Parameters<typeof form.setValue>[0], checked, {
         shouldValidate: true,
       });
+    } else if (name === 'key') {
+      form.setValue('key', normalizeElementKey(value), {
+        shouldValidate: true,
+      });
     } else {
-      // Format key if key field changes
-      if (name === 'key') {
-        const formattedKey = value
-          .toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9-]/g, '');
-        form.setValue('key', formattedKey, { shouldValidate: true });
-      } else {
-        form.setValue(name as Parameters<typeof form.setValue>[0], value, {
-          shouldValidate: true,
-        });
-      }
+      form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+        shouldValidate: true,
+      });
     }
   };
 
   useEffect(() => {
     return () => {
-      cleanupPromptSubscription();
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
     };
-  }, [cleanupPromptSubscription]);
-
-  const listenForSocket = (promptId: string) => {
-    const event = WebSocketPaths.prompt(promptId);
-
-    // Add timeout to prevent indefinite loading state
-    const timeoutId = setTimeout(() => {
-      logger.error('Prompt enhancement timed out');
-      setError('Enhancement timed out. Please try again.');
-      setIsEnhancing(false);
-      cleanupPromptSubscription();
-    }, 30_000); // 30 second timeout
-
-    const handler = createPromptHandler<string>(
-      (result) => {
-        clearTimeout(timeoutId);
-        form.setValue('description', result, { shouldValidate: true });
-        setIsEnhancing(false);
-        cleanupPromptSubscription();
-
-        // Start 30s timeout to clear undo state
-        if (undoTimeoutRef.current) {
-          clearTimeout(undoTimeoutRef.current);
-        }
-        undoTimeoutRef.current = setTimeout(() => {
-          setPreviousPrompt(null);
-          undoTimeoutRef.current = null;
-        }, 30000);
-      },
-      (error) => {
-        clearTimeout(timeoutId);
-
-        logger.error('Prompt enhancement failed via websocket', error);
-        setError('Enhancement failed. Please try again.');
-        setIsEnhancing(false);
-        cleanupPromptSubscription();
-      },
-    );
-
-    cleanupPromptSubscription();
-    promptSubscriptionRef.current = subscribe(event, handler);
-  };
-
-  const handleCopy = async (text: string) =>
-    await clipboardService.copyToClipboard(text);
+  }, []);
 
   const handleUndo = useCallback(() => {
     if (previousPrompt !== null) {
@@ -226,55 +118,32 @@ export default function ModalPreset({
   }, [form, previousPrompt]);
 
   const enhanceDescription = async () => {
-    // Save current prompt for undo functionality
     setPreviousPrompt(watchedDescription || null);
-
-    // Clear any existing undo timeout
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
 
-    setIsEnhancing(true);
-
-    const url = 'POST /prompts';
     try {
-      const service = await getPromptsService();
-
-      // Determine system prompt key based on preset category
-      const presetCategory = form.watch('category');
-      let systemPromptKey: SystemPromptKey = SystemPromptKey.IMAGE;
-      if (presetCategory === 'video') {
-        systemPromptKey = SystemPromptKey.VIDEO;
-      } else if (presetCategory === 'music') {
-        systemPromptKey = SystemPromptKey.MUSIC;
-      }
-
-      const promptData = new Prompt({
-        brandId,
-        category: `presets-description-${presetCategory}`,
-        isSkipEnhancement: false,
-        organizationId,
-        original: watchedDescription,
-        systemPromptKey,
-        useRAG: true, // Enable RAG if context bases exist
-      });
-
-      const data = await service.post(promptData);
-
-      logger.info(`${url} success`, data);
-
-      listenForSocket(data.id);
-    } catch (error) {
-      logger.error(`${url} failed`, error);
-      setIsEnhancing(false);
+      const result = await enhance(
+        watchedDescription ?? '',
+        form.getValues('category'),
+      );
+      form.setValue('description', result, { shouldValidate: true });
+      // The undo stays available for 30 seconds.
+      undoTimeoutRef.current = setTimeout(() => {
+        setPreviousPrompt(null);
+        undoTimeoutRef.current = null;
+      }, 30_000);
+    } catch {
+      setError('Enhancement failed. Please try again.');
     }
   };
 
   return (
     <Modal
       id={ModalEnum.PRESET}
-      title={item?.id ? 'Edit Preset' : 'Create Preset'}
+      title="Create Preset"
       error={error}
       onClose={() => setError(null)}
     >
@@ -283,11 +152,13 @@ export default function ModalPreset({
           control={form.control}
           watchedDescription={watchedDescription}
           isSubmitting={isSubmitting}
-          isCopying={isCopying}
+          isCopying={false}
           isEnhancing={isEnhancing}
           previousPrompt={previousPrompt}
           onChange={updateModalPreset}
-          onCopy={() => handleCopy(watchedDescription || '')}
+          onCopy={() =>
+            clipboardService.copyToClipboard(watchedDescription || '')
+          }
           onEnhance={enhanceDescription}
           onUndo={handleUndo}
         />
@@ -296,13 +167,13 @@ export default function ModalPreset({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => closeModalPreset()}
+            onClick={() => closeModal()}
             isLoading={isSubmitting}
           />
 
           <Button
             type="submit"
-            label={item?.id ? 'Update' : 'Create'}
+            label="Create"
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

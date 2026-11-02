@@ -1,71 +1,59 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { TagCategory, TagScope } from '@genfeedai/contracts';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModalTag from '@/components/modals/elements/tag/ModalTag';
 
-// Mock dependencies
-vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({
-    children,
-  }: import('react').ComponentProps<
-    typeof import('@ui/modals/modal/Modal').default
-  >) => <div data-testid="modal">{children}</div>,
+const fixture = vi.hoisted(() => ({
+  posted: [] as unknown[],
 }));
 
-vi.mock('@genfeedai/hooks/ui/use-crud-modal', () => ({
-  useCrudModal: () => ({
-    form: {
-      formState: { errors: {} },
-      handleSubmit: vi.fn((fn) => fn),
-      register: vi.fn(),
-      setValue: vi.fn(),
-      watch: vi.fn(() => ''),
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    post: async (body: unknown) => {
+      fixture.posted.push(body);
+      return { id: 'tag-1' };
     },
-    handleDelete: vi.fn(),
-    isSubmitting: false,
   }),
 }));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    children,
-    onClick,
-  }: {
-    children?: React.ReactNode;
-    onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
-  buttonVariants: () => '',
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    post: async (body: unknown) => {
+      fixture.posted.push(body);
+      return { id: 'tag-1' };
+    },
+  }),
 }));
-
-vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: { children?: React.ReactNode }) => (
+vi.mock('@helpers/ui/modal/modal.helper', () => ({
+  closeModal: vi.fn(),
+  openModal: vi.fn(),
+}));
+vi.mock('@ui/modals/modal/Modal', () => ({
+  default: ({ children }: import('react').PropsWithChildren) => (
     <div>{children}</div>
   ),
 }));
 
-vi.mock('@ui/primitives/input', () => ({
-  Input: (props: { name?: string }) => (
-    <input data-testid={`input-${props.name ?? 'unknown'}`} />
-  ),
-}));
-
-vi.mock('@ui/primitives/select', () => ({
-  SelectField: (props: { name?: string }) => (
-    <select data-testid={`select-${props.name ?? 'unknown'}`} />
-  ),
-}));
-
 describe('ModalTag', () => {
-  const defaultProps = {
-    item: null,
-    onConfirm: vi.fn(),
-  };
+  beforeEach(() => {
+    fixture.posted = [];
+  });
 
-  it('renders tag form', () => {
-    render(<ModalTag {...defaultProps} />);
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  it('creates an organization-wide tag from the form without an entity id', async () => {
+    const onConfirm = vi.fn();
+    render(<ModalTag onConfirm={onConfirm} />);
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Label' }), {
+      target: { value: 'Launch week' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(true));
+    expect(fixture.posted).toEqual([
+      expect.objectContaining({
+        category: TagCategory.INGREDIENT,
+        label: 'Launch week',
+        scope: TagScope.ORGANIZATION,
+      }),
+    ]);
   });
 });

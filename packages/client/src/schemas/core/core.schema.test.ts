@@ -17,7 +17,6 @@ import {
   organizationSchema,
 } from '@genfeedai/client/schemas/core/organization.schema';
 import { roleSchema } from '@genfeedai/client/schemas/core/role.schema';
-import { subscriptionSchema } from '@genfeedai/client/schemas/core/subscription.schema';
 import {
   ORGANIZATION_DESCRIPTION_MAX_LENGTH,
   ORGANIZATION_DESCRIPTION_TOO_LONG_MESSAGE,
@@ -162,16 +161,6 @@ describe('core schemas', () => {
       expect(roleSchema.safeParse({ key: '', label: 'Admin' }).success).toBe(
         false,
       );
-    });
-  });
-
-  describe('subscriptionSchema', () => {
-    it('accepts valid amount', () => {
-      expect(subscriptionSchema.safeParse({ amount: 10 }).success).toBe(true);
-    });
-
-    it('rejects zero amount', () => {
-      expect(subscriptionSchema.safeParse({ amount: 0 }).success).toBe(false);
     });
   });
 
