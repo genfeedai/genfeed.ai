@@ -1,23 +1,26 @@
+import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LearningPage from './learning-page';
 
+type ReportParams = { brandId?: string; organizationId: string };
+
 const mocks = vi.hoisted(() => ({
-  brand: '',
   currentOrganizationId: 'org-own',
-  organization: '',
-  replace: vi.fn(),
-  useLearningReport: vi.fn(),
+  requests: [] as { brandId?: string; organizationId: string }[],
+  search: '',
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/administration/learning',
-  useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () =>
-    new URLSearchParams(
-      mocks.organization ? { organization: mocks.organization } : {},
-    ),
+  useRouter: () => ({
+    replace: (url: string) => {
+      mocks.search = url.split('?')[1] ?? '';
+    },
+  }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -26,14 +29,26 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
   default: () => <div>organization filter</div>,
-  useAdminOrgBrandParams: () => ({
-    brand: mocks.brand,
-    organization: mocks.organization,
+  useAdminOrgBrandParams: () => {
+    const params = new URLSearchParams(mocks.search);
+    return {
+      brand: params.get('brand') ?? '',
+      organization: params.get('organization') ?? '',
+    };
+  },
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    getReport: async (params: ReportParams) => {
+      mocks.requests.push(params);
+      return report();
+    },
   }),
 }));
 
-vi.mock('@/features/admin/learning/use-learning-report', () => ({
-  useLearningReport: mocks.useLearningReport,
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn() },
 }));
 
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
@@ -71,45 +86,87 @@ vi.mock('next-intl', async () => {
   };
 });
 
+function report(): LearningPromptSlotOutcomeReport {
+  return {
+    groups: [
+      {
+        category: 'IMAGE',
+        comparison: {
+          alpha: 0.05,
+          comparisonCount: 1,
+          comparisons: [
+            {
+              difference: 0.7,
+              filled: { count: 25, mean: 0.5 },
+              lower: 0.4,
+              rest: { count: 25, mean: -0.2 },
+              slot: 'lighting',
+              upper: 1,
+              value: null,
+              verdict: 'better',
+            },
+          ],
+          excludedCount: 0,
+          observationCount: 50,
+        },
+        objective: 'engagement',
+        postCount: 50,
+      },
+    ],
+    isPooled: false,
+    isTruncated: false,
+    organizationIds: ['org-1'],
+    postCount: 50,
+    skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+  };
+}
+
+function renderPage() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const tree = (
+    <QueryClientProvider client={client}>
+      <LearningPage />
+    </QueryClientProvider>
+  );
+  const view = render(tree);
+  // The page writes the default organization into the URL on mount; render
+  // again so it reads that URL, as the router would.
+  view.rerender(tree);
+}
+
 describe('LearningPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.brand = '';
     mocks.currentOrganizationId = 'org-own';
-    mocks.organization = '';
-    mocks.useLearningReport.mockReturnValue({
-      data: undefined,
-      isError: false,
-      isFetching: false,
-      isLoading: false,
-      refetch: vi.fn(),
-    });
+    mocks.requests = [];
+    mocks.search = '';
   });
 
-  it('opens on the admin’s own organization instead of an empty form', () => {
-    render(<LearningPage />);
+  it('opens on the admin’s own organization and shows its report', async () => {
+    renderPage();
 
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/administration/learning?organization=org-own',
-      { scroll: false },
-    );
+    expect(await screen.findByText('lighting')).toBeVisible();
+    expect(mocks.search).toBe('organization=org-own');
+    expect(mocks.requests).toEqual([
+      { brandId: undefined, organizationId: 'org-own' },
+    ]);
   });
 
-  it('keeps the organization picked in the URL', () => {
-    mocks.organization = 'org-picked';
-    mocks.brand = 'brand-1';
-    render(<LearningPage />);
+  it('reads the organization and brand picked in the URL', async () => {
+    mocks.search = 'organization=org-picked&brand=brand-1';
+    renderPage();
 
-    expect(mocks.replace).not.toHaveBeenCalled();
-    expect(mocks.useLearningReport).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      organizationId: 'org-picked',
-    });
+    expect(await screen.findByText('lighting')).toBeVisible();
+    expect(mocks.search).toBe('organization=org-picked&brand=brand-1');
+    expect(mocks.requests).toEqual([
+      { brandId: 'brand-1', organizationId: 'org-picked' },
+    ]);
   });
 
   it('asks for an organization when none is chosen yet', () => {
     mocks.currentOrganizationId = '';
-    render(<LearningPage />);
+    renderPage();
 
     expect(
       screen.getByText(
@@ -117,5 +174,6 @@ describe('LearningPage', () => {
       ),
     ).toBeVisible();
     expect(screen.getByText('organization filter')).toBeVisible();
+    expect(mocks.requests).toEqual([]);
   });
 });
