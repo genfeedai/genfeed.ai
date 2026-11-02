@@ -224,6 +224,21 @@ test('Motion opens a project with the agent on the left and the project on the r
             },
           },
         });
+      if (path.endsWith('/layout-project'))
+        return route.fulfill({
+          json: {
+            data: {
+              type: 'visual-projects',
+              id: 'layout-project',
+              attributes: {
+                label: 'Layout project',
+                currentRevision: 1,
+                revisions: [],
+                nextRevisionCursor: null,
+              },
+            },
+          },
+        });
       return route.fulfill({
         json: {
           data: [],
