@@ -53,6 +53,8 @@ interface Attempt {
   model?: string;
   prompt?: string;
   status?: IngredientStatus;
+  /** What the user typed; `prompt` is then what the provider was sent. */
+  typedPrompt?: string;
   userId?: string;
 }
 
@@ -128,10 +130,21 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
     }
   }
 
-  function attempt(options: Attempt = {}) {
+  async function attempt(options: Attempt = {}) {
+    const typed = options.typedPrompt
+      ? await database().prompt.create({
+          data: {
+            brandId,
+            organizationId,
+            original: options.typedPrompt,
+            userId: options.userId ?? userId,
+          },
+        })
+      : null;
     return database().ingredient.create({
       data: {
         brandId,
+        ...(typed ? { promptId: typed.id } : {}),
         category: IngredientCategory.IMAGE,
         createdAt: options.createdAt ?? new Date(),
         generationPrompt: options.prompt ?? PROMPT,
@@ -230,6 +243,7 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
     if (!organizationId) return;
     const db = database();
     await db.ingredient.deleteMany({ where: { organizationId } });
+    await db.prompt.deleteMany({ where: { organizationId } });
     await db.activity.deleteMany({ where: { organizationId } });
     await db.creditTransaction.deleteMany({ where: { organizationId } });
     await db.creditBalance.deleteMany({ where: { organizationId } });
@@ -275,6 +289,21 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
       status: IngredientStatus.REJECTED,
     });
     const retry = await attempt();
+
+    expect(await creditBack(retry.id)).toBe(10);
+  });
+
+  it('matches the brief the user typed when the provider was sent an enhanced prompt', async () => {
+    await seedOrganization(true);
+    await attempt({
+      createdAt: new Date(Date.now() - HOUR_MS),
+      prompt: `${PROMPT}, cinematic lighting, brand palette`,
+      typedPrompt: PROMPT,
+    });
+    const retry = await attempt({
+      prompt: `${PROMPT}, cinematic lighting, brand palette, 35mm`,
+      typedPrompt: PROMPT,
+    });
 
     expect(await creditBack(retry.id)).toBe(10);
   });
@@ -374,6 +403,18 @@ describe.skipIf(!connectionString)('retry credit back (PostgreSQL)', () => {
       expect(await preview()).toBe(10);
       expect(await preview({ prompt: `  ${PROMPT.toUpperCase()} ` })).toBe(10);
       expect(await grants()).toHaveLength(0);
+    });
+
+    it('shows a quarter back for the typed prompt when the stored attempt holds the enhanced one', async () => {
+      await seedOrganization(true);
+      await attempt({
+        createdAt: new Date(Date.now() - HOUR_MS),
+        prompt: `${PROMPT}, cinematic lighting, brand palette`,
+        typedPrompt: PROMPT,
+      });
+
+      expect(await preview()).toBe(10);
+      expect(await preview({ prompt: 'A different brief' })).toBe(0);
     });
 
     it('shows nothing for another prompt, another user, or an old attempt', async () => {

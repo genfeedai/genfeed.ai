@@ -135,6 +135,27 @@ describe('Studio submit credit tooltip', () => {
     expect(tooltip.textContent).toMatch(/~12\s*\/\s*5,397/);
   });
 
+  it('tells the owner when the quote opens so it can refresh the retry credit-back', async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <StudioGenerationSummary
+        label="Generate"
+        onOpen={onOpen}
+        type="image"
+        estimate={{ status: 'estimated', credits: 12 }}
+      >
+        <Button withWrapper={false}>Generate</Button>
+      </StudioGenerationSummary>,
+    );
+    expect(onOpen).not.toHaveBeenCalled();
+
+    await user.tab();
+    await screen.findByRole('tooltip');
+
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the retry credit-back only when a retry earns some', async () => {
     const user = userEvent.setup();
     const { rerender } = render(

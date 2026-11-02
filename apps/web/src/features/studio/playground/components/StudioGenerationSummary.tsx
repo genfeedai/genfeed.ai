@@ -27,6 +27,7 @@ export default function StudioGenerationSummary({
   estimate,
   crunQuote,
   model,
+  onOpen,
   retryCreditBackCredits = 0,
   type,
 }: StudioGenerationSummaryProps) {
@@ -138,7 +139,7 @@ export default function StudioGenerationSummary({
 
   return (
     <TooltipProvider>
-      <Tooltip>
+      <Tooltip onOpenChange={(isOpen) => (isOpen ? onOpen?.() : undefined)}>
         <TooltipTrigger asChild>
           {isDisabled ? (
             <span

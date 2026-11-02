@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   STUDIO_RETRY_CREDIT_BACK_DEBOUNCE_MS,
+  STUDIO_RETRY_CREDIT_BACK_MIN_REFRESH_MS,
   useStudioRetryCreditBack,
 } from '@/features/studio/playground/hooks/useStudioRetryCreditBack';
 
@@ -61,6 +62,62 @@ describe('useStudioRetryCreditBack', () => {
     // Typing on never labels the new prompt with the old answer.
     rerender({ ...input, prompt: 'A red fox in snow at dawn' });
     expect(result.current).toBe(0);
+  });
+
+  it('asks again for the same prompt once the quote reopens after a generation', async () => {
+    mockPreview.mockResolvedValueOnce({ credits: 0, rate: 0.25 });
+    const { result, rerender } = renderHook(
+      (props: typeof input & { refreshToken: number }) =>
+        useStudioRetryCreditBack(props),
+      { initialProps: { ...input, refreshToken: 0 } },
+    );
+    await settle();
+    expect(result.current).toBe(0);
+
+    // The user generates the brief; the prompt stays in the composer.
+    mockPreview.mockResolvedValueOnce({ credits: 10, rate: 0.25 });
+    await act(() =>
+      vi.advanceTimersByTimeAsync(STUDIO_RETRY_CREDIT_BACK_MIN_REFRESH_MS + 1),
+    );
+    rerender({ ...input, refreshToken: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    expect(result.current).toBe(10);
+    expect(mockPreview).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not ask twice for one answer inside the refresh window', async () => {
+    mockPreview.mockResolvedValue({ credits: 10, rate: 0.25 });
+    const { result, rerender } = renderHook(
+      (props: typeof input & { refreshToken: number }) =>
+        useStudioRetryCreditBack(props),
+      { initialProps: { ...input, refreshToken: 0 } },
+    );
+    await settle();
+    rerender({ ...input, refreshToken: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    expect(result.current).toBe(10);
+    expect(mockPreview).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the shown answer when a refresh fails', async () => {
+    mockPreview.mockResolvedValueOnce({ credits: 10, rate: 0.25 });
+    const { result, rerender } = renderHook(
+      (props: typeof input & { refreshToken: number }) =>
+        useStudioRetryCreditBack(props),
+      { initialProps: { ...input, refreshToken: 0 } },
+    );
+    await settle();
+
+    mockPreview.mockRejectedValueOnce(new Error('rate limited'));
+    await act(() =>
+      vi.advanceTimersByTimeAsync(STUDIO_RETRY_CREDIT_BACK_MIN_REFRESH_MS + 1),
+    );
+    rerender({ ...input, refreshToken: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+
+    expect(result.current).toBe(10);
   });
 
   it('asks nothing without a priced quote, a model or a prompt', async () => {

@@ -26,6 +26,22 @@ const PRIOR_ATTEMPT_STATUSES = [
 ];
 
 /**
+ * The normalized texts one attempt goes by. `generationPrompt` is what the
+ * provider was sent (the enhanced prompt, brand style included), while the
+ * Studio quote and a retry both start from what the user typed, which the
+ * linked prompt keeps as `original`. Either one identifies the brief.
+ */
+function briefTextsOf(attempt: {
+  generationPrompt: string | null;
+  prompt: { original: string } | null;
+}): string[] {
+  return [attempt.prompt?.original, attempt.generationPrompt]
+    .filter((text): text is string => typeof text === 'string')
+    .map(normalizeBriefPrompt)
+    .filter((text) => text.length > 0);
+}
+
+/**
  * Returns a share of a retry's price as expiring credits when the same user
  * regenerates the same brief on the same model within 24 hours (#7730). The
  * grant is its own ledger entry, written after the retry's charge settles, so
@@ -65,13 +81,15 @@ export class RetryCreditBackService {
         generationPrompt: true,
         isDraftRender: true,
         modelUsed: true,
+        prompt: { select: { original: true } },
         userId: true,
       },
       where: { id: ingredientId, isDeleted: false, organizationId },
     });
+    const briefTexts = retry ? briefTextsOf(retry) : [];
     if (
       !retry?.userId ||
-      !retry.generationPrompt ||
+      briefTexts.length === 0 ||
       !retry.modelUsed ||
       retry.isDraftRender
     ) {
@@ -88,7 +106,7 @@ export class RetryCreditBackService {
       ingredientId,
       modelUsed: retry.modelUsed,
       organizationId,
-      prompt: retry.generationPrompt,
+      prompts: briefTexts,
       since,
       userId,
     });
@@ -159,7 +177,7 @@ export class RetryCreditBackService {
       createdAt: now,
       modelUsed: input.modelKey,
       organizationId: input.organizationId,
-      prompt: input.prompt,
+      prompts: [input.prompt],
       since: new Date(now.getTime() - RETRY_CREDIT_BACK_WINDOW_MS),
       userId: input.userId,
     });
@@ -199,13 +217,17 @@ export class RetryCreditBackService {
     ingredientId?: string;
     modelUsed: string;
     organizationId: string;
-    prompt: string;
+    /** Every text the brief goes by: what was typed, and what the model was sent. */
+    prompts: string[];
     since: Date;
     userId: string;
   }): Promise<boolean> {
     const candidates = await this.prisma.ingredient.findMany({
       orderBy: { createdAt: 'desc' },
-      select: { generationPrompt: true },
+      select: {
+        generationPrompt: true,
+        prompt: { select: { original: true } },
+      },
       take: PRIOR_ATTEMPT_SCAN_LIMIT,
       where: {
         brandId: brief.brandId,
@@ -219,11 +241,9 @@ export class RetryCreditBackService {
         userId: brief.userId,
       },
     });
-    const wanted = normalizeBriefPrompt(brief.prompt);
-    return candidates.some(
-      (candidate) =>
-        candidate.generationPrompt !== null &&
-        normalizeBriefPrompt(candidate.generationPrompt) === wanted,
+    const wanted = new Set(brief.prompts.map(normalizeBriefPrompt));
+    return candidates.some((candidate) =>
+      briefTextsOf(candidate).some((text) => wanted.has(text)),
     );
   }
 
