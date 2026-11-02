@@ -27,6 +27,7 @@ import {
   organizationListFilterSql,
   type PrismaSql,
   resolveFirstBrandLogos,
+  resolveOwnersByUserId,
   resolvePersonalOwnerDomains,
   toContainsPattern,
 } from '@api/endpoints/analytics/organization-qualification.sql';
@@ -39,7 +40,6 @@ import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
   IEntityStatsTotals,
-  IOrganizationOwner,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -710,57 +710,6 @@ export class EntityLeaderboardService {
     );
   }
 
-  /**
-   * The owning user of each organization (`organizations.userId`), one read for
-   * the page. Display name falls back to email, then handle, so a row never
-   * renders an empty link.
-   */
-  private async resolveOwnersByUserId(
-    userIds: string[],
-  ): Promise<Map<string, IOrganizationOwner>> {
-    const ids = [...new Set(userIds.filter(Boolean))];
-    if (ids.length === 0) {
-      return new Map();
-    }
-
-    const users = await this.prisma.user.findMany({
-      select: {
-        avatar: true,
-        email: true,
-        firstName: true,
-        handle: true,
-        id: true,
-        lastActiveAt: true,
-        lastName: true,
-        name: true,
-      },
-      where: { id: { in: ids } },
-    });
-
-    return new Map(
-      users.map((user) => {
-        const splitName = [user.firstName, user.lastName]
-          .filter(Boolean)
-          .join(' ');
-        return [
-          user.id,
-          {
-            avatar: user.avatar ?? undefined,
-            email: user.email ?? undefined,
-            id: user.id,
-            lastActiveAt: user.lastActiveAt?.toISOString(),
-            name:
-              user.name?.trim() ||
-              splitName ||
-              user.email ||
-              user.handle ||
-              'Unknown',
-          },
-        ];
-      }),
-    );
-  }
-
   /** Shape a database-paged result into the paginated payload */
   private buildPaginationSlice<TItem>(
     data: TItem[],
@@ -896,7 +845,8 @@ export class EntityLeaderboardService {
       this.countBrandsByOrganization(organizationIds),
       this.countMembersByOrganization(organizationIds),
       this.organizationLogoService.resolveLogoUrls(organizationIds),
-      this.resolveOwnersByUserId(
+      resolveOwnersByUserId(
+        this.prisma,
         rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
       ),
       countLifetimeGenerations(this.prisma, organizationIds),

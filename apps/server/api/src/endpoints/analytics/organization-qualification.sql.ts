@@ -7,6 +7,7 @@ import {
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { OrganizationCategory } from '@genfeedai/contracts';
+import type { IOrganizationOwner } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 
 /**
@@ -211,4 +212,56 @@ export async function resolveFirstBrandLogos(
     }
   }
   return logoByOrganization;
+}
+
+/**
+ * The owning user of each organization (`organizations.userId`), one read for
+ * the page. Display name falls back to email, then handle, so a row never
+ * renders an empty link.
+ */
+export async function resolveOwnersByUserId(
+  prisma: PrismaService,
+  userIds: string[],
+): Promise<Map<string, IOrganizationOwner>> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const users = await prisma.user.findMany({
+    select: {
+      avatar: true,
+      email: true,
+      firstName: true,
+      handle: true,
+      id: true,
+      lastActiveAt: true,
+      lastName: true,
+      name: true,
+    },
+    where: { id: { in: ids } },
+  });
+
+  return new Map(
+    users.map((user) => {
+      const splitName = [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(' ');
+      return [
+        user.id,
+        {
+          avatar: user.avatar ?? undefined,
+          email: user.email ?? undefined,
+          id: user.id,
+          lastActiveAt: user.lastActiveAt?.toISOString(),
+          name:
+            user.name?.trim() ||
+            splitName ||
+            user.email ||
+            user.handle ||
+            'Unknown',
+        },
+      ];
+    }),
+  );
 }
