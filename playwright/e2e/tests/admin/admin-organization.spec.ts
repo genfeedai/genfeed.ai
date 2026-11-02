@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
@@ -279,6 +280,70 @@ test.describe('Admin Organization', () => {
 
     // One plain header per section: no eyebrow above "Apps" or "Settings".
     await expect(main.getByText('Organization Controls')).toHaveCount(0);
+  });
+
+  test("organization library is a tab in the page that lists that organization's generated content", async ({
+    adminPage,
+  }) => {
+    const requestedUrls: string[] = [];
+    await adminPage.route('**/v1/ingredients**', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      requestedUrls.push(route.request().url());
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                category: IngredientCategory.IMAGE,
+                cdnUrl: 'https://cdn.genfeed.ai/mock/org-library.jpg',
+                createdAt: '2026-11-01T10:00:00.000Z',
+                height: 1024,
+                status: 'GENERATED',
+                width: 1024,
+              },
+              id: 'org-library-asset-1',
+              type: 'ingredients',
+            },
+          ],
+          meta: { page: 1, pageSize: 48, totalCount: 1 },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/library`,
+    );
+
+    const main = adminPage.getByRole('main');
+    const tabs = main.getByRole('navigation', { name: 'Organization' });
+    await expect(tabs.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(tabs.getByRole('link', { name: 'Analytics' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Spending' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Settings' })).toBeVisible();
+
+    // The organization on screen narrows the shared Library list.
+    await expect
+      .poll(() =>
+        requestedUrls.some(
+          (url) => new URL(url).searchParams.get('organizationId') === 'qa-org',
+        ),
+      )
+      .toBe(true);
+    await expect(
+      main.getByRole('button', { name: 'Asset preview unavailable' }),
+    ).toBeVisible();
+    await expect(
+      main.getByText('This organization has not generated any content yet'),
+    ).toHaveCount(0);
   });
 
   test('folders view stays interactive', async ({ adminPage }) => {
