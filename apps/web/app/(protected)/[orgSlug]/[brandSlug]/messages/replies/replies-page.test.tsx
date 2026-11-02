@@ -131,7 +131,7 @@ describe('RepliesPage', () => {
     expect(screen.queryByText('Inbox clear')).not.toBeInTheDocument();
   });
 
-  it('paints the cached inbox at once when coming back, without a new read', async () => {
+  it('paints the cached inbox at once when coming back while it revalidates', async () => {
     const client = createTestQueryClient();
     const firstVisit = render(<RepliesPage />, {
       wrapper: queryClientWrapper(client),
