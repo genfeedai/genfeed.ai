@@ -21,7 +21,7 @@ export function useAvatarImages(
     OrganizationsService.getInstance(token),
   );
   const [avatars, setAvatars] = useState<IAvatar[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(organizationId));
 
   const refresh = useCallback(async () => {
     if (!organizationId) {

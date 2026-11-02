@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
+import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import LibraryCreditNotice from '../library-credit-notice';
@@ -35,7 +36,7 @@ export default function ImportedLibrary() {
       seededOrigins={IMPORTED_ORIGINS}
     >
       <LibraryCreditNotice />
-      <Suspense fallback={null}>
+      <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
         <IngredientsList
           folderNavigation="shell"
