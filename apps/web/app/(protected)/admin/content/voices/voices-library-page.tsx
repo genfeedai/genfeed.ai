@@ -2,29 +2,22 @@
 
 import type { VoiceProvider } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
+import { useQueryClient } from '@tanstack/react-query';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Volume2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useState,
-} from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   ProviderFilter,
   VoiceCatalogToggleField,
-  VoicesLibraryAction,
-  VoicesLibraryState,
 } from '@/features/admin/props/voices.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import {
@@ -42,46 +35,8 @@ const VOICE_SORT_KEYS = [
   'status',
 ] as const;
 
-const initialState: VoicesLibraryState = {
-  voices: [],
-  isLoading: true,
-  isSyncingAll: false,
-  syncingProvider: null,
-  togglingKey: null,
-};
-
-function voicesLibraryReducer(
-  state: VoicesLibraryState,
-  action: VoicesLibraryAction,
-): VoicesLibraryState {
-  switch (action.type) {
-    case 'LOAD_START':
-      return { ...state, isLoading: true };
-    case 'LOAD_SUCCESS':
-      return { ...state, isLoading: false, voices: action.voices };
-    case 'LOAD_ERROR':
-      return { ...state, isLoading: false, voices: [] };
-    case 'SYNC_START':
-      return action.provider
-        ? { ...state, syncingProvider: action.provider }
-        : { ...state, isSyncingAll: true };
-    case 'SYNC_END':
-      return { ...state, syncingProvider: null, isSyncingAll: false };
-    case 'TOGGLE_START':
-      return { ...state, togglingKey: action.key };
-    case 'TOGGLE_SUCCESS':
-      return {
-        ...state,
-        voices: state.voices.map((item) =>
-          item.id === action.voice.id ? action.voice : item,
-        ),
-      };
-    case 'TOGGLE_END':
-      return { ...state, togglingKey: null };
-    default:
-      return state;
-  }
-}
+const EMPTY_VOICES: ExternalVoice[] = [];
+const VOICES_CATALOG_KEY = ['admin', 'voices-catalog'] as const;
 
 function VoicesLibraryPageContent() {
   const t = useTranslations('pages.adminVoices');
@@ -96,15 +51,17 @@ function VoicesLibraryPageContent() {
   });
   const providerFilter = (searchParams.get('provider') ??
     'all') as ProviderFilter;
-  const [hasError, setHasError] = useState(false);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getVoicesService = useAuthedService((token: string) =>
     VoicesService.getInstance(token),
   );
 
-  const [state, dispatch] = useReducer(voicesLibraryReducer, initialState);
-  const { voices, isLoading, isSyncingAll, syncingProvider, togglingKey } =
-    state;
+  const queryClient = useQueryClient();
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [syncingProvider, setSyncingProvider] = useState<VoiceProvider | null>(
+    null,
+  );
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
 
   const setParam = useCallback(
     (name: string, value: string) => {
@@ -118,13 +75,13 @@ function VoicesLibraryPageContent() {
     [pathname, replace, searchParamsString],
   );
 
-  const loadVoices = useCallback(
-    async (signal?: AbortSignal) => {
-      dispatch({ type: 'LOAD_START' });
-      setHasError(false);
-
+  // Cached per page, provider, search and sort: coming back to the Voice
+  // Library paints the rows it already has while it refreshes, and paging keeps
+  // the current rows on screen.
+  const catalogQuery = useAuthedQuery({
+    keepPreviousDataWithin: VOICES_CATALOG_KEY,
+    queryFn: async (service, signal) => {
       try {
-        const service = await getVoicesService();
         const result = await service.findCatalog(
           {
             limit: ITEMS_PER_PAGE,
@@ -135,38 +92,48 @@ function VoicesLibraryPageContent() {
           },
           signal,
         );
-        if (signal?.aborted) return;
-        dispatch({ type: 'LOAD_SUCCESS', voices: result.items });
+        return result.items;
       } catch (error) {
-        if (signal?.aborted) return;
-        logger.error('GET /voices/catalog failed', error);
-        notifications.error('Failed to load voice catalog');
-        setHasError(true);
-        dispatch({ type: 'LOAD_ERROR' });
+        if (!signal.aborted) {
+          logger.error('GET /voices/catalog failed', error);
+        }
+        throw error;
       }
     },
-    [
-      currentPage,
-      getVoicesService,
-      notifications,
-      providerFilter,
-      search,
-      sort,
+    queryKey: [
+      ...VOICES_CATALOG_KEY,
+      { page: currentPage, providerFilter, search: search.trim(), sort },
     ],
-  );
+    service: (token: string) => VoicesService.getInstance(token),
+  });
+  const {
+    errorUpdatedAt,
+    isError: hasError,
+    isFetching: isRefreshing,
+    isLoading,
+    refetch,
+  } = catalogQuery;
+  const voices = hasError ? EMPTY_VOICES : (catalogQuery.data ?? EMPTY_VOICES);
+  const loadVoices = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-    loadVoices(controller.signal).catch((error) => {
-      logger.error('Failed to initialize voice library page', error);
-    });
-    return () => controller.abort();
-  }, [loadVoices]);
+    if (hasError) {
+      notifications.error('Failed to load voice catalog');
+    }
+  }, [errorUpdatedAt, hasError, notifications]);
 
   const handleSync = useCallback(
     async (providers?: VoiceProvider[]) => {
       const provider = providers?.length === 1 ? providers[0] : null;
-      dispatch({ type: 'SYNC_START', provider });
+      if (provider) {
+        setSyncingProvider(provider);
+      } else {
+        setIsSyncingAll(true);
+      }
 
       try {
         const service = await getVoicesService();
@@ -179,7 +146,8 @@ function VoicesLibraryPageContent() {
         logger.error('POST /voices/import failed', error);
         notifications.error('Failed to sync voice catalog');
       } finally {
-        dispatch({ type: 'SYNC_END' });
+        setSyncingProvider(null);
+        setIsSyncingAll(false);
       }
     },
     [getVoicesService, loadVoices, notifications],
@@ -191,7 +159,7 @@ function VoicesLibraryPageContent() {
       field: VoiceCatalogToggleField,
       value: boolean,
     ) => {
-      dispatch({ type: 'TOGGLE_START', key: `${voice.id}:${field}` });
+      setTogglingKey(`${voice.id}:${field}`);
 
       try {
         const service = await getVoicesService();
@@ -199,15 +167,22 @@ function VoicesLibraryPageContent() {
           [field]: value,
         });
 
-        dispatch({ type: 'TOGGLE_SUCCESS', voice: updatedVoice });
+        // Every cached page that lists this voice shows the change at once.
+        queryClient.setQueriesData<ExternalVoice[]>(
+          { queryKey: VOICES_CATALOG_KEY },
+          (current) =>
+            current?.map((item) =>
+              item.id === updatedVoice.id ? updatedVoice : item,
+            ),
+        );
       } catch (error) {
         logger.error(`PATCH /voices/catalog/${voice.id} failed`, error);
         notifications.error('Failed to update voice');
       } finally {
-        dispatch({ type: 'TOGGLE_END' });
+        setTogglingKey(null);
       }
     },
-    [getVoicesService, notifications],
+    [getVoicesService, notifications, queryClient],
   );
 
   return (
@@ -215,7 +190,7 @@ function VoicesLibraryPageContent() {
       title="Voice Library"
       icon={Volume2}
       onRefresh={() => void loadVoices()}
-      isRefreshing={isLoading}
+      isRefreshing={isRefreshing}
       search={
         <VoicesCatalogSearch
           search={search}
