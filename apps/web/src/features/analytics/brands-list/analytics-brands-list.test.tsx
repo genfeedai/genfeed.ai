@@ -162,7 +162,12 @@ describe('AnalyticsBrandsList', () => {
   it('shows no zero totals before the first response', async () => {
     render(<AnalyticsBrandsList />);
 
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    // Every KPI tile is busy on first paint, so no zeros show before the data.
+    const tiles = screen.getAllByTestId('metric-card');
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles) {
+      expect(tile).toHaveAttribute('aria-busy', 'true');
+    }
 
     await waitFor(() => {
       expect(screen.getByText('Acme')).toBeInTheDocument();
