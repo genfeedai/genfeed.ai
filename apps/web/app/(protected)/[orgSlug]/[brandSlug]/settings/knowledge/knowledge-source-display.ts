@@ -2,6 +2,7 @@ import {
   KnowledgeProcessingState,
   KnowledgeSourceKind,
 } from '@genfeedai/contracts';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import type {
   KnowledgeFailureKind,
   KnowledgeFilters,
@@ -44,13 +45,9 @@ export const KNOWLEDGE_STATUS_FILTERS = Object.values(
   KnowledgeProcessingState,
 ).map((state) => state.toLowerCase());
 
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
 /** The pasted text of a Text source, when its current version carries one. */
 export function getSourceText(row: KnowledgeSourceRow): string | null {
-  return readString(row.version?.payload?.text);
+  return readString(row.version?.payload?.text) ?? null;
 }
 
 /**
