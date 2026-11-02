@@ -126,10 +126,7 @@ function MotionProjectViewBody({
                 </p>
                 {Array.from(new Set(revision.diagnostics ?? [])).map(
                   (message) => (
-                    <p
-                      key={message}
-                      className="text-sm text-muted-foreground"
-                    >
+                    <p key={message} className="text-sm text-muted-foreground">
                       {message}
                     </p>
                   ),

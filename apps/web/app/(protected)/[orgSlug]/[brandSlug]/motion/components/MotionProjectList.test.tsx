@@ -85,10 +85,9 @@ describe('MotionProjectList', () => {
   it('narrows the list to the projects matching the search', () => {
     render(<MotionProjectList />);
 
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search projects' }), {
-      target: { value: 'logo' },
-    });
-    fireEvent.submit(screen.getByRole('searchbox', { name: 'Search projects' }));
+    const search = screen.getByRole('textbox', { name: 'Search projects' });
+    fireEvent.change(search, { target: { value: 'logo' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
 
     expect(
       screen.queryByRole('link', { name: /Spring launch title/ }),

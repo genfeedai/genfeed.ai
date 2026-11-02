@@ -181,9 +181,9 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
     page.getByRole('link', { name: /Saved motion/ }),
   ).toHaveAttribute('href', /\/motion\/saved-motion$/);
   await page.getByRole('button', { name: /Kinetic quote card/ }).click();
-  await expect(
-    page.getByLabel('Project name', { exact: true }),
-  ).toHaveValue('Kinetic quote card');
+  await expect(page.getByLabel('Project name', { exact: true })).toHaveValue(
+    'Kinetic quote card',
+  );
   await expect(
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
   ).toContainText('A vertical kinetic typography animation');

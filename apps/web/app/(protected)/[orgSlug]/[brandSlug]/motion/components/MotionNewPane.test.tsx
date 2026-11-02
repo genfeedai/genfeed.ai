@@ -153,7 +153,6 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
   }),
 }));
 
-
 const quote = {
   modelKey: 'model',
   isByok: false,
@@ -189,7 +188,9 @@ beforeEach(() => {
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
+
 import MotionNewPane from './MotionNewPane';
+
 describe('Motion quote review', () => {
   it('hides creation and quote controls under disabled cloud defaults', () => {
     mocks.settings = {
@@ -402,7 +403,9 @@ describe('Motion quote review', () => {
     await screen.findByRole('button', { name: 'confirm' });
     fireEvent.click(screen.getByLabelText('acknowledge'));
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }));
-    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith('/motion/project'));
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith('/motion/project'),
+    );
     expect(mocks.submit).toHaveBeenCalledWith(
       expect.objectContaining({ operation: 'create' }),
       3,
@@ -410,11 +413,15 @@ describe('Motion quote review', () => {
   });
   it('fills the form from a starter card without asking for a quote', () => {
     render(<MotionNewPane />);
-    fireEvent.click(screen.getByRole('button', { name: /kineticQuote\.title/ }));
-    expect(screen.getByLabelText('label')).toHaveValue('kineticQuote.title');
-    expect(screen.getByLabelText('prompt')).toHaveValue(
-      expect.stringContaining('kinetic typography animation'),
+    fireEvent.click(
+      screen.getByRole('button', { name: /kineticQuote\.title/ }),
     );
+    expect(screen.getByLabelText('label')).toHaveValue(
+      'presets.items.kineticQuote.title',
+    );
+    expect(
+      (screen.getByLabelText('prompt') as HTMLTextAreaElement).value,
+    ).toContain('kinetic typography animation');
     expect(mocks.quote).not.toHaveBeenCalled();
     expect(
       screen.queryByRole('button', { name: 'confirm' }),

@@ -98,7 +98,9 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   const revision =
     revisions.find((item) => item.number === selectedRevision) ?? revisions[0];
   const current = project?.revisions[0];
-  const isActive = Boolean(current && !SETTLED_STATUSES.includes(current.status));
+  const isActive = Boolean(
+    current && !SETTLED_STATUSES.includes(current.status),
+  );
   const catalog = api.catalog.data;
   const catalogModels = catalog?.models ?? [];
   const selectedModel = catalogModels.find(
@@ -352,7 +354,9 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     if (!project) return;
     void run(async () => {
       const cursor =
-        historyCursor === undefined ? project.nextRevisionCursor : historyCursor;
+        historyCursor === undefined
+          ? project.nextRevisionCursor
+          : historyCursor;
       if (cursor === null || cursor === undefined) return;
       const page = await api.history(cursor);
       setOlder((prior) => [...prior, ...page.revisions]);

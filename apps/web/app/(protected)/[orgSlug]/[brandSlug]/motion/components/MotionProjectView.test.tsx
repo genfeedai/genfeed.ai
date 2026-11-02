@@ -1,11 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -153,7 +146,6 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
   }),
 }));
 
-
 const quote = {
   modelKey: 'model',
   isByok: false,
@@ -189,7 +181,9 @@ beforeEach(() => {
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
+
 import MotionProjectView from './MotionProjectView';
+
 describe('Motion project view', () => {
   it('preserves saved outputs and source reads while new Motion work is disabled', async () => {
     mocks.settings = {
@@ -227,7 +221,7 @@ describe('Motion project view', () => {
         },
       ],
     };
-    render(<MotionNewPane />);
+    render(<MotionProjectView projectId="saved" />);
     expect(screen.getByText('Saved motion')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'download' })).toHaveAttribute(
       'href',
@@ -250,7 +244,7 @@ describe('Motion project view', () => {
     mocks.quote.mockRejectedValue({
       errors: [{ detail: 'stale_visual_revision', status: '409' }],
     });
-    render(<MotionNewPane />);
+    render(<MotionProjectView projectId="saved" />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });

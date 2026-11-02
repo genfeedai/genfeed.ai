@@ -31,7 +31,10 @@ export default function MotionPromptCards({
   );
 
   return (
-    <div className="@container w-full min-w-0" data-testid="motion-prompt-cards">
+    <div
+      className="@container w-full min-w-0"
+      data-testid="motion-prompt-cards"
+    >
       <PromptBarSuggestions
         className="grid grid-cols-1 @md:grid-cols-2 [&>button]:w-full [&>button]:max-w-none"
         isDisabled={isDisabled}
