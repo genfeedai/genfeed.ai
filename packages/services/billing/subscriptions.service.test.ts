@@ -1,5 +1,4 @@
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/base.service');
@@ -24,7 +23,7 @@ describe('SubscriptionsService', () => {
     expect(service.delete).toBeDefined();
   });
 
-  it('feeds the shared pager from the admin billing envelope', async () => {
+  it('returns the admin billing totals with its rows', async () => {
     const get = vi.fn().mockResolvedValue({
       data: {
         data: [],
@@ -37,13 +36,11 @@ describe('SubscriptionsService', () => {
     });
     Object.assign(service, { instance: { get } });
 
-    await service.getAdminBilling({ limit: 15, page: 2 });
+    const response = await service.getAdminBilling({ limit: 15, page: 2 });
 
     expect(get).toHaveBeenCalledWith('admin/billing', {
       params: { limit: 15, page: 2 },
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(4);
-    expect(PagesService.getTotalDocs()).toBe(51);
+    expect(response).toMatchObject({ page: 2, totalPages: 4, totalDocs: 51 });
   });
 });

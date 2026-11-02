@@ -1,3 +1,4 @@
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 /**
  * Templates Service
  * Prompt templates with {{variables}}: manage templates, fill variables, AI suggestions.
@@ -29,13 +30,12 @@ export class TemplateService extends BaseService<IContentTemplate> {
   }
 
   /**
-   * Get all templates with optional filters
-   * Replaces getTemplates() to follow standard BaseService.findAll() pattern
+   * Read one page of templates, preserving filter serialization and totals.
    */
   async getTemplates(
     filter?: ITemplateFilter,
     signal?: AbortSignal,
-  ): Promise<IContentTemplate[]> {
+  ): Promise<IPaginatedResponse<IContentTemplate>> {
     try {
       const params: Record<string, unknown> = {};
 
@@ -81,7 +81,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
         }
       }
 
-      return await this.findAll(params, signal);
+      return await this.findAllPage(params, signal);
     } catch (error) {
       return this.handleOperationError('getTemplates', error);
     }
@@ -177,7 +177,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
     try {
       return await this.instance
         .post<ITemplateGenerationResult>('generate', request)
-        .then((res) => res.data!)
+        .then((res) => res.data)
         .then((data) => {
           logger.info('Content generated from template', {
             resultId: data?.id,
@@ -197,7 +197,7 @@ export class TemplateService extends BaseService<IContentTemplate> {
     try {
       return await this.instance
         .post<ITemplateUsage>('usage', usage)
-        .then((res) => res.data!);
+        .then((res) => res.data);
     } catch (error) {
       return this.handleOperationError('trackUsage', error);
     }

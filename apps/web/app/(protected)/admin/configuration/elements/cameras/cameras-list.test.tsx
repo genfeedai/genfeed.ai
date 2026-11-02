@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import {
   createTestQueryClient,
@@ -27,7 +28,7 @@ vi.mock('next-intl', async () => {
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteCamera: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -82,7 +83,7 @@ vi.mock('@services/elements/cameras.service', () => ({
   CamerasService: {
     getInstance: () => ({
       delete: mocks.deleteCamera,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patchCamera,
     }),
   },
@@ -244,7 +245,7 @@ describe('CamerasList', () => {
     mocks.urlSort = null;
     mocks.deleteCamera.mockResolvedValue({ ok: true });
     mocks.patchCamera.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue(CAMERAS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(CAMERAS));
   });
 
   it('renders superadmin cameras and reads the admin filters from the URL', async () => {
@@ -254,7 +255,7 @@ describe('CamerasList', () => {
       0,
     );
     expect(screen.getByText('Macro Camera')).toBeInTheDocument();
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -275,7 +276,7 @@ describe('CamerasList', () => {
       renderList({ scope: PageScope.SUPERADMIN });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
           expect.any(AbortSignal),
         );
@@ -288,9 +289,9 @@ describe('CamerasList', () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalled();
+      expect(mocks.findAllPage).toHaveBeenCalled();
     });
-    expect(mocks.findAll).not.toHaveBeenCalledWith(
+    expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
       expect.any(AbortSignal),
     );
@@ -317,7 +318,7 @@ describe('CamerasList', () => {
     const sidebar = within(await screen.findByTestId('row-sidebar'));
     fireEvent.click(sidebar.getByRole('button', { name: 'Label' }));
     const input = sidebar.getByRole('textbox', { name: 'Label' });
-    const readsBefore = mocks.findAll.mock.calls.length;
+    const readsBefore = mocks.findAllPage.mock.calls.length;
     fireEvent.change(input, { target: { value: 'Ultra Wide Camera' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -327,7 +328,7 @@ describe('CamerasList', () => {
       });
     });
     await waitFor(() => {
-      expect(mocks.findAll.mock.calls.length).toBeGreaterThan(readsBefore);
+      expect(mocks.findAllPage.mock.calls.length).toBeGreaterThan(readsBefore);
     });
   });
 
@@ -381,9 +382,9 @@ describe('CamerasList', () => {
     await screen.findAllByText('Macro Camera');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
-    mocks.findAll.mockResolvedValue([
-      makeCamera({ label: 'Refreshed Camera' }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makeCamera({ label: 'Refreshed Camera' })]),
+    );
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -391,7 +392,7 @@ describe('CamerasList', () => {
       (await screen.findAllByText('Refreshed Camera')).length,
     ).toBeGreaterThan(0);
 
-    mocks.findAll.mockResolvedValue(CAMERAS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(CAMERAS));
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -408,7 +409,7 @@ describe('CamerasList', () => {
       }),
     );
 
-    mocks.findAll.mockResolvedValue([makeCamera()]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([makeCamera()]));
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
     });
@@ -422,7 +423,7 @@ describe('CamerasList', () => {
 
   it('reports load and delete failures while notifying parent loading state', async () => {
     const onLoadingChange = vi.fn();
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
 
     renderList({ onLoadingChange, scope: PageScope.SUPERADMIN });
 
@@ -472,9 +473,8 @@ describe('CamerasList', () => {
   });
 
   it('paints the cached cameras and their own footer total when coming back', async () => {
-    mocks.findAll.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 2, pages: 2, total: 14 });
-      return CAMERAS;
+    mocks.findAllPage.mockImplementation(async () => {
+      return paginatedResponse(CAMERAS, { totalDocs: 14, totalPages: 2 });
     });
     const client = createTestQueryClient();
     const firstVisit = renderList({ scope: PageScope.SUPERADMIN }, client);
@@ -484,7 +484,7 @@ describe('CamerasList', () => {
     firstVisit.unmount();
 
     PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
     expect(screen.getAllByText('Wide Camera').length).toBeGreaterThan(0);

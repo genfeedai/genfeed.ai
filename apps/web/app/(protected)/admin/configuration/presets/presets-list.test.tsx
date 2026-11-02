@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import {
   createTestQueryClient,
@@ -12,7 +13,7 @@ import PresetsList from './presets-list';
 
 const mocks = vi.hoisted(() => ({
   deletePreset: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -78,7 +79,7 @@ vi.mock('@services/elements/presets.service', () => ({
   PresetsService: {
     getInstance: () => ({
       delete: mocks.deletePreset,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     }),
   },
@@ -325,7 +326,7 @@ describe('PresetsList', () => {
     vi.clearAllMocks();
     mocks.urlSort = null;
     mocks.deletePreset.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue(PRESETS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(PRESETS));
     mocks.patch.mockResolvedValue({});
   });
 
@@ -342,7 +343,7 @@ describe('PresetsList', () => {
     expect(screen.getByText('Style: cinematic')).toBeInTheDocument();
     expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
     expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -368,9 +369,9 @@ describe('PresetsList', () => {
       name: 'Refresh presets',
     });
     expect(refreshSlot).toContainElement(refreshButton);
-    mocks.findAll.mockResolvedValue([
-      makePreset({ label: 'Refreshed Preset' }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makePreset({ label: 'Refreshed Preset' })]),
+    );
     fireEvent.click(refreshButton);
     expect(await screen.findByText('Refreshed Preset')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add Preset' }));
@@ -388,7 +389,7 @@ describe('PresetsList', () => {
       renderList({ scope: PageScope.SUPERADMIN });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
           expect.any(AbortSignal),
         );
@@ -403,9 +404,9 @@ describe('PresetsList', () => {
       renderList({ scope: PageScope.SUPERADMIN });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalled();
+        expect(mocks.findAllPage).toHaveBeenCalled();
       });
-      expect(mocks.findAll).not.toHaveBeenCalledWith(
+      expect(mocks.findAllPage).not.toHaveBeenCalledWith(
         expect.objectContaining({ sort: expect.anything() }),
         expect.any(AbortSignal),
       );
@@ -413,14 +414,16 @@ describe('PresetsList', () => {
   );
 
   it('renders a platform default as System when a preset has no organization', async () => {
-    mocks.findAll.mockResolvedValue([
-      makePreset({
-        id: 'preset-platform',
-        label: 'Platform Default',
-        organization: undefined,
-        organizationId: null,
-      }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([
+        makePreset({
+          id: 'preset-platform',
+          label: 'Platform Default',
+          organization: undefined,
+          organizationId: null,
+        }),
+      ]),
+    );
 
     renderList({ scope: PageScope.SUPERADMIN });
 
@@ -430,9 +433,11 @@ describe('PresetsList', () => {
   });
 
   it('marks an organization preset with its organization, not System', async () => {
-    mocks.findAll.mockResolvedValue([
-      makePreset({ organization: undefined, organizationId: 'org-1' }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([
+        makePreset({ organization: undefined, organizationId: 'org-1' }),
+      ]),
+    );
 
     renderList({ scope: PageScope.SUPERADMIN });
 
@@ -441,19 +446,21 @@ describe('PresetsList', () => {
   });
 
   it('shows a dash instead of "undefined" for a preset with no key or category', async () => {
-    mocks.findAll.mockResolvedValue([
-      makePreset({
-        category: undefined,
-        id: 'preset-blank',
-        key: undefined,
-        label: undefined,
-        organizationId: null,
-      }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([
+        makePreset({
+          category: undefined,
+          id: 'preset-blank',
+          key: undefined,
+          label: undefined,
+          organizationId: null,
+        }),
+      ]),
+    );
 
     renderList({ scope: PageScope.SUPERADMIN });
 
-    await waitFor(() => expect(mocks.findAll).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalled());
     await screen.findByRole('button', { name: 'Active' });
     expect(screen.queryByText('undefined')).not.toBeInTheDocument();
   });
@@ -462,10 +469,9 @@ describe('PresetsList', () => {
     renderList({ scope: PageScope.SUPERADMIN });
     const activeSwitch = await screen.findByRole('button', { name: 'Active' });
 
-    mocks.findAll.mockResolvedValue([
-      makePreset({ isActive: false }),
-      PRESETS[1],
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makePreset({ isActive: false }), PRESETS[1]]),
+    );
     fireEvent.click(activeSwitch);
 
     await waitFor(() => {
@@ -513,7 +519,7 @@ describe('PresetsList', () => {
       }),
     );
 
-    mocks.findAll.mockResolvedValue([PRESETS[0]]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([PRESETS[0]]));
     await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
 
     expect(mocks.deletePreset).toHaveBeenCalledWith('preset-2');
@@ -525,7 +531,7 @@ describe('PresetsList', () => {
 
   it('reports a failed read once while notifying parent loading state', async () => {
     const onLoadingChange = vi.fn();
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
 
     renderList({ onLoadingChange, scope: PageScope.SUPERADMIN });
 
@@ -574,9 +580,8 @@ describe('PresetsList', () => {
   });
 
   it('paints the cached presets and their own footer total when coming back', async () => {
-    mocks.findAll.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 2, pages: 2, total: 23 });
-      return PRESETS;
+    mocks.findAllPage.mockImplementation(async () => {
+      return paginatedResponse(PRESETS, { totalDocs: 23, totalPages: 2 });
     });
     const client = createTestQueryClient();
     const firstVisit = renderList({ scope: PageScope.SUPERADMIN }, client);
@@ -586,7 +591,7 @@ describe('PresetsList', () => {
     firstVisit.unmount();
 
     PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
     expect(screen.getByText('Launch Video')).toBeInTheDocument();

@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementLighting,
   IQueryParams,
@@ -95,7 +98,7 @@ function LightingsListContent({
       }
 
       try {
-        const data = await service.findAll(query, signal);
+        const data = await service.findAllPage(query, signal);
         logger.info('GET /lightings success', data);
         return data;
       } catch (error) {
@@ -256,7 +259,7 @@ function LightingsListContent({
         <AutoPagination
           showTotal
           totalLabel="lightings"
-          totals={lightingsQuery.data?.totals}
+          totals={lightingsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

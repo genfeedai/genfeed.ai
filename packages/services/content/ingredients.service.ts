@@ -15,6 +15,7 @@ import type {
   IIngredient,
   IIngredientGenerationCost,
   IIngredientLineagePage,
+  IPaginatedResponse,
   IPost,
   MediaDeliveryGrant,
 } from '@genfeedai/contracts/interfaces';
@@ -32,7 +33,6 @@ import { Music } from '@genfeedai/models/ingredients/music.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { MediaPreviewBatchService } from '@services/content/media-preview-batch.service';
-import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -237,7 +237,7 @@ export class IngredientsService<
   public async findAdminGenerationReviews(
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
-  ): Promise<T[]> {
+  ): Promise<IPaginatedResponse<T>> {
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}/admin/generation-reviews`,
       this.instance
@@ -245,15 +245,7 @@ export class IngredientsService<
           params: query,
           signal,
         })
-        .then(async (response) => {
-          const page = await this.mapPage(response.data);
-          if ((query as { page?: number }).page) {
-            PagesService.setCurrentPage(page.page);
-            PagesService.setTotalPages(page.totalPages);
-            PagesService.setTotalDocs(page.total);
-          }
-          return page.items;
-        }),
+        .then((response) => this.mapPage(response.data)),
     );
   }
 

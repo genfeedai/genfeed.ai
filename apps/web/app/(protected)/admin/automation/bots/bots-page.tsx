@@ -4,7 +4,10 @@ import {
   ComponentSize,
   formatEnumLabel,
 } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
@@ -68,7 +71,7 @@ export default function BotsPage() {
     keepPreviousDataWithin: ['admin', 'bots'],
     queryFn: async (service, signal) => {
       try {
-        const fetchedBots = await service.findAll(
+        const fetchedBots = await service.findAllPage(
           {
             limit: ITEMS_PER_PAGE,
             page: currentPage,
@@ -77,7 +80,7 @@ export default function BotsPage() {
           },
           signal,
         );
-        logger.info('Loaded bots', { count: fetchedBots.length });
+        logger.info('Loaded bots', { count: fetchedBots.items.length });
         return fetchedBots;
       } catch (error) {
         if (!signal.aborted) {
@@ -199,7 +202,7 @@ export default function BotsPage() {
           <AutoPagination
             showTotal
             totalLabel="bots"
-            totals={botsQuery.data?.totals}
+            totals={botsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
           />
         </div>
       </WorkspaceSurface>

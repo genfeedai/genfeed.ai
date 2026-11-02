@@ -2,7 +2,10 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IFontFamily,
   IQueryParams,
@@ -118,7 +121,7 @@ function FontFamiliesListContent({
         ...scopeFilter,
       };
       try {
-        const data = await service.findAll(query, signal);
+        const data = await service.findAllPage(query, signal);
         logger.info('GET /font-families success', data);
         return data;
       } catch (error) {
@@ -271,7 +274,7 @@ function FontFamiliesListContent({
         <AutoPagination
           showTotal
           totalLabel="font families"
-          totals={fontFamiliesQuery.data?.totals}
+          totals={fontFamiliesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </AdminPageShell>

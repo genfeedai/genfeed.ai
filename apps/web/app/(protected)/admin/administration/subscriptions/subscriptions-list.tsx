@@ -2,6 +2,7 @@
 
 import {
   APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
   formatCreditBalanceExact,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
@@ -95,7 +96,11 @@ export default function SubscriptionsList() {
           ...(search ? { search } : {}),
           ...(sort ? { sort } : {}),
         });
-        return response.data;
+        return {
+          items: response.data,
+          total: response.totalDocs,
+          totalPages: response.totalPages,
+        };
       } catch (error) {
         if (!signal.aborted) {
           logger.error('GET /subscriptions/admin/billing failed', error);
@@ -305,7 +310,7 @@ export default function SubscriptionsList() {
         <AutoPagination
           showTotal
           totalLabel={t('subscriptionsTotalLabel')}
-          totals={billing?.totals}
+          totals={billing?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
 

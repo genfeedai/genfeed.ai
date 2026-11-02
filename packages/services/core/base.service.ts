@@ -16,6 +16,7 @@ import {
   isServiceOperationError,
   normalizeOperationError,
 } from '@services/core/operation-error';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -212,34 +213,7 @@ export abstract class BaseService<
     document: JsonApiResponseDocument,
   ): Promise<IPaginatedResponse<T>> => {
     const items = await this.mapMany(document);
-    const cursor = document.links?.cursor;
-    if (cursor) {
-      return {
-        hasNext: cursor.hasMore,
-        hasPrevious: false,
-        items,
-        nextCursor: cursor.nextCursor,
-        page: 1,
-        pageSize: cursor.limit,
-        total: items.length,
-        totalPages: 1,
-      };
-    }
-    const pagination = document.links?.pagination;
-    const page = pagination?.page ?? 1;
-    const pageSize = pagination?.limit ?? items.length;
-    const total = pagination?.total ?? items.length;
-    const totalPages = Math.max(1, pagination?.pages ?? 1);
-
-    return {
-      hasNext: page < totalPages,
-      hasPrevious: page > 1,
-      items,
-      page,
-      pageSize,
-      total,
-      totalPages,
-    };
+    return toPaginatedResponse(items, document);
   };
 
   protected mapOne = async (document: JsonApiResponseDocument): Promise<T> => {
