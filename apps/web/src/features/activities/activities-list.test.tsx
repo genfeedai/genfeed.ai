@@ -1,4 +1,5 @@
 import {
+  ContextSidebarHeaderOutlet,
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
@@ -109,6 +110,7 @@ function renderWithSidebar(scope: ActivitiesListProps['scope']) {
         isStatsEnabled={false}
         isFiltersEnabled={false}
       />
+      <ContextSidebarHeaderOutlet testId="rail-header" />
       <ContextSidebarOutlet testId="rail" />
     </ContextSidebarProvider>,
   );
@@ -348,6 +350,144 @@ describe('ActivitiesList', () => {
       expect(
         screen.getAllByRole('link', { name: /failed to generate/i })[0],
       ).toHaveAttribute('href', expect.stringContaining('asset=ing-9'));
+    });
+
+    it('moves read state into the rail header and leads the details with status', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          id: 'unread-published',
+          organizationId: 'org-123',
+          value: JSON.stringify({
+            platform: 'instagram',
+            url: 'https://instagram.com/p/abc',
+          }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      const header = screen.getByTestId('rail-header');
+      const toggle = within(header).getByTestId('activity-toggle-read');
+      expect(toggle).toHaveAccessibleName('Mark as read');
+      expect(
+        within(panel).queryByTestId('activity-toggle-read'),
+      ).not.toBeInTheDocument();
+
+      const terms = panel.querySelectorAll('dt');
+      expect(terms[0]).toHaveTextContent('Status');
+      expect(terms[1]).toHaveTextContent('Organization');
+
+      await user.click(toggle);
+      expect(mockToggleActivityRead).toHaveBeenCalledWith('unread-published');
+    });
+
+    it('offers Mark as unread for a read activity', async () => {
+      const user = userEvent.setup();
+      mockActivities = [buildActivity({ id: 'read-one', isRead: true })];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      await screen.findByTestId('activity-detail-panel');
+      expect(
+        within(screen.getByTestId('rail-header')).getByTestId(
+          'activity-toggle-read',
+        ),
+      ).toHaveAccessibleName('Mark as unread');
+    });
+
+    it('plays a completed video at the top of the details', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          entityId: 'vid-1',
+          entityModel: 'Ingredient',
+          id: 'video-done',
+          key: ActivityKey.VIDEO_GENERATED,
+          value: JSON.stringify({ ingredientId: 'vid-1', type: 'generation' }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      const video = panel.querySelector('video');
+      expect(video).toHaveAttribute(
+        'src',
+        `${EnvironmentService.ingredientsEndpoint}/videos/vid-1`,
+      );
+    });
+
+    it('shows the still for a completed image', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          entityId: 'img-1',
+          entityModel: 'Ingredient',
+          id: 'image-done',
+          key: ActivityKey.IMAGE_GENERATED,
+          value: JSON.stringify({ ingredientId: 'img-1', type: 'generation' }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      expect(panel.querySelector('video')).toBeNull();
+      expect(within(panel).getByRole('img')).toHaveAttribute(
+        'src',
+        `${EnvironmentService.ingredientsEndpoint}/images/img-1`,
+      );
+    });
+
+    it('shows no media while a generation is running or after it failed', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          entityId: 'vid-2',
+          entityModel: 'Ingredient',
+          id: 'video-running',
+          key: ActivityKey.VIDEO_PROCESSING,
+          value: JSON.stringify({ ingredientId: 'vid-2', type: 'generation' }),
+        }),
+        buildActivity({
+          entityId: 'img-2',
+          entityModel: 'Ingredient',
+          id: 'image-failed',
+          key: ActivityKey.IMAGE_FAILED,
+          value: JSON.stringify({ error: 'Provider timed out' }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      for (const row of [1, 2]) {
+        await user.click(screen.getAllByRole('row')[row]);
+        const panel = await screen.findByTestId('activity-detail-panel');
+        expect(panel.querySelector('video')).toBeNull();
+        expect(within(panel).queryByRole('img')).not.toBeInTheDocument();
+      }
+    });
+
+    it('shows credits as the plain signed number', async () => {
+      const user = userEvent.setup();
+      mockActivities = [
+        buildActivity({
+          key: ActivityKey.CREDITS_REMOVE,
+          value: JSON.stringify({ description: 'Image generation', value: 4 }),
+        }),
+      ];
+      renderWithSidebar(PageScope.ORGANIZATION);
+
+      await user.click(screen.getAllByRole('row')[1]);
+
+      const panel = await screen.findByTestId('activity-detail-panel');
+      const term = within(panel).getByText('Credits');
+      expect(term.nextElementSibling).toHaveTextContent(/^−4$/);
     });
   });
 
