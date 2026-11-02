@@ -8,7 +8,7 @@ assertSourceHasExport(
 );
 
 describe('synchronous route shell', () => {
-  it('renders the client route without awaiting URL props', () => {
+  it('keeps the client workspace in the shared layout without awaiting URL props', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -18,6 +18,14 @@ describe('synchronous route shell', () => {
     );
     expect(source).toMatch(/export default function/);
     expect(source).not.toMatch(/await (params|searchParams)/);
-    expect(source).toContain('<StudioPlaygroundJobRoute />');
+    expect(source).toContain('return null;');
+    const layout = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/playground/layout.tsx',
+      ),
+      'utf8',
+    );
+    expect(layout).toContain('<StudioPlaygroundRoute />');
   });
 });

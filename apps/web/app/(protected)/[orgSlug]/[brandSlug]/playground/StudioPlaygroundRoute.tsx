@@ -5,10 +5,10 @@ import { Suspense } from 'react';
 import StudioPlaygroundWorkspace from '@/features/studio/playground/StudioPlaygroundWorkspace';
 import { readRouteParam } from '@/lib/route-params';
 
-/** An open generation: the prompt on the left, the generation on the right. */
-export default function StudioPlaygroundJobRoute() {
+/** Keep the composer mounted while the URL selects the gallery or a generation. */
+export default function StudioPlaygroundRoute() {
   const params = useRouteParams<{ jobId: string }>();
-  const jobId = readRouteParam(params.jobId);
+  const jobId = readRouteParam(params.jobId) || undefined;
   return (
     <Suspense fallback={null}>
       <StudioPlaygroundWorkspace jobId={jobId} />
