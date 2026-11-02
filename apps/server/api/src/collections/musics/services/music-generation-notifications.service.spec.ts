@@ -137,6 +137,7 @@ describe('MusicGenerationNotificationsService', () => {
           userId: 'user-1',
           value: JSON.stringify({ error: 'boom', ingredientId: 'music-1' }),
         }),
+        'boom',
       );
     });
   });

@@ -1,4 +1,5 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { describeMurekaHttpError } from '@api/services/integrations/mureka/utils/mureka-error.util';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
@@ -167,7 +168,9 @@ export class MurekaService {
       return { audioUrl, taskId };
     } catch (error: unknown) {
       this.loggerService.error(`${this.logContext} generateSong failed`, error);
-      throw error;
+      // Surface Mureka's own reason instead of the generic axios message.
+      const providerReason = describeMurekaHttpError(error);
+      throw providerReason ? new Error(providerReason) : error;
     }
   }
 

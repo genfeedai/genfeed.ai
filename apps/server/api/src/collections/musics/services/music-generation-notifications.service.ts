@@ -123,6 +123,7 @@ export class MusicGenerationNotificationsService {
           ingredientId: ingredientId.toString(),
         }),
       },
+      error,
     );
   }
 }

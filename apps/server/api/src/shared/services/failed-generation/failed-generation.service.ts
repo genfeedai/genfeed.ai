@@ -306,7 +306,8 @@ export class FailedGenerationService {
   }
 
   /**
-   * Handle failed music generation
+   * Handle failed music generation. `errorMessage` is the provider's reason,
+   * stored on the ingredient and pushed to the client so the tile can show it.
    */
   handleFailedMusicGeneration(
     musicsService: {
@@ -324,6 +325,7 @@ export class FailedGenerationService {
       source: ActivitySource;
       value: string;
     },
+    errorMessage?: string,
   ): Promise<void> {
     return this.handleFailedGeneration(musicsService, {
       activityMetadata,
@@ -331,7 +333,7 @@ export class FailedGenerationService {
       room,
       status: IngredientStatus.FAILED,
       userId,
-      websocketMessage: 'Generation failed',
+      websocketMessage: errorMessage?.trim() || 'Generation failed',
       websocketMethod: 'publishMediaFailed',
       websocketUrl,
     });

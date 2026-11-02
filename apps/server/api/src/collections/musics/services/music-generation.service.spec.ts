@@ -900,6 +900,7 @@ describe('MusicGenerationService', () => {
       'auth-user-1',
       expect.any(String),
       expect.objectContaining({ key: ActivityKey.MUSIC_FAILED }),
+      'second output failed',
     );
     expect(response).toEqual({
       data: expect.objectContaining({

@@ -5,7 +5,7 @@ import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 function createHarness(
   apiKey: string | null = 'env-key',
@@ -268,6 +268,24 @@ describe('MurekaService', () => {
 
       await expect(service.generateSong({ prompt: 'a song' })).rejects.toThrow(
         'Mureka generation failed: boom',
+      );
+    });
+
+    it('surfaces the reason Mureka returns in the response body of a rejected submission', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(
+        throwError(() =>
+          Object.assign(new Error('Request failed with status code 400'), {
+            response: {
+              data: { message: 'prompt is too short', trace_id: 'tr-123' },
+              status: 400,
+            },
+          }),
+        ),
+      );
+
+      await expect(service.generateSong({ prompt: 'QA' })).rejects.toThrow(
+        'Mureka rejected the request (HTTP 400: prompt is too short, trace tr-123)',
       );
     });
 

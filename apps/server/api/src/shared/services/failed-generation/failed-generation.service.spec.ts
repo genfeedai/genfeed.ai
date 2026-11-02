@@ -373,5 +373,35 @@ describe('FailedGenerationService', () => {
         'test-room',
       );
     });
+
+    it('stores and publishes the provider reason when one is given', async () => {
+      const musicsService = {
+        patch: vi.fn().mockResolvedValue({}),
+      };
+
+      websocketService.publishMediaFailed.mockResolvedValue(undefined);
+
+      await service.handleFailedMusicGeneration(
+        musicsService,
+        mockIngredientId,
+        mockWebsocketUrl,
+        mockUserId,
+        'test-room',
+        undefined,
+        'Mureka rejected the request (HTTP 400: prompt is too short)',
+      );
+
+      expect(musicsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError:
+          'Mureka rejected the request (HTTP 400: prompt is too short)',
+        status: IngredientStatus.FAILED,
+      });
+      expect(websocketService.publishMediaFailed).toHaveBeenCalledWith(
+        mockWebsocketUrl,
+        'Mureka rejected the request (HTTP 400: prompt is too short)',
+        mockUserId,
+        'test-room',
+      );
+    });
   });
 });
