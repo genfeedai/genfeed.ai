@@ -7,13 +7,10 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/run-1/')).toBe(true);
   });
 
-  it('matches the storyboard create page, where the idea is pitched', () => {
-    expect(isAgentOutputRoute('/storyboard/new')).toBe(true);
-    expect(isAgentOutputRoute('/storyboard/new/')).toBe(true);
-  });
-
-  it('leaves the storyboard list on the dock', () => {
-    expect(isAgentOutputRoute('/storyboard')).toBe(false);
+  it('matches the storyboard workspace, where the idea is pitched beside the runs', () => {
+    expect(isAgentOutputRoute('/storyboard')).toBe(true);
+    expect(isAgentOutputRoute('/storyboard/')).toBe(true);
+    expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
 
   it('keeps a run id that starts with "new" on the split layout', () => {

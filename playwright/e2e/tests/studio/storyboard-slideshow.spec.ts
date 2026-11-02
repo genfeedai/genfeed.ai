@@ -223,7 +223,7 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
     });
   });
 
-  await page.goto(`${base}/new`);
+  await page.goto(base);
   await page.getByRole('combobox', { name: 'Storyboard source' }).click();
   await page.getByRole('option', { name: 'Slideshow', exact: true }).click();
   await expect(

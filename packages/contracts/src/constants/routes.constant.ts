@@ -365,7 +365,6 @@ export const APP_ROUTES = {
      */
     PLAYGROUND: '/playground',
     STORYBOARD: '/storyboard',
-    STORYBOARD_NEW: '/storyboard/new',
     TURBO: '/turbo',
   },
   WORKSPACE: {
