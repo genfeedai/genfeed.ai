@@ -15,6 +15,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { BLOCK_GAP_CLASS, BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -272,7 +273,7 @@ export default function OverviewPage() {
       onRefresh={() => refresh()}
       isRefreshing={isRefreshing}
     >
-      <div className="flex w-full flex-col gap-5">
+      <div className={cn(BLOCK_STACK_CLASS, 'w-full')}>
         {hasFailedStats ? (
           <Alert variant="destructive">
             <span className="flex flex-wrap items-center gap-3">
@@ -310,7 +311,7 @@ export default function OverviewPage() {
 
         <QuickActionsGrid />
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className={cn('grid grid-cols-1 lg:grid-cols-2', BLOCK_GAP_CLASS)}>
           <ActivityChart data={timeseries} isLoading={isLoading} />
           <LeaderboardCard data={leaderboard} isLoading={isLoading} />
         </div>

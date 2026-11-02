@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  CardEmptySize,
   CardVariant,
   PageScope,
 } from '@genfeedai/contracts';
@@ -22,7 +23,10 @@ import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Avatar } from '@ui/primitives/avatar';
+import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { EmptyState } from '@ui/primitives/empty-state';
+import { BLOCK_GAP_CLASS } from '@ui/styles/block-spacing';
 import { Newspaper, Sparkles, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -30,7 +34,6 @@ import { useMemo } from 'react';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
 import TopPostsSection from '@/features/analytics/components/analytics/top-posts/TopPostsSection';
 import type { TopPostData } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
-import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 
 type AnalyticsOverviewLeaderboardsProps = {
   basePath: string;
@@ -190,7 +193,7 @@ export default function AnalyticsOverviewLeaderboards({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div className={cn('grid grid-cols-1 lg:grid-cols-3', BLOCK_GAP_CLASS)}>
       {hasTopPosts || isTopPostsLoading ? (
         <TopPostsSection
           posts={topPosts}
@@ -198,30 +201,47 @@ export default function AnalyticsOverviewLeaderboards({
           basePath={publishingHref(APP_ROUTES.PUBLISHING.ROOT)}
         />
       ) : (
-        <OverviewPlaceholderCard
+        <EmptyState
+          surface="card"
+          size={CardEmptySize.SM}
+          icon={Newspaper}
           title="Top posts will surface here"
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
-          icon={Newspaper}
-          primaryAction={{
-            href: publishingHref(APP_ROUTES.PUBLISHING.OVERVIEW),
-            label: 'Draft content',
-            variant: ButtonVariant.DEFAULT,
-          }}
-          secondaryAction={{
-            href: publishingHref(
-              createPublishingPostsFilterRoute({
-                publicationState: 'posted',
-              }),
-            ),
-            label: 'Browse published posts',
-            variant: ButtonVariant.SECONDARY,
-          }}
+          actions={
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              >
+                <Link href={publishingHref(APP_ROUTES.PUBLISHING.OVERVIEW)}>
+                  Draft content
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <Link
+                  href={publishingHref(
+                    createPublishingPostsFilterRoute({
+                      publicationState: 'posted',
+                    }),
+                  )}
+                >
+                  Browse published posts
+                </Link>
+              </Button>
+            </div>
+          }
         />
       )}
 
       <div
         className={cn(
-          'grid grid-cols-1 gap-4',
+          'grid grid-cols-1',
+          BLOCK_GAP_CLASS,
           scope === PageScope.SUPERADMIN
             ? 'md:grid-cols-2 lg:col-span-2'
             : 'lg:col-span-2',
@@ -292,15 +312,25 @@ export default function AnalyticsOverviewLeaderboards({
               />
             </Card>
           ) : (
-            <OverviewPlaceholderCard
+            <EmptyState
+              surface="card"
+              size={CardEmptySize.SM}
+              icon={Users}
               title="Organization rankings need more tracked activity"
               description="Once organizations start producing enough measurable performance, this leaderboard will rank them by output and engagement."
-              icon={Users}
-              primaryAction={{
-                href: `${scopedBasePath}/organizations`,
-                label: 'Review organizations',
-                variant: ButtonVariant.SECONDARY,
-              }}
+              actions={
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link href={`${scopedBasePath}/organizations`}>
+                      Review organizations
+                    </Link>
+                  </Button>
+                </div>
+              }
             />
           ))}
 
@@ -315,13 +345,10 @@ export default function AnalyticsOverviewLeaderboards({
               </h3>
               <Link
                 href={`${scopedBasePath}/brands`}
-                className={cn(
-                  buttonVariants({
-                    size: ButtonSize.XS,
-                    variant: ButtonVariant.SECONDARY,
-                  }),
-                  'uppercase tracking-wide',
-                )}
+                className={buttonVariants({
+                  size: ButtonSize.XS,
+                  variant: ButtonVariant.SECONDARY,
+                })}
               >
                 View all
               </Link>
@@ -349,15 +376,23 @@ export default function AnalyticsOverviewLeaderboards({
             />
           </Card>
         ) : (
-          <OverviewPlaceholderCard
+          <EmptyState
+            surface="card"
+            size={CardEmptySize.SM}
+            icon={Sparkles}
             title="Brand rankings will unlock after the first measurable wins"
             description="This section compares brands once posts begin generating enough views and engagement to rank meaningfully."
-            icon={Sparkles}
-            primaryAction={{
-              href: `${scopedBasePath}/brands`,
-              label: 'Review brands',
-              variant: ButtonVariant.SECONDARY,
-            }}
+            actions={
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                >
+                  <Link href={`${scopedBasePath}/brands`}>Review brands</Link>
+                </Button>
+              </div>
+            }
           />
         )}
       </div>

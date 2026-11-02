@@ -271,11 +271,13 @@
       },
       "recent": {
         "cta": "Open recent",
-        "label": "Recent"
+        "label": "Recent",
+        "description": "Everything added or generated lately, newest first."
       },
       "references": {
         "cta": "Open references",
-        "label": "References"
+        "label": "References",
+        "description": "Faces and looks you reuse so new work stays on brand."
       },
       "review": {
         "cta": "Review assets",

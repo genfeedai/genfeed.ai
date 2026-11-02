@@ -313,9 +313,6 @@
     "apps/web/src/components/models/ModelBrowserModal.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/overview/OverviewLayout.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/components/prompt-bars/components/blacklist-selector/PromptBarBlacklistSelector.tsx": {
       "unstyled-look": 1
     },

@@ -59,7 +59,7 @@
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/evergreen-series-controls.tsx": 17,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/release-calendar-filters.tsx": 5,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/compare/page.tsx": 1,
-    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/overview/PublishingOverviewPage.tsx": 8,
+    "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/overview/PublishingOverviewPage.tsx": 4,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-detail.tsx": 2,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/brand-kit/guided-setup/content.tsx": 24,
     "apps/web/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestArticles.tsx": 3,

@@ -2,6 +2,7 @@ import type {
   CollectionGridDensity,
   CollectionMaxColumns,
 } from '@genfeedai/props/ui/collection/collection.props';
+import { BLOCK_GAP_CLASS } from '@ui/styles/block-spacing';
 
 /**
  * Container-query column ladder. Columns resolve from the collection's own
@@ -24,7 +25,7 @@ export const COLLECTION_GRID_GAP_CLASSES: Record<
   CollectionGridDensity,
   string
 > = {
-  card: 'gap-4',
+  card: BLOCK_GAP_CLASS,
   tile: 'gap-3',
 };
 

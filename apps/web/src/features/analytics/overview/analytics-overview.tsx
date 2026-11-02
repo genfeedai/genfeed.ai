@@ -1,6 +1,8 @@
 'use client';
 import {
+  ButtonSize,
   ButtonVariant,
+  CardEmptySize,
   CardVariant,
   PageScope,
   Platform,
@@ -15,10 +17,13 @@ import type {
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
@@ -28,7 +33,6 @@ import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
 import AnalyticsOverviewPerformanceDataset from './analytics-overview-performance-dataset';
-import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 import { useAnalyticsOverview } from './use-analytics-overview';
 
 export interface AnalyticsOverviewProps {
@@ -150,9 +154,7 @@ export default function AnalyticsOverview({
         updateLocalUser={updateLocalUser}
       />
 
-      <div
-        className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
-      >
+      <div className={cn(BLOCK_STACK_CLASS, showAgentDashboard && 'hidden')}>
         {heroContent && !isLoading ? (
           <AnalyticsOverviewHero
             dashboardState={dashboardState}
@@ -217,23 +219,40 @@ export default function AnalyticsOverview({
             />
           </Card>
         ) : (
-          <OverviewPlaceholderCard
+          <EmptyState
+            surface="card"
+            size={CardEmptySize.SM}
+            icon={ChartColumn}
             title={translate('placeholderTitle')}
             description={translate('placeholderDescription')}
-            icon={ChartColumn}
-            primaryAction={{
-              href:
-                scope === PageScope.SUPERADMIN
-                  ? APP_ROUTES.PUBLISHING.OVERVIEW
-                  : href(APP_ROUTES.PUBLISHING.OVERVIEW),
-              label: translate('createPost'),
-              variant: ButtonVariant.DEFAULT,
-            }}
-            secondaryAction={{
-              href: connectAccountsHref,
-              label: translate('checkConnections'),
-              variant: ButtonVariant.SECONDARY,
-            }}
+            actions={
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.DEFAULT}
+                >
+                  <Link
+                    href={
+                      scope === PageScope.SUPERADMIN
+                        ? APP_ROUTES.PUBLISHING.OVERVIEW
+                        : href(APP_ROUTES.PUBLISHING.OVERVIEW)
+                    }
+                  >
+                    {translate('createPost')}
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                >
+                  <Link href={connectAccountsHref}>
+                    {translate('checkConnections')}
+                  </Link>
+                </Button>
+              </div>
+            }
           />
         )}
 
