@@ -263,7 +263,9 @@ async function sendAndAwaitThreadRoute(
   await agentPage.goto();
   await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
   await agentPage.enablePlanMode();
-  const expectedThreadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+  const expectedThreadUrl = orgPath(
+    `${APP_ROUTES.AGENT.ROOT}/${threadId}/full`,
+  );
   const expectedThreadUrlPattern = exactUrlPattern(
     expectedThreadUrl,
     authenticatedPage.url(),
@@ -430,7 +432,7 @@ test.describe('Agent Plan Mode', () => {
     const modeRequests = await mockModeUpdate(authenticatedPage, threadId);
 
     await authenticatedPage.goto(
-      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`),
+      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}/full`),
       { waitUntil: 'domcontentloaded' },
     );
     await expect(agentPage.planDecision).toBeVisible();
@@ -469,7 +471,7 @@ test.describe('Agent Plan Mode', () => {
     const modeRequests = await mockModeUpdate(authenticatedPage, threadId);
 
     await authenticatedPage.goto(
-      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`),
+      orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}/full`),
       { waitUntil: 'domcontentloaded' },
     );
     await expect(agentPage.planDecision).toBeVisible();

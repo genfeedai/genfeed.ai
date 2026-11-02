@@ -23,7 +23,10 @@ import { Suspense, useEffect, useMemo, useRef } from 'react';
 import type { AgentWorkspaceLayoutClientProps } from '@/features/agents/props/agent-workspace-layout-client.props';
 import { useAgentOAuthConnect } from '@/hooks/agent/use-agent-oauth-connect';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
+import {
+  buildAgentThreadHref,
+  normalizeProtectedPathname,
+} from '@/lib/navigation/operator-shell';
 import {
   buildScopedThreadHref,
   extractAgentThreadIdFromPathname,
@@ -226,8 +229,10 @@ function AgentWorkspaceLayoutClientContent({
       activeThreadId !== newRouteBaselineThreadRef.current &&
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
+      // The conversation just typed into stays the full-width one; it does
+      // not become a thread beside the master.
       const nextRoute = activeHref(
-        `${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`,
+        buildAgentThreadHref(activeThreadId, { isFull: true }),
       );
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;

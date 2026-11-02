@@ -68,14 +68,26 @@ const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
   ].filter(Boolean),
 );
 
+const AGENT_FULL_SEGMENT = 'full';
+
+/** `/agent/<segment>` pages that are not a thread id. */
+const AGENT_RESERVED_SEGMENTS: ReadonlySet<string> = new Set([
+  'journey',
+  'new',
+  'threads',
+]);
+
 /**
  * Resolve the conversation surface an `/agent/*` pathname (already passed
  * through {@link normalizeProtectedPathname}) belongs to.
  *
- * The agent layout hosts one persistent conversation for `/agent`,
- * `/agent/new`, and `/agent/:threadId` — the URL is the thread selector, the
- * shell never remounts. Anything else under `/agent` (`/agent/journey`) is a page
- * with its own content and resolves to `null`.
+ * The agent layout hosts one persistent conversation host for `/agent`,
+ * `/agent/threads`, `/agent/new`, `/agent/:threadId` and
+ * `/agent/:threadId/full`. `/agent`, `/agent/threads` and `/agent/:threadId`
+ * are the master layout (master left, Threads or the open thread right, so
+ * the URL names the open thread); `/agent/new` and `/agent/:threadId/full`
+ * are one full-width conversation. Anything else under `/agent`
+ * (`/agent/journey`) is a page with its own content and resolves to `null`.
  *
  * Malformed ids (`/agent/undefined` from a stale link) resolve without a
  * `threadId`: the thread page redirects to the agent root, and the layout must
@@ -101,21 +113,46 @@ export function resolveAgentConversationRoute(
   const toThreadId = (segment: string | undefined): string | undefined =>
     isRenderableThreadId(segment) ? segment : undefined;
 
-  if (
-    segments.length === 0 ||
-    (segments.length === 1 && segments[0] === 'new')
-  ) {
-    return { threadId: undefined };
+  if (segments.length === 0) {
+    return { layout: 'master', threadId: undefined };
+  }
+
+  const [first, second] = segments;
+
+  if (segments.length === 1) {
+    if (normalizedPathname === APP_ROUTES.AGENT.JOURNEY) {
+      return null;
+    }
+    if (normalizedPathname === APP_ROUTES.AGENT.NEW) {
+      return { layout: 'single', threadId: undefined };
+    }
+    if (normalizedPathname === APP_ROUTES.AGENT.THREADS) {
+      return { layout: 'master', threadId: undefined };
+    }
+    return { layout: 'master', threadId: toThreadId(first) };
   }
 
   if (
-    segments.length === 1 &&
-    normalizedPathname !== APP_ROUTES.AGENT.JOURNEY
+    segments.length === 2 &&
+    second === AGENT_FULL_SEGMENT &&
+    !AGENT_RESERVED_SEGMENTS.has(first)
   ) {
-    return { threadId: toThreadId(segments[0]) };
+    return { layout: 'single', threadId: toThreadId(first) };
   }
 
   return null;
+}
+
+/**
+ * Where a thread opens: beside the master conversation, or with `isFull` as
+ * the one full-width conversation (which has a button back to the master).
+ */
+export function buildAgentThreadHref(
+  threadId: string,
+  options?: { isFull?: boolean },
+): string {
+  const href = `${APP_ROUTES.AGENT.ROOT}/${threadId}`;
+  return options?.isFull ? `${href}/${AGENT_FULL_SEGMENT}` : href;
 }
 
 export function normalizeProtectedPathname(

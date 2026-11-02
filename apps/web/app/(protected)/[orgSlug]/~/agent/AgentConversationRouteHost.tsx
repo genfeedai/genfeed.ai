@@ -1,10 +1,15 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { usePathname } from 'next/navigation';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Button } from '@ui/primitives/button';
+import { Minimize2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { AgentConversationRouteHostProps } from '@/features/agents/props/agent-conversation-route-host.props';
 import {
+  buildAgentThreadHref,
   normalizeProtectedPathname,
   resolveAgentConversationRoute,
 } from '@/lib/navigation/operator-shell';
@@ -24,20 +29,30 @@ import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
  * transcript on screen, and swaps to the cached or fetched thread without a
  * remount.
  *
+ * The URL picks the layout (see `resolveAgentConversationRoute`):
+ * - `/agent`, `/agent/threads` and `/agent/[id]` are the master conversation
+ *   on the left with the Threads list, or the thread named in the URL, on the
+ *   right.
+ * - `/agent/new` and `/agent/[id]/full` are one full-width conversation. A
+ *   thread opened full size shows a button back to `/agent/[id]`.
+ *
  * The routes' `page.tsx` files stay the owners of route intent (reset on
- * `/agent` and `/agent/new`, malformed-id redirect on `/agent/[id]`) and render
- * nothing themselves; `/agent/journey` keeps its own content.
+ * `/agent/new`, malformed-id redirect on `/agent/[id]`) and render nothing
+ * themselves; `/agent/journey` keeps its own content.
  */
 export default function AgentConversationRouteHost({
   children,
 }: AgentConversationRouteHostProps) {
   const rawPathname = usePathname();
+  const { push } = useRouter();
+  const { orgHref } = useOrgUrl();
+  const translate = useTranslations('common.agentWorkspace');
   const route = useMemo(() => {
     // `usePathname()` is null during the first App Router paint. Treat that
     // as the unthreaded conversation so /agent/new keeps the shell mounted
     // instead of rendering only a page that returns null.
     if (!rawPathname) {
-      return { threadId: undefined };
+      return { layout: 'single' as const, threadId: undefined };
     }
 
     return resolveAgentConversationRoute(
@@ -49,21 +64,30 @@ export default function AgentConversationRouteHost({
     return children;
   }
 
-  // `/agent` is the master: its conversation on the left, Threads on the right.
-  // `/agent/new` and `/agent/[id]` stay a single full-page conversation.
-  const isMasterRoute =
-    Boolean(rawPathname) &&
-    normalizeProtectedPathname(rawPathname ?? '') === APP_ROUTES.AGENT.ROOT;
-  const shell = isMasterRoute ? (
-    <AgentMasterWorkspace />
-  ) : (
-    <AgentWorkspacePageShell threadId={route.threadId} />
-  );
+  const shell =
+    route.layout === 'master' ? (
+      <AgentMasterWorkspace openThreadId={route.threadId ?? null} />
+    ) : (
+      <AgentWorkspacePageShell threadId={route.threadId} />
+    );
+  const fullThreadId = route.layout === 'single' ? route.threadId : undefined;
 
   return (
     <>
       <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         {shell}
+        {fullThreadId ? (
+          <Button
+            ariaLabel={translate('exitFullPage')}
+            className="absolute right-3 top-2 z-10"
+            icon={<Minimize2 className="size-4" />}
+            onClick={() => push(orgHref(buildAgentThreadHref(fullThreadId)))}
+            size={ButtonSize.ICON}
+            tooltip={translate('exitFullPage')}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : null}
       </div>
       {children}
     </>

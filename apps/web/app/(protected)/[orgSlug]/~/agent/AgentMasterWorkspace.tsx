@@ -7,13 +7,16 @@ import {
   AgentThreadResolutionProvider,
   useAgentChatStore,
 } from '@genfeedai/agent';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentOutputTabDefinition } from '@props/ui/agent-output-shell.props';
 import AgentOutputLayout from '@ui/layout/agent-output-layout/AgentOutputLayout';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import AgentThreadsPanel from '@/components/workspace-shell/AgentThreadsPanel';
+import type { AgentMasterWorkspaceProps } from '@/features/agents/props/agent-master-workspace.props';
+import { buildAgentThreadHref } from '@/lib/navigation/operator-shell';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 import { useAgentWorkspace } from './agent-workspace-context';
 import { useMasterThread } from './use-master-thread';
@@ -23,13 +26,17 @@ const THREADS_TAB_ID = 'threads';
 const CONTEXT_TAB_ID = 'context';
 
 /**
- * `/agent`: the master conversation on the left, split 50/50 with the Threads
- * panel on the right. Both read like one conversation design, with no header
- * above the master. The topbar's Context icon swaps the right side to Context.
- * Threads the master starts show up in the panel, where one can be read and
- * steered without leaving the page.
+ * `/agent`, `/agent/threads` and `/agent/[id]`: the master conversation on the
+ * left, split 50/50 with the Threads panel on the right. Both read like one
+ * conversation design, with no header above the master. The topbar's Context
+ * icon swaps the right side to Context. Threads the master starts show up in
+ * the panel, where one can be read and steered without leaving the page. The
+ * thread open on the right is the one in the URL (`/agent/[id]`), so a reload
+ * or a shared link opens it; the list is `/agent/threads`.
  */
-export default function AgentMasterWorkspace() {
+export default function AgentMasterWorkspace({
+  openThreadId,
+}: AgentMasterWorkspaceProps) {
   const translate = useTranslations('common.agentOutput');
   const translateWorkspace = useTranslations('common.agentWorkspace');
   const { push } = useRouter();
@@ -45,7 +52,6 @@ export default function AgentMasterWorkspace() {
   const resolution = useThreadResolution(agentApiService, isLoaded);
   const { pendingThreadIds, reopenThread, resolveThread, resolvedThreads } =
     resolution;
-  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
 
   // A record the operator picked opens in Context; the page's own selections
   // stay a click away on the topbar's Context icon.
@@ -61,17 +67,30 @@ export default function AgentMasterWorkspace() {
     }
   }, [isUserSelectionOpen, onOpenContext, selectionKey]);
 
-  // A thread chip in the master's transcript opens that thread in the panel.
+  // A thread chip in the master's transcript, or a row in the list, opens that
+  // thread in the panel by moving the URL to it; Back returns to the list.
   const openThreadInPanel = useCallback(
     (threadId: string) => {
-      setOpenThreadId(threadId);
       host?.onCloseContext();
+      push(orgHref(buildAgentThreadHref(threadId)));
     },
-    [host],
+    [host, orgHref, push],
+  );
+
+  const setOpenThreadId = useCallback(
+    (threadId: string | null) => {
+      if (threadId) {
+        openThreadInPanel(threadId);
+        return;
+      }
+      push(orgHref(APP_ROUTES.AGENT.THREADS));
+    },
+    [openThreadInPanel, orgHref, push],
   );
 
   const openFullThread = useCallback(
-    (threadId: string) => push(orgHref(`/agent/${threadId}`)),
+    (threadId: string) =>
+      push(orgHref(buildAgentThreadHref(threadId, { isFull: true }))),
     [orgHref, push],
   );
 
@@ -111,6 +130,7 @@ export default function AgentMasterWorkspace() {
       reopenThread,
       resolveThread,
       resolvedThreads,
+      setOpenThreadId,
       threads,
       translate,
     ],

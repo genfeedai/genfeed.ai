@@ -331,7 +331,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/thread-new',
+        '/acme-org/acme-creator/agent/thread-new/full',
       );
     });
   });

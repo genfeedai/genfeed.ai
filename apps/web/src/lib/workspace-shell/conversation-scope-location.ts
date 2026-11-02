@@ -64,18 +64,18 @@ export function buildScopedThreadHref(
 
 /**
  * Extract a standard agent thread id from a normalized protected pathname
- * (`/agent/:id`). Unthreaded entry routes return null.
+ * (`/agent/:id` or `/agent/:id/full`). Unthreaded entry routes return null.
  */
 export function extractAgentThreadIdFromPathname(
   pathname: string,
 ): string | null {
-  const match = pathname.match(/^\/agent\/([^/]+)$/);
+  const match = pathname.match(/^\/agent\/([^/]+)(?:\/full)?$/);
   if (!match?.[1]) {
     return null;
   }
 
   const threadId = match[1];
-  if (threadId === 'new' || threadId === 'journey') {
+  if (threadId === 'new' || threadId === 'journey' || threadId === 'threads') {
     return null;
   }
 

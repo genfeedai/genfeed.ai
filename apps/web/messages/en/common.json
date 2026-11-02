@@ -1215,6 +1215,7 @@
     "noContent": "No content configured for this overlay."
   },
   "agentWorkspace": {
+    "exitFullPage": "Back to master and threads",
     "master": "Master"
   },
   "agentOutput": {

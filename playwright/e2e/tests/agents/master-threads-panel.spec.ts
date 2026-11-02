@@ -13,6 +13,7 @@ interface MockThread {
   id: string;
   runStatus?: 'queued' | 'running' | 'waiting_input' | 'completed';
   kind: 'master' | 'thread';
+  mode?: 'auto' | 'manual' | 'plan';
   parentThreadId: string | null;
   status?: 'active' | 'archived';
   title: string;
@@ -23,6 +24,7 @@ function makeThreads(): MockThread[] {
     {
       id: MASTER_ID,
       kind: 'master',
+      mode: 'plan',
       parentThreadId: null,
       title: 'Master',
     },
@@ -52,6 +54,7 @@ function toResource(thread: MockThread) {
       contextVersion: 3,
       createdAt: now,
       kind: thread.kind,
+      mode: thread.mode ?? 'manual',
       parentThreadId: thread.parentThreadId,
       runStatus: thread.runStatus ?? null,
       source: 'agent',
@@ -72,7 +75,35 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
+// The composer, including its mode control, stays disabled until the agent
+// socket connects. Complete only the socket.io handshake.
+async function mockAgentSocketHandshake(page: Page): Promise<void> {
+  await page.addInitScript(() =>
+    Object.assign(window, { __playwright_socket_fixture: true }),
+  );
+  await page.routeWebSocket('**/socket.io/**', (connection) => {
+    connection.send(
+      `0${JSON.stringify({
+        maxPayload: 1000000,
+        pingInterval: 25000,
+        pingTimeout: 20000,
+        sid: 'master-mode-e2e',
+        upgrades: [],
+      })}`,
+    );
+    connection.onMessage((message) => {
+      if (typeof message === 'string' && message.startsWith('40')) {
+        connection.send('40{"sid":"master-mode-e2e"}');
+      }
+      if (message === '2') {
+        connection.send('3');
+      }
+    });
+  });
+}
+
 interface AgentMock {
+  modePatches: Array<Record<string, unknown>>;
   statusPatches: Array<{ status: unknown; threadId: string }>;
   steers: Array<Record<string, unknown>>;
 }
@@ -115,11 +146,16 @@ const MASTER_TRANSFER_MESSAGE = {
 
 /** Serves the master, the thread list, one child's transcript and the steer ack. */
 async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
-  const mock: AgentMock = { statusPatches: [], steers: [] };
+  const mock: AgentMock = { modePatches: [], statusPatches: [], steers: [] };
   const THREADS = makeThreads();
 
   await page.route('**/agent/threads**', async (route) => {
     const request = route.request();
+    // `/agent/threads` is also the page's own URL: only API calls are mocked.
+    if (request.isNavigationRequest()) {
+      await route.fallback();
+      return;
+    }
     const path = new URL(request.url()).pathname.replace(
       /^.*\/agent\/threads/,
       '',
@@ -142,6 +178,17 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
         },
         202,
       );
+      return;
+    }
+
+    if (request.method() === 'PATCH' && path === '/mode') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      mock.modePatches.push(body);
+      const saved = THREADS.find((item) => item.id === body.threadId);
+      if (saved) {
+        saved.mode = body.mode as MockThread['mode'];
+      }
+      await fulfillJson(route, { mode: body.mode, threadId: body.threadId });
       return;
     }
 
@@ -324,10 +371,11 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(output.getByRole('tab')).toHaveCount(0);
     await expect(agent.locator(':scope > header')).toHaveCount(0);
 
-    // Open a thread: it reads in place.
+    // Open a thread: it reads in place, and the URL names it.
     await panel.getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`).click();
     const lightView = output.getByTestId('agent-thread-light-view');
     await expect(lightView).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}$`));
     await expect(lightView).toContainText(
       'Five slides drafted, ready for your review.',
     );
@@ -343,12 +391,13 @@ test.describe('Agent master thread and Threads panel', () => {
       expectedContextVersion: 3,
       source: 'agent',
     });
-    await expect(page).toHaveURL(/\/agent\/?$/);
+    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}$`));
 
-    // Back to the list.
+    // Back to the list, which has its own URL.
     await lightView.getByRole('button', { name: 'Threads' }).click();
     await expect(lightView).toHaveCount(0);
     await expect(panel).toBeVisible();
+    await expect(page).toHaveURL(/\/agent\/threads$/);
 
     // Context opens from the topbar icon, swapping the right side, and the
     // same icon brings the threads back.
@@ -357,6 +406,75 @@ test.describe('Agent master thread and Threads panel', () => {
     await expect(panel).toBeHidden();
     await page.getByTestId('topbar-context-toggle').click();
     await expect(panel).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('changes the master conversation mode from the prompt bar', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    const mock = await mockMasterAndThreads(page);
+    await mockAgentSocketHandshake(page);
+
+    await page.goto(`${ORG}/agent`);
+    await assertNoErrorBoundaryFallback(page);
+
+    const agent = page.getByTestId('agent-output-agent-pane');
+    const modeButton = agent.getByRole('button', { name: /^Agent mode:/ });
+    // The master was saved in Plan mode.
+    await expect(modeButton).toHaveAccessibleName('Agent mode: Plan');
+
+    await modeButton.click();
+    await page.getByRole('menuitemradio', { name: /^Auto/ }).click();
+    await expect(modeButton).toHaveAccessibleName('Agent mode: Auto');
+
+    // The pick is saved on the master and sticks, also after the panel on the
+    // right moves between a thread and the list.
+    await expect
+      .poll(() => mock.modePatches)
+      .toEqual([{ mode: 'auto', threadId: MASTER_ID }]);
+    await page.getByTestId(`agent-threads-panel-thread-${REVIEW_ID}`).click();
+    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}$`));
+    await expect(modeButton).toHaveAccessibleName('Agent mode: Auto');
+    await page
+      .getByTestId('agent-thread-light-view')
+      .getByRole('button', { name: 'Threads' })
+      .click();
+    await expect(page).toHaveURL(/\/agent\/threads$/);
+    await expect(modeButton).toHaveAccessibleName('Agent mode: Auto');
+
+    await page.reload();
+    await expect(modeButton).toHaveAccessibleName('Agent mode: Auto');
+  });
+
+  test('opens a thread full size and goes back to the two columns', async ({
+    authenticatedPage: page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await mockMasterAndThreads(page);
+
+    // A thread URL opens the two columns with that thread on the right.
+    await page.goto(`${ORG}/agent/${REVIEW_ID}`);
+    await assertNoErrorBoundaryFallback(page);
+    const output = page.getByTestId('agent-output-output-pane');
+    const lightView = output.getByTestId('agent-thread-light-view');
+    await expect(page.getByTestId('agent-output-agent-pane')).toBeVisible();
+    await expect(lightView).toContainText(
+      'Five slides drafted, ready for your review.',
+    );
+
+    // Full size is one conversation with a way back.
+    await lightView.getByRole('button', { name: 'Open full page' }).click();
+    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}/full$`));
+    await expect(page.getByTestId('agent-output-agent-pane')).toHaveCount(0);
+    await page
+      .getByRole('button', { name: 'Back to master and threads' })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/agent/${REVIEW_ID}$`));
+    await expect(page.getByTestId('agent-output-agent-pane')).toBeVisible();
+    await expect(lightView).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
 

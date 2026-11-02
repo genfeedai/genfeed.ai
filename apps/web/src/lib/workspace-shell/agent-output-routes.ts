@@ -9,8 +9,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
  * `AgentOutputShell` adds its route here in the same change.
  */
 const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
-  // The master conversation; `/agent/new` and `/agent/[id]` stay full-page.
-  new RegExp(`^${APP_ROUTES.AGENT.ROOT}/?$`),
+  // The master conversation beside the Threads list (`/agent`,
+  // `/agent/threads`) or one open thread (`/agent/[id]`). `/agent/new` and
+  // `/agent/[id]/full` are the one full-width conversation.
+  new RegExp(`^${APP_ROUTES.AGENT.ROOT}(?:/(?!new/?$|journey/?$)[^/]+)?/?$`),
   // A Storyboard run, and `/storyboard/new`, where the idea is pitched in the
   // same chat-left, result-right layout the run opens in.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/[^/]+/?$`),

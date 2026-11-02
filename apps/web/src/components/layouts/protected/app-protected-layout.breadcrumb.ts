@@ -1,6 +1,6 @@
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
-const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new']);
+const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new', 'threads']);
 
 const STORYBOARD_RUN_ID_EXCLUSIONS = new Set(['new']);
 
@@ -14,7 +14,7 @@ export function extractAgentConversationId(
     return null;
   }
   const normalized = normalizeProtectedPathname(pathname);
-  const match = normalized.match(/^\/agent\/([^/]+)\/?$/);
+  const match = normalized.match(/^\/agent\/([^/]+)(?:\/full)?\/?$/);
   const conversationId = match?.[1];
   if (!conversationId || AGENT_CONVERSATION_ID_EXCLUSIONS.has(conversationId)) {
     return null;

@@ -3,6 +3,7 @@ import type { Task } from '@services/management/tasks.service';
 import { describe, expect, it } from 'vitest';
 import {
   appendSearchParamsToHref,
+  buildAgentThreadHref,
   buildTaskLaunchHref,
   getBrandSwitchHref,
   getCurrentBrandScopedPath,
@@ -38,27 +39,33 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname(undefined)).toBe('');
   });
 
-  it('resolves which conversation surface a normalized agent path hosts', () => {
-    expect(resolveAgentConversationRoute('/agent')).toEqual({
-      threadId: undefined,
-    });
-    expect(resolveAgentConversationRoute('/agent/new')).toEqual({
-      threadId: undefined,
-    });
-    expect(resolveAgentConversationRoute('/agent/thread-1')).toEqual({
-      threadId: 'thread-1',
-    });
+  it.each([
+    ['/agent', { layout: 'master', threadId: undefined }],
+    ['/agent/threads', { layout: 'master', threadId: undefined }],
+    ['/agent/thread-1', { layout: 'master', threadId: 'thread-1' }],
+    ['/agent/new', { layout: 'single', threadId: undefined }],
+    ['/agent/thread-1/full', { layout: 'single', threadId: 'thread-1' }],
+  ])('resolves %s to the conversation layout it hosts', (path, expected) => {
+    expect(resolveAgentConversationRoute(path)).toEqual(expected);
+  });
+
+  it('resolves a scoped thread path the same as a normalized one', () => {
     expect(
       resolveAgentConversationRoute(
         normalizeProtectedPathname('/acme/~/agent/thread-1'),
       ),
-    ).toEqual({ threadId: 'thread-1' });
+    ).toEqual({ layout: 'master', threadId: 'thread-1' });
   });
 
   it('keeps malformed thread ids off the conversation surface', () => {
     // `/agent/undefined` from a stale link: the page redirects, the layout
     // must not fetch `/threads/undefined/*` in the meantime.
     expect(resolveAgentConversationRoute('/agent/undefined')).toEqual({
+      layout: 'master',
+      threadId: undefined,
+    });
+    expect(resolveAgentConversationRoute('/agent/undefined/full')).toEqual({
+      layout: 'single',
       threadId: undefined,
     });
   });
@@ -66,8 +73,17 @@ describe('operator-shell helpers', () => {
   it('leaves non-conversation agent routes to their own page', () => {
     expect(resolveAgentConversationRoute('/agent/journey')).toBeNull();
     expect(resolveAgentConversationRoute('/agent/thread-1/extra')).toBeNull();
+    expect(resolveAgentConversationRoute('/agent/new/full')).toBeNull();
+    expect(resolveAgentConversationRoute('/agent/threads/full')).toBeNull();
     expect(resolveAgentConversationRoute('/workspace')).toBeNull();
     expect(resolveAgentConversationRoute('/agents')).toBeNull();
+  });
+
+  it('builds the thread href beside the master or full size', () => {
+    expect(buildAgentThreadHref('thread-1')).toBe('/agent/thread-1');
+    expect(buildAgentThreadHref('thread-1', { isFull: true })).toBe(
+      '/agent/thread-1/full',
+    );
   });
 
   it('never rewrites global admin / product roots as org/brand modules', () => {

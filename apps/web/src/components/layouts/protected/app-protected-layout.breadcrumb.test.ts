@@ -21,6 +21,16 @@ describe('extractAgentConversationId', () => {
     ).toBe(conversationId);
   });
 
+  it('reads the id of a thread opened full size', () => {
+    expect(
+      extractAgentConversationId(`/default/~/agent/${conversationId}/full`),
+    ).toBe(conversationId);
+  });
+
+  it('ignores the threads list', () => {
+    expect(extractAgentConversationId('/default/~/agent/threads')).toBeNull();
+  });
+
   it('ignores new / journey segments', () => {
     expect(extractAgentConversationId('/default/default/agent/new')).toBeNull();
     expect(

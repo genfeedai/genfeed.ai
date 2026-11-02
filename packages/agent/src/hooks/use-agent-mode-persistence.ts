@@ -77,7 +77,7 @@ export function useAgentModePersistence(apiService: AgentApiService) {
           ) {
             useAgentChatStore.setState({ draftAgentMode: mode });
           }
-        } catch {
+        } catch (error: unknown) {
           const current = useAgentChatStore.getState();
           const rollback =
             (threadId
@@ -90,7 +90,13 @@ export function useAgentModePersistence(apiService: AgentApiService) {
               draftAgentMode: rollback,
               hasExplicitDraftAgentMode: false,
             });
-            current.setError('Failed to update agent mode.');
+            // Keep the server's answer (status and detail) so a rejected save
+            // says why instead of only snapping the picker back.
+            current.setError(
+              error instanceof Error && error.message
+                ? error.message
+                : 'Failed to update agent mode.',
+            );
           }
         } finally {
           pendingByThread.current.set(

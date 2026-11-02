@@ -241,6 +241,34 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
   });
 
+  it('draws the planner again when a model answers with no text first', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    const answer =
+      'Which do you want: a reply for the comment section, or a post?';
+    llmDispatcher.chatCompletion
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            finish_reason: 'length',
+            message: { content: '', reasoning_content: 'Thinking it over' },
+          },
+        ],
+        model: 'test-model',
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: answer } }],
+        model: 'test-model',
+      });
+
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+
+    expect(result?.message.content).toBe(answer);
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(2);
+  });
+
   it('posts a prose answer as a normal reply instead of a plan awaiting approval', async () => {
     agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
     const answer =
