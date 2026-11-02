@@ -10,7 +10,7 @@ import {
   AgentStrategiesService,
   AgentStrategy,
 } from '@services/automation/agent-strategies.service';
-import { PagesService } from '@services/content/pages.service';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentStrategiesService', () => {
@@ -97,7 +97,8 @@ describe('AgentStrategiesService', () => {
       axiosResponse(resourceDocument({ label: 'Edit' }, { id: strategyId })),
     );
 
-    await service.update(strategyId, { postsPerWeek: 3 });
+    const updated = await service.update(strategyId, { postsPerWeek: 3 });
+    expect(updated).toMatchObject({ id: strategyId, label: 'Edit' });
 
     expect(http.patch).toHaveBeenCalledWith(`/${strategyId}`, {
       postsPerWeek: 3,
@@ -166,9 +167,6 @@ describe('AgentStrategiesService', () => {
   });
 
   it('listOpportunities returns one deserialized page with its own totals', async () => {
-    PagesService.setCurrentPage(1);
-    PagesService.setTotalPages(1);
-    PagesService.setTotalDocs(0);
     const controller = new AbortController();
     http.get.mockResolvedValue(
       axiosResponse(
@@ -196,13 +194,9 @@ describe('AgentStrategiesService', () => {
       total: 40,
       totalPages: 3,
     });
-    expect(PagesService.getCurrentPage()).toBe(1);
-    expect(PagesService.getTotalPages()).toBe(1);
-    expect(PagesService.getTotalDocs()).toBe(0);
   });
 
-  it('listOpportunities without a page leaves the shared totals alone', async () => {
-    PagesService.setTotalPages(7);
+  it('listOpportunities returns response metadata without an explicit page', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'opp_1' }], {
@@ -218,7 +212,6 @@ describe('AgentStrategiesService', () => {
       total: 1,
       totalPages: 1,
     });
-    expect(PagesService.getTotalPages()).toBe(7);
   });
 
   it('listReports GETs one page of the report history', async () => {

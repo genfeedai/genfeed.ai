@@ -35,16 +35,6 @@ vi.mock('@services/core/json-api', () => ({
   extractResource: vi.fn((doc) => normalizeRelationshipGraph(doc.data || {})),
 }));
 
-vi.mock('@services/content/pages.service', () => ({
-  PagesService: {
-    beginRequest: vi.fn(() => 7),
-    recordTotals: vi.fn(),
-    setCurrentPage: vi.fn(),
-    setTotalDocs: vi.fn(),
-    setTotalPages: vi.fn(),
-  },
-}));
-
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apiEndpoint: 'https://api.genfeed.ai/v1',
@@ -82,7 +72,6 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-import { PagesService } from '@services/content/pages.service';
 // Import after mocks
 import {
   BaseService,
@@ -484,7 +473,7 @@ describe('BaseService', () => {
       });
     });
 
-    it('should set pagination when page is provided', async () => {
+    it('returns the requested page as an array of models', async () => {
       const mockResponse = {
         data: {
           data: [{ id: '1', name: 'Test' }],
@@ -500,24 +489,20 @@ describe('BaseService', () => {
 
       service.getInstanceForTest().get.mockResolvedValue(mockResponse);
 
-      await service.findAll({ page: 2 });
-
-      expect(PagesService.recordTotals).toHaveBeenCalledWith(
-        { page: 2, pages: 5, total: 50 },
-        7,
-      );
+      const result = await service.findAll({ page: 2 });
+      expect(result).toEqual([
+        expect.objectContaining({ id: '1', name: 'Test' }),
+      ]);
     });
 
-    it('should not set pagination when no page in query', async () => {
+    it('returns an empty array when the collection is empty', async () => {
       const mockResponse = {
         data: { data: [] },
       };
 
       service.getInstanceForTest().get.mockResolvedValue(mockResponse);
 
-      await service.findAll();
-
-      expect(PagesService.recordTotals).not.toHaveBeenCalled();
+      await expect(service.findAll()).resolves.toEqual([]);
     });
 
     it('should throw on error', async () => {

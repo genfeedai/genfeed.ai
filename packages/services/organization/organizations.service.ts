@@ -37,7 +37,6 @@ import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Member } from '@genfeedai/models/organization/member.model';
 import { Organization } from '@genfeedai/models/organization/organization.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
-import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -97,12 +96,6 @@ export class OrganizationsService extends BaseService<Organization> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
 
         const accounts = this.extractCollection<Partial<Brand>>(document);
         return accounts.map((item) => new Brand(item));
@@ -153,12 +146,6 @@ export class OrganizationsService extends BaseService<Organization> {
       })
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
 
         return this.extractCollection<Partial<IIngredient>>(document).map(
           (item) => {
@@ -329,11 +316,6 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Post[]> {
     const result = await this.findOrganizationPostsPage(id, query);
-    if (query?.page) {
-      PagesService.setCurrentPage(result.page);
-      PagesService.setTotalPages(result.totalPages);
-      PagesService.setTotalDocs(result.total);
-    }
 
     return result.items;
   }
@@ -352,19 +334,7 @@ export class OrganizationsService extends BaseService<Organization> {
         const items = this.extractCollection<Partial<IPost>>(document).map(
           (item) => new Post(item),
         );
-        const pagination = document.links?.pagination;
-        const page = pagination?.page ?? 1;
-        const totalPages = Math.max(1, pagination?.pages ?? 1);
-
-        return {
-          hasNext: page < totalPages,
-          hasPrevious: page > 1,
-          items,
-          page,
-          pageSize: pagination?.limit ?? items.length,
-          total: pagination?.total ?? items.length,
-          totalPages,
-        };
+        return toPaginatedResponse(items, document);
       });
   }
 

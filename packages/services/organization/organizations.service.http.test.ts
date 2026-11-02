@@ -13,7 +13,7 @@ import {
   type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
-import { PagesService } from '@services/content/pages.service';
+
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,8 +45,6 @@ describe('OrganizationsService HTTP methods', () => {
     });
 
     it('findOrganizationBrands records pagination when page is requested', async () => {
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
       http.get.mockResolvedValue(
         axiosResponse(
           collectionDocument([], {
@@ -56,9 +54,6 @@ describe('OrganizationsService HTTP methods', () => {
       );
 
       await service.findOrganizationBrands(orgId, { page: 3 });
-
-      expect(setCurrentPage).toHaveBeenCalledWith(3);
-      expect(setTotalPages).toHaveBeenCalledWith(7);
     });
 
     it('findOrganizationMembers GETs the members relationship route', async () => {
@@ -92,8 +87,6 @@ describe('OrganizationsService HTTP methods', () => {
     });
 
     it('findOrganizationActivities GETs /activities scoped to the organization', async () => {
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
       http.get.mockResolvedValue(
         axiosResponse(
           collectionDocument([{ id: 'activity_1', key: 'post.created' }], {
@@ -110,8 +103,7 @@ describe('OrganizationsService HTTP methods', () => {
         expect.stringContaining('/activities'),
         { params: { organizationId: orgId, page: 1 } },
       );
-      expect(setCurrentPage).not.toHaveBeenCalled();
-      expect(setTotalDocs).not.toHaveBeenCalled();
+
       expect(result.items[0].id).toBe('activity_1');
       expect(result).toMatchObject({ total: 12, totalPages: 2 });
     });
@@ -149,8 +141,6 @@ describe('OrganizationsService HTTP methods', () => {
     });
 
     it('records pagination when page is requested', async () => {
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
       http.get.mockResolvedValue(
         axiosResponse(
           collectionDocument([], {
@@ -160,9 +150,6 @@ describe('OrganizationsService HTTP methods', () => {
       );
 
       await service.findOrganizationIngredients(orgId, { page: 2 });
-
-      expect(setCurrentPage).toHaveBeenCalledWith(2);
-      expect(setTotalPages).toHaveBeenCalledWith(4);
     });
   });
 
@@ -362,9 +349,6 @@ describe('OrganizationsService HTTP methods', () => {
 
   describe('posts and analytics', () => {
     it('findOrganizationPosts records pagination and returns items', async () => {
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
       http.get.mockResolvedValue(
         axiosResponse(
           collectionDocument([{ id: 'post_1' }], {
@@ -376,9 +360,6 @@ describe('OrganizationsService HTTP methods', () => {
       const result = await service.findOrganizationPosts(orgId, { page: 2 });
 
       expect(result).toHaveLength(1);
-      expect(setCurrentPage).toHaveBeenCalledWith(2);
-      expect(setTotalPages).toHaveBeenCalledWith(5);
-      expect(setTotalDocs).toHaveBeenCalledWith(42);
     });
 
     it('findOrganizationPostsPage falls back to defaults without pagination links', async () => {

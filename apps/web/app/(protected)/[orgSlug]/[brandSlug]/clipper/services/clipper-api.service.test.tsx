@@ -1,6 +1,6 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
-import { PagesService } from '@services/content/pages.service';
+
 import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
@@ -74,7 +74,7 @@ describe('ClipperApiService', () => {
     );
 
     const service = new ClipperApiService(vi.fn().mockResolvedValue('token'));
-    PagesService.setTotalDocs(99);
+
     const result = await service.listProjects({
       brandId: 'brand-1',
       limit: 15,
@@ -95,7 +95,6 @@ describe('ClipperApiService', () => {
       totalPages: 5,
       total: 70,
     });
-    expect(PagesService.getTotalDocs()).toBe(99);
   });
 
   it('lists clip projects from the collection endpoint', async () => {

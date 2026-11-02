@@ -37,7 +37,6 @@ import { Image } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Link } from '@genfeedai/models/social/link.model';
-import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -157,11 +156,6 @@ export class BrandsService extends BaseService<Brand> {
     query?: IQueryParams,
   ): Promise<Post[]> {
     const result = await this.findBrandPostsPage(id, query);
-    if (query?.page) {
-      PagesService.setCurrentPage(result.page);
-      PagesService.setTotalPages(result.totalPages);
-      PagesService.setTotalDocs(result.total);
-    }
 
     return result.items;
   }
@@ -180,19 +174,7 @@ export class BrandsService extends BaseService<Brand> {
         const items = deserializeCollection<Partial<IPost>>(document).map(
           (item) => new Post(item),
         );
-        const pagination = document.links?.pagination;
-        const page = pagination?.page ?? 1;
-        const totalPages = Math.max(1, pagination?.pages ?? 1);
-
-        return {
-          hasNext: page < totalPages,
-          hasPrevious: page > 1,
-          items,
-          page,
-          pageSize: pagination?.limit ?? items.length,
-          total: pagination?.total ?? items.length,
-          totalPages,
-        };
+        return toPaginatedResponse(items, document);
       });
   }
 
@@ -207,12 +189,6 @@ export class BrandsService extends BaseService<Brand> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
 
         return deserializeCollection<Partial<IVideo>>(document).map(
           (item) => new Video(item),
@@ -231,12 +207,6 @@ export class BrandsService extends BaseService<Brand> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
 
         return deserializeCollection<Partial<IImage>>(document).map(
           (item) => new Image(item),
@@ -255,12 +225,6 @@ export class BrandsService extends BaseService<Brand> {
       )
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
 
         return deserializeCollection<Partial<IArticle>>(document).map(
           (item) => new Article(item as Partial<Article>),

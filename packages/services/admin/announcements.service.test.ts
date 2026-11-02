@@ -6,7 +6,7 @@ import {
   resourceDocument,
 } from '@services/__mocks__/http.mock';
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
-import { PagesService } from '@services/content/pages.service';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AdminAnnouncementsService', () => {
@@ -37,9 +37,7 @@ describe('AdminAnnouncementsService', () => {
       totalPages: 1,
     });
   });
-  it('returns page metadata without changing another list totals and forwards cancellation', async () => {
-    PagesService.setTotalPages(7);
-    PagesService.setTotalDocs(99);
+  it('returns its page metadata and forwards cancellation', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([], {
@@ -62,8 +60,6 @@ describe('AdminAnnouncementsService', () => {
       total: 42,
       totalPages: 5,
     });
-    expect(PagesService.getTotalPages()).toBe(7);
-    expect(PagesService.getTotalDocs()).toBe(99);
   });
   it('deserializes announcement broadcasts as resources', async () => {
     http.post.mockResolvedValue(

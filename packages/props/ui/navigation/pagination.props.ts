@@ -22,12 +22,8 @@ export interface AutoPaginationProps {
    */
   totalLabel?: string;
 
-  /**
-   * The totals cached with the rows on screen (`usePagedAuthedQuery`). Without
-   * them the footer reads the totals of the last list request, which on a
-   * cached page can be another list's.
-   */
-  totals?: IPageTotals;
+  /** Totals from the same response or cache entry as the rows on screen. */
+  totals: IPageTotals;
 }
 
 export interface PaginationStepperProps {
