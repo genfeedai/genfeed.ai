@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => {
 });
 vi.mock('next-intl', () => ({ useTranslations: () => mocks.translate }));
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/admin/library/voices',
+  usePathname: () => '/admin/content/voices',
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
 }));
@@ -217,7 +217,7 @@ describe('admin voice catalog table', () => {
 
     await waitFor(() =>
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/admin/library/voices?q=Ada',
+        '/admin/content/voices?q=Ada',
         { scroll: false },
       ),
     );

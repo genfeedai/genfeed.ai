@@ -44,7 +44,6 @@ export const ANALYTICS_APP_PATH_ROOTS: readonly AppRailPathRoots[] = [
       '/admin/content',
       '/admin/configuration',
       APP_ROUTES.ADMIN.FOLDERS,
-      APP_ROUTES.ADMIN.LIBRARY.VOICES,
     ],
     id: 'admin-content',
   },

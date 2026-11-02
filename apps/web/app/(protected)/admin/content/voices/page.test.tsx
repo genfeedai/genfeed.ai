@@ -1,3 +1,3 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 
-assertSourceHasExport('app/(protected)/admin/library/voices/page.tsx');
+assertSourceHasExport('app/(protected)/admin/content/voices/page.tsx');
