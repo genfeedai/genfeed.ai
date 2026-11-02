@@ -307,7 +307,12 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   const uiError =
     error ??
     (api.catalog.error ?? api.project.error ?? api.projects.error)?.message;
-  const isQuoteBlocked = isBusy || isActive || !catalog?.isAvailable;
+  // A change request is routed by the brand's project list, so the New screen
+  // waits for it rather than quoting a new project for work that already exists.
+  const isProjectListPending =
+    !projectId && Boolean(api.projects.isLoading || api.projects.error);
+  const isQuoteBlocked =
+    isBusy || isActive || isProjectListPending || !catalog?.isAvailable;
   const modeOptions = [
     { label: t('prompt'), value: 'prompt' },
     { label: t('source'), value: 'sourceCode' },

@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   seedComposer: vi.fn(),
+  isProjectsLoading: false,
   publishContext: vi.fn(),
   projectPages: [] as { projects: { id: string; label: string }[] }[],
   identity: { orgId: 'org', userId: 'user', sessionId: 'session' },
@@ -156,7 +157,10 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
     catalog: {
       data: mocks.catalog,
     },
-    projects: { data: { pages: mocks.projectPages } },
+    projects: {
+      data: { pages: mocks.projectPages },
+      isLoading: mocks.isProjectsLoading,
+    },
     project: { data: mocks.projectData, refetch: mocks.refetchProject },
     source: mocks.source,
     cancel: mocks.cancel,
@@ -197,6 +201,7 @@ beforeEach(() => {
   };
   mocks.projectData = undefined;
   mocks.projectPages = [];
+  mocks.isProjectsLoading = false;
   mocks.source.mockResolvedValue('retained source');
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
@@ -505,6 +510,18 @@ describe('Motion quote review', () => {
 
       await screen.findByRole('button', { name: 'confirm' });
       expect(mocks.quote).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds a change request until the project list has loaded', () => {
+      mocks.isProjectsLoading = true;
+      render(<MotionNewPane />);
+      fireEvent.change(screen.getByLabelText('prompt'), {
+        target: { value: 'revise the intro' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+
+      expect(mocks.quote).not.toHaveBeenCalled();
+      expect(screen.queryByText('projectChoiceQuestion')).not.toBeInTheDocument();
     });
 
     it('quotes a new project for new work even when projects exist', async () => {
