@@ -20,7 +20,7 @@ import {
   SWITCHER_TRIGGER_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { ChevronsUpDown, Settings, UserRound, X } from 'lucide-react';
@@ -124,7 +124,7 @@ export default function MenuBrandSwitcher({
   ];
 
   const brandAvatar = (
-    <Avatar
+    <BrandAvatar
       alt={selectedBrand?.label ?? 'Brand'}
       name={selectedBrandLabel}
       onLoadingStatusChange={(status) => {
@@ -132,7 +132,6 @@ export default function MenuBrandSwitcher({
           onLogoError?.();
         }
       }}
-      shape="square"
       size="xs"
       src={selectedBrand?.logoUrl}
     />

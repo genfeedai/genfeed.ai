@@ -11,7 +11,7 @@ import {
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { Building2, ChevronsUpDown } from 'lucide-react';
 import type {
@@ -121,9 +121,8 @@ function AdminScopeFilter({
           withWrapper={false}
         >
           {selected ? (
-            <Avatar
+            <BrandAvatar
               name={selected.label}
-              shape="square"
               size="xs"
               src={selected.logoUrl}
             />

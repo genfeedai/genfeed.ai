@@ -52,11 +52,11 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
     const ids = ingredientResponseIds(response);
     // Unauthenticated/public resources never receive an original grant.
     if (!user?.organizationId) {
-      return projectMediaResponse(
-        response,
-        await this.issuer.projectPublicIngredients(ids),
-        false,
-      );
+      const [projections, assets] = await Promise.all([
+        this.issuer.projectPublicIngredients(ids),
+        this.issuer.projectPublicBrandAssets(assetResponseIds(response)),
+      ]);
+      return projectMediaResponse(response, projections, false, assets);
     }
     // Authorize against the organization this request is pinned to. A
     // superadmin reading another organization (`?organizationId=`) runs

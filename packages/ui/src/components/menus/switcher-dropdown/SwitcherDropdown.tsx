@@ -7,7 +7,7 @@ import type {
   SwitcherDropdownProps,
   SwitcherDropdownTrailingAction,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Command,
@@ -274,7 +274,7 @@ function SwitcherItem({
         )}
       >
         {/* Avatar */}
-        <Avatar
+        <BrandAvatar
           alt={item.label}
           name={item.label}
           onLoadingStatusChange={(status) => {
@@ -282,7 +282,6 @@ function SwitcherItem({
               onImageError?.();
             }
           }}
-          shape="square"
           size="xs"
           src={item.imageUrl}
         />

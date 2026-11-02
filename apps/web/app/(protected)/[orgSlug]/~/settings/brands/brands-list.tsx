@@ -29,7 +29,7 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import {
@@ -228,10 +228,9 @@ function BrandsListContent() {
         // The table links this name to the brand settings page (`getRowLink`).
         render: (brand: Brand) => (
           <div className="flex items-center gap-2.5">
-            <Avatar
+            <BrandAvatar
               alt={brand.label}
               name={brand.label}
-              shape="square"
               size="sm"
               src={brand.logoUrl}
             />

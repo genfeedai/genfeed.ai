@@ -20,7 +20,7 @@ import {
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -141,10 +141,9 @@ export default function OrganizationSwitcher({
               isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
           >
-            <Avatar
+            <BrandAvatar
               alt={displayLabel}
               name={displayLabel}
-              shape="square"
               size="xs"
               src={activeOrg?.logoUrl}
             />

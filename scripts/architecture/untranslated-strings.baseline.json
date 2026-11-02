@@ -334,7 +334,6 @@
     "apps/web/src/features/brands/components/sidebar/AgentProfileSummaryCard.tsx": 2,
     "apps/web/src/features/brands/components/sidebar/BrandDetailAccountSettingsCard.tsx": 3,
     "apps/web/src/features/brands/components/sidebar/BrandDetailDefaultModelsCard.tsx": 5,
-    "apps/web/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx": 5,
     "apps/web/src/features/brands/components/sidebar/BrandDetailManualKitCard.tsx": 45,
     "apps/web/src/features/brands/components/sidebar/BrandDetailReferencesCard.tsx": 5,
     "apps/web/src/features/brands/components/sidebar/BrandIdentityActions.tsx": 5,

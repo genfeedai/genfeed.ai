@@ -23,8 +23,8 @@ import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
-import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
@@ -295,10 +295,9 @@ export default function AnalyticsOrganizationsList({
             href={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
             className="flex items-center gap-3 hover:text-primary"
           >
-            <Avatar
+            <BrandAvatar
               alt={org.name || 'Organization'}
               name={org.name || 'Unknown'}
-              shape="square"
               size="md"
               src={org.logo}
             />
