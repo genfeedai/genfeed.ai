@@ -134,8 +134,18 @@ export interface IEconomicsCostTotals {
    * BYOK rows never pull the average toward zero.
    */
   costPerGenerationUsd: number | null;
+  /** Retail value of the credits spent on generation operations (1 credit = $0.01). */
+  generationCreditValueUsd: number;
   llmCalls: number;
   llmCostUsd: number;
+  /**
+   * Generation credit value minus generation provider cost, per charged
+   * generation. Negative when prices do not cover cost. Null without charged
+   * generations. Unpriced rows carry credits but no cost, so they overstate it.
+   */
+  marginPerGenerationUsd: number | null;
+  /** Generations that spent credits: not BYOK. */
+  mediaChargedGenerations: number;
   mediaCostUsd: number;
   mediaGenerations: number;
   /** Generations with a known provider price: not BYOK, not recorded at $0. */
