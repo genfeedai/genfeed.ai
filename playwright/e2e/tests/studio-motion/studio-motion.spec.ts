@@ -82,6 +82,11 @@ test('Motion reviews exact output cost and retains source on a revision conflict
     },
   );
   await page.goto('/test-org/brand-1/motion');
+  // No separate list or new page: the prompt is on the left, projects on the right.
+  await expect(
+    page.getByRole('heading', { name: 'What should Motion make?' }),
+  ).toBeVisible();
+  await expect(page.getByText('No Motion projects yet')).toBeVisible();
   await page
     .getByLabel('Project name', { exact: true })
     .fill('Motion acceptance');
@@ -118,6 +123,71 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   await page
     .getByRole('textbox', { name: 'Prompt', exact: true })
     .fill('A changed title');
+  await expect(
+    page.getByRole('button', { name: 'Confirm and start' }),
+  ).toHaveCount(0);
+});
+
+test('Motion lists saved projects beside the prompt and fills the form from a starter card', async ({
+  authenticatedPage: page,
+}) => {
+  await page.route(
+    `${playwrightApiEndpoint}/visual-projects/**`,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/catalog'))
+        return route.fulfill({
+          json: {
+            data: {
+              type: 'visual-code-catalog',
+              id: 'catalog',
+              attributes: {
+                isAvailable: true,
+                defaultModelKey: 'test-model',
+                models: [
+                  {
+                    key: 'test-model',
+                    label: 'Test model',
+                    isAvailable: true,
+                    inspectionCapability: 'verified',
+                  },
+                ],
+                defaultSettings: settings,
+              },
+            },
+          },
+        });
+      return route.fulfill({
+        json: {
+          data: [
+            {
+              type: 'visual-projects',
+              id: 'saved-motion',
+              attributes: {
+                label: 'Saved motion',
+                currentRevision: 1,
+                revisions: [],
+                nextRevisionCursor: null,
+              },
+            },
+          ],
+          links: { cursor: { hasMore: false, limit: 20, nextCursor: null } },
+        },
+      });
+    },
+  );
+  await page.goto('/test-org/brand-1/motion');
+  await expect(
+    page.getByRole('link', { name: /Saved motion/ }),
+  ).toHaveAttribute('href', /\/motion\/saved-motion$/);
+  await page.getByRole('button', { name: /Kinetic quote card/ }).click();
+  await expect(
+    page.getByLabel('Project name', { exact: true }),
+  ).toHaveValue('Kinetic quote card');
+  await expect(
+    page.getByRole('textbox', { name: 'Prompt', exact: true }),
+  ).toContainText('A vertical kinetic typography animation');
+  // Picking a starter never asks for a quote.
   await expect(
     page.getByRole('button', { name: 'Confirm and start' }),
   ).toHaveCount(0);
