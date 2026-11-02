@@ -27,12 +27,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -224,15 +219,10 @@ describe('CameraMovementsList', () => {
     );
   });
 
-  it('opens edit and delete flows with the clicked movement', async () => {
+  it('opens the delete flow with the clicked movement', async () => {
     render(<CameraMovementsList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Crane Up');
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Crane Up' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('camera-movement-modal')).toHaveTextContent(
-      'Crane Up',
-    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Crane Up' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(

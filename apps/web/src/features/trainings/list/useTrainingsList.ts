@@ -1,13 +1,12 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/contracts';
+import { PageScope, TrainingStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Training } from '@models/ai/training.model';
+import type { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
@@ -15,9 +14,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const TRAINING_SORT_KEYS = ['label', 'status'] as const;
@@ -44,10 +44,6 @@ export function useTrainingsList({
 
   const getTrainingsService = useAuthedService((token: string) =>
     TrainingsService.getInstance(token),
-  );
-
-  const [selectedTraining, setSelectedTraining] = useState<Training | null>(
-    null,
   );
 
   // Admin org/brand filter (superadmin only) lives in the page subbar and is
@@ -267,17 +263,17 @@ export function useTrainingsList({
     [openConfirm, handleDelete],
   );
 
-  const openTrainingModal = useCallback((training: ITraining) => {
-    setSelectedTraining(new Training(training));
-    openModal(ModalEnum.TRAINING_EDIT);
-  }, []);
+  const saveTraining = useInlineRecordSave<Partial<ITraining>>({
+    errorMessage: 'Failed to update training',
+    onSaved: handleRefresh,
+    save: async (id, patch) => (await getTrainingsService()).patch(id, patch),
+  });
 
   return {
     trainings,
     isLoading,
     isRefreshing,
     error,
-    selectedTraining,
     sortKey,
     sortDirection,
     onSortChange,
@@ -285,7 +281,7 @@ export function useTrainingsList({
     adminBrand,
     handleRefresh,
     handleToggleActive,
-    openTrainingModal,
     openDeleteConfirmation,
+    saveTraining,
   };
 }

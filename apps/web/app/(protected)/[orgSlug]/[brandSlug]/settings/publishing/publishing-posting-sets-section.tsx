@@ -6,13 +6,17 @@ import {
 } from '@genfeedai/contracts';
 import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { POSTING_SETS_QUERY_KEY } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { PostingSetsService } from '@services/content/posting-sets.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isCancelledRequest } from '@services/core/operation-error';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -26,6 +30,20 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PublishingPostingSetsSectionProps } from '@/features/scheduler/props/posting-set-picker.props';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+
+const EMPTY_POSTING_SETS: IPostingSet[] = [];
+const POSTING_SET_SKELETON_KEYS = [
+  'posting-set-skeleton-1',
+  'posting-set-skeleton-2',
+] as const;
+
+/** A request the client or the API called off: nothing to report. */
+function isCancelledLoad(error: unknown): boolean {
+  return (
+    isCancelledRequest(error) ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
 
 function getCredentialLabel(credential: ICredential): string {
   const handle = credential.externalHandle?.replace(/^@/, '');
@@ -54,10 +72,7 @@ export default function PublishingPostingSetsSection({
     [brand?.credentials],
   );
 
-  const [postingSets, setPostingSets] = useState<IPostingSet[]>([]);
-  // Loading from the first paint: the mount effect fetches, so `false` here
-  // flashed the empty state before the skeleton.
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [selectedCredentialIds, setSelectedCredentialIds] = useState<string[]>(
@@ -67,44 +82,55 @@ export default function PublishingPostingSetsSection({
     Record<string, Array<{ credentialId: string; platform: string }>>
   >({});
 
-  const loadSets = useCallback(
-    async (signal: AbortSignal) => {
-      if (!brandId) {
-        return;
-      }
-      setIsLoading(true);
+  // Cached per brand, under the shared posting-sets key: coming back to
+  // Publishing paints the sets at once while they refresh, and a change here
+  // also refreshes the posting-set picker.
+  const postingSetsQuery = useAuthedQuery({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
       try {
-        const service = await getPostingSetsService();
-        const sets = await service.findAll({ brand: brandId }, signal);
-        if (!signal.aborted) {
-          setPostingSets(sets);
-        }
+        return await service.findAll({ brand: brandId }, signal);
       } catch (error) {
-        if (
-          signal.aborted ||
-          isCancelledRequest(error) ||
-          (error instanceof Error && error.name === 'AbortError')
-        ) {
-          return;
+        if (!signal.aborted && !isCancelledLoad(error)) {
+          logger.error('Failed to load posting sets', error);
         }
-        logger.error('Failed to load posting sets', error);
-        if (!signal.aborted) {
-          notifications.error('Failed to load posting sets');
-        }
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
     },
-    [brandId, getPostingSetsService, notifications],
-  );
+    queryKey: [POSTING_SETS_QUERY_KEY, 'settings', brandId],
+    service: (token: string) => PostingSetsService.getInstance(token),
+  });
+  const {
+    error: loadError,
+    errorUpdatedAt,
+    isPending: isLoading,
+  } = postingSetsQuery;
+  const hasLoadFailed = loadError !== null && !isCancelledLoad(loadError);
+  const postingSets = postingSetsQuery.data ?? EMPTY_POSTING_SETS;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-    void loadSets(controller.signal);
-    return () => controller.abort();
-  }, [loadSets]);
+    if (hasLoadFailed) {
+      notifications.error('Failed to load posting sets');
+    }
+  }, [errorUpdatedAt, hasLoadFailed, notifications]);
+
+  const updateCachedSets = useCallback(
+    (update: (current: IPostingSet[]) => IPostingSet[]) => {
+      queryClient.setQueriesData<IPostingSet[]>(
+        { queryKey: [POSTING_SETS_QUERY_KEY, 'settings', brandId] },
+        (current) => (current ? update(current) : current),
+      );
+      // The picker reads enabled sets under the same prefix.
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === POSTING_SETS_QUERY_KEY &&
+          query.queryKey[1] !== 'settings',
+      });
+    },
+    [brandId, queryClient],
+  );
 
   const toggleCredential = useCallback((credentialId: string) => {
     setSelectedCredentialIds((previous) =>
@@ -135,7 +161,7 @@ export default function PublishingPostingSetsSection({
           targetKey: `${String(credential.platform).toLowerCase()}:${credential.id}`,
         })),
       });
-      setPostingSets((previous) => [created, ...previous]);
+      updateCachedSets((current) => [created, ...current]);
       setNewLabel('');
       setSelectedCredentialIds([]);
       notifications.success('Posting set created');
@@ -152,6 +178,7 @@ export default function PublishingPostingSetsSection({
     newLabel,
     notifications,
     selectedCredentialIds,
+    updateCachedSets,
   ]);
 
   const handleDelete = useCallback(
@@ -159,8 +186,8 @@ export default function PublishingPostingSetsSection({
       try {
         const service = await getPostingSetsService();
         await service.delete(postingSetId);
-        setPostingSets((previous) =>
-          previous.filter((set) => set.id !== postingSetId),
+        updateCachedSets((current) =>
+          current.filter((set) => set.id !== postingSetId),
         );
         notifications.success('Posting set deleted');
       } catch (error) {
@@ -168,7 +195,7 @@ export default function PublishingPostingSetsSection({
         notifications.error('Failed to delete posting set');
       }
     },
-    [getPostingSetsService, notifications],
+    [getPostingSetsService, notifications, updateCachedSets],
   );
 
   const handleExpand = useCallback(
@@ -202,7 +229,17 @@ export default function PublishingPostingSetsSection({
   return (
     <Card label="Posting sets">
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading posting sets…</p>
+        <div className="space-y-3">
+          {POSTING_SET_SKELETON_KEYS.map((key) => (
+            <SkeletonCard
+              key={key}
+              label="Loading posting set"
+              showActions={false}
+              showDescription={false}
+              showImage={false}
+            />
+          ))}
+        </div>
       ) : postingSets.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No posting sets yet. Create one from connected accounts below.

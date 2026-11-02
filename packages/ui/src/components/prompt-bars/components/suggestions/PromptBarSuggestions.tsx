@@ -5,7 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { memo, type ReactElement } from 'react';
+import { Fragment, memo, type ReactElement } from 'react';
 
 interface PromptBarSuggestionsProps {
   suggestions: PromptBarSuggestionItem[];
@@ -15,6 +15,40 @@ interface PromptBarSuggestionsProps {
   className?: string;
   /** `cards` = Codex-style tiles; `chips` = compact pills. */
   variant?: 'cards' | 'chips';
+}
+
+const TOOLTIP_MAX_LENGTH = 160;
+
+function normalize(value: string | undefined): string {
+  return value?.trim().replace(/\s+/g, ' ') ?? '';
+}
+
+/**
+ * Hovering a suggestion explains what the tile does when its text is cut
+ * short: the description (chips hide it), else the prompt a click sends,
+ * trimmed to a sentence or two. Anything the tile already shows, or that only
+ * repeats its label, is never repeated, so such a tile gets no tooltip.
+ */
+export function resolveSuggestionTooltip(
+  suggestion: PromptBarSuggestionItem,
+  isCards: boolean,
+): string | null {
+  const shown = [
+    normalize(suggestion.label),
+    ...(isCards ? [normalize(suggestion.description)] : []),
+  ].map((text) => text.toLowerCase());
+  const candidates = isCards
+    ? [suggestion.prompt]
+    : [suggestion.description, suggestion.prompt];
+  for (const candidate of candidates) {
+    const text = normalize(candidate);
+    if (text && !shown.includes(text.toLowerCase())) {
+      return text.length > TOOLTIP_MAX_LENGTH
+        ? `${text.slice(0, TOOLTIP_MAX_LENGTH).trimEnd()}…`
+        : text;
+    }
+  }
+  return null;
 }
 
 const PromptBarSuggestions = memo(function PromptBarSuggestions({
@@ -45,15 +79,11 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
       aria-label="Prompt suggestions"
       role="toolbar"
     >
-      {visibleSuggestions.map((suggestion) => (
-        <SimpleTooltip
-          key={suggestion.id}
-          label={suggestion.description?.trim() || suggestion.label}
-          contentClassName="max-w-xs whitespace-normal break-words text-left leading-snug normal-case tracking-normal"
-          position="top"
-          isDisabled={isDisabled}
-        >
+      {visibleSuggestions.map((suggestion) => {
+        const tooltip = resolveSuggestionTooltip(suggestion, isCards);
+        const button = (
           <Button
+            key={suggestion.id}
             variant={ButtonVariant.UNSTYLED}
             ariaLabel={suggestion.label}
             className={cn(
@@ -103,8 +133,22 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
               </span>
             )}
           </Button>
-        </SimpleTooltip>
-      ))}
+        );
+
+        return tooltip ? (
+          <SimpleTooltip
+            key={suggestion.id}
+            label={tooltip}
+            contentClassName="max-w-xs whitespace-normal break-words text-left leading-snug normal-case tracking-normal"
+            position="top"
+            isDisabled={isDisabled}
+          >
+            {button}
+          </SimpleTooltip>
+        ) : (
+          <Fragment key={suggestion.id}>{button}</Fragment>
+        );
+      })}
     </div>
   );
 });

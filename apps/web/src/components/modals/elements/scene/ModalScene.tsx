@@ -2,10 +2,9 @@ import {
   type ElementSimpleSchema,
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IElementScene } from '@genfeedai/contracts/interfaces';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { ScenesService } from '@genfeedai/services/elements/scenes.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -13,17 +12,13 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalScene({
-  item,
-  onConfirm,
-  onClose,
-}: ModalCrudProps<IElementScene>) {
-  const { isSuperAdmin } = useAccessState();
-
+export default function ModalScene({ onConfirm, onClose }: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementScene,
     ElementSimpleSchema
@@ -35,7 +30,7 @@ export default function ModalScene({
       key: '',
       label: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.SCENE,
     onClose,
     onConfirm,
@@ -63,7 +58,7 @@ export default function ModalScene({
   };
 
   return (
-    <Modal id={ModalEnum.SCENE} title={item ? 'Edit Scene' : 'Create Scene'}>
+    <Modal id={ModalEnum.SCENE} title={t('scene')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -85,16 +80,10 @@ export default function ModalScene({
             onChange={updateModalScene}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
-            isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
+            isDisabled={isSubmitting}
           />
           <p className="text-xs text-foreground/70 mt-1">
             Unique identifier (lowercase, alphanumeric with hyphens)
-            {item && !isSuperAdmin && (
-              <span className="text-warning">
-                {' '}
-                (Key editing requires superadmin privileges)
-              </span>
-            )}
           </p>
         </FormControl>
 
@@ -130,7 +119,7 @@ export default function ModalScene({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

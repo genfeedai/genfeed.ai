@@ -13,6 +13,7 @@ import {
   type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
+import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -77,7 +78,9 @@ export default function OutreachCampaignsList() {
           ),
         ]);
         logger.info('Loaded campaigns', { count: all.length });
-        return { all, page };
+        // `findPageByOrganization` recorded the table page's totals; keep them
+        // with this cached read.
+        return { all, page, totals: PagesService.snapshot() };
       } catch (error) {
         if (!signal.aborted) {
           logger.error('Failed to load campaigns', error);
@@ -111,7 +114,11 @@ export default function OutreachCampaignsList() {
         { queryKey: ['outreach-campaigns'] },
         (current) =>
           current
-            ? { all: update(current.all), page: update(current.page) }
+            ? {
+                ...current,
+                all: update(current.all),
+                page: update(current.page),
+              }
             : current,
       );
     },
@@ -287,7 +294,11 @@ export default function OutreachCampaignsList() {
           onDelete={handleDeleteCampaign}
         />
         {!isLoading && pageCampaigns.length > 0 ? (
-          <AutoPagination showTotal totalLabel="sequences" />
+          <AutoPagination
+            showTotal
+            totalLabel="sequences"
+            totals={campaignsQuery.data?.totals}
+          />
         ) : null}
       </div>
     </Container>

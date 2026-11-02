@@ -177,6 +177,36 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "contentPreview": {
+    "claim": {
+      "action": "Claim this content",
+      "failed": "We could not send the link. Try again in a minute.",
+      "prompt": "This content is worth posting on your socials.",
+      "sent": "Check your email. We sent a link to the address this was prepared for. Open it to claim your content."
+    },
+    "context": {
+      "audience": "Audience",
+      "colors": "Colors",
+      "description": "What we read from your website. You can edit it after you claim.",
+      "messagingPillars": "Messaging",
+      "style": "Style",
+      "title": "What we know about you",
+      "tone": "Tone",
+      "values": "Values"
+    },
+    "feed": {
+      "empty": "Nothing to show yet.",
+      "status": "Preview",
+      "title": "Your feed, made by Genfeed"
+    },
+    "loading": "Loading your preview",
+    "metaTitle": "Your preview | Genfeed",
+    "opensUntil": "Preview · opens until {date}",
+    "unavailable": {
+      "description": "It may have expired or been replaced. Ask the person who sent it for a new link.",
+      "title": "This preview is not available"
+    }
+  },
   "desktopAuth": {
     "pasteCodeHint": "Source checkouts cannot open automatically. Copy the code from that tab and paste it here."
   },

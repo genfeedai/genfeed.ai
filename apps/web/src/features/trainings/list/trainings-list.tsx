@@ -18,7 +18,6 @@ import { Cpu, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
@@ -30,7 +29,8 @@ function getTrainingHref(training: ITraining): string {
 }
 
 /**
- * Trainings list body — table, filters, empty state, edit modal.
+ * Trainings list body — table, filters, empty state. Label, description and
+ * brand are edited in place in the row sidebar.
  * Page chrome (title, refresh, create CTA) lives on the route shell
  * (Models settings layout, admin trainings page), same as ModelsList.
  */
@@ -44,7 +44,7 @@ export default function TrainingsList({
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const trainingT = useTranslations('ui.rowSidebar.training');
-  const { isReady, settings } = useBrand();
+  const { brands, isReady, settings } = useBrand();
   const selfHostedDeployment = isSelfHostedDeployment();
   const canTrain =
     scope === PageScope.SUPERADMIN ||
@@ -55,14 +55,13 @@ export default function TrainingsList({
     trainings,
     isLoading,
     error,
-    selectedTraining,
     sortKey,
     sortDirection,
     onSortChange,
     handleRefresh,
     handleToggleActive,
-    openTrainingModal,
     openDeleteConfirmation,
+    saveTraining,
   } = useTrainingsList({
     // Skip list fetch on locked free cloud tiers.
     scope,
@@ -81,10 +80,9 @@ export default function TrainingsList({
   const actions = useMemo(
     () =>
       buildTrainingsTableActions({
-        onEdit: openTrainingModal,
         onDelete: openDeleteConfirmation,
       }),
-    [openTrainingModal, openDeleteConfirmation],
+    [openDeleteConfirmation],
   );
 
   const rowSidebar = useMemo(
@@ -93,6 +91,48 @@ export default function TrainingsList({
         getBadges: (training) =>
           training.status ? <Badge status={training.status} /> : null,
         getFacts: (training) => [
+          {
+            editor: {
+              ariaLabel: fieldsT('label'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (label) => saveTraining(training.id, { label }),
+              value: training.label,
+            },
+            id: 'label',
+            label: fieldsT('label'),
+          },
+          {
+            editor: {
+              ariaLabel: fieldsT('description'),
+              isMultiline: true,
+              kind: 'text',
+              onSave: (description) =>
+                saveTraining(training.id, { description }),
+              placeholder: '-',
+              value: training.description,
+            },
+            id: 'description',
+            label: fieldsT('description'),
+          },
+          {
+            editor: {
+              ariaLabel: fieldsT('brand'),
+              kind: 'select',
+              onSave: (brand) => saveTraining(training.id, { brand }),
+              options: brands.map((brand) => ({
+                label: brand.label,
+                value: brand.id,
+              })),
+              placeholder: '-',
+              value:
+                typeof training.brand === 'string'
+                  ? training.brand
+                  : training.brand?.id,
+            },
+            id: 'brand',
+            label: fieldsT('brand'),
+          },
           {
             id: 'trigger',
             label: trainingT('triggerWord'),
@@ -120,12 +160,14 @@ export default function TrainingsList({
             value: training.totalGeneratedImages,
           },
           {
+            editor: {
+              ariaLabel: fieldsT('active'),
+              isChecked: training.isActive !== false,
+              kind: 'switch',
+              onSave: (isActive) => saveTraining(training.id, { isActive }),
+            },
             id: 'active',
             label: fieldsT('active'),
-            value:
-              training.isActive === false
-                ? rowSidebarT('no')
-                : rowSidebarT('yes'),
           },
         ],
         getId: (training) => training.id,
@@ -134,9 +176,8 @@ export default function TrainingsList({
         getSubtitle: (training) => training.externalId,
         getTitle: (training) => training.label,
         kind: 'model',
-        onEdit: openTrainingModal,
       }),
-    [openTrainingModal, scope, rowSidebarT, fieldsT, trainingT],
+    [brands, saveTraining, scope, fieldsT, trainingT],
   );
 
   if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
@@ -203,11 +244,6 @@ export default function TrainingsList({
       <div className="mt-4">
         <AutoPagination showTotal totalLabel="trainings" />
       </div>
-
-      <LazyModalTraining
-        training={selectedTraining}
-        onSuccess={() => handleRefresh()}
-      />
     </>
   );
 }

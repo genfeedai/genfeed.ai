@@ -3,8 +3,8 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
-    it('should have 58 members', () => {
-      expect(Object.values(ModalEnum)).toHaveLength(58);
+    it('should have 57 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(57);
     });
 
     it('should have correct values', () => {
@@ -60,7 +60,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.TAG).toBe('modal-tag');
       expect(ModalEnum.TEXT_OVERLAY).toBe('modal-text-overlay');
       expect(ModalEnum.TRAINING).toBe('modal-training');
-      expect(ModalEnum.TRAINING_EDIT).toBe('modal-training-edit');
       expect(ModalEnum.TRAINING_UPLOAD).toBe('modal-training-new');
       expect(ModalEnum.UPLOAD).toBe('modal-upload');
       expect(ModalEnum.UPGRADE_PROMPT).toBe('modal-upgrade-prompt');

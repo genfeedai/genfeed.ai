@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   patch: vi.fn(),
   replace: vi.fn(),
 }));
@@ -29,10 +28,6 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
-}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getBlacklistsService,
@@ -285,17 +280,10 @@ describe('BlacklistsList', () => {
     });
   });
 
-  it('opens edit and delete flows with the clicked blacklist', async () => {
+  it('opens the delete flow with the clicked blacklist', async () => {
     render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Inactive Blacklist');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Edit Inactive Blacklist' }),
-    );
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('blacklist-modal')).toHaveTextContent(
-      'Inactive Blacklist',
-    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Delete Inactive Blacklist' }),

@@ -1,18 +1,25 @@
 'use client';
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  ModalEnum,
+  ModelCategory,
+  PageScope,
+} from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { SummaryFact } from '@genfeedai/props/ui/display/table-row-summary.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Preset } from '@models/elements/preset.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
-import { useQuery } from '@tanstack/react-query';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -29,6 +36,7 @@ import AdminOrgBrandUrlFilter, {
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import {
   PresetCategoryCell,
@@ -42,6 +50,41 @@ import PresetsListModals from './presets-list-modals';
 // A preset's label and key live in its JSON config, which the API cannot order
 // by, so only the real columns sort.
 const PRESET_SORT_KEYS = ['category', 'isActive'];
+const EMPTY_PRESETS: Preset[] = [];
+
+/** Free-text preset fields edited in place; each is a key of `Preset`. */
+const PRESET_TEXT_FIELDS: ReadonlyArray<{
+  field:
+    | 'aspectRatio'
+    | 'camera'
+    | 'cameraMovement'
+    | 'description'
+    | 'key'
+    | 'label'
+    | 'lens'
+    | 'lighting'
+    | 'mood'
+    | 'prompt'
+    | 'promptTemplate'
+    | 'scene'
+    | 'style';
+  isMultiline?: boolean;
+  isRequired?: boolean;
+}> = [
+  { field: 'label', isRequired: true },
+  { field: 'key', isRequired: true },
+  { field: 'description', isMultiline: true },
+  { field: 'prompt', isMultiline: true },
+  { field: 'aspectRatio' },
+  { field: 'promptTemplate' },
+  { field: 'style' },
+  { field: 'mood' },
+  { field: 'scene' },
+  { field: 'camera' },
+  { field: 'lens' },
+  { field: 'lighting' },
+  { field: 'cameraMovement' },
+];
 
 function PresetsListContent({
   scope = PageScope.BRAND,
@@ -74,26 +117,11 @@ function PresetsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const {
-    data: presets = [] as Preset[],
-    isLoading,
-    isFetching,
-    error: presetsError,
-    refetch: refreshPresets,
-  } = useQuery({
-    queryKey: [
-      'presets',
-      currentPage,
-      scope,
-      adminOrg,
-      adminBrand,
-      search,
-      sort,
-    ],
-    queryFn: async () => {
-      const url = `GET /presets`;
-      const service = await getPresetsService();
-
+  // Cached per page with the signed-in account in the key: coming back paints
+  // the rows and footer it already has while they refresh.
+  const presetsQuery = usePagedAuthedQuery({
+    enabled: Boolean(isSignedIn),
+    queryFn: async (service, signal) => {
       const queryParams: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -110,22 +138,42 @@ function PresetsListContent({
         }
       }
 
-      const data = await service.findAll(queryParams);
-
-      logger.info(`${url} success`, data);
-      return data;
+      try {
+        const data = await service.findAll(queryParams, signal);
+        logger.info('GET /presets success', data);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /presets failed', error);
+        }
+        throw error;
+      }
     },
-    enabled: !!isSignedIn,
+    queryKey: [
+      'admin',
+      'presets',
+      { adminBrand, adminOrg, page: currentPage, scope, search, sort },
+    ],
+    service: (token: string) => PresetsService.getInstance(token),
   });
+  const presets = presetsQuery.data?.items ?? EMPTY_PRESETS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshPresets,
+  } = presetsQuery;
 
   const isRefreshing = isFetching && !isLoading;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (presetsError) {
-      logger.error('GET /presets failed', presetsError);
+    if (isError) {
       notificationsService.error('Failed to load presets');
     }
-  }, [presetsError, notificationsService]);
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   // Notify parent of loading/refreshing state changes
   useEffect(() => {
@@ -245,6 +293,14 @@ function PresetsListContent({
         ]
       : [];
 
+  const savePreset = useInlineRecordSave<Partial<Preset>>({
+    errorMessage: 'Failed to update preset',
+    onSaved: () => refreshPresets(),
+    save: async (id, patch) => (await getPresetsService()).patch(id, patch),
+  });
+
+  const isEditable = scope === PageScope.SUPERADMIN;
+
   const rowSidebar = createSummaryRowSidebar<Preset>({
     getBadges: (preset) => (
       <>
@@ -255,50 +311,91 @@ function PresetsListContent({
       </>
     ),
     getFacts: (preset) => [
-      { id: 'key', label: presetFieldsT('key'), value: preset.key },
+      ...PRESET_TEXT_FIELDS.map(
+        ({ field, isMultiline, isRequired }): SummaryFact => ({
+          editor: isEditable
+            ? {
+                ariaLabel: presetFieldsT(field),
+                isMultiline,
+                isRequired,
+                kind: 'text',
+                onSave: (value) =>
+                  savePreset(preset.id, {
+                    [field]:
+                      field === 'key' ? normalizeElementKey(value) : value,
+                  }),
+                placeholder: '-',
+                value: preset[field],
+              }
+            : undefined,
+          id: field,
+          label: presetFieldsT(field),
+          value: preset[field],
+        }),
+      ),
       {
-        id: 'description',
-        label: presetFieldsT('description'),
-        value: preset.description,
+        editor: isEditable
+          ? {
+              ariaLabel: presetFieldsT('type'),
+              kind: 'select',
+              onSave: (category) =>
+                savePreset(preset.id, {
+                  category: category as Preset['category'],
+                }),
+              options: Object.values(ModelCategory).map((category) => ({
+                label: category,
+                value: category,
+              })),
+              value: preset.category,
+            }
+          : undefined,
+        id: 'category',
+        label: presetFieldsT('type'),
+        value: preset.category,
       },
-      { id: 'model', label: fieldsT('model'), value: preset.model },
-      { id: 'provider', label: fieldsT('provider'), value: preset.provider },
-      { id: 'platform', label: fieldsT('platform'), value: preset.platform },
       {
-        id: 'aspectRatio',
-        label: presetFieldsT('aspectRatio'),
-        value: preset.aspectRatio,
-      },
-      {
+        editor: isEditable
+          ? {
+              ariaLabel: presetFieldsT('duration'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (value) => {
+                const duration = Number(value);
+                if (!Number.isFinite(duration) || duration <= 0) {
+                  throw new Error('Invalid duration');
+                }
+                return savePreset(preset.id, { duration });
+              },
+              value: preset.duration === undefined ? '' : `${preset.duration}`,
+            }
+          : undefined,
         id: 'duration',
         label: presetFieldsT('duration'),
         value: preset.duration,
       },
-      { id: 'camera', label: presetFieldsT('camera'), value: preset.camera },
-      { id: 'lens', label: presetFieldsT('lens'), value: preset.lens },
-      {
-        id: 'lighting',
-        label: presetFieldsT('lighting'),
-        value: preset.lighting,
-      },
-      {
-        id: 'cameraMovement',
-        label: presetFieldsT('cameraMovement'),
-        value: preset.cameraMovement,
-      },
-      { id: 'mood', label: presetFieldsT('mood'), value: preset.mood },
-      { id: 'scene', label: presetFieldsT('scene'), value: preset.scene },
-      { id: 'style', label: presetFieldsT('style'), value: preset.style },
-      { id: 'prompt', label: presetFieldsT('prompt'), value: preset.prompt },
+      ...(isEditable
+        ? [
+            {
+              editor: {
+                ariaLabel: fieldsT('active'),
+                isChecked: preset.isActive !== false,
+                kind: 'switch' as const,
+                onSave: (isActive: boolean) =>
+                  savePreset(preset.id, { isActive }),
+              },
+              id: 'active',
+              label: fieldsT('active'),
+            },
+          ]
+        : []),
+      { id: 'model', label: fieldsT('model'), value: preset.model },
+      { id: 'provider', label: fieldsT('provider'), value: preset.provider },
+      { id: 'platform', label: fieldsT('platform'), value: preset.platform },
     ],
     getId: (preset) => preset.id,
     getSubtitle: (preset) => preset.key,
     getTitle: (preset) => preset.label,
     kind: 'record',
-    onEdit:
-      scope === PageScope.SUPERADMIN
-        ? (preset) => openPresetModal(ModalEnum.PRESET, preset)
-        : undefined,
   });
 
   return (
@@ -352,7 +449,11 @@ function PresetsListContent({
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="presets" />
+        <AutoPagination
+          showTotal
+          totalLabel="presets"
+          totals={presetsQuery.data?.totals}
+        />
       </div>
     </AdminPageShell>
   );

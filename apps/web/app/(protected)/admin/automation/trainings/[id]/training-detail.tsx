@@ -2,17 +2,12 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
 import { Code } from '@genfeedai/ui';
-import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Training } from '@models/ai/training.model';
 import { TrainingsService } from '@services/ai/trainings.service';
@@ -25,11 +20,11 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EditableText } from '@ui/primitives/editable-text';
 import { getErrorMessage } from '@utils/error/error-handler.util';
-import { Database, Image, Pencil } from 'lucide-react';
+import { Database, Image } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
+import { useCallback, useEffect } from 'react';
 
 export default function TrainingDetail({
   children,
@@ -38,77 +33,68 @@ export default function TrainingDetail({
   const translate = useTranslations('pages.adminTrainings');
   const { brands } = useBrand();
 
-  const abortControllerRef = useRef<AbortController | null>(null);
   const notificationsService = NotificationsService.getInstance();
 
-  const [training, setTraining] = useState<Training | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const getTrainingsService = useAuthedService((token: string) =>
-    TrainingsService.getInstance(token),
-  );
-
-  const abortCurrentTrainingLoad = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
-
-  const loadTraining = useCallback(
-    async (controller = new AbortController()) => {
-      const url = `GET /trainings/${trainingId}`;
-
+  // Cached per training: coming back to it paints the details at once while
+  // they refresh.
+  const trainingQuery = useAuthedQuery({
+    enabled: Boolean(trainingId),
+    queryFn: async (service, signal) => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        abortCurrentTrainingLoad();
-        abortControllerRef.current = controller;
-
-        controller.signal.throwIfAborted();
-
-        const service = await getTrainingsService();
-
-        controller.signal.throwIfAborted();
-
-        const data = await service.findOne(trainingId, {}, controller.signal);
-
-        controller.signal.throwIfAborted();
-
-        setTraining(data);
-        logger.info(`${url} success`, data);
+        return (await service.findOne(trainingId, {}, signal)) ?? null;
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error(`GET /trainings/${trainingId} failed`, error);
         }
-
-        logger.error(`${url} failed`, error);
-        const errorMessage = getErrorMessage(error, translate('loadError'));
-        setError(errorMessage);
-        notificationsService.error(translate('loadError'));
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
     },
-    [
-      abortCurrentTrainingLoad,
-      getTrainingsService,
-      notificationsService,
-      trainingId,
-      translate,
-    ],
-  );
+    queryKey: ['admin', 'trainings', trainingId],
+    service: (token: string) => TrainingsService.getInstance(token),
+  });
+  const {
+    errorUpdatedAt,
+    isError,
+    isPending: isLoading,
+    refetch,
+  } = trainingQuery;
+  const training = trainingQuery.data ?? null;
+  const error = isError
+    ? getErrorMessage(trainingQuery.error, translate('loadError'))
+    : null;
+  const loadTraining = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-
-    if (trainingId) {
-      void loadTraining(controller);
+    if (isError) {
+      notificationsService.error(translate('loadError'));
     }
+  }, [errorUpdatedAt, isError, notificationsService, translate]);
 
-    return abortCurrentTrainingLoad;
-  }, [trainingId, loadTraining, abortCurrentTrainingLoad]);
+  // Saves one edited field and reloads the record without the page-level
+  // loading state, so the title does not flash while it saves.
+  const getTrainingsService = useAuthedService(
+    useCallback((token: string) => TrainingsService.getInstance(token), []),
+  );
+  const saveTrainingField = useCallback(
+    async (patch: Partial<Training>) => {
+      const url = `PATCH /trainings/${trainingId}`;
+
+      try {
+        const service = await getTrainingsService();
+        await service.patch(trainingId, patch);
+        await refetch();
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error(translate('saveError'));
+        throw error;
+      }
+    },
+    [getTrainingsService, notificationsService, refetch, trainingId, translate],
+  );
 
   const isTrainingUnavailable = !isLoading && !training;
 
@@ -191,23 +177,24 @@ export default function TrainingDetail({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-2">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    {training.label}
-                  </h2>
-                  <Button
-                    icon={<Pencil />}
-                    onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    tooltip={translate('editTraining')}
+                  <EditableText
+                    ariaLabel={translate('editLabel')}
+                    displayClassName="text-2xl font-semibold text-foreground"
+                    isRequired
+                    onSave={(label) => saveTrainingField({ label })}
+                    value={training.label}
                   />
                 </div>
 
-                {training.description && (
-                  <p className="text-muted-foreground mb-4">
-                    {training.description}
-                  </p>
-                )}
+                <EditableText
+                  ariaLabel={translate('editDescription')}
+                  className="mb-4"
+                  displayClassName="text-muted-foreground"
+                  isMultiline
+                  onSave={(description) => saveTrainingField({ description })}
+                  placeholder={translate('addDescription')}
+                  value={training.description}
+                />
 
                 <div className="flex flex-wrap gap-4 mt-4">
                   <div className="flex items-center gap-2">
@@ -265,10 +252,6 @@ export default function TrainingDetail({
             <SkeletonCard showImage={false} />
           )}
         </Card>
-
-        {training && (
-          <LazyModalTraining training={training} onSuccess={loadTraining} />
-        )}
       </Container>
 
       <AdminPageShell

@@ -2,7 +2,7 @@
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -58,7 +58,7 @@ function TemplatesPageContent() {
 
   // Cached per page and search: coming back to Templates paints the rows it
   // already has while it refreshes, and paging keeps the current rows on screen.
-  const templatesQuery = useAuthedQuery({
+  const templatesQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: ['admin', 'templates'],
     queryFn: async (service, signal) => {
       try {
@@ -88,7 +88,7 @@ function TemplatesPageContent() {
     isLoading,
     refetch,
   } = templatesQuery;
-  const templates = hasError ? EMPTY_TEMPLATES : templatesQuery.data;
+  const templates = hasError ? EMPTY_TEMPLATES : templatesQuery.data?.items;
   const isRefreshing = templatesQuery.isFetching;
   const reload = useCallback(() => {
     void refetch();
@@ -210,7 +210,11 @@ function TemplatesPageContent() {
         />
       )}
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={t('totalLabel')} />
+        <AutoPagination
+          showTotal
+          totalLabel={t('totalLabel')}
+          totals={templatesQuery.data?.totals}
+        />
       </div>
     </AdminPageShell>
   );

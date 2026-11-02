@@ -5,7 +5,7 @@ import {
   formatEnumLabel,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
@@ -64,7 +64,7 @@ export default function BotsPage() {
 
   // Cached per page and search: coming back to Bots paints the rows it
   // already has while it refreshes, and paging keeps the current rows on screen.
-  const botsQuery = useAuthedQuery({
+  const botsQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: ['admin', 'bots'],
     queryFn: async (service, signal) => {
       try {
@@ -89,7 +89,7 @@ export default function BotsPage() {
     queryKey: ['admin', 'bots', { page: currentPage, search }],
     service: (token: string) => BotsService.getInstance(token),
   });
-  const bots = botsQuery.data ?? EMPTY_BOTS;
+  const bots = botsQuery.data?.items ?? EMPTY_BOTS;
   const { isLoading, refetch } = botsQuery;
   const isRefreshing = botsQuery.isFetching && !isLoading;
 
@@ -196,7 +196,11 @@ export default function BotsPage() {
           )}
         </div>
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="bots" />
+          <AutoPagination
+            showTotal
+            totalLabel="bots"
+            totals={botsQuery.data?.totals}
+          />
         </div>
       </WorkspaceSurface>
     </AdminPageShell>

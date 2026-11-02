@@ -63,34 +63,65 @@ describe('PromptBarSuggestions', () => {
     expect(button).toHaveFocus();
   });
 
-  it('shows a concise tooltip while preserving the full execution prompt', async () => {
+  it('shows the description on a chip and the prompt on a card, trimmed', async () => {
     const user = userEvent.setup();
-    const handleSelect = vi.fn();
+    const prompt = `Plan today's X posts. ${'Keep each one short. '.repeat(12)}`;
     const suggestion = {
+      description: 'One post per hour',
       id: 'schedule',
       label: "Schedule today's tweets",
-      prompt:
-        'Generate one post per hour until 23:00 in my timezone. Do not ask follow-up questions.',
+      prompt,
     };
+    const { unmount } = render(
+      <TooltipProvider delayDuration={0}>
+        <PromptBarSuggestions
+          suggestions={[suggestion]}
+          onSuggestionSelect={vi.fn()}
+        />
+      </TooltipProvider>,
+    );
+    await user.hover(screen.getByRole('button', { name: suggestion.label }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'One post per hour',
+    );
+    unmount();
+
     render(
       <TooltipProvider delayDuration={0}>
         <PromptBarSuggestions
           suggestions={[suggestion]}
-          onSuggestionSelect={handleSelect}
+          onSuggestionSelect={vi.fn()}
+          variant="cards"
+        />
+      </TooltipProvider>,
+    );
+    await user.hover(screen.getByRole('button', { name: suggestion.label }));
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent("Plan today's X posts. Keep each one");
+    expect(tooltip).toHaveTextContent('…');
+    expect(tooltip.textContent?.length).toBeLessThan(prompt.length);
+  });
+
+  it.each([
+    ['repeats its label', { label: 'Plan David', prompt: ' plan  david ' }],
+    [
+      'has a description the card already shows',
+      { description: 'Warm track', label: 'Soundtrack', prompt: 'warm track' },
+    ],
+  ])('shows no tooltip when the only extra text %s', async (_name, fields) => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider delayDuration={0}>
+        <PromptBarSuggestions
+          suggestions={[{ id: 'plain', ...fields }]}
+          onSuggestionSelect={vi.fn()}
+          variant="cards"
         />
       </TooltipProvider>,
     );
 
-    const button = screen.getByRole('button', { name: suggestion.label });
-    await user.hover(button);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      suggestion.label,
-    );
-    expect(screen.getByRole('tooltip')).not.toHaveTextContent(
-      suggestion.prompt,
-    );
-    await user.click(button);
-    expect(handleSelect).toHaveBeenCalledWith(suggestion);
+    await user.hover(screen.getByRole('button', { name: fields.label }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('renders card tiles when variant is cards', () => {

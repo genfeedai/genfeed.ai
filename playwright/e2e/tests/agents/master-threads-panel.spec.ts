@@ -151,8 +151,13 @@ async function mockMasterAndThreads(page: Page): Promise<AgentMock> {
 
   await page.route('**/agent/threads**', async (route) => {
     const request = route.request();
-    // `/agent/threads` is also the page's own URL: only API calls are mocked.
-    if (request.isNavigationRequest()) {
+    // `/agent/threads` is also the page's own URL, requested as a document and
+    // as an RSC fetch (`?_rsc=`): only API calls are mocked.
+    if (
+      request.isNavigationRequest() ||
+      new URL(request.url()).searchParams.has('_rsc') ||
+      request.headers().rsc === '1'
+    ) {
       await route.fallback();
       return;
     }
