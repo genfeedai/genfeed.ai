@@ -133,9 +133,7 @@ describe('right sidebar single topbar guard', () => {
 
     expect(shell).toMatch(/<WorkspaceAgentContext\b/);
 
-    render(
-      <WorkspaceAgentContext contextSidebar={buildContextSidebar()} />,
-    );
+    render(<WorkspaceAgentContext contextSidebar={buildContextSidebar()} />);
 
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByTestId('context-sidebar-close')).toBeNull();
