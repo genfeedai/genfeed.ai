@@ -113,6 +113,25 @@ describe('useAgentThreadList', () => {
     expect(firstRender[0]).toEqual({ isEmpty: false, isLoading: true });
   });
 
+  it("is loading on a brand page when the cache only holds other brands' threads", () => {
+    useAgentChatStore
+      .getState()
+      .setThreads([makeThread('t-other', { brandId: 'brand-other' })]);
+    const firstRender: boolean[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: 'brand-1',
+        isActive: true,
+      });
+      firstRender.push(state.isLoading);
+      return state;
+    });
+
+    expect(firstRender[0]).toBe(true);
+  });
+
   it('paints the cached threads on a return visit without a loading state', () => {
     useAgentChatStore.getState().setThreads([makeThread('t-1')]);
     const firstRender: boolean[] = [];

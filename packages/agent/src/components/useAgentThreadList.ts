@@ -67,7 +67,15 @@ export function useAgentThreadList({
   // A first visit with nothing cached is loading from the first paint, so the
   // "no threads" empty state never flashes before the first fetch.
   const [isLoading, setIsLoading] = useState(
-    () => isActive && useAgentChatStore.getState().threads.length === 0,
+    () =>
+      isActive &&
+      !useAgentChatStore
+        .getState()
+        .threads.some(
+          (thread) =>
+            (!brandId || thread.brandId === brandId) &&
+            hasRenderableThreadId(thread),
+        ),
   );
   // Bumped after every successful/failed load so soft refreshes still re-render
   // even when isLoading stays false (store mocks and no-op setState edge cases).
