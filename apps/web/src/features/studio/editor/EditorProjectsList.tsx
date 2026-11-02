@@ -1,7 +1,10 @@
 'use client';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IEditorProject } from '@genfeedai/contracts/interfaces';
+import type {
+  CreativeAppAgentContext,
+  IEditorProject,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -32,9 +35,16 @@ import { Input } from '@ui/primitives/input';
 import { Film, Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 
 type EditorProjectsTranslate = ReturnType<typeof useTranslations>;
 
@@ -83,6 +93,22 @@ export default function EditorProjectsList() {
   const [isRenaming, setIsRenaming] = useState(false);
 
   const isLoading = projects === null && !hasError;
+  // The agent hears about the projects on screen once the list has loaded, so
+  // a change request is never matched against a half-known list.
+  const creativeApp = useMemo<CreativeAppAgentContext | null>(
+    () =>
+      projects === null || hasError
+        ? null
+        : {
+            app: 'editor',
+            projects: projects.map((project) => ({
+              id: project.id,
+              title: project.name || translate('untitled'),
+            })),
+          },
+    [hasError, projects, translate],
+  );
+  useCreativeAppAgentContext(creativeApp);
   const hasProjects = projects !== null && projects.length > 0;
 
   const getEditorService = useAuthedService((token: string) =>
