@@ -27,7 +27,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useState } from 'react';
@@ -38,6 +38,7 @@ import { useAdminSearchParam } from '@/components/content/admin-filters/useAdmin
 import SearchField from '@/components/content/search-field/SearchField';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import PresetDescriptionActions from './preset-description-actions';
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
@@ -111,7 +112,6 @@ function PresetsListContent({
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
-  const [selectedPreset, setSelectedPreset] = useState<Preset | null>();
   const [isTogglingActive, setIsTogglingActive] = useState(false);
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
@@ -184,11 +184,6 @@ function PresetsListContent({
     onRefreshingChange?.(isRefreshing);
   }, [isRefreshing, onRefreshingChange]);
 
-  const openPresetModal = (modalId: ModalEnum, preset?: Preset) => {
-    setSelectedPreset(preset || null);
-    openModal(modalId);
-  };
-
   const handleToggleActive = async (preset: Preset) => {
     const url = `PATCH /presets/${preset.id}`;
     const newValue = !preset.isActive;
@@ -215,13 +210,10 @@ function PresetsListContent({
       await service.delete(preset.id);
       notificationsService.success('Preset deleted');
 
-      setSelectedPreset(null);
       refreshPresets();
     } catch (error) {
       logger.error('Failed to delete preset', error);
       notificationsService.error('Failed to delete preset');
-
-      setSelectedPreset(null);
     }
   };
 
@@ -271,15 +263,8 @@ function PresetsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (preset: Preset) =>
-              openPresetModal(ModalEnum.PRESET, preset),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (preset: Preset) => {
-              setSelectedPreset(preset);
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -396,6 +381,14 @@ function PresetsListContent({
     getSubtitle: (preset) => preset.key,
     getTitle: (preset) => preset.label,
     kind: 'record',
+    renderExtra: (preset) =>
+      isEditable ? (
+        <PresetDescriptionActions
+          key={preset.id}
+          onSave={(description) => savePreset(preset.id, { description })}
+          preset={preset}
+        />
+      ) : null,
   });
 
   return (
@@ -420,7 +413,7 @@ function PresetsListContent({
             label="Preset"
             icon={<Plus />}
             variant={ButtonVariant.DEFAULT}
-            onClick={() => openPresetModal(ModalEnum.PRESET)}
+            onClick={() => openModal(ModalEnum.PRESET)}
           />
         ) : undefined
       }
@@ -438,15 +431,7 @@ function PresetsListContent({
         emptyLabel="No presets found"
       />
 
-      <PresetsListModals
-        scope={scope}
-        selectedPreset={selectedPreset}
-        onClose={() => setSelectedPreset(null)}
-        onConfirm={() => {
-          setSelectedPreset(null);
-          refreshPresets();
-        }}
-      />
+      <PresetsListModals scope={scope} onConfirm={() => refreshPresets()} />
 
       <div className="mt-4">
         <AutoPagination

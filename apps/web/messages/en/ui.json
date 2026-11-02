@@ -456,6 +456,10 @@
     "fontDefault": "Video default"
   },
   "presetFields": {
+    "enhanceDescription": "Enhance description",
+    "copyDescription": "Copy description",
+    "undoEnhancement": "Undo enhancement",
+    "enhanceFailed": "Enhancement failed. Please try again.",
     "label": "Label",
     "labelPlaceholder": "Enter display label",
     "key": "Key",
