@@ -61,6 +61,31 @@ test.describe('Admin Dashboard', () => {
     ).toBeVisible();
   });
 
+  test('should keep quick action cards free of footer buttons', async ({
+    adminPage,
+  }) => {
+    const admin = new AdminPage(adminPage);
+    await admin.gotoOverview();
+    await admin.assertPageVisible();
+
+    await expect(
+      adminPage.getByTestId('admin-overview-quick-actions').getByRole('button'),
+    ).toHaveCount(0);
+  });
+
+  test('should put View All Entities in the Top Organizations header', async ({
+    adminPage,
+  }) => {
+    const admin = new AdminPage(adminPage);
+    await admin.gotoOverview();
+    await admin.assertPageVisible();
+
+    const leaderboard = adminPage.getByTestId('admin-overview-leaderboard');
+    await expect(
+      leaderboard.getByRole('link', { name: 'View All Entities' }),
+    ).toHaveAttribute('href', /\/admin\/organizations/);
+  });
+
   test('should not show eyebrow labels above section titles', async ({
     adminPage,
   }) => {
