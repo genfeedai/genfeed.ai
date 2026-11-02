@@ -1,5 +1,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useSearchParams } from 'next/navigation';
@@ -7,6 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ClipperProjectSummary } from '@/props/studio/clipper.props';
 
 import { ClipperApiService } from './services/clipper-api.service';
+
+const EMPTY_PROJECTS: ClipperProjectSummary[] = [];
 
 export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
   const isEnabled = options?.isEnabled ?? true;
@@ -16,7 +22,9 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
   const currentPage = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('q') ?? '';
   const brandId = selectedBrand?.id;
-  const [projects, setProjects] = useState<ClipperProjectSummary[]>([]);
+  const [projectsPage, setProjectsPage] =
+    useState<IPaginatedResponse<ClipperProjectSummary> | null>(null);
+  const projects = projectsPage?.items ?? EMPTY_PROJECTS;
   const [isLoading, setIsLoading] = useState(isEnabled);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +63,7 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
         }
 
         // The API scopes the page to this brand (plus brandless projects).
-        setProjects(items);
+        setProjectsPage(items);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -70,7 +78,7 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
         setError(
           err instanceof Error ? err.message : 'Could not load clip projects.',
         );
-        setProjects([]);
+        setProjectsPage(null);
       })
       .finally(() => {
         if (!cancelled) {
@@ -87,12 +95,17 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
   const renameProject = useCallback(
     async (id: string, name: string): Promise<void> => {
       await clipsService.updateProject(id, { name });
-      setProjects((items) =>
-        items.map((item) =>
-          item.id === id
-            ? { ...item, name, updatedAt: new Date().toISOString() }
-            : item,
-        ),
+      setProjectsPage((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) =>
+                item.id === id
+                  ? { ...item, name, updatedAt: new Date().toISOString() }
+                  : item,
+              ),
+            }
+          : current,
       );
     },
     [clipsService],
@@ -101,10 +114,26 @@ export function useStudioClipperProjects(options?: { isEnabled?: boolean }) {
   const deleteProject = useCallback(
     async (id: string): Promise<void> => {
       await clipsService.updateProject(id, { isDeleted: true });
-      setProjects((items) => items.filter((item) => item.id !== id));
+      setProjectsPage((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.filter((item) => item.id !== id),
+            }
+          : current,
+      );
     },
     [clipsService],
   );
 
-  return { error, isLoading, projects, renameProject, deleteProject };
+  return {
+    error,
+    isLoading,
+    projects,
+    pageTotals: projectsPage
+      ? { totalDocs: projectsPage.total, totalPages: projectsPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
+    renameProject,
+    deleteProject,
+  };
 }

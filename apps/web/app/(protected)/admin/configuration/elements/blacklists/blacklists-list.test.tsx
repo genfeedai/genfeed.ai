@@ -1,6 +1,6 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
 import type { IPageTotals } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
+
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -246,7 +246,6 @@ describe('BlacklistsList', () => {
   });
 
   it('owns empty totals before its first response', () => {
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
     mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
     render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
     expect(
@@ -255,7 +254,6 @@ describe('BlacklistsList', () => {
   });
 
   it('keeps the server total with its rows instead of another list total', async () => {
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
     mocks.findAllPage.mockResolvedValueOnce(
       paginatedResponse([makeBlacklist()], { totalDocs: 61, totalPages: 5 }),
     );

@@ -22,7 +22,6 @@ import type {
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import {
@@ -365,9 +364,6 @@ export function useIngredientsLoading({
           const result = await service.findAllPage(listQuery, signal);
           data = result.items;
           nextPage = resolveNextPage(result);
-          PagesService.setCurrentPage(result.page);
-          PagesService.setTotalPages(result.totalPages);
-          PagesService.setTotalDocs(result.total);
         }
 
         if (signal?.aborted || sequence !== loadSequenceRef.current) {
@@ -380,11 +376,6 @@ export function useIngredientsLoading({
         lastListQueryRef.current = listQuery;
         setHasMoreIngredients(nextPage !== null);
         setIngredients(data);
-        if (isRecoveryShelf) {
-          PagesService.setCurrentPage(1);
-          PagesService.setTotalPages(1);
-          PagesService.setTotalDocs(data.length);
-        }
 
         if (ingredientsCache && ingredientsCacheMeta) {
           ingredientsCache.set(

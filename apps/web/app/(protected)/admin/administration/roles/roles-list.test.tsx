@@ -8,7 +8,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
-import { PagesService } from '@services/content/pages.service';
+
 import {
   fireEvent,
   render,
@@ -95,7 +95,6 @@ describe('RolesList', () => {
   });
 
   it('owns an empty footer while its first response is still pending', () => {
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
     mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     render(
       <ContextSidebarProvider>
@@ -197,8 +196,7 @@ describe('RolesList', () => {
     );
     expect(await screen.findByText('61 roles')).toBeInTheDocument();
     first.unmount();
-    // Another list (say, bots) is read in between and records its totals.
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+
     mocks.findAllPage.mockReturnValue(new Promise(() => {}));
 
     render(

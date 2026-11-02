@@ -1,3 +1,4 @@
+import { useAgentChatStore } from '@genfeedai/agent';
 import '@testing-library/jest-dom/vitest';
 import {
   EditorTrackType,
@@ -42,7 +43,6 @@ const mocks = vi.hoisted(() => ({
   openConfirm: vi.fn(),
   openGallery: vi.fn(),
   pause: vi.fn(),
-  publishContext: vi.fn(),
   play: vi.fn(),
   push: vi.fn(),
   renderProject: vi.fn(),
@@ -50,11 +50,6 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   update: vi.fn(),
 }));
-
-vi.mock(
-  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
-  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
-);
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
@@ -526,6 +521,7 @@ let storage: ReturnType<typeof makeStorage>;
 
 describe('EditorPageContent', () => {
   beforeEach(() => {
+    useAgentChatStore.getState().setPageContext(null);
     vi.clearAllMocks();
     storage = makeStorage();
     outboxState.current = createEditorSaveOutbox({
@@ -612,7 +608,7 @@ describe('EditorPageContent', () => {
   it('tells the agent which project is open once it has loaded', async () => {
     await renderLoadedEditor();
 
-    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+    expect(useAgentChatStore.getState().pageContext?.creativeApp).toEqual({
       app: 'editor',
       openProjectId: 'editor-123',
       projects: [{ id: 'editor-123', title: 'Launch Reel' }],

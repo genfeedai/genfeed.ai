@@ -1,4 +1,8 @@
-import type { IAnnouncement } from '@genfeedai/contracts/interfaces';
+import type {
+  IAnnouncement,
+  IPageTotals,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { FormEvent } from 'react';
 
 export interface AnnouncementComposeFormState {
@@ -36,6 +40,7 @@ export interface AnnouncementHistoryListProps {
 
 export interface AnnouncementsPageState {
   activeTab: string;
+  pageTotals: IPageTotals;
   form: AnnouncementComposeFormState;
   isSubmitting: boolean;
   announcements: IAnnouncement[];
@@ -50,6 +55,6 @@ export type AnnouncementsPageAction =
       value: string | boolean;
     }
   | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
-  | { type: 'SET_ANNOUNCEMENTS'; announcements: IAnnouncement[] }
+  | { type: 'SET_ANNOUNCEMENTS'; page: IPaginatedResponse<IAnnouncement> }
   | { type: 'SET_LOADING_HISTORY'; isLoadingHistory: boolean }
   | { type: 'SUBMIT_SUCCESS' };

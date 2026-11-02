@@ -1,5 +1,5 @@
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
-import { PagesService } from '@services/content/pages.service';
+
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
@@ -384,8 +384,6 @@ describe('AnalyticsBrandsList', () => {
     });
   });
   it('renders the response total independently of legacy pagination', async () => {
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
     getBrandsWithStatsMock.mockResolvedValue({
       data: [brandFixture],
       pagination: { limit: 15, page: 1, total: 61, totalPages: 5 },

@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
@@ -51,7 +52,17 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -161,7 +172,7 @@ describe('EditorProjectsList', () => {
     localStorage.clear();
     mocks.getEditorService.mockResolvedValue({
       delete: mocks.deleteProject,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAll,
       update: mocks.updateProject,
     });
   });
@@ -172,13 +183,16 @@ describe('EditorProjectsList', () => {
 
   it('lists every project as one row that opens it', async () => {
     mocks.findAll.mockResolvedValue(
-      Array.from({ length: 4 }, (_, index) => ({
-        id: `project-${index}`,
-        name: `Cut ${index}`,
-        status: 'draft',
-        tracks: [],
-        updatedAt: `2026-10-0${index + 1}T12:00:00Z`,
-      })),
+      paginatedResponse(
+        Array.from({ length: 4 }, (_, index) => ({
+          id: `project-${index}`,
+          name: `Cut ${index}`,
+          status: 'draft',
+          tracks: [],
+          updatedAt: `2026-10-0${index + 1}T12:00:00Z`,
+        })),
+        { totalDocs: 61, totalPages: 5 },
+      ),
     );
     render(<EditorProjectsList />);
 
@@ -195,15 +209,20 @@ describe('EditorProjectsList', () => {
   });
 
   it('tells the agent which projects are on screen once they have loaded', async () => {
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-1',
-        name: 'Cut 1',
-        status: 'draft',
-        tracks: [],
-        updatedAt: '2026-10-01T12:00:00Z',
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-1',
+            name: 'Cut 1',
+            status: 'draft',
+            tracks: [],
+            updatedAt: '2026-10-01T12:00:00Z',
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     render(<EditorProjectsList />);
 
     await screen.findByTestId('editor-projects-all');
@@ -222,15 +241,20 @@ describe('EditorProjectsList', () => {
 
   it('requests the server page from the URL and renders pagination', async () => {
     mocks.searchParams = new URLSearchParams('page=2');
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-9',
-        name: 'Older cut',
-        status: 'draft',
-        tracks: [],
-        updatedAt: '2026-09-01T12:00:00Z',
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-9',
+            name: 'Older cut',
+            status: 'draft',
+            tracks: [],
+            updatedAt: '2026-09-01T12:00:00Z',
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     render(<EditorProjectsList />);
 
     const all = within(await screen.findByTestId('editor-projects-all'));
@@ -246,15 +270,20 @@ describe('EditorProjectsList', () => {
 
   it('searches projects on the server with the term in the URL', async () => {
     mocks.searchParams = new URLSearchParams('q=launch');
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-1',
-        name: 'Launch cut',
-        status: 'draft',
-        tracks: [],
-        updatedAt: '2026-10-01T12:00:00Z',
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-1',
+            name: 'Launch cut',
+            status: 'draft',
+            tracks: [],
+            updatedAt: '2026-10-01T12:00:00Z',
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     render(<EditorProjectsList />);
 
     expect(await screen.findByText('Launch cut')).toBeVisible();
@@ -269,7 +298,9 @@ describe('EditorProjectsList', () => {
 
   it('says nothing matched instead of pointing at the prompt', async () => {
     mocks.searchParams = new URLSearchParams('q=zzz');
-    mocks.findAll.mockResolvedValue([]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     render(<EditorProjectsList />);
 
     expect(
@@ -282,22 +313,27 @@ describe('EditorProjectsList', () => {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60_000).toISOString();
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
 
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-1',
-        name: 'Launch cut',
-        status: 'draft',
-        tracks: [],
-        updatedAt: thirtyMinutesAgo,
-      },
-      {
-        id: 'project-2',
-        name: 'Teaser edit',
-        status: 'ready',
-        tracks: [],
-        updatedAt: twoDaysAgo,
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-1',
+            name: 'Launch cut',
+            status: 'draft',
+            tracks: [],
+            updatedAt: thirtyMinutesAgo,
+          },
+          {
+            id: 'project-2',
+            name: 'Teaser edit',
+            status: 'ready',
+            tracks: [],
+            updatedAt: twoDaysAgo,
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     mocks.deleteProject.mockResolvedValue(undefined);
 
     render(<EditorProjectsList />);
@@ -323,15 +359,20 @@ describe('EditorProjectsList', () => {
   });
 
   it('renames from the row menu and updates the list', async () => {
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-1',
-        name: 'Launch cut',
-        status: 'draft',
-        tracks: [],
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-1',
+            name: 'Launch cut',
+            status: 'draft',
+            tracks: [],
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     mocks.updateProject.mockResolvedValue(undefined);
     render(<EditorProjectsList />);
     await screen.findByText('Launch cut');
@@ -355,10 +396,18 @@ describe('EditorProjectsList', () => {
       }),
     );
     expect(await screen.findByText('Revised cut')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
   });
 
   it('renders empty and error states with retry', async () => {
-    mocks.findAll.mockResolvedValueOnce([]);
+    mocks.findAll.mockResolvedValueOnce(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
 
     const { unmount } = render(<EditorProjectsList />);
     expect(await screen.findByText('No projects yet')).toBeVisible();
@@ -376,7 +425,9 @@ describe('EditorProjectsList', () => {
       expect.any(Error),
     );
 
-    mocks.findAll.mockResolvedValueOnce([]);
+    mocks.findAll.mockResolvedValueOnce(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     fireEvent.click(screen.getByText('Try again'));
     expect(await screen.findByText('No projects yet')).toBeVisible();
   });
@@ -394,15 +445,20 @@ describe('EditorProjectsList', () => {
 
   it('keeps the project and reports a failed deletion', async () => {
     const deleteError = new Error('offline');
-    mocks.findAll.mockResolvedValue([
-      {
-        id: 'project-1',
-        name: 'Launch cut',
-        status: 'draft',
-        tracks: [],
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.findAll.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'project-1',
+            name: 'Launch cut',
+            status: 'draft',
+            tracks: [],
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     mocks.deleteProject.mockRejectedValue(deleteError);
 
     render(<EditorProjectsList />);

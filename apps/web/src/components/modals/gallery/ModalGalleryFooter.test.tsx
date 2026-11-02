@@ -1,5 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import { PagesService } from '@genfeedai/services/content/pages.service';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -49,7 +49,6 @@ describe('ModalGalleryFooter', () => {
   };
 
   it('renders each gallery page independently of global pagination', () => {
-    PagesService.recordTotals({ page: 9, pages: 50, total: 600 });
     render(
       <>
         <ModalGalleryFooter {...defaultProps} currentPage={2} totalPages={3} />

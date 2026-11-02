@@ -6,7 +6,7 @@ import {
   resourceDocument,
 } from '@services/__mocks__/http.mock';
 import { AnalyticsService } from '@services/analytics/analytics.service';
-import { PagesService } from '@services/content/pages.service';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AnalyticsService', () => {
@@ -79,7 +79,7 @@ describe('AnalyticsService', () => {
       },
     );
 
-    it('getAccountAnalytics sends the brand and feeds the paginator', async () => {
+    it('getAccountAnalytics sends the brand and returns the response totals', async () => {
       http.get.mockResolvedValue(
         axiosResponse(
           resourceDocument(
@@ -95,9 +95,6 @@ describe('AnalyticsService', () => {
           ),
         ),
       );
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
 
       const result = await service.getAccountAnalytics({
         brandId: 'brand-1',
@@ -109,9 +106,6 @@ describe('AnalyticsService', () => {
         params: { brandId: 'brand-1', limit: 15, page: 2 },
       });
       expect(result.total).toBe(31);
-      expect(setCurrentPage).toHaveBeenCalledWith(2);
-      expect(setTotalPages).toHaveBeenCalledWith(3);
-      expect(setTotalDocs).toHaveBeenCalledWith(31);
     });
 
     it('getXGrowthReport GETs the account report and deserializes it', async () => {
@@ -269,8 +263,6 @@ describe('AnalyticsService', () => {
         ),
       );
 
-      PagesService.setTotalDocs(200);
-      PagesService.setTotalPages(20);
       const signal = new AbortController().signal;
 
       const result = await service.getBrandsWithStats({ page: 2 }, signal);
@@ -281,8 +273,6 @@ describe('AnalyticsService', () => {
       });
       expect(result.pagination.page).toBe(2);
       expect(result.pagination).toMatchObject({ total: 0, totalPages: 1 });
-      expect(PagesService.getTotalDocs()).toBe(200);
-      expect(PagesService.getTotalPages()).toBe(20);
     });
 
     it('getBusinessAnalytics GETs the business dashboard', async () => {

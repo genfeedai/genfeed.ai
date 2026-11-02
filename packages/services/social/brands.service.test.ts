@@ -156,14 +156,6 @@ vi.mock('@services/core/json-api', () => ({
   deserializeResource: vi.fn(<T>(doc: { data: T }) => doc.data),
 }));
 
-vi.mock('@services/content/pages.service', () => ({
-  PagesService: {
-    setCurrentPage: vi.fn(),
-    setTotalDocs: vi.fn(),
-    setTotalPages: vi.fn(),
-  },
-}));
-
 describe('BrandsService', () => {
   let service: BrandsService;
   const mockToken = 'test-token-123';

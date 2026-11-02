@@ -80,6 +80,7 @@ export default function ActivitiesList({
     isRefreshing,
     refresh,
     filteredActivities,
+    pageTotals,
     markActivitiesAsRead,
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope, search });
@@ -429,7 +430,7 @@ export default function ActivitiesList({
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="activities" />
+        <AutoPagination showTotal totalLabel="activities" totals={pageTotals} />
       </div>
     </>
   );

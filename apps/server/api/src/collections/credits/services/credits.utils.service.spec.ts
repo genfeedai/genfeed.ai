@@ -88,6 +88,8 @@ describe('CreditsUtilsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    creditTransactionsService.createTransactionEntry.mockReset();
+    creditBalanceService.getOrCreateBalance.mockReset();
     freeTrialService.assertTrialActive.mockResolvedValue(undefined);
     freeTrialService.isTrialExpired.mockResolvedValue(false);
     prisma.organization.findFirst.mockResolvedValue({ id: 'org_1' });
@@ -343,6 +345,124 @@ describe('CreditsUtilsService', () => {
   });
 
   describe('addOrganizationCreditsWithExpiration', () => {
+    it.each([
+      { code: 'P2034' },
+      { code: 'P2010', meta: { code: '40001' } },
+      { code: 'P2010', meta: { code: '40P01' } },
+    ])(
+      'retries an aborted grant with a fresh balance and publishes once (%j)',
+      async (conflict) => {
+        const service = buildService();
+        const expiresAt = new Date('2027-01-01T00:00:00Z');
+        creditTransactionsService.createTransactionEntry.mockRejectedValueOnce(
+          conflict,
+        );
+        for (const balance of [100, 120]) {
+          creditBalanceService.getOrCreateBalance.mockResolvedValueOnce({
+            balance,
+            billingAccountId: 'ba_1',
+            heldAmount: 0,
+            id: 'bal_1',
+            organizationId: 'org_1',
+            version: balance,
+          });
+        }
+
+        await service.addOrganizationCreditsWithExpiration(
+          'org_1',
+          50,
+          'stripe',
+          'renewal credits',
+          expiresAt,
+        );
+
+        expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(2);
+        expect(creditBalanceService.updateBalance).toHaveBeenNthCalledWith(
+          1,
+          'org_1',
+          150,
+          'ba_1',
+          txClient,
+        );
+        expect(creditBalanceService.updateBalance).toHaveBeenNthCalledWith(
+          2,
+          'org_1',
+          170,
+          'ba_1',
+          txClient,
+        );
+        expect(
+          creditTransactionsService.createTransactionEntry,
+        ).toHaveBeenLastCalledWith(
+          'org_1',
+          expect.anything(),
+          50,
+          120,
+          170,
+          'stripe',
+          'renewal credits',
+          expiresAt,
+          txClient,
+        );
+        expect(websocketService.emit).toHaveBeenCalledExactlyOnceWith(
+          '/credits/org_1',
+          { balance: 170 },
+        );
+        expect(
+          accessBootstrapCacheService.invalidateForOrganization,
+        ).toHaveBeenCalledExactlyOnceWith('org_1');
+      },
+    );
+
+    it('surfaces the last serialization conflict after three aborted attempts without publishing', async () => {
+      const service = buildService();
+      const conflict = { code: 'P2034' };
+      creditTransactionsService.createTransactionEntry
+        .mockRejectedValueOnce(conflict)
+        .mockRejectedValueOnce(conflict)
+        .mockRejectedValueOnce(conflict);
+
+      await expect(
+        service.addOrganizationCreditsWithExpiration(
+          'org_1',
+          50,
+          'stripe',
+          'renewal credits',
+          new Date('2027-01-01T00:00:00Z'),
+        ),
+      ).rejects.toBe(conflict);
+
+      expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(3);
+      expect(websocketService.emit).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('surfaces other ledger failures without retrying or publishing', async () => {
+      const service = buildService();
+      const failure = new Error('ledger unavailable');
+      creditTransactionsService.createTransactionEntry.mockRejectedValueOnce(
+        failure,
+      );
+
+      await expect(
+        service.addOrganizationCreditsWithExpiration(
+          'org_1',
+          50,
+          'stripe',
+          'renewal credits',
+          new Date('2027-01-01T00:00:00Z'),
+        ),
+      ).rejects.toBe(failure);
+
+      expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(websocketService.emit).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
     it('threads the transaction client through balance write and ledger entry', async () => {
       const service = buildService();
       const expiresAt = new Date('2027-01-01T00:00:00Z');

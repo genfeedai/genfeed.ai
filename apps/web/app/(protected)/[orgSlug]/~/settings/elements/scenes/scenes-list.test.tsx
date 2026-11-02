@@ -1,7 +1,7 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { ElementScene } from '@models/elements/scene.model';
-import { PagesService } from '@services/content/pages.service';
+
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ScenesList from './scenes-list';
@@ -57,14 +57,13 @@ describe('ScenesList', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('No scenes found')).toBeInTheDocument();
   });
-  it('renders its server totals even when another list overwrites the legacy totals', async () => {
+  it('renders the totals from the same response as its scenes', async () => {
     findAllPageMock.mockResolvedValue(
       paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
     );
     const { rerender } = render(<ScenesList />);
     expect(await screen.findByText('61 scenes')).toBeVisible();
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
+
     rerender(<ScenesList />);
     expect(screen.getByText('61 scenes')).toBeVisible();
     expect(screen.queryByText('200 scenes')).not.toBeInTheDocument();
@@ -79,8 +78,7 @@ describe('ScenesList', () => {
         resolvePage = resolve;
       }),
     );
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
+
     render(<ScenesList />);
     expect(screen.getByText('0 scenes')).toBeVisible();
     await act(async () => {

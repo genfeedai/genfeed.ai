@@ -6,7 +6,7 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import { PagesService } from '@services/content/pages.service';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -133,7 +133,6 @@ describe('ReferralRewardsList', () => {
     ).toHaveTextContent('42 rewards');
     firstVisit.unmount();
 
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
     getAdminRewardsMock.mockReturnValue(new Promise(() => {}));
     render(<ReferralRewardsList />, { wrapper: queryClientWrapper(client) });
 

@@ -2,12 +2,12 @@ import type {
   ClipperProjectReadResponse,
   ClipperReferenceFrameSet,
   HookClipApprovalStatus,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import type {
   ClipperProjectSummary,
   ClipperResult,
@@ -329,8 +329,7 @@ export class ClipperApiService implements ClipperApiClient {
 
   /**
    * One server page of clip projects, newest first. A `brandId` also returns
-   * the org-wide projects that have no brand. Passing `page` publishes the
-   * totals for `<AutoPagination />`.
+   * the org-wide projects that have no brand. Returns rows and their totals together.
    */
   async listProjects(
     query: {
@@ -340,26 +339,26 @@ export class ClipperApiService implements ClipperApiClient {
       search?: string;
     } = {},
     signal?: AbortSignal,
-  ): Promise<ClipperProjectSummary[]> {
+  ): Promise<IPaginatedResponse<ClipperProjectSummary>> {
     const params = new URLSearchParams({ sort: '-createdAt' });
     if (query.brandId) params.set('brandId', query.brandId);
     if (query.limit) params.set('limit', String(query.limit));
     if (query.page) params.set('page', String(query.page));
     if (query.search) params.set('search', query.search);
 
-    const requestId = PagesService.beginRequest();
-    const data = await this.fetchJson<unknown>(
+    const data = await this.fetchJson<JsonApiResponseDocument>(
       `${this.apiEndpoint}/clipper-projects?${params.toString()}`,
       { signal },
     );
-    recordPageTotals(data as JsonApiResponseDocument, query, requestId);
 
-    return this.extractCollection<ClipperResultRawItem>(data).map((item) =>
-      mapClipperProjectSummary({
-        attributes: item.attributes,
-        id: item.id,
-      }),
+    const items = this.extractCollection<ClipperResultRawItem>(data).map(
+      (item) =>
+        mapClipperProjectSummary({
+          attributes: item.attributes,
+          id: item.id,
+        }),
     );
+    return toPaginatedResponse(items, data);
   }
 
   async getProject(
