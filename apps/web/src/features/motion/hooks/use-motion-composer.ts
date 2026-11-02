@@ -1,11 +1,14 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAgentChatStore } from '@genfeedai/agent';
 import {
   APP_ROUTES,
   resolveOrganizationModulePreferences,
   VISUAL_CODE_DEFAULT_SETTINGS,
 } from '@genfeedai/contracts/constants';
 import type {
+  CreativeAppAgentContext,
+  CreativeAppProjectReference,
   IVisualCodeOutputRequest,
   IVisualCodeSettings,
   IVisualRevision,
@@ -16,14 +19,16 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   MotionComposerMode,
   MotionSettingKey,
   UseMotionComposerOptions,
 } from '@/features/motion/props/motion-composer.props';
 import type { MotionPreset } from '@/features/motion/props/motion-presets.props';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
+import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
@@ -65,6 +70,33 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   const { href } = useOrgUrl();
   const router = useRouter();
   const api = useVisualProjects({ brandId: selectedBrand?.id, projectId });
+  const seedComposer = useAgentChatStore((state) => state.seedComposer);
+  const loadedProjects = api.projects.data?.pages;
+  const knownProjects = useMemo<CreativeAppProjectReference[] | null>(
+    () =>
+      loadedProjects
+        ? loadedProjects.flatMap((page) =>
+            page.projects.map((item) => ({
+              id: item.id,
+              title: item.label || t('newProject'),
+            })),
+          )
+        : null,
+    [loadedProjects, t],
+  );
+  const creativeApp = useMemo<CreativeAppAgentContext | null>(
+    () =>
+      knownProjects
+        ? {
+            app: 'motion',
+            ...(projectId ? { openProjectId: projectId } : {}),
+            projects: knownProjects,
+          }
+        : null,
+    [knownProjects, projectId],
+  );
+  useCreativeAppAgentContext(creativeApp);
+  const [projectChoice, setProjectChoice] = useState<string | null>(null);
   const [mode, setMode] = useState<MotionComposerMode>('prompt');
   const [label, setLabel] = useState('');
   const [text, setText] = useState('');
@@ -184,8 +216,20 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   }
   async function requestQuote(
     operation: 'create' | 'revise' | 'export' | 'retry',
+    { isNewProjectConfirmed = false }: { isNewProjectConfirmed?: boolean } = {},
   ) {
     if (!isModuleWorkEnabled) return;
+    setProjectChoice(null);
+    if (
+      operation === 'create' &&
+      !projectId &&
+      !isNewProjectConfirmed &&
+      knownProjects?.length &&
+      isProjectChangeRequest(text)
+    ) {
+      setProjectChoice(text);
+      return;
+    }
     const epoch = ++quoteEpoch.current;
     await run(async () => {
       if (!selectedBrand?.id) throw new Error(t('selectBrand'));
@@ -300,7 +344,18 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     invalidateQuote();
     setLabel(value);
   }
+  /** The viewer picked the project the request applies to. */
+  function chooseProject(chosenProjectId: string) {
+    if (projectChoice) seedComposer(projectChoice);
+    router.push(
+      `${href(APP_ROUTES.STUDIO.MOTION)}/${encodeURIComponent(chosenProjectId)}`,
+    );
+  }
+  function createNewProject() {
+    void requestQuote('create', { isNewProjectConfirmed: true });
+  }
   function updateText(value: string) {
+    setProjectChoice(null);
     invalidateQuote();
     setText(value);
   }
@@ -388,6 +443,8 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     cancelCurrent: () => void run(api.cancel),
     catalog,
     catalogModels,
+    chooseProject,
+    createNewProject,
     current,
     error: uiError,
     formats,
@@ -411,6 +468,8 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     modelOptions,
     modulePreferences,
     project,
+    projectChoice,
+    projects: knownProjects ?? [],
     propsText,
     reloadLatestRevision,
     requestQuote,

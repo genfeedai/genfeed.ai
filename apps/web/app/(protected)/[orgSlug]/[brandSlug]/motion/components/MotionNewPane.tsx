@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
 import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -33,15 +34,27 @@ function MotionNewPaneBody(): ReactElement {
   return (
     <OrganizationModulePreferenceGate moduleId="motion">
       <div className="relative flex min-h-0 flex-1 flex-col">
-        <PromptEmptyState
-          description={t('heroDescription')}
-          title={t('heroTitle')}
-        >
-          <MotionPromptCards
+        {controller.projectChoice ? (
+          <ProjectChoicePrompt
             isDisabled={controller.isBusy}
-            onSelect={controller.applyPreset}
+            newProjectLabel={t('projectChoiceNew')}
+            onChoose={controller.chooseProject}
+            onCreateNew={controller.createNewProject}
+            projects={controller.projects}
+            question={t('projectChoiceQuestion')}
+            request={controller.projectChoice}
           />
-        </PromptEmptyState>
+        ) : (
+          <PromptEmptyState
+            description={t('heroDescription')}
+            title={t('heroTitle')}
+          >
+            <MotionPromptCards
+              isDisabled={controller.isBusy}
+              onSelect={controller.applyPreset}
+            />
+          </PromptEmptyState>
+        )}
         <div className="mt-auto shrink-0 px-3 pb-3">
           <MotionComposer controller={controller} />
         </div>

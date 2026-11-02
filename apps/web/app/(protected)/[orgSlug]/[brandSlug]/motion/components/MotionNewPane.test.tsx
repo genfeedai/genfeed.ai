@@ -10,6 +10,9 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  seedComposer: vi.fn(),
+  publishContext: vi.fn(),
+  projectPages: [] as { projects: { id: string; label: string }[] }[],
   identity: { orgId: 'org', userId: 'user', sessionId: 'session' },
   brand: { id: 'brand' },
   catalog: {
@@ -55,6 +58,15 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     orgHref: (path: string) => `/org/~${path}`,
   }),
 }));
+vi.mock('@genfeedai/agent', () => ({
+  useAgentChatStore: (
+    select: (state: { seedComposer: typeof mocks.seedComposer }) => unknown,
+  ) => select({ seedComposer: mocks.seedComposer }),
+}));
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
@@ -144,7 +156,7 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
     catalog: {
       data: mocks.catalog,
     },
-    projects: { data: { pages: [] } },
+    projects: { data: { pages: mocks.projectPages } },
     project: { data: mocks.projectData, refetch: mocks.refetchProject },
     source: mocks.source,
     cancel: mocks.cancel,
@@ -184,6 +196,7 @@ beforeEach(() => {
     moduleOverrides: { motion: true, editor: true },
   };
   mocks.projectData = undefined;
+  mocks.projectPages = [];
   mocks.source.mockResolvedValue('retained source');
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
@@ -426,5 +439,82 @@ describe('Motion quote review', () => {
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('which project', () => {
+    beforeEach(() => {
+      mocks.projectPages = [
+        {
+          projects: [
+            { id: 'visual-1', label: 'Launch title' },
+            { id: 'visual-2', label: 'Logo sting' },
+          ],
+        },
+      ];
+    });
+
+    it('tells the agent it is on the Motion New screen with the brand projects', () => {
+      render(<MotionNewPane />);
+      expect(mocks.publishContext).toHaveBeenLastCalledWith({
+        app: 'motion',
+        projects: [
+          { id: 'visual-1', title: 'Launch title' },
+          { id: 'visual-2', title: 'Logo sting' },
+        ],
+      });
+    });
+
+    it('asks which project a change request applies to instead of quoting a new one', () => {
+      render(<MotionNewPane />);
+      fireEvent.change(screen.getByLabelText('prompt'), {
+        target: { value: 'revise the intro' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+
+      expect(screen.getByText('projectChoiceQuestion')).toBeInTheDocument();
+      expect(screen.getByText('revise the intro')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Launch title' }),
+      ).toBeInTheDocument();
+      expect(mocks.quote).not.toHaveBeenCalled();
+    });
+
+    it('opens the chosen project with the request ready in its agent', () => {
+      render(<MotionNewPane />);
+      fireEvent.change(screen.getByLabelText('prompt'), {
+        target: { value: 'revise the intro' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Logo sting' }));
+
+      expect(mocks.seedComposer).toHaveBeenCalledWith('revise the intro');
+      expect(mocks.push).toHaveBeenCalledWith('/motion/visual-2');
+      expect(mocks.quote).not.toHaveBeenCalled();
+    });
+
+    it('quotes a new project when the viewer declines to pick one', async () => {
+      render(<MotionNewPane />);
+      fireEvent.change(screen.getByLabelText('prompt'), {
+        target: { value: 'revise the intro' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'projectChoiceNew' }),
+      );
+
+      await screen.findByRole('button', { name: 'confirm' });
+      expect(mocks.quote).toHaveBeenCalledTimes(1);
+    });
+
+    it('quotes a new project for new work even when projects exist', async () => {
+      render(<MotionNewPane />);
+      fireEvent.change(screen.getByLabelText('prompt'), {
+        target: { value: 'Animate a title' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+
+      await screen.findByRole('button', { name: 'confirm' });
+      expect(screen.queryByText('projectChoiceQuestion')).not.toBeInTheDocument();
+    });
   });
 });
