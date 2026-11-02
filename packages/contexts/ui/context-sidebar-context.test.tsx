@@ -1,11 +1,12 @@
 import {
+  CONTEXT_SIDEBAR_SELECTION_GAP_MS,
   ContextSidebarOutlet,
   ContextSidebarPanel,
   ContextSidebarProvider,
   useContextSidebar,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { ContextSidebarSelection } from '@props/ui/context-sidebar.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,6 +87,7 @@ function stubCompactViewport(isCompact: boolean): void {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('ContextSidebarPanel', () => {
@@ -337,5 +339,123 @@ describe('ContextSidebarPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
 
     expect(readProbe()).toMatchObject({ isMobileOpen: false, isOpen: false });
+  });
+});
+
+describe('a selection that disappears while its detail reloads', () => {
+  function Page({
+    selection,
+  }: {
+    readonly selection: ContextSidebarSelection | null;
+  }) {
+    return (
+      <ContextSidebarPanel onClose={() => undefined} selection={selection}>
+        <p>{selection?.title}</p>
+      </ContextSidebarPanel>
+    );
+  }
+
+  it('keeps the sidebar open when the same selection comes back', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+
+    rerender(
+      <Shell>
+        <Page selection={null} />
+      </Shell>,
+    );
+    act(() => {
+      vi.advanceTimersByTime(CONTEXT_SIDEBAR_SELECTION_GAP_MS - 1);
+    });
+    expect(readProbe().isOpen).toBe(true);
+
+    rerender(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+    act(() => {
+      vi.advanceTimersByTime(CONTEXT_SIDEBAR_SELECTION_GAP_MS * 2);
+    });
+
+    expect(readProbe()).toMatchObject({
+      isOpen: true,
+      selection: 'Launch still',
+    });
+  });
+
+  it('keeps a collapsed sidebar collapsed when the same selection comes back', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'toggle' }));
+    expect(readProbe().isOpen).toBe(false);
+
+    rerender(
+      <Shell>
+        <Page selection={null} />
+      </Shell>,
+    );
+    rerender(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+
+    expect(readProbe().isOpen).toBe(false);
+  });
+
+  it('opens for a different selection that follows the gap', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'toggle' }));
+    rerender(
+      <Shell>
+        <Page selection={null} />
+      </Shell>,
+    );
+    rerender(
+      <Shell>
+        <Page
+          selection={{ ...ASSET, id: 'asset-2', title: 'Second asset' }}
+        />
+      </Shell>,
+    );
+
+    expect(readProbe()).toMatchObject({
+      isOpen: true,
+      selection: 'Second asset',
+    });
+  });
+
+  it('collapses once the selection stays gone past the gap', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <Shell>
+        <Page selection={ASSET} />
+      </Shell>,
+    );
+
+    rerender(
+      <Shell>
+        <Page selection={null} />
+      </Shell>,
+    );
+    act(() => {
+      vi.advanceTimersByTime(CONTEXT_SIDEBAR_SELECTION_GAP_MS);
+    });
+
+    expect(readProbe()).toMatchObject({ isOpen: false, selection: null });
   });
 });
