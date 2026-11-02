@@ -1,3 +1,5 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -15,7 +17,7 @@ import TagsList from './tags-list';
 const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
   deleteTag: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   findOrganizationTags: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -59,7 +61,7 @@ vi.mock('@services/content/tags.service', () => ({
   TagsService: {
     getInstance: () => ({
       delete: mocks.deleteTag,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     }),
   },
@@ -91,7 +93,7 @@ vi.mock('@services/organization/organizations.service', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: {
-    queryFn: () => Promise<unknown>;
+    queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
     queryKey: unknown[];
   }) => mocks.useQuery(options),
   useQueryClient: () => ({
@@ -100,7 +102,11 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@ui/primitives/badge', () => ({
@@ -248,10 +254,12 @@ function mockTagsQuery(
   ],
 ) {
   mocks.useQuery.mockImplementation(
-    (options: { queryFn: () => Promise<unknown> }) => {
-      void options.queryFn();
+    (options: {
+      queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+    }) => {
+      void options.queryFn({ signal: new AbortController().signal });
       return {
-        data,
+        data: paginatedResponse(data, { totalDocs: 61, totalPages: 5 }),
         error: null,
         isFetching: false,
         isLoading: false,
@@ -268,7 +276,7 @@ describe('TagsList', () => {
       'organization=org-1&brand=brand-1&page=2',
     );
     mocks.deleteTag.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue([]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([]));
     mocks.findOrganizationTags.mockResolvedValue([]);
     mocks.patch.mockResolvedValue({});
     mocks.refetch.mockResolvedValue(undefined);
@@ -282,7 +290,7 @@ describe('TagsList', () => {
     expect(screen.getAllByText('Org Tag').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Account Tag').length).toBeGreaterThan(0);
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
           limit: ITEMS_PER_PAGE,
@@ -290,6 +298,7 @@ describe('TagsList', () => {
           page: 2,
           sort: 'createdAt: -1',
         }),
+        expect.any(AbortSignal),
       );
     });
     expect(
@@ -361,7 +370,7 @@ describe('TagsList', () => {
     ).toHaveTextContent('Org Tag');
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
           category: 'credential',
@@ -369,6 +378,7 @@ describe('TagsList', () => {
           search: 'launch',
           sort: 'label: 1',
         }),
+        expect.any(AbortSignal),
       );
     });
   });
@@ -384,8 +394,9 @@ describe('TagsList', () => {
       render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
+          expect.any(AbortSignal),
         );
       });
     },
@@ -410,8 +421,9 @@ describe('TagsList', () => {
     );
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({ sort: 'category: -1' }),
+        expect.any(AbortSignal),
       );
     });
   });
@@ -434,8 +446,9 @@ describe('TagsList', () => {
     );
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({ sort: 'label: -1' }),
+        expect.any(AbortSignal),
       );
     });
   });
@@ -452,7 +465,13 @@ describe('TagsList', () => {
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'Tag deactivated',
       );
-      expect(mocks.setQueryData).toHaveBeenCalled();
+      expect(mocks.setQueryData.mock.calls.at(-1)?.[1]).toMatchObject({
+        total: 61,
+        totalPages: 5,
+        items: expect.arrayContaining([
+          expect.objectContaining({ id: 'tag-1', isActive: false }),
+        ]),
+      });
     });
   });
 
@@ -516,7 +535,7 @@ describe('TagsList', () => {
 
   it('reports load, toggle, and delete failures', async () => {
     mocks.useQuery.mockReturnValue({
-      data: [makeTag()],
+      data: paginatedResponse([makeTag()]),
       error: new Error('load failed'),
       isFetching: false,
       isLoading: false,
@@ -548,5 +567,23 @@ describe('TagsList', () => {
     expect(mocks.notificationsError).toHaveBeenCalledWith(
       'Failed to delete tag',
     );
+  });
+  it('renders server totals instead of the number of visible rows', () => {
+    render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 rows / 5 pages');
+  });
+  it('renders empty totals before the response arrives', () => {
+    mocks.useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      refetch: mocks.refetch,
+    });
+    render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('0 rows / 1 pages');
   });
 });

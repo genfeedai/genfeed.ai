@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   ModelsToolbarProvider,
   useModelsToolbar,
@@ -29,7 +30,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const mockFindAll = vi.fn();
+const mockFindAllPage = vi.fn();
 const mockFindAllPages = vi.fn();
 const mockOrganizationFindOne = vi.fn();
 const mockOpenConfirm = vi.fn();
@@ -65,7 +66,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@services/ai/models.service', () => ({
   ModelsService: {
     getInstance: () => ({
-      findAll: mockFindAll,
+      findAllPage: mockFindAllPage,
       findAllPages: mockFindAllPages,
     }),
   },
@@ -162,7 +163,7 @@ describe('ModelsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearchParams = '';
-    mockFindAll.mockResolvedValue([buildModel()]);
+    mockFindAllPage.mockResolvedValue(paginatedResponse([buildModel()]));
     mockFindAllPages.mockResolvedValue([buildModel({ isDefault: true })]);
     mockOrganizationFindOne.mockResolvedValue({ settings: null });
   });
@@ -179,9 +180,9 @@ describe('ModelsList', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    mockFindAll.mockResolvedValue([
-      buildModel({ description: 'Fast photoreal images' }),
-    ]);
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([buildModel({ description: 'Fast photoreal images' })]),
+    );
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -208,18 +209,22 @@ describe('ModelsList', () => {
     renderModelsList();
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalled();
+      expect(mockFindAllPage).toHaveBeenCalled();
     });
-    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({ isActive: true });
-    expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('includeRetired');
+    expect(mockFindAllPage.mock.calls[0]?.[0]).toMatchObject({
+      isActive: true,
+    });
+    expect(mockFindAllPage.mock.calls[0]?.[0]).not.toHaveProperty(
+      'includeRetired',
+    );
   });
 
   it('sends every selected category and provider to the API before pagination', async () => {
     mockSearchParams =
       'category=image&category=video&provider=replicate&provider=fal&status=inactive&page=2';
     renderModelsList(PageScope.SUPERADMIN);
-    await waitFor(() => expect(mockFindAll).toHaveBeenCalled());
-    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+    await waitFor(() => expect(mockFindAllPage).toHaveBeenCalled());
+    expect(mockFindAllPage.mock.calls[0]?.[0]).toMatchObject({
       categories: 'image,video',
       providers: 'replicate,fal',
       isActive: false,
@@ -235,9 +240,9 @@ describe('ModelsList', () => {
     renderModelsList(PageScope.SUPERADMIN);
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalled();
+      expect(mockFindAllPage).toHaveBeenCalled();
     });
-    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+    expect(mockFindAllPage.mock.calls[0]?.[0]).toMatchObject({
       includeRetired: false,
     });
   });
@@ -303,10 +308,12 @@ describe('ModelsList', () => {
       key: 'zebra/model',
       label: 'Zebra Model',
     });
-    mockFindAll.mockResolvedValue([
-      buildModel({ id: 'alpha', key: 'alpha/model', label: 'Alpha Model' }),
-      buildModel({ id: 'beta', key: 'beta/model', label: 'Beta Model' }),
-    ]);
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([
+        buildModel({ id: 'alpha', key: 'alpha/model', label: 'Alpha Model' }),
+        buildModel({ id: 'beta', key: 'beta/model', label: 'Beta Model' }),
+      ]),
+    );
     mockFindAllPages.mockResolvedValue([
       buildModel({ id: 'alpha', key: 'alpha/model', label: 'Alpha Model' }),
       needsAttention,
@@ -337,9 +344,9 @@ describe('ModelsList', () => {
     );
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalled();
+      expect(mockFindAllPage).toHaveBeenCalled();
     });
-    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+    expect(mockFindAllPage.mock.calls[0]?.[0]).toMatchObject({
       includeRetired: true,
     });
   });
@@ -348,16 +355,18 @@ describe('ModelsList', () => {
     renderModelsList();
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalledWith(
+      expect(mockFindAllPage).toHaveBeenCalledWith(
         expect.objectContaining({ sort: 'label: 1' }),
+        expect.any(AbortSignal),
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Label' }));
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenLastCalledWith(
+      expect(mockFindAllPage).toHaveBeenLastCalledWith(
         expect.objectContaining({ sort: 'label: -1' }),
+        expect.any(AbortSignal),
       );
     });
     expect(
@@ -366,7 +375,7 @@ describe('ModelsList', () => {
   });
 
   it('renders the empty state when no models come back', async () => {
-    mockFindAll.mockResolvedValue([]);
+    mockFindAllPage.mockResolvedValue(paginatedResponse([]));
 
     renderModelsList();
 
@@ -410,12 +419,12 @@ describe('ModelsList', () => {
     renderModelsList(PageScope.ORGANIZATION, 'image');
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalled();
+      expect(mockFindAllPage).toHaveBeenCalled();
     });
-    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+    expect(mockFindAllPage.mock.calls[0]?.[0]).toMatchObject({
       categories: 'image,image-edit,image-upscale',
     });
-    expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('category');
+    expect(mockFindAllPage.mock.calls[0]?.[0]).not.toHaveProperty('category');
     expect(
       await screen.findByRole('button', { name: /^Filters/ }),
     ).toHaveTextContent('1');
@@ -507,10 +516,10 @@ describe('ModelsList', () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     renderModelsList(PageScope.SUPERADMIN, undefined, { onRefresh });
     await screen.findByText('Flux Dev');
-    const calls = mockFindAll.mock.calls.length;
+    const calls = mockFindAllPage.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() =>
-      expect(mockFindAll.mock.calls.length).toBeGreaterThan(calls),
+      expect(mockFindAllPage.mock.calls.length).toBeGreaterThan(calls),
     );
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
@@ -523,9 +532,17 @@ describe('ModelsList', () => {
     });
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenLastCalledWith(
+      expect(mockFindAllPage).toHaveBeenLastCalledWith(
         expect.objectContaining({ search: 'claude' }),
+        expect.any(AbortSignal),
       );
     });
+  });
+  it('keeps table totals separate from the all-pages catalog overview', async () => {
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([buildModel()], { totalDocs: 61, totalPages: 5 }),
+    );
+    renderModelsList();
+    expect(await screen.findByText('61 models')).toBeVisible();
   });
 });

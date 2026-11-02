@@ -1,6 +1,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   ContentScope,
   IQueryParams,
@@ -110,16 +113,16 @@ export function useTagsList({
   const queryClient = useQueryClient();
 
   const {
-    data: tags,
+    data: tagsPage,
     isLoading,
     isFetching,
     error: tagsError,
     refetch: refresh,
-  } = useQuery<ITag[]>({
+  } = useQuery({
     queryKey: tagsQueryKey,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (scope === ORGANIZATION && !organizationId) {
-        return [];
+        return null;
       }
 
       const url = 'GET /tags';
@@ -149,7 +152,7 @@ export function useTagsList({
         }
       } else {
         if (!organizationId) {
-          return [];
+          return null;
         }
         query.organization = organizationId;
         if (brandId) {
@@ -158,7 +161,7 @@ export function useTagsList({
       }
 
       const service = await getTagsService();
-      const data = await service.findAll(query);
+      const data = await service.findAllPage(query, signal);
 
       logger.info(`${url} success`, data);
       return data;
@@ -192,6 +195,7 @@ export function useTagsList({
     });
   }, [filterSignature, pathname, replace, searchParamsString]);
 
+  const tags = tagsPage?.items;
   const isRefreshing = isFetching;
 
   useEffect(() => {
@@ -225,20 +229,20 @@ export function useTagsList({
         notificationsService.success(
           `Tag ${newValue ? 'activated' : 'deactivated'}`,
         );
-        if (tags) {
-          queryClient.setQueryData(
-            tagsQueryKey,
-            tags.map((t) =>
+        if (tagsPage) {
+          queryClient.setQueryData(tagsQueryKey, {
+            ...tagsPage,
+            items: tagsPage.items.map((t) =>
               t.id === tag.id ? { ...t, isActive: newValue } : t,
             ),
-          );
+          });
         }
       } catch (error) {
         logger.error('Failed to update tag status', error);
         notificationsService.error('Failed to update tag status');
       }
     },
-    [getTagsService, notificationsService, tags, queryClient, tagsQueryKey],
+    [getTagsService, notificationsService, tagsPage, queryClient, tagsQueryKey],
   );
 
   const canEditTag = useCallback(
@@ -292,6 +296,9 @@ export function useTagsList({
     adminOrg,
     canEditTag,
     filteredAndSortedTags,
+    pageTotals: tagsPage
+      ? { totalDocs: tagsPage.total, totalPages: tagsPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
     handleDeleteTag,
     handleToggleActive,
     isLoading,

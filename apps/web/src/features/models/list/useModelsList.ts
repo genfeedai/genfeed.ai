@@ -2,10 +2,14 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { Model } from '@genfeedai/client/models';
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ModalEnum, ModelLifecycle, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IModel,
   IOrganizationSetting,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -30,6 +34,8 @@ import {
   type ModelCategoryGroupKey,
   resolveModelCategoryGroupKey,
 } from './components/models-catalog-overview.helpers';
+
+const EMPTY_MODELS: IModel[] = [];
 
 export function useModelsList({
   type,
@@ -174,12 +180,12 @@ export function useModelsList({
   ] as const;
 
   const {
-    data: models = [],
+    data: modelsPage,
     isLoading,
     refetch: refetchModels,
     error: modelsError,
-  } = useQuery<IModel[]>({
-    queryFn: async () => {
+  } = useQuery<IPaginatedResponse<IModel>>({
+    queryFn: async ({ signal }) => {
       const service = await getModelsService();
       const query: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
@@ -215,10 +221,9 @@ export function useModelsList({
         }
       }
 
-      const data: IModel[] = await service.findAll(query);
+      const data = await service.findAllPage(query, signal);
       logger.info('GET /models success', data);
-      // Instantiate Model class for each item to enable getter methods
-      return data.map((m) => new Model(m));
+      return data;
     },
     queryKey: modelsQueryKey,
   });
@@ -229,9 +234,14 @@ export function useModelsList({
     }
   }, [modelsError]);
 
+  const models = modelsPage?.items ?? EMPTY_MODELS;
+
   const setModels = useCallback(
     (updatedModels: IModel[]) => {
-      queryClient.setQueryData(modelsQueryKey, updatedModels);
+      queryClient.setQueryData<IPaginatedResponse<IModel>>(
+        modelsQueryKey,
+        (current) => (current ? { ...current, items: updatedModels } : current),
+      );
     },
     [queryClient, modelsQueryKey],
   );
@@ -698,6 +708,9 @@ export function useModelsList({
     selectedGroupKey,
     columns,
     models: displayModels,
+    pageTotals: modelsPage
+      ? { totalDocs: modelsPage.total, totalPages: modelsPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
     searchTerm,
     sortKey,
     sortDirection,

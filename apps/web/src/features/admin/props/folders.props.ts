@@ -1,3 +1,4 @@
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
@@ -5,6 +6,7 @@ import type {
 import type { ContentProps } from '@props/layout/content.props';
 
 export interface FoldersListModalsProps {
+  totals: IPageTotals;
   onConfirm: () => void;
   scope: ContentProps['scope'];
 }

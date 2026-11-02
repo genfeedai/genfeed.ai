@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -7,6 +8,7 @@ import {
 import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   fireEvent,
@@ -19,7 +21,7 @@ import TrainingsList from '@/features/trainings/list/trainings-list';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFindAll = vi.fn();
+const mockFindAllPage = vi.fn();
 const mockPatch = vi.fn();
 const searchParamsState = vi.hoisted(() => ({
   current: new URLSearchParams(''),
@@ -79,7 +81,7 @@ vi.mock('@services/ai/trainings.service', () => ({
   TrainingsService: {
     getInstance: () => ({
       delete: vi.fn(),
-      findAll: mockFindAll,
+      findAllPage: mockFindAllPage,
       patch: mockPatch,
     }),
   },
@@ -98,7 +100,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} trainings / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 function buildTraining(overrides: Partial<ITraining> = {}): ITraining {
@@ -145,7 +151,7 @@ describe('TrainingsList', () => {
     vi.clearAllMocks();
     searchParamsState.current = new URLSearchParams('');
     brandState.settings = { subscriptionTier: SubscriptionTier.SCALE };
-    mockFindAll.mockResolvedValue([buildTraining()]);
+    mockFindAllPage.mockResolvedValue(paginatedResponse([buildTraining()]));
   });
 
   it('renders the fetched trainings in the table', async () => {
@@ -163,7 +169,7 @@ describe('TrainingsList', () => {
     renderTrainingsList(PageScope.SUPERADMIN);
 
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalledWith(
+      expect(mockFindAllPage).toHaveBeenCalledWith(
         { limit: ITEMS_PER_PAGE, page: 2 },
         expect.anything(),
       );
@@ -184,7 +190,7 @@ describe('TrainingsList', () => {
       renderTrainingsList();
 
       await waitFor(() => {
-        expect(mockFindAll).toHaveBeenCalledWith(
+        expect(mockFindAllPage).toHaveBeenCalledWith(
           { limit: ITEMS_PER_PAGE, page: 1, sort: apiSort },
           expect.anything(),
         );
@@ -200,7 +206,7 @@ describe('TrainingsList', () => {
       renderTrainingsList();
 
       await waitFor(() => {
-        expect(mockFindAll).toHaveBeenCalledWith(
+        expect(mockFindAllPage).toHaveBeenCalledWith(
           { limit: ITEMS_PER_PAGE, page: 1 },
           expect.anything(),
         );
@@ -250,7 +256,7 @@ describe('TrainingsList', () => {
       });
     });
     await waitFor(() => {
-      expect(mockFindAll).toHaveBeenCalledTimes(2);
+      expect(mockFindAllPage).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -266,7 +272,7 @@ describe('TrainingsList', () => {
   });
 
   it('renders the empty state when no trainings come back', async () => {
-    mockFindAll.mockResolvedValue([]);
+    mockFindAllPage.mockResolvedValue(paginatedResponse([]));
 
     renderTrainingsList();
 
@@ -295,5 +301,15 @@ describe('TrainingsList', () => {
       expect(screen.getByText('Brand Style v1')).toBeInTheDocument();
     });
     expect(screen.queryByText(/Unlock trainings/i)).not.toBeInTheDocument();
+  });
+  it('keeps server totals with the training rows', async () => {
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([buildTraining()], { totalDocs: 61, totalPages: 5 }),
+    );
+    renderTrainingsList();
+    await screen.findByText('Brand Style v1');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 trainings / 5 pages');
   });
 });

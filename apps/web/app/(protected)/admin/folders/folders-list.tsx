@@ -2,7 +2,10 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IFolder, IQueryParams } from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
@@ -157,7 +160,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   } = useTableSort({ allowedKeys: FOLDER_SORT_KEYS });
 
   const {
-    data: folders = [] as Folder[],
+    data: foldersPage,
     isLoading,
     isFetching,
     error: foldersError,
@@ -173,7 +176,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       adminBrand,
       headerSort,
     ],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const url = `GET /folders`;
 
       const service = await getFoldersService();
@@ -194,13 +197,14 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         }
       }
 
-      const data = await service.findAll(queryParams);
+      const data = await service.findAllPage(queryParams, signal);
       logger.info(`${url} success`, data);
       return data;
     },
     enabled: !!isSignedIn,
   });
 
+  const folders = foldersPage?.items ?? [];
   const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
@@ -392,7 +396,18 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         emptyLabel="No folders found"
       />
 
-      <FoldersListModals onConfirm={() => refreshFolders()} scope={scope} />
+      <FoldersListModals
+        onConfirm={() => refreshFolders()}
+        scope={scope}
+        totals={
+          foldersPage
+            ? {
+                totalDocs: foldersPage.total,
+                totalPages: foldersPage.totalPages,
+              }
+            : EMPTY_PAGE_TOTALS
+        }
+      />
     </Container>
   );
 }

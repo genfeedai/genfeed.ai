@@ -53,6 +53,7 @@ export default function TrainingsList({
 
   const {
     trainings,
+    pageTotals,
     isLoading,
     error,
     sortKey,
@@ -242,7 +243,7 @@ export default function TrainingsList({
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="trainings" />
+        <AutoPagination showTotal totalLabel="trainings" totals={pageTotals} />
       </div>
     </>
   );
