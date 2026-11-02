@@ -336,7 +336,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // warm-up provisioning in the target customer organization.
     {
       file: 'apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.controller.ts',
-      line: 220,
+      line: 294,
     },
     // #6120: superadmin all-organizations analytics when no organization is
     // named.
