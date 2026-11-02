@@ -165,7 +165,7 @@ describe('AgentStrategiesService', () => {
     expect(result).toEqual(binding);
   });
 
-  it('listOpportunities GETs one page, deserializes it and publishes the totals', async () => {
+  it('listOpportunities returns one deserialized page with its own totals', async () => {
     PagesService.setCurrentPage(1);
     PagesService.setTotalPages(1);
     PagesService.setTotalDocs(0);
@@ -189,12 +189,16 @@ describe('AgentStrategiesService', () => {
       params: { limit: 15, page: 2 },
       signal: controller.signal,
     });
-    expect(result).toEqual([
-      expect.objectContaining({ id: 'opp_16', topic: 'AI' }),
-    ]);
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(3);
-    expect(PagesService.getTotalDocs()).toBe(40);
+    expect(result).toMatchObject({
+      items: [expect.objectContaining({ id: 'opp_16', topic: 'AI' })],
+      page: 2,
+      pageSize: 15,
+      total: 40,
+      totalPages: 3,
+    });
+    expect(PagesService.getCurrentPage()).toBe(1);
+    expect(PagesService.getTotalPages()).toBe(1);
+    expect(PagesService.getTotalDocs()).toBe(0);
   });
 
   it('listOpportunities without a page leaves the shared totals alone', async () => {
@@ -207,8 +211,13 @@ describe('AgentStrategiesService', () => {
       ),
     );
 
-    await service.listOpportunities(strategyId);
+    const result = await service.listOpportunities(strategyId);
 
+    expect(result).toMatchObject({
+      items: [expect.objectContaining({ id: 'opp_1' })],
+      total: 1,
+      totalPages: 1,
+    });
     expect(PagesService.getTotalPages()).toBe(7);
   });
 

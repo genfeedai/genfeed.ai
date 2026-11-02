@@ -32,11 +32,18 @@ export default function AutomationOverviewPage() {
   const collectionScope = useCollectionScope();
   const isReady = isCollectionFetchReady(collectionScope);
   const brandParams = toBrandListParams(collectionScope);
-  const { cancelExecution, executions, isError, isLoading, refresh, stats } =
-    useWorkflowExecutions(
-      { ...brandParams, limit: OVERVIEW_EXECUTION_LIMIT, sort: '-createdAt' },
-      { enabled: isReady },
-    );
+  const {
+    cancelExecution,
+    executions,
+    pageTotals,
+    isError,
+    isLoading,
+    refresh,
+    stats,
+  } = useWorkflowExecutions(
+    { ...brandParams, limit: OVERVIEW_EXECUTION_LIMIT, sort: '-createdAt' },
+    { enabled: isReady },
+  );
   const { isLoading: areAgentsLoading, strategies } = useAgentStrategies({
     ...brandParams,
     enabled: isReady,
@@ -140,6 +147,7 @@ export default function AutomationOverviewPage() {
           >
             <RunHistoryList
               executions={recentExecutions.slice(0, RECENT_RUN_PAGE_SIZE)}
+              pageTotals={pageTotals}
               isLoading={isLoading}
             />
           </WorkspaceSurface>

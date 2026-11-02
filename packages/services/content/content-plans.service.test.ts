@@ -30,7 +30,7 @@ describe('ContentPlansService.list', () => {
     PagesService.setTotalDocs(0);
   });
 
-  it('requests one server page and records the pagination totals', async () => {
+  it('returns one server page with its pagination totals', async () => {
     mockGet.mockResolvedValue({
       data: {
         data: [],
@@ -39,7 +39,7 @@ describe('ContentPlansService.list', () => {
     });
     const controller = new AbortController();
 
-    await ContentPlansService.getInstance('token').list(
+    const page = await ContentPlansService.getInstance('token').list(
       'brand-1',
       { limit: 15, page: 2 },
       controller.signal,
@@ -49,8 +49,14 @@ describe('ContentPlansService.list', () => {
       params: { limit: 15, page: 2 },
       signal: controller.signal,
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(4);
-    expect(PagesService.getTotalDocs()).toBe(50);
+    expect(page).toMatchObject({
+      page: 2,
+      totalPages: 4,
+      total: 50,
+      items: [],
+    });
+    expect(PagesService.getCurrentPage()).toBe(1);
+    expect(PagesService.getTotalPages()).toBe(1);
+    expect(PagesService.getTotalDocs()).toBe(0);
   });
 });

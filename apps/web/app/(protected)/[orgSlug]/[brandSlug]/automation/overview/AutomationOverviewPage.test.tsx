@@ -54,6 +54,7 @@ vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),
     executions: executionState.executions,
+    pageTotals: { totalDocs: 61, totalPages: 5 },
     isError: executionState.isError,
     isLoading: executionState.isLoading,
     isRefreshing: false,

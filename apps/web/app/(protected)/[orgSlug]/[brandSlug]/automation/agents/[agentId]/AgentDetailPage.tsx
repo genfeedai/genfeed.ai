@@ -1,10 +1,16 @@
 'use client';
+
 import {
   AgentAutonomyMode,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -57,6 +63,7 @@ import { buildAgentDetailFacts } from './agent-detail-facts.helper';
 import { useAgentDetailPosts } from './use-agent-detail-posts';
 
 const AGENT_EXECUTION_PAGE_SIZE = 20;
+const EMPTY_OPPORTUNITIES: AgentStrategyOpportunity[] = [];
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const translate = useTranslations('common.automation.agentHub');
@@ -149,8 +156,8 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     },
     { intervalMs: 30_000, isEnabled: isReady },
   );
-  const { data: opportunities = [], isLoading: isOpportunitiesLoading } =
-    useQuery<AgentStrategyOpportunity[]>({
+  const { data: opportunitiesPage, isLoading: isOpportunitiesLoading } =
+    useQuery<IPaginatedResponse<AgentStrategyOpportunity>>({
       queryKey: [
         'agent-opportunities',
         collectionScope.organizationId,
@@ -169,6 +176,14 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       },
       enabled: isReady && Boolean(strategy) && Boolean(requestedOpportunityId),
     });
+
+  const opportunities = opportunitiesPage?.items ?? EMPTY_OPPORTUNITIES;
+  const opportunityPageTotals = opportunitiesPage
+    ? {
+        totalDocs: opportunitiesPage.total,
+        totalPages: opportunitiesPage.totalPages,
+      }
+    : EMPTY_PAGE_TOTALS;
 
   const handleToggle = useCallback(async () => {
     if (!strategy) return;
@@ -520,6 +535,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           <AgentOpportunityPanel
             requestedOpportunityId={requestedOpportunityId}
             opportunities={opportunities}
+            pageTotals={opportunityPageTotals}
             selectedOpportunity={selectedOpportunity}
             isOpportunitiesLoading={isOpportunitiesLoading}
           />

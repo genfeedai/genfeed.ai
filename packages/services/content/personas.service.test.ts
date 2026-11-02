@@ -1,4 +1,9 @@
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
+import {
+  axiosResponse,
+  collectionDocument,
+  installMockHttp,
+} from '@services/__mocks__/http.mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Persona, PersonasService } from './personas.service';
 
@@ -219,5 +224,26 @@ describe('PersonasService', () => {
       ingredientIds: ['img-2', 'img-1'],
     });
     expect(del).toHaveBeenCalledWith('/p1/references/img-1');
+  });
+  it('maps a character page while preserving its server pagination', async () => {
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([{ id: 'p2', label: 'Ben', handle: 'ben' }], {
+          pagination: { limit: 15, page: 2, pages: 5, total: 61 },
+        }),
+      ),
+    );
+    const page = await service.listCharactersPage(
+      { limit: 15, page: 2 },
+      new AbortController().signal,
+    );
+    expect(page).toMatchObject({
+      page: 2,
+      total: 61,
+      totalPages: 5,
+      items: [expect.objectContaining({ id: 'p2', label: 'Ben' })],
+    });
+    expect(page.items[0].referenceIngredientIds).toEqual([]);
   });
 });

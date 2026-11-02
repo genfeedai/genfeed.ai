@@ -7,13 +7,17 @@ import {
   PersonaAvailabilityMode,
   QualityTier,
 } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   BrandCharacterCandidate,
   BrandCharacterListItem,
   BrandCharacterSheetStep,
   CharacterReferenceItem,
   IImage,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -37,6 +41,8 @@ import type {
 function resolveCharacterImageUrl(id: string): string {
   return `${EnvironmentService.ingredientsEndpoint}/images/${id}`;
 }
+
+const EMPTY_CHARACTERS: BrandCharacterListItem[] = [];
 
 const OWNING_BRAND_ONLY: CharacterAvailabilityDraft = {
   brandIds: [],
@@ -77,7 +83,9 @@ export function useCharactersPage(): CharactersPageState {
     ImagesService.getInstance(token),
   );
 
-  const [characters, setCharacters] = useState<BrandCharacterListItem[]>([]);
+  const [charactersPage, setCharactersPage] =
+    useState<IPaginatedResponse<BrandCharacterListItem> | null>(null);
+  const characters = charactersPage?.items ?? EMPTY_CHARACTERS;
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -116,12 +124,12 @@ export function useCharactersPage(): CharactersPageState {
         return;
       }
       const service = await getPersonasService();
-      const rows = await service.listCharacters(
+      const page = await service.listCharactersPage(
         { limit: ITEMS_PER_PAGE, page: currentPage },
         signal,
       );
       if (!signal.aborted) {
-        setCharacters(rows);
+        setCharactersPage(page);
       }
     },
     [brandId, currentPage, getPersonasService],
@@ -412,16 +420,21 @@ export function useCharactersPage(): CharactersPageState {
       const referenceIngredientIds = [...references]
         .sort((first, second) => first.position - second.position)
         .map((reference) => reference.ingredientId);
-      setCharacters((current) =>
-        current.map((character) =>
-          character.id === characterId
-            ? {
-                ...character,
-                avatarIngredientId: referenceIngredientIds[0] ?? null,
-                referenceIngredientIds,
-              }
-            : character,
-        ),
+      setCharactersPage((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((character) =>
+                character.id === characterId
+                  ? {
+                      ...character,
+                      avatarIngredientId: referenceIngredientIds[0] ?? null,
+                      referenceIngredientIds,
+                    }
+                  : character,
+              ),
+            }
+          : current,
       );
       window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
     },
@@ -472,6 +485,12 @@ export function useCharactersPage(): CharactersPageState {
     candidate,
     canManageSharing,
     characters,
+    pageTotals: charactersPage
+      ? {
+          totalDocs: charactersPage.total,
+          totalPages: charactersPage.totalPages,
+        }
+      : EMPTY_PAGE_TOTALS,
     create: {
       description,
       isNonHumanoid,

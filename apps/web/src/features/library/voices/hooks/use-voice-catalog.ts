@@ -1,6 +1,8 @@
 'use client';
 
 import { IngredientStatus, type VoiceProvider } from '@genfeedai/contracts';
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Voice } from '@models/ingredients/voice.model';
 import { logger } from '@services/core/logger.service';
@@ -57,13 +59,17 @@ export function useVoiceCatalog({
   ];
   const voicesQuery = useAuthedQuery({
     keepPreviousDataWithin: scopeKey,
-    queryFn: async (service, signal) => {
+    queryFn: async (service, signal): Promise<IPagedItems<Voice>> => {
       try {
-        // The paged UI drives `page`/`limit` itself; every other caller renders
-        // the whole catalog and has to walk the server pages to get it.
-        return isPaginated
-          ? await service.findAll(query, signal)
-          : await service.findAllPages(query, signal);
+        if (isPaginated) {
+          const page = await service.findAllPage(query, signal);
+          return {
+            items: page.items,
+            totals: { totalDocs: page.total, totalPages: page.totalPages },
+          };
+        }
+        const items = await service.findAllPages(query, signal);
+        return { items, totals: { totalDocs: items.length, totalPages: 1 } };
       } catch (error) {
         logger.error('Failed to fetch voices', error);
         throw error;
@@ -82,8 +88,11 @@ export function useVoiceCatalog({
     error: voicesQuery.isError ? LOAD_ERROR_MESSAGE : null,
     isLoading: voicesQuery.isLoading,
     refresh,
+    pageTotals: voicesQuery.isError
+      ? EMPTY_PAGE_TOTALS
+      : (voicesQuery.data?.totals ?? EMPTY_PAGE_TOTALS),
     voices: voicesQuery.isError
       ? EMPTY_VOICES
-      : (voicesQuery.data ?? EMPTY_VOICES),
+      : (voicesQuery.data?.items ?? EMPTY_VOICES),
   };
 }

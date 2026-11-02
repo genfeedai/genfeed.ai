@@ -32,6 +32,7 @@ export default function LibraryCharactersPage(): ReactElement {
     candidate,
     canManageSharing,
     characters,
+    pageTotals,
     create,
     createCharacter,
     discardCandidate,
@@ -88,7 +89,11 @@ export default function LibraryCharactersPage(): ReactElement {
           }
         />
         {!isLoading && characters.length > 0 ? (
-          <AutoPagination showTotal totalLabel="characters" />
+          <AutoPagination
+            showTotal
+            totalLabel="characters"
+            totals={pageTotals}
+          />
         ) : null}
       </Container>
 

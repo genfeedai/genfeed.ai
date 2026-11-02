@@ -1,8 +1,12 @@
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type {
+  IPageTotals,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
 import type { TableSortDirection } from '@genfeedai/props/ui/display/table.props';
 
 export interface RunHistoryListProps {
   executions: IWorkflowExecution[];
+  pageTotals: IPageTotals;
   isLoading: boolean;
   /** Render URL-driven server pagination under the table. */
   isPaginated?: boolean;

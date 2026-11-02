@@ -6,7 +6,6 @@ import type {
 } from '@genfeedai/contracts';
 import { CampaignTargetType } from '@genfeedai/contracts';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -367,8 +366,7 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
   }
 
   /**
-   * One page of a campaign's targets. Publishes the paging totals to
-   * `PagesService` for `AutoPagination`, like `BaseService.findAll`.
+   * One page of a campaign's targets with status counts and pagination metadata.
    */
   async getTargets(
     id: string,
@@ -381,10 +379,6 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     );
     const { data, links, meta } = response.data;
     const pagination = links.pagination;
-
-    PagesService.setCurrentPage(pagination.page);
-    PagesService.setTotalPages(pagination.pages);
-    PagesService.setTotalDocs(pagination.total);
 
     return {
       page: pagination.page,

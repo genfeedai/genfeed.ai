@@ -1,5 +1,7 @@
 'use client';
 
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { IPagedItems, IPageTotals } from '@genfeedai/contracts/interfaces';
 import {
   type AgentCampaign,
   AgentCampaignsService,
@@ -23,11 +25,14 @@ export interface UseAgentCampaignsOptions {
 
 export interface UseAgentCampaignsReturn {
   campaigns: AgentCampaign[];
+  pageTotals: IPageTotals;
   /** The last list request's failure; `null` once a request succeeds. */
   error: Error | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
+
+const EMPTY_ITEMS: AgentCampaign[] = [];
 
 export function useAgentCampaigns(
   options: UseAgentCampaignsOptions = {},
@@ -42,11 +47,11 @@ export function useAgentCampaigns(
   });
 
   const {
-    data: campaigns = [] as AgentCampaign[],
+    data: campaignsPage,
     error,
     isLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<IPagedItems<AgentCampaign> | null>({
     enabled: isEnabled,
     queryKey: [
       'agent-campaigns',
@@ -56,21 +61,33 @@ export function useAgentCampaigns(
       options.page,
       options.limit,
     ],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const token = await resolveAuthToken(getToken);
-      if (!token) return [];
+      if (!token) return null;
 
       const service = AgentCampaignsService.getInstance(token);
-      return service.list({
+      const filters = {
         ...toBrandListParams({ brandId }),
         status: options.status,
-        ...(options.page ? { limit: options.limit, page: options.page } : {}),
-      });
+      };
+      if (options.page) {
+        const page = await service.findAllPage(
+          { ...filters, limit: options.limit, page: options.page },
+          signal,
+        );
+        return {
+          items: page.items,
+          totals: { totalDocs: page.total, totalPages: page.totalPages },
+        };
+      }
+      const items = await service.list(filters);
+      return { items, totals: { totalDocs: items.length, totalPages: 1 } };
     },
   });
 
   return {
-    campaigns,
+    campaigns: campaignsPage?.items ?? EMPTY_ITEMS,
+    pageTotals: campaignsPage?.totals ?? EMPTY_PAGE_TOTALS,
     error: isEnabled ? error : null,
     isLoading: !isEnabled || isLoading,
     refresh: async () => {

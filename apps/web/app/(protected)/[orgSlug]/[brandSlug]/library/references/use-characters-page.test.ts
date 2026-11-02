@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 // @vitest-environment jsdom
 import { IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -14,12 +15,12 @@ vi.mock('next/navigation', () => ({
 const mocks = vi.hoisted(() => {
   const composeSheetPrompt = vi.fn();
   const createFromSheet = vi.fn();
-  const listCharacters = vi.fn();
+  const listCharactersPage = vi.fn();
   const postImage = vi.fn();
   const personasService = {
     composeSheetPrompt,
     createFromSheet,
-    listCharacters,
+    listCharactersPage,
   };
   const imagesService = { post: postImage };
   return {
@@ -27,7 +28,7 @@ const mocks = vi.hoisted(() => {
     createFromSheet,
     getImagesService: async () => imagesService,
     getPersonasService: async () => personasService,
-    listCharacters,
+    listCharactersPage,
     postImage,
   };
 });
@@ -53,8 +54,12 @@ vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
-    const created = factory('test-token') as { listCharacters?: unknown };
-    if (created && typeof created === 'object' && 'listCharacters' in created) {
+    const created = factory('test-token') as { listCharactersPage?: unknown };
+    if (
+      created &&
+      typeof created === 'object' &&
+      'listCharactersPage' in created
+    ) {
       return mocks.getPersonasService;
     }
     return mocks.getImagesService;
@@ -94,7 +99,7 @@ vi.mock('@services/content/personas.service', () => ({
     getInstance: () => ({
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
-      listCharacters: mocks.listCharacters,
+      listCharactersPage: mocks.listCharactersPage,
     }),
   },
 }));
@@ -111,7 +116,7 @@ describe('useCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigation.searchParams = new URLSearchParams();
-    mocks.listCharacters.mockResolvedValue([]);
+    mocks.listCharactersPage.mockResolvedValue(paginatedResponse([]));
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt: 'CHARACTER REFERENCE SHEET PRESET v1.0.0',
     });
@@ -128,9 +133,11 @@ describe('useCharactersPage', () => {
   });
 
   it('loads characters on mount', async () => {
-    mocks.listCharacters.mockResolvedValue([
-      { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
-    ]);
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse([
+        { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
+      ]),
+    );
 
     const { result } = renderHook(() => useCharactersPage());
 
@@ -144,7 +151,7 @@ describe('useCharactersPage', () => {
     const { result } = renderHook(() => useCharactersPage());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mocks.listCharacters).toHaveBeenCalledWith(
+    expect(mocks.listCharactersPage).toHaveBeenCalledWith(
       { limit: ITEMS_PER_PAGE, page: 2 },
       expect.any(AbortSignal),
     );
@@ -228,5 +235,20 @@ describe('useCharactersPage', () => {
     expect(result.current.step).toBe('describe');
     expect(result.current.candidate).toBeNull();
     expect(result.current.isCreateDialogOpen).toBe(false);
+  });
+  it('preserves the page totals when references are edited locally', async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse(
+        [{ avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
+    const { result } = renderHook(() => useCharactersPage());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => {
+      result.current.applyReferences('p1', []);
+    });
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
+    expect(result.current.characters[0].referenceIngredientIds).toEqual([]);
   });
 });

@@ -21,7 +21,7 @@ export function useContentPlansSection() {
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
-  const { plans, isLoading, refresh } = useContentPlans({
+  const { plans, pageTotals, isLoading, refresh } = useContentPlans({
     brandId,
     enabled: isFetchReady,
     limit: ITEMS_PER_PAGE,
@@ -95,6 +95,7 @@ export function useContentPlansSection() {
     isLoading,
     isSubmitting,
     plans,
+    pageTotals,
     setIsDialogOpen,
   };
 }

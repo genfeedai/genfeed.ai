@@ -1,11 +1,16 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { CampaignTargetStatus } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type CampaignTarget,
+  type CampaignTargetsPage,
   type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
@@ -14,6 +19,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const EMPTY_TARGETS: CampaignTarget[] = [];
+const EMPTY_STATUS_COUNTS: Partial<Record<CampaignTargetStatus, number>> = {};
 
 export function useOutreachCampaignDetail() {
   const router = useRouter();
@@ -26,10 +34,11 @@ export function useOutreachCampaignDetail() {
   const notificationsService = NotificationsService.getInstance();
 
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null);
-  const [targets, setTargets] = useState<CampaignTarget[]>([]);
-  const [statusCounts, setStatusCounts] = useState<
-    Partial<Record<CampaignTargetStatus, number>>
-  >({});
+  const [targetPage, setTargetPage] = useState<CampaignTargetsPage | null>(
+    null,
+  );
+  const targets = targetPage?.targets ?? EMPTY_TARGETS;
+  const statusCounts = targetPage?.statusCounts ?? EMPTY_STATUS_COUNTS;
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -67,8 +76,7 @@ export function useOutreachCampaignDetail() {
           }),
         ]);
         setCampaign(fetchedCampaign);
-        setTargets(targetsPage.targets);
-        setStatusCounts(targetsPage.statusCounts);
+        setTargetPage(targetsPage);
         logger.info('Loaded campaign details', {
           campaignId,
           targetCount: targetsPage.total,
@@ -261,6 +269,9 @@ export function useOutreachCampaignDetail() {
     loadCampaign,
     setUrlInput,
     targetStats,
+    pageTotals: targetPage
+      ? { totalDocs: targetPage.total, totalPages: targetPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
     targets,
     urlInput,
   };

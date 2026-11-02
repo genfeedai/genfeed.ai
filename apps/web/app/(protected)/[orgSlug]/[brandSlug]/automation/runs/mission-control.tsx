@@ -37,6 +37,7 @@ export default function MissionControl() {
   const {
     cancelExecution,
     executions,
+    pageTotals,
     isLoading,
     isError,
     isRefreshing,
@@ -118,6 +119,7 @@ export default function MissionControl() {
 
             <RunHistoryList
               executions={historyExecutions}
+              pageTotals={pageTotals}
               isLoading={isLoading}
               isPaginated
               onClearFilter={searchQuery ? () => setSearchQuery('') : undefined}

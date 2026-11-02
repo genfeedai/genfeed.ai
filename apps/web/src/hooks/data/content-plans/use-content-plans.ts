@@ -1,6 +1,10 @@
 'use client';
 
-import type { IContentPlan } from '@genfeedai/contracts/interfaces';
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type {
+  IContentPlan,
+  IPageTotals,
+} from '@genfeedai/contracts/interfaces';
 import { ContentPlansService } from '@genfeedai/services/content/content-plans.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -17,6 +21,7 @@ export interface UseContentPlansOptions {
 
 export interface UseContentPlansReturn {
   plans: IContentPlan[];
+  pageTotals: IPageTotals;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -28,14 +33,14 @@ export function useContentPlans(
   const isEnabled = (options.enabled ?? true) && Boolean(options.brandId);
 
   const {
-    data: plans = [] as IContentPlan[],
+    data: plansPage,
     isLoading,
     refetch,
   } = useQuery({
     enabled: isEnabled,
     queryFn: async ({ signal }) => {
       const token = await resolveAuthToken(getToken);
-      if (!token || !options.brandId) return [];
+      if (!token || !options.brandId) return null;
 
       const service = ContentPlansService.getInstance(token);
       return service.list(
@@ -49,7 +54,10 @@ export function useContentPlans(
 
   return {
     isLoading,
-    plans,
+    plans: plansPage?.items ?? [],
+    pageTotals: plansPage
+      ? { totalDocs: plansPage.total, totalPages: plansPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
     refresh: async () => {
       if (!isEnabled) {
         return;

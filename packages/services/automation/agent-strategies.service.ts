@@ -3,14 +3,14 @@ import type {
   IAgentStrategyPerformanceSnapshot,
   IAgentStrategyRunHistoryItem,
   IBrand,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 export interface AgentStrategyBudgetCap {
   creditBudget: number;
@@ -332,21 +332,21 @@ export class AgentStrategiesService extends BaseService<
 
   /**
    * One server page of the strategy's open opportunities, highest priority
-   * first. Passing `page` publishes the totals for `<AutoPagination />`.
+   * first, with the pagination metadata from the same response.
    */
   async listOpportunities(
     id: string,
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
-  ): Promise<AgentStrategyOpportunity[]> {
-    const requestId = PagesService.beginRequest();
+  ): Promise<IPaginatedResponse<AgentStrategyOpportunity>> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${id}/opportunities`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query, requestId);
-
-    return deserializeCollection<AgentStrategyOpportunity>(response.data);
+    return toPaginatedResponse(
+      deserializeCollection<AgentStrategyOpportunity>(response.data),
+      response.data,
+    );
   }
 
   /** The newest page of the strategy's report history (20 by default). */

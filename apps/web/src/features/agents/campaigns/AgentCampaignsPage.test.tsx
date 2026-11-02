@@ -1,9 +1,17 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentCampaignsPage from '@/features/agents/campaigns/AgentCampaignsPage';
+import type {
+  UseAgentCampaignsOptions,
+  UseAgentCampaignsReturn,
+} from '@/features/agents/hooks/agent-campaigns/use-agent-campaigns';
 import '@testing-library/jest-dom/vitest';
 
 const campaignDefaults = {
@@ -68,9 +76,10 @@ const mockCampaigns: AgentCampaign[] = [
 ];
 
 const mockUseAgentCampaigns = vi.fn(
-  (_options?: { limit?: number; page?: number }) => ({
+  (_options?: UseAgentCampaignsOptions): UseAgentCampaignsReturn => ({
+    pageTotals: EMPTY_PAGE_TOTALS,
     campaigns: mockCampaigns,
-    error: null as Error | null,
+    error: null,
     isLoading: false,
     refresh: vi.fn(),
   }),
@@ -92,7 +101,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} programs / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -163,6 +176,7 @@ describe('AgentCampaignsPage', () => {
     vi.clearAllMocks();
     mockNavigation.searchParams = new URLSearchParams();
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: mockCampaigns,
       error: null,
       isLoading: false,
@@ -212,6 +226,7 @@ describe('AgentCampaignsPage', () => {
 
   it('hides Needs you when no program needs attention', () => {
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: mockCampaigns.slice(0, 2),
       error: null,
       isLoading: false,
@@ -271,6 +286,7 @@ describe('AgentCampaignsPage', () => {
   it('shows relative run times from the message catalog', () => {
     const now = Date.now();
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: mockCampaigns.map((campaign) =>
         campaign.id === 'campaign-1'
           ? {
@@ -318,6 +334,7 @@ describe('AgentCampaignsPage', () => {
   it('shows a load error with Retry instead of the empty state', () => {
     const refresh = vi.fn();
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: [],
       error: new Error('Network down'),
       isLoading: false,
@@ -347,6 +364,7 @@ describe('AgentCampaignsPage', () => {
     const refresh = vi.fn<() => Promise<void>>();
     refresh.mockImplementation(() => {
       mockUseAgentCampaigns.mockReturnValue({
+        pageTotals: EMPTY_PAGE_TOTALS,
         campaigns: mockCampaigns,
         error: null,
         isLoading: false,
@@ -355,6 +373,7 @@ describe('AgentCampaignsPage', () => {
       return Promise.resolve();
     });
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: [],
       error: new Error('Network down'),
       isLoading: false,
@@ -377,6 +396,7 @@ describe('AgentCampaignsPage', () => {
 
   it('shows empty state when no campaigns', () => {
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: [],
       error: null,
       isLoading: false,
@@ -399,6 +419,7 @@ describe('AgentCampaignsPage', () => {
 
   it('shows a list skeleton while loading', () => {
     mockUseAgentCampaigns.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       campaigns: [],
       error: null,
       isLoading: true,
@@ -412,5 +433,20 @@ describe('AgentCampaignsPage', () => {
     expect(within(all).getByTestId('list-rows-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('campaign-needs-you')).toBeNull();
     expect(screen.queryByText('No programs yet')).toBeNull();
+  });
+  it('renders totals from the paged collection rather than the full overview', () => {
+    mockUseAgentCampaigns.mockImplementation((options) => ({
+      campaigns: options?.page ? mockCampaigns.slice(0, 1) : mockCampaigns,
+      pageTotals: options?.page
+        ? { totalDocs: 61, totalPages: 5 }
+        : { totalDocs: 200, totalPages: 1 },
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    }));
+    render(<AgentCampaignsPage />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 programs / 5 pages');
   });
 });

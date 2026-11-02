@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 // @vitest-environment jsdom
 
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -14,8 +15,10 @@ const mockPageScope = vi.hoisted(() => ({
   current: 'brand' as 'org' | 'brand',
 }));
 const mockList = vi.fn();
+const mockFindAllPage = vi.fn();
 const mockAgentCampaignsServiceInstance = {
   list: mockList,
+  findAllPage: mockFindAllPage,
 };
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -43,6 +46,9 @@ vi.mock('@genfeedai/services/automation/agent-campaigns.service', () => ({
 describe('useAgentCampaigns', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     mockList.mockResolvedValue([]);
     mockGetToken.mockResolvedValue('test-token');
     mockUseAuthIdentity.mockReturnValue({ getToken: mockGetToken });
@@ -113,12 +119,17 @@ describe('useAgentCampaigns', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockList).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      limit: 15,
-      page: 2,
-      status: undefined,
-    });
+    expect(mockFindAllPage).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        limit: 15,
+        page: 2,
+        status: undefined,
+      },
+      expect.any(AbortSignal),
+    );
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
+    expect(mockList).not.toHaveBeenCalled();
   });
 
   it('returns campaigns data from service', async () => {

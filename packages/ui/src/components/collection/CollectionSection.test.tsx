@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import CollectionSection from '@ui/collection/CollectionSection';
-import { describe, expect, it } from 'vitest';
+import { Button } from '@ui/primitives/button';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('CollectionSection', () => {
   it('renders nothing, heading included, when the section has no items', () => {
@@ -75,5 +76,42 @@ describe('CollectionSection', () => {
       </CollectionSection>,
     );
     expect(header()).toHaveClass('sticky', 'top-0');
+  });
+  it('supports retry controls and block content in an error without invalid HTML', () => {
+    const errors = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    let retries = 0;
+    try {
+      render(
+        <CollectionSection
+          itemCount={0}
+          title="All"
+          description={<div>Failure details</div>}
+          error={
+            <div>
+              <span>Could not load agents</span>
+              <Button
+                label="Retry"
+                onClick={() => {
+                  retries += 1;
+                }}
+              />
+            </div>
+          }
+        >
+          <p>body</p>
+        </CollectionSection>,
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Could not load agents',
+      );
+      expect(screen.getByText('Failure details')).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(retries).toBe(1);
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
   });
 });

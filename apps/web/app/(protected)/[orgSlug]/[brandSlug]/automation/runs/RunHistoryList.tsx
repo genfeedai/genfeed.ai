@@ -22,6 +22,7 @@ import {
 
 export default function RunHistoryList({
   executions,
+  pageTotals,
   isLoading,
   isPaginated = false,
   onClearFilter,
@@ -199,7 +200,11 @@ export default function RunHistoryList({
         }}
       />
       {isPaginated && !isLoading && executions.length > 0 ? (
-        <AutoPagination showTotal totalLabel={translate('paginationLabel')} />
+        <AutoPagination
+          totals={pageTotals}
+          showTotal
+          totalLabel={translate('paginationLabel')}
+        />
       ) : null}
     </div>
   );

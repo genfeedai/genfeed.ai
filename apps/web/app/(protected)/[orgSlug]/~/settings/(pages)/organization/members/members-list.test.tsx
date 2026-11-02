@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { MemberRole } from '@genfeedai/contracts';
 import {
@@ -69,7 +72,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@services/organization/members.service', () => ({
   MembersService: {
-    getInstance: () => ({ findAll: mocks.findAll }),
+    getInstance: () => ({ findAllPage: mocks.findAll }),
   },
 }));
 
@@ -154,7 +157,11 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => null,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} members / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -164,6 +171,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 interface RenderOptions {
+  totals?: IPageTotals;
   invitations?: Array<Record<string, unknown>>;
   members?: Array<Record<string, unknown>>;
   page?: string | null;
@@ -183,6 +191,7 @@ function renderMembers({
   search,
   sort,
   tier,
+  totals,
 }: RenderOptions) {
   mocks.useBrand.mockReturnValue({
     organizationId: 'org-123',
@@ -210,7 +219,9 @@ function renderMembers({
     userEmail: `user-${index}@example.test`,
     userFullName: `User ${index}`,
   }));
-  mocks.findAll.mockResolvedValue(members ?? pageMembers);
+  mocks.findAll.mockResolvedValue(
+    paginatedResponse(members ?? pageMembers, totals),
+  );
   mocks.listInvitations.mockResolvedValue(invitations);
   mocks.useUserRole.mockReturnValue(role);
 
@@ -225,9 +236,9 @@ describe('MembersList seat limit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isSidebarShown = false;
-    mocks.findAll.mockResolvedValue([]);
+    mocks.findAll.mockResolvedValue(paginatedResponse([]));
     mocks.getMembersService.mockResolvedValue({
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAll,
       listInvitations: mocks.listInvitations,
       resendInvitation: mocks.resendInvitation,
       revokeInvitation: mocks.revokeInvitation,
@@ -276,6 +287,7 @@ describe('MembersList seat limit', () => {
     await screen.findByText('No members found');
     expect(mocks.findAll).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: 1, search: 'dana' }),
+      expect.any(AbortSignal),
     );
 
     const field = screen.getByRole('textbox', { name: 'Search members' });
@@ -300,6 +312,7 @@ describe('MembersList seat limit', () => {
       await screen.findByText('No members found');
       expect(mocks.findAll).toHaveBeenLastCalledWith(
         expect.objectContaining({ sort: apiSort }),
+        expect.any(AbortSignal),
       );
     },
   );
@@ -312,6 +325,7 @@ describe('MembersList seat limit', () => {
       await screen.findByText('No members found');
       expect(mocks.findAll).toHaveBeenLastCalledWith(
         expect.not.objectContaining({ sort: expect.anything() }),
+        expect.any(AbortSignal),
       );
     },
   );
@@ -469,5 +483,19 @@ describe('MembersList seat limit', () => {
     expect(within(sidebar).getByText('Email')).toBeVisible();
     expect(within(sidebar).getByText('user-0@example.test')).toBeVisible();
     expect(within(sidebar).getByText('Joined')).toBeVisible();
+  });
+  it('keeps member totals independent of invitations and visible page size', async () => {
+    renderMembers({
+      tier: 'scale',
+      pageCount: 1,
+      totals: { totalDocs: 61, totalPages: 5 },
+      invitations: [
+        { id: 'invite-1', email: 'invite@example.test', status: 'pending' },
+      ],
+    });
+    await screen.findByText('User 0');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 members / 5 pages');
   });
 });

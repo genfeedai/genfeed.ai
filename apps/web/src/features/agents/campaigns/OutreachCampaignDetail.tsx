@@ -62,6 +62,7 @@ export default function OutreachCampaignDetail() {
     loadCampaign,
     setUrlInput,
     targetStats,
+    pageTotals,
     targets,
     urlInput,
   } = useOutreachCampaignDetail();
@@ -277,7 +278,11 @@ export default function OutreachCampaignDetail() {
               isRefreshing={isRefreshing}
             />
 
-            <AutoPagination showTotal totalLabel="targets" />
+            <AutoPagination
+              showTotal
+              totalLabel="targets"
+              totals={pageTotals}
+            />
           </>
         ) : (
           <div

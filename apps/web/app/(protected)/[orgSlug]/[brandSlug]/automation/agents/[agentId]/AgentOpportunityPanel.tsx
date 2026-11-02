@@ -12,6 +12,7 @@ import type { AgentOpportunityPanelProps } from '@/features/automation/props/age
 
 export default function AgentOpportunityPanel({
   opportunities,
+  pageTotals,
   requestedOpportunityId,
   selectedOpportunity,
   isOpportunitiesLoading,
@@ -114,7 +115,11 @@ export default function AgentOpportunityPanel({
               : translate('noOpenOpportunities')}
           </p>
         )}
-        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+        <AutoPagination
+          totals={pageTotals}
+          showTotal
+          totalLabel={translate('totalLabel')}
+        />
       </div>
     </InsetSurface>
   );

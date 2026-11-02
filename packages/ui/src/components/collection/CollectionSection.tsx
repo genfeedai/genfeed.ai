@@ -57,7 +57,7 @@ export default function CollectionSection({
               </h2>
             ) : null}
             {description ? (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <div className="text-xs text-muted-foreground">{description}</div>
             ) : null}
           </div>
           {actions ? (
@@ -69,7 +69,7 @@ export default function CollectionSection({
       {error ? (
         <div role="alert">
           <Card padding={CardPadding.SM}>
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <div className="text-sm text-muted-foreground">{error}</div>
           </Card>
         </div>
       ) : (

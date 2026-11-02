@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 // @vitest-environment jsdom
 
 import {
@@ -7,13 +8,13 @@ import {
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFindAll = vi.fn();
+const mockFindAllPage = vi.fn();
 const mockFindAllPages = vi.fn();
 const mockUseAuthedService = vi.fn();
 const mockLoggerError = vi.fn();
 
 const voicesService = {
-  findAll: mockFindAll,
+  findAllPage: mockFindAllPage,
   findAllPages: mockFindAllPages,
 };
 const resolveVoicesService = async () => voicesService;
@@ -30,7 +31,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@services/ingredients/voices.service', () => ({
   VoicesService: {
     getInstance: vi.fn(() => ({
-      findAll: mockFindAll,
+      findAllPage: mockFindAllPage,
       findAllPages: mockFindAllPages,
     })),
   },
@@ -54,7 +55,9 @@ describe('useVoiceCatalog', () => {
 
   it('serves a single server page when the caller drives its own pagination', async () => {
     const voices = [{ id: 'voice-1', provider: VoiceProvider.ELEVENLABS }];
-    mockFindAll.mockResolvedValue(voices);
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse(voices, { totalDocs: 61, totalPages: 5 }),
+    );
 
     const { result } = renderHook(
       () =>
@@ -71,7 +74,7 @@ describe('useVoiceCatalog', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(mockFindAll).toHaveBeenCalledWith(
+    expect(mockFindAllPage).toHaveBeenCalledWith(
       {
         isActive: true,
         limit: 12,
@@ -90,6 +93,7 @@ describe('useVoiceCatalog', () => {
       expect.any(AbortSignal),
     );
     expect(result.current.voices).toEqual(voices);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
   });
 
   it('is loading, with no voices, on the first render of a first visit', () => {
