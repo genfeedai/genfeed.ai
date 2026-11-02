@@ -131,6 +131,7 @@ function fixture() {
       findFirst: vi.fn().mockResolvedValue({ id: 'role-admin', key: 'admin' }),
     },
     member: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    contentPreview: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   };
   return {
     tx,
@@ -321,6 +322,18 @@ describe('warm-up workspace handoff', () => {
       await claimWarmupWorkspace(client, 'invite-1', 'org-1', 'customer-1'),
     ).toBe('/prepared/brand');
     expect(balance.balance).toBe(500);
+    expect(tx.contentPreview.updateMany).toHaveBeenCalledWith({
+      where: {
+        claimedAt: null,
+        isDeleted: false,
+        organizationId: 'org-1',
+        warmupAccountId: account.id,
+      },
+      data: {
+        claimedAt: expect.any(Date),
+        claimedByUserId: 'customer-1',
+      },
+    });
     expect(tx.creditTransaction.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         amount: 40,
