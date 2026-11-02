@@ -304,8 +304,8 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
     completion.push(await readDuration());
     await expect(tile).toHaveAttribute('data-asset-media-state', 'ready');
   }
+  // A card opens its generation at /playground/:id with the preview in view.
   await page.getByTestId('studio-asset-sibling-a').click();
-  await page.getByTestId('studio-open-focused-preview').click();
   const focused = page.getByTestId('studio-focused-preview');
   for (let i = 0; i < count; i++) {
     const id = i % 2 === 0 ? 'sibling-b' : 'sibling-a';

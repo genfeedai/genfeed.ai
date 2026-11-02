@@ -328,6 +328,8 @@ test('an unavailable saved preview recovers through Retry preview without genera
   await expect(
     inspector.locator(`img[src*="/mock/${brokenId}.png"]`),
   ).toBeVisible();
+  // The card is only in the list, so go back to the generations to check it.
+  await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
   await expect(card).toHaveAttribute('data-asset-media-state', 'ready');
   await expect(cardStatus).toBeHidden();
   expect(generationWrites).toEqual([]);
