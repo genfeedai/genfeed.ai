@@ -1226,7 +1226,12 @@ describe('VideoGenerationService', () => {
           reference_video_urls: [
             'https://s3.example.com/videos/driver?signed=true',
           ],
-          reference_image_urls: [expect.stringContaining('person')],
+          // The provider rejects a first frame next to audio (E006), so the
+          // frame rides as a reference image.
+          reference_image_urls: [
+            expect.stringContaining('frame'),
+            expect.stringContaining('person'),
+          ],
         }),
         undefined,
         expect.any(Function),

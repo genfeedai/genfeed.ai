@@ -2082,10 +2082,23 @@ describe('StudioPlaygroundComposer', () => {
     );
   });
 
-  it('blocks MiniMax H3 when a start frame is combined with an audio reference', () => {
+  it('keeps Generate enabled for MiniMax H3 with a start frame and an audio reference', () => {
     render(
       <StudioPlaygroundComposer
         {...baseProps}
+        models={
+          [
+            {
+              category: ModelCategory.VIDEO,
+              cost: 20,
+              isActive: true,
+              key: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+              label: 'MiniMax H3',
+              lifecycle: ModelLifecycle.AVAILABLE,
+              provider: ModelProvider.REPLICATE,
+            },
+          ] as never
+        }
         attachedAssets={[
           {
             id: 'frame-1',
@@ -2110,14 +2123,11 @@ describe('StudioPlaygroundComposer', () => {
     );
 
     expect(
-      screen.getByText(
-        "MiniMax H3 can't combine a start or end frame with an audio reference. Attach the image as a reference instead.",
-      ),
-    ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+      screen.queryByText(/can't combine a start or end frame/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('updates the pre-send credit quote for the selected resolution', () => {

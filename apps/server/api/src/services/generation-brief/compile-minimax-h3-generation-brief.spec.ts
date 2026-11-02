@@ -39,6 +39,33 @@ describe('compileMinimaxH3GenerationBrief', () => {
       }),
     ).toThrow('at most three audio');
   });
+  it('sends a start frame as a reference image when audio is attached', () => {
+    const brief = videoGenerationBriefSchema.parse(
+      readFixture('unbranded.input.json'),
+    );
+
+    const { dispatch } = compileMinimaxH3GenerationBrief({
+      brief: {
+        ...brief,
+        audioReferences: ['voice'],
+        references: [
+          { assetId: 'start-image', role: 'first_frame' },
+          { assetId: 'end-image', role: 'last_frame' },
+          { assetId: 'extra-image', role: 'subject' },
+        ],
+      },
+    });
+
+    expect(dispatch.reference_audio_urls).toEqual(['voice']);
+    expect(dispatch.reference_image_urls).toEqual([
+      'start-image',
+      'end-image',
+      'extra-image',
+    ]);
+    expect(dispatch).not.toHaveProperty('first_frame_image');
+    expect(dispatch).not.toHaveProperty('last_frame_image');
+    expect(dispatch.ratio).not.toBe('adaptive');
+  });
   it('matches the committed synthetic three-media dispatch fixture', () => {
     const brief = videoGenerationBriefSchema.parse(
       readFixture('multimodal.input.json'),

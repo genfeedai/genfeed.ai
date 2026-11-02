@@ -224,6 +224,28 @@ describe('ReplicateVideoBuilder', () => {
       ]);
     });
 
+    it('sends the start image as a reference image when audio is attached', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3,
+        {
+          ...baseParams,
+          audioReferences: ['voice.mp3'],
+          references: ['start.jpg', 'extra.jpg'],
+        },
+        'Narrate the product reveal',
+      );
+
+      expect(result).toEqual({
+        duration: 5,
+        prompt: 'Narrate the product reveal',
+        ratio: '16:9',
+        reference_audio_urls: ['voice.mp3'],
+        reference_image_urls: ['start.jpg', 'extra.jpg'],
+        reference_video_urls: [],
+        resolution: '2K',
+      });
+    });
+
     it('should map first/end frames and bounded multimodal references', () => {
       const references = Array.from(
         { length: 12 },
@@ -233,7 +255,6 @@ describe('ReplicateVideoBuilder', () => {
         MODEL_KEYS.REPLICATE_MINIMAX_H3,
         {
           ...baseParams,
-          audioUrl: 'reference.mp3',
           duration: 30,
           endFrame: 'last-frame.jpg',
           references,
@@ -249,7 +270,7 @@ describe('ReplicateVideoBuilder', () => {
         last_frame_image: 'last-frame.jpg',
         prompt: 'Animate the product consistently',
         ratio: 'adaptive',
-        reference_audio_urls: ['reference.mp3'],
+        reference_audio_urls: [],
         reference_image_urls: references.slice(1, 10),
         reference_video_urls: ['reference.mp4'],
         resolution: '768P',

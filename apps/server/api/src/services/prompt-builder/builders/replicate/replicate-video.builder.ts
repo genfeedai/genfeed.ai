@@ -716,7 +716,14 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     params: PromptBuilderParams,
     promptText: string,
   ): MinimaxH3Input {
-    const firstFrame = params.references?.[0];
+    const audioReferences =
+      params.audioReferences ?? (params.audioUrl ? [params.audioUrl] : []);
+    // The provider rejects first/last frames next to audio references (E006),
+    // so with audio every image travels as a reference image instead.
+    const isAudioFrameFallback = audioReferences.length > 0;
+    const firstFrame = isAudioFrameFallback
+      ? undefined
+      : params.references?.[0];
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const ratio = firstFrame
       ? 'adaptive'
@@ -727,14 +734,19 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     );
     const resolution =
       params.resolution?.toUpperCase() === '768P' ? '768P' : '2K';
+    const referenceImages = isAudioFrameFallback
+      ? [
+          ...(params.references ?? []),
+          ...(params.endFrame ? [params.endFrame] : []),
+        ]
+      : (params.references?.slice(1) ?? []);
 
     const input: MinimaxH3Input = {
       duration,
       prompt: promptText,
       ratio,
-      reference_audio_urls:
-        params.audioReferences ?? (params.audioUrl ? [params.audioUrl] : []),
-      reference_image_urls: params.references?.slice(1, 10) ?? [],
+      reference_audio_urls: audioReferences,
+      reference_image_urls: referenceImages.slice(0, 9),
       reference_video_urls: params.video ? [params.video] : [],
       resolution,
     };
@@ -743,7 +755,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       input.first_frame_image = firstFrame;
     }
 
-    if (params.endFrame) {
+    if (params.endFrame && !isAudioFrameFallback) {
       input.last_frame_image = params.endFrame;
     }
 
