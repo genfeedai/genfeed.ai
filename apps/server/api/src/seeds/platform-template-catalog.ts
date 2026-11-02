@@ -32,11 +32,42 @@ const PROMPT_VARIABLE: PlatformTemplateVariable = {
   type: 'text',
 };
 
+function variable(
+  name: string,
+  label: string,
+  description: string,
+  required: boolean,
+): PlatformTemplateVariable {
+  return { description, label, name, required, type: 'text' };
+}
+
+/**
+ * The brief for standard article generation. Article generation reads this
+ * key from the database and fails the whole workflow when it is missing, so
+ * it is seeded here. The reply shape matches what the article parser reads
+ * (`articles[]` with label, slug, summary, HTML content and tags).
+ */
+const ARTICLE_GENERATE_CONTENT = `Write {{count}} article draft(s) for the brief below.
+
+Brief: {{{prompt}}}
+{{#if category}}Category: {{{category}}}
+{{/if}}{{#if keywords}}Keywords to work in naturally: {{{keywords}}}
+{{/if}}
+Write each article in the brand's voice from the context you were given. Be specific and concrete, avoid filler, and do not invent facts, numbers or quotes.
+
+Format the article body as HTML using only <h2>, <h3>, <p>, <ul>, <ol> and <li> tags. Start with a short introduction and end with a clear takeaway.
+
+Respond with JSON only, without markdown fences, in exactly this shape:
+{"articles": [{"label": "Article title", "slug": "article-title", "summary": "One or two sentence summary", "content": "<h2>Heading</h2><p>Body</p>", "tags": ["tag"]}]}
+
+Return exactly {{count}} item(s) in "articles".`;
+
 /**
  * The platform defaults `PromptBuilderService` resolves for each model
- * category. They pass the prompt through unchanged (triple braces: no HTML
- * escaping), so seeding them keeps generation exactly as it was while making
- * the keys visible, and overridable per organization.
+ * category, plus the article brief. The category defaults pass the prompt
+ * through unchanged (triple braces: no HTML escaping), so seeding them keeps
+ * generation exactly as it was while making the keys visible, and overridable
+ * per organization.
  */
 export const PLATFORM_TEMPLATES: readonly PlatformTemplateDefinition[] = [
   {
@@ -74,5 +105,20 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplateDefinition[] = [
     label: 'Text default',
     tags: ['system', 'text'],
     variables: [PROMPT_VARIABLE],
+  },
+  {
+    category: TemplateCategory.ARTICLE_GENERATION,
+    content: ARTICLE_GENERATE_CONTENT,
+    description:
+      'Brief for standard article generation. Asks for a JSON list of article drafts.',
+    key: PromptTemplateKey.ARTICLE_GENERATE,
+    label: 'Article generation',
+    tags: ['system', 'article'],
+    variables: [
+      PROMPT_VARIABLE,
+      variable('count', 'Count', 'How many drafts to write', true),
+      variable('category', 'Category', 'The article category', false),
+      variable('keywords', 'Keywords', 'Comma-separated keywords', false),
+    ],
   },
 ];

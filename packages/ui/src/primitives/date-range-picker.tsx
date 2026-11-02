@@ -67,6 +67,18 @@ function formatSelectedDateRange(
   return `${formatUtcChipDate(dateRange.from, false)} - ${formatUtcChipDate(dateRange.to, true)}`;
 }
 
+/** The API reads days by their UTC date, so a picked day is that day at UTC midnight. */
+function toUtcDay(day: Date): Date {
+  return new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()));
+}
+
+/** The calendar draws local days; the picker stores UTC days. */
+function toCalendarDay(date: Date | undefined): Date | undefined {
+  return date
+    ? new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    : undefined;
+}
+
 function getPresetForRange(
   range: AnalyticsDateRange,
 ): DateRangePreset | 'custom' {
@@ -100,6 +112,8 @@ export default function DateRangePicker({
     DateRangePreset | 'custom'
   >(defaultPreset);
   const [open, setOpen] = useState(false);
+  // The first day of a custom range, while the second is still to be picked.
+  const [rangeAnchor, setRangeAnchor] = useState<Date | null>(null);
 
   const yesterday = subDays(new Date(), 1);
   const [dateRange, setDateRange] = useState<CalendarDateRange | undefined>({
@@ -130,24 +144,49 @@ export default function DateRangePicker({
 
     setDateRange({ from: startDate, to: endDate });
     onChange({ endDate, startDate: startDate ?? null });
-    setOpen(false);
+    handleOpenChange(false);
   };
 
-  const handleDateChange = (range: CalendarDateRange | undefined) => {
-    setDateRange(range);
+  // A range is two clicks. The calendar's own range logic extends the previous
+  // range on the first click, which would commit it and close the popover
+  // before the second day is picked, so the clicks are counted here.
+  const handleDayClick = (day: Date) => {
+    const picked = toUtcDay(day);
 
-    if (!range?.from || !range?.to) {
+    if (!rangeAnchor) {
+      setRangeAnchor(picked);
       return;
     }
 
+    const [startDate, endDate] =
+      picked < rangeAnchor ? [picked, rangeAnchor] : [rangeAnchor, picked];
+
+    setRangeAnchor(null);
+    setDateRange({ from: startDate, to: endDate });
     setSelectedPreset('custom');
-    onChange({ endDate: range.to, startDate: range.from });
+    onChange({ endDate, startDate });
     setOpen(false);
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setRangeAnchor(null);
+    }
+  };
+
+  const calendarSelection: CalendarDateRange | undefined = rangeAnchor
+    ? { from: toCalendarDay(rangeAnchor) }
+    : dateRange?.from
+      ? {
+          from: toCalendarDay(dateRange.from),
+          to: toCalendarDay(dateRange.to),
+        }
+      : undefined;
+
   return (
     <div className={cn('flex items-center', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             variant={ButtonVariant.UNSTYLED}
@@ -189,8 +228,8 @@ export default function DateRangePicker({
           </div>
           <Calendar
             mode="range"
-            selected={dateRange}
-            onSelect={handleDateChange}
+            selected={calendarSelection}
+            onDayClick={handleDayClick}
             endMonth={yesterday}
             disabled={{ after: yesterday }}
             numberOfMonths={2}
