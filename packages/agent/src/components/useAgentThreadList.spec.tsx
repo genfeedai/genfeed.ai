@@ -10,6 +10,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentThreadList } from './useAgentThreadList';
 
@@ -130,6 +131,32 @@ describe('useAgentThreadList', () => {
     });
 
     expect(firstRender[0]).toBe(true);
+  });
+
+  it('is loading in the first commit that opens an inactive list', () => {
+    const apiService = makeApiService();
+    // Layout effects see each committed render before paint and before the
+    // load effect runs, which is exactly what the user would see.
+    const commits: { isActive: boolean; isEmpty: boolean }[] = [];
+    const { rerender } = renderHook(
+      ({ isActive }) => {
+        const state = useAgentThreadList({
+          apiService,
+          brandId: null,
+          isActive,
+        });
+        const isEmpty = state.shouldShowEmptyState;
+        useLayoutEffect(() => {
+          commits.push({ isActive, isEmpty });
+        });
+        return state;
+      },
+      { initialProps: { isActive: false } },
+    );
+
+    rerender({ isActive: true });
+
+    expect(commits.find((commit) => commit.isActive)?.isEmpty).toBe(false);
   });
 
   it('paints the cached threads on a return visit without a loading state', () => {

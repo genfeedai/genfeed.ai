@@ -32,6 +32,17 @@ interface UseAgentThreadListParams {
   resolveThreadHref?: (thread: AgentThread) => string;
 }
 
+/** True when the store already holds a thread this list would render. */
+function hasCachedThreadsInScope(brandId: string | null): boolean {
+  return useAgentChatStore
+    .getState()
+    .threads.some(
+      (thread) =>
+        (!brandId || thread.brandId === brandId) &&
+        hasRenderableThreadId(thread),
+    );
+}
+
 export function useAgentThreadList({
   apiService,
   isActive,
@@ -67,16 +78,17 @@ export function useAgentThreadList({
   // A first visit with nothing cached is loading from the first paint, so the
   // "no threads" empty state never flashes before the first fetch.
   const [isLoading, setIsLoading] = useState(
-    () =>
-      isActive &&
-      !useAgentChatStore
-        .getState()
-        .threads.some(
-          (thread) =>
-            (!brandId || thread.brandId === brandId) &&
-            hasRenderableThreadId(thread),
-        ),
+    () => isActive && !hasCachedThreadsInScope(brandId),
   );
+  // Opening the list later (inactive -> active) gets the same treatment in the
+  // render that activates it, not one effect later.
+  const [wasActive, setWasActive] = useState(isActive);
+  if (wasActive !== isActive) {
+    setWasActive(isActive);
+    if (isActive && !hasCachedThreadsInScope(brandId)) {
+      setIsLoading(true);
+    }
+  }
   // Bumped after every successful/failed load so soft refreshes still re-render
   // even when isLoading stays false (store mocks and no-op setState edge cases).
   const [, setListRevision] = useState(0);
