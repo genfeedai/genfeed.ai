@@ -86,6 +86,7 @@ const publicRoutes = routes.filter(
     route.startsWith('/login') ||
     route.startsWith('/logout') ||
     route.startsWith('/managed-credits') ||
+    route.startsWith('/preview') ||
     route.startsWith('/request-access') ||
     route.startsWith('/reset-password') ||
     route.startsWith('/sign-up'),

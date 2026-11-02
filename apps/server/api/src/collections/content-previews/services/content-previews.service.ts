@@ -295,35 +295,44 @@ export class ContentPreviewsService {
       ];
     });
 
-    const logoUrl = await this.readLogoUrl(scope);
+    const [logoUrl, bannerUrl] = await Promise.all([
+      this.readBrandAssetUrl(scope, AssetCategory.LOGO),
+      this.readBrandAssetUrl(scope, AssetCategory.BANNER),
+    ]);
     const diagnostics = account.diagnostics as {
       preparation?: IWarmupPreparation;
     };
     return {
-      brand: buildPublicPreviewBrand(brand, diagnostics.preparation, logoUrl),
+      brand: buildPublicPreviewBrand(brand, diagnostics.preparation, {
+        bannerUrl,
+        logoUrl,
+      }),
       expiresAt: preview.expiresAt.toISOString(),
       id: 'preview',
       items,
     };
   }
 
-  private async readLogoUrl(scope: {
-    brandId: string;
-    organizationId: string;
-    userId: string;
-  }): Promise<string | undefined> {
-    const logo = await this.prisma.asset.findFirst({
+  private async readBrandAssetUrl(
+    scope: {
+      brandId: string;
+      organizationId: string;
+      userId: string;
+    },
+    category: AssetCategory,
+  ): Promise<string | undefined> {
+    const asset = await this.prisma.asset.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { id: true },
       where: {
-        category: AssetCategory.LOGO,
+        category,
         isDeleted: false,
         parentBrandId: scope.brandId,
         parentOrgId: scope.organizationId,
       },
     });
-    if (!logo) return undefined;
-    const [projection] = await this.mediaUrls.projectAssets(scope, [logo.id]);
+    if (!asset) return undefined;
+    const [projection] = await this.mediaUrls.projectAssets(scope, [asset.id]);
     return projection?.url ?? undefined;
   }
 
