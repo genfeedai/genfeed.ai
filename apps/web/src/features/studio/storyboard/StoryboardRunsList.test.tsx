@@ -78,10 +78,9 @@ describe('StoryboardRunsList', () => {
     expect(within(row).getByText('3 shots')).toBeVisible();
     expect(within(row).getByText('12.5s')).toBeVisible();
     expect(within(row).getByText(/^Edited /)).toBeVisible();
-    expect(screen.getByRole('link', { name: /Proof-led hook/ })).toHaveAttribute(
-      'href',
-      '/acme/northstar/storyboard/run-1',
-    );
+    expect(
+      screen.getByRole('link', { name: /Proof-led hook/ }),
+    ).toHaveAttribute('href', '/acme/northstar/storyboard/run-1');
   });
 
   it('raises runs that need the creator above the full list', () => {

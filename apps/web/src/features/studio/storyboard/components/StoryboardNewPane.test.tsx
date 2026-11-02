@@ -349,8 +349,12 @@ describe('StoryboardNewPane', () => {
     chooseSource('Remix a video');
 
     expect(screen.queryByLabelText('Brief')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Upload a video' })).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Choose from Library' }));
+    expect(
+      screen.getByRole('button', { name: 'Upload a video' }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose from Library' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
 
     await waitFor(() =>

@@ -70,4 +70,3 @@ export interface StoryboardPitchCardsProps {
   kind: StoryboardPitchKind;
   onSelect: (pitch: StoryboardPitch) => void;
 }
-

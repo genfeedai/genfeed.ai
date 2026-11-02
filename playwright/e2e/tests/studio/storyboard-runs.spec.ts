@@ -203,9 +203,9 @@ test.describe('Storyboard runs', () => {
     await expect(page.getByLabel('Brief', { exact: true })).toBeVisible();
     await expect(page.getByText('No storyboards yet')).toBeVisible();
     await expect(page.getByTestId('storyboard-onboarding')).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'New storyboard' })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.getByRole('link', { name: 'New storyboard' }),
+    ).toHaveCount(0);
     await page.getByRole('combobox', { name: 'Storyboard source' }).click();
     await expect(
       page.getByRole('option', { name: 'From a brief' }),

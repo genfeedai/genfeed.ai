@@ -73,7 +73,12 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it.each([
-    ['/acme/brand/library/imported', '/library', '/library/imported', 'Imported'],
+    [
+      '/acme/brand/library/imported',
+      '/library',
+      '/library/imported',
+      'Imported',
+    ],
     [
       '/acme/brand/analytics/insights',
       '/analytics',

@@ -22,7 +22,7 @@ import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBar
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Paperclip, Palette } from 'lucide-react';
+import { Palette, Paperclip } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
