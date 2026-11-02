@@ -8,14 +8,11 @@ import {
   type SVGProps,
 } from 'react';
 
-type RasterBrandIconName =
-  | 'ArgilIcon'
-  | 'CrunIcon'
-  | 'HeygenIcon'
-  | 'LeonardoIcon'
-  | 'WanIcon';
-
 type BrandIconProps = SVGProps<SVGSVGElement>;
+
+type RasterBrandIconLoader = () => Promise<{
+  default: ComponentType<BrandIconProps>;
+}>;
 
 /**
  * The raster logos weigh about 100 kB. Loading them with the model picker put
@@ -24,13 +21,10 @@ type BrandIconProps = SVGProps<SVGSVGElement>;
  * empty svg holds the same box, so nothing shifts.
  */
 function createLazyRasterBrandIcon(
-  name: RasterBrandIconName,
+  name: string,
+  load: RasterBrandIconLoader,
 ): ComponentType<BrandIconProps> {
-  const LazyIcon = lazy(() =>
-    import('./model-provider-raster-icons').then((icons) => ({
-      default: icons[name],
-    })),
-  );
+  const LazyIcon = lazy(load);
 
   function RasterBrandIcon(props: BrandIconProps) {
     return createElement(
@@ -50,8 +44,28 @@ function createLazyRasterBrandIcon(
   return RasterBrandIcon;
 }
 
-export const ArgilIcon = createLazyRasterBrandIcon('ArgilIcon');
-export const CrunIcon = createLazyRasterBrandIcon('CrunIcon');
-export const HeygenIcon = createLazyRasterBrandIcon('HeygenIcon');
-export const LeonardoIcon = createLazyRasterBrandIcon('LeonardoIcon');
-export const WanIcon = createLazyRasterBrandIcon('WanIcon');
+export const ArgilIcon = createLazyRasterBrandIcon('ArgilIcon', () =>
+  import('./model-provider-raster-icons').then((icons) => ({
+    default: icons.ArgilIcon,
+  })),
+);
+export const CrunIcon = createLazyRasterBrandIcon('CrunIcon', () =>
+  import('./model-provider-raster-icons').then((icons) => ({
+    default: icons.CrunIcon,
+  })),
+);
+export const HeygenIcon = createLazyRasterBrandIcon('HeygenIcon', () =>
+  import('./model-provider-raster-icons').then((icons) => ({
+    default: icons.HeygenIcon,
+  })),
+);
+export const LeonardoIcon = createLazyRasterBrandIcon('LeonardoIcon', () =>
+  import('./model-provider-raster-icons').then((icons) => ({
+    default: icons.LeonardoIcon,
+  })),
+);
+export const WanIcon = createLazyRasterBrandIcon('WanIcon', () =>
+  import('./model-provider-raster-icons').then((icons) => ({
+    default: icons.WanIcon,
+  })),
+);
