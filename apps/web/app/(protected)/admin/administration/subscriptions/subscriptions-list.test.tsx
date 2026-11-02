@@ -253,7 +253,7 @@ describe('SubscriptionsList', () => {
     expect(rowSidebar?.kind).toBe('record');
     expect(rowSidebar?.getTitle(billing)).toBe('Acme');
 
-    render(<>{rowSidebar?.render(billing)}</>);
+    render(<div>{rowSidebar?.render(billing)}</div>);
     const summary = screen.getByTestId('table-row-summary');
     expect(summary).toHaveTextContent('owner@example.com');
     expect(summary).toHaveTextContent('cus_123');

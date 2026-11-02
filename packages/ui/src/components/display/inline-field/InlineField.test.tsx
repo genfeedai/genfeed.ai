@@ -1,6 +1,26 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import InlineField from '@ui/display/inline-field/InlineField';
-import { describe, expect, it } from 'vitest';
+import type { ComponentType } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+
+// next/dynamic with ssr: false renders nothing under jsdom, so the picker
+// editors would never mount. Load them through React.lazy instead.
+vi.mock('next/dynamic', async () => {
+  const { lazy, Suspense } = await import('react');
+  return {
+    default: (
+      loader: () => Promise<{ default: ComponentType<never> }>,
+      options?: { loading?: () => React.ReactNode },
+    ) => {
+      const Lazy = lazy(loader);
+      return (props: object) => (
+        <Suspense fallback={options?.loading?.() ?? null}>
+          <Lazy {...(props as never)} />
+        </Suspense>
+      );
+    },
+  };
+});
 
 /** Records every value a field saves, so tests assert the saved result. */
 function createSaver<T>() {
