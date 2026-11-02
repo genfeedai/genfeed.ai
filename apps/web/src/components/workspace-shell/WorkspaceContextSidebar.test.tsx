@@ -134,12 +134,7 @@ describe('right sidebar single topbar guard', () => {
     expect(shell).toMatch(/<WorkspaceAgentContext\b/);
 
     render(
-      <WorkspaceAgentContext
-        contextSidebar={buildContextSidebar()}
-        pageLabel="Assets"
-        referenceCount={1}
-        scopeLabel="Moonrise"
-      />,
+      <WorkspaceAgentContext contextSidebar={buildContextSidebar()} />,
     );
 
     expect(screen.queryByRole('button')).toBeNull();
