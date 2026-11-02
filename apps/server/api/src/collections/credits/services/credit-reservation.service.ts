@@ -48,7 +48,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
-const MAX_SERIALIZATION_RETRIES = 3;
+const MAX_SERIALIZATION_ATTEMPTS = 5;
+const SERIALIZATION_BACKOFF_MS = 25;
 const BIND_ROUNDING_TOLERANCE = 1e-6;
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
@@ -833,7 +834,7 @@ export class CreditReservationService {
   async runSerializable<T>(
     operation: (tx: PrismaTransactionClient) => Promise<T>,
   ): Promise<T> {
-    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_ATTEMPTS; attempt += 1) {
       try {
         // A pool that cannot hand out a connection never ran the operation,
         // so retrying the start is safe (Sentry 8Q class of failure).
@@ -845,10 +846,17 @@ export class CreditReservationService {
       } catch (error: unknown) {
         if (
           !isCreditTransactionConflict(error) ||
-          attempt === MAX_SERIALIZATION_RETRIES - 1
+          attempt === MAX_SERIALIZATION_ATTEMPTS - 1
         ) {
           throw error;
         }
+        // Stagger aborted wallet writers so concurrent outputs can commit.
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            SERIALIZATION_BACKOFF_MS * (attempt + 1) * (1 + Math.random()),
+          ),
+        );
       }
     }
     throw new Error('Serializable reservation transition exhausted retries');
