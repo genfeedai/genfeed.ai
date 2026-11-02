@@ -16,6 +16,7 @@ type PageContextContract = {
     | 'storyboard'
     | 'workspace';
   sectionLabel?: string;
+  canvasHeading?: string;
   /**
    * A single-page Studio app has nothing to navigate between, so it drops the
    * secondary nav column and uses the full width (#6693). The page identity
@@ -57,7 +58,10 @@ const CONTRACTS: PageContextContract[] = [
     currentApp: 'editor',
     hasSecondaryNav: false,
     sectionLabel: 'Editor',
+    canvasHeading: 'Projects',
     breadcrumbLabels: ['Editor'],
+    pageButtons: ['Create project'],
+    pageLabels: ['No projects yet'],
   },
   {
     route: `${BRAND_BASE}/publishing`,
@@ -133,7 +137,10 @@ test.describe('Shell page context contract', () => {
         await expect(
           authenticatedPage
             .getByRole('region', { name: 'Primary workspace canvas' })
-            .getByRole('heading', { level: 1, name: contract.sectionLabel }),
+            .getByRole('heading', {
+              level: 1,
+              name: contract.canvasHeading ?? contract.sectionLabel,
+            }),
         ).toBeVisible();
       }
 
