@@ -223,7 +223,26 @@ describe('Storyboard shared composer', () => {
     );
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith(
-        '/org/brand-a/storyboard/saved-storyboard',
+        '/org/brand-a/storyboard/saved-storyboard?draft=1',
+      ),
+    );
+  });
+  it('saves the runtime picked in the dropdown, not the default', async () => {
+    render(<StoryboardCreate />);
+    fireEvent.keyDown(
+      screen.getByRole('combobox', { name: 'Runtime budget (seconds)' }),
+      { key: 'ArrowDown' },
+    );
+    fireEvent.click(screen.getByRole('option', { name: '45s' }));
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'A founder launches a product.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planSettings: expect.objectContaining({ runtimeBudgetSeconds: 45 }),
+        }),
       ),
     );
   });

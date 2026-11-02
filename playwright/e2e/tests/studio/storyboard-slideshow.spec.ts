@@ -128,9 +128,12 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
   authenticatedPage: page,
 }) => {
   let created: StoryboardRun | undefined;
+  const readPaths: string[] = [];
+  let drafts = 0;
   await page.route('**/brands/brand-1/storyboard-runs**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     const method = route.request().method();
+    if (method === 'GET') readPaths.push(pathname);
     if (method === 'POST' && pathname.endsWith('/storyboard-runs')) {
       const input = route.request().postDataJSON();
       expect(input.source).toEqual({
@@ -158,6 +161,37 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
             title: '',
             logline: '',
             shots: [],
+          },
+        },
+      };
+    } else if (
+      method === 'POST' &&
+      pathname.endsWith('/plan/draft') &&
+      created
+    ) {
+      // Saving a brief drafts it into slides without a second click.
+      drafts += 1;
+      created = {
+        ...created,
+        config: {
+          ...created.config,
+          revision: created.config.revision + 1,
+          plan: {
+            ...created.config.plan,
+            title: 'Three calm habits',
+            logline: 'Swipe for three habits of calm founders.',
+            shots: ['Wake early', 'Plan the day', 'Log off'].map(
+              (label, index) => ({
+                id: `slide-${index + 1}`,
+                ordinal: index + 1,
+                sectionLabel: label,
+                action: `${label}, shot on a quiet wooden desk`,
+                durationSeconds: null,
+                onScreenSpeaker: false,
+                stillFreshness: 'missing' as const,
+                transition: 'cut' as const,
+              }),
+            ),
           },
         },
       };
@@ -206,4 +240,15 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
     .getByRole('button', { name: 'Save storyboard', exact: true })
     .click();
   await expect(page).toHaveURL(/\/storyboard\/new-slideshow$/);
+  await expect(page.getByText(/Invalid Storyboard document/)).toHaveCount(0);
+  // The saved brief is drafted once into three slides, with no extra click.
+  await expect(page.getByRole('list', { name: 'Slides' })).toBeVisible();
+  expect(drafts).toBe(1);
+  // The run page reads the new run by id, never the run list (`/storyboard-runs/`).
+  await expect
+    .poll(() => readPaths.some((path) => path.endsWith('/new-slideshow')))
+    .toBe(true);
+  expect(readPaths.some((path) => path.endsWith('/storyboard-runs/'))).toBe(
+    false,
+  );
 });

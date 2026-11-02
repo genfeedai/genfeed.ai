@@ -41,6 +41,7 @@ import StoryboardReferencesPanel from '@/features/studio/storyboard/components/S
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
 import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
+import { JUST_CREATED_PARAM } from '@/features/studio/storyboard/utils/storyboard-navigation';
 import { storyboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-plan';
 
 const VIDEO_FORMATS = ['9:16', '16:9', '1:1'] as const;
@@ -254,8 +255,14 @@ export default function StoryboardCreate({
     try {
       const id = await create(input);
       if (!isCurrentResult(id)) return;
+      const destination = href(
+        `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(id)}`,
+      );
+      // A written brief is drafted into shots on arrival; a video is analysed instead.
       router.push(
-        href(`${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(id)}`),
+        input.source.kind === 'brief'
+          ? `${destination}?${JUST_CREATED_PARAM}=1`
+          : destination,
       );
     } catch {
       /* The hook keeps the source and exposes the retryable error. */

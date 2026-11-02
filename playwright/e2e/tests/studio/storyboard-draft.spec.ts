@@ -639,6 +639,13 @@ test('creates an unpaid brief draft and saves added shots through the real route
           state: 'storyboard',
         },
       };
+    } else if (
+      method === 'POST' &&
+      pathname.endsWith('/plan/draft') &&
+      created
+    ) {
+      // Saving a brief asks for one draft; this one comes back with no shots.
+      mutations.push('draft');
     } else if (method !== 'GET')
       throw new Error(
         `Unexpected paid or control mutation: ${method} ${pathname}`,
@@ -682,8 +689,11 @@ test('creates an unpaid brief draft and saves added shots through the real route
   ).toBeDisabled();
   expect(mutations.filter((mutation) => mutation === 'create')).toHaveLength(1);
   expect(mutations).toContain('plan');
+  expect(mutations.filter((mutation) => mutation === 'draft')).toHaveLength(1);
   expect(
-    mutations.every((mutation) => mutation === 'create' || mutation === 'plan'),
+    mutations.every((mutation) =>
+      ['create', 'draft', 'plan'].includes(mutation),
+    ),
   ).toBe(true);
 });
 

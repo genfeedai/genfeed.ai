@@ -196,6 +196,20 @@ describe('Versioned content-run response documents', () => {
       expect(() => deserializeStoryboardRunDocument(input)).toThrow();
     expect(() => deserializeStoryboardRunDocument(document)).not.toThrow();
   });
+  it.each([
+    ['a list', { data: [{ id: 'a' }, { id: 'b' }] }, 'a list of 2 resources'],
+    ['an empty body', '', 'an empty body'],
+    ['no data', { data: null }, 'a document without data'],
+    [
+      'a resource without config',
+      { data: { id: 'r', type: 'storyboard-run', attributes: {} } },
+      'a storyboard-run resource without config',
+    ],
+  ])('says what it received when given %s', (_label, input, received) => {
+    expect(() =>
+      deserializeStoryboardRunDocument(input as JsonApiResponseDocument),
+    ).toThrow(`expected one resource with config, received ${received}`);
+  });
   it('keeps identical opaque IDs isolated across two independent organization responses', () => {
     const first = deserializeStoryboardRunDocument(fixture('org-1').document);
     const second = deserializeStoryboardRunDocument(fixture('org-2').document);

@@ -6,7 +6,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 import type {
@@ -24,6 +24,7 @@ import {
   useStoryboardDraftOutbox,
 } from '@/features/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@/features/studio/storyboard/utils/storyboard-editor-seed';
+import { JUST_CREATED_PARAM } from '@/features/studio/storyboard/utils/storyboard-navigation';
 
 const MAX_BRIEF_LENGTH = 2000;
 
@@ -55,6 +56,10 @@ export default function StoryboardDraftPage({
   const translateAction = useTranslations('ui.quickActions');
   const { href } = useOrgUrl();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isJustCreated = searchParams.get(JUST_CREATED_PARAM) === '1';
+  const hasAutoDrafted = useRef(false);
   const editor = useRef<StoryboardPlanEditorHandle>(null);
   const draft = useStoryboardDraftOutbox(
     run.config.plan ? transport : undefined,
@@ -213,6 +218,24 @@ export default function StoryboardDraftPage({
       setIsDrafting(false);
     }
   }
+  // A brief saved on the create page lands here with no shots; draft it once,
+  // so the person sees shots and slides without a second click. Pricing and
+  // paying for the stills stays an explicit step.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per arrival; runDraft is re-created each render.
+  useEffect(() => {
+    if (!isJustCreated || hasAutoDrafted.current) return;
+    if (!canCompose || !draft.queue || isDrafting) return;
+    hasAutoDrafted.current = true;
+    router.replace(pathname);
+    if (!hasShots && savedBrief) void runDraft({});
+  }, [
+    isJustCreated,
+    canCompose,
+    draft.queue,
+    isDrafting,
+    hasShots,
+    savedBrief,
+  ]);
   function submitPrompt(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;

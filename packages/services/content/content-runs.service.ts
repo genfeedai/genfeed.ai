@@ -485,6 +485,9 @@ export class ContentRunsService extends HTTPBaseService {
     runId: string,
     signal?: AbortSignal,
   ): Promise<StoryboardRun> {
+    // An empty id would request the run list (`/storyboard-runs/`), which is
+    // not a storyboard document.
+    if (!runId) throw new TypeError('A storyboard run id is required.');
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}`,
       { signal },
