@@ -19,8 +19,8 @@ export default function BrandDetailBanner({
   return (
     <BrandBanner
       alt={`${brand.label} banner`}
-      className="mb-8"
       isPriority
+      shape="rounded"
       src={brand.bannerUrl}
     >
       <div
