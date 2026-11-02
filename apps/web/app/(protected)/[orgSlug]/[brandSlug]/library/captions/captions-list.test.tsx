@@ -1,10 +1,14 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { Caption } from '@models/content/caption.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { PagesService } from '@services/content/pages.service';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CaptionsList from './captions-list';
 import '@testing-library/jest-dom/vitest';
 
-const findAllMock = vi.fn<() => Promise<Caption[]>>();
+const findAllPageMock = vi.fn<() => Promise<IPaginatedResponse<Caption>>>();
+const getServiceMock = vi.fn(async () => ({ findAllPage: findAllPageMock }));
 const { loggerErrorMock, searchParamValues } = vi.hoisted(() => ({
   loggerErrorMock: vi.fn(),
   searchParamValues: { page: '1' } as Record<string, string>,
@@ -16,11 +20,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn(async () => ({
-      findAll: findAllMock,
-    })),
-  ),
+  useAuthedService: vi.fn(() => getServiceMock),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -66,7 +66,7 @@ describe('CaptionsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete searchParamValues.q;
-    findAllMock.mockResolvedValue([]);
+    findAllPageMock.mockResolvedValue(paginatedResponse([]));
   });
 
   it('searches captions on the server with the term in the URL', async () => {
@@ -74,14 +74,16 @@ describe('CaptionsList', () => {
     render(<CaptionsList />);
 
     await screen.findByText('No captions found');
-    expect(findAllMock).toHaveBeenCalledWith(
+    expect(findAllPageMock).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, search: 'welcome' }),
+      expect.any(AbortSignal),
     );
   });
 
-  it('should render without crashing', () => {
+  it('renders the empty list', async () => {
     const { container } = render(<CaptionsList />);
     expect(container.firstChild).toBeInTheDocument();
+    expect(await screen.findByText('No captions found')).toBeInTheDocument();
   });
 
   it('should display empty state when no captions', async () => {
@@ -90,14 +92,16 @@ describe('CaptionsList', () => {
   });
 
   it('should render table with correct columns', async () => {
-    findAllMock.mockResolvedValue([
-      {
-        createdAt: '2026-03-10T00:00:00.000Z',
-        format: 'srt',
-        id: 'caption-1',
-        label: 'Caption 1',
-      } as Caption,
-    ]);
+    findAllPageMock.mockResolvedValue(
+      paginatedResponse([
+        {
+          createdAt: '2026-03-10T00:00:00.000Z',
+          format: 'srt',
+          id: 'caption-1',
+          label: 'Caption 1',
+        } as Caption,
+      ]),
+    );
 
     render(<CaptionsList />);
     expect(await screen.findByText('Label')).toBeInTheDocument();
@@ -109,7 +113,7 @@ describe('CaptionsList', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
-    findAllMock.mockRejectedValue(new Error('network unavailable'));
+    findAllPageMock.mockRejectedValue(new Error('network unavailable'));
 
     try {
       render(<CaptionsList />);
@@ -119,15 +123,46 @@ describe('CaptionsList', () => {
       ).toBeInTheDocument();
       expect(loggerErrorMock).toHaveBeenCalled();
 
-      const callsBeforeRetry = findAllMock.mock.calls.length;
-      findAllMock.mockResolvedValue([]);
+      const callsBeforeRetry = findAllPageMock.mock.calls.length;
+      findAllPageMock.mockResolvedValue(paginatedResponse([]));
       fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
       expect(await screen.findByText('No captions found')).toBeInTheDocument();
-      expect(findAllMock.mock.calls.length).toBeGreaterThan(callsBeforeRetry);
+      expect(findAllPageMock.mock.calls.length).toBeGreaterThan(
+        callsBeforeRetry,
+      );
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     } finally {
       consoleErrorSpy.mockRestore();
     }
+  });
+  it('renders its server totals even when another list overwrites the legacy totals', async () => {
+    findAllPageMock.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
+    const { rerender } = render(<CaptionsList />);
+    expect(await screen.findByText('61 captions')).toBeVisible();
+    PagesService.setTotalDocs(200);
+    PagesService.setTotalPages(20);
+    rerender(<CaptionsList />);
+    expect(screen.getByText('61 captions')).toBeVisible();
+    expect(screen.queryByText('200 captions')).not.toBeInTheDocument();
+  });
+
+  it('starts empty while its response is pending', async () => {
+    let resolvePage: ((page: IPaginatedResponse<Caption>) => void) | undefined;
+    findAllPageMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePage = resolve;
+      }),
+    );
+    PagesService.setTotalDocs(200);
+    PagesService.setTotalPages(20);
+    render(<CaptionsList />);
+    expect(screen.getByText('0 captions')).toBeVisible();
+    await act(async () => {
+      resolvePage?.(paginatedResponse([]));
+    });
+    expect(screen.getByText('0 captions')).toBeVisible();
   });
 });

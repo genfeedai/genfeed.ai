@@ -1,4 +1,5 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ComponentProps, ReactNode } from 'react';
@@ -29,8 +30,10 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav aria-label="pagination" data-total-label={totalLabel} />
+  default: ({ totalLabel, totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination" data-total-label={totalLabel}>
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
   ),
 }));
 
@@ -136,5 +139,22 @@ describe('OrganizationSpendingPanel', () => {
     renderPanel({ error: new Error('boom'), report: undefined });
 
     expect(screen.getByText(/boom/)).toBeInTheDocument();
+  });
+  it('keeps the report total rather than counting the visible page', () => {
+    renderPanel({
+      report: {
+        ...report,
+        pagination: { limit: 15, page: 2, pages: 5, total: 61 },
+      },
+    });
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '61 rows / 5 pages',
+    );
+  });
+  it('starts with empty totals while the report loads', () => {
+    renderPanel({ report: undefined, isLoading: true });
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '0 rows / 1 pages',
+    );
   });
 });

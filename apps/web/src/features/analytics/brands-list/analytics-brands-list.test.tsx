@@ -1,3 +1,5 @@
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
@@ -85,7 +87,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 // `dateRange` is a dependency of the fetch effect, so a fresh object per render
@@ -376,6 +382,19 @@ describe('AnalyticsBrandsList', () => {
     await waitFor(() => {
       expect(screen.getByText('No brands found')).toBeInTheDocument();
     });
+  });
+  it('renders the response total independently of legacy pagination', async () => {
+    PagesService.setTotalDocs(200);
+    PagesService.setTotalPages(20);
+    getBrandsWithStatsMock.mockResolvedValue({
+      data: [brandFixture],
+      pagination: { limit: 15, page: 1, total: 61, totalPages: 5 },
+    });
+    render(<AnalyticsBrandsList />);
+    await screen.findByText('Acme');
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '61 rows / 5 pages',
+    );
   });
 });
 
