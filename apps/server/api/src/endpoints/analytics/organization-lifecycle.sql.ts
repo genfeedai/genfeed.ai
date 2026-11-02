@@ -144,3 +144,15 @@ export async function resolveOrganizationLifecycles(
     ]),
   );
 }
+
+/** An organization's lifecycle from {@link resolveOrganizationLifecycles}; free when none was found. */
+export function lifecycleOf(
+  lifecycles: Map<string, OrganizationLifecycle>,
+  organizationId: string,
+): OrganizationLifecycle {
+  return (
+    lifecycles.get(organizationId) ?? {
+      status: OrganizationLifecycleStatus.FREE,
+    }
+  );
+}

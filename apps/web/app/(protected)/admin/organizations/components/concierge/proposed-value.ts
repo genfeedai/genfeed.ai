@@ -1,9 +1,5 @@
 import { isRecord } from '@genfeedai/utils/data/extract.util';
-
-/** How a proposed brand-context value is shown in the review list. */
-export type ProposedValueView =
-  | { kind: 'image'; label: string; url: string }
-  | { kind: 'text'; text: string };
+import type { ProposedValueView } from '@/features/admin/props/concierge.props';
 
 /**
  * A proposed value is a string, or the extracted record behind it: a logo is

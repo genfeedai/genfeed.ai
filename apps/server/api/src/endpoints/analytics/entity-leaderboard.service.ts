@@ -19,10 +19,14 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
-import { resolveOrganizationLifecycles } from '@api/endpoints/analytics/organization-lifecycle.sql';
+import {
+  lifecycleOf,
+  resolveOrganizationLifecycles,
+} from '@api/endpoints/analytics/organization-lifecycle.sql';
 import {
   countGenerations,
   countOrganizationsInSql,
+  hasOrganizationListFilters,
   type OrganizationListFilters,
   organizationListFilterSql,
   type PrismaSql,
@@ -36,10 +40,7 @@ import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import {
-  type OrganizationCategory,
-  OrganizationLifecycleStatus,
-} from '@genfeedai/contracts';
+import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
   IEntityStatsTotals,
@@ -395,12 +396,7 @@ export class EntityLeaderboardService {
       : undefined;
 
     if (entityType === 'organization') {
-      if (
-        filters.emailClass ||
-        filters.usage ||
-        filters.status ||
-        filters.source
-      ) {
+      if (hasOrganizationListFilters(filters)) {
         return countOrganizationsInSql(this.prisma, filters, range);
       }
       return this.prisma.organization.count({
@@ -875,7 +871,7 @@ export class EntityLeaderboardService {
       ({ entity, prevEngagement, stats }) =>
         new OrgWithStatsEntity({
           avgEngagementRate: stats.avgEngagementRate,
-          concierge: lifecycleMap.get(entity.id)?.concierge,
+          ...lifecycleOf(lifecycleMap, entity.id),
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
           // The organization's own logo asset, then the auth provider's, then
@@ -891,14 +887,10 @@ export class EntityLeaderboardService {
             undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
-          plan: lifecycleMap.get(entity.id)?.plan,
           ownerEmailClass: classifyEmail(
             entity.userId ? ownerMap.get(entity.userId)?.email : undefined,
           ),
           slug: entity.slug,
-          status:
-            lifecycleMap.get(entity.id)?.status ??
-            OrganizationLifecycleStatus.FREE,
           // Only what onboarding recorded: `category` always has a default.
           type: (entity.accountType ?? undefined) as
             | OrganizationCategory

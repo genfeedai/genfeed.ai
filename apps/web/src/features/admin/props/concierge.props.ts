@@ -42,3 +42,8 @@ export interface ConciergeFormState extends IWarmupAccountCreateRequest {
   leadLastName: string;
   websiteUrl: string;
 }
+
+/** How a proposed brand-context value is shown in the review list. */
+export type ProposedValueView =
+  | { kind: 'image'; label: string; url: string }
+  | { kind: 'text'; text: string };

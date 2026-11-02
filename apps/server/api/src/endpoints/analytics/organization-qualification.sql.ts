@@ -35,6 +35,15 @@ export interface OrganizationListFilters extends OrganizationLifecycleFilters {
   usage?: OrganizationUsageFilter;
 }
 
+/** Whether any filter needs the raw-SQL ranking and count instead of a plain Prisma count. */
+export function hasOrganizationListFilters(
+  filters: OrganizationListFilters,
+): boolean {
+  return Boolean(
+    filters.emailClass || filters.usage || filters.status || filters.source,
+  );
+}
+
 /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
 export function toContainsPattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, '\\$&')}%`;
