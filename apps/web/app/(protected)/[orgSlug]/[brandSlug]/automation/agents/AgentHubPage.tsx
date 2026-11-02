@@ -301,6 +301,7 @@ export default function AgentHubPage() {
   const {
     error,
     strategies: pagedStrategies,
+    pageTotals,
     isLoading,
     refresh: refreshPage,
   } = useAgentStrategies({
@@ -589,7 +590,7 @@ export default function AgentHubPage() {
               skeletonCount={AGENT_HUB_SKELETON_COUNT}
             />
           </CollectionSection>
-          <AutoPagination showTotal totalLabel="agents" />
+          <AutoPagination showTotal totalLabel="agents" totals={pageTotals} />
         </div>
       )}
 

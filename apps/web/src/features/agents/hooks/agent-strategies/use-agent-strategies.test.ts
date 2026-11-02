@@ -1,8 +1,10 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockList = vi.fn();
+const mockFindAllPage = vi.fn();
 const mockGetById = vi.fn();
 const mockResolveAuthToken = vi.fn();
 
@@ -11,6 +13,7 @@ vi.mock('@genfeedai/services/automation/agent-strategies.service', () => ({
     getInstance: vi.fn(() => ({
       getById: mockGetById,
       list: mockList,
+      findAllPage: mockFindAllPage,
     })),
   },
 }));
@@ -31,6 +34,9 @@ const STRATEGY = { id: 'strategy-1', name: 'Strategy' };
 describe('useAgentStrategies', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindAllPage.mockResolvedValue(
+      paginatedResponse([STRATEGY], { totalDocs: 61, totalPages: 5 }),
+    );
     mockResolveAuthToken.mockResolvedValue('token-abc');
     mockList.mockResolvedValue([STRATEGY]);
   });
@@ -67,13 +73,18 @@ describe('useAgentStrategies', () => {
       expect(result.current.strategies).toEqual([STRATEGY]);
     });
 
-    expect(mockList).toHaveBeenCalledWith({
-      agentType: undefined,
-      brandId: 'brand-1',
-      isActive: undefined,
-      limit: 15,
-      page: 2,
-    });
+    expect(mockFindAllPage).toHaveBeenCalledWith(
+      {
+        agentType: undefined,
+        brandId: 'brand-1',
+        isActive: undefined,
+        limit: 15,
+        page: 2,
+      },
+      expect.any(AbortSignal),
+    );
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
+    expect(mockList).not.toHaveBeenCalled();
   });
 
   it('returns an empty list without an auth token', async () => {

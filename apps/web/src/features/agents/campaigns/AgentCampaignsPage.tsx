@@ -291,6 +291,7 @@ export default function AgentCampaignsPage() {
   // derived from every campaign so a program on page 2 never goes unnoticed.
   const {
     campaigns: pagedCampaigns,
+    pageTotals,
     error,
     isLoading,
     refresh: refreshPage,
@@ -401,7 +402,7 @@ export default function AgentCampaignsPage() {
               renderListItem={renderCampaignRow}
             />
           </CollectionSection>
-          <AutoPagination showTotal totalLabel="programs" />
+          <AutoPagination showTotal totalLabel="programs" totals={pageTotals} />
         </div>
       )}
     </Container>

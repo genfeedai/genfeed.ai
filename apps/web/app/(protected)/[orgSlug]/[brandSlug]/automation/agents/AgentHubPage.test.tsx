@@ -1,3 +1,4 @@
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { AgentType } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -43,6 +44,9 @@ vi.mock(
         error: mocks.loadError,
         isLoading: mocks.isLoading,
         refresh: mocks.refresh,
+        pageTotals: options.page
+          ? { totalDocs: 61, totalPages: 5 }
+          : { totalDocs: 200, totalPages: 1 },
         // The paged "all agents" query can differ from the full set.
         strategies: options.page
           ? (mocks.pagedStrategies ?? mocks.strategies)
@@ -53,7 +57,11 @@ vi.mock(
 );
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} agents / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -638,5 +646,13 @@ describe('AgentHubPage', () => {
       );
     });
     expect(mocks.error).toHaveBeenCalledWith('Failed to update agent status');
+  });
+  it('renders totals from the paged collection rather than the full overview', () => {
+    mocks.strategies = [HEALTHY_AGENT, PAUSED_AGENT];
+    mocks.pagedStrategies = [HEALTHY_AGENT];
+    render(<AgentHubPage />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 agents / 5 pages');
   });
 });

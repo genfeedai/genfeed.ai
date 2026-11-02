@@ -1,5 +1,7 @@
 'use client';
 
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { IPagedItems, IPageTotals } from '@genfeedai/contracts/interfaces';
 import {
   AgentStrategiesService,
   type AgentStrategy,
@@ -21,11 +23,14 @@ export interface UseAgentStrategiesOptions {
 
 export interface UseAgentStrategiesReturn {
   strategies: AgentStrategy[];
+  pageTotals: IPageTotals;
   /** The last list request's failure; `null` once a request succeeds. */
   error: Error | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
+
+const EMPTY_ITEMS: AgentStrategy[] = [];
 
 export function useAgentStrategies(
   options: UseAgentStrategiesOptions = {},
@@ -34,11 +39,11 @@ export function useAgentStrategies(
   const isEnabled = options.enabled ?? true;
 
   const {
-    data: strategies = [] as AgentStrategy[],
+    data: strategiesPage,
     error,
     isLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<IPagedItems<AgentStrategy> | null>({
     enabled: isEnabled,
     queryKey: [
       'agent-strategies',
@@ -48,17 +53,28 @@ export function useAgentStrategies(
       options.page,
       options.limit,
     ],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const token = await resolveAuthToken(getToken);
-      if (!token) return [];
+      if (!token) return null;
 
       const service = AgentStrategiesService.getInstance(token);
-      return service.list({
+      const filters = {
         agentType: options.agentType,
         brandId: options.brandId,
         isActive: options.isActive,
-        ...(options.page ? { limit: options.limit, page: options.page } : {}),
-      });
+      };
+      if (options.page) {
+        const page = await service.findAllPage(
+          { ...filters, limit: options.limit, page: options.page },
+          signal,
+        );
+        return {
+          items: page.items,
+          totals: { totalDocs: page.total, totalPages: page.totalPages },
+        };
+      }
+      const items = await service.list(filters);
+      return { items, totals: { totalDocs: items.length, totalPages: 1 } };
     },
   });
 
@@ -71,6 +87,7 @@ export function useAgentStrategies(
       }
       await refetch();
     },
-    strategies,
+    strategies: strategiesPage?.items ?? EMPTY_ITEMS,
+    pageTotals: strategiesPage?.totals ?? EMPTY_PAGE_TOTALS,
   };
 }
