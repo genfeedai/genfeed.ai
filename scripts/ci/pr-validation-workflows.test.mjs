@@ -1105,7 +1105,10 @@ test('self-hosted release publish reuses the layers the verify build just tested
     /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \|\| 'dev' \}\}$/m,
   );
   assert.match(verify, /^ {10}ref: \$\{\{ inputs\.checkout_ref \}\}$/m);
-  assert.match(publisher, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
+  assert.match(
+    publisher,
+    /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m,
+  );
   assert.match(publisher, /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \}\}$/m);
   assert.match(
     publisher,
