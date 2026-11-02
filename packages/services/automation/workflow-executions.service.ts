@@ -9,6 +9,7 @@ import type {
   WorkflowExecutionStats,
   WorkflowExecutionSummaryQueryParams,
 } from '@genfeedai/contracts/types';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
@@ -17,7 +18,6 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 

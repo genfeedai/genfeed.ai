@@ -6,6 +6,7 @@ import type {
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
 import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -14,7 +15,6 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 const DEFAULT_FPS = 30;

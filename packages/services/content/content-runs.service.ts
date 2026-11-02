@@ -86,6 +86,7 @@ import {
   deserializeLegacyStoryboardRunDocument,
   deserializeStoryboardRunDocument,
 } from '@services/content/content-run-document';
+import { PagesService } from '@services/content/pages.service';
 import { isExpectedStoryboardSaveConflict } from '@services/content/storyboard-save-conflict';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -94,7 +95,6 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 import type { AxiosRequestConfig } from 'axios';
 

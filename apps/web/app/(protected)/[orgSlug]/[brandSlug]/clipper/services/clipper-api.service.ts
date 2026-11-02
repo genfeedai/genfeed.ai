@@ -3,10 +3,10 @@ import type {
   ClipperReferenceFrameSet,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 import type {
   ClipperProjectSummary,

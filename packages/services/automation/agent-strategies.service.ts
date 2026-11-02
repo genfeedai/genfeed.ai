@@ -4,12 +4,12 @@ import type {
   IAgentStrategyRunHistoryItem,
   IBrand,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export interface AgentStrategyBudgetCap {

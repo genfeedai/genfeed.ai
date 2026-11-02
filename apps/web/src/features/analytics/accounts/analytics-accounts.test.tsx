@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,

@@ -2,6 +2,7 @@ import type {
   IAnnouncement,
   IAnnouncementBroadcastRequest,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -9,7 +10,6 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export class AdminAnnouncementsService extends HTTPBaseService {
