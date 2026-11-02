@@ -1,12 +1,12 @@
 import { getSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import type { Workflow } from '@models/automation/workflow.model';
-import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 import type {
   AdminWorkflowRow,
   AdminWorkflowSortKey,
   AdminWorkflowTypeFilter,
   CatalogStatus,
-} from './workflow-rows.types';
+} from '@props/admin/admin-workflow-row.props';
+import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 
 export const WORKFLOW_SORT_KEYS: readonly AdminWorkflowSortKey[] = [
   'label',

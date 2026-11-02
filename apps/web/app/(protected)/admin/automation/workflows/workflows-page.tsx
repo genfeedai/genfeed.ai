@@ -6,6 +6,11 @@ import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IFeaturedWorkflowSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
+import type {
+  AdminWorkflowRow,
+  AdminWorkflowType,
+  AdminWorkflowTypeFilter,
+} from '@props/admin/admin-workflow-row.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { AdminFeaturedWorkflowsService } from '@services/admin/featured-workflows.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
@@ -46,11 +51,6 @@ import {
   sortWorkflowRows,
   WORKFLOW_SORT_KEYS,
 } from './workflow-rows';
-import type {
-  AdminWorkflowRow,
-  AdminWorkflowType,
-  AdminWorkflowTypeFilter,
-} from './workflow-rows.types';
 
 function getWorkflowStatusVariant(
   status: string,

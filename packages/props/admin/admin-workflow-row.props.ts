@@ -1,4 +1,4 @@
-import type { Workflow } from '@models/automation/workflow.model';
+import type { Workflow } from '@genfeedai/models/automation/workflow.model';
 
 /** Where a workflow comes from: shipped with Genfeed, or owned by an organization. */
 export type AdminWorkflowType = 'system' | 'organization';

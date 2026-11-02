@@ -1,3 +1,4 @@
+import type { AdminWorkflowRow } from '@props/admin/admin-workflow-row.props';
 import { describe, expect, it } from 'vitest';
 import {
   clampPage,
@@ -5,7 +6,6 @@ import {
   getPageCount,
   sortWorkflowRows,
 } from './workflow-rows';
-import type { AdminWorkflowRow } from './workflow-rows.types';
 
 function row(overrides: Partial<AdminWorkflowRow>): AdminWorkflowRow {
   return {
