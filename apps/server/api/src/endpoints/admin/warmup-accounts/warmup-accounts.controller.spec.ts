@@ -16,6 +16,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WarmupAccountsController } from './warmup-accounts.controller';
 import { AdminWarmupAccountsService } from './warmup-accounts.service';
+import { WarmupPreviewsService } from './warmup-previews.service';
 
 vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
   CurrentUser:
@@ -82,6 +83,12 @@ describe('WarmupAccountsController', () => {
 
   const preparationService = { prepare: vi.fn() };
 
+  const previewsService = {
+    extend: vi.fn(),
+    mint: vi.fn(),
+    revoke: vi.fn(),
+  };
+
   const loggerService = {
     error: vi.fn(),
     log: vi.fn(),
@@ -100,6 +107,7 @@ describe('WarmupAccountsController', () => {
         },
         { provide: LoggerService, useValue: loggerService },
         { provide: WarmupPreparationService, useValue: preparationService },
+        { provide: WarmupPreviewsService, useValue: previewsService },
       ],
     })
       .overrideGuard(IpWhitelistGuard)
@@ -380,6 +388,45 @@ describe('WarmupAccountsController', () => {
       list: true,
       prepare: true,
       send: true,
+    });
+  });
+  it('mints, revokes and extends previews as platform admin for the DB user', async () => {
+    const seen: Record<string, boolean> = {};
+    const record =
+      (name: string) =>
+      async (..._args: unknown[]) => {
+        seen[name] = isCrossOrgUnsafe();
+        return { id: 'preview_1' };
+      };
+    previewsService.mint = vi.fn(record('mint'));
+    previewsService.revoke = vi.fn(record('revoke'));
+    previewsService.extend = vi.fn(record('extend'));
+
+    await runWithTenantContext({ organizationId: 'org_operator' }, async () => {
+      await controller.mintPreview(
+        'warmup_1',
+        { postIds: ['post_1'] },
+        makeUser() as never,
+        makeRequest() as never,
+      );
+      await controller.revokePreview(
+        'warmup_1',
+        'preview_1',
+        makeUser() as never,
+        makeRequest() as never,
+      );
+      await controller.extendPreview(
+        'warmup_1',
+        'preview_1',
+        { extendByDays: 7 },
+        makeUser() as never,
+        makeRequest() as never,
+      );
+    });
+
+    expect(seen).toEqual({ extend: true, mint: true, revoke: true });
+    expect(previewsService.mint).toHaveBeenCalledWith('warmup_1', 'db_user_1', {
+      postIds: ['post_1'],
     });
   });
 });

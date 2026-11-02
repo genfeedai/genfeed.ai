@@ -21,6 +21,7 @@ export * from '@serializers/configs/content/clipper-result.config';
 export * from '@serializers/configs/content/content-performance.config';
 export * from '@serializers/configs/content/content-plan.config';
 export * from '@serializers/configs/content/content-plan-item.config';
+export * from '@serializers/configs/content/content-preview.config';
 export * from '@serializers/configs/content/content-run.config';
 export * from '@serializers/configs/content/content-skill.config';
 export * from '@serializers/configs/content/content-skill-version.config';
