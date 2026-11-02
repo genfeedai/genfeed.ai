@@ -3,6 +3,7 @@
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
   "settingsTab": "Settings",
+  "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
   "settingsLoadError": "Failed to load organization settings. Please try again.",
   "releaseAccess": "Release access",

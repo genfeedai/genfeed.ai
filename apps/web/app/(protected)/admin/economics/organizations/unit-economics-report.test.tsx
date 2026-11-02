@@ -1,6 +1,7 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -83,6 +84,23 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/administration/unit-economics',
   useRouter: () => ({ replace: queryState.replace }),
   useSearchParams: () => new URLSearchParams(queryState.search),
+}));
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => undefined,
+  ContextSidebarPanel: ({
+    children,
+    selection,
+  }: {
+    children: ReactNode;
+    selection: { title: string } | null;
+  }) =>
+    selection ? (
+      <aside aria-label="Context sidebar">
+        <h2>{selection.title}</h2>
+        {children}
+      </aside>
+    ) : null,
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
@@ -197,19 +215,46 @@ describe('UnitEconomicsReport', () => {
     expect(screen.getByText('Total')).toBeInTheDocument();
   });
 
-  it('drills into an organization by user', () => {
+  it('opens the row in the context sidebar and links the name to its spending', () => {
     render(<UnitEconomicsReport />);
 
-    fireEvent.click(screen.getByText('Paid Org'));
+    const nameLink = screen.getByRole('link', {
+      name: 'Open spending for Paid Org',
+    });
+    expect(nameLink).toHaveAttribute(
+      'href',
+      '/admin/organizations/org-paid/spending',
+    );
 
-    expect(queryState.lastQueryKey).toContain('org-paid');
-    expect(screen.getByText('Unit Economics · Paid Org')).toBeInTheDocument();
+    const paidRow = screen.getByText('Paid Org').closest('tr') as HTMLElement;
+    fireEvent.click(within(paidRow).getByText('80.0%'));
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Context sidebar',
+    });
     expect(
-      screen.getByRole('columnheader', { name: /User/ }),
+      within(sidebar).getByRole('heading', { name: 'Paid Org' }),
     ).toBeInTheDocument();
+    expect(within(sidebar).getByText('Gross margin')).toBeInTheDocument();
+    expect(within(sidebar).getByText('$80.00')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /All organizations/ }),
-    ).toBeInTheDocument();
+      within(sidebar).getByRole('link', { name: 'Open spending' }),
+    ).toHaveAttribute('href', '/admin/organizations/org-paid/spending');
+    expect(queryState.lastQueryKey).toContain('organizations');
+  });
+
+  it('shows the totals in the sidebar without a page to open', () => {
+    render(<UnitEconomicsReport />);
+
+    fireEvent.click(screen.getByText('Total'));
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Context sidebar',
+    });
+    expect(within(sidebar).getByText('43')).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('link', { name: 'Open spending' }),
+    ).not.toBeInTheDocument();
   });
 
   it('asks the API for one page, sorted by the selected column', async () => {
@@ -236,13 +281,6 @@ describe('UnitEconomicsReport', () => {
     expect(screen.getByLabelText('pagination')).toHaveAttribute(
       'data-total-label',
       'organizations',
-    );
-
-    fireEvent.click(screen.getByText('Paid Org'));
-
-    expect(screen.getByLabelText('pagination')).toHaveAttribute(
-      'data-total-label',
-      'users',
     );
   });
 

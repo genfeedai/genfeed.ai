@@ -8,9 +8,13 @@ import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { OrganizationDetailPageProps } from '@genfeedai/props/admin/organization-detail-page.props';
+import EconomicsPeriodFilter from '@protected/economics/economics-period-filter';
+import { DEFAULT_ECONOMICS_PERIOD_DAYS } from '@protected/economics/economics-report.util';
+import { useUnitEconomicsReport } from '@protected/economics/organizations/use-unit-economics-report';
 import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
 import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
+import OrganizationSpendingPanel from '@protected/organizations/components/organization-spending-panel';
 import { useOrganizationProfile } from '@protected/organizations/hooks/use-organization-profile';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -18,7 +22,7 @@ import { Alert } from '@ui/primitives/alert';
 import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
 
@@ -40,6 +44,16 @@ function OrganizationDetailPageContent({
     triggerRefresh,
   } = useAnalyticsContext();
 
+  const isSpendingTab = activeTab === 'spending';
+  const [spendingPeriodDays, setSpendingPeriodDays] = useState(
+    DEFAULT_ECONOMICS_PERIOD_DAYS,
+  );
+  const spending = useUnitEconomicsReport({
+    isEnabled: isSpendingTab && Boolean(organizationId),
+    organizationId,
+    periodDays: spendingPeriodDays,
+  });
+
   // Every branch declares the same chrome mode so the topbar never flips
   // between the missing-id and loaded states.
   if (!organizationId) {
@@ -51,6 +65,10 @@ function OrganizationDetailPageContent({
   }
 
   const isSettingsTab = activeTab === 'settings';
+  const handleSpendingPeriodChange = (days: string) => {
+    setSpendingPeriodDays(days);
+    spending.resetPage();
+  };
 
   return (
     <AdminPageShell
@@ -64,15 +82,36 @@ function OrganizationDetailPageContent({
             label: translate('analyticsTab'),
           },
           {
+            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/spending`,
+            label: translate('spendingTab'),
+          },
+          {
             href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
             label: translate('settingsTab'),
           },
         ],
       }}
-      onRefresh={isSettingsTab ? () => refresh() : triggerRefresh}
-      isRefreshing={isSettingsTab ? isRefreshing : isAnalyticsRefreshing}
+      onRefresh={
+        isSettingsTab
+          ? () => refresh()
+          : isSpendingTab
+            ? () => void spending.refetch()
+            : triggerRefresh
+      }
+      isRefreshing={
+        isSettingsTab
+          ? isRefreshing
+          : isSpendingTab
+            ? spending.isFetching && !spending.isLoading
+            : isAnalyticsRefreshing
+      }
       filters={
-        isSettingsTab ? undefined : (
+        isSettingsTab ? undefined : isSpendingTab ? (
+          <EconomicsPeriodFilter
+            onChange={handleSpendingPeriodChange}
+            value={spendingPeriodDays}
+          />
+        ) : (
           <>
             {toolbarNode}
             <DateRangePicker
@@ -123,6 +162,15 @@ function OrganizationDetailPageContent({
               />
             </>
           )
+        ) : isSpendingTab ? (
+          <OrganizationSpendingPanel
+            error={spending.error}
+            isLoading={spending.isLoading}
+            onSortChange={spending.onSortChange}
+            report={spending.data}
+            sortDirection={spending.sortDirection}
+            sortKey={spending.sortKey}
+          />
         ) : (
           <AnalyticsOrganizationOverview
             organizationId={organizationId}
@@ -135,8 +183,8 @@ function OrganizationDetailPageContent({
 }
 
 /**
- * One organization: its analytics at `/admin/organizations/:id` and its
- * settings (release preview, released apps, per-organization settings) at
+ * One organization: its analytics at `/admin/organizations/:id`, its revenue,
+ * cost and margin at `/admin/organizations/:id/spending` and its settings (release preview, released apps, per-organization settings) at
  * `/admin/organizations/:id/settings`, as route tabs.
  */
 export default function OrganizationDetailPage({
