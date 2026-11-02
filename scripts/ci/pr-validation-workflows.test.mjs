@@ -34,7 +34,6 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'curated-action-catalog.yml',
   'dependency-review.yml',
   'playwright-coverage-policy.yml',
-  'playwright-pr-smoke.yml',
   'pr-heavy-ci.yml',
   'selfhosted-install-contract.yml',
   'visual-code-isolation.yml',
@@ -597,10 +596,7 @@ test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
 });
 
 test('draft pull requests run no CI until marked ready', () => {
-  for (const [fileName, jobId] of [
-    ['_ci-validation.yml', 'plan'],
-    ['playwright-pr-smoke.yml', 'detect'],
-  ]) {
+  for (const [fileName, jobId] of [['_ci-validation.yml', 'plan']]) {
     const workflow = readWorkflow(fileName);
     assert.match(
       fileName === '_ci-validation.yml' ? readWorkflow('ci.yml') : workflow,
@@ -613,6 +609,53 @@ test('draft pull requests run no CI until marked ready', () => {
       `${fileName} must skip draft pull requests`,
     );
   }
+});
+
+test('playwright PR smoke runs only after green same-repo CI and stays advisory', () => {
+  // The smoke used to start on every push, beside required CI. It now waits for
+  // CI to succeed on the PR head, so superseded and red heads never spend a
+  // runner, and its result must never be able to block a merge.
+  const workflow = readWorkflow('playwright-pr-smoke.yml');
+  const parsed = parseYaml(workflow);
+
+  assert.equal(parsed.on.pull_request, undefined);
+  assert.deepEqual(parsed.on.workflow_run.workflows, ['CI']);
+  assert.deepEqual(parsed.on.workflow_run.types, ['completed']);
+  assert.ok(parsed.on.workflow_dispatch.inputs.pr_number.required);
+
+  const resolveIf = parsed.jobs.resolve.if;
+  assert.match(resolveIf, /workflow_run\.conclusion == 'success'/);
+  assert.match(resolveIf, /workflow_run\.event == 'pull_request'/);
+  assert.match(
+    resolveIf,
+    /head_repository\.full_name == github\.repository/,
+    'workflow_run runs with secrets, so forks must never reach it',
+  );
+
+  const resolveStep = parsed.jobs.resolve.steps.find(
+    (step) => step.id === 'pr',
+  );
+  assert.match(resolveStep.run, /\.draft/, 'draft pull requests are skipped');
+  assert.match(resolveStep.run, /\.state/, 'closed pull requests are skipped');
+  assert.match(
+    resolveStep.run,
+    /RUN_HEAD_SHA.*!=.*head_sha/s,
+    'a head that moved on is covered by the newer CI run',
+  );
+
+  const smoke = parsed.jobs['core-smoke'];
+  assert.equal(smoke.needs, 'resolve');
+  assert.equal(smoke.permissions.checks, 'write');
+  const finish = smoke.steps.find((step) => step.name === 'Finish check run');
+  assert.doesNotMatch(
+    finish.run,
+    /conclusion=failure/,
+    'the smoke is advisory: a red run is neutral, never failure',
+  );
+
+  const group = parsed.concurrency.group;
+  assert.doesNotMatch(group, /github\.(?:head_ref|ref_name|sha)/);
+  assert.equal(parsed.concurrency['cancel-in-progress'], true);
 });
 
 test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {

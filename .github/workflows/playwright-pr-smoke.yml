@@ -2,27 +2,43 @@
 #
 # Runs the Playwright `core` tier (mocked app, see docs/e2e-tiers.md) on pull
 # requests that change the app or anything it depends on, so a UI change that
-# breaks a browser spec is red on the PR instead of on master after the merge.
+# breaks a browser spec is flagged on the PR instead of on master after the
+# merge.
+#
+# It starts only after the required CI run for a pull request head succeeds
+# (`workflow_run`), so superseded pushes and red heads never spend a runner on
+# it, and it does not compete with required CI for the runner pool. Because
+# `workflow_run` checks do not attach to the pull request, the result is posted
+# as a check run on the PR head commit, named "Playwright Core Smoke".
 #
 # One runner, no sharding: a PR pays about one test-app shard of runner time,
 # not the four shards plus API suites the deploy gate in e2e.yml uses. The
-# workspace graph (detect-frontend-scope) selects the app, so docs-only,
+# workspace graph (frontend-scope.mjs) selects the app, so docs-only,
 # website-only and API-only PRs skip it.
 #
-# Advisory by design: `continue-on-error` keeps the job off the required
-# checks while it earns trust. It never feeds full-suite.yml or release.yml,
-# and it does not run the `full` tier (Nightly Playwright Full).
+# Advisory by design: a failing smoke is reported as a `neutral` check run, so it
+# can never block a merge while it earns trust. It never feeds full-suite.yml or
+# release.yml, and it does not run the `full` tier (Nightly Playwright Full).
+# Same-repository pull requests only: this workflow runs with repository
+# secrets, so it never builds code from a fork.
+#
+# Manual run: dispatch with a pull request number to smoke its current head.
 
 name: Playwright PR Smoke
 
 on:
-  pull_request:
-    branches: [master]
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request to smoke at its current head"
+        required: true
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-pr-${{ github.event.workflow_run.pull_requests[0].number || inputs.pr_number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -34,45 +50,125 @@ env:
   TZ: UTC
 
 jobs:
-  detect:
-    name: Detect App Changes
-    # Draft pull requests run nothing; CI runs once the PR is marked ready.
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+  resolve:
+    name: Resolve Pull Request
+    # Only a successful required CI run on a same-repository pull request head.
+    # CI skips draft pull requests, so a success here is never a draft.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
-      app: ${{ steps.changes.outputs.app }}
+      run: ${{ steps.pr.outputs.run }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+      app: ${{ steps.scope.outputs.app }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DISPATCH_PR: ${{ inputs.pr_number }}
+          RUN_PR: ${{ github.event.workflow_run.pull_requests[0].number }}
+          RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          skip() { echo "$1"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0; }
+
+          pr="${DISPATCH_PR:-${RUN_PR:-}}"
+          if [ -z "${pr}" ] && [ -n "${RUN_HEAD_SHA}" ]; then
+            pr="$(gh api "repos/${REPO}/commits/${RUN_HEAD_SHA}/pulls" --jq '.[0].number // empty')"
+          fi
+          [ -n "${pr}" ] || skip "No pull request found for this run."
+          [[ "${pr}" =~ ^[0-9]+$ ]] || skip "Invalid pull request number: ${pr}"
+
+          pull="$(gh api "repos/${REPO}/pulls/${pr}")"
+          [ "$(jq -r '.state' <<<"${pull}")" = "open" ] || skip "PR #${pr} is not open."
+          [ "$(jq -r '.draft' <<<"${pull}")" = "false" ] || skip "PR #${pr} is a draft."
+          [ "$(jq -r '.head.repo.full_name' <<<"${pull}")" = "${REPO}" ] || skip "PR #${pr} is from a fork."
+
+          head_sha="$(jq -r '.head.sha' <<<"${pull}")"
+          base_sha="$(jq -r '.base.sha' <<<"${pull}")"
+          if [ -n "${RUN_HEAD_SHA}" ] && [ "${RUN_HEAD_SHA}" != "${head_sha}" ]; then
+            skip "CI ran for ${RUN_HEAD_SHA} but PR #${pr} is now at ${head_sha}; a newer run covers it."
+          fi
+          {
+            echo "run=true"
+            echo "pr_number=${pr}"
+            echo "head_sha=${head_sha}"
+            echo "base_sha=${base_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout pull request head
+        if: steps.pr.outputs.run == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ steps.pr.outputs.head_sha }}
           persist-credentials: false
           fetch-depth: 0
 
-      - id: changes
-        uses: ./.github/actions/detect-frontend-scope
+      - name: Setup Node.js
+        if: steps.pr.outputs.run == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.x"
+
+      - id: scope
+        name: Detect App Changes
+        if: steps.pr.outputs.run == 'true'
+        env:
+          BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          EVENT_NAME: pull_request
+        run: node scripts/ci/frontend-scope.mjs
 
   core-smoke:
     name: Playwright Core Smoke
+    needs: resolve
+    if: needs.resolve.outputs.run == 'true' && needs.resolve.outputs.app == 'true'
     runs-on: ubuntu-latest
-    needs: detect
-    if: needs.detect.outputs.app == 'true'
-    continue-on-error: true
     timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
     steps:
+      - name: Start check run
+        id: check
+        run: |
+          set -euo pipefail
+          id="$(gh api "repos/${REPO}/check-runs" \
+            -f name='Playwright Core Smoke' \
+            -f head_sha="${HEAD_SHA}" \
+            -f status=in_progress \
+            -f details_url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
+            --jq '.id')"
+          echo "id=${id}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ env.HEAD_SHA }}
           persist-credentials: false
 
       - name: Build app for Playwright
+        id: build
+        continue-on-error: true
         uses: ./.github/actions/setup-playwright-app
         with:
           better-auth-secret: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           better-auth-enabled: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Run core tier
-        # The sharded runner owns core selection (PLAYWRIGHT_E2E_CORE_PATHS);
-        # 1/1 is the whole tier on this runner. Retries stay at the config's
-        # CI default so a single timing flake does not paint the PR red.
+        id: tests
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
         run: bun run test:e2e:sharded
         env:
           CI: true
@@ -83,7 +179,7 @@ jobs:
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Upload Playwright report
-        if: failure()
+        if: steps.tests.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-pr-smoke-report
@@ -92,3 +188,30 @@ jobs:
             playwright/artifacts/results/
           retention-days: 3
           if-no-files-found: ignore
+
+      # Advisory: a failure is `neutral`, never `failure`, so it cannot block.
+      - name: Finish check run
+        if: always()
+        env:
+          CHECK_ID: ${{ steps.check.outputs.id }}
+          IS_CANCELLED: ${{ cancelled() }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          set -euo pipefail
+          [ -n "${CHECK_ID}" ] || exit 0
+          run_url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          if [ "${IS_CANCELLED}" = "true" ]; then
+            conclusion=cancelled; title="Playwright core smoke cancelled"
+          elif [ "${TESTS_OUTCOME}" = "success" ]; then
+            conclusion=success; title="Playwright core smoke passed"
+          elif [ "${BUILD_OUTCOME}" != "success" ]; then
+            conclusion=neutral; title="App build failed (advisory)"
+          else
+            conclusion=neutral; title="Playwright core smoke failed (advisory)"
+          fi
+          gh api --method PATCH "repos/${REPO}/check-runs/${CHECK_ID}" \
+            -f status=completed \
+            -f conclusion="${conclusion}" \
+            -f "output[title]=${title}" \
+            -f "output[summary]=${title}. Advisory only; it does not block merging. Run: ${run_url}"
