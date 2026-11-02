@@ -116,6 +116,7 @@ describe('AnalyticsAdminController', () => {
       undefined,
       undefined,
       undefined,
+      { emailClass: undefined, usage: undefined },
     );
     expect(serializeSingle).toHaveBeenCalledWith(
       request,

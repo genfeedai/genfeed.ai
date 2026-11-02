@@ -1,5 +1,4 @@
 import {
-  classifyOwnerEmail,
   readDraftsStatus,
   readPrefillMarker,
   summarizeOnboardingFunnel,
@@ -27,18 +26,6 @@ function organization(
     ...overrides,
   };
 }
-
-describe('classifyOwnerEmail', () => {
-  it.each([
-    ['owner@gmail.com', 'personal'],
-    ['Owner@Outlook.com', 'personal'],
-    ['founder@acme.co', 'company'],
-    ['not-an-email', 'unknown'],
-    [null, 'unknown'],
-  ])('classifies %s as %s', (email, expected) => {
-    expect(classifyOwnerEmail(email)).toBe(expected);
-  });
-});
 
 describe('readPrefillMarker', () => {
   it('reads the saved scan status and whether a site was scraped', () => {

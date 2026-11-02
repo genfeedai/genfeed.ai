@@ -130,6 +130,105 @@ test.describe('Admin Organization', () => {
     await expect(ownerLink.getByText('ada@example.com')).toBeVisible();
   });
 
+  test('organizations list highlights work emails, shows logos and usage, and filters by owner email', async ({
+    adminPage,
+  }) => {
+    const requestedEmailClasses: Array<string | null> = [];
+    const organization = (
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      avgEngagementRate: 0,
+      growth: 0,
+      lifetimePosts: 0,
+      ownerEmailClass: 'unknown',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+      ...overrides,
+    });
+    // Registered after the fixture's catch-all analytics mock, so it wins.
+    await adminPage.route('**/analytics/organizations**', (route) => {
+      const emailClass = new URL(route.request().url()).searchParams.get(
+        'emailClass',
+      );
+      requestedEmailClasses.push(emailClass);
+      const organizations = [
+        organization({
+          id: 'org-e2e-work',
+          logo: 'https://cdn.example.test/gateway.png',
+          name: 'Gateway Ventures',
+          owner: {
+            email: 'poya@vitae.ai',
+            id: 'user-e2e-work',
+            name: 'Poya',
+          },
+          ownerEmailClass: 'company',
+          totalGenerations: 12,
+          type: 'BUSINESS',
+        }),
+        organization({
+          id: 'org-e2e-personal',
+          name: 'Personal',
+          owner: {
+            email: 'someone@gmail.com',
+            id: 'user-e2e-personal',
+            name: 'Someone',
+          },
+          ownerEmailClass: 'personal',
+        }),
+      ];
+      const visible =
+        emailClass === 'company' ? organizations.slice(0, 1) : organizations;
+      return route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: visible,
+              pagination: {
+                limit: 10,
+                page: 1,
+                total: visible.length,
+                totalPages: 1,
+              },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      });
+    });
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const main = adminPage.getByRole('main');
+    const workRow = main.getByRole('row', { name: /Gateway Ventures/ });
+    const personalRow = main.getByRole('row', { name: /Personal/ });
+    await expect(workRow.getByText('Work email')).toBeVisible();
+    await expect(workRow.getByText('Business', { exact: true })).toBeVisible();
+    await expect(workRow.getByText('12')).toBeVisible();
+    await expect(personalRow.getByText('Personal email')).toBeVisible();
+    await expect(personalRow.getByText('Not set')).toBeVisible();
+    await adminPage
+      .getByRole('button', { exact: true, name: 'Filters' })
+      .click();
+    await adminPage.getByRole('menuitem', { name: /^Owner email/ }).click();
+    const filtered = adminPage.waitForRequest((request) =>
+      request.url().includes('emailClass=company'),
+    );
+    await adminPage.getByRole('menuitemradio', { name: 'Work email' }).click();
+    await filtered;
+
+    expect(requestedEmailClasses).toContain('company');
+    await adminPage.keyboard.press('Escape');
+    await expect(
+      main.getByRole('row', { name: /Gateway Ventures/ }),
+    ).toBeVisible();
+    await expect(main.getByRole('row', { name: /Personal/ })).toHaveCount(0);
+  });
+
   test('flags releases card points to per-organization release access', async ({
     adminPage,
   }) => {

@@ -5,6 +5,7 @@ import type {
   IOrganizationOwner,
   IOrganizationWithStats,
   IOrgLeaderboardItem,
+  OrganizationOwnerEmailClass,
 } from '@genfeedai/contracts/interfaces';
 
 export class OrgLeaderboardItemEntity implements IOrgLeaderboardItem {
@@ -32,7 +33,11 @@ export class OrgWithStatsEntity implements IOrganizationWithStats {
   declare readonly owner?: IOrganizationOwner;
   declare readonly slug?: string;
   declare readonly type?: OrganizationCategory;
+  declare readonly ownerEmailClass: OrganizationOwnerEmailClass;
   declare readonly createdAt?: string;
+  declare readonly lastActiveAt?: string;
+  declare readonly lifetimePosts: number;
+  declare readonly totalGenerations: number;
   declare readonly totalPosts: number;
   declare readonly totalEngagement: number;
   declare readonly totalViews: number;
