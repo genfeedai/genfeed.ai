@@ -6,10 +6,22 @@ import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import type { ReactElement } from 'react';
 import type { MenuItemProps } from '@/props/navigation/menu.props';
+
+/**
+ * Lives inside the row's Link: while that link's navigation is in flight the
+ * highlight already moves here, so the row answers the click instead of
+ * waiting for the next route to load.
+ */
+function PendingHighlight() {
+  const { pending } = useLinkStatus();
+
+  return pending ? <SidebarActiveHighlight /> : null;
+}
 
 export default function MenuItem({
   badgeCount,
@@ -39,8 +51,12 @@ export default function MenuItem({
       return icon;
     }
 
-    if (OutlineIcon && SolidIcon) {
-      const IconComponent = isActive ? SolidIcon : OutlineIcon;
+    // One glyph for every state: swapping outline for solid on the active row
+    // made the icon jump on each route change. Active shows through color and
+    // the sliding highlight instead.
+    const IconComponent = OutlineIcon ?? SolidIcon;
+
+    if (IconComponent) {
       return <IconComponent className="size-4" />;
     }
 
@@ -88,8 +104,9 @@ export default function MenuItem({
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout
-      ? isActive
-        ? 'bg-foreground/5 text-foreground'
+      ? // The active fill is the sliding SidebarActiveHighlight, not a class here.
+        isActive
+        ? 'text-foreground'
         : 'hover:bg-foreground/5 hover:text-foreground'
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
@@ -114,7 +131,7 @@ export default function MenuItem({
         <span
           className={cn(
             'min-w-0 truncate text-sm font-medium capitalize tracking-[-0.01em] text-foreground/90 transition-colors duration-200',
-            isActive && 'text-foreground font-semibold',
+            isActive && 'text-foreground',
           )}
         >
           {label}
@@ -159,7 +176,7 @@ export default function MenuItem({
         'flex items-center',
         isIconVariant
           ? isHorizontalLayout
-            ? 'w-full flex-row gap-3' // Horizontal layout
+            ? 'relative w-full flex-row gap-3' // Horizontal layout; above the highlight
             : 'flex-col gap-2 text-center' // Vertical card layout
           : 'gap-3',
         isComingSoon && 'opacity-50',
@@ -207,6 +224,8 @@ export default function MenuItem({
         className={contentClasses}
         aria-label={accessibleLabel}
       >
+        {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
+        {isHorizontalLayout && !isActive ? <PendingHighlight /> : null}
         {contentBody}
       </Link>
     ) : (
@@ -218,6 +237,7 @@ export default function MenuItem({
         className={cn(contentClasses, 'cursor-pointer')}
         ariaLabel={accessibleLabel}
       >
+        {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
         {contentBody}
       </Button>
     );
