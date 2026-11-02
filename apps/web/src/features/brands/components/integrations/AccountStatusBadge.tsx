@@ -26,9 +26,11 @@ function getHealthBadgeVariant(
 }
 
 /**
- * Status column: "Needs reconnect" takes priority over everything else, a
- * warm-up state comes next when the platform runs the warmup blueprint and
- * health data is available, and "Connected" is the default otherwise.
+ * Status column: "Needs reconnect" takes priority over everything else. A
+ * properly connected account always says "Connected"; when the platform runs
+ * the warmup blueprint and health data is available, its warm-up state sits
+ * next to it rather than replacing it, so a warming account never reads as
+ * if the connection itself were in doubt.
  */
 export default function AccountStatusBadge({
   connection,
@@ -45,13 +47,20 @@ export default function AccountStatusBadge({
   // AccountsTableProps.accountHealth); `connection.accountHealth` is
   // whatever the brand payload itself carried. Prefer the fresher source.
   const health = healthOverride ?? connection.accountHealth;
+  const connectedBadge = (
+    <Badge variant="success">{translate('connected')}</Badge>
+  );
+
   if (health && hasWarmupBlueprint(connection.platform)) {
     return (
-      <Badge variant={getHealthBadgeVariant(health)}>
-        {translate(STATE_MESSAGE_KEYS[health.state])}
-      </Badge>
+      <>
+        {connectedBadge}
+        <Badge variant={getHealthBadgeVariant(health)}>
+          {translate(STATE_MESSAGE_KEYS[health.state])}
+        </Badge>
+      </>
     );
   }
 
-  return <Badge variant="success">{translate('connected')}</Badge>;
+  return connectedBadge;
 }
