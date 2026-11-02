@@ -19,6 +19,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import StudioPlaygroundInspector from './StudioPlaygroundInspector';
 
 const mocks = vi.hoisted(() => {
@@ -904,7 +905,7 @@ describe('StudioPlaygroundInspector', () => {
   describe('in the context sidebar header', () => {
     function renderInSidebar(
       job: typeof recipeJob,
-      onRemove?: (job: typeof recipeJob) => void,
+      onRemove?: (job: StudioPlaygroundJob) => void,
     ) {
       return render(
         <ContextSidebarProvider>
