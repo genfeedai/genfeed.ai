@@ -472,7 +472,10 @@ describe('Motion quote review', () => {
       fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
 
       expect(screen.getByText('projectChoiceQuestion')).toBeInTheDocument();
-      expect(screen.getByText('revise the intro')).toBeInTheDocument();
+      // The composer still holds the request; the bubble is the div copy of it.
+      expect(
+        screen.getByText('revise the intro', { selector: 'div' }),
+      ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Launch title' }),
       ).toBeInTheDocument();
