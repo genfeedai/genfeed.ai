@@ -65,7 +65,6 @@ export class HarnessProfilesService extends BaseService<HarnessProfile> {
    */
   public async proposeRules(
     params: {
-      brandId: string;
       edited?: string;
       original?: string;
       reason?: string;

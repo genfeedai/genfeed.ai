@@ -1,7 +1,10 @@
 'use client';
 
 import type { VoiceProvider } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
@@ -93,7 +96,7 @@ function VoicesLibraryPageContent() {
           },
           signal,
         );
-        return result.items;
+        return result;
       } catch (error) {
         if (!signal.aborted) {
           logger.error('GET /voices/catalog failed', error);
@@ -241,7 +244,9 @@ function VoicesLibraryPageContent() {
           onToggle={handleToggle}
         />
         {hasError || voices.length === 0 ? null : (
-          <AutoPagination totals={catalogQuery.data?.totals} />
+          <AutoPagination
+            totals={catalogQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
+          />
         )}
       </div>
     </AdminPageShell>

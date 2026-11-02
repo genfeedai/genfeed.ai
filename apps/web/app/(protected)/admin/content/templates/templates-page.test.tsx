@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -102,7 +103,7 @@ const templates = Array.from({ length: 15 }, (_, index) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.searchParams = new URLSearchParams();
-  mocks.service.getTemplates.mockResolvedValue(templates);
+  mocks.service.getTemplates.mockResolvedValue(paginatedResponse(templates));
 });
 describe('admin templates collection', () => {
   it('renders one page of navigable rows with no view switch', async () => {
@@ -127,26 +128,28 @@ describe('admin templates collection', () => {
   });
 
   it('asks for the system templates too and labels them', async () => {
-    mocks.service.getTemplates.mockResolvedValue([
-      {
-        id: 'sys-1',
-        label: 'Video default',
-        key: 'content.video.default',
-        description: 'Default video prompt',
-        category: 'video',
-        isActive: true,
-        variables: [{ name: 'prompt' }],
-        content: '{{{prompt}}}',
-      },
-      {
-        id: 'org-1',
-        label: 'My template',
-        organization: 'org-1',
-        category: 'social-media',
-        variables: null,
-        content: 'Hi {{name}}',
-      },
-    ]);
+    mocks.service.getTemplates.mockResolvedValue(
+      paginatedResponse([
+        {
+          id: 'sys-1',
+          label: 'Video default',
+          key: 'content.video.default',
+          description: 'Default video prompt',
+          category: 'video',
+          isActive: true,
+          variables: [{ name: 'prompt' }],
+          content: '{{{prompt}}}',
+        },
+        {
+          id: 'org-1',
+          label: 'My template',
+          organization: 'org-1',
+          category: 'social-media',
+          variables: null,
+          content: 'Hi {{name}}',
+        },
+      ]),
+    );
     render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByRole('link', { name: 'open Video default' }),
@@ -202,9 +205,11 @@ describe('admin templates collection', () => {
   });
 
   it('shows no active badge for a template that never had the flag', async () => {
-    mocks.service.getTemplates.mockResolvedValue([
-      { id: 'legacy', label: 'Legacy prompt', isActive: null },
-    ]);
+    mocks.service.getTemplates.mockResolvedValue(
+      paginatedResponse([
+        { id: 'legacy', label: 'Legacy prompt', isActive: null },
+      ]),
+    );
     render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('link', { name: 'open Legacy prompt' });
     expect(screen.queryByText('inactive')).not.toBeInTheDocument();
@@ -220,7 +225,7 @@ describe('admin templates collection', () => {
   it('shows a retryable error separately from an empty catalog', async () => {
     mocks.service.getTemplates
       .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce(paginatedResponse([]));
     render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByText('loadError')).toBeInTheDocument();
     expect(screen.queryByText('empty')).not.toBeInTheDocument();

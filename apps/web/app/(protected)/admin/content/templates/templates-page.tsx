@@ -1,6 +1,10 @@
 'use client';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { TemplateService } from '@services/content/template.service';
@@ -63,7 +67,7 @@ function TemplatesPageContent() {
           },
           signal,
         );
-        return data ?? [];
+        return data;
       } catch (error) {
         if (!signal.aborted) {
           logger.error('Failed to load templates', error);
@@ -173,7 +177,7 @@ function TemplatesPageContent() {
         <AutoPagination
           showTotal
           totalLabel={t('totalLabel')}
-          totals={templatesQuery.data?.totals}
+          totals={templatesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </AdminPageShell>

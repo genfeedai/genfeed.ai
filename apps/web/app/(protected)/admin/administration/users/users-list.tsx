@@ -1,8 +1,15 @@
 'use client';
 
 import { PlatformRole } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IUser } from '@genfeedai/contracts/interfaces';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  IPaginatedResponse,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -42,24 +49,28 @@ export default function UsersList() {
   );
 
   const {
-    data: users,
+    data: usersPage,
     isLoading,
     isFetching,
     error: usersError,
     refetch,
-  } = useQuery<IUser[]>({
+  } = useQuery<IPaginatedResponse<IUser>>({
     queryKey: ['admin-users', currentPage, search, sort],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const service = await getUsersService();
-      return service.findAll({
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      });
+      return service.findAllPage(
+        {
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          ...(search ? { search } : {}),
+          ...(sort ? { sort } : {}),
+        },
+        signal,
+      );
     },
   });
 
+  const users = usersPage?.items;
   const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
@@ -162,12 +173,17 @@ export default function UsersList() {
             <UserDetailPanel
               user={u}
               onUpdated={(updated) => {
-                queryClient.setQueryData<IUser[]>(
+                queryClient.setQueryData<IPaginatedResponse<IUser>>(
                   ['admin-users', currentPage, search, sort],
                   (current) =>
-                    current?.map((item) =>
-                      item.id === updated.id ? updated : item,
-                    ),
+                    current
+                      ? {
+                          ...current,
+                          items: current.items.map((item) =>
+                            item.id === updated.id ? updated : item,
+                          ),
+                        }
+                      : current,
                 );
                 queryClient.setQueryData(['admin-user', updated.id], updated);
               }}
@@ -180,7 +196,15 @@ export default function UsersList() {
         emptyLabel={translate('empty')}
       />
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+        <AutoPagination
+          showTotal
+          totalLabel={translate('totalLabel')}
+          totals={
+            usersPage
+              ? { totalDocs: usersPage.total, totalPages: usersPage.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </AdminPageShell>
   );

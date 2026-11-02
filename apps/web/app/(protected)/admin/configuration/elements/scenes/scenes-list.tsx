@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementScene,
   IQueryParams,
@@ -28,7 +31,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalScene } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   SceneFetchStatus as FetchStatus,
   ScenesAction,
@@ -45,13 +48,15 @@ function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
         fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
       };
     case 'FETCH_SUCCESS':
-      return { ...state, scenes: action.scenes };
+      return { ...state, page: action.page };
     case 'FETCH_DONE':
       return { ...state, fetchStatus: 'idle' };
     default:
       return state;
   }
 }
+
+const EMPTY_SCENES: ElementScene[] = [];
 
 const SCENE_SORT_KEYS = ['label', 'key'];
 
@@ -71,11 +76,12 @@ function ScenesListContent({
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const [state, dispatch] = useReducer(scenesReducer, undefined, () => ({
-    scenes: [],
+    page: null,
     fetchStatus: 'loading' as FetchStatus,
   }));
 
-  const { scenes, fetchStatus } = state;
+  const { page, fetchStatus } = state;
+  const scenes = page?.items ?? EMPTY_SCENES;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -149,12 +155,12 @@ function ScenesListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
-        dispatch({ type: 'FETCH_SUCCESS', scenes: data });
-        logger.info('GET /scenes success', data);
+        dispatch({ type: 'FETCH_SUCCESS', page: data });
+        logger.info('GET /scenes success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -257,11 +263,22 @@ function ScenesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalScene onConfirm={() => findAllScenes(true)} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.SCENE}
+          onConfirm={() => findAllScenes(true)}
+        />
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="scenes" />
+        <AutoPagination
+          showTotal
+          totalLabel="scenes"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

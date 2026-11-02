@@ -1,8 +1,14 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IQueryParams } from '@genfeedai/contracts/interfaces';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  IPaginatedResponse,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Caption } from '@models/content/caption.model';
@@ -22,6 +28,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 /** Columns the captions endpoint can order by. */
+const EMPTY_CAPTIONS: Caption[] = [];
+
 const CAPTION_SORT_KEYS = ['format', 'createdAt'];
 
 function CaptionsListContent() {
@@ -39,7 +47,10 @@ function CaptionsListContent() {
     useCallback((token: string) => CaptionsService.getInstance(token), []),
   );
 
-  const [captions, setCaptions] = useState<Caption[] | null>(null);
+  const [captionsPage, setCaptionsPage] =
+    useState<IPaginatedResponse<Caption> | null>(null);
+  const captions = captionsPage?.items ?? EMPTY_CAPTIONS;
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const columns: TableColumn<Caption>[] = [
@@ -77,11 +88,14 @@ function CaptionsListContent() {
 
   // Only the latest request may fill the list, so a slow response for an
   // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  const requestRef = useRef<AbortController | null>(null);
 
   const findAllCaptions = useCallback(async () => {
-    const requestId = ++latestRequestRef.current;
-    setCaptions(null);
+    requestRef.current?.abort();
+    const request = new AbortController();
+    requestRef.current = request;
+    setCaptionsPage(null);
+    setIsLoading(true);
     setLoadError(null);
 
     try {
@@ -93,26 +107,29 @@ function CaptionsListContent() {
         ...(sort ? { sort } : {}),
       };
 
-      const data = await service.findAll(query);
-      if (requestId !== latestRequestRef.current) {
+      const data = await service.findAllPage(query, request.signal);
+      if (request.signal.aborted) {
         return;
       }
-      setCaptions(data);
+      setCaptionsPage(data);
+      setIsLoading(false);
       setLoadError(null);
-      logger.info('GET /captions success', data);
+      logger.info('GET /captions success', data.items);
     } catch (error) {
-      if (requestId !== latestRequestRef.current) {
+      if (request.signal.aborted) {
         return;
       }
       logger.error('GET /captions failed', error);
       notificationsService.error('Failed to load captions');
-      setCaptions([]);
+      setCaptionsPage(null);
+      setIsLoading(false);
       setLoadError('Captions could not be loaded.');
     }
   }, [currentPage, getCaptionsService, notificationsService, search, sort]);
 
   useEffect(() => {
-    findAllCaptions();
+    void findAllCaptions();
+    return () => requestRef.current?.abort();
   }, [findAllCaptions]);
 
   return (
@@ -133,10 +150,10 @@ function CaptionsListContent() {
       ) : (
         <>
           <AppTable<Caption>
-            items={captions ?? []}
+            items={captions}
             columns={columns}
             actions={[]}
-            isLoading={captions === null}
+            isLoading={isLoading}
             getRowKey={(item) => item.id}
             onSortChange={onSortChange}
             sortDirection={sortDirection}
@@ -146,7 +163,18 @@ function CaptionsListContent() {
           />
 
           <div className="mt-4">
-            <AutoPagination showTotal totalLabel="captions" />
+            <AutoPagination
+              showTotal
+              totalLabel="captions"
+              totals={
+                captionsPage
+                  ? {
+                      totalDocs: captionsPage.total,
+                      totalPages: captionsPage.totalPages,
+                    }
+                  : EMPTY_PAGE_TOTALS
+              }
+            />
           </div>
         </>
       )}

@@ -1,7 +1,9 @@
 'use client';
 
-import type { IPagedItems } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@genfeedai/services/content/pages.service';
+import type {
+  IPagedItems,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import {
   type UseAuthedQueryOptions,
   useAuthedQuery,
@@ -10,15 +12,19 @@ import type { UseQueryResult } from '@tanstack/react-query';
 
 export interface UsePagedAuthedQueryOptions<TService, TItem>
   extends Omit<UseAuthedQueryOptions<TService, IPagedItems<TItem>>, 'queryFn'> {
-  /** Reads one page of rows through a `findAll` that records page totals. */
-  queryFn: (service: TService, signal: AbortSignal) => Promise<TItem[]>;
+  /** Returns rows and totals from the same response. */
+  queryFn: (
+    service: TService,
+    signal: AbortSignal,
+  ) => Promise<
+    Pick<IPaginatedResponse<TItem>, 'items' | 'total' | 'totalPages'>
+  >;
 }
 
 /**
  * `useAuthedQuery` for a paginated list: each cached page keeps the totals its
- * own request recorded, so `<AutoPagination totals={data?.totals} />` shows
- * that list's footer on a return visit instead of whichever list was read
- * last.
+ * own response returned. Pass `data?.totals ?? EMPTY_PAGE_TOTALS` to
+ * AutoPagination so first-load and cached footers both belong to this list.
  */
 export function usePagedAuthedQuery<TService, TItem>({
   queryFn,
@@ -30,8 +36,14 @@ export function usePagedAuthedQuery<TService, TItem>({
   return useAuthedQuery<TService, IPagedItems<TItem>>({
     ...options,
     queryFn: async (service, signal) => {
-      const items = await queryFn(service, signal);
-      return { items, totals: PagesService.snapshot() };
+      const page = await queryFn(service, signal);
+      return {
+        items: page.items,
+        totals: {
+          totalDocs: Math.max(0, page.total),
+          totalPages: Math.max(1, page.totalPages),
+        },
+      };
     },
   });
 }

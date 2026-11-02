@@ -2,7 +2,10 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IFontFamily,
   IQueryParams,
@@ -31,7 +34,7 @@ import AdminOrgBrandUrlFilter, {
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { LazyModalFontFamily } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
@@ -118,7 +121,7 @@ function FontFamiliesListContent({
         ...scopeFilter,
       };
       try {
-        const data = await service.findAll(query, signal);
+        const data = await service.findAllPage(query, signal);
         logger.info('GET /font-families success', data);
         return data;
       } catch (error) {
@@ -264,14 +267,17 @@ function FontFamiliesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalFontFamily onConfirm={() => findAllFontFamilies()} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.FONT_FAMILY}
+          onConfirm={() => findAllFontFamilies()}
+        />
       )}
 
       <div className="mt-4">
         <AutoPagination
           showTotal
           totalLabel="font families"
-          totals={fontFamiliesQuery.data?.totals}
+          totals={fontFamiliesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </AdminPageShell>

@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
@@ -97,7 +98,7 @@ describe('ReferralRewardsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     urlState.query = 'page=2';
-    getAdminRewardsMock.mockResolvedValue([]);
+    getAdminRewardsMock.mockResolvedValue(paginatedResponse([]));
   });
 
   it('shows the read failure instead of an empty table, then retries', async () => {
@@ -117,8 +118,10 @@ describe('ReferralRewardsList', () => {
 
   it('paints the cached page with its own footer total when coming back', async () => {
     getAdminRewardsMock.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 2, pages: 3, total: 42 });
-      return [{ id: 'reward-1' }];
+      return paginatedResponse([{ id: 'reward-1' }], {
+        totalDocs: 42,
+        totalPages: 3,
+      });
     });
     const client = createTestQueryClient();
     const firstVisit = render(<ReferralRewardsList />, {

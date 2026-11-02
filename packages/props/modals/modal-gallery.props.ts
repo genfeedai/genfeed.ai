@@ -6,6 +6,7 @@ import type {
   IAsset,
   IImage,
   IMusic,
+  IPaginatedResponse,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
@@ -20,6 +21,11 @@ import type { Dispatch, SetStateAction } from 'react';
  * An empty array is the "nothing selected" signal; the modal never emits `null`.
  */
 export type GallerySelectItem = IImage | IMusic | IVideo;
+
+export type GalleryLoadedPage =
+  | { tab: 'media'; data: IPaginatedResponse<GallerySelectItem> }
+  | { tab: 'references'; data: IPaginatedResponse<IAsset> }
+  | { tab: 'uploads' | 'creations'; data: IPaginatedResponse<IImage> };
 
 export interface ModalGalleryHeaderProps {
   category: IngredientCategory;
@@ -56,6 +62,8 @@ export interface ModalGalleryContentProps {
 }
 
 export interface ModalGalleryFooterProps {
+  currentPage: number;
+  totalPages: number;
   category: IngredientCategory;
   activeTab: 'media' | 'references' | 'uploads' | 'creations';
   isLoading: boolean;
@@ -149,6 +157,8 @@ export interface UseModalGalleryProps {
 }
 
 export interface UseModalGalleryReturn {
+  currentPage: number;
+  totalPages: number;
   items: (IVideo | IMusic | IImage)[];
   isLoading: boolean;
   selectedItem: string;
@@ -169,10 +179,7 @@ export interface UseModalGalleryReturn {
   setActiveTab: (tab: 'media' | 'references' | 'uploads' | 'creations') => void;
   setLocalFormat: (format: IngredientFormat) => void;
   setFilterReferenceId: Dispatch<SetStateAction<string>>;
-  findAllItems: (pageOverride?: number) => Promise<void>;
-  findAllUploads: (pageOverride?: number) => Promise<void>;
-  findAllCreations: (pageOverride?: number) => Promise<void>;
-  findAllReferences: () => Promise<void>;
+  loadPage: (page?: number) => Promise<void>;
   handleItemSelect: (item: IVideo | IMusic | IImage | IAsset) => void;
   notifySelectionLimit: () => void;
 

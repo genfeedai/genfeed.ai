@@ -3,6 +3,9 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  seedComposer: vi.fn(),
+  publishContext: vi.fn(),
+  projectPages: [] as { projects: { id: string; label: string }[] }[],
   identity: { orgId: 'org', userId: 'user', sessionId: 'session' },
   brand: { id: 'brand' },
   catalog: {
@@ -48,6 +51,15 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     orgHref: (path: string) => `/org/~${path}`,
   }),
 }));
+vi.mock('@genfeedai/agent', () => ({
+  useAgentChatStore: (
+    select: (state: { seedComposer: typeof mocks.seedComposer }) => unknown,
+  ) => select({ seedComposer: mocks.seedComposer }),
+}));
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
@@ -137,7 +149,7 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
     catalog: {
       data: mocks.catalog,
     },
-    projects: { data: { pages: [] } },
+    projects: { data: { pages: mocks.projectPages } },
     project: { data: mocks.projectData, refetch: mocks.refetchProject },
     source: mocks.source,
     cancel: mocks.cancel,

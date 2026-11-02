@@ -1,11 +1,13 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrainingImagesTab from './training-images-tab';
 
 const mocks = vi.hoisted(() => ({
-  getTrainingImages: vi.fn().mockResolvedValue([]),
+  getTrainingImages: vi.fn(),
   searchParams: new URLSearchParams(),
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
@@ -41,7 +43,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -71,7 +77,7 @@ describe('TrainingImagesTab', () => {
       },
     });
     mocks.useQuery.mockReturnValue({
-      data: [],
+      data: paginatedResponse([]),
       error: undefined,
       isLoading: true,
     });
@@ -88,7 +94,7 @@ describe('TrainingImagesTab', () => {
   it('pages the query by the URL page and renders pagination', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
     mocks.useQuery.mockReturnValue({
-      data: [{ id: 'image-1' }],
+      data: paginatedResponse([{ id: 'image-1' }]),
       error: undefined,
       isLoading: false,
     });
@@ -110,7 +116,7 @@ describe('TrainingImagesTab', () => {
 
   it('should render the grid once assets are loaded', () => {
     mocks.useQuery.mockReturnValue({
-      data: [{ id: 'image-1' }],
+      data: paginatedResponse([{ id: 'image-1' }]),
       error: undefined,
       isLoading: false,
     });
@@ -122,7 +128,7 @@ describe('TrainingImagesTab', () => {
 
   it('should surface a toast and error state when the query errors', async () => {
     mocks.useQuery.mockReturnValue({
-      data: [],
+      data: paginatedResponse([]),
       error: new Error('boom'),
       isLoading: false,
     });
@@ -148,7 +154,7 @@ describe('TrainingImagesTab', () => {
       },
     });
     mocks.useQuery.mockReturnValue({
-      data: [],
+      data: paginatedResponse([]),
       error: undefined,
       isLoading: false,
     });
@@ -156,5 +162,30 @@ describe('TrainingImagesTab', () => {
     render(<TrainingImagesTab />);
 
     expect(screen.getByText('Training model unavailable')).toBeInTheDocument();
+  });
+  it('renders the response totals independently of the number of visible rows', () => {
+    mocks.useQuery.mockReturnValue({
+      data: paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+      error: null,
+      isFetching: false,
+      isLoading: false,
+    });
+    render(<TrainingImagesTab />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 rows / 5 pages');
+  });
+
+  it('starts with empty totals before its first response arrives', () => {
+    mocks.useQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isFetching: true,
+      isLoading: true,
+    });
+    render(<TrainingImagesTab />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('0 rows / 1 pages');
   });
 });

@@ -236,6 +236,15 @@ export default function TurboNewPane() {
   async function create(isNewProjectConfirmed = false) {
     if (busy || submitting.current || isSubscriptionRequired || !canCreate)
       return;
+    // A change request is routed by the brand's project list; wait for it
+    // rather than creating a project for work that already exists.
+    if (
+      !isNewProjectConfirmed &&
+      isIdeas &&
+      projects === null &&
+      isProjectChangeRequest(trimmedPrompt)
+    )
+      return;
     setProjectChoice(null);
     if (
       !isNewProjectConfirmed &&
@@ -329,8 +338,11 @@ export default function TurboNewPane() {
     : null;
   const workflowNoticeLink =
     automationAccess.reason === 'subscription-required'
-      ? { href: APP_ROUTES.SETTINGS.SUBSCRIPTION, label: 'manageSubscription' }
-      : { href: APP_ROUTES.SETTINGS.GENERAL, label: 'manageModules' };
+      ? {
+          href: APP_ROUTES.SETTINGS.SUBSCRIPTION,
+          label: t('manageSubscription'),
+        }
+      : { href: APP_ROUTES.SETTINGS.GENERAL, label: t('manageModules') };
   const hasNoWorkflows =
     !isIdeas && isWorkflowEnabled && !loading && workflows.length === 0;
 
@@ -370,7 +382,7 @@ export default function TurboNewPane() {
                   href={orgHref(workflowNoticeLink.href)}
                   className="underline underline-offset-4"
                 >
-                  {t(workflowNoticeLink.label)}
+                  {workflowNoticeLink.label}
                 </Link>
               </p>
             ) : null}

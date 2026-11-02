@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementMood,
   IQueryParams,
@@ -28,7 +31,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalMood } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   MoodsListAction,
   MoodsListState,
@@ -41,12 +44,14 @@ function moodsListReducer(
   action: MoodsListAction,
 ): MoodsListState {
   switch (action.type) {
-    case 'SET_MOODS':
-      return { ...state, moods: action.payload };
+    case 'SET_PAGE':
+      return { ...state, page: action.payload };
     case 'SET_IS_LOADING':
       return { ...state, isLoading: action.payload };
   }
 }
+
+const EMPTY_MOODS: ElementMood[] = [];
 
 const MOOD_SORT_KEYS = ['label', 'key'];
 
@@ -66,11 +71,12 @@ function MoodsListContent({
   const currentPage = Number(searchParams.get('page')) || 1;
 
   const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
-    moods: [],
+    page: null,
     isLoading: true,
   }));
 
-  const { moods, isLoading } = state;
+  const { page, isLoading } = state;
+  const moods = page?.items ?? EMPTY_MOODS;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -141,12 +147,12 @@ function MoodsListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
-        dispatch({ type: 'SET_MOODS', payload: data });
-        logger.info('GET /moods success', data);
+        dispatch({ type: 'SET_PAGE', payload: data });
+        logger.info('GET /moods success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -249,11 +255,22 @@ function MoodsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalMood onConfirm={() => findAllMoods(true)} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.MOOD}
+          onConfirm={() => findAllMoods(true)}
+        />
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="moods" />
+        <AutoPagination
+          showTotal
+          totalLabel="moods"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

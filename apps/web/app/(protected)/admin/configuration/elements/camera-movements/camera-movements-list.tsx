@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementCameraMovement,
   IQueryParams,
@@ -21,7 +24,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalCameraMovement } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   CameraMovementsAction,
   CameraMovementsState,
@@ -34,20 +37,18 @@ function cameraMovementsReducer(
   action: CameraMovementsAction,
 ): CameraMovementsState {
   switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_CAMERA_MOVEMENTS':
-      return { ...state, cameraMovements: action.payload };
     case 'FETCH_START':
       return { ...state, isLoading: !action.payload.isRefresh };
     case 'FETCH_DONE':
-      return { ...state, isLoading: false, cameraMovements: action.payload };
+      return { ...state, isLoading: false, page: action.payload };
     case 'FETCH_ERROR':
       return { ...state, isLoading: false };
     default:
       return state;
   }
 }
+
+const EMPTY_CAMERA_MOVEMENTS: ElementCameraMovement[] = [];
 
 const CAMERA_MOVEMENT_SORT_KEYS = ['label', 'key'];
 
@@ -77,12 +78,13 @@ function CameraMovementsListContent({
     cameraMovementsReducer,
     undefined,
     () => ({
-      cameraMovements: [],
+      page: null,
       isLoading: true,
     }),
   );
 
-  const { cameraMovements, isLoading } = state;
+  const { page, isLoading } = state;
+  const cameraMovements = page?.items ?? EMPTY_CAMERA_MOVEMENTS;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -180,13 +182,13 @@ function CameraMovementsListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
         dispatch({ type: 'FETCH_DONE', payload: data });
 
-        logger.info('GET /camera-movements success', data);
+        logger.info('GET /camera-movements success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -268,13 +270,22 @@ function CameraMovementsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalCameraMovement
+        <LazyElementCreateModal
+          modalId={ModalEnum.CAMERA_MOVEMENT}
           onConfirm={() => findAllCameraMovements(true)}
         />
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="camera movements" />
+        <AutoPagination
+          showTotal
+          totalLabel="camera movements"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

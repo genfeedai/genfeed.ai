@@ -7,7 +7,7 @@ export type CollectionViewType = ViewType.LIST | ViewType.GRID;
 /** Upper bound of the container-query column ladder (1 → 2 → 3 → 4). */
 export type CollectionMaxColumns = 2 | 3 | 4;
 
-/** `card` walls space at gap-4, `tile` (stat tiles, type tiles) at gap-3. */
+/** `card` walls use shared block spacing; `tile` (stat tiles, type tiles) use gap-3. */
 export type CollectionGridDensity = 'card' | 'tile';
 
 export interface UseCollectionViewPreferenceOptions {

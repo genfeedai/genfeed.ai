@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -10,6 +11,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import { ModalEnum } from '@genfeedai/contracts';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
 import type { QueryClient } from '@tanstack/react-query';
@@ -63,7 +65,7 @@ const mockFindAll = vi.fn();
 const mockGetWebsiteTraffic = vi.fn();
 
 const getArticlesServiceMock = async () => ({
-  findAll: mockFindAll,
+  findAllPage: mockFindAll,
   getWebsiteTraffic: mockGetWebsiteTraffic,
 });
 
@@ -92,7 +94,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@services/content/articles.service', () => ({
   ArticlesService: {
     getInstance: () => ({
-      findAll: mockFindAll,
+      findAllPage: mockFindAll,
     }),
   },
 }));
@@ -191,7 +193,7 @@ describe('ArticlesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     closeModal(ModalEnum.ARTICLE);
-    mockFindAll.mockResolvedValue([]);
+    mockFindAll.mockResolvedValue(paginatedResponse([]));
     vi.mocked(useSearchParams).mockReturnValue({
       get: () => null,
       toString: () => '',
@@ -210,7 +212,7 @@ describe('ArticlesList', () => {
   });
 
   it('paints the cached articles at once when coming back while it revalidates', async () => {
-    mockFindAll.mockResolvedValue([buildArticle()]);
+    mockFindAll.mockResolvedValue(paginatedResponse([buildArticle()]));
     const client = createTestQueryClient();
     const firstVisit = render(<ArticlesList />, client);
     expect(await screen.findByText('My Draft')).toBeInTheDocument();
@@ -224,7 +226,7 @@ describe('ArticlesList', () => {
 
   it('keeps the loaded rows under the error when a refresh fails, until its retry settles', async () => {
     const user = userEvent.setup();
-    mockFindAll.mockResolvedValueOnce([buildArticle()]);
+    mockFindAll.mockResolvedValueOnce(paginatedResponse([buildArticle()]));
     render(<ArticlesList />);
     await screen.findByText('My Draft');
 
@@ -236,10 +238,10 @@ describe('ArticlesList', () => {
     await screen.findByText('Failed to load articles');
     expect(screen.getByText('My Draft')).toBeInTheDocument();
 
-    let resolveRetry: (articles: Article[]) => void = () => {};
+    let resolveRetry: (page: IPaginatedResponse<Article>) => void = () => {};
     mockFindAll.mockImplementationOnce(
       () =>
-        new Promise<Article[]>((resolve) => {
+        new Promise<IPaginatedResponse<Article>>((resolve) => {
           resolveRetry = resolve;
         }),
     );
@@ -247,7 +249,9 @@ describe('ArticlesList', () => {
     expect(screen.getByText('My Draft')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
     await act(async () =>
-      resolveRetry([buildArticle({ label: 'Updated draft' })]),
+      resolveRetry(
+        paginatedResponse([buildArticle({ label: 'Updated draft' })]),
+      ),
     );
     await screen.findByText('Updated draft');
     expect(
@@ -257,7 +261,7 @@ describe('ArticlesList', () => {
 
   it('opens the article and its traffic in the right sidebar while the title links to the editor', async () => {
     const user = userEvent.setup();
-    mockFindAll.mockResolvedValue([buildArticle()]);
+    mockFindAll.mockResolvedValue(paginatedResponse([buildArticle()]));
     mockGetWebsiteTraffic.mockResolvedValue({
       articleId: 'article-1',
       days: [],
@@ -347,7 +351,7 @@ describe('ArticlesList', () => {
 
   it('opens the create-article modal from the empty-state Create action', async () => {
     const user = userEvent.setup();
-    mockFindAll.mockResolvedValue([]);
+    mockFindAll.mockResolvedValue(paginatedResponse([]));
 
     render(<ArticlesList />);
 
@@ -364,7 +368,7 @@ describe('ArticlesList', () => {
 
   it('exposes Create when the list is populated and opens the same modal', async () => {
     const user = userEvent.setup();
-    mockFindAll.mockResolvedValue([buildArticle()]);
+    mockFindAll.mockResolvedValue(paginatedResponse([buildArticle()]));
 
     render(<ArticlesList />);
 

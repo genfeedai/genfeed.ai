@@ -91,7 +91,14 @@ async function setupAuthCookies(
   context: BrowserContext,
   session: typeof MOCK_SESSION = MOCK_SESSION,
 ): Promise<void> {
-  const cookieDomains = ['127.0.0.1', 'localhost'];
+  const appBaseURL = process.env.APP_BASE_URL || process.env.BASE_URL;
+  const cookieDomains = [
+    ...new Set([
+      '127.0.0.1',
+      'localhost',
+      ...(appBaseURL ? [new URL(appBaseURL).hostname] : []),
+    ]),
+  ];
 
   await context.addCookies(
     cookieDomains.flatMap((domain) => [

@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -20,7 +23,7 @@ vi.mock('next-intl', async () => {
 
 const mocks = vi.hoisted(() => ({
   deleteStyle: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getStylesService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -63,7 +66,7 @@ vi.mock('@services/elements/styles.service', () => ({
   StylesService: {
     getInstance: () => ({
       delete: mocks.deleteStyle,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -156,8 +159,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -194,7 +205,7 @@ function mockStyles(
     makeStyle({ id: 'style-2', label: 'Editorial', models: [] }),
   ],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('StylesList', () => {
@@ -203,9 +214,34 @@ describe('StylesList', () => {
     mocks.deleteStyle.mockResolvedValue({ ok: true });
     mocks.getStylesService.mockResolvedValue({
       delete: mocks.deleteStyle,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockStyles();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<StylesList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: styles 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeStyle()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<StylesList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: styles 61');
+    });
+    expect(
+      screen.queryByText('Pagination: styles 200'),
+    ).not.toBeInTheDocument();
   });
 
   it('loads superadmin styles and reads the admin filters from the URL', async () => {
@@ -217,7 +253,7 @@ describe('StylesList', () => {
     expect(screen.getByText('flux')).toBeInTheDocument();
     expect(screen.getByText('seedream')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -260,7 +296,7 @@ describe('StylesList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <StylesList
         scope={PageScope.SUPERADMIN}
@@ -285,7 +321,7 @@ describe('StylesList', () => {
     vi.clearAllMocks();
     mocks.getStylesService.mockResolvedValue({
       delete: mocks.deleteStyle,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockStyles();
     mocks.deleteStyle.mockRejectedValueOnce(new Error('delete failed'));

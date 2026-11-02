@@ -1,4 +1,5 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -104,8 +105,10 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav aria-label="pagination" data-total-label={totalLabel} />
+  default: ({ totalLabel, totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination" data-total-label={totalLabel}>
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
   ),
 }));
 
@@ -297,6 +300,12 @@ describe('UnitEconomicsReport', () => {
     expect(queryState.replace).toHaveBeenCalledWith(
       '/admin/administration/unit-economics?foo=bar',
       { scroll: false },
+    );
+  });
+  it('excludes the synthetic totals row from pagination', () => {
+    render(<UnitEconomicsReport />);
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '2 rows / 1 pages',
     );
   });
 });

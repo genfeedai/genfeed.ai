@@ -2,6 +2,7 @@
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   createArtifactEditorRoute,
+  EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
@@ -109,7 +110,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         ...(sortKey ? { sortBy: sortKey, sortOrder: sortDirection } : {}),
       };
       try {
-        return await service.findAll(query, signal);
+        return await service.findAllPage(query, signal);
       } catch (error) {
         if (!signal.aborted) {
           logger.error('GET /articles failed', error);
@@ -216,7 +217,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         <AutoPagination
           showTotal
           totalLabel={translate('totalLabel')}
-          totals={articlesQuery.data?.totals}
+          totals={articlesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
 

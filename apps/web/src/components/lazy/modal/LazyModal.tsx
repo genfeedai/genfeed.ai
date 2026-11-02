@@ -34,6 +34,7 @@ import type {
 import type { ModalPostRepurposeProps } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
+import type { ElementCreateModalProps } from '@/features/admin/props/element-create-modal.props';
 import type { ModalPostRemixProps } from '@/props/modals/modal-post-remix.props';
 
 // Automation modals
@@ -75,49 +76,18 @@ export const LazyModalImageToVideo = dynamic(
 ) as ComponentType<ModalImageToVideoProps>;
 
 // Element modals
+export const LazyElementCreateModal = dynamic<ElementCreateModalProps>(
+  () => import('@/components/modals/elements/shared/ElementCreateModal'),
+  { ssr: false },
+);
+
 export const LazyModalBlacklist = dynamic(
   () => import('@/components/modals/elements/blacklist/ModalBlacklist'),
   { ssr: false },
 ) as ComponentType<ModalBlacklistProps>;
 
-export const LazyModalCamera = dynamic(
-  () => import('@/components/modals/elements/camera/ModalCamera'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalCameraMovement = dynamic(
-  () =>
-    import('@/components/modals/elements/camera-movement/ModalCameraMovement'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalFontFamily = dynamic(
-  () => import('@/components/modals/elements/font/ModalFontFamily'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalLens = dynamic(
-  () => import('@/components/modals/elements/lens/ModalLens'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalLighting = dynamic(
-  () => import('@/components/modals/elements/lighting/ModalLighting'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalMood = dynamic(
-  () => import('@/components/modals/elements/mood/ModalMood'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
 export const LazyModalPreset = dynamic(
   () => import('@/components/modals/elements/preset/ModalPreset'),
-  { ssr: false },
-) as ComponentType<ModalCreateProps>;
-
-export const LazyModalScene = dynamic(
-  () => import('@/components/modals/elements/scene/ModalScene'),
   { ssr: false },
 ) as ComponentType<ModalCreateProps>;
 

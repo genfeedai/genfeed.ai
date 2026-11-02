@@ -5,8 +5,10 @@ import {
   useAnalyticsSearch,
 } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IEntityStatsTotals } from '@genfeedai/contracts/interfaces';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
   formatCompactNumberIntl,
@@ -21,7 +23,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import {
   AnalyticsService,
-  type IBrandWithStats,
+  type IPaginatedBrandsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -75,9 +77,11 @@ export default function AnalyticsBrandsList({
     AnalyticsService.getInstance(token),
   );
 
-  const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
-  const [totals, setTotals] = useState<IEntityStatsTotals | null>(null);
-  const [totalBrands, setTotalBrands] = useState(0);
+  const [brandsResponse, setBrandsResponse] =
+    useState<IPaginatedBrandsResponse | null>(null);
+  const brandsData = brandsResponse?.data ?? [];
+  const totals = brandsResponse?.totals;
+  const totalBrands = brandsResponse?.pagination?.total ?? brandsData.length;
   // Starts loading so the first paint is a skeleton, not an empty table and zeros.
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -153,9 +157,7 @@ export default function AnalyticsBrandsList({
           return;
         }
 
-        setBrandsData(response.data);
-        setTotals(response.totals);
-        setTotalBrands(response.pagination?.total ?? response.data.length);
+        setBrandsResponse(response);
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to fetch brand analytics list', error);
@@ -392,7 +394,18 @@ export default function AnalyticsBrandsList({
         }}
       />
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="brands" />
+        <AutoPagination
+          showTotal
+          totalLabel="brands"
+          totals={
+            brandsResponse
+              ? {
+                  totalDocs: totalBrands,
+                  totalPages: brandsResponse.pagination?.totalPages ?? 1,
+                }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

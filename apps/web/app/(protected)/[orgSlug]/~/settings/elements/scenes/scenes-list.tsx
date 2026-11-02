@@ -1,7 +1,13 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IQueryParams } from '@genfeedai/contracts/interfaces';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  IPaginatedResponse,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -18,6 +24,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const EMPTY_SCENES: ElementScene[] = [];
 
 /** Columns the scenes endpoint can order by. */
 const SCENE_SORT_KEYS = ['label', 'key'];
@@ -36,9 +44,10 @@ function ScenesListContent() {
     useCallback((token: string) => ScenesService.getInstance(token), []),
   );
 
-  const [scenes, setScenes] = useState<ElementScene[] | null>(null);
-
-  const isLoading = scenes === null;
+  const [scenesPage, setScenesPage] =
+    useState<IPaginatedResponse<ElementScene> | null>(null);
+  const scenes = scenesPage?.items ?? EMPTY_SCENES;
+  const [isLoading, setIsLoading] = useState(true);
 
   const columns: TableColumn<ElementScene>[] = [
     {
@@ -59,11 +68,14 @@ function ScenesListContent() {
 
   // Only the latest request may fill the list, so a slow response for an
   // earlier sort or search cannot replace the current one.
-  const latestRequestRef = useRef(0);
+  const requestRef = useRef<AbortController | null>(null);
 
   const findAllScenes = useCallback(async () => {
-    const requestId = ++latestRequestRef.current;
-    setScenes(null);
+    requestRef.current?.abort();
+    const request = new AbortController();
+    requestRef.current = request;
+    setScenesPage(null);
+    setIsLoading(true);
 
     try {
       const service = await getScenesService();
@@ -74,24 +86,27 @@ function ScenesListContent() {
         ...(sort ? { sort } : {}),
       };
 
-      const data = await service.findAll(query);
-      if (requestId !== latestRequestRef.current) {
+      const data = await service.findAllPage(query, request.signal);
+      if (request.signal.aborted) {
         return;
       }
-      setScenes(data);
-      logger.info('GET /scenes success', data);
+      setScenesPage(data);
+      setIsLoading(false);
+      logger.info('GET /scenes success', data.items);
     } catch (error) {
-      if (requestId !== latestRequestRef.current) {
+      if (request.signal.aborted) {
         return;
       }
       logger.error('GET /scenes failed', error);
       notificationsService.error('Failed to load scenes');
-      setScenes([]);
+      setScenesPage(null);
+      setIsLoading(false);
     }
   }, [currentPage, getScenesService, notificationsService, search, sort]);
 
   useEffect(() => {
-    findAllScenes();
+    void findAllScenes();
+    return () => requestRef.current?.abort();
   }, [findAllScenes]);
 
   return (
@@ -107,7 +122,7 @@ function ScenesListContent() {
       }
     >
       <AppTable<ElementScene>
-        items={scenes ?? []}
+        items={scenes}
         columns={columns}
         actions={[]}
         isLoading={isLoading}
@@ -120,7 +135,18 @@ function ScenesListContent() {
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="scenes" />
+        <AutoPagination
+          showTotal
+          totalLabel="scenes"
+          totals={
+            scenesPage
+              ? {
+                  totalDocs: scenesPage.total,
+                  totalPages: scenesPage.totalPages,
+                }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </Container>
   );

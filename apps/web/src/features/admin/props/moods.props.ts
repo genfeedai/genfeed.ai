@@ -1,10 +1,11 @@
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { ElementMood } from '@models/elements/mood.model';
 
 export interface MoodsListState {
-  moods: ElementMood[];
+  page: IPaginatedResponse<ElementMood> | null;
   isLoading: boolean;
 }
 
 export type MoodsListAction =
-  | { type: 'SET_MOODS'; payload: ElementMood[] }
+  | { type: 'SET_PAGE'; payload: IPaginatedResponse<ElementMood> }
   | { type: 'SET_IS_LOADING'; payload: boolean };

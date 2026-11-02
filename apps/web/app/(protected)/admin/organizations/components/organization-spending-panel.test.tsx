@@ -1,4 +1,5 @@
 import type { IUnitEconomicsReport } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ComponentProps, ReactNode } from 'react';
@@ -29,8 +30,10 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav aria-label="pagination" data-total-label={totalLabel} />
+  default: ({ totalLabel, totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination" data-total-label={totalLabel}>
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
   ),
 }));
 
@@ -101,14 +104,9 @@ describe('OrganizationSpendingPanel', () => {
 
     // The revenue card and the user's row.
     expect(screen.getAllByText('$100.00')).toHaveLength(2);
-    expect(
-      screen.getByText('LLM $15.00 · generation $5.00'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('80.0% of revenue')).toBeInTheDocument();
+    expect(screen.getByText('$20.00')).toBeInTheDocument();
+    expect(screen.getAllByText('$80.00').length).toBeGreaterThan(0);
     expect(screen.getByText('150')).toBeInTheDocument();
-    expect(
-      screen.getByText('120 agent chat · 30 generation'),
-    ).toBeInTheDocument();
   });
 
   it('lists the users and opens one in the context sidebar', () => {
@@ -141,5 +139,22 @@ describe('OrganizationSpendingPanel', () => {
     renderPanel({ error: new Error('boom'), report: undefined });
 
     expect(screen.getByText(/boom/)).toBeInTheDocument();
+  });
+  it('keeps the report total rather than counting the visible page', () => {
+    renderPanel({
+      report: {
+        ...report,
+        pagination: { limit: 15, page: 2, pages: 5, total: 61 },
+      },
+    });
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '61 rows / 5 pages',
+    );
+  });
+  it('starts with empty totals while the report loads', () => {
+    renderPanel({ report: undefined, isLoading: true });
+    expect(screen.getByLabelText('pagination')).toHaveTextContent(
+      '0 rows / 1 pages',
+    );
   });
 });

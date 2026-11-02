@@ -1,7 +1,11 @@
 'use client';
 
 import { ButtonVariant, CampaignStatus } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -13,7 +17,6 @@ import {
   type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
-import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -78,9 +81,11 @@ export default function OutreachCampaignsList() {
           ),
         ]);
         logger.info('Loaded campaigns', { count: all.length });
-        // `findPageByOrganization` recorded the table page's totals; keep them
-        // with this cached read.
-        return { all, page, totals: PagesService.snapshot() };
+        return {
+          all,
+          page: page.items,
+          totals: { totalDocs: page.total, totalPages: page.totalPages },
+        };
       } catch (error) {
         if (!signal.aborted) {
           logger.error('Failed to load campaigns', error);
@@ -297,7 +302,7 @@ export default function OutreachCampaignsList() {
           <AutoPagination
             showTotal
             totalLabel="sequences"
-            totals={campaignsQuery.data?.totals}
+            totals={campaignsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
           />
         ) : null}
       </div>

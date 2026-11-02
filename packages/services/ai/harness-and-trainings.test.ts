@@ -9,7 +9,6 @@ import {
 } from '@services/__mocks__/http.mock';
 import { HarnessProfilesService } from '@services/ai/harness-profiles.service';
 import { TrainingsService } from '@services/ai/trainings.service';
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('HarnessProfilesService', () => {
@@ -76,14 +75,13 @@ describe('HarnessProfilesService', () => {
     );
 
     const result = await service.proposeRules({
-      brandId: 'brand_1',
       edited: 'Live.',
       original: 'Truly live.',
     });
 
     expect(http.post).toHaveBeenCalledWith(
       '/rule-proposals',
-      { brandId: 'brand_1', edited: 'Live.', original: 'Truly live.' },
+      { edited: 'Live.', original: 'Truly live.' },
       { signal: undefined },
     );
     expect(result).toEqual(['Never use "truly".']);
@@ -127,10 +125,7 @@ describe('TrainingsService', () => {
     expect(TrainingsService.getInstance('tok')).toBe(first);
   });
 
-  it('getTrainingImages GETs images and records pagination', async () => {
-    const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-    const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+  it('getTrainingImages returns images with their own pagination', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'img_1', label: 'I' }], {
@@ -144,26 +139,22 @@ describe('TrainingsService', () => {
     expect(http.get).toHaveBeenCalledWith(`/${trainingId}/images`, {
       params: { page: 2 },
     });
-    expect(setCurrentPage).toHaveBeenCalledWith(2);
-    expect(setTotalPages).toHaveBeenCalledWith(4);
-    expect(setTotalDocs).toHaveBeenCalledWith(33);
-    expect(result[0]).toBeInstanceOf(Image);
+    expect(result).toMatchObject({ page: 2, totalPages: 4, total: 33 });
+    expect(result.items[0]).toBeInstanceOf(Image);
   });
 
-  it('getTrainingImages skips pagination without a page', async () => {
-    const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+  it('getTrainingImages derives an implicit page when links are absent', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: 'img_1', label: 'I' }])),
     );
 
-    await service.getTrainingImages(trainingId);
+    const result = await service.getTrainingImages(trainingId);
 
-    expect(setCurrentPage).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ page: 1, totalPages: 1, total: 1 });
+    expect(result.items[0]).toBeInstanceOf(Image);
   });
 
-  it('getTrainingSources GETs sources and records pagination', async () => {
-    const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+  it('getTrainingSources returns sources with their own pagination', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'src_1', label: 'S' }], {
@@ -183,8 +174,7 @@ describe('TrainingsService', () => {
       params: { limit: 10, page: 1 },
       signal,
     });
-    expect(setCurrentPage).toHaveBeenCalledWith(1);
-    expect(setTotalDocs).toHaveBeenCalledWith(11);
-    expect(result[0]).toBeInstanceOf(Image);
+    expect(result).toMatchObject({ page: 1, totalPages: 2, total: 11 });
+    expect(result.items[0]).toBeInstanceOf(Image);
   });
 });

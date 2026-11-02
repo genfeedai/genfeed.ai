@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -13,7 +16,7 @@ import BlacklistsList from './blacklists-list';
 
 const mocks = vi.hoisted(() => ({
   deleteBlacklist: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getBlacklistsService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -62,7 +65,7 @@ vi.mock('@services/elements/blacklists.service', () => ({
   BlacklistsService: {
     getInstance: () => ({
       delete: mocks.deleteBlacklist,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     }),
   },
@@ -156,8 +159,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -218,7 +229,7 @@ function mockBlacklists(
     }),
   ],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('BlacklistsList', () => {
@@ -227,11 +238,36 @@ describe('BlacklistsList', () => {
     mocks.deleteBlacklist.mockResolvedValue({ ok: true });
     mocks.getBlacklistsService.mockResolvedValue({
       delete: mocks.deleteBlacklist,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     });
     mocks.patch.mockResolvedValue({});
     mockBlacklists();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: blacklists 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeBlacklist()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<BlacklistsList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: blacklists 61');
+    });
+    expect(
+      screen.queryByText('Pagination: blacklists 200'),
+    ).not.toBeInTheDocument();
   });
 
   it('loads superadmin blacklists and reads the admin filters from the URL', async () => {
@@ -241,7 +277,7 @@ describe('BlacklistsList', () => {
     expect(await screen.findByText('Low Quality')).toBeInTheDocument();
     expect(screen.getByText('Inactive Blacklist')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -310,7 +346,7 @@ describe('BlacklistsList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <BlacklistsList
         scope={PageScope.SUPERADMIN}
@@ -335,7 +371,7 @@ describe('BlacklistsList', () => {
     vi.clearAllMocks();
     mocks.getBlacklistsService.mockResolvedValue({
       delete: mocks.deleteBlacklist,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     });
     mockBlacklists();

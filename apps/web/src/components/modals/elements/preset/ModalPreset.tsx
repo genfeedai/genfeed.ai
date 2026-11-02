@@ -30,7 +30,7 @@ import ModalPresetFields from './ModalPresetFields';
  * sidebar (see `PresetDescriptionActions` for the AI enhance).
  */
 export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
-  const t = useTranslations('ui.createModal');
+  const translateCreate = useTranslations('ui.createModal');
   const { brandId, organizationId } = useBrand();
   const [error, setError] = useState<string | null>(null);
 
@@ -147,7 +147,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
   return (
     <Modal
       id={ModalEnum.PRESET}
-      title={t('preset')}
+      title={translateCreate('preset')}
       error={error}
       onClose={() => setError(null)}
     >
@@ -169,7 +169,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
 
         <ModalActions>
           <Button
-            label={t('cancel')}
+            label={translateCreate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={() => closeModal()}
             isLoading={isSubmitting}
@@ -177,7 +177,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
 
           <Button
             type="submit"
-            label={t('create')}
+            label={translateCreate('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

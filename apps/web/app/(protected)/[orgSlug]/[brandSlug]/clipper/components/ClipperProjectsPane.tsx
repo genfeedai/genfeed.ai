@@ -26,7 +26,7 @@ export default function ClipperProjectsPane() {
 
   return (
     <Container
-      label="Clipper"
+      label={t('title')}
       leading={
         <SearchField
           ariaLabel={t('search')}

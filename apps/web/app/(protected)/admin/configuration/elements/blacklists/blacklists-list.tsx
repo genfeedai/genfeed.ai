@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ModelCategory, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementBlacklist,
   IQueryParams,
@@ -40,7 +43,7 @@ function blacklistsReducer(
     case 'FETCH_START':
       return { ...state, isLoading: !action.isRefresh };
     case 'FETCH_SUCCESS':
-      return { ...state, blacklists: action.blacklists };
+      return { ...state, page: action.page };
     case 'FETCH_DONE':
       return { ...state, isLoading: false };
     case 'UPDATING_ADD': {
@@ -57,6 +60,8 @@ function blacklistsReducer(
       return state;
   }
 }
+
+const EMPTY_BLACKLISTS: ElementBlacklist[] = [];
 
 const BLACKLIST_SORT_KEYS = ['label', 'key', 'category'];
 
@@ -89,12 +94,13 @@ function BlacklistsListContent({
   });
 
   const [state, dispatch] = useReducer(blacklistsReducer, undefined, () => ({
-    blacklists: [] as ElementBlacklist[],
+    page: null,
     isLoading: true,
     updatingIds: new Set<string>(),
   }));
 
-  const { blacklists, isLoading, updatingIds } = state;
+  const { page, isLoading, updatingIds } = state;
+  const blacklists = page?.items ?? EMPTY_BLACKLISTS;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -215,13 +221,13 @@ function BlacklistsListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
-        dispatch({ type: 'FETCH_SUCCESS', blacklists: data });
+        dispatch({ type: 'FETCH_SUCCESS', page: data });
 
-        logger.info('GET /blacklists success', data);
+        logger.info('GET /blacklists success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -371,7 +377,15 @@ function BlacklistsListContent({
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="blacklists" />
+        <AutoPagination
+          showTotal
+          totalLabel="blacklists"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

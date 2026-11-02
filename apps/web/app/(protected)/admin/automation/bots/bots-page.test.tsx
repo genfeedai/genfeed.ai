@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -10,14 +11,14 @@ import BotsPage from './bots-page';
 const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
   error: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   success: vi.fn(),
 }));
 
 const getBotsServiceStable = vi.hoisted(() => async () => ({
-  findAll: mocks.findAll,
+  findAllPage: mocks.findAllPage,
 }));
 
 vi.mock('next-intl', async () => {
@@ -70,12 +71,12 @@ describe('BotsPage shell-first loading', () => {
 
   it('requests the page from the URL with the page size and renders pagination', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    mocks.findAll.mockResolvedValueOnce([]);
+    mocks.findAllPage.mockResolvedValueOnce(paginatedResponse([]));
 
     render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         { limit: ITEMS_PER_PAGE, page: 3, sort: 'createdAt: -1' },
         expect.any(AbortSignal),
       );
@@ -87,12 +88,12 @@ describe('BotsPage shell-first loading', () => {
 
   it('searches bots server-side with the term in the URL', async () => {
     mocks.searchParams = new URLSearchParams('q=livestream');
-    mocks.findAll.mockResolvedValueOnce([]);
+    mocks.findAllPage.mockResolvedValueOnce(paginatedResponse([]));
 
     render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         {
           limit: ITEMS_PER_PAGE,
           page: 1,
@@ -106,9 +107,10 @@ describe('BotsPage shell-first loading', () => {
   });
 
   it('renders the container chrome and refresh action while bots are loading', async () => {
-    let resolveBots: (value: unknown[]) => void = () => undefined;
-    mocks.findAll.mockReturnValueOnce(
-      new Promise((resolve) => {
+    let resolveBots: (value: ReturnType<typeof paginatedResponse>) => void =
+      () => undefined;
+    mocks.findAllPage.mockReturnValueOnce(
+      new Promise<ReturnType<typeof paginatedResponse>>((resolve) => {
         resolveBots = resolve;
       }),
     );
@@ -119,20 +121,22 @@ describe('BotsPage shell-first loading', () => {
     expect(screen.getByTestId('automation-bots-surface')).toBeVisible();
     expect(screen.queryByText('No bots yet')).not.toBeInTheDocument();
 
-    resolveBots([
-      {
-        category: 'engagement',
-        id: 'bot-1',
-        label: 'Sample bot',
-        status: 'ACTIVE',
-      },
-    ]);
+    resolveBots(
+      paginatedResponse([
+        {
+          category: 'engagement',
+          id: 'bot-1',
+          label: 'Sample bot',
+          status: 'ACTIVE',
+        },
+      ]),
+    );
 
     expect(await screen.findByText('Sample bot')).toBeVisible();
   });
 
   it('shows the empty state inside the surface once loading resolves with no bots', async () => {
-    mocks.findAll.mockResolvedValueOnce([]);
+    mocks.findAllPage.mockResolvedValueOnce(paginatedResponse([]));
 
     render(<BotsPage />, { wrapper: queryClientWrapper() });
 
@@ -143,19 +147,21 @@ describe('BotsPage shell-first loading', () => {
   });
 
   it('paints the cached bots on a return visit, with no skeleton', async () => {
-    mocks.findAll.mockResolvedValueOnce([
-      {
-        category: 'engagement',
-        id: 'bot-1',
-        label: 'Sample bot',
-        status: 'ACTIVE',
-      },
-    ]);
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([
+        {
+          category: 'engagement',
+          id: 'bot-1',
+          label: 'Sample bot',
+          status: 'ACTIVE',
+        },
+      ]),
+    );
     const client = createTestQueryClient();
     const first = render(<BotsPage />, { wrapper: queryClientWrapper(client) });
     await screen.findByText('Sample bot');
     first.unmount();
-    mocks.findAll.mockReturnValueOnce(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
 
     render(<BotsPage />, { wrapper: queryClientWrapper(client) });
 
@@ -163,7 +169,7 @@ describe('BotsPage shell-first loading', () => {
   });
 
   it('toasts once when the bots fail to load', async () => {
-    mocks.findAll.mockRejectedValueOnce(new Error('boom'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('boom'));
 
     render(<BotsPage />, { wrapper: queryClientWrapper() });
 

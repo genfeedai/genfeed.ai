@@ -41,7 +41,7 @@ export default function ModalFolder({
   scope = PageScope.BRAND,
 }: ModalFolderProps) {
   const t = useTranslations('ui.folderFields');
-  const createT = useTranslations('ui.createModal');
+  const translateCreate = useTranslations('ui.createModal');
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
 
@@ -107,7 +107,7 @@ export default function ModalFolder({
   return (
     <Modal
       id={ModalEnum.FOLDER}
-      title={createT('folder')}
+      title={translateCreate('folder')}
       onClose={handleModalClose}
     >
       <Form ref={formRef} onSubmit={onSubmit}>
@@ -163,7 +163,7 @@ export default function ModalFolder({
         )}
         <ModalActions>
           <Button
-            label={createT('cancel')}
+            label={translateCreate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={handleModalClose}
             isLoading={isSubmitting}
@@ -171,7 +171,7 @@ export default function ModalFolder({
 
           <Button
             type="submit"
-            label={createT('create')}
+            label={translateCreate('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

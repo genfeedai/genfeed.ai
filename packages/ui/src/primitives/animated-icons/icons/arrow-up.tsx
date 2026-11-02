@@ -1,10 +1,11 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
+import { motion } from 'motion/react';
 import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { forwardRef } from 'react';
 
 export interface ArrowUpIconHandle {
   startAnimation: () => void;
@@ -38,39 +39,8 @@ const SECOND_PATH_VARIANTS: Variants = {
 
 const ArrowUpIcon = forwardRef<ArrowUpIconHandle, ArrowUpIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
 
     return (
       <div

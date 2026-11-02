@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -20,7 +23,7 @@ vi.mock('next-intl', async () => {
 
 const mocks = vi.hoisted(() => ({
   deleteMovement: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getCameraMovementsService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -63,7 +66,7 @@ vi.mock('@services/elements/camera-movements.service', () => ({
   CameraMovementsService: {
     getInstance: () => ({
       delete: mocks.deleteMovement,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -130,7 +133,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalCameraMovement: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,
@@ -152,8 +155,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -189,7 +200,7 @@ function mockMovements(
     makeMovement({ id: 'movement-2', label: 'Crane Up' }),
   ],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('CameraMovementsList', () => {
@@ -198,9 +209,34 @@ describe('CameraMovementsList', () => {
     mocks.deleteMovement.mockResolvedValue({ ok: true });
     mocks.getCameraMovementsService.mockResolvedValue({
       delete: mocks.deleteMovement,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockMovements();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<CameraMovementsList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: camera movements 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeMovement()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<CameraMovementsList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: camera movements 61');
+    });
+    expect(
+      screen.queryByText('Pagination: camera movements 200'),
+    ).not.toBeInTheDocument();
   });
 
   it('loads superadmin camera movements and reads the admin filters from the URL', async () => {
@@ -210,7 +246,7 @@ describe('CameraMovementsList', () => {
     expect(await screen.findByText('Slow Push')).toBeInTheDocument();
     expect(screen.getByText('Crane Up')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -247,7 +283,7 @@ describe('CameraMovementsList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <CameraMovementsList
         scope={PageScope.SUPERADMIN}
@@ -272,7 +308,7 @@ describe('CameraMovementsList', () => {
     vi.clearAllMocks();
     mocks.getCameraMovementsService.mockResolvedValue({
       delete: mocks.deleteMovement,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockMovements();
     mocks.deleteMovement.mockRejectedValueOnce(new Error('delete failed'));

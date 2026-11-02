@@ -18,7 +18,9 @@ vi.mock('./hooks/useModalGallery', () => ({
   useModalGallery: () => ({
     activeTab: 'media' as const,
     filterReferenceId: '',
-    findAllItems: vi.fn(),
+    loadPage: vi.fn(),
+    currentPage: 1,
+    totalPages: 1,
     handleItemSelect: vi.fn(),
     isLoading: false,
     items: [],
