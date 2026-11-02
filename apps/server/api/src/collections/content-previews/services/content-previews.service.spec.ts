@@ -44,7 +44,8 @@ function createFakePrisma() {
     brand: { findFirst: async () => state.brand },
     contentPreview: {
       create: async ({ data }: { data: Row }) => {
-        const row = {
+        const row: Row = {
+          ...data,
           createdAt: new Date(NOW),
           ctaClickCount: 0,
           firstViewedAt: null,
@@ -54,7 +55,6 @@ function createFakePrisma() {
           revokedAt: null,
           updatedAt: new Date(NOW),
           viewCount: 0,
-          ...data,
         };
         previews.push(row);
         return row;
@@ -182,10 +182,9 @@ describe('ContentPreviewsService', () => {
   it('exposes only the allowlisted fields through the serializer', async () => {
     const { token } = await mint();
 
-    const document = PublicContentPreviewSerializer.serialize({
-      id: 'preview',
-      ...(await service.readPublic(token)),
-    }) as { data: { attributes: Record<string, unknown>; id: string } };
+    const document = PublicContentPreviewSerializer.serialize(
+      await service.readPublic(token),
+    ) as { data: { attributes: Record<string, unknown>; id: string } };
 
     expect(Object.keys(document.data.attributes).sort()).toEqual([
       'brand',
