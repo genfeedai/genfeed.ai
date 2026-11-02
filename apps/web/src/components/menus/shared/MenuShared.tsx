@@ -2,7 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { SidebarHighlightGroup } from '@ui/primitives/animated-icons/sidebar-active-highlight';
+import { SidebarHighlightGroup } from '@ui/primitives/sidebar-active-highlight';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';

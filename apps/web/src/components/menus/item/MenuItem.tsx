@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
-import { SidebarActiveHighlight } from '@ui/primitives/animated-icons/sidebar-active-highlight';
+import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
