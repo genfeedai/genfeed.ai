@@ -46,6 +46,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { Toaster, toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import { getDefaultGenerationSetupValues } from '@/features/studio/playground/utils/studio-generation-setup-bridge';
@@ -155,17 +156,14 @@ const mocks = vi.hoisted(() => ({
       }[];
     },
   },
-  // Notices render into a list in the document, like a toast host, so tests
-  // read what the person would see.
-  notify: (message: string) => {
+  // Notices also land in a list in the document, like a toast host, so tests
+  // can read what the person would see without waiting on the toast animation.
+  notify: vi.fn((message: string, ..._rest: unknown[]) => {
     const item = document.createElement('li');
     item.textContent = message;
-    document.querySelector('ol[aria-label="Notifications"]')?.append(item);
-  },
-  // Navigation lands in the jsdom URL so tests read where the person ended up.
-  push: (path: string) => {
-    window.history.pushState(null, '', path);
-  },
+    document.querySelector('ol[aria-label="Test notices"]')?.append(item);
+  }),
+  push: vi.fn(),
   results: vi.fn(),
   rehydratePending: vi.fn(),
   removeJob: vi.fn(),
@@ -596,16 +594,29 @@ vi.mock('@services/content/studio-generate-drafts.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({
-      error: vi.fn(),
-      info: mocks.notify,
-      success: vi.fn(),
-      warning: mocks.notify,
-    }),
-  },
-}));
+vi.mock('@services/core/notifications.service', async (importOriginal) => {
+  const { NotificationsService } =
+    await importOriginal<
+      typeof import('@services/core/notifications.service')
+    >();
+  const service = NotificationsService.getInstance();
+  return {
+    NotificationsService: {
+      getInstance: () => ({
+        error: vi.fn(),
+        info: (...args: Parameters<typeof service.info>) => {
+          mocks.notify(...args);
+          service.info(...args);
+        },
+        success: vi.fn(),
+        warning: (...args: Parameters<typeof service.warning>) => {
+          mocks.notify(...args);
+          service.warning(...args);
+        },
+      }),
+    },
+  };
+});
 
 vi.mock(
   '@/features/studio/playground/hooks/useStudioPlaygroundSettings',
@@ -802,17 +813,21 @@ async function renderLoaded(options?: Parameters<typeof render>[1]) {
 }
 
 function notifications() {
-  return within(screen.getByLabelText('Notifications'));
+  return within(screen.getByLabelText('Test notices'));
 }
 
 describe('StudioPlaygroundWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    document.querySelector('ol[aria-label="Notifications"]')?.remove();
+    document.querySelector('ol[aria-label="Test notices"]')?.remove();
     const host = document.createElement('ol');
-    host.setAttribute('aria-label', 'Notifications');
+    host.setAttribute('aria-label', 'Test notices');
     document.body.append(host);
-    window.history.pushState(null, '', '/');
+    toast.dismiss();
+    window.history.replaceState(null, '', '/');
+    mocks.push.mockImplementation((url: string) =>
+      window.history.pushState(null, '', url),
+    );
     mocks.crunQuote.mockReturnValue({
       quote: null,
       status: 'idle',
@@ -1907,6 +1922,7 @@ describe('StudioPlaygroundWorkspace', () => {
   it('defers a continuation until the saved draft has loaded', async () => {
     const pendingDraft = Promise.withResolvers<null>();
     mocks.getDraft.mockReturnValue(pendingDraft.promise);
+    render(<Toaster />);
     render(<StudioPlaygroundWorkspace />);
     await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
@@ -1929,9 +1945,7 @@ describe('StudioPlaygroundWorkspace', () => {
       ),
     );
 
-    expect(
-      notifications().getByText('continuation.draftLoading'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('continuation.draftLoading')).toBeVisible();
     expect(mocks.openConfirm).not.toHaveBeenCalled();
     expect(
       mocks.settings.mock.results.at(-1)?.value.setType,
@@ -2936,6 +2950,7 @@ describe('StudioPlaygroundWorkspace', () => {
         isUploading: false,
         removeAttachment: vi.fn(),
       });
+      render(<Toaster />);
       await renderLoaded();
       act(() =>
         composer().onAddFiles(
@@ -2947,8 +2962,8 @@ describe('StudioPlaygroundWorkspace', () => {
       expect(addFiles).not.toHaveBeenCalled();
       expect(mocks.findAllPage).not.toHaveBeenCalled();
       expect(
-        notifications().getByText('audioReferenceUnsupported'),
-      ).toBeInTheDocument();
+        await screen.findByText('audioReferenceUnsupported'),
+      ).toBeVisible();
     });
   });
 
@@ -2996,6 +3011,7 @@ describe('StudioPlaygroundWorkspace', () => {
         },
       ]);
 
+      render(<Toaster />);
       render(<StudioPlaygroundWorkspace />);
 
       await waitFor(() =>
@@ -3035,9 +3051,7 @@ describe('StudioPlaygroundWorkspace', () => {
         ]),
       );
       // One reference the server pruned and one the client could not load.
-      expect(
-        notifications().getByText('draft.referencesDropped'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('draft.referencesDropped')).toBeVisible();
     });
 
     it('restores one Library image in both frame roles without merging their draft positions', async () => {
@@ -3938,11 +3952,10 @@ describe('StudioPlaygroundWorkspace', () => {
       const job = recipeJob();
       if (!job.recipe?.crunControls) throw new Error('Expected controls');
       job.recipe.crunControls.contractVersion = 'old';
+      render(<Toaster />);
       await renderLoaded();
       vary(job);
-      expect(
-        notifications().getByText('crun.videoQuoteStale'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('crun.videoQuoteStale')).toBeVisible();
       expect(mocks.findByIds).not.toHaveBeenCalled();
       expect(composer().isCrunRestoreBlocked).toBe(true);
       expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();

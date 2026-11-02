@@ -1,6 +1,8 @@
 {
   "title": "Motion",
   "newProject": "New project",
+  "projectChoiceQuestion": "Which project should I apply this to?",
+  "projectChoiceNew": "Start a new project instead",
   "allProjects": "All projects",
   "heroTitle": "What should Motion make?",
   "heroDescription": "Describe an animation or start from a template. You review a credit quote and approve it before anything renders.",

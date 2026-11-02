@@ -30,12 +30,9 @@ import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import {
-  SHELL_ICON_BUTTON_CLASS,
-  SHELL_ICON_CLASS,
-} from '@ui-constants/shell-chrome.constant';
 import { Globe, Plus, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -634,17 +631,17 @@ export default function KnowledgeSourcesList({
           }}
         />
       }
-      iconActions={
-        <Button
-          ariaLabel={translatePage('seedFromBrandKit')}
-          className={SHELL_ICON_BUTTON_CLASS}
-          icon={<Globe className={SHELL_ICON_CLASS} />}
-          isDisabled={isSubmitting}
-          onClick={seedFromBrandKit}
-          size={ButtonSize.ICON}
-          tooltip={translatePage('seedFromBrandKit')}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
+      overflow={
+        <SubbarOverflowMenu
+          actions={[
+            {
+              icon: <Globe className="size-4" />,
+              id: 'seed-from-brand-kit',
+              isDisabled: isSubmitting,
+              label: translatePage('seedFromBrandKit'),
+              onSelect: seedFromBrandKit,
+            },
+          ]}
         />
       }
       right={

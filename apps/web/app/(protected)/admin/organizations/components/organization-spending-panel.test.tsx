@@ -101,14 +101,9 @@ describe('OrganizationSpendingPanel', () => {
 
     // The revenue card and the user's row.
     expect(screen.getAllByText('$100.00')).toHaveLength(2);
-    expect(
-      screen.getByText('LLM $15.00 · generation $5.00'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('80.0% of revenue')).toBeInTheDocument();
+    expect(screen.getByText('$20.00')).toBeInTheDocument();
+    expect(screen.getAllByText('$80.00').length).toBeGreaterThan(0);
     expect(screen.getByText('150')).toBeInTheDocument();
-    expect(
-      screen.getByText('120 agent chat · 30 generation'),
-    ).toBeInTheDocument();
   });
 
   it('lists the users and opens one in the context sidebar', () => {

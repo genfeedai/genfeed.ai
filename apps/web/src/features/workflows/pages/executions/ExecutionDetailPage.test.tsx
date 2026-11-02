@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +15,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: mocks.href }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -64,12 +73,16 @@ describe('ExecutionDetailPage', () => {
       }),
     );
 
-    render(<ExecutionDetailPage executionId="exec-1" />);
+    render(<ExecutionDetailPage executionId="exec-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       screen.getByRole('link', { name: 'All executions' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('execution-detail-loading')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading execution logs' }),
+    ).toBeInTheDocument();
 
     resolveExecution({
       completedAt: '2026-08-19T09:05:00.000Z',
@@ -83,7 +96,9 @@ describe('ExecutionDetailPage', () => {
       workflowId: 'wf-1',
     });
     await waitFor(() => {
-      expect(screen.queryByTestId('execution-detail-loading')).toBeNull();
+      expect(
+        screen.queryByRole('status', { name: 'Loading execution logs' }),
+      ).toBeNull();
     });
   });
 
@@ -96,7 +111,9 @@ describe('ExecutionDetailPage', () => {
       status: 'failed',
       metadata: { isSystemAction: true },
     });
-    render(<ExecutionDetailPage executionId="system-run" />);
+    render(<ExecutionDetailPage executionId="system-run" />, {
+      wrapper: queryClientWrapper(),
+    });
     expect(
       await screen.findByText('Untitled workflow execution system-run'),
     ).toBeInTheDocument();
@@ -112,7 +129,9 @@ describe('ExecutionDetailPage', () => {
     mocks.getExecution.mockRejectedValue({
       errors: [{ status: '404', detail: 'Execution not found' }],
     });
-    render(<ExecutionDetailPage executionId="missing-exec" />);
+    render(<ExecutionDetailPage executionId="missing-exec" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       await screen.findByRole('heading', { name: 'Execution Not Found' }),
@@ -129,7 +148,9 @@ describe('ExecutionDetailPage', () => {
     mocks.getExecution.mockRejectedValue({
       errors: [{ status: '403', detail: 'Access denied' }],
     });
-    render(<ExecutionDetailPage executionId="denied-exec" />);
+    render(<ExecutionDetailPage executionId="denied-exec" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Access denied')).toBeInTheDocument();
     expect(
@@ -141,7 +162,9 @@ describe('ExecutionDetailPage', () => {
   });
 
   it('renders the execution header once the run has loaded', async () => {
-    render(<ExecutionDetailPage executionId="exec-1" />);
+    render(<ExecutionDetailPage executionId="exec-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(
@@ -151,5 +174,28 @@ describe('ExecutionDetailPage', () => {
     expect(
       screen.getAllByRole('link', { name: 'All executions' }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it('paints a run it already loaded straight away when you come back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<ExecutionDetailPage executionId="exec-1" />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByText('Daily digest execution exec-1'),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.getExecution.mockReturnValue(new Promise(() => {}));
+    render(<ExecutionDetailPage executionId="exec-1" />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      screen.getByText('Daily digest execution exec-1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading execution logs' }),
+    ).toBeNull();
   });
 });

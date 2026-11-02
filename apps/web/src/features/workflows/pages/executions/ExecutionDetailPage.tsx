@@ -1,25 +1,21 @@
 'use client';
-import {
-  ButtonVariant,
-  ComponentSize,
-  WorkflowExecutionStatus,
-} from '@genfeedai/contracts';
+import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { Pre } from '@genfeedai/ui';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type {
   ExecutionNodeResult,
   ExecutionResult,
@@ -61,6 +57,12 @@ interface ExecutionDetail {
   metadata?: ExecutionResult['metadata'];
 }
 
+const NODE_ROW_SKELETON_KEYS = [
+  'node-row-skeleton-1',
+  'node-row-skeleton-2',
+  'node-row-skeleton-3',
+];
+
 /**
  * Execution Detail Page - Shows detailed logs for a specific run
  */
@@ -100,55 +102,36 @@ function mapExecution(result: ExecutionResult): ExecutionDetail {
 export default function ExecutionDetailPage({
   executionId: runId,
 }: ExecutionLogsProps) {
-  const [execution, setExecution] = useState<ExecutionDetail | null>(null);
   const translate = useTranslations('common.automation.workflows.executions');
   const { href } = useOrgUrl();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const getService = useAuthedService(createWorkflowApiService);
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchExecution = async () => {
-      if (!runId) {
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
+  // Cached per run: coming back to a run paints its log at once while it
+  // refreshes. A 404 resolves to null (the not-found state), not an error.
+  const executionQuery = useAuthedQuery({
+    enabled: Boolean(runId),
+    queryFn: async (service) => {
       try {
-        if (controller.signal.aborted) {
-          return;
-        }
-        const service = await getService();
-        const result = await service.getExecution(runId);
-        setExecution(mapExecution(result));
+        return mapExecution(await service.getExecution(runId));
       } catch (err) {
-        if (controller.signal.aborted) {
-          return;
-        }
         if (getJsonApiErrorMember(err)?.status === 404) {
-          setExecution(null);
-          return;
+          return null;
         }
-        setError(
-          getJsonApiErrorMessage(err, 'Failed to load execution details'),
-        );
         logger.error('Failed to load execution details', { err, runId });
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw err;
       }
-    };
-
-    fetchExecution();
-    return () => controller.abort();
-  }, [getService, runId]);
+    },
+    queryKey: ['workflow-execution', runId],
+    service: createWorkflowApiService,
+  });
+  const execution = executionQuery.data ?? null;
+  const isLoading = Boolean(runId) && executionQuery.isPending;
+  const error = executionQuery.isError
+    ? getJsonApiErrorMessage(
+        executionQuery.error,
+        'Failed to load execution details',
+      )
+    : null;
 
   const toggleNodeExpand = (nodeId: string): void => {
     setExpandedNodes((prev) => {
@@ -173,14 +156,21 @@ export default function ExecutionDetailPage({
             {translate('allExecutions')}
           </Link>
         </div>
-        <div
-          className="flex min-h-[60vh] items-center justify-center"
-          data-testid="execution-detail-loading"
-        >
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Spinner aria-hidden="true" size={ComponentSize.SM} />
-            Loading execution logs…
-          </div>
+        <div className="mx-auto grid max-w-5xl gap-3 px-6 py-8">
+          <SkeletonCard
+            label={translate('loadingLogs')}
+            showDescription={false}
+            showImage={false}
+          />
+          {NODE_ROW_SKELETON_KEYS.map((key) => (
+            <SkeletonCard
+              key={key}
+              label={translate('loadingNodeResult')}
+              showActions={false}
+              showDescription={false}
+              showImage={false}
+            />
+          ))}
         </div>
       </div>
     );
@@ -190,14 +180,14 @@ export default function ExecutionDetailPage({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
         <h2 className="mb-4 text-2xl font-semibold">
-          Execution Failed To Load
+          {translate('failedToLoad')}
         </h2>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
           href={href(APP_ROUTES.AUTOMATION.RUNS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
-          Back to History
+          {translate('backToHistory')}
         </Link>
       </div>
     );
@@ -206,15 +196,15 @@ export default function ExecutionDetailPage({
   if (!execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h2 className="mb-4 text-2xl font-semibold">Execution Not Found</h2>
+        <h2 className="mb-4 text-2xl font-semibold">{translate('notFound')}</h2>
         <p className="mb-6 text-muted-foreground">
-          The execution run you're looking for doesn't exist.
+          {translate('notFoundDescription')}
         </p>
         <Link
           href={href(APP_ROUTES.AUTOMATION.RUNS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
-          Back to History
+          {translate('backToHistory')}
         </Link>
       </div>
     );
@@ -260,10 +250,12 @@ export default function ExecutionDetailPage({
 
       {/* Node Results */}
       <main className="mx-auto max-w-5xl px-6 py-8">
-        <h2 className="mb-4 text-lg font-semibold">Node Execution Log</h2>
+        <h2 className="mb-4 text-lg font-semibold">
+          {translate('nodeExecutionLog')}
+        </h2>
 
         {execution.nodeResults.length === 0 ? (
-          <EmptyState title="No node results recorded" />
+          <EmptyState title={translate('noNodeResults')} />
         ) : (
           <div className="space-y-3">
             {execution.nodeResults.map((result) => (
@@ -284,7 +276,7 @@ export default function ExecutionDetailPage({
         {execution.error && (
           <div className="mt-6 border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
             <h3 className="mb-2 font-semibold text-red-800 dark:text-red-200">
-              Execution Error
+              {translate('errorTitle')}
             </h3>
             <Pre
               variant="ghost"
@@ -299,7 +291,7 @@ export default function ExecutionDetailPage({
         {/* Download Logs */}
         <div className="mt-8 flex justify-end">
           <Button variant={ButtonVariant.SECONDARY}>
-            Download Logs (JSON)
+            {translate('downloadLogsJson')}
           </Button>
         </div>
       </main>
