@@ -139,7 +139,9 @@ describe('brand-scoped Breakouts read page', () => {
   it('loads evidence, inspects an empty plan and refreshes with abortable GET calls', async () => {
     const user = userEvent.setup();
     render(<BreakoutsContent />);
-    expect(screen.getByText('Loading breakout responses…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading breakout responses…' }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText('10× the comparable median'),
     ).toBeInTheDocument();
@@ -203,7 +205,9 @@ describe('brand-scoped Breakouts read page', () => {
       screen.queryByText('Original post: original-brand-a'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Response details')).not.toBeInTheDocument();
-    expect(screen.getByText('Loading breakout responses…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading breakout responses…' }),
+    ).toBeInTheDocument();
   });
 
   it('ignores a previous organization response that resolves after switching', async () => {

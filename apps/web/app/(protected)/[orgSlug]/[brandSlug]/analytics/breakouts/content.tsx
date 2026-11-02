@@ -13,6 +13,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
@@ -20,6 +21,30 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { BreakoutResponsesContentProps } from '@/features/analytics/props/breakout-response-detail.props';
 import BreakoutResponseDetail from './response-detail';
+
+const SKELETON_CARD_KEYS = ['one', 'two', 'three'] as const;
+
+/**
+ * The loading shape of the response list: the same bordered article cards the
+ * results render, so the page does not jump when the data arrives.
+ */
+function BreakoutResponsesSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-3">
+      {SKELETON_CARD_KEYS.map((key) => (
+        <div
+          key={key}
+          className="space-y-3 rounded-lg border border-border p-4"
+        >
+          <Skeleton variant="text" height={20} className="w-1/3" />
+          <Skeleton variant="text" height={14} className="w-2/3" />
+          <Skeleton variant="text" height={14} className="w-1/2" />
+          <Skeleton variant="rounded" height={36} width={96} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function ScopedBreakoutResponses({
   brandId,
@@ -112,9 +137,7 @@ function ScopedBreakoutResponses({
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <Text as="p" role="status">
-          {t('loading')}
-        </Text>
+        <BreakoutResponsesSkeleton label={t('loading')} />
       ) : error ? (
         <Text as="p" color="destructive" role="alert">
           {error}
@@ -195,9 +218,15 @@ function ScopedBreakoutResponses({
           ) : currentDetail ? (
             <BreakoutResponseDetail response={currentDetail} />
           ) : (
-            <Text as="p" role="status">
-              {t('loadingDetails')}
-            </Text>
+            <div
+              role="status"
+              aria-label={t('loadingDetails')}
+              className="space-y-3"
+            >
+              <Skeleton variant="text" height={20} className="w-1/3" />
+              <Skeleton variant="text" height={14} className="w-3/4" />
+              <Skeleton variant="text" height={14} className="w-1/2" />
+            </div>
           )}
         </div>
       )}
@@ -225,9 +254,7 @@ export default function BreakoutsContent() {
   return (
     <div>
       {!isReady ? (
-        <Text as="p" role="status">
-          {t('loadingBrandContext')}
-        </Text>
+        <BreakoutResponsesSkeleton label={t('loadingBrandContext')} />
       ) : !isScopeReady || !brandId ? (
         <Text as="p">{t('selectBrand')}</Text>
       ) : (
