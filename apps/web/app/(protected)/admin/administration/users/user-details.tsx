@@ -306,9 +306,13 @@ export default function UserDetails({
         }
       >
         <DetailRow label={translate('onboardingStatus')}>
-          {user.isOnboardingCompleted
-            ? translate('onboardingDone')
-            : translate('onboardingPending')}
+          <Badge
+            status={user.isOnboardingCompleted ? 'completed' : 'in_progress'}
+          >
+            {user.isOnboardingCompleted
+              ? translate('onboardingDone')
+              : translate('onboardingPending')}
+          </Badge>
         </DetailRow>
         <DetailRow label={translate('onboardingType')}>
           {user.onboardingType ?? EMPTY_VALUE}

@@ -28,6 +28,36 @@ test.describe('Admin Administration', () => {
     });
   }
 
+  test('user detail shows the onboarding status as a badge', async ({
+    adminPage,
+  }) => {
+    await adminPage.route('**/users/user-e2e-1', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              email: 'ada@example.com',
+              handle: 'ada',
+              isOnboardingCompleted: false,
+              name: 'Ada Lovelace',
+            },
+            id: 'user-e2e-1',
+            type: 'user',
+          },
+        },
+      }),
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-e2e-1`,
+    );
+
+    const status = adminPage.getByRole('main').getByText('In progress');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveAttribute('data-slot', 'badge');
+  });
+
   test('announcements view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(
       adminPage,

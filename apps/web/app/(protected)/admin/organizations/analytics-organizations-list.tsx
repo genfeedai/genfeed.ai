@@ -22,6 +22,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
+import TableUserCell from '@ui/display/table/TableUserCell';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -221,19 +222,13 @@ export default function AnalyticsOrganizationsList({
         key: 'owner',
         render: (org) =>
           org.owner ? (
-            <Link
-              aria-label={translate('ownerLinkLabel', { name: org.owner.name })}
-              className="flex items-center gap-2 hover:text-primary"
+            <TableUserCell
+              avatar={org.owner.avatar}
+              email={org.owner.email}
               href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
-            >
-              <Avatar
-                alt={org.owner.name}
-                name={org.owner.name}
-                size="sm"
-                src={org.owner.avatar}
-              />
-              <span className="truncate">{org.owner.name}</span>
-            </Link>
+              linkLabel={translate('ownerLinkLabel', { name: org.owner.name })}
+              name={org.owner.name}
+            />
           ) : (
             <span className="text-foreground/40">{translate('noOwner')}</span>
           ),

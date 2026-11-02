@@ -84,6 +84,51 @@ test.describe('Admin Organization', () => {
     ).toHaveCount(0);
   });
 
+  test('organizations list shows the owner email under the owner name', async ({
+    adminPage,
+  }) => {
+    // Registered after the fixture's catch-all analytics mock, so it wins.
+    await adminPage.route('**/analytics/organizations**', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: [
+                {
+                  avgEngagementRate: 0,
+                  growth: 0,
+                  id: 'org-e2e-1',
+                  name: 'Acme Inc',
+                  owner: {
+                    email: 'ada@example.com',
+                    id: 'user-e2e-1',
+                    name: 'Ada Lovelace',
+                  },
+                  totalBrands: 1,
+                  totalEngagement: 0,
+                  totalMembers: 1,
+                  totalPosts: 0,
+                  totalViews: 0,
+                },
+              ],
+              pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      }),
+    );
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const ownerLink = adminPage
+      .getByRole('main')
+      .getByRole('link', { name: 'Open user Ada Lovelace' });
+    await expect(ownerLink).toBeVisible();
+    await expect(ownerLink.getByText('ada@example.com')).toBeVisible();
+  });
+
   test('flags releases card points to per-organization release access', async ({
     adminPage,
   }) => {
