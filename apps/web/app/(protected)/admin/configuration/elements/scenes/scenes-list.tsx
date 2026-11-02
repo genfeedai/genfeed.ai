@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementScene,
@@ -28,7 +28,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalScene } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   SceneFetchStatus as FetchStatus,
   ScenesAction,
@@ -257,7 +257,10 @@ function ScenesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalScene onConfirm={() => findAllScenes(true)} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.SCENE}
+          onConfirm={() => findAllScenes(true)}
+        />
       )}
 
       <div className="mt-4">

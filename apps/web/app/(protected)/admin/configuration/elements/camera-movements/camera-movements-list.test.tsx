@@ -130,7 +130,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalCameraMovement: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,

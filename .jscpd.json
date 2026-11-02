@@ -1,6 +1,6 @@
 {
   "absolute": true,
-  "format": ["typescript", "typescriptjsx"],
+  "format": ["typescript", "tsx"],
   "ignore": [
     "node_modules",
     "**/node_modules/**",

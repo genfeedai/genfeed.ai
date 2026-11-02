@@ -43,6 +43,7 @@ export default function ElementPlatformFields({
         <Input
           type="number"
           name="sortOrder"
+          aria-label={translate('sortOrderLabel')}
           min={0}
           value={sortOrder}
           onChange={(event) => {

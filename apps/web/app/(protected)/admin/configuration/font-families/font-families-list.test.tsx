@@ -197,7 +197,7 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalFontFamily: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,
