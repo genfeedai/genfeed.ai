@@ -18,7 +18,7 @@ export enum LeaderboardSort {
   ENGAGEMENT = 'engagement',
   VIEWS = 'views',
   POSTS = 'posts',
-  /** Lifetime generated assets; ignores the date range. */
+  /** Generated assets created in the selected date range. */
   GENERATIONS = 'generations',
 }
 
