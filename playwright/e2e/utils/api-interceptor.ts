@@ -2319,6 +2319,7 @@ export function buildUnhandledApiMockBody(url: string): unknown {
       from: searchParams.get('from') ?? now,
       organizationId: searchParams.get('organizationId'),
       organizationLabel: null,
+      pagination: { limit: 25, page: 1, pages: 0, total: 0 },
       rows: [],
       to: searchParams.get('to') ?? now,
       totals: {

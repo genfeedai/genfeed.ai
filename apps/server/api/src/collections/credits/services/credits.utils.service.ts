@@ -10,6 +10,7 @@ import {
   type CreditReservationAdmission,
   CreditReservationService,
 } from '@api/collections/credits/services/credit-reservation.service';
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import {
   BALANCE_TX_OPTIONS,
   creditTransactionOptions,
@@ -528,21 +529,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       }
 
       const { currentBalance, newBalance, wasApplied } =
-        await this.transactionUtil.runInTransaction(
-          (tx) =>
-            this.addCreditsCore(
-              {
-                creditsToAdd,
-                description,
-                expiresAt,
-                options,
-                organizationId,
-                source,
-              },
-              tx,
-            ),
-          BALANCE_TX_OPTIONS,
-        );
+        await this.addCreditsWithRetry({
+          creditsToAdd,
+          description,
+          expiresAt,
+          options,
+          organizationId,
+          source,
+        });
 
       await this.publishCreditAddition(organizationId, creditsToAdd, {
         currentBalance,
@@ -591,6 +585,21 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     await this.accessBootstrapCacheService.invalidateForOrganization(
       organizationId,
     );
+  }
+
+  private async addCreditsWithRetry(
+    input: AddCreditsCoreInput,
+  ): Promise<CreditAdditionResult> {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await this.transactionUtil.runInTransaction(
+          (tx) => this.addCreditsCore(input, tx),
+          BALANCE_TX_OPTIONS,
+        );
+      } catch (error: unknown) {
+        if (!isCreditTransactionConflict(error) || attempt >= 3) throw error;
+      }
+    }
   }
 
   private async addCreditsCore(
