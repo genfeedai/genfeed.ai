@@ -66,7 +66,10 @@ async function mockKnowledge(page: Page) {
       }
       await route.fulfill({
         json: {
-          data: [source('source-a', 'Source A'), source('source-b', 'Source B')],
+          data: [
+            source('source-a', 'Source A'),
+            source('source-b', 'Source B'),
+          ],
         },
       });
       return;
@@ -108,8 +111,7 @@ test.describe('Knowledge context sidebar', () => {
     await expect(detail).toContainText('Detail text for source-b');
     expect(
       await page.evaluate(
-        () =>
-          (window as unknown as { __sidebarGaps: number }).__sidebarGaps,
+        () => (window as unknown as { __sidebarGaps: number }).__sidebarGaps,
       ),
     ).toBe(0);
   });
