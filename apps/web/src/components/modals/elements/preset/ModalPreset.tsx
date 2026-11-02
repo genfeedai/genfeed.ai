@@ -13,6 +13,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   useCallback,
@@ -20,7 +21,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useTranslations } from 'next-intl';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 import { usePromptEnhance } from '@/hooks/ui/use-prompt-enhance/use-prompt-enhance';
 import ModalPresetFields from './ModalPresetFields';
