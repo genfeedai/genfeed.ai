@@ -841,6 +841,7 @@ function MotionWorkspace() {
                       <PromptBarSendButton
                         ariaLabel={t('getQuote')}
                         isDisabled={isQuoteBlocked}
+                        isLoading={isBusy}
                         onClick={submitFromEditor}
                         tooltip={t('getQuote')}
                       />

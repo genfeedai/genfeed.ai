@@ -3123,4 +3123,59 @@ describe('complete reviewed Studio video scalar composition', () => {
       }
     },
   );
+
+  it('shows the send button as loading while a submit is being sent', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isSubmitting
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: 'Stop generation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('swaps the send button for Stop once a run is generating, and Stop cancels it', () => {
+    const onStopGeneration = vi.fn();
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isStopAvailable
+        onStopGeneration={onStopGeneration}
+        prompt=""
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Generate' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop generation' }));
+    expect(onStopGeneration).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Generate beside Stop when a next prompt is typed during a run', () => {
+    render(
+      <StudioPlaygroundComposer
+        {...baseProps}
+        isStopAvailable
+        onStopGeneration={vi.fn()}
+        prompt="Another product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Stop generation' }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeVisible();
+  });
 });

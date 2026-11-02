@@ -287,6 +287,7 @@ export function ChatInput({
             <PromptBarSendButton
               ariaLabel="Send message"
               isDisabled={isDisabled || !brandId || !value.trim()}
+              isLoading={isSending}
               onClick={() => void handleSend()}
             />
           }
