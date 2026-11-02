@@ -96,7 +96,7 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       href: APP_ROUTES.STUDIO.EDITOR,
       label: APP_DISPLAY_LABELS.editor,
       organizationModule: 'editor',
-      matchPaths: [APP_ROUTES.STUDIO.EDITOR, APP_ROUTES.STUDIO.EDITOR_NEW],
+      matchPaths: [APP_ROUTES.STUDIO.EDITOR],
       outline: Scissors,
       solid: Scissors,
     },

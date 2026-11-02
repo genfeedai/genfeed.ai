@@ -82,7 +82,6 @@ const AUTOMATION_WORKFLOW_RESERVED = new Set([
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.STUDIO.EDITOR_NEW ||
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
     (/^\/automation\/workflows\/([^/]+)$/.test(pathname) &&

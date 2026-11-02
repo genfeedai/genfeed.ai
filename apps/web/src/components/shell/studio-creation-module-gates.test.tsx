@@ -1,5 +1,5 @@
 import ClipperNewPane from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperNewPane';
-import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/page';
+import EditorCreatePane from '@app/(protected)/[orgSlug]/[brandSlug]/editor/EditorCreatePane';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TurboCreatePane from '@/features/workflows/pages/turbo/TurboCreatePane';
@@ -42,16 +42,13 @@ vi.mock(
     ),
   }),
 );
-vi.mock(
-  '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/new-editor-project-page',
-  () => ({
-    default: () => (
-      <button type="button" onClick={state.create}>
-        Create project
-      </button>
-    ),
-  }),
-);
+vi.mock('@app/(protected)/[orgSlug]/[brandSlug]/editor/EditorNewPane', () => ({
+  default: () => (
+    <button type="button" onClick={state.create}>
+      Create project
+    </button>
+  ),
+}));
 beforeEach(() => {
   state.settings = {
     hasOrganizationBilling: true,
@@ -64,7 +61,7 @@ describe('Studio creation routes', () => {
   it.each([
     ['turbo', TurboCreatePane],
     ['clipper', ClipperNewPane],
-    ['editor', EditorNewPage],
+    ['editor', EditorCreatePane],
   ] as const)(
     'prevents %s creation until its organization preference is enabled',
     (moduleId, Page) => {

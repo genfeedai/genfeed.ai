@@ -1453,7 +1453,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/editor/new"
+        currentPath="/acme/my-brand/editor/project-1"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );

@@ -101,7 +101,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
   it('lets a superadmin open an app that is off', () => {
     state.flags = { studio: true, editor: false };
     state.isSuperAdmin = true;
-    state.pathname = '/acme/~/editor/new';
+    state.pathname = '/acme/~/editor';
 
     renderGate();
 

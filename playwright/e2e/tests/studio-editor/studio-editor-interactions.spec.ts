@@ -16,87 +16,50 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  */
 
 const EDITOR_LIST = '/test-org/brand-1/editor';
-const EDITOR_NEW = '/test-org/brand-1/editor/new';
 const EDITOR_DETAIL = '/test-org/brand-1/editor/test-project-id';
 
 test.describe('Studio Editor — Interactions', () => {
   test.setTimeout(90_000);
 
-  test('renders the projects list and surfaces the New Project entry point', async ({
+  test('renders the workspace with the project prompt and an empty project list', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(EDITOR_LIST, {
       waitUntil: 'domcontentloaded',
     });
 
-    const newProjectLink = authenticatedPage
-      .locator('a[href*="editor/new"]')
-      .first();
-    await expect(newProjectLink).toBeVisible({ timeout: 15_000 });
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
+    ).toBeVisible({ timeout: 15_000 });
 
     // #5165 removed the Features marketing grid; the default mock returns no
     // projects, so the list renders its empty state instead.
     await expect(
-      authenticatedPage.getByText('Create Your First Project'),
+      authenticatedPage.getByText('No Editor projects yet'),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('navigates from the projects list into the new project flow', async ({
+  test('sends the creator from the workspace to the Library to pick a video', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(EDITOR_LIST, {
       waitUntil: 'domcontentloaded',
     });
 
-    const newProjectLink = authenticatedPage
-      .locator('a[href*="editor/new"]')
-      .first();
-    await newProjectLink.click({ timeout: 10_000 }).catch(() => {});
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await authenticatedPage
+      .getByRole('button', { name: 'Edit a Library video' })
+      .click({ timeout: 15_000 });
 
-    await expect(authenticatedPage).toHaveURL(/\/editor(?:\/new|\/[^/]+)?$/);
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
+    await expect(authenticatedPage).toHaveURL(/\/library\/assets/);
   });
 
-  test('exercises the back navigation control from the projects list', async ({
+  test('seeds a project from a source video query param', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(EDITOR_LIST, {
-      waitUntil: 'domcontentloaded',
-    });
-
-    await tryClick(authenticatedPage, 'a[aria-label="Back to Studio"]');
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(authenticatedPage).not.toHaveURL(/\/login/);
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('renders the new project loading flow without redirecting to login', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(EDITOR_NEW, {
-      waitUntil: 'domcontentloaded',
-    });
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(authenticatedPage).not.toHaveURL(/\/login/);
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('passes a source video query param to the new project flow', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(`${EDITOR_NEW}?video=mock-video-1`, {
+    await authenticatedPage.goto(`${EDITOR_LIST}?video=mock-video-1`, {
       waitUntil: 'domcontentloaded',
     });
     await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -155,7 +118,7 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     await expect(
-      authenticatedPage.locator('a[href*="editor/new"]').first(),
+      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -171,7 +134,7 @@ test.describe('Studio Editor — Interactions', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
     await expect(
-      authenticatedPage.locator('a[href*="editor/new"]').first(),
+      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

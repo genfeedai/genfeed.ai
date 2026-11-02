@@ -28,8 +28,9 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // Clipper: `/clipper` is the prompt that imports a source beside the project
   // list, and a project opens in the same layout.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}(?:/[^/]+)?/?$`),
-  // An Editor project; `/editor/new` creates one.
-  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
+  // Editor: `/editor` is the prompt that starts a project beside the project
+  // list, and a project opens in the same layout.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}(?:/[^/]+)?/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

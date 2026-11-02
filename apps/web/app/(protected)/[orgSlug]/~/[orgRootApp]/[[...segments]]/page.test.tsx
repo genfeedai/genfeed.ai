@@ -205,11 +205,7 @@ vi.mock('../../../[brandSlug]/editor/[id]/editor-page-content', async () => {
   };
 });
 
-vi.mock('../../../[brandSlug]/editor/new/page', () => ({
-  default: () => <div data-testid="editor-new-page" />,
-}));
-
-vi.mock('../../../[brandSlug]/editor/editor-projects-page', () => ({
+vi.mock('../../../[brandSlug]/editor/EditorWorkspace', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
@@ -995,20 +991,7 @@ describe('OrgRootAppPage', () => {
     expect(screen.queryByTestId('editor-detail-page')).not.toBeInTheDocument();
   });
 
-  it('renders the studio Editor new and detail surfaces', async () => {
-    const newElement = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'editor',
-        orgSlug: 'acme',
-        segments: ['new'],
-      }),
-    });
-    const { unmount } = render(newElement);
-
-    expect(screen.getByTestId('editor-new-page')).toBeInTheDocument();
-
-    unmount();
-
+  it('renders the studio Editor detail surface', async () => {
     const detailElement = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'editor',

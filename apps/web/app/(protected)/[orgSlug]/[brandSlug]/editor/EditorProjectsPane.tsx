@@ -2,27 +2,19 @@
 import {
   ButtonSize,
   ButtonVariant,
-  CardGap,
-  CardPadding,
-  CardVariant,
   formatEnumLabel,
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
-import Card from '@ui/card/Card';
-import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -40,25 +32,14 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { Film, Pencil, Plus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
+import { Film, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-
-const COLLECTION_SURFACE = 'studio.editor';
-const RECENT_PROJECT_LIMIT = 3;
 
 type EditorProjectsTranslate = ReturnType<typeof useTranslations>;
 
@@ -88,12 +69,12 @@ function formatRelativeTime(
   return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
-function getUpdatedTime(project: IEditorProject): number {
-  const time = new Date(project.updatedAt).getTime();
-  return Number.isNaN(time) ? 0 : time;
-}
-
-export default function EditorProjectsPage() {
+/**
+ * The right side of the Editor workspace while no project is open: one list of
+ * the brand's projects. A row opens the project; starting one happens in the
+ * prompt on the left.
+ */
+export default function EditorProjectsPane() {
   const translate = useTranslations('pages.studioEditor');
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
@@ -106,25 +87,9 @@ export default function EditorProjectsPage() {
   const [renameTarget, setRenameTarget] = useState<IEditorProject | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: COLLECTION_SURFACE,
-  });
 
   const isLoading = projects === null && !hasError;
   const hasProjects = projects !== null && projects.length > 0;
-
-  // Projects are served newest-updated first, so "Recent" is only meaningful
-  // on the first server page.
-  const recentProjects = useMemo(
-    () =>
-      currentPage === 1 && !search
-        ? [...(projects ?? [])]
-            .sort((a, b) => getUpdatedTime(b) - getUpdatedTime(a))
-            .slice(0, RECENT_PROJECT_LIMIT)
-        : [],
-    [currentPage, projects, search],
-  );
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
@@ -315,71 +280,6 @@ export default function EditorProjectsPage() {
     );
   }
 
-  function renderProjectCard(project: IEditorProject) {
-    return (
-      <Card
-        padding={CardPadding.NONE}
-        gap={CardGap.NONE}
-        className="h-full overflow-hidden"
-        data-testid={`editor-project-card-${project.id}`}
-        variant={CardVariant.DEFAULT}
-      >
-        <div
-          className="relative flex aspect-video items-center justify-center bg-muted"
-          data-testid={`editor-project-thumbnail-${project.id}`}
-        >
-          {project.thumbnailUrl ? (
-            <Image
-              alt=""
-              className="object-cover outline-media"
-              fill
-              sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-              src={project.thumbnailUrl}
-              unoptimized={!canOptimizeImageSource(project.thumbnailUrl)}
-            />
-          ) : (
-            <Film aria-hidden="true" className="size-8 text-foreground/20" />
-          )}
-        </div>
-        <div className="flex items-start justify-between gap-3 p-4">
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold">{project.name}</h3>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/50">
-              {renderProjectFacts(project)}
-            </div>
-          </div>
-          {renderProjectActions(project)}
-        </div>
-      </Card>
-    );
-  }
-
-  const newProjectButton = (
-    <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-      <Link href={href(APP_ROUTES.STUDIO.EDITOR_NEW)}>
-        <Plus className="size-4" />
-        {translate('newProject')}
-      </Link>
-    </Button>
-  );
-  const emptyProjectButton = (
-    <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-      <Link href={href(APP_ROUTES.STUDIO.EDITOR_NEW)}>
-        <Plus className="size-4" />
-        {translate('startNewProject')}
-      </Link>
-    </Button>
-  );
-
-  const topbarActions = (
-    <div className="flex items-center gap-2">
-      {isLoading || hasProjects ? (
-        <CollectionViewToggle onViewChange={setView} view={view} />
-      ) : null}
-      {newProjectButton}
-    </div>
-  );
-
   return (
     <Container
       leading={
@@ -397,7 +297,6 @@ export default function EditorProjectsPage() {
             ? translate('yourProjects')
             : translate('editor')
       }
-      right={hasError ? undefined : topbarActions}
       titleVisibility="sr-only"
       // `right` disappears on error, which would otherwise flip Container
       // between module chrome and the classic layout as the page moves
@@ -406,18 +305,16 @@ export default function EditorProjectsPage() {
       moduleChrome
     >
       {isLoading ? (
-        <CollectionSection isLoading title={translate('allProjects')}>
-          <CollectionView
-            data-testid="editor-projects-loading"
-            getItemKey={(project: IEditorProject) => project.id}
-            isLoading
-            items={[]}
-            renderGridItem={renderProjectCard}
-            renderListItem={renderProjectRow}
-            skeletonCount={3}
-            view={view}
-          />
-        </CollectionSection>
+        <CollectionView
+          data-testid="editor-projects-loading"
+          getItemKey={(project: IEditorProject) => project.id}
+          isLoading
+          items={[]}
+          renderGridItem={renderProjectRow}
+          renderListItem={renderProjectRow}
+          skeletonCount={3}
+          view={ViewType.LIST}
+        />
       ) : hasError ? (
         <ErrorFallback
           title={translate('loadFailedTitle')}
@@ -425,39 +322,15 @@ export default function EditorProjectsPage() {
           resetErrorBoundary={() => void loadProjects()}
         />
       ) : hasProjects ? (
-        <div className="flex flex-col gap-8">
-          {recentProjects.length > 0 ? (
-            <CollectionCarouselSection
-              data-testid="editor-projects-recent"
-              itemCount={recentProjects.length}
-              title={translate('recent')}
-            >
-              {recentProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
-                >
-                  {renderProjectCard(project)}
-                </div>
-              ))}
-            </CollectionCarouselSection>
-          ) : null}
-
-          <CollectionSection
-            data-testid="editor-projects-all"
-            isCountVisible
-            itemCount={totalProjects}
-            title={translate('allProjects')}
-          >
-            <CollectionView
-              data-testid="editor-projects-all-collection"
-              getItemKey={(project) => project.id}
-              items={projects}
-              renderGridItem={renderProjectCard}
-              renderListItem={renderProjectRow}
-              view={view}
-            />
-          </CollectionSection>
+        <div className="flex flex-col gap-4">
+          <CollectionView
+            data-testid="editor-projects-all-collection"
+            getItemKey={(project) => project.id}
+            items={projects}
+            renderGridItem={renderProjectRow}
+            renderListItem={renderProjectRow}
+            view={ViewType.LIST}
+          />
           <AutoPagination showTotal totalLabel="projects" />
         </div>
       ) : search ? (
@@ -471,7 +344,7 @@ export default function EditorProjectsPage() {
           surface="card"
           icon={Film}
           title={translate('emptyTitle')}
-          actions={emptyProjectButton}
+          description={translate('emptyDescription')}
         />
       )}
 

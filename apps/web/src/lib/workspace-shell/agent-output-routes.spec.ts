@@ -78,12 +78,12 @@ describe('isAgentOutputRoute', () => {
     );
   });
 
-  it('matches an editor project and leaves the list and the create form', () => {
+  it('matches the editor workspace and an editor project', () => {
+    expect(isAgentOutputRoute('/editor')).toBe(true);
+    expect(isAgentOutputRoute('/editor/')).toBe(true);
     expect(isAgentOutputRoute('/editor/project-1')).toBe(true);
     expect(isAgentOutputRoute('/editor/project-1/')).toBe(true);
-    expect(isAgentOutputRoute('/editor')).toBe(false);
-    expect(isAgentOutputRoute('/editor/new')).toBe(false);
-    expect(isAgentOutputRoute('/editor/new/')).toBe(false);
+    expect(isAgentOutputRoute('/editor/project-1/extra')).toBe(false);
   });
 
   it('does not match other apps or nested paths', () => {
