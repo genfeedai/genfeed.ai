@@ -1,9 +1,11 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
+import { QueryClient, type QueryKey } from '@tanstack/react-query';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -91,15 +93,17 @@ vi.mock('@services/organization/organizations.service', () => ({
   },
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: (options: {
-    queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
-    queryKey: unknown[];
-  }) => mocks.useQuery(options),
-  useQueryClient: () => ({
-    setQueryData: mocks.setQueryData,
-  }),
-}));
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>();
+  return {
+    ...actual,
+    useQuery: (options: {
+      queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+      queryKey: unknown[];
+    }) => mocks.useQuery(options),
+    useQueryClient: () => ({ setQueryData: mocks.setQueryData }),
+  };
+});
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: ({ totals }: AutoPaginationProps) => (
@@ -453,26 +457,46 @@ describe('TagsList', () => {
     });
   });
 
-  it('toggles tag active state and updates query cache optimistically', async () => {
+  it('patches the current cached page without overwriting a refetch during the save', async () => {
+    const client = new QueryClient();
+    mocks.setQueryData.mockImplementation(
+      (key: QueryKey, updater: Parameters<QueryClient['setQueryData']>[1]) =>
+        client.setQueryData(key, updater),
+    );
+    let resolvePatch: ((value: unknown) => void) | undefined;
+    mocks.patch.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvePatch = resolve;
+      }),
+    );
     render(<TagsList filter="all" scope={PageScope.SUPERADMIN} />);
-
+    const queryKey = mocks.useQuery.mock.calls[0]?.[0].queryKey;
+    client.setQueryData(
+      queryKey,
+      paginatedResponse([makeTag()], { totalDocs: 61, totalPages: 5 }),
+    );
     fireEvent.click(screen.getAllByRole('button', { name: 'Active' })[0]);
+    await waitFor(() =>
+      expect(mocks.patch).toHaveBeenCalledWith('tag-1', { isActive: false }),
+    );
 
-    await waitFor(() => {
-      expect(mocks.patch).toHaveBeenCalledWith('tag-1', {
-        isActive: false,
-      });
-      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-        'Tag deactivated',
-      );
-      expect(mocks.setQueryData.mock.calls.at(-1)?.[1]).toMatchObject({
-        total: 61,
-        totalPages: 5,
-        items: expect.arrayContaining([
-          expect.objectContaining({ id: 'tag-1', isActive: false }),
-        ]),
-      });
+    const refreshed = paginatedResponse(
+      [
+        makeTag({ label: 'Latest tag' }),
+        makeTag({ id: 'tag-new', label: 'Added during refetch' }),
+      ],
+      { totalDocs: 80, totalPages: 6 },
+    );
+    client.setQueryData(queryKey, refreshed);
+    await act(async () => {
+      resolvePatch?.({});
     });
+    expect(client.getQueryData(queryKey)).toEqual({
+      ...refreshed,
+      items: [{ ...refreshed.items[0], isActive: false }, refreshed.items[1]],
+    });
+    expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Tag deactivated');
+    client.clear();
   });
 
   it('edits a tag in the sidebar by patching only the changed field', async () => {
