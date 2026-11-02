@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SidebarHighlightGroup } from '@ui/primitives/sidebar-active-highlight';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -143,6 +144,7 @@ export default function MenuShared({
      width here — drag updates `--desktop-sidebar-width` without re-cloning
      this tree. `sidebarWidth` remains for mobile drawer / story hosts. */
   return (
+    <SidebarHighlightGroup>
     <div
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
@@ -279,5 +281,6 @@ export default function MenuShared({
         </div>
       </div>
     </div>
+    </SidebarHighlightGroup>
   );
 }

@@ -149,6 +149,34 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('sidebar keeps one active highlight that follows the clicked item', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
+    const highlight = sidebar.locator('[data-sidebar-active-highlight]');
+    await expect(highlight).toHaveCount(1);
+
+    const target = sidebar
+      .locator('a[href]')
+      .filter({ hasNot: authenticatedPage.locator('[data-sidebar-active-highlight]') })
+      .filter({ hasText: /\S/ })
+      .first();
+    await target.click();
+    await settle(authenticatedPage);
+
+    await expect(highlight).toHaveCount(1);
+    await expect(
+      target.locator('[data-sidebar-active-highlight]'),
+    ).toHaveCount(1);
+
+    await assertHealthy(authenticatedPage);
+  });
+
   test('sidebar collapse control toggles the shell body', async ({
     authenticatedPage,
   }) => {
