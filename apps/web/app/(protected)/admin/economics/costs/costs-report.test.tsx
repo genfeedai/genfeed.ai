@@ -53,8 +53,11 @@ const report: IEconomicsCostReport = {
   totals: {
     byokCalls: 3,
     costPerGenerationUsd: 0.25,
+    generationCreditValueUsd: 1.5,
     llmCalls: 5,
     llmCostUsd: 1.5,
+    marginPerGenerationUsd: 0.33,
+    mediaChargedGenerations: 3,
     mediaCostUsd: 0.5,
     mediaGenerations: 4,
     mediaPricedGenerations: 2,
@@ -118,6 +121,15 @@ describe('EconomicsCostsReport', () => {
     expect(within(imageRow).getByText('$0.25')).toBeInTheDocument();
     const videoRow = screen.getByText('VIDEO').closest('tr') as HTMLElement;
     expect(within(videoRow).getByText('-')).toBeInTheDocument();
+  });
+
+  it('shows margin per generation as a tile', () => {
+    render(<EconomicsCostsReport />);
+
+    const tile = screen
+      .getByText('Margin per generation', { selector: 'p' })
+      .closest('[data-testid="metric-card"]') as HTMLElement;
+    expect(within(tile).getByText('$0.33')).toBeInTheDocument();
   });
 
   it('counts unpriced calls on a tile that holds only a value and a label', () => {
