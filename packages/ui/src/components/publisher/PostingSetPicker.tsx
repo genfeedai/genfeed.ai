@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
@@ -47,9 +48,14 @@ export default function PostingSetPicker({
       <div className="flex flex-col gap-3">
         <p className="gen-label">{translate('label')}</p>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">
-            {translate('loading')}
-          </p>
+          <div
+            aria-label={translate('loading')}
+            className="flex flex-col gap-2"
+            role="status"
+          >
+            <Skeleton className="rounded-lg" height={56} width="100%" />
+            <Skeleton className="rounded-lg" height={56} width="100%" />
+          </div>
         ) : sets.length === 0 ? (
           <p className="text-sm text-muted-foreground">{translate('empty')}</p>
         ) : (

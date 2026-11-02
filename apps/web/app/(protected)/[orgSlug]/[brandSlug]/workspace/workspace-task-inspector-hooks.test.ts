@@ -1,7 +1,10 @@
 import type { Task } from '@services/management/tasks.service';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useWorkspaceTaskLinkedIssue } from './workspace-task-inspector-hooks';
+import {
+  useWorkspaceTaskLinkedExecutionSummary,
+  useWorkspaceTaskLinkedIssue,
+} from './workspace-task-inspector-hooks';
 
 // `vi.hoisted`: the mocked `useOrgUrl`/`useAuthIdentity` below must return the
 // *same* `href`/`getToken` function identity on every render, matching the
@@ -66,5 +69,39 @@ describe('useWorkspaceTaskLinkedIssue', () => {
       expect(result.current.href).toBe('/acme/brand-x/workspace/tasks/GEN-9'),
     );
     expect(result.current.identifier).toBe('GEN-9');
+  });
+});
+
+// Stable task identities: the hook's effect depends on `task`, so a fresh
+// object per render would re-run it forever.
+const TASK_WITH_EXECUTIONS = {
+  id: 'task-1',
+  linkedExecutionIds: ['exec-1'],
+} as Task;
+const TASK_WITHOUT_EXECUTIONS = {
+  id: 'task-2',
+  linkedExecutionIds: [],
+} as unknown as Task;
+
+describe('useWorkspaceTaskLinkedExecutionSummary', () => {
+  it('is loading, not zero, on the first render of a task with linked executions', () => {
+    const firstRender: boolean[] = [];
+
+    renderHook(() => {
+      const summary =
+        useWorkspaceTaskLinkedExecutionSummary(TASK_WITH_EXECUTIONS);
+      firstRender.push(summary.isLoading);
+      return summary;
+    });
+
+    expect(firstRender[0]).toBe(true);
+  });
+
+  it('is not loading for a task without linked executions', () => {
+    const { result } = renderHook(() =>
+      useWorkspaceTaskLinkedExecutionSummary(TASK_WITHOUT_EXECUTIONS),
+    );
+
+    expect(result.current.isLoading).toBe(false);
   });
 });
