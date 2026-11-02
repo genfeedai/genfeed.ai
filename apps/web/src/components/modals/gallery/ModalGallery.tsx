@@ -82,7 +82,7 @@ export default function ModalGallery({
     tabs,
   } = useModalGallery({
     category,
-    format,
+    format: format as IngredientFormat,
     isFormatFilterEnabled,
     isOpen,
     maxSelectableItems,
