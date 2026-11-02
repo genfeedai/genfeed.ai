@@ -14,6 +14,9 @@ describe('AdminSeedsController', () => {
   it('hands each body to the matching seed', async () => {
     const seeds = {
       seedArticles: vi.fn().mockResolvedValue({ created: 1 }),
+      seedOrganizationCategories: vi
+        .fn()
+        .mockResolvedValue({ organizationIds: ['o1'] }),
       seedTemplates: vi.fn().mockResolvedValue({ written: 4 }),
       seedWorkflows: vi.fn().mockResolvedValue({ updated: 2 }),
     };
@@ -22,6 +25,9 @@ describe('AdminSeedsController', () => {
     await expect(
       controller.articles({ ownerEmail: 'a@b.co' }),
     ).resolves.toEqual({ created: 1 });
+    await expect(
+      controller.organizationCategories({ dryRun: false }),
+    ).resolves.toEqual({ organizationIds: ['o1'] });
     await expect(controller.templates({ dryRun: false })).resolves.toEqual({
       written: 4,
     });
@@ -30,6 +36,9 @@ describe('AdminSeedsController', () => {
     });
 
     expect(seeds.seedArticles).toHaveBeenCalledWith({ ownerEmail: 'a@b.co' });
+    expect(seeds.seedOrganizationCategories).toHaveBeenCalledWith({
+      dryRun: false,
+    });
     expect(seeds.seedTemplates).toHaveBeenCalledWith({ dryRun: false });
     expect(seeds.seedWorkflows).toHaveBeenCalledWith({ allBrands: true });
   });

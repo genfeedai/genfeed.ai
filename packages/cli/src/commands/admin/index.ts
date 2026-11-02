@@ -41,6 +41,7 @@ import {
   readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
+  seedOrganizationCategories,
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
@@ -427,6 +428,26 @@ async function runSeedWorkflows(options: {
   if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
 }
 
+async function runSeedOrganizationCategories(options: {
+  exclude?: string[];
+  yes?: boolean;
+}): Promise<void> {
+  const summary = await seedOrganizationCategories({
+    dryRun: !options.yes,
+    excludeOrganizationIds: options.exclude,
+  });
+
+  print(formatHeader(`Organization categories seed${summary.dryRun ? ' (dry run)' : ''}\n`));
+  print(
+    formatLabel(
+      summary.dryRun ? 'Would move to CREATOR' : 'Moved to CREATOR',
+      String(summary.organizationIds.length)
+    )
+  );
+  for (const id of summary.organizationIds) print(chalk.dim(`  ${id}`));
+  if (summary.dryRun) print(chalk.dim('\nRe-run with --yes to apply.'));
+}
+
 async function runOrganizationApps(isJson: boolean): Promise<void> {
   const report = await readOrganizationAppsReport();
   if (isJson) {
@@ -773,6 +794,19 @@ function createSeedCommand(): Command {
         .action(async (options) => {
           try {
             await runSeedArticles(options);
+          } catch (error) {
+            handleError(error);
+          }
+        })
+    )
+    .addCommand(
+      new Command('organization-categories')
+        .description('Move BUSINESS orgs owned by a free-mailbox address to CREATOR')
+        .option('--exclude <ids...>', 'Organization ids to leave as they are')
+        .option('--yes', 'Apply instead of previewing')
+        .action(async (options) => {
+          try {
+            await runSeedOrganizationCategories(options);
           } catch (error) {
             handleError(error);
           }

@@ -4,11 +4,13 @@ import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorato
 import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SeedArticlesDto } from './dto/seed-articles.dto';
+import { SeedOrganizationCategoriesDto } from './dto/seed-organization-categories.dto';
 import { SeedTemplatesDto } from './dto/seed-templates.dto';
 import { SeedWorkflowsDto } from './dto/seed-workflows.dto';
 import {
   AdminSeedsService,
   type ArticlesSeedSummary,
+  type OrganizationCategoriesSeedSummary,
   type TemplatesSeedSummary,
   type WorkflowsSeedSummary,
 } from './seeds.service';
@@ -29,6 +31,19 @@ export class AdminSeedsController {
   @ApiOperation({ summary: 'Publish the launch and help articles' })
   articles(@Body() dto: SeedArticlesDto): Promise<ArticlesSeedSummary> {
     return this.seeds.seedArticles(dto);
+  }
+
+  @Post('organization-categories')
+  @HttpCode(200)
+  @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
+  @ApiOperation({
+    summary:
+      'Move BUSINESS organizations owned by a free-mailbox address to CREATOR',
+  })
+  organizationCategories(
+    @Body() dto: SeedOrganizationCategoriesDto,
+  ): Promise<OrganizationCategoriesSeedSummary> {
+    return this.seeds.seedOrganizationCategories(dto);
   }
 
   @Post('templates')

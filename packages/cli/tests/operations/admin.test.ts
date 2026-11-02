@@ -27,6 +27,7 @@ import {
   readTrainingsReport,
   scanOrganizationBrand,
   seedArticles,
+  seedOrganizationCategories,
   seedTemplates,
   seedWorkflows,
   syncProviderPrices,
@@ -313,6 +314,21 @@ describe('operations/admin', () => {
       expect(adminPost).toHaveBeenCalledWith('/admin/seeds/workflows', {
         allBrands: true,
         dryRun: false,
+      });
+    });
+  });
+
+  describe('seedOrganizationCategories', () => {
+    it('posts the exclusions with the dry-run flag', async () => {
+      const summary = { dryRun: true, organizationIds: ['org-1'] };
+      adminPost.mockResolvedValue(summary);
+
+      await expect(
+        seedOrganizationCategories({ dryRun: true, excludeOrganizationIds: ['org-2'] })
+      ).resolves.toBe(summary);
+      expect(adminPost).toHaveBeenCalledWith('/admin/seeds/organization-categories', {
+        dryRun: true,
+        excludeOrganizationIds: ['org-2'],
       });
     });
   });

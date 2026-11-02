@@ -1,6 +1,7 @@
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import {
   type ArticlesSeedResult,
   seedArticles,
@@ -9,8 +10,10 @@ import {
   seedWorkflows,
   type WorkflowsSeedResult,
 } from '@api-scripts/seeds/workflows.seed';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { SeedArticlesDto } from './dto/seed-articles.dto';
+import type { SeedOrganizationCategoriesDto } from './dto/seed-organization-categories.dto';
 import type { SeedTemplatesDto } from './dto/seed-templates.dto';
 import type { SeedWorkflowsDto } from './dto/seed-workflows.dto';
 
@@ -26,6 +29,12 @@ export interface ArticlesSeedSummary {
 }
 
 export type WorkflowsSeedSummary = WorkflowsSeedResult;
+
+export interface OrganizationCategoriesSeedSummary {
+  dryRun: boolean;
+  /** Organizations moved to CREATOR, or that a live run would move. */
+  organizationIds: string[];
+}
 
 export interface TemplatesSeedSummary {
   dryRun: boolean;
@@ -113,6 +122,61 @@ export class AdminSeedsService {
       this.platformTemplates.reconcileCatalog({ isDryRun: dryRun }),
     );
     return { ...result, dryRun };
+  }
+
+  /**
+   * Moves organizations still marked BUSINESS whose owner signed up with a free
+   * or throwaway mailbox to CREATOR. Work domains, address-less owners and any
+   * other category (AGENCY, EXPERT) are left alone, and so is anything excluded.
+   */
+  async seedOrganizationCategories(
+    dto: SeedOrganizationCategoriesDto,
+  ): Promise<OrganizationCategoriesSeedSummary> {
+    const dryRun = dto.dryRun !== false;
+    const organizations = await this.run(() =>
+      this.prisma.organization.findMany({
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: {
+          accountType: true,
+          id: true,
+          user: { select: { email: true } },
+        },
+        where: {
+          id: { notIn: dto.excludeOrganizationIds ?? [] },
+          isDeleted: false,
+          OR: [
+            { accountType: OrganizationCategory.BUSINESS },
+            { accountType: null, category: OrganizationCategory.BUSINESS },
+          ],
+        },
+      }),
+    );
+    const personal = organizations.filter(
+      (organization) => classifyEmail(organization.user?.email) === 'personal',
+    );
+
+    if (!dryRun) {
+      await this.run(async () => {
+        for (const organization of personal) {
+          await this.prisma.organization.update({
+            data: {
+              category: OrganizationCategory.CREATOR,
+              // `accountType` wins over `category` when read, so only an
+              // existing BUSINESS value has to follow.
+              ...(organization.accountType === OrganizationCategory.BUSINESS
+                ? { accountType: OrganizationCategory.CREATOR }
+                : {}),
+            },
+            where: { id: organization.id },
+          });
+        }
+      });
+    }
+
+    return {
+      dryRun,
+      organizationIds: personal.map((organization) => organization.id),
+    };
   }
 
   /** The seeds throw plain errors for bad input (unknown owner, bad id). */

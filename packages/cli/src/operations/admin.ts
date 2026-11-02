@@ -65,6 +65,16 @@ export interface WorkflowsSeedSummary {
   updated: number;
 }
 
+export interface OrganizationCategoriesSeedInput {
+  dryRun: boolean;
+  excludeOrganizationIds?: string[];
+}
+
+export interface OrganizationCategoriesSeedSummary {
+  dryRun: boolean;
+  organizationIds: string[];
+}
+
 export interface TemplatesSeedInput {
   dryRun: boolean;
 }
@@ -493,6 +503,15 @@ export function seedTemplates(input: TemplatesSeedInput): Promise<TemplatesSeedS
 
 export function seedWorkflows(input: WorkflowsSeedInput): Promise<WorkflowsSeedSummary> {
   return adminPost<WorkflowsSeedSummary>('/admin/seeds/workflows', input);
+}
+
+export function seedOrganizationCategories(
+  input: OrganizationCategoriesSeedInput
+): Promise<OrganizationCategoriesSeedSummary> {
+  return adminPost<OrganizationCategoriesSeedSummary>(
+    '/admin/seeds/organization-categories',
+    input
+  );
 }
 
 /**

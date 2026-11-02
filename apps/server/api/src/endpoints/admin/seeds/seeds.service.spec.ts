@@ -15,6 +15,51 @@ vi.mock('@api-scripts/seeds/workflows.seed', () => ({
 
 const { AdminSeedsService } = await import('./seeds.service');
 
+interface FakeOrganization {
+  accountType: string | null;
+  category: string;
+  email: string | null;
+  id: string;
+  isDeleted?: boolean;
+}
+
+/** In-memory stand-in for the organization table, honouring the seed's filters. */
+function buildOrganizations(rows: FakeOrganization[]) {
+  const table = rows.map((row) => ({ isDeleted: false, ...row }));
+  const prisma = {
+    organization: {
+      findMany: async (args: { where: { id: { notIn: string[] } } }) =>
+        table
+          .filter(
+            (row) =>
+              !row.isDeleted &&
+              !args.where.id.notIn.includes(row.id) &&
+              (row.accountType ?? row.category) === 'BUSINESS',
+          )
+          .map((row) => ({
+            accountType: row.accountType,
+            id: row.id,
+            user: row.email === null ? null : { email: row.email },
+          })),
+      update: async (args: {
+        data: { accountType?: string; category: string };
+        where: { id: string };
+      }) => {
+        const row = table.find((candidate) => candidate.id === args.where.id);
+        if (row) {
+          row.category = args.data.category;
+          row.accountType = args.data.accountType ?? row.accountType;
+        }
+        return row;
+      },
+    },
+  };
+  return {
+    service: new AdminSeedsService(prisma as never, {} as never, {} as never),
+    table,
+  };
+}
+
 function build() {
   const prisma = {} as never;
   const cache = { invalidateByTags: vi.fn().mockResolvedValue(2) };
@@ -209,6 +254,104 @@ describe('AdminSeedsService', () => {
       await expect(service.seedTemplates({})).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('seedOrganizationCategories', () => {
+    const rows: FakeOrganization[] = [
+      {
+        accountType: null,
+        category: 'BUSINESS',
+        email: 'a@gmail.com',
+        id: 'personal-legacy',
+      },
+      {
+        accountType: 'BUSINESS',
+        category: 'BUSINESS',
+        email: 'b@yahoo.com',
+        id: 'personal-typed',
+      },
+      {
+        accountType: null,
+        category: 'BUSINESS',
+        email: 'c@acme.com',
+        id: 'work',
+      },
+      {
+        accountType: null,
+        category: 'BUSINESS',
+        email: null,
+        id: 'no-owner-email',
+      },
+      {
+        accountType: null,
+        category: 'BUSINESS',
+        email: 'd@gmail.com',
+        id: 'excluded',
+      },
+      {
+        accountType: 'AGENCY',
+        category: 'BUSINESS',
+        email: 'e@gmail.com',
+        id: 'agency',
+      },
+      {
+        accountType: null,
+        category: 'CREATOR',
+        email: 'f@gmail.com',
+        id: 'creator',
+      },
+      {
+        accountType: null,
+        category: 'BUSINESS',
+        email: 'g@gmail.com',
+        id: 'deleted',
+        isDeleted: true,
+      },
+    ];
+
+    it('lists the personal-email business orgs and writes nothing by default', async () => {
+      const { service, table } = buildOrganizations(rows);
+
+      await expect(
+        service.seedOrganizationCategories({
+          excludeOrganizationIds: ['excluded'],
+        }),
+      ).resolves.toEqual({
+        dryRun: true,
+        organizationIds: ['personal-legacy', 'personal-typed'],
+      });
+      expect(table.map((row) => row.category)).toEqual(
+        rows.map((row) => row.category),
+      );
+    });
+
+    it('moves only those orgs to CREATOR on a live run and is idempotent', async () => {
+      const { service, table } = buildOrganizations(rows);
+      const live = { dryRun: false, excludeOrganizationIds: ['excluded'] };
+
+      await expect(service.seedOrganizationCategories(live)).resolves.toEqual({
+        dryRun: false,
+        organizationIds: ['personal-legacy', 'personal-typed'],
+      });
+      expect(
+        Object.fromEntries(
+          table.map((row) => [row.id, row.accountType ?? row.category]),
+        ),
+      ).toEqual({
+        agency: 'AGENCY',
+        creator: 'CREATOR',
+        deleted: 'BUSINESS',
+        excluded: 'BUSINESS',
+        'no-owner-email': 'BUSINESS',
+        'personal-legacy': 'CREATOR',
+        'personal-typed': 'CREATOR',
+        work: 'BUSINESS',
+      });
+
+      await expect(
+        service.seedOrganizationCategories(live),
+      ).resolves.toMatchObject({ organizationIds: [] });
     });
   });
 });
