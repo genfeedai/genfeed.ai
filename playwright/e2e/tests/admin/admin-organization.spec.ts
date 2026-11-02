@@ -559,8 +559,14 @@ test.describe('Admin Organization', () => {
         .getByRole('main')
         .getByRole('cell', { name: 'ada@example.com' }),
     ).toBeVisible();
+    const userRow = adminPage
+      .getByRole('main')
+      .getByRole('row', { name: /ada@example\.com/ });
     await expect(
-      adminPage.getByRole('main').getByText('LLM $15.00 · generation $5.00'),
+      userRow.getByRole('cell', { name: '$15.00', exact: true }),
+    ).toBeVisible();
+    await expect(
+      userRow.getByRole('cell', { name: '$5.00', exact: true }),
     ).toBeVisible();
     expect(requestedOrganizations).toContain('org-spend-1');
   });

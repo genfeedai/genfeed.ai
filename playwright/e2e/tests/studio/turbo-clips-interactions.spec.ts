@@ -10,7 +10,7 @@ const CLIPPER_PROJECT_ID = '000000000000000000009876';
 const YOUTUBE_URL = 'https://www.youtube.com/watch?v=abc12345678';
 
 async function openSourceImport(page: Page): Promise<void> {
-  await assertRouteRenders(page, `${CLIPPER_ROUTE}/new`);
+  await assertRouteRenders(page, CLIPPER_ROUTE);
   await expect(page.getByLabel(/youtube url/i)).toBeVisible();
 }
 
@@ -29,9 +29,9 @@ test.describe('Studio clip source import — deep interactions', () => {
       });
     });
     await openSourceImport(page);
-    await expect(page).toHaveURL(new RegExp(`${CLIPPER_ROUTE}/new$`));
+    await expect(page).toHaveURL(new RegExp(`${CLIPPER_ROUTE}$`));
     await expect(
-      page.getByRole('heading', { name: /import a clip source/i }),
+      page.getByRole('heading', { name: /what should clipper cut/i }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: /import & transcribe/i }),

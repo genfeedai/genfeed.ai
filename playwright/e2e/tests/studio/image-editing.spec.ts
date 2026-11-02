@@ -236,22 +236,36 @@ for (const { model, editing } of [
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     if (flux) {
-      await expect(page.getByLabel('FLUX resolution')).toBeVisible();
-      await expect(page.getByLabel('Editing seed')).toHaveCount(0);
+      await expect(
+        page.getByLabel('FLUX resolution').filter({ visible: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel('Editing seed').filter({ visible: true }),
+      ).toHaveCount(0);
       await expect(page.getByLabel('Editing output size')).toHaveCount(0);
-      await page.getByLabel('FLUX resolution').click();
+      await page
+        .getByLabel('FLUX resolution')
+        .filter({ visible: true })
+        .click();
       await page.getByRole('option', { name: '1.5K', exact: true }).click();
-      await page.getByLabel('FLUX aspect ratio').click();
+      await page
+        .getByLabel('FLUX aspect ratio')
+        .filter({ visible: true })
+        .click();
       await page
         .getByRole('option', {
           name: editing ? 'Match source aspect ratio' : 'Auto aspect ratio',
           exact: true,
         })
         .click();
-    } else await expect(page.getByLabel('Editing seed')).toBeVisible();
+    } else
+      await expect(
+        page.getByLabel('Editing seed').filter({ visible: true }),
+      ).toBeVisible();
     await expect(composer).toBeEmpty();
     await composer.fill('Change only the sign to OPEN');
-    if (!flux) await page.getByLabel('Editing seed').fill('0');
+    if (!flux)
+      await page.getByLabel('Editing seed').filter({ visible: true }).fill('0');
     await page.screenshot({
       path: testInfo.outputPath(
         flux ? 'flux-3-image-editing-studio.png' : 'image-editing-studio.png',
@@ -324,13 +338,19 @@ for (const { model, editing } of [
         .getByRole('button', { name: 'Replace draft', exact: true })
         .click();
       await expect(composer).toHaveText('Change only the sign to OPEN');
-      await expect(page.getByLabel('Editing seed')).toHaveCount(0);
-      await expect(page.getByLabel('FLUX resolution')).toContainText('1.5K');
-      await expect(page.getByLabel('FLUX aspect ratio')).toContainText(
-        'Match source aspect ratio',
-      );
+      await expect(
+        page.getByLabel('Editing seed').filter({ visible: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByLabel('FLUX resolution').filter({ visible: true }),
+      ).toContainText('1.5K');
+      await expect(
+        page.getByLabel('FLUX aspect ratio').filter({ visible: true }),
+      ).toContainText('Match source aspect ratio');
     } else if (!flux)
-      await expect(page.getByLabel('Editing seed')).toHaveValue('');
+      await expect(
+        page.getByLabel('Editing seed').filter({ visible: true }),
+      ).toHaveValue('');
     await expectNoErrorOverlay(page);
   });
 }

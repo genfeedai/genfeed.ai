@@ -2,6 +2,7 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII=',
@@ -86,7 +87,9 @@ test.describe('Playground workspace', () => {
   test('puts the prompt on the left and the generations on the right', async ({
     authenticatedPage: page,
   }) => {
-    const prompt = page.getByTestId('studio-playground-prompt');
+    const prompt = page
+      .getByTestId('studio-playground-prompt')
+      .filter({ visible: true });
     const card = page.getByTestId('studio-asset-ready-image');
     await expect(prompt).toBeVisible();
     await expect(card).toBeVisible();
@@ -109,7 +112,9 @@ test.describe('Playground workspace', () => {
     await expect(page.getByTestId('studio-focused-preview')).toBeVisible();
     await expect(page.getByTestId('studio-playground-inspector')).toBeVisible();
     // The prompt stays on the left while a generation is open.
-    await expect(page.getByTestId('studio-playground-prompt')).toBeVisible();
+    await expect(
+      page.getByTestId('studio-playground-prompt').filter({ visible: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole('complementary', { name: 'Side panel' }),
     ).toHaveCount(0);
@@ -128,7 +133,9 @@ test.describe('Playground workspace', () => {
 
     await expect(page).toHaveURL(/\/playground\/failed-video$/);
     await expect(page.getByTestId('studio-focused-preview')).toBeVisible();
-    await expect(page.getByTestId('studio-playground-prompt')).toBeVisible();
+    await expect(
+      page.getByTestId('studio-playground-prompt').filter({ visible: true }),
+    ).toBeVisible();
   });
 
   test('keeps a generation open across a reload', async ({
