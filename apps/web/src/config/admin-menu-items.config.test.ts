@@ -52,6 +52,7 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(hrefs).toContain('/admin/administration/subscriptions');
     expect(hrefs).toContain('/admin/administration/system-emails');
     expect(hrefs).toContain('/admin/overview/analytics/all');
+    expect(hrefs).toContain('/admin/overview/analytics/business');
     expect(hrefs).toContain('/admin/content/generations');
     expect(hrefs).toContain('/admin/automation/agents');
   });

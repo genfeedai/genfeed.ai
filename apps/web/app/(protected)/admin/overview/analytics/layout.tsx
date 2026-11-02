@@ -5,7 +5,6 @@ import {
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
 import { Timeframe } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import DateRangePicker from '@ui/primitives/date-range-picker';
@@ -24,18 +23,6 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
     <AdminPageShell
       title="Analytics"
       icon={ChartColumn}
-      tabs={{
-        fullWidth: false,
-        tabs: [
-          { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
-          { href: APP_ROUTES.ADMIN.ORGANIZATIONS, label: 'Organizations' },
-          { href: APP_ROUTES.ADMIN.BRANDS, label: 'Brands' },
-          {
-            href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
-            label: 'Business',
-          },
-        ],
-      }}
       onRefresh={triggerRefresh}
       isRefreshing={isRefreshing}
       search={searchNode}
