@@ -16,17 +16,11 @@ const MEGABYTE = 1024 * 1024;
 /**
  * Library images also accept HEIC/HEIF declarations (#5850); conversion is
  * tracked separately in #5629, so the server only has to let them through.
- *
- * SVG is accepted too (#8991): the files service rasterizes it to a transparent
- * PNG when the upload is confirmed, so the stored asset is never an SVG.
  */
-const SVG_CONTENT_TYPE = 'image/svg+xml';
-
 const IMAGE_CONTENT_TYPES: readonly string[] = [
   ...ACCEPTED_IMAGE_TYPES,
   'image/heic',
   'image/heif',
-  SVG_CONTENT_TYPE,
 ];
 
 const VIDEO_CONTENT_TYPES: readonly string[] = [

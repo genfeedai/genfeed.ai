@@ -1,14 +1,10 @@
-import {
-  resolveUploadExtension,
-  resolveUploadLabel,
-} from '@api/services/uploads/upload-extension.util';
+import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 
 describe('resolveUploadExtension', () => {
   it.each([
     ['image/jpeg', 'photo.jpg', 'JPEG'],
     ['image/png', 'photo.png', 'PNG'],
     ['image/webp', 'photo.webp', 'WEBP'],
-    ['image/svg+xml', 'logo.svg', 'PNG'],
     ['video/mp4', 'clip.mp4', 'MP4'],
     ['audio/mpeg', 'track.mp3', 'MP3'],
   ])('maps %s to the %s label', (contentType, filename, expected) => {
@@ -34,17 +30,5 @@ describe('resolveUploadExtension', () => {
     expect(resolveUploadExtension('application/octet-stream', 'noext')).toBe(
       'jpg',
     );
-  });
-});
-
-describe('resolveUploadLabel', () => {
-  it.each([
-    ['image/svg+xml', 'qa-logo.svg', 'qa-logo.png'],
-    ['image/svg+xml', 'LOGO.SVG', 'LOGO.png'],
-    ['image/svg+xml', 'logo', 'logo'],
-    ['image/png', 'photo.svg', 'photo.svg'],
-    ['image/jpeg', 'photo.jpg', 'photo.jpg'],
-  ])('labels %s upload %s as %s', (contentType, filename, expected) => {
-    expect(resolveUploadLabel(contentType, filename)).toBe(expected);
   });
 });

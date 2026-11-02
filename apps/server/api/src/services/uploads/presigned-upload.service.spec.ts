@@ -385,35 +385,11 @@ describe('PresignedUploadService', () => {
       );
     });
 
-    it('accepts an SVG and records it as a PNG asset', async () => {
-      sharedService.createMediaDocuments.mockResolvedValue({
-        ingredientData: createIngredientEntity({}),
-        metadataData: createMetadataEntity(),
-      });
-      filesClientService.getPresignedUploadUrl.mockResolvedValue({
-        publicUrl: 'https://cdn.example.com/images/test',
-        s3Key: 'ingredients/images/test',
-        uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
-      });
-
-      await service.getPresignedUploadUrl(mockUser, {
-        category: IngredientCategory.IMAGE,
-        contentType: 'image/svg+xml',
-        filename: 'qa-logo.svg',
-        sizeBytes: 251,
-      });
-
-      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
-        mockUser,
-        expect.objectContaining({ extension: 'PNG', label: 'qa-logo.png' }),
-      );
-    });
-
     it.each([
       ['application/pdf', IngredientCategory.IMAGE],
       ['application/octet-stream', IngredientCategory.IMAGE],
       ['text/html', IngredientCategory.IMAGE],
-      ['image/svg+xml', IngredientCategory.VIDEO],
+      ['image/svg+xml', IngredientCategory.IMAGE],
       ['image/png', IngredientCategory.VIDEO],
       ['video/mp4', IngredientCategory.MUSIC],
       ['', IngredientCategory.IMAGE],

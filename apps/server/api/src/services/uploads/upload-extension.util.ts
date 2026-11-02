@@ -12,8 +12,6 @@ const EXTENSION_BY_CONTENT_TYPE: Readonly<Record<string, string>> = {
   'image/jpeg': 'JPEG',
   'image/jpg': 'JPG',
   'image/png': 'PNG',
-  // The files service rasterizes an SVG upload to PNG on confirm (#8991).
-  'image/svg+xml': 'PNG',
   'image/webp': 'WEBP',
   'video/mp4': 'MP4',
   'video/quicktime': 'MOV',
@@ -36,17 +34,4 @@ export function resolveUploadExtension(
   const filenameParts = filename.split('.');
   const lastPart = filenameParts[filenameParts.length - 1];
   return filenameParts.length > 1 && lastPart ? lastPart : DEFAULT_EXTENSION;
-}
-
-/**
- * Display label for an upload. An SVG is stored as a PNG, so its label follows
- * the stored file instead of keeping a `.svg` name on a PNG asset.
- */
-export function resolveUploadLabel(
-  contentType: string,
-  filename: string,
-): string {
-  return contentType.trim().toLowerCase() === 'image/svg+xml'
-    ? filename.replace(/\.svg$/i, '.png')
-    : filename;
 }

@@ -12,10 +12,7 @@ import {
   resolveDirectUploadCategory,
   resolveUploadMaxBytes,
 } from '@api/services/uploads/presigned-upload-policy.util';
-import {
-  resolveUploadExtension,
-  resolveUploadLabel,
-} from '@api/services/uploads/upload-extension.util';
+import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
@@ -92,7 +89,7 @@ export class PresignedUploadService {
         origin: IngredientOrigin.UPLOADED,
         category: CategoryPrismaUtil.toIngredientCategory(category),
         extension: fileExtension,
-        label: resolveUploadLabel(contentType, body.filename),
+        label: body.filename,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       },
