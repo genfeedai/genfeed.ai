@@ -1,13 +1,72 @@
 import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LearningPage from './learning-page';
 
-const getReport = vi.hoisted(() => vi.fn());
+type ReportParams = { brandId?: string; organizationId: string };
+
+const mocks = vi.hoisted(() => ({
+  currentOrganizationId: 'org-own',
+  requests: [] as { brandId?: string; organizationId: string }[],
+  search: '',
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin/administration/learning',
+  useRouter: () => ({
+    replace: (url: string) => {
+      mocks.search = url.split('?')[1] ?? '';
+    },
+  }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: mocks.currentOrganizationId }),
+}));
+
+vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+  default: () => <div>organization filter</div>,
+  useAdminOrgBrandParams: () => {
+    const params = new URLSearchParams(mocks.search);
+    return {
+      brand: params.get('brand') ?? '',
+      organization: params.get('organization') ?? '',
+    };
+  },
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ getReport }),
+  useAuthedService: () => async () => ({
+    getReport: async (params: ReportParams) => {
+      mocks.requests.push(params);
+      return report();
+    },
+  }),
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn() },
+}));
+
+vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
+  default: ({
+    children,
+    dropdowns,
+    title,
+  }: {
+    children: ReactNode;
+    dropdowns?: ReactNode;
+    title: string;
+  }) => (
+    <main>
+      <h1>{title}</h1>
+      {dropdowns}
+      {children}
+    </main>
+  ),
 }));
 
 vi.mock('next-intl', async () => {
@@ -27,37 +86,15 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
-}));
-
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children, label }: { children: ReactNode; label: string }) => (
-    <section aria-label={label}>{children}</section>
-  ),
-}));
-
-function report(
-  overrides: Partial<LearningPromptSlotOutcomeReport> = {},
-): LearningPromptSlotOutcomeReport {
+function report(): LearningPromptSlotOutcomeReport {
   return {
     groups: [
       {
         category: 'IMAGE',
         comparison: {
           alpha: 0.05,
-          comparisonCount: 2,
+          comparisonCount: 1,
           comparisons: [
-            {
-              difference: 0,
-              filled: { count: 3, mean: 0.1 },
-              lower: -0.2,
-              rest: { count: 40, mean: 0.1 },
-              slot: 'mood',
-              upper: 0.2,
-              value: null,
-              verdict: 'insufficient_data',
-            },
             {
               difference: 0.7,
               filled: { count: 25, mean: 0.5 },
@@ -80,109 +117,65 @@ function report(
     isTruncated: false,
     organizationIds: ['org-1'],
     postCount: 50,
-    skipped: { noPrompt: 1, noSlots: 2, noValidReward: 3 },
-    ...overrides,
+    skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
   };
 }
 
-function submit(organizations: string) {
-  fireEvent.change(screen.getByLabelText('Organization IDs'), {
-    target: { value: organizations },
+function renderPage() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Run report' }));
+  // A fresh element each time: React skips an identical one, and the page has
+  // to read the URL it wrote for the default organization.
+  const tree = () => (
+    <QueryClientProvider client={client}>
+      <LearningPage />
+    </QueryClientProvider>
+  );
+  const view = render(tree());
+  // The page writes the default organization into the URL on mount; render
+  // again so it reads that URL, as the router would.
+  view.rerender(tree());
 }
 
 describe('LearningPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mocks.currentOrganizationId = 'org-own';
+    mocks.requests = [];
+    mocks.search = '';
   });
 
-  it('waits for an organization before asking for a report', () => {
-    render(<LearningPage />);
+  it('opens on the admin’s own organization and shows its report', async () => {
+    renderPage();
 
-    expect(screen.getByRole('button', { name: 'Run report' })).toBeDisabled();
-    expect(getReport).not.toHaveBeenCalled();
+    expect(await screen.findByText('lighting')).toBeVisible();
+    expect(mocks.search).toBe('organization=org-own');
+    expect(mocks.requests).toEqual([
+      { brandId: undefined, organizationId: 'org-own' },
+    ]);
   });
 
-  it('requests the parsed organizations and lists decided verdicts first', async () => {
-    getReport.mockResolvedValue(report());
-    render(<LearningPage />);
+  it('reads the organization and brand picked in the URL', async () => {
+    mocks.search = 'organization=org-picked&brand=brand-1';
+    renderPage();
 
-    fireEvent.change(screen.getByLabelText('Brand ID (optional)'), {
-      target: { value: ' brand-1 ' },
-    });
-    submit('org-1, org-2 org-1');
+    expect(await screen.findByText('lighting')).toBeVisible();
+    expect(mocks.search).toBe('organization=org-picked&brand=brand-1');
+    expect(mocks.requests).toEqual([
+      { brandId: 'brand-1', organizationId: 'org-picked' },
+    ]);
+  });
 
-    await waitFor(() => expect(screen.getByText('Better')).toBeVisible());
-    expect(getReport).toHaveBeenCalledWith(
-      { brandId: 'brand-1', organizationIds: ['org-1', 'org-2'] },
-      expect.any(AbortSignal),
-    );
-    const slots = screen
-      .getAllByRole('row')
-      .slice(1)
-      .map((row) => row.textContent ?? '');
-    expect(slots[0]).toContain('lighting');
-    expect(slots[1]).toContain('mood');
-    expect(screen.getByText('Not enough data')).toBeVisible();
+  it('asks for an organization when none is chosen yet', () => {
+    mocks.currentOrganizationId = '';
+    renderPage();
+
     expect(
       screen.getByText(
-        'Left out: 3 without a valid reward, 1 without a stored prompt, 2 with a prompt that predates structured slots.',
+        'Choose an organization to see which prompt slots go with better or worse results.',
       ),
     ).toBeVisible();
-    expect(screen.queryByText('Pooled across organizations')).toBeNull();
-  });
-
-  it('warns that a pooled report is a weaker lead', async () => {
-    getReport.mockResolvedValue(
-      report({
-        isPooled: true,
-        isTruncated: true,
-        organizationIds: ['a', 'b'],
-      }),
-    );
-    render(<LearningPage />);
-
-    submit('a,b');
-
-    await waitFor(() =>
-      expect(screen.getByText('Pooled across organizations')).toBeVisible(),
-    );
-    expect(
-      screen.getByText(
-        'The post limit was reached, so older posts were not read.',
-      ),
-    ).toBeVisible();
-  });
-
-  it('says so when nothing is comparable', async () => {
-    getReport.mockResolvedValue(report({ groups: [], postCount: 0 }));
-    render(<LearningPage />);
-
-    submit('org-1');
-
-    await waitFor(() =>
-      expect(
-        screen.getByText(
-          'No posts with a measured reward and structured prompt slots were found.',
-        ),
-      ).toBeVisible(),
-    );
-  });
-
-  it('offers a retry when the report fails', async () => {
-    getReport.mockRejectedValueOnce(new Error('boom'));
-    getReport.mockResolvedValueOnce(report());
-    render(<LearningPage />);
-
-    submit('org-1');
-    await waitFor(() =>
-      expect(
-        screen.getByText('The learning report could not be loaded.'),
-      ).toBeVisible(),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Retry report' }));
-    await waitFor(() => expect(screen.getByText('Better')).toBeVisible());
+    expect(screen.getByText('organization filter')).toBeVisible();
+    expect(mocks.requests).toEqual([]);
   });
 });

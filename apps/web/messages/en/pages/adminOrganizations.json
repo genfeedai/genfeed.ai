@@ -2,6 +2,7 @@
   "title": "Organizations",
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
+  "learningTab": "Learning",
   "settingsTab": "Settings",
   "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",

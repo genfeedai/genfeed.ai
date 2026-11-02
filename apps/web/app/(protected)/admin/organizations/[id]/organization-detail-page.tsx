@@ -24,6 +24,8 @@ import { Tabs } from '@ui/primitives/tabs';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
+import LearningReportPanel from '@/features/admin/learning/learning-report-panel';
+import { useLearningReport } from '@/features/admin/learning/use-learning-report';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
 
@@ -45,6 +47,11 @@ function OrganizationDetailPageContent({
     triggerRefresh,
   } = useAnalyticsContext();
 
+  const isLearningTab = activeTab === 'learning';
+  const learning = useLearningReport({
+    isEnabled: isLearningTab,
+    organizationId: organizationId ?? '',
+  });
   const isSpendingTab = activeTab === 'spending';
   const [spendingPeriodDays, setSpendingPeriodDays] = useState(
     DEFAULT_ECONOMICS_PERIOD_DAYS,
@@ -78,19 +85,23 @@ function OrganizationDetailPageContent({
       onRefresh={
         isSettingsTab
           ? () => refresh()
-          : isSpendingTab
-            ? () => void spending.refetch()
-            : triggerRefresh
+          : isLearningTab
+            ? () => void learning.refetch()
+            : isSpendingTab
+              ? () => void spending.refetch()
+              : triggerRefresh
       }
       isRefreshing={
         isSettingsTab
           ? isRefreshing
-          : isSpendingTab
-            ? spending.isFetching && !spending.isLoading
-            : isAnalyticsRefreshing
+          : isLearningTab
+            ? learning.isFetching
+            : isSpendingTab
+              ? spending.isFetching && !spending.isLoading
+              : isAnalyticsRefreshing
       }
       filters={
-        isSettingsTab ? undefined : isSpendingTab ? (
+        isSettingsTab || isLearningTab ? undefined : isSpendingTab ? (
           <EconomicsPeriodFilter
             onChange={handleSpendingPeriodChange}
             value={spendingPeriodDays}
@@ -124,6 +135,10 @@ function OrganizationDetailPageContent({
             {
               href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/spending`,
               label: translate('spendingTab'),
+            },
+            {
+              href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/learning`,
+              label: translate('learningTab'),
             },
             {
               href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
@@ -161,6 +176,14 @@ function OrganizationDetailPageContent({
               />
             </>
           )
+        ) : isLearningTab ? (
+          <LearningReportPanel
+            hasOrganization
+            isError={learning.isError}
+            isLoading={learning.isLoading}
+            onRetry={() => void learning.refetch()}
+            report={learning.data}
+          />
         ) : isSpendingTab ? (
           <OrganizationSpendingPanel
             error={spending.error}
@@ -183,7 +206,9 @@ function OrganizationDetailPageContent({
 
 /**
  * One organization: its analytics at `/admin/organizations/:id`, its revenue,
- * cost and margin at `/admin/organizations/:id/spending` and its settings (release preview, released apps, per-organization settings) at
+ * cost and margin at `/admin/organizations/:id/spending`, its prompt slot
+ * learning report at `/admin/organizations/:id/learning` and its settings
+ * (release preview, released apps, per-organization settings) at
  * `/admin/organizations/:id/settings`, as route tabs.
  */
 export default function OrganizationDetailPage({

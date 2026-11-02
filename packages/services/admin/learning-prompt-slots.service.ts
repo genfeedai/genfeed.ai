@@ -3,7 +3,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
 export interface LearningPromptSlotReportParams {
-  organizationIds: string[];
+  organizationId: string;
   brandId?: string;
 }
 
@@ -19,9 +19,9 @@ export class AdminLearningPromptSlotsService extends HTTPBaseService {
     ) as AdminLearningPromptSlotsService;
   }
 
-  /** Read-only; one organization, or several for a pooled internal view. */
+  /** Read-only; one organization, optionally narrowed to one brand. */
   async getReport(
-    { organizationIds, brandId }: LearningPromptSlotReportParams,
+    { organizationId, brandId }: LearningPromptSlotReportParams,
     signal?: AbortSignal,
   ): Promise<LearningPromptSlotOutcomeReport> {
     const response = await this.instance.get<{
@@ -29,7 +29,7 @@ export class AdminLearningPromptSlotsService extends HTTPBaseService {
     }>('prompt-slots', {
       params: {
         ...(brandId ? { brandId } : {}),
-        organizationIds: organizationIds.join(','),
+        organizationId,
       },
       signal,
     });
