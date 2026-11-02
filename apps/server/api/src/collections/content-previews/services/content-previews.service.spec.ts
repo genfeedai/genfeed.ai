@@ -1,5 +1,6 @@
 import { hashToken } from '@api/auth/shared/pkce.util';
 import { ContentPreviewsService } from '@api/collections/content-previews/services/content-previews.service';
+import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PublicContentPreviewSerializer } from '@genfeedai/serializers';
@@ -21,6 +22,8 @@ function createFakePrisma() {
     account: {
       diagnostics: {},
       id: 'warmup_1',
+      invitationId: 'invitation_1',
+      operatorUserId: 'operator_1',
       status: 'INVITED',
     } as Row | null,
     brand: {
@@ -84,7 +87,23 @@ function createFakePrisma() {
     },
     warmupAccount: { findFirst: async () => state.account },
   };
-  return { posts, previews, prisma, state };
+  const invitation = {
+    acceptedAt: null as Date | null,
+    id: 'invitation_1',
+    revokedAt: null as Date | null,
+    status: 'pending',
+    updatedAt: new Date(NOW - 60 * 60 * 1000),
+  };
+  const resends: Row[] = [];
+  const invitations = {
+    getInvitation: async () => invitation,
+    resendInvitation: async (input: Row) => {
+      resends.push(input);
+      invitation.updatedAt = new Date();
+      return invitation;
+    },
+  };
+  return { invitation, invitations, posts, previews, prisma, resends, state };
 }
 
 describe('ContentPreviewsService', () => {
@@ -110,6 +129,7 @@ describe('ContentPreviewsService', () => {
         projectIngredients: async () => [],
         projectAssets: async () => [],
       } as unknown as AuthorizedMediaUrlService,
+      fake.invitations as unknown as InvitationService,
     );
   });
 
@@ -208,12 +228,12 @@ describe('ContentPreviewsService', () => {
     });
   });
 
-  it('counts a view and a click, and keeps the history after revoke', async () => {
+  it('counts a view and a claim click, and keeps the history after revoke', async () => {
     const { preview, token } = await mint();
 
     await service.recordView(token);
     await service.recordView(token);
-    await service.recordCtaClick(token);
+    await service.requestClaim(token);
     await service.revoke(ORG, 'warmup_1', preview.id as string);
 
     expect(service.toView(fake.previews[0] as never)).toMatchObject({
@@ -224,6 +244,60 @@ describe('ContentPreviewsService', () => {
     await expect(service.recordView(token)).rejects.toMatchObject({
       status: 404,
     });
+  });
+
+  it('emails the prepared address from the operator account when the visitor asks to claim', async () => {
+    const { token } = await mint();
+
+    await service.requestClaim(token);
+
+    expect(fake.resends).toEqual([
+      {
+        invitationId: 'invitation_1',
+        invitedByUserId: 'operator_1',
+        organizationId: ORG,
+      },
+    ]);
+  });
+
+  it('does not send a second claim email inside the cooldown', async () => {
+    const { token } = await mint();
+
+    await service.requestClaim(token);
+    await service.requestClaim(token);
+
+    expect(fake.resends).toHaveLength(1);
+    expect(service.toView(fake.previews[0] as never).ctaClickCount).toBe(2);
+  });
+
+  it('retries a claim email whose delivery failed even inside the cooldown', async () => {
+    const { token } = await mint();
+    fake.invitation.updatedAt = new Date();
+    fake.invitation.status = 'delivery-failed';
+
+    await service.requestClaim(token);
+
+    expect(fake.resends).toHaveLength(1);
+  });
+
+  it('sends nothing for a preview that was already claimed or whose invitation was used', async () => {
+    const { token } = await mint();
+    fake.invitation.acceptedAt = new Date();
+
+    await service.requestClaim(token);
+    fake.invitation.acceptedAt = null;
+    fake.previews[0].claimedAt = new Date();
+    await service.requestClaim(token);
+
+    expect(fake.resends).toEqual([]);
+  });
+
+  it('answers an unknown token with the same 404 and sends nothing', async () => {
+    await expect(service.requestClaim('A'.repeat(43))).rejects.toMatchObject({
+      status: 404,
+    });
+
+    expect(fake.resends).toEqual([]);
   });
 
   it('persists nothing about the visitor on the preview record', async () => {

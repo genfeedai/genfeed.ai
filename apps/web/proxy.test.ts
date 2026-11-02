@@ -644,6 +644,31 @@ describe('proxy', () => {
     );
   });
 
+  it('lets signed-out users open a claimable preview link', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest(`/preview/${'a'.repeat(43)}`),
+    );
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it.each(['/preview', '/previews/abc'])(
+    'keeps %s behind sign-in',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedOutRequest(pathname));
+
+      expect(response.status).toBe(307);
+      expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+        '/login',
+      );
+    },
+  );
+
   it.each(['/forgot-password', '/reset-password'])(
     'lets signed-out users render public reset route %s',
     async (pathname) => {

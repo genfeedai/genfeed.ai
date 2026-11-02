@@ -3,6 +3,7 @@
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
+  hashKey,
   type QueryKey,
   type UseQueryOptions,
   type UseQueryResult,
@@ -44,8 +45,15 @@ export interface UseAuthedQueryOptions<TService, TData>
   refreshKey?: unknown;
 }
 
+/**
+ * Compares by value, the way React Query matches keys: scope parts are often
+ * objects (`{ brandId, status }`) rebuilt on every render.
+ */
 function startsWithKey(key: QueryKey, prefix: QueryKey): boolean {
-  return prefix.every((part, index) => Object.is(key[index], part));
+  return (
+    key.length >= prefix.length &&
+    hashKey(key.slice(0, prefix.length)) === hashKey(prefix)
+  );
 }
 
 /**

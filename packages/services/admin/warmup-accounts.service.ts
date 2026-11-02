@@ -46,8 +46,14 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
     return deserializeResource<IWarmupAccount>(response.data);
   }
 
-  async getWarmupAccount(id: string): Promise<IWarmupAccount> {
-    const response = await this.instance.get<JsonApiResponseDocument>(`/${id}`);
+  async getWarmupAccount(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}`,
+      { signal },
+    );
     return deserializeResource<IWarmupAccount>(response.data);
   }
 

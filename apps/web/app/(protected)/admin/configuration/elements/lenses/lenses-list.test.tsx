@@ -1,11 +1,17 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PageScope } from '@genfeedai/contracts';
+import { PagesService } from '@services/content/pages.service';
 import {
   act,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +25,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  urlSort: null as string | null,
   deleteLens: vi.fn(),
   findAll: vi.fn(),
   loggerError: vi.fn(),
@@ -26,20 +33,18 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
-  refetch: vi.fn(),
   replace: vi.fn(),
-  useQuery: vi.fn(),
 }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => {
+  const { TEST_VIEWER } = await import('@app-tests/query-client.harness');
+  return { useAuthIdentity: () => ({ ...TEST_VIEWER, isSignedIn: true }) };
+});
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -81,13 +86,6 @@ vi.mock('@services/elements/lenses.service', () => ({
   },
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: (options: {
-    queryFn: () => Promise<unknown>;
-    queryKey: unknown[];
-  }) => mocks.useQuery(options),
-}));
-
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
     actions,
@@ -96,7 +94,11 @@ vi.mock('@ui/display/table/Table', () => ({
     getRowKey,
     isLoading,
     items,
+    rowSidebar,
   }: {
+    rowSidebar?: {
+      render: (item: Record<string, unknown>) => ReactNode;
+    };
     actions: Array<{
       onClick: (item: Record<string, unknown>) => void;
       tooltip: string;
@@ -119,32 +121,37 @@ vi.mock('@ui/display/table/Table', () => ({
     }
 
     return (
-      <table>
-        <tbody>
-          {items.map((item) => (
-            <tr key={getRowKey(item)}>
-              {columns.map((column) => (
-                <td key={column.key}>
-                  {column.render
-                    ? column.render(item)
-                    : String(item[column.key])}
-                </td>
-              ))}
-              <td>
-                {actions.map((action) => (
-                  <button
-                    key={`${getRowKey(item)}-${action.tooltip}`}
-                    type="button"
-                    onClick={() => action.onClick(item)}
-                  >
-                    {action.tooltip} {String(item.label)}
-                  </button>
+      <>
+        {rowSidebar ? (
+          <aside data-testid="row-sidebar">{rowSidebar.render(items[0])}</aside>
+        ) : null}
+        <table>
+          <tbody>
+            {items.map((item) => (
+              <tr key={getRowKey(item)}>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    {column.render
+                      ? column.render(item)
+                      : String(item[column.key])}
+                  </td>
                 ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <td>
+                  {actions.map((action) => (
+                    <button
+                      key={`${getRowKey(item)}-${action.tooltip}`}
+                      type="button"
+                      onClick={() => action.onClick(item)}
+                    >
+                      {action.tooltip} {String(item.label)}
+                    </button>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
     );
   },
 }));
@@ -172,8 +179,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: { totalDocs: number };
+  }) => (
+    <nav>
+      Pagination: {totals?.totalDocs ?? '?'} {totalLabel}
+    </nav>
   ),
 }));
 
@@ -187,9 +202,13 @@ vi.mock('next/navigation', () => ({
       if (key === 'page') return '2';
       if (key === 'organization') return 'org-1';
       if (key === 'brand') return 'brand-1';
+      if (key === 'sort') return mocks.urlSort;
       return null;
     },
-    toString: () => 'organization=org-1&brand=brand-1&page=2',
+    toString: () =>
+      `organization=org-1&brand=brand-1&page=2${
+        mocks.urlSort ? `&sort=${mocks.urlSort}` : ''
+      }`,
   }),
 }));
 
@@ -203,63 +222,117 @@ function makeLens(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function mockLenses(
-  data = [makeLens(), makeLens({ id: 'lens-2', label: 'Macro Lens' })],
+const LENSS = [makeLens(), makeLens({ id: 'lens-2', label: 'Macro Lens' })];
+
+function renderList(
+  props: Parameters<typeof LensesList>[0],
+  client = createTestQueryClient(),
 ) {
-  mocks.useQuery.mockImplementation(
-    (options: { queryFn: () => Promise<unknown> }) => {
-      void options.queryFn();
-      return {
-        data,
-        error: null,
-        isFetching: false,
-        isLoading: false,
-        refetch: mocks.refetch,
-      };
-    },
-  );
+  return render(<LensesList {...props} />, {
+    wrapper: queryClientWrapper(client),
+  });
 }
 
 describe('LensesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.urlSort = null;
     mocks.deleteLens.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue([]);
-    mocks.refetch.mockResolvedValue(undefined);
-    mockLenses();
+    mocks.findAll.mockResolvedValue(LENSS);
   });
 
   it('renders superadmin lenses and reads the admin filters from the URL', async () => {
-    render(<LensesList scope={PageScope.SUPERADMIN} />);
+    renderList({ scope: PageScope.SUPERADMIN });
 
-    expect(screen.getByText('Wide Lens')).toBeInTheDocument();
+    expect((await screen.findAllByText('Wide Lens')).length).toBeGreaterThan(0);
     expect(screen.getByText('Macro Lens')).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: 'brand-1',
-          organization: 'org-1',
-          page: 2,
-        }),
-      );
-    });
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: 'brand-1',
+        organization: 'org-1',
+        page: 2,
+      }),
+      expect.any(AbortSignal),
+    );
   });
 
-  it('registers external refresh and opens edit/delete flows with the selected lens', async () => {
+  it.each([
+    ['label', 'label: 1'],
+    ['-label', 'label: -1'],
+    ['-key', 'key: -1'],
+  ])(
+    'asks the API for the order named in the URL (sort=%s)',
+    async (urlSort, sort) => {
+      mocks.urlSort = urlSort;
+      renderList({ scope: PageScope.SUPERADMIN });
+
+      await waitFor(() => {
+        expect(mocks.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({ page: 2, sort }),
+          expect.any(AbortSignal),
+        );
+      });
+    },
+  );
+
+  it('ignores a URL sort on a column it cannot order by', async () => {
+    mocks.urlSort = '-password';
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalled();
+    });
+    expect(mocks.findAll).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sort: expect.anything() }),
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('shows the lens in the sidebar with fields editable in place for superadmins', async () => {
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    expect(sidebar.getByRole('button', { name: 'Key' })).toHaveTextContent(
+      'wide_lens',
+    );
+    expect(
+      sidebar.getByRole('button', { name: 'Description' }),
+    ).toHaveTextContent('Lens description');
+    expect(
+      sidebar.queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a read-only lens summary outside superadmin scope', async () => {
+    renderList({ scope: PageScope.BRAND });
+
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    expect(sidebar.getByText('wide_lens')).toBeInTheDocument();
+    expect(
+      sidebar.queryByRole('button', { name: 'Label' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('registers external refresh and opens the delete flow with the selected lens', async () => {
     const onRefresh = vi.fn();
 
-    render(<LensesList scope={PageScope.SUPERADMIN} onRefresh={onRefresh} />);
+    renderList({ onRefresh, scope: PageScope.SUPERADMIN });
+    await screen.findAllByText('Macro Lens');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
+    mocks.findAll.mockResolvedValue([makeLens({ label: 'Refreshed Lens' })]);
     await act(async () => {
-      await onRefresh.mock.calls[0][0]();
+      await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    expect(mocks.refetch).toHaveBeenCalled();
+    expect(
+      (await screen.findAllByText('Refreshed Lens')).length,
+    ).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Macro Lens' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('lens-modal')).toHaveTextContent('Macro Lens');
+    mocks.findAll.mockResolvedValue(LENSS);
+    await act(async () => {
+      await onRefresh.mock.calls.at(-1)?.[0]();
+    });
+    await screen.findAllByText('Macro Lens');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Macro Lens' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(
@@ -270,34 +343,23 @@ describe('LensesList', () => {
       }),
     );
 
+    mocks.findAll.mockResolvedValue([makeLens()]);
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
     });
 
     expect(mocks.deleteLens).toHaveBeenCalledWith('lens-2');
     expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Lens deleted');
-    expect(mocks.refetch).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByText('Macro Lens')).not.toBeInTheDocument(),
+    );
   });
 
   it('reports load and delete failures while notifying parent loading state', async () => {
     const onLoadingChange = vi.fn();
-    const onRefreshingChange = vi.fn();
+    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
 
-    mocks.useQuery.mockReturnValue({
-      data: [makeLens()],
-      error: new Error('load failed'),
-      isFetching: true,
-      isLoading: false,
-      refetch: mocks.refetch,
-    });
-
-    render(
-      <LensesList
-        scope={PageScope.SUPERADMIN}
-        onLoadingChange={onLoadingChange}
-        onRefreshingChange={onRefreshingChange}
-      />,
-    );
+    renderList({ onLoadingChange, scope: PageScope.SUPERADMIN });
 
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -307,12 +369,18 @@ describe('LensesList', () => {
       expect(mocks.notificationsError).toHaveBeenCalledWith(
         'Failed to load lenses',
       );
-      expect(onLoadingChange).toHaveBeenCalledWith(false);
-      expect(onRefreshingChange).toHaveBeenCalledWith(true);
+      expect(onLoadingChange).toHaveBeenLastCalledWith(false);
     });
+    expect(mocks.notificationsError).toHaveBeenCalledTimes(1);
+  });
 
+  it('reports a failed delete', async () => {
     mocks.deleteLens.mockRejectedValueOnce(new Error('delete failed'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Wide Lens' }));
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Delete Wide Lens' }),
+    );
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
     });
@@ -326,12 +394,34 @@ describe('LensesList', () => {
     );
   });
 
-  it('hides superadmin filters and actions outside superadmin scope', () => {
-    render(<LensesList scope={PageScope.BRAND} />);
+  it('hides superadmin filters and actions outside superadmin scope', async () => {
+    renderList({ scope: PageScope.BRAND });
 
+    await screen.findAllByText('Wide Lens');
     expect(screen.queryByRole('button', { name: 'Edit Wide Lens' })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Delete Wide Lens' }),
     ).toBeNull();
+  });
+
+  it('paints the cached lenses and their own footer total when coming back', async () => {
+    mocks.findAll.mockImplementation(async () => {
+      PagesService.recordTotals({ page: 2, pages: 2, total: 14 });
+      return LENSS;
+    });
+    const client = createTestQueryClient();
+    const firstVisit = renderList({ scope: PageScope.SUPERADMIN }, client);
+    expect(
+      await screen.findByText('Pagination: 14 lenses'),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    renderList({ scope: PageScope.SUPERADMIN }, client);
+
+    expect(screen.getAllByText('Wide Lens').length).toBeGreaterThan(0);
+    expect(screen.getByText('Pagination: 14 lenses')).toBeInTheDocument();
+    expect(screen.queryByText('Loading lenses')).not.toBeInTheDocument();
   });
 });

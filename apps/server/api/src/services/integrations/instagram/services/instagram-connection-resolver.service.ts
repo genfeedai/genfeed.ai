@@ -372,6 +372,20 @@ export class InstagramConnectionResolverService {
       );
     }
     try {
+      if (credential.brandId) {
+        await this.instagramService.subscribePageToMessageWebhooks(
+          organizationId,
+          credential.brandId,
+          credential.id.toString(),
+        );
+      }
+    } catch (subscribeError: unknown) {
+      this.loggerService.warn(
+        `${url} message webhook subscription failed after connection`,
+        getSafeInstagramOAuthErrorLog(subscribeError),
+      );
+    }
+    try {
       await this.historyImportService.scheduleForCredential({
         credentialId: credential.id.toString(),
         organizationId,

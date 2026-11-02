@@ -189,9 +189,6 @@
     "apps/web/app/(protected)/admin/administration/announcements/announcement-compose-form.tsx": {
       "button-restyle": 1
     },
-    "apps/web/app/(protected)/admin/administration/concierge-accounts/warmup-accounts-page.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/app/(protected)/admin/administration/users/user-details.tsx": {
       "unstyled-look": 1
     },
@@ -297,9 +294,6 @@
     },
     "apps/web/src/components/modals/system/confirm/ModalConfirm.tsx": {
       "button-restyle": 2
-    },
-    "apps/web/src/components/modals/trainings/ModalTraining.tsx": {
-      "button-restyle": 1
     },
     "apps/web/src/components/modals/trainings/ModalTrainingNew.tsx": {
       "button-restyle": 2
@@ -440,7 +434,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog.tsx": {
-      "unstyled-look": 2
+      "unstyled-look": 1
     },
     "apps/web/src/features/models/list/components/ModelsTableColumns.tsx": {
       "unstyled-look": 1

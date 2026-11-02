@@ -17,7 +17,7 @@ export interface ContentPreviewBrandSource {
 
 type PreviewBrandField = Exclude<
   keyof IPublicContentPreviewBrand,
-  'name' | 'logoUrl'
+  'name' | 'logoUrl' | 'bannerUrl'
 >;
 
 const PREVIEW_FIELD_KEYS: Record<PreviewBrandField, BrandKitFieldKey> = {
@@ -74,7 +74,7 @@ export function reviewedContextFields(
 export function buildPublicPreviewBrand(
   brand: ContentPreviewBrandSource,
   preparation: IWarmupPreparation | undefined,
-  logoUrl?: string,
+  assets: { bannerUrl?: string; logoUrl?: string } = {},
 ): IPublicContentPreviewBrand {
   const voice = readRecord(readRecord(brand.agentConfig).voice);
   const values: Partial<Record<BrandKitFieldKey, unknown>> = {
@@ -97,6 +97,8 @@ export function buildPublicPreviewBrand(
     if (value !== undefined && reviewed.has(key))
       Object.assign(result, { [field]: value });
   }
-  if (logoUrl && reviewed.has('logo')) result.logoUrl = logoUrl;
+  if (assets.logoUrl && reviewed.has('logo')) result.logoUrl = assets.logoUrl;
+  if (assets.bannerUrl && reviewed.has('banner'))
+    result.bannerUrl = assets.bannerUrl;
   return result;
 }

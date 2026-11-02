@@ -25,7 +25,7 @@ const ContainerInsetContext = createContext(false);
  *
  * **Module-local chrome** (sibling surfaces + primary tools) always renders
  * through {@link SectionTopbar}: full-bleed `border-b`, one fixed right-cluster
- * order — `refresh`, tabs, `iconActions` (ghost), `right` (controls then
+ * order — `overflow` (the "..." menu), `refresh`, tabs, `right` (controls then
  * the primary action last). Put Refresh in `refresh`, never inside `right`.
  * One app-wide pattern, not a Discovery-only flourish. Sources:
  * - explicit `headerTabs` (preferred for local nav)
@@ -51,8 +51,7 @@ export default function Container({
   leading,
   right,
   refresh,
-  iconActions,
-  iconActionsPlacement,
+  overflow,
   isTopbarPinned = false,
   topbarFooter,
   children,
@@ -71,7 +70,7 @@ export default function Container({
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight =
-    Boolean(right) || Boolean(refresh) || Boolean(iconActions);
+    Boolean(right) || Boolean(refresh) || Boolean(overflow);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -106,7 +105,7 @@ export default function Container({
       shouldPromoteBodyTabs ||
       shouldLiftBodyTabsAlone ||
       hasLeading ||
-      Boolean(iconActions) ||
+      Boolean(overflow) ||
       (!hasVisibleTitle && hasHeaderRight));
 
   // Dev-only regression net for the flip class of bug this file exists to
@@ -210,8 +209,7 @@ export default function Container({
         ) : undefined
       }
       refresh={refresh}
-      iconActions={iconActions}
-      iconActionsPlacement={iconActionsPlacement}
+      overflow={overflow}
       tabs={moduleTabsNode ?? undefined}
       forceVisible={moduleChrome === true}
     />
@@ -250,9 +248,9 @@ export default function Container({
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
             {leading}
+            {overflow}
             {refresh}
             {moduleTabsNode}
-            {iconActions}
             {right}
           </div>
         ) : usesModuleLocalChrome ? (
@@ -282,8 +280,8 @@ export default function Container({
               data-testid="container-header-actions"
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
+              {overflow}
               {refresh}
-              {iconActions}
               {right}
             </div>
           </div>

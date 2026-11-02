@@ -5,6 +5,10 @@ import {
   OrganizationUsageFilter,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
+import {
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { Client } from 'pg';
 
@@ -56,14 +60,44 @@ describe.skipIf(!connectionString)(
       };
     };
 
+    const listRows = async (
+      filters: Parameters<
+        EntityLeaderboardService['getOrganizationsWithStats']
+      >[9] = {},
+    ) =>
+      (
+        await service.getOrganizationsWithStats(
+          '2026-10-20',
+          '2026-10-26',
+          1,
+          10,
+          LeaderboardSort.GENERATIONS,
+          undefined,
+          undefined,
+          undefined,
+          LeaderboardOrder.DESC,
+          filters,
+        )
+      ).data;
+
     beforeAll(async () => {
       await client.connect();
       await client.query(`
         CREATE TYPE pg_temp."IngredientOrigin" AS ENUM ('UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN');
         CREATE TYPE pg_temp."OrganizationCategory" AS ENUM ('CREATOR', 'BUSINESS', 'AGENCY', 'EXPERT');
         CREATE TEMP TABLE users (id text, email text);
+        CREATE TYPE pg_temp."SubscriptionStatus" AS ENUM ('ACTIVE', 'CANCELLED', 'PAST_DUE', 'TRIALING', 'INCOMPLETE');
         CREATE TEMP TABLE organizations (
           id text, label text, "userId" text, "accountType" "OrganizationCategory",
+          "isDeleted" boolean DEFAULT false, "createdAt" timestamp DEFAULT now(),
+          "onboardingCompleted" boolean DEFAULT true
+        );
+        CREATE TEMP TABLE subscriptions (
+          id text, "organizationId" text, status "SubscriptionStatus", plan text,
+          "isDeleted" boolean DEFAULT false, "createdAt" timestamp DEFAULT now()
+        );
+        CREATE TEMP TABLE warmup_accounts (
+          id text, "organizationId" text, status text,
           "isDeleted" boolean DEFAULT false, "createdAt" timestamp DEFAULT now()
         );
         CREATE TEMP TABLE ingredients (
@@ -92,6 +126,22 @@ describe.skipIf(!connectionString)(
           ('no-email', 'No email', 'u-none', NULL, '2026-01-05');
         INSERT INTO organizations (id, label, "userId", "isDeleted", "createdAt")
           VALUES ('gone', 'Gone', 'u-work', true, '2026-01-06');
+        -- Lifecycle: acme pays, vitae is still onboarding and was prepared by an operator,
+        -- personal-gmail cancelled, personal-proton is in trial but never finished onboarding
+        -- (paying wins over onboarding), no-email is free.
+        UPDATE organizations SET "onboardingCompleted" = false WHERE id IN ('vitae', 'personal-proton');
+        INSERT INTO subscriptions (id, "organizationId", status, plan, "createdAt") VALUES
+          ('s1', 'acme', 'ACTIVE', 'SCALE', '2026-02-01'),
+          ('s2', 'acme', 'CANCELLED', 'OLD', '2026-01-01'),
+          ('s3', 'personal-gmail', 'CANCELLED', 'SCALE', '2026-02-01'),
+          ('s4', 'personal-proton', 'TRIALING', 'SCALE', '2026-02-01');
+        INSERT INTO subscriptions (id, "organizationId", status, plan, "isDeleted") VALUES
+          ('s5', 'no-email', 'ACTIVE', 'GHOST', true);
+        INSERT INTO warmup_accounts (id, "organizationId", status, "createdAt") VALUES
+          ('w1', 'vitae', 'DRAFT', '2026-03-01'),
+          ('w2', 'vitae', 'INVITED', '2026-04-01');
+        INSERT INTO warmup_accounts (id, "organizationId", status, "isDeleted") VALUES
+          ('w3', 'no-email', 'INVITED', true);
         -- Only live GENERATED assets inside the window (2026-10-20 to 2026-10-26) count:
         -- acme has two; the deleted, the uploaded and proton's older one do not.
         INSERT INTO ingredients (id, "organizationId", "isDeleted", origin, "createdAt") VALUES
@@ -124,6 +174,17 @@ describe.skipIf(!connectionString)(
                 )
               ).rows[0].total,
             ),
+        },
+        warmupAccount: {
+          findMany: async (args: {
+            where: { organizationId: { in: string[] } };
+          }) =>
+            (
+              await client.query(
+                'SELECT id, "organizationId", status FROM warmup_accounts WHERE "isDeleted" = false AND "organizationId" = ANY($1) ORDER BY "createdAt" DESC',
+                [args.where.organizationId.in],
+              )
+            ).rows,
         },
         user: {
           findMany: async () =>
@@ -210,6 +271,91 @@ describe.skipIf(!connectionString)(
           usage: OrganizationUsageFilter.INACTIVE,
         }),
       ).toEqual({ ids: ['vitae'], total: 1 });
+    });
+    it('derives each lifecycle status at read time, with paying winning over onboarding', async () => {
+      const rows = await listRows();
+      expect(
+        Object.fromEntries(rows.map(({ id, status }) => [id, status])),
+      ).toEqual({
+        acme: OrganizationLifecycleStatus.SUBSCRIBED,
+        'no-email': OrganizationLifecycleStatus.FREE,
+        'personal-gmail': OrganizationLifecycleStatus.CANCELLED,
+        'personal-proton': OrganizationLifecycleStatus.TRIAL,
+        vitae: OrganizationLifecycleStatus.ONBOARDING,
+      });
+    });
+
+    it('names the plan behind a paid status and ignores deleted subscriptions', async () => {
+      const rows = await listRows();
+      expect(
+        Object.fromEntries(rows.map(({ id, plan }) => [id, plan])),
+      ).toEqual({
+        acme: 'SCALE',
+        'no-email': undefined,
+        'personal-gmail': 'SCALE',
+        'personal-proton': 'SCALE',
+        vitae: undefined,
+      });
+    });
+
+    it('attaches the newest live concierge account and none for a deleted one', async () => {
+      const rows = await listRows();
+      expect(
+        Object.fromEntries(rows.map(({ id, concierge }) => [id, concierge])),
+      ).toEqual({
+        acme: undefined,
+        'no-email': undefined,
+        'personal-gmail': undefined,
+        'personal-proton': undefined,
+        vitae: { id: 'w2', status: 'INVITED' },
+      });
+    });
+
+    it.each([
+      [OrganizationLifecycleStatus.SUBSCRIBED, ['acme']],
+      [OrganizationLifecycleStatus.ONBOARDING, ['vitae']],
+      [OrganizationLifecycleStatus.TRIAL, ['personal-proton']],
+      [OrganizationLifecycleStatus.CANCELLED, ['personal-gmail']],
+      [OrganizationLifecycleStatus.FREE, ['no-email']],
+      [OrganizationLifecycleStatus.PAST_DUE, []],
+    ])(
+      'filters by status %s and counts the same set',
+      async (status, expected) => {
+        const result = await list({ status });
+        expect(result).toEqual({ ids: expected, total: expected.length });
+      },
+    );
+
+    it('filters concierge and self-serve organizations', async () => {
+      expect(
+        await list({ source: OrganizationSourceFilter.CONCIERGE }),
+      ).toEqual({ ids: ['vitae'], total: 1 });
+      const selfServe = await list({
+        source: OrganizationSourceFilter.SELF_SERVE,
+      });
+      expect([...selfServe.ids].sort()).toEqual([
+        'acme',
+        'no-email',
+        'personal-gmail',
+        'personal-proton',
+      ]);
+      expect(selfServe.total).toBe(4);
+    });
+
+    it('combines status with source and the email class', async () => {
+      expect(
+        await list({
+          emailClass: OrganizationEmailClassFilter.COMPANY,
+          source: OrganizationSourceFilter.CONCIERGE,
+          status: OrganizationLifecycleStatus.ONBOARDING,
+        }),
+      ).toEqual({ ids: ['vitae'], total: 1 });
+      expect(
+        await list({
+          source: OrganizationSourceFilter.CONCIERGE,
+          status: OrganizationLifecycleStatus.SUBSCRIBED,
+        }),
+      ).toEqual({ ids: [], total: 0 });
     });
   },
 );

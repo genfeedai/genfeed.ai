@@ -1,12 +1,11 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementScene,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -17,7 +16,7 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -35,6 +34,7 @@ import type {
   ScenesAction,
   ScenesState,
 } from '@/features/admin/props/scenes.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
@@ -48,8 +48,6 @@ function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
       return { ...state, scenes: action.scenes };
     case 'FETCH_DONE':
       return { ...state, fetchStatus: 'idle' };
-    case 'SET_SELECTED_SCENE':
-      return { ...state, selectedScene: action.scene };
     default:
       return state;
   }
@@ -75,10 +73,9 @@ function ScenesListContent({
   const [state, dispatch] = useReducer(scenesReducer, undefined, () => ({
     scenes: [],
     fetchStatus: 'loading' as FetchStatus,
-    selectedScene: null,
   }));
 
-  const { scenes, fetchStatus, selectedScene } = state;
+  const { scenes, fetchStatus } = state;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -194,11 +191,6 @@ function ScenesListContent({
     }
   }, [onRefresh, findAllScenes]);
 
-  function openSceneModal(modalId: ModalEnum, scene?: IElementScene): void {
-    dispatch({ type: 'SET_SELECTED_SCENE', scene: scene ?? null });
-    openModal(modalId);
-  }
-
   async function handleDelete(scene: IElementScene | null): Promise<void> {
     if (!scene) {
       return;
@@ -208,17 +200,14 @@ function ScenesListContent({
       const service = await getScenesService();
       await service.delete(scene.id);
       notificationsService.success('Scene deleted');
-      dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
       findAllScenes(true);
     } catch (error) {
       logger.error('Failed to delete scene', error);
       notificationsService.error('Failed to delete scene');
-      dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
     }
   }
 
   function handleConfirmDelete(scene: ElementScene): void {
-    dispatch({ type: 'SET_SELECTED_SCENE', scene });
     openConfirm({
       confirmLabel: 'Delete',
       isError: true,
@@ -232,12 +221,6 @@ function ScenesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (scene: ElementScene) =>
-              openSceneModal(ModalEnum.SCENE, scene),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: handleConfirmDelete,
             tooltip: 'Delete',
@@ -245,10 +228,16 @@ function ScenesListContent({
         ]
       : [];
 
+  const saveScene = useInlineRecordSave<Partial<IElementScene>>({
+    errorMessage: 'Failed to update scene',
+    onSaved: () => findAllScenes(true),
+    save: async (id, patch) => (await getScenesService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementScene>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) => openSceneModal(ModalEnum.SCENE, element)
+        ? (element, patch) => saveScene(element.id, patch)
         : undefined,
   });
 
@@ -268,14 +257,7 @@ function ScenesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalScene
-          item={selectedScene}
-          onClose={() => dispatch({ type: 'SET_SELECTED_SCENE', scene: null })}
-          onConfirm={() => {
-            dispatch({ type: 'SET_SELECTED_SCENE', scene: null });
-            findAllScenes(true);
-          }}
-        />
+        <LazyModalScene onConfirm={() => findAllScenes(true)} />
       )}
 
       <div className="mt-4">

@@ -20,18 +20,18 @@ vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    iconActions,
+    overflow,
     label,
     right,
   }: {
     children: ReactNode;
-    iconActions: ReactNode;
+    overflow: ReactNode;
     label: string;
     right: ReactNode;
   }) => (
     <section aria-label={label}>
       <div data-testid="toolbar">
-        {iconActions}
+        {overflow}
         {right}
       </div>
       {children}
@@ -50,7 +50,7 @@ vi.mock('@ui/primitives/date-range-picker', () => ({
 // The export button reads its handler from the adapter's context, so it has
 // to render inside the adapter in both analytics layouts.
 vi.mock('./analytics-work-surface-adapter', () => ({
-  AnalyticsScopedExportButton: () => <span>Scoped export button</span>,
+  AnalyticsScopedExportMenu: () => <span>Scoped export button</span>,
   default: ({ children }: { children: ReactNode }) => (
     <div data-testid="analytics-adapter">{children}</div>
   ),

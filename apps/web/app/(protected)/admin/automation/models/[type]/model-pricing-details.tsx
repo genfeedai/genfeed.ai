@@ -11,9 +11,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type {
@@ -403,23 +404,30 @@ export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
     [report, models],
   );
   return (
-    <AdminDownloadButton
-      label={t('export')}
-      isDisabled={!report || !!error || isFetching}
-      onClick={() => {
-        if (!report) return;
-        const blob = new Blob([exportModelPricingCsv({ ...report, rows })], {
-          type: 'text/csv;charset=utf-8',
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-      }}
+    <SubbarOverflowMenu
+      actions={[
+        {
+          icon: <Download className="size-4" />,
+          id: 'export',
+          isDisabled: !report || !!error || isFetching,
+          label: t('export'),
+          onSelect: () => {
+            if (!report) return;
+            const blob = new Blob(
+              [exportModelPricingCsv({ ...report, rows })],
+              { type: 'text/csv;charset=utf-8' },
+            );
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+          },
+        },
+      ]}
     />
   );
 }

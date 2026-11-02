@@ -3,6 +3,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const activityAttributes = createEntityAttributes([
   'userId',
   'organizationId',
+  'organizationLabel',
   'brandId',
   'entityModel',
   'entityId',

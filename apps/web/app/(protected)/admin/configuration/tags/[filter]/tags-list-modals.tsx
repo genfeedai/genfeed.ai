@@ -4,24 +4,18 @@ import type { TagsListModalsProps } from '@/features/admin/props/tags.props';
 
 export default function TagsListModals({
   scope,
-  selectedTag,
   organizationId,
   onConfirm,
 }: TagsListModalsProps) {
   if (scope === PageScope.SUPERADMIN) {
     return (
-      <LazyModalTag
-        item={selectedTag}
-        entityType={TagCategory.CREDENTIAL}
-        onConfirm={onConfirm}
-      />
+      <LazyModalTag entityType={TagCategory.CREDENTIAL} onConfirm={onConfirm} />
     );
   }
 
   if (scope === PageScope.ORGANIZATION) {
     return (
       <LazyModalTag
-        item={selectedTag}
         entityType={TagCategory.ORGANIZATION}
         entityId={organizationId}
         onConfirm={onConfirm}
