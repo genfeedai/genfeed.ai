@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementCameraMovement,
@@ -21,7 +21,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalCameraMovement } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import type {
   CameraMovementsAction,
   CameraMovementsState,
@@ -268,7 +268,8 @@ function CameraMovementsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalCameraMovement
+        <LazyElementCreateModal
+          modalId={ModalEnum.CAMERA_MOVEMENT}
           onConfirm={() => findAllCameraMovements(true)}
         />
       )}
