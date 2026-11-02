@@ -417,5 +417,11 @@
     "retry": "Retry",
     "searchLabel": "Search your ElevenLabs voices",
     "title": "Import from your ElevenLabs account"
+  },
+  "childAssets": {
+    "captionedDescription": "These versions include captions and can be used for social media platforms.",
+    "captionedTitle": "Captioned Versions ({count})",
+    "empty": "No child assets found",
+    "loading": "Loading child assets"
   }
 }

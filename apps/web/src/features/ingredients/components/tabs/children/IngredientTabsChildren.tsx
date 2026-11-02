@@ -6,6 +6,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { useTranslations } from 'next-intl';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import type { ExtendedIngredientTabsChildrenProps } from '@/props/content/ingredient.props';
 
@@ -13,6 +14,7 @@ export default function IngredientTabsChildren({
   ingredient,
   onViewChild,
 }: ExtendedIngredientTabsChildrenProps) {
+  const translate = useTranslations('pages.library.childAssets');
   // Cached per ingredient: coming back to its children paints them at once
   // while they refresh.
   const { data: children = [], isPending } = useAuthedQuery({
@@ -31,7 +33,7 @@ export default function IngredientTabsChildren({
   });
 
   if (isPending) {
-    return <SkeletonCard label="Loading child assets" showActions={false} />;
+    return <SkeletonCard label={translate('loading')} showActions={false} />;
   }
 
   // Separate captioned and other children
@@ -42,17 +44,19 @@ export default function IngredientTabsChildren({
   return (
     <div className="space-y-6">
       {children.length === 0 ? (
-        <EmptyState title="No child assets found" />
+        <EmptyState title={translate('empty')} />
       ) : (
         captionedChildren.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              <span>📝</span> Captioned Versions ({captionedChildren.length})
+              <span>📝</span>{' '}
+              {translate('captionedTitle', {
+                count: captionedChildren.length,
+              })}
             </h3>
             <Card>
               <div className="text-sm text-foreground/70 mb-3">
-                These versions include captions and can be used for social media
-                platforms.
+                {translate('captionedDescription')}
               </div>
 
               <IngredientsMediaGrid

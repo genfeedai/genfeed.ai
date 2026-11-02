@@ -16,6 +16,11 @@ const { findChildrenMock } = vi.hoisted(() => ({
   findChildrenMock: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
   useAuthIdentity: (await import('@app-tests/query-client.harness'))
     .useTestViewer,

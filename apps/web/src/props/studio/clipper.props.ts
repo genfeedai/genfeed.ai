@@ -235,3 +235,8 @@ export interface StudioClipperIdentityContext {
     | 'defaultAvatarRef'
   > | null;
 }
+
+/** Imports a library video into a new Clipper project, then opens it. */
+export interface ClipperIngredientImportProps {
+  videoId: string;
+}
