@@ -17,6 +17,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
@@ -58,8 +59,9 @@ class WorkflowExecutionsServiceClass {
       if (value !== undefined) query.set(key, String(value));
     }
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const requestId = PagesService.beginRequest();
     const document = await this.request(`/workflow-executions${suffix}`);
-    recordPageTotals(document, params);
+    recordPageTotals(document, params, requestId);
     return deserializeCollection<IWorkflowExecution>(document);
   }
 

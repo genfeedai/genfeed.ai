@@ -11,6 +11,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export interface ContentPlanWithItems {
@@ -45,11 +46,12 @@ export class ContentPlansService extends HTTPBaseService {
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<IContentPlan[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content/plans`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return deserializeCollection<IContentPlan>(response.data);
   }

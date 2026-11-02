@@ -94,6 +94,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -513,6 +514,7 @@ export class ContentRunsService extends HTTPBaseService {
     filters: ListContentRunsFilters = {},
     signal?: AbortSignal,
   ): Promise<ContentRunRecord[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs`,
       {
@@ -526,7 +528,7 @@ export class ContentRunsService extends HTTPBaseService {
         signal,
       },
     );
-    recordPageTotals(response.data, filters);
+    recordPageTotals(response.data, filters, requestId);
 
     return deserializeCollection<ContentRunRecord>(response.data);
   }

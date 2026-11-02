@@ -9,6 +9,7 @@ import {
   deserializeCollection,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export interface AgentStrategyBudgetCap {
@@ -338,11 +339,12 @@ export class AgentStrategiesService extends BaseService<
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<AgentStrategyOpportunity[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${id}/opportunities`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return deserializeCollection<AgentStrategyOpportunity>(response.data);
   }

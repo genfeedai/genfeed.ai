@@ -9,6 +9,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export class AdminAnnouncementsService extends HTTPBaseService {
@@ -35,11 +36,12 @@ export class AdminAnnouncementsService extends HTTPBaseService {
     query?: { limit?: number; page?: number; search?: string },
     signal?: AbortSignal,
   ): Promise<IAnnouncement[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: query,
       signal,
     });
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
     return deserializeCollection<IAnnouncement>(response.data);
   }
 }

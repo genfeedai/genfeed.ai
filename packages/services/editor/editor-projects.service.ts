@@ -14,6 +14,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 const DEFAULT_FPS = 30;
@@ -159,6 +160,7 @@ export class EditorProjectsService extends HTTPBaseService {
     query: { limit?: number; page?: number; search?: string } = {},
     signal?: AbortSignal,
   ): Promise<IEditorProject[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance
       .get<JsonApiResponseDocument>('', {
         params: {
@@ -170,7 +172,7 @@ export class EditorProjectsService extends HTTPBaseService {
         signal,
       })
       .then((res) => res.data);
-    recordPageTotals(response, query);
+    recordPageTotals(response, query, requestId);
 
     return this.mapMany(response);
   }

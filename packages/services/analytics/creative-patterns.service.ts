@@ -8,6 +8,7 @@ import {
   extractCollection,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { PagesService } from '@services/content/pages.service';
 import { recordPageTotals } from '@services/core/page-totals';
 
 export interface CreativePatternListFilters {
@@ -43,6 +44,7 @@ export class CreativePatternsService extends HTTPBaseService {
     query: CreativePatternListQuery = {},
     signal?: AbortSignal,
   ): Promise<ICreativePattern[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: {
         brandId: filters.brandId || undefined,
@@ -54,7 +56,7 @@ export class CreativePatternsService extends HTTPBaseService {
       },
       signal,
     });
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return extractCollection<ICreativePattern>(response.data);
   }
