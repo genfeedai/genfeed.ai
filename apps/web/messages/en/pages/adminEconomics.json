@@ -74,7 +74,8 @@
       "llm": "LLM cost",
       "media": "Generation cost",
       "unpriced": "Unpriced calls",
-      "costPerGeneration": "Cost per generation"
+      "costPerGeneration": "Cost per generation",
+      "marginPerGeneration": "Margin per generation"
     },
     "models": "Models by cost",
     "categories": "Generation cost by category",
