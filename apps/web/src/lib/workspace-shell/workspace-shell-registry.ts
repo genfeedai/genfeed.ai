@@ -227,6 +227,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings/usage': 'Usage',
   // Studio tools are apps (#5502): the app is the root, its home the leaf.
   '/:orgSlug/:brandSlug/playground': 'Canvas',
+  '/:orgSlug/:brandSlug/playground/:jobId': 'Generation',
   '/:orgSlug/:brandSlug/storyboard': 'Runs',
   '/:orgSlug/:brandSlug/motion': 'Compositions',
   '/:orgSlug/:brandSlug/clipper': 'Projects',
@@ -883,6 +884,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/clipper/new',
       '/:orgSlug/:brandSlug/clipper/:projectId',
       '/:orgSlug/:brandSlug/playground',
+      '/:orgSlug/:brandSlug/playground/:jobId',
       '/:orgSlug/:brandSlug/motion',
       '/:orgSlug/:brandSlug/storyboard',
       '/:orgSlug/:brandSlug/storyboard/new',

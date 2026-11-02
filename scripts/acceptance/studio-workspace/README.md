@@ -70,7 +70,7 @@ receipts and inspect them; hashes are a strict equality gate, not a visual revie
 The pre-hydration React DevTools hook counts **committed renders** whose fibers
 carry `PerformedWork`. It observes the stable named boundaries
 `StudioPlaygroundWorkspace`, `StudioPlaygroundComposer` and
-`StudioPlaygroundResults`, from clicking Generate through the completed preview.
+`StudioPlaygroundGenerationList`, from clicking Generate through the completed preview.
 It excludes discarded StrictMode invocations and does not count newly extracted
 children as a regression merely because the tree has more components. It is not
 a wall-time benchmark or a provider/queue latency measurement.

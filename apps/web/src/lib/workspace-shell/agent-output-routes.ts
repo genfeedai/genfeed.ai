@@ -16,6 +16,9 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // Turbo: `/turbo` is the prompt that starts a project beside the project
   // list, `/turbo/[projectId]` is one open project.
   new RegExp(`^${APP_ROUTES.STUDIO.TURBO}(?:/[^/]+)?/?$`),
+  // Playground: `/playground` is the prompt that starts a generation beside
+  // the generation list, `/playground/[jobId]` is one open generation.
+  new RegExp(`^${APP_ROUTES.STUDIO.PLAYGROUND}(?:/[^/]+)?/?$`),
   // A Storyboard run, and `/storyboard/new`, where the idea is pitched in the
   // same chat-left, result-right layout the run opens in.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/[^/]+/?$`),

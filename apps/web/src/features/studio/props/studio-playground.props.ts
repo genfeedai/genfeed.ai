@@ -1,4 +1,4 @@
-import type { IngredientFormat, ViewType } from '@genfeedai/contracts';
+import type { IngredientFormat } from '@genfeedai/contracts';
 import type { StudioSystemPreset } from '@genfeedai/contracts/constants/studio-system-presets.constant';
 import type {
   HeyGenGender,
@@ -272,46 +272,28 @@ export interface StudioPlaygroundEmptyStateProps {
   type: StudioPlaygroundType;
 }
 
-export interface StudioPlaygroundResultsProps {
+export interface StudioPlaygroundWorkspaceProps {
+  /** The open generation (`/playground/[jobId]`); absent on the workspace. */
+  jobId?: string;
+}
+
+export interface StudioPlaygroundGenerationListProps {
   assetActions: StudioPlaygroundAssetActions;
   isLoading: boolean;
   jobs: readonly StudioPlaygroundJob[];
   onReprompt: (job: StudioPlaygroundJob) => void;
-  onSelect: (job: StudioPlaygroundJob) => void;
-  /**
-   * Ready assets the open composer can accept. Omit to keep every ready
-   * image, edit, video, and avatar actionable.
-   */
-  isUseAsReferenceEnabled?: (job: StudioPlaygroundJob) => boolean;
-  /** Attaches a ready asset to the open composer without changing its type. */
-  onUseAsReference?: (job: StudioPlaygroundJob) => void;
-  /** Successful Inspector preview retries, keyed by job id. */
-  previewRevisions?: Readonly<Record<string, number>>;
-  selectedJobId?: string | null;
-  view: ViewType.GRID | ViewType.LIST;
 }
 
-export interface StudioPlaygroundCardProps {
+export interface StudioPlaygroundGenerationRowProps {
   assetActions: StudioPlaygroundAssetActions;
-  isSelected?: boolean;
   job: StudioPlaygroundJob;
-  /** The job this one was transformed from, when it is in the gallery. */
-  parentJob?: StudioPlaygroundJob | null;
   onReprompt: (job: StudioPlaygroundJob) => void;
-  onSelect: (job: StudioPlaygroundJob) => void;
-  /**
-   * False when the open composer cannot accept this asset. Omit to show the
-   * action for every ready image, edit, video, and avatar.
-   */
-  isUseAsReferenceEnabled?: boolean;
-  /** Attaches a ready asset to the open composer without changing its type. */
-  onUseAsReference?: (job: StudioPlaygroundJob) => void;
-  /**
-   * Bumped after the Inspector recovers this asset's saved preview. A new
-   * value clears the card's preview failure and reauthorizes its media.
-   */
-  previewRevision?: number;
-  view: ViewType.GRID | ViewType.LIST;
+}
+
+export interface StudioPlaygroundJobStatusProps {
+  assetActions: StudioPlaygroundAssetActions;
+  job: StudioPlaygroundJob;
+  onReprompt: (job: StudioPlaygroundJob) => void;
 }
 
 export interface StudioPlaygroundFailureDetailsDialogProps {
