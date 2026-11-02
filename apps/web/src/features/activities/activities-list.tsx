@@ -143,7 +143,7 @@ export default function ActivitiesList({
           ),
       },
       {
-        header: 'When',
+        header: translate('columnWhen'),
         key: 'when',
         sortable: false,
         className: 'w-44',
@@ -159,7 +159,7 @@ export default function ActivitiesList({
       ...(isAdminScope
         ? [
             {
-              header: 'Organization',
+              header: translate('columnOrganization'),
               key: 'organization',
               sortable: false,
               render: (a: IActivity) => a.organizationLabel ?? '—',
@@ -167,7 +167,7 @@ export default function ActivitiesList({
           ]
         : []),
       {
-        header: 'Description',
+        header: translate('columnDescription'),
         key: 'label',
         sortable: false,
         render: (a: IActivity) => {
@@ -220,7 +220,7 @@ export default function ActivitiesList({
             .join(' · '),
       },
       {
-        header: 'Status',
+        header: translate('columnStatus'),
         key: 'status',
         sortable: false,
         render: (a: IActivity) => {
@@ -230,7 +230,7 @@ export default function ActivitiesList({
       },
       {
         className: 'w-24',
-        header: 'Credits',
+        header: translate('columnCredits'),
         key: 'cost',
         sortable: false,
         render: (a: IActivity) => (
@@ -408,7 +408,7 @@ export default function ActivitiesList({
         error={
           isError
             ? {
-                title: 'Failed to load activities',
+                title: translate('loadError'),
                 onRetry: () => refresh(),
               }
             : undefined
@@ -420,7 +420,7 @@ export default function ActivitiesList({
         getRowKey={getRowKey}
         getRowClassName={getRowClassName}
         getGroupHeading={getGroupHeading}
-        emptyLabel="No activity yet"
+        emptyLabel={translate('empty')}
         selectable={true}
         selectedIds={selectedActivityIds}
         onSelectionChange={setSelectedActivityIds}
