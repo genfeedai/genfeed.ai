@@ -45,6 +45,8 @@ export interface FalContractSyncResult {
   version: string;
 }
 
+/** Prefix the pricing attention classifier reads as "refresh reached it, no readable rate". */
+const FAL_RATE_UNVERIFIABLE_CODE = 'rates_unavailable:fal_rate_unverifiable';
 const FAL_PRICING_SOURCE_URL = 'https://api.fal.ai/v1/models/pricing';
 
 @Injectable()
@@ -94,14 +96,21 @@ export class FalModelContractSyncService {
           rawPrices.map(normalizeFalPrice),
         )
       : ({ status: 'not-rate-sheet' } as const);
-    if (sheet.status === 'unverifiable')
+    if (sheet.status === 'unverifiable') {
       // Fal's API cannot state these reviewed rates; they stay as reviewed,
-      // like a provider with no machine-readable prices.
+      // like a provider with no machine-readable prices. Record that the
+      // refresh reached the model so the admin page does not call a rate
+      // nothing can refresh "stale" (the verification timestamp stays put).
+      await prisma.model.update({
+        data: { providerSyncFailureCode: FAL_RATE_UNVERIFIABLE_CODE },
+        where: { id: model.id },
+      });
       return {
         drifted: false,
         quarantined: candidate.mappingStatus === 'quarantined',
         version: candidate.version,
       };
+    }
     const comparison: RateComparison | null =
       sheet.status === 'confirmed'
         ? { status: 'unchanged' }

@@ -842,6 +842,37 @@ describe('inactive models in the pricing report', () => {
     expect(row.attentionLevel).toBe('red');
   });
 
+  it('does not flag a switched-off draft whose provider publishes no readable rate: nothing to approve', () => {
+    const row = projectAdminModelPricing(
+      {
+        ...inactive,
+        providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+        providerSyncStatus: 'quarantined',
+      } as Model,
+      [],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.attentionLevel).toBeNull();
+  });
+
+  it('still flags the same unreadable row once it is switched on', () => {
+    const row = projectAdminModelPricing(
+      {
+        ...inactive,
+        isActive: true,
+        providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+        providerSyncStatus: 'quarantined',
+      } as Model,
+      [],
+      3.33,
+      retrievedAt,
+    );
+
+    expect(row.attentionLevel).toBe('red');
+  });
+
   it('never flags a retired row, which dispatch replaces with its successor', () => {
     const row = projectAdminModelPricing(
       { ...inactive, lifecycle: 'RETIRED' } as unknown as Model,
