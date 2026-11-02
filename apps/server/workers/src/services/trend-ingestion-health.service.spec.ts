@@ -480,6 +480,60 @@ describe('TrendIngestionHealthService', () => {
       ).toHaveLength(2);
     });
 
+    it.each([
+      [
+        'names the recorded failure reason',
+        [
+          {
+            ...scopedHealthy,
+            lastSuccessfulRefreshAt: null,
+            outcome: 'native_failed',
+            reason: 'authentication_required',
+          },
+        ],
+        'Outcome: native_failed (authentication_required).',
+      ],
+      [
+        'says when no scoped attempt was recorded',
+        [],
+        'No scoped refresh attempt is recorded for this scope',
+      ],
+    ] as const)(
+      'the scope alert %s',
+      async (_name, scopedReceipts, expected) => {
+        const { service, health, prisma, recorder } = setup();
+        prisma.credential.findMany.mockResolvedValue([
+          {
+            createdAt: enrollment,
+            organizationId: 'org-a',
+            platform: 'YOUTUBE',
+          },
+        ]);
+        health.getHealth.mockImplementation(
+          (input: { organizationId?: string } = {}) =>
+            Promise.resolve(
+              input.organizationId ? [...scopedReceipts] : [globalHealthy],
+            ),
+        );
+        await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+        const descriptions = recorder.dispatch.mock.calls
+          .map(
+            ([call]: [
+              {
+                messages: {
+                  message: { payload: { card: { description: string } } };
+                }[];
+              },
+            ]) => call.messages[0].message.payload.card.description,
+          )
+          .filter((text: string) =>
+            text.includes('one connected tenant scope'),
+          );
+        expect(descriptions).toHaveLength(1);
+        expect(descriptions[0]).toContain(expected);
+      },
+    );
+
     it('ignores a global outage of an unrelated dataset', async () => {
       const { service, health, prisma, events } = setup();
       prisma.credential.findMany.mockResolvedValue([
