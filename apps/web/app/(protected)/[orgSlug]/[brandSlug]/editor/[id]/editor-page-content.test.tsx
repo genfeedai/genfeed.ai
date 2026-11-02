@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   openConfirm: vi.fn(),
   openGallery: vi.fn(),
   pause: vi.fn(),
+  publishContext: vi.fn(),
   play: vi.fn(),
   push: vi.fn(),
   renderProject: vi.fn(),
@@ -49,6 +50,11 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   update: vi.fn(),
 }));
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
@@ -600,6 +606,16 @@ describe('EditorPageContent', () => {
       expect(mocks.success).toHaveBeenCalledWith(
         'Render started! Check the gallery for the output.',
       );
+    });
+  });
+
+  it('tells the agent which project is open once it has loaded', async () => {
+    await renderLoadedEditor();
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'editor',
+      openProjectId: 'editor-123',
+      projects: [{ id: 'editor-123', title: 'Launch Reel' }],
     });
   });
 
