@@ -360,13 +360,11 @@ describe('useAnalytics', () => {
     expect(result.current.selectedScopeId).toBe('brand-new');
   });
 
-  it('fetches a changed date range after server hydration', async () => {
-    const { rerender } = renderHook(
+  it('fetches a changed date range', async () => {
+    const { rerender, result } = renderHook(
       ({ startDate }) =>
         useAnalytics({
           scope: PageScope.ORGANIZATION,
-          initialData: { totalPosts: 999 },
-          revalidateOnMount: false,
           startDate,
           endDate: '2026-09-30',
         }),
@@ -375,7 +373,7 @@ describe('useAnalytics', () => {
         wrapper: createQueryWrapper(),
       },
     );
-    expect(mockFindOrganizationAnalytics).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     rerender({ startDate: '2026-09-15' });
     await waitFor(() =>
       expect(mockFindOrganizationAnalytics).toHaveBeenCalledWith('org-123', {

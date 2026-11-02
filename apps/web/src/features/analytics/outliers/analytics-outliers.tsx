@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OutlierPerformanceResponse } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   toBrandListParams,
@@ -26,7 +26,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { ScanSearch, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { AnalyticsOutliersProps } from '@/features/analytics/props/analytics-outliers.props';
 import { useOptionalDiscoveryRemix } from '@/features/research/remix/DiscoveryRemixProvider';
 import OutlierBaselinePanel from './outlier-baseline-panel';
@@ -48,34 +48,19 @@ export default function AnalyticsOutliers({
   const { href } = useOrgUrl();
   const remix = useOptionalDiscoveryRemix();
   const translate = useTranslations('pages.analytics.outliers');
-  const getService = useAuthedService((token: string) =>
-    OutlierBaselinesService.getInstance(token),
-  );
   const refreshTrigger = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
   const filterKey = [brandId, platform, tier].join('|');
   const [pageState, setPageState] = useState({ filterKey, page: 1 });
   const page = pageState.filterKey === filterKey ? pageState.page : 1;
-  const [posts, setPosts] = useState<OutlierPerformanceResponse[] | null>(null);
-  const [total, setTotal] = useState(0);
-  const [isError, setIsError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Primitives only: the scope object is a new reference every render, so
-  // depending on it re-ran this effect on every render and never settled.
+  // Primitives only: the scope object is a new reference every render.
   const isFetchReady = isCollectionFetchReady({ ...scope, brandId });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the page.
-  useEffect(() => {
-    if (!isFetchReady) {
-      return;
-    }
-    const controller = new AbortController();
-    setPosts(null);
-    setIsError(false);
-    void (async () => {
+  const postsQuery = useAuthedQuery({
+    enabled: isFetchReady,
+    queryFn: async (service, signal) => {
       try {
-        const service = await getService();
-        const result = await service.listPosts(
+        return await service.listPosts(
           {
             ...toBrandListParams({ brandId }),
             ...(platform ? { platform } : {}),
@@ -83,30 +68,30 @@ export default function AnalyticsOutliers({
             limit: PAGE_SIZE,
             page,
           },
-          controller.signal,
+          signal,
         );
-        if (controller.signal.aborted) return;
-        setPosts(result.docs);
-        setTotal(result.total);
       } catch (error) {
-        if (controller.signal.aborted) return;
         logger.error('GET /outlier-baselines/posts failed', error);
-        setPosts([]);
-        setTotal(0);
-        setIsError(true);
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [
-    brandId,
-    getService,
-    isFetchReady,
-    page,
-    platform,
-    refreshTrigger,
-    retryCount,
-    tier,
-  ]);
+    },
+    queryKey: [
+      'outlier-baselines',
+      'posts',
+      scope.organizationId,
+      brandId ?? null,
+      platform ?? null,
+      tier ?? null,
+      page,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => OutlierBaselinesService.getInstance(token),
+  });
+  const posts = postsQuery.data?.docs;
+  const total = postsQuery.data?.total ?? 0;
+  // Skeleton only while nothing is cached for this page: a scope that is not
+  // ready yet, or a first read in flight. A cached page paints at once.
+  const isLoading = !isFetchReady || postsQuery.isLoading;
 
   const emptyLabel = translate('empty');
 
@@ -223,14 +208,14 @@ export default function AnalyticsOutliers({
       <Table<OutlierPerformanceResponse>
         label={translate('postsLabel')}
         items={posts ?? []}
-        isLoading={posts === null}
+        isLoading={isLoading}
         actions={actions}
         columns={columns}
         emptyLabel={emptyLabel}
         error={
-          isError
+          postsQuery.isError && !posts
             ? {
-                onRetry: () => setRetryCount((count) => count + 1),
+                onRetry: () => void postsQuery.refetch(),
                 title: translate('loadError'),
               }
             : undefined

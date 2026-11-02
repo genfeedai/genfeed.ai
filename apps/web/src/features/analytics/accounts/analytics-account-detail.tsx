@@ -16,7 +16,7 @@ import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -35,7 +35,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import AnalyticsAccountXGrowth from '@/features/analytics/accounts/analytics-account-x-growth';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 
@@ -49,69 +49,41 @@ export default function AnalyticsAccountDetail() {
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
   const { dateRange, refreshTrigger, triggerRefresh } = useAnalyticsContext();
-  const getService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-  const [detail, setDetail] = useState<IAccountAnalyticsDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (
-      !isFetchReady ||
-      !organizationId ||
-      !credentialId ||
-      refreshTrigger < 0
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    void (async () => {
-      setError(null);
-      setIsLoading(true);
+  const { startDate, endDate } = getDateRangeWithDefaults(
+    dateRange.startDate ?? undefined,
+    dateRange.endDate ?? undefined,
+  );
+  const detailQuery = useAuthedQuery({
+    enabled: isFetchReady && Boolean(organizationId && credentialId),
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        const { startDate, endDate } = getDateRangeWithDefaults(
-          dateRange.startDate ?? undefined,
-          dateRange.endDate ?? undefined,
-        );
-        const data = (await service.getAccountAnalyticsDetail(credentialId, {
+        return (await service.getAccountAnalyticsDetail(credentialId, {
           brandId: brandId || undefined,
           endDate,
           organizationId,
           startDate,
         })) as IAccountAnalyticsDetail;
-        if (!controller.signal.aborted) {
-          setDetail(data);
-        }
       } catch (requestError) {
-        if (!controller.signal.aborted) {
-          logger.error(
-            'Failed to fetch account analytics detail',
-            requestError,
-          );
-          setError(translate('loadError'));
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        logger.error('Failed to fetch account analytics detail', requestError);
+        throw requestError;
       }
-    })();
-    return () => controller.abort();
-  }, [
-    brandId,
-    credentialId,
-    dateRange.endDate,
-    dateRange.startDate,
-    getService,
-    isFetchReady,
-    organizationId,
-    translate,
-    refreshTrigger,
-  ]);
+    },
+    queryKey: [
+      'analytics',
+      'account-detail',
+      organizationId,
+      brandId ?? null,
+      credentialId,
+      startDate,
+      endDate,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const detail: IAccountAnalyticsDetail | null = detailQuery.data ?? null;
+  const error = detailQuery.isError && !detail ? translate('loadError') : null;
+  const isLoading = !detail && !error;
 
   const title =
     detail?.identity.label || detail?.identity.externalHandle || 'Account';

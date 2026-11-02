@@ -16,16 +16,20 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000;
 
 interface UseAnalyticsOptions extends AnalyticsScopedOptions {
   endDate?: string;
-  initialCachedAt?: string | null;
-  initialData?: Partial<IAnalytics>;
-  revalidateOnMount?: boolean;
   startDate?: string;
+}
+
+/** One read. When the API fails, the last saved copy stands in for it. */
+interface AnalyticsRead {
+  cachedAt: string | null;
+  data: Partial<IAnalytics>;
+  isSavedCopy: boolean;
 }
 
 export function useAnalytics({
@@ -34,9 +38,6 @@ export function useAnalytics({
   autoLoad = true,
   startDate,
   endDate,
-  initialData,
-  initialCachedAt = null,
-  revalidateOnMount,
 }: UseAnalyticsOptions): AnalyticsScopedReturn {
   const { brandId, organizationId } = useCollectionScope();
 
@@ -81,17 +82,6 @@ export function useAnalytics({
   }, []);
   const setSelectedScopeId = useCallback((nextScopeId: string | undefined) => {
     setSelection((previous) => ({ ...previous, scopeId: nextScopeId }));
-  }, []);
-
-  const [cachedAt, setCachedAt] = useState<string | null>(initialCachedAt);
-  const [isUsingCache, setIsUsingCache] = useState(false);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
   }, []);
 
   const getOrganizationsService = useAuthedService((token: string) =>
@@ -145,13 +135,8 @@ export function useAnalytics({
     });
   }, []);
 
-  const [hydration] = useState(() => ({ key: cacheKey, data: initialData }));
-  const hydratedData = hydration.key === cacheKey ? hydration.data : undefined;
-  const skipInitialFetch =
-    (revalidateOnMount ?? hydratedData == null) === false && !!hydratedData;
-
   const {
-    data: analyticsData,
+    data: analyticsRead,
     error,
     isLoading,
     isFetching,
@@ -159,27 +144,19 @@ export function useAnalytics({
   } = useQuery({
     queryKey: [
       'analytics',
+      'scoped',
       autoLoad,
       selectedScope,
       selectedScopeId,
       startDate,
       endDate,
     ],
-    queryFn: async () => {
-      if (!autoLoad) {
-        if (isMountedRef.current) {
-          setIsUsingCache(false);
-          setCachedAt(null);
-        }
-        return defaultAnalytics;
-      }
-
-      if (selectedScope !== PageScope.SUPERADMIN && !selectedScopeId) {
-        if (isMountedRef.current) {
-          setIsUsingCache(false);
-          setCachedAt(null);
-        }
-        return defaultAnalytics;
+    queryFn: async (): Promise<AnalyticsRead> => {
+      if (
+        !autoLoad ||
+        (selectedScope !== PageScope.SUPERADMIN && !selectedScopeId)
+      ) {
+        return { cachedAt: null, data: defaultAnalytics, isSavedCopy: false };
       }
 
       let data: Partial<IAnalytics> = {};
@@ -230,36 +207,27 @@ export function useAnalytics({
             ANALYTICS_CACHE_TTL_MS,
           );
         }
-
-        if (isMountedRef.current) {
-          setIsUsingCache(false);
-          setCachedAt(null);
-        }
       } catch (fetchError) {
-        if (analyticsCache) {
-          const cached = analyticsCache.get(cacheKey);
-          if (cached?.data) {
-            if (isMountedRef.current) {
-              setIsUsingCache(true);
-              setCachedAt(cached.cachedAt);
-            }
-            return cached.data;
-          }
+        const cached = analyticsCache?.get(cacheKey);
+        if (cached?.data) {
+          return {
+            cachedAt: cached.cachedAt,
+            data: cached.data,
+            isSavedCopy: true,
+          };
         }
 
         throw fetchError;
       }
 
-      return data;
+      return { cachedAt: null, data, isSavedCopy: false };
     },
     enabled: autoLoad,
-    initialData: hydratedData,
-    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
   });
 
   const analytics = useMemo(
-    () => analyticsData ?? defaultAnalytics,
-    [analyticsData, defaultAnalytics],
+    () => analyticsRead?.data ?? defaultAnalytics,
+    [analyticsRead, defaultAnalytics],
   );
 
   const refresh = useCallback(async () => {
@@ -268,11 +236,11 @@ export function useAnalytics({
 
   return {
     analytics,
-    cachedAt,
+    cachedAt: analyticsRead?.cachedAt ?? null,
     error,
     isLoading,
     isRefreshing: isFetching && !isLoading,
-    isUsingCache,
+    isUsingCache: analyticsRead?.isSavedCopy ?? false,
     refresh,
     scope,
     scopeId: actualScopeId,

@@ -2,6 +2,7 @@ import type {
   ICreativePattern,
   PatternType,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -43,6 +44,7 @@ export class CreativePatternsService extends HTTPBaseService {
     query: CreativePatternListQuery = {},
     signal?: AbortSignal,
   ): Promise<ICreativePattern[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: {
         brandId: filters.brandId || undefined,
@@ -54,7 +56,7 @@ export class CreativePatternsService extends HTTPBaseService {
       },
       signal,
     });
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return extractCollection<ICreativePattern>(response.data);
   }

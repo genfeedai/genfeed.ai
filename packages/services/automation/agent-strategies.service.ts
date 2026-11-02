@@ -4,6 +4,7 @@ import type {
   IAgentStrategyRunHistoryItem,
   IBrand,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
@@ -338,11 +339,12 @@ export class AgentStrategiesService extends BaseService<
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<AgentStrategyOpportunity[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${id}/opportunities`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return deserializeCollection<AgentStrategyOpportunity>(response.data);
   }

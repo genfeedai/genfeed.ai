@@ -39,7 +39,9 @@ export function useReplyCampaigns() {
   const [enrollableConversations, setEnrollableConversations] = useState<
     ReplyCampaignEnrollableConversation[]
   >([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // The mount effect always fetches, so the first paint is already loading:
+  // starting at `false` flashed the empty list before the skeleton.
+  const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [busyCampaignId, setBusyCampaignId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

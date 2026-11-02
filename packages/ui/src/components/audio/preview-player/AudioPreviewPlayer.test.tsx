@@ -14,6 +14,7 @@ class PreviewAudio extends EventTarget {
   currentTime = 0;
   duration = 30;
   volume = 1;
+  muted = false;
   paused = true;
   ended = false;
   play = vi.fn(async () => {
@@ -59,11 +60,16 @@ describe('AudioPreviewPlayer', () => {
     expect(slider).toHaveAttribute('aria-valuemax', '30');
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
     expect(audio.currentTime).toBeGreaterThan(0);
-    fireEvent.keyDown(
-      screen.getByRole('slider', { name: 'Volume for Voice' }),
-      { key: 'ArrowLeft' },
+    expect(screen.getByText('0:00 / 0:30')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Mute preview for Voice' }),
     );
-    expect(audio.volume).toBeLessThan(1);
+    expect(audio.muted).toBe(true);
+    act(() => audio.dispatchEvent(new Event('volumechange')));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unmute preview for Voice' }),
+    );
+    expect(audio.muted).toBe(false);
     fireEvent.click(
       screen.getByRole('button', { name: 'Pause preview for Voice' }),
     );

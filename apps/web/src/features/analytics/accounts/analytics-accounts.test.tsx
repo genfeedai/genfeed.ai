@@ -1,7 +1,12 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
@@ -37,6 +42,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,
@@ -87,6 +93,11 @@ const getService = async () => ({
   ),
   saveFleetEvaluationPolicy: mocks.saveFleetEvaluationPolicy,
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
@@ -143,6 +154,17 @@ vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
     </div>
   ),
 }));
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
 
 describe('AnalyticsAccounts', () => {
   const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(

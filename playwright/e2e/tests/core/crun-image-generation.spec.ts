@@ -520,6 +520,81 @@ for (const key of [nanoKey, seedreamKey]) {
   });
 }
 
+test('send button loads while the request is sent, then Stop cancels the running generation', async ({
+  authenticatedPage: page,
+}) => {
+  const fixture = await installFixture(page, seedreamKey);
+  const generationPath = createPlaywrightMockApiRoutePattern(
+    'images(?:/.*|\\?.*)?$',
+  );
+  let releaseProvider: () => void = () => undefined;
+  const providerAnswer = new Promise<void>((resolve) => {
+    releaseProvider = resolve;
+  });
+  // Hold the provider's answer so the in-flight state can be observed.
+  await page.route(generationPath, async (route) => {
+    const request = route.request();
+    if (
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname.endsWith('/images')
+    ) {
+      await providerAnswer;
+    }
+    await route.fallback();
+  });
+  // The run stays PROCESSING until it is cancelled.
+  await page.route(
+    createPlaywrightMockApiRoutePattern('ingredients(?:/.*|\\?.*)?$'),
+    async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST') {
+        await route.fulfill({
+          json: {
+            data: {
+              id: fixture.ownedId,
+              type: 'ingredients',
+              attributes: {
+                category: 'IMAGE',
+                status: 'FAILED',
+                generationError: 'Cancelled by user',
+              },
+            },
+          },
+        });
+        return;
+      }
+      await route.fulfill({
+        json: { data: [], meta: { page: 1, pageSize: 24, totalCount: 0 } },
+      });
+    },
+  );
+  const generate = fixture.composer.getByRole('button', {
+    name: 'Generate',
+    exact: true,
+  });
+  const stop = fixture.composer.getByRole('button', {
+    name: 'Stop generation',
+    exact: true,
+  });
+  await expect(generate).toBeEnabled();
+  await generate.click();
+  // While the request is being sent the arrow becomes a spinner and the
+  // button cannot be pressed twice.
+  await expect(generate).toBeDisabled();
+  await expect(stop).toHaveCount(0);
+  releaseProvider();
+  await expect(stop).toBeVisible();
+  const cancellation = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      request.url().endsWith(`/ingredients/${fixture.ownedId}/cancellations`),
+  );
+  await stop.click();
+  await cancellation;
+  await expect(stop).toHaveCount(0);
+  expect(fixture.consumes).toHaveLength(1);
+});
+
 test('unavailable Crun model keeps the draft and makes zero consumes', async ({
   authenticatedPage: page,
 }) => {

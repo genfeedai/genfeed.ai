@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { mockWorkflowCrud } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -38,5 +39,36 @@ test.describe('Admin Automation', () => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
+  });
+
+  test('workflows are one table, filtered by type', async ({ adminPage }) => {
+    await mockWorkflowCrud(adminPage, [
+      {
+        createdAt: '2026-09-01T00:00:00.000Z',
+        description: '',
+        edges: [],
+        id: 'wf-e2e-launch',
+        name: 'E2E launch thread',
+        nodes: [],
+        status: 'active',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+      },
+    ]);
+
+    await adminPage.goto(
+      `${APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS}?type=organization`,
+    );
+    const table = adminPage.getByRole('table', { name: 'Workflows' });
+    await expect(table.getByText('E2E launch thread')).toBeVisible();
+    await expect(table.getByText('Organization')).toBeVisible();
+    await expect(
+      adminPage.getByText('Workflows in this organization'),
+    ).toHaveCount(0);
+
+    await adminPage.goto(
+      `${APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS}?type=system`,
+    );
+    await expect(adminPage.getByText('No workflows found')).toBeVisible();
+    await expect(adminPage.getByText('E2E launch thread')).toHaveCount(0);
   });
 });
