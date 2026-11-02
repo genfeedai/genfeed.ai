@@ -2,18 +2,14 @@
 
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
-import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
-import { Button } from '@ui/primitives/button';
-import {
-  SHELL_ICON_BUTTON_CLASS,
-  SHELL_ICON_CLASS,
-} from '@ui-constants/shell-chrome.constant';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Image, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
@@ -68,17 +64,17 @@ export default function IngredientsLayout({
               onClick={handleRefresh}
             />
           }
-          iconActions={
+          overflow={
             config.showUpload ? (
-              <Button
-                ariaLabel={translateUpload('upload')}
-                className={SHELL_ICON_BUTTON_CLASS}
-                icon={<Upload className={SHELL_ICON_CLASS} />}
-                onClick={handleUpload}
-                size={ButtonSize.ICON}
-                tooltip={translateUpload('upload')}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
+              <SubbarOverflowMenu
+                actions={[
+                  {
+                    icon: <Upload className="size-4" />,
+                    id: 'upload',
+                    label: translateUpload('upload'),
+                    onSelect: handleUpload,
+                  },
+                ]}
               />
             ) : undefined
           }

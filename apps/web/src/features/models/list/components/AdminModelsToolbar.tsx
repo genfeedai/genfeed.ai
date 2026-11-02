@@ -12,7 +12,7 @@ import AdminModelsFilters from './AdminModelsFilters';
 export default function AdminModelsToolbar({
   category,
   children,
-  iconActions,
+  overflow,
   isRefreshing,
   onRefresh,
   onSearch,
@@ -35,7 +35,7 @@ export default function AdminModelsToolbar({
       }
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
-      download={iconActions}
+      overflow={overflow}
       dropdowns={<AdminOrgBrandUrlFilter />}
       primaryAction={<AdminModelsActions />}
     >
