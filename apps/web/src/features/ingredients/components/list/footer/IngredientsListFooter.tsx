@@ -12,7 +12,6 @@ export default function IngredientsListFooter({
   lightboxOpen,
   lightboxIndex,
   onCloseLightbox,
-  selectedFolderForModal,
   onFolderModalConfirm,
   showFolderModal = true,
 }: IngredientsListFooterProps) {
@@ -29,7 +28,6 @@ export default function IngredientsListFooter({
 
       {showFolderModal ? (
         <LazyModalFolder
-          item={selectedFolderForModal}
           onConfirm={onFolderModalConfirm}
           brandId={brandId || undefined}
           scope={scope}

@@ -33,8 +33,8 @@ function buildFolderDefaultValues(
   };
 }
 
+/** Creates a folder; an existing folder is edited in the admin Folders list. */
 export default function ModalFolder({
-  item,
   onConfirm,
   brandId: propBrandId,
   scope = PageScope.BRAND,
@@ -52,7 +52,7 @@ export default function ModalFolder({
     FolderSchema
   >({
     defaultValues,
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.FOLDER,
     onConfirm: (isRefreshing) => {
       onConfirm(isRefreshing);
@@ -70,22 +70,12 @@ export default function ModalFolder({
     },
   });
 
-  // Ensure brand field stores the brand id (not the entire brand object)
+  // Default the brand when the page is brand-scoped
   useEffect(() => {
-    if (item) {
-      form.setValue('label', item.label, { shouldValidate: true });
-      form.setValue('description', item.description, {
-        shouldValidate: true,
-      });
-      form.setValue('tags', item.tags || [], { shouldValidate: true });
-      form.setValue('brandId', item.brand?.id, { shouldValidate: true });
-    } else {
-      // Set default brand if provided via props
-      if (scope === PageScope.BRAND && propBrandId) {
-        form.setValue('brandId', propBrandId, { shouldValidate: true });
-      }
+    if (scope === PageScope.BRAND && propBrandId) {
+      form.setValue('brandId', propBrandId, { shouldValidate: true });
     }
-  }, [item, form, propBrandId, scope]);
+  }, [form, propBrandId, scope]);
 
   const processKeyDownModalFolder = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -114,7 +104,7 @@ export default function ModalFolder({
   return (
     <Modal
       id={ModalEnum.FOLDER}
-      title={item ? 'Edit Folder' : 'Create Folder'}
+      title="Create Folder"
       onClose={handleModalClose}
     >
       <Form ref={formRef} onSubmit={onSubmit}>
@@ -178,7 +168,7 @@ export default function ModalFolder({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label="Create"
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

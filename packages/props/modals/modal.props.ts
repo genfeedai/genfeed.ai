@@ -187,7 +187,7 @@ export interface ModalSoundProps {
   onConfirm: (isRefreshing?: boolean) => void;
 }
 
-export interface ModalFolderProps extends ModalCrudProps<IFolder> {
+export interface ModalFolderProps extends ModalCreateProps {
   scope?: ContentProps['scope'];
   brandId?: string;
 }
