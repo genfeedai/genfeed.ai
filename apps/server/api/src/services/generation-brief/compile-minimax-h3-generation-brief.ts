@@ -216,19 +216,34 @@ export function compileMinimaxH3GenerationBrief(
   const prompt = buildPrompt(input.brief, policy, omitted);
   const aspectRatio = resolveAspectRatio(input.brief);
   const duration = resolveDuration(input.brief);
-  const {
-    firstFrameAssetId,
-    lastFrameAssetId,
-    referenceImageAssetIds,
-    referenceVideoAssetIds,
-    referenceAudioAssetIds,
-  } = resolveReferences(input.brief, policy, omitted);
-  if (lastFrameAssetId && !firstFrameAssetId) {
+  const resolved = resolveReferences(input.brief, policy, omitted);
+  const { referenceVideoAssetIds, referenceAudioAssetIds } = resolved;
+  if (resolved.lastFrameAssetId && !resolved.firstFrameAssetId) {
     throw new GenerationBriefCompileError(
       'MiniMax H3 requires a first-frame reference before a last-frame reference.',
       'invalid_brief',
     );
   }
+  // The provider rejects first/last frames next to audio references (E006), so
+  // with audio the frames travel as reference images instead.
+  const isAudioFrameFallback =
+    referenceAudioAssetIds.length > 0 &&
+    (resolved.firstFrameAssetId !== undefined ||
+      resolved.lastFrameAssetId !== undefined);
+  const firstFrameAssetId = isAudioFrameFallback
+    ? undefined
+    : resolved.firstFrameAssetId;
+  const lastFrameAssetId = isAudioFrameFallback
+    ? undefined
+    : resolved.lastFrameAssetId;
+  const referenceImageAssetIds = isAudioFrameFallback
+    ? [
+        ...[resolved.firstFrameAssetId, resolved.lastFrameAssetId].filter(
+          (assetId): assetId is string => assetId !== undefined,
+        ),
+        ...resolved.referenceImageAssetIds,
+      ].slice(0, MAX_REFERENCE_IMAGE_URLS)
+    : resolved.referenceImageAssetIds;
   if (
     referenceVideoAssetIds.length >
     MINIMAX_H3_CAPABILITY_PROFILE.maxVideoReferences

@@ -16,11 +16,11 @@ describe('runVideoGenerationBrief', () => {
       audioReferenceIds: ['voice-1', 'voice-2'],
     });
     expect(result.dispatch).toMatchObject({
-      first_frame_image: 'frame',
-      reference_image_urls: ['person'],
+      reference_image_urls: ['frame', 'person'],
       reference_video_urls: ['driver'],
       reference_audio_urls: ['voice-1', 'voice-2'],
     });
+    expect(result.dispatch).not.toHaveProperty('first_frame_image');
     expect(result.dispatch).not.toHaveProperty('generate_audio');
   });
   it.each([MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO, 'unregistered/model'])(

@@ -372,15 +372,6 @@ export default function StudioPlaygroundComposer({
     attachedAssets.some(
       (asset) => asset.role === 'startFrame' || asset.role === 'endFrame',
     );
-  // MiniMax H3 rejects first/last frames next to any reference media (E006),
-  // so audio must travel with reference images, not a start or end frame.
-  const isAudioFrameConflict =
-    type === 'video' &&
-    settings.modelKey === MODEL_KEYS.REPLICATE_MINIMAX_H3 &&
-    audioReferences.length > 0 &&
-    attachedAssets.some(
-      (asset) => asset.role === 'startFrame' || asset.role === 'endFrame',
-    );
   const isKling4KReferenceInvalid =
     type === 'video' &&
     settings.modelKey === MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
@@ -590,7 +581,6 @@ export default function StudioPlaygroundComposer({
     isFirstFrameMissing ||
     isAudioReferenceInvalid ||
     isReferenceCombinationInvalid ||
-    isAudioFrameConflict ||
     isKling4KReferenceInvalid ||
     isAwaitingModels ||
     isQuoting ||
@@ -1337,7 +1327,6 @@ export default function StudioPlaygroundComposer({
       {isAudioReferenceInvalid ||
       isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
-      isAudioFrameConflict ||
       isKling4KReferenceInvalid ? (
         <p
           aria-live="polite"
@@ -1349,9 +1338,7 @@ export default function StudioPlaygroundComposer({
               ? translate('startFrameRequired')
               : isReferenceCombinationInvalid
                 ? translate('seedanceReferenceConflict')
-                : isAudioFrameConflict
-                  ? translate('audioFrameConflict')
-                  : translate('kling4KReferenceConflict')}
+                : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
       <PromptBarToolbar
