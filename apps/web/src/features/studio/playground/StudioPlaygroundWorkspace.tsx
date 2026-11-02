@@ -3115,6 +3115,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             job={selectedJob}
             onOpenPreview={handleOpenFocusedPreview}
             onPreviewRecovered={recoverPreview}
+            onRemove={assetActions.onRemoveGeneration}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onAnimate={assetActions.onConvertToVideo}

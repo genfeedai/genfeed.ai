@@ -22,6 +22,7 @@ import {
   useMasonryHover,
 } from '@ui/masonry/shared/useMasonryHover';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
+import { SELECTED_CARD_CLASS } from '@ui/styles/selected-card';
 import { type SyntheticEvent, useCallback, useState } from 'react';
 import MasonryImageActionsBar from './MasonryImageActionsBar';
 import MasonryImageMediaArea from './MasonryImageMediaArea';
@@ -228,10 +229,11 @@ function MasonryImageTile({
         'relative w-full group group/tile rounded-card',
         isSquare && 'aspect-square',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
-        isSelected && 'ring-2 ring-primary',
+        isSelected && SELECTED_CARD_CLASS,
       )}
       style={aspectRatioStyle}
       data-masonry-item="true"
+      data-motion={isSelected ? 'allow' : undefined}
       data-state={isHovered ? 'hovered' : 'idle'}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

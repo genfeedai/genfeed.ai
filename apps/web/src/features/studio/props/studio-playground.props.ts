@@ -344,6 +344,8 @@ export interface StudioPlaygroundInspectorProps {
     recoveredUrl: string | undefined,
   ) => void;
   /** Attaches a finished image to the composer as an image reference. */
+  /** Removes a failed generation; the header offers it only when one failed. */
+  onRemove?: (job: StudioPlaygroundJob) => void;
   onRemix: (job: StudioPlaygroundJob) => void;
   onEdit?: (job: StudioPlaygroundJob) => void;
   onSelect: (job: StudioPlaygroundJob) => void;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import { ContextSidebarHeaderSlot } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import {
@@ -33,7 +34,13 @@ import {
   DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
-import { PanelTabs } from '@ui/primitives/tabs';
+import {
+  PanelTabs,
+  TabsContent,
+  TabsList,
+  TabsRoot,
+  TabsTrigger,
+} from '@ui/primitives/tabs';
 import {
   Download,
   GitBranch,
@@ -45,6 +52,7 @@ import {
   Scissors,
   Send,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -97,6 +105,7 @@ export default function StudioPlaygroundInspector({
   job,
   onOpenPreview,
   onPreviewRecovered,
+  onRemove,
   onRemix,
   onEdit,
   onAnimate,
@@ -916,81 +925,143 @@ export default function StudioPlaygroundInspector({
     );
   }
 
-  return (
-    <div
-      className={
-        isFocused
-          ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]'
-          : 'flex min-h-0 flex-1 flex-col'
-      }
-      data-testid="studio-playground-inspector"
-    >
+  const isFailed = job.status === IngredientStatus.FAILED;
+  const tabItems = [
+    {
+      content: recipePanel,
+      id: 'recipe',
+      isOpen: true,
+      label: translate('inspector.recipe'),
+    },
+    {
+      content: usedInPanel,
+      id: 'used-in',
+      isOpen: true,
+      label: translate('inspector.usedIn'),
+    },
+    {
+      content: historyPanel,
+      id: 'history',
+      isOpen: true,
+      label: translate('inspector.history'),
+    },
+  ];
+  const handleTabChange = (tab: string) => {
+    if (isInspectorTab(tab)) {
+      setTabSelection({ jobId: job.id, tab });
+    }
+  };
+
+  const factList = (
+    <DefinitionList variant="properties">
+      {factRows.map((row) => (
+        <DefinitionRow key={row.key}>
+          <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
+          <DefinitionDetail className="truncate text-right" variant="compact">
+            {row.value}
+          </DefinitionDetail>
+        </DefinitionRow>
+      ))}
+    </DefinitionList>
+  );
+
+  if (isFocused) {
+    return (
       <div
-        className={
-          isFocused
-            ? 'flex min-w-0 flex-col gap-3'
-            : 'flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4'
-        }
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]"
+        data-testid="studio-playground-inspector"
       >
-        {preview}
-        {onOpenPreview && !isFocused ? (
+        <div className="flex min-w-0 flex-col gap-3">
+          {preview}
+          {factList}
+        </div>
+
+        <PanelTabs
+          activeTab={activeTab}
+          ariaLabel={translate('inspector.title')}
+          className="h-auto min-h-[32rem] flex-1"
+          footer={actions}
+          items={tabItems}
+          onTabChange={handleTabChange}
+          testId="studio-playground-inspector-tabs"
+        />
+      </div>
+    );
+  }
+
+  // In the context sidebar the header owns the controls: Preview and Remove
+  // sit in the title row, the tab strip is pinned under it, and only the
+  // content below scrolls. A failed generation has nothing to preview.
+  return (
+    <TabsRoot
+      className="flex min-h-0 flex-1 flex-col"
+      data-testid="studio-playground-inspector"
+      onValueChange={handleTabChange}
+      value={activeTab}
+    >
+      <ContextSidebarHeaderSlot slot="actions">
+        {onOpenPreview && !isFailed ? (
           <Button
+            ariaLabel={translate('focusedPreview.open')}
             data-testid="studio-open-focused-preview"
             icon={<Maximize2 className="size-4" />}
-            label={translate('focusedPreview.open')}
             onClick={onOpenPreview}
+            size={ButtonSize.ICON}
+            tooltip={translate('focusedPreview.open')}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : null}
+        {onRemove && isFailed ? (
+          <Button
+            ariaLabel={translate('removeGenerationAria', {
+              prompt: studioAssetAccessibleLabel(job),
+              type: label,
+            })}
+            data-testid="studio-remove-generation"
+            icon={<Trash2 className="size-4" />}
+            label={translate('remove')}
+            onClick={() => onRemove(job)}
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
         ) : null}
-        <DefinitionList variant="properties">
-          {factRows.map((row) => (
-            <DefinitionRow key={row.key}>
-              <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
-              <DefinitionDetail
-                className="truncate text-right"
-                variant="compact"
+      </ContextSidebarHeaderSlot>
+      <ContextSidebarHeaderSlot slot="tabs">
+        <div className="px-4 py-2">
+          <TabsList
+            aria-label={translate('inspector.title')}
+            className="gen-shell-segmented flex w-full min-w-0 gap-0.5 rounded-md p-0.5"
+          >
+            {tabItems.map((item) => (
+              <TabsTrigger
+                className="gen-shell-segmented-button h-control-sm min-w-0 flex-1 gap-1.5 rounded-[5px] border-0 px-2 text-xs shadow-none"
+                data-active={activeTab === item.id}
+                key={item.id}
+                value={item.id}
               >
-                {row.value}
-              </DefinitionDetail>
-            </DefinitionRow>
-          ))}
-        </DefinitionList>
-      </div>
+                <span className="truncate">{item.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </ContextSidebarHeaderSlot>
 
-      <PanelTabs
-        activeTab={activeTab}
-        ariaLabel={translate('inspector.title')}
-        className="h-auto min-h-[32rem] flex-1"
-        footer={actions}
-        items={[
-          {
-            content: recipePanel,
-            id: 'recipe',
-            isOpen: true,
-            label: translate('inspector.recipe'),
-          },
-          {
-            content: usedInPanel,
-            id: 'used-in',
-            isOpen: true,
-            label: translate('inspector.usedIn'),
-          },
-          {
-            content: historyPanel,
-            id: 'history',
-            isOpen: true,
-            label: translate('inspector.history'),
-          },
-        ]}
-        onTabChange={(tab: string) => {
-          if (isInspectorTab(tab)) {
-            setTabSelection({ jobId: job.id, tab });
-          }
-        }}
-        testId="studio-playground-inspector-tabs"
-      />
-    </div>
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4">
+        {preview}
+        {factList}
+      </div>
+      {tabItems.map((item) => (
+        <TabsContent
+          className="mt-0 min-h-0 flex-1 flex-col overflow-y-auto data-[state=active]:flex"
+          key={item.id}
+          value={item.id}
+        >
+          {item.content}
+        </TabsContent>
+      ))}
+      {actions}
+    </TabsRoot>
   );
 }
