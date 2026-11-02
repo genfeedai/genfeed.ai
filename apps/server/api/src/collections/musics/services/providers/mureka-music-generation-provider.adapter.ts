@@ -10,7 +10,11 @@ import {
 } from '@api/services/integrations/mureka/services/mureka.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 /**
  * Mureka V9 direct API integration (not fal/Replicate). `MurekaService`
@@ -31,6 +35,16 @@ export class MurekaMusicGenerationProviderAdapter
   }
 
   assertSupported(request: MusicGenerationPreflightRequest): void {
+    // Checked before any ingredient or credit hold exists, so a deployment
+    // without a Mureka key fails fast with a readable reason instead of a
+    // FAILED tile that only says "Generation failed".
+    if (!this.murekaService.isConfigured()) {
+      throw new ServiceUnavailableException({
+        detail:
+          'Mureka V9 is not available on this deployment right now. Pick another music model or try again later.',
+        title: 'Music model unavailable',
+      });
+    }
     const maxLength = murekaPromptMaxLength(request);
     if (request.prompt.length > maxLength) {
       throw new BadRequestException({

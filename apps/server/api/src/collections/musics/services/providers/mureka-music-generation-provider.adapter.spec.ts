@@ -3,7 +3,10 @@ import type { MusicGenerationProviderRequest } from '@api/collections/musics/ser
 import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 describe('MurekaMusicGenerationProviderAdapter', () => {
   const buildRequest = (
@@ -138,7 +141,9 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
   ])(
     'caps the prompt for %s at %i characters',
     (_label, settings, maxLength) => {
-      const adapter = new MurekaMusicGenerationProviderAdapter({} as never);
+      const adapter = new MurekaMusicGenerationProviderAdapter({
+        isConfigured: () => true,
+      } as never);
 
       expect(() =>
         adapter.assertSupported({
@@ -154,4 +159,25 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
       ).toThrow(BadRequestException);
     },
   );
+
+  it('rejects at preflight with a readable reason when Mureka has no API key', () => {
+    const murekaService = { generateSong: vi.fn(), isConfigured: () => false };
+    const adapter = new MurekaMusicGenerationProviderAdapter(
+      murekaService as never,
+    );
+
+    const attempt = () =>
+      adapter.assertSupported({ instrumental: false, prompt: 'a song' });
+
+    expect(attempt).toThrow(ServiceUnavailableException);
+    try {
+      attempt();
+    } catch (error) {
+      expect((error as ServiceUnavailableException).getResponse()).toEqual({
+        detail: expect.stringContaining('Mureka V9 is not available'),
+        title: 'Music model unavailable',
+      });
+    }
+    expect(murekaService.generateSong).not.toHaveBeenCalled();
+  });
 });

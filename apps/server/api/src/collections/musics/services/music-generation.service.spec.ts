@@ -1091,6 +1091,7 @@ describe('MusicGenerationService', () => {
         audio: { url: 'https://fixture.example/audio.mp3' },
       });
       const mureka = vi.mockObject(MurekaService.prototype);
+      mureka.isConfigured.mockReturnValue(true);
       mureka.generateSong.mockResolvedValue({
         audioUrl: 'https://fixture.example/audio.mp3',
         taskId: 'mureka-fixture',
