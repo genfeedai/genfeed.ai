@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   groupOAuthConnectPlatforms,
+  isApiKeyConnectPlatform,
   OAUTH_CONNECT_PLATFORMS,
   resolveOAuthConnectPlatformCatalog,
   resolveOAuthServicePath,
@@ -43,6 +44,38 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
     expect(googleAds?.servicePath).toBe('google-ads');
     expect(googleAds?.Icon).toBe(GoogleColorIcon);
     expect(youtubeAdsTiles).toEqual([]);
+  });
+});
+
+describe('OAUTH_CONNECT_PLATFORMS Ghost tile', () => {
+  it('lists Ghost under Publishing as a key-based connect on the ghost service path', () => {
+    const ghost = OAUTH_CONNECT_PLATFORMS.filter(
+      (p) => p.platform === CredentialPlatform.GHOST,
+    );
+
+    expect(ghost).toHaveLength(1);
+    expect(ghost[0]).toMatchObject({
+      category: 'publishing',
+      connectMethod: 'api_key',
+      label: 'Ghost',
+    });
+    expect(
+      resolveOAuthServicePath(CredentialPlatform.GHOST, ghost[0]?.servicePath),
+    ).toBe('ghost');
+    expect(
+      groupOAuthConnectPlatforms().find((g) => g.id === 'publishing')
+        ?.platforms,
+    ).toEqual(ghost);
+  });
+
+  it.each([
+    [CredentialPlatform.GHOST, true],
+    [CredentialPlatform.TWITTER, false],
+    [CredentialPlatform.YOUTUBE, false],
+  ])('isApiKeyConnectPlatform(%s) is %s', (platform, expected) => {
+    const tile = OAUTH_CONNECT_PLATFORMS.find((p) => p.platform === platform);
+
+    expect(tile && isApiKeyConnectPlatform(tile)).toBe(expected);
   });
 });
 

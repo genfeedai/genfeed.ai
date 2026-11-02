@@ -1,0 +1,96 @@
+name: Promote hosted SaaS Vercel frontends (reusable)
+
+# Switches the frontends staged by _deploy-hosted-saas-vercel.yml live.
+# Staging deploys with `--skip-domain`, so nothing reaches users until this
+# workflow runs. The caller starts it only after the API/services rollout has
+# succeeded; if that rollout fails, nothing is promoted and production keeps
+# serving the previous frontend with no rollback needed.
+on:
+  workflow_call:
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        label: [app, web, docs]
+    env:
+      # Resolve project ids here, after `environment: production`, not in strategy.matrix
+      # — environment vars are empty during matrix expansion.
+      DOMAIN: ${{ vars.DOMAIN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || '' }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Require Vercel token
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::error::VERCEL_TOKEN is missing on this repository."
+            exit 1
+          fi
+
+      - name: Skip optional frontend
+        if: ${{ matrix.label == 'docs' && env.VERCEL_PROJECT_ID == '' }}
+        run: echo "No Vercel project configured for ${{ matrix.label }}; skipping."
+
+      - name: Download staged deployment
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vercel-staged-${{ matrix.label }}
+          path: ${{ runner.temp }}/staged
+
+      - name: Resolve staged deployment
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
+        id: staged
+        env:
+          LABEL: ${{ matrix.label }}
+        run: |
+          set -euo pipefail
+          url="$(cat "${RUNNER_TEMP}/staged/${LABEL}.url")"
+          if ! printf '%s' "${url}" | grep -Eq '^https://[A-Za-z0-9.-]+\.vercel\.app/?$'; then
+            echo "::error::Staged ${LABEL} deployment URL is missing or not a Vercel deployment URL: '${url}'"
+            exit 1
+          fi
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+      - name: Install Vercel CLI
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
+        run: npm install --global vercel@65.9.0
+
+      # Re-aliases the already-built production deployment to the production
+      # domains. No rebuild, so this takes seconds.
+      - name: Promote ${{ matrix.label }}
+        if: ${{ env.VERCEL_PROJECT_ID != '' }}
+        env:
+          STAGED_URL: ${{ steps.staged.outputs.url }}
+        run: vercel promote "${STAGED_URL}" --timeout 5m --yes --token="${VERCEL_TOKEN}"
+
+      - name: Verify the service worker is served
+        if: ${{ matrix.label == 'app' && env.VERCEL_PROJECT_ID != '' }}
+        run: |
+          set -euo pipefail
+          url="https://app.${DOMAIN}/serwist/sw.js"
+          for attempt in 1 2 3 4 5 6; do
+            headers="$(curl -sS -o /dev/null -D - --max-time 20 "${url}" || true)"
+            status="$(printf '%s' "${headers}" | awk 'toupper($1) ~ /^HTTP/ {code=$2} END {print code}')"
+            if [ "${status}" = "200" ] && printf '%s' "${headers}" | grep -qi '^content-type: *\(application\|text\)/javascript'; then
+              echo "${url} -> 200 JavaScript"
+              exit 0
+            fi
+            echo "attempt ${attempt}: ${url} -> ${status:-no response}"
+            sleep 10
+          done
+          echo "::error::${url} did not return 200 JavaScript after promote."
+          exit 1

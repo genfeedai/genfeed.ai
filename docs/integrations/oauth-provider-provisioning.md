@@ -107,25 +107,45 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
 1. Create a Meta app in the [Meta App Dashboard](https://developers.facebook.com/apps/)
    and configure Instagram API with Facebook Login.
 2. Add `{APP_ORIGIN}/oauth/instagram` to the valid OAuth redirect URIs.
-3. Request the scopes used by Genfeed:
-   `business_management`, `instagram_basic`, `pages_show_list`,
-   `pages_read_engagement`, `instagram_content_publish`,
-   `instagram_manage_insights`, `pages_manage_posts`, `public_profile`, and
-   `ads_management`.
+3. Request the scopes used by Genfeed (`INSTAGRAM_OAUTH_SCOPES` in
+   `packages/integrations/src/constants.ts`): `business_management`,
+   `instagram_basic`, `pages_show_list`, `pages_read_engagement`,
+   `instagram_content_publish`, `instagram_manage_insights`,
+   `instagram_manage_comments`, `instagram_manage_messages`,
+   `pages_messaging`, `pages_manage_metadata`, `pages_manage_posts`,
+   `public_profile`, `ads_management`, and `ads_read`. Direct messages need
+   `instagram_manage_messages`, `pages_manage_metadata`, and
+   `pages_show_list`; private replies to comments need
+   `instagram_manage_comments` and `pages_messaging`. Direct messages are
+   read from the Page `conversations` edge, fetched by the Messages Sync
+   button and, once the webhook below is registered, whenever Meta reports a
+   new inbound message.
 4. Add operator/test accounts while the Meta app is in development mode. Live
    use requires the applicable permissions to pass Meta App Review.
 5. Set `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`,
    `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, and
    `INSTAGRAM_GRAPH_URL=https://graph.facebook.com`.
+6. Optional real-time Direct messages: choose a random string for
+   `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`, then in the Meta app dashboard register
+   `{API_ORIGIN}/v1/webhooks/instagram` as the Instagram webhook callback with
+   that verify token and subscribe the `messages` field. Deliveries are
+   checked against `INSTAGRAM_APP_SECRET` (or `FACEBOOK_APP_SECRET`). Genfeed
+   subscribes each Page to the app when an account is connected, so accounts
+   connected earlier must reconnect. Meta only delivers webhooks for people
+   without an app role once the app is live and the messaging permissions are
+   approved.
 
 ### Facebook and Meta Ads
 
 1. In the Meta app, configure Facebook Login and add the Marketing API when
    Meta Ads is in scope.
 2. Add `{APP_ORIGIN}/oauth/facebook` to the valid OAuth redirect URIs.
-3. Request the scopes used by Genfeed: `ads_management`, `ads_read`,
+3. Request the scopes used by Genfeed (`FACEBOOK_OAUTH_SCOPES` in
+   `packages/integrations/src/constants.ts`): `ads_management`, `ads_read`,
    `public_profile`, `email`, `pages_show_list`, `pages_manage_posts`,
-   `pages_read_engagement`, `pages_manage_metadata`, and `publish_video`.
+   `pages_read_engagement`, `pages_manage_metadata`,
+   `pages_manage_engagement`, `read_insights`, and `publish_video`. Facebook
+   Page messaging is not part of the Genfeed inbox.
 4. Complete business verification and App Review for permissions that require
    them before enabling the connection for non-test users.
 5. Set `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`,
@@ -193,7 +213,10 @@ Reference: [YouTube authorization credentials](https://developers.google.com/you
    `GENFEEDAI_APP_URL`, so the provider registration and app origin must agree.
 3. Request `user.info.basic`, `user.info.stats`, `user.info.profile`,
    `video.list`, `video.upload`, and `video.publish`.
-4. Complete the scope audit before production users authorize the app.
+4. Submit the app for TikTok app review with a demo video for each product and
+   scope, and apply for the Content Posting API audit. Until the audit
+   passes, posts made through Direct Post are restricted to private viewing.
+   TikTok direct messages and comments are not read or sent by Genfeed.
 5. Set `TIKTOK_CLIENT_KEY` and `TIKTOK_CLIENT_SECRET`.
 
 References: [TikTok scopes](https://developers.tiktok.com/docs/en/tiktok-api-scopes)

@@ -255,4 +255,19 @@ describe('Playwright API mocks', () => {
       buildUnhandledApiMockBody(`https://api.genfeed.ai/v1${path}`),
     ).toEqual({ data: [], meta: { totalCount: 0 } });
   });
+  it.each([
+    'https://api.genfeed.ai/v1/admin/content-learning/prompt-slots?organizationId=org-1',
+    'http://localhost:3010/v1/admin/content-learning/prompt-slots',
+  ])('answers the prompt slot report with an empty report for %s', (url) => {
+    expect(buildUnhandledApiMockBody(url)).toEqual({
+      data: {
+        groups: [],
+        isPooled: false,
+        isTruncated: false,
+        organizationIds: [],
+        postCount: 0,
+        skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+      },
+    });
+  });
 });

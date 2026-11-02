@@ -25,7 +25,11 @@ export function useWorkspaceTaskLinkedExecutionSummary(
   const [summary, setSummary] = useState<WorkspaceTaskLinkedExecutionSummary>(
     () => getEmptyLinkedExecutionSummary(),
   );
-  const [isLoading, setIsLoading] = useState(false);
+  // A task with linked executions reads them on mount, so the first paint is
+  // loading rather than zero counts.
+  const [isLoading, setIsLoading] = useState(
+    () => (task?.linkedExecutionIds?.length ?? 0) > 0,
+  );
   const _linkedExecutionIdsKey = useMemo(
     () => task?.linkedExecutionIds?.join('|') ?? '',
     [task?.linkedExecutionIds],

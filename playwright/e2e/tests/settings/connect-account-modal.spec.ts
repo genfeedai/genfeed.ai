@@ -114,4 +114,59 @@ test.describe('Connect account modal', () => {
     await search.fill('no-such-platform');
     await expect(dialog.getByText('No platforms found.')).toBeVisible();
   });
+
+  test('lists Ghost under Publishing and connects it with a site URL and Admin API key', async ({
+    authenticatedPage,
+  }) => {
+    let connectBody: Record<string, string> | null = null;
+    await authenticatedPage.route(
+      '**/api.genfeed.ai/**/services/ghost/connect',
+      async (route) => {
+        connectBody = route.request().postDataJSON();
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              attributes: {
+                externalId: 'https://example-blog.com',
+                externalName: 'Example Blog',
+                isConnected: true,
+                platform: 'ghost',
+              },
+              id: 'credential-ghost-1',
+              type: 'credential',
+            },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+    const dialog = authenticatedPage.getByRole('dialog', {
+      name: 'Connect account',
+    });
+
+    await expect(dialog.getByText('Publishing')).toBeVisible();
+    await dialog
+      .getByRole('textbox', { name: 'Search platforms…' })
+      .fill('ghost');
+    await dialog.getByRole('button', { name: /Ghost/ }).click();
+
+    const form = authenticatedPage.getByRole('dialog', {
+      name: 'Connect Ghost',
+    });
+    await expect(form).toBeVisible();
+    await expect(
+      form.getByRole('button', { name: 'Connect Ghost' }),
+    ).toBeDisabled();
+
+    await form.getByLabel(/Site URL/).fill('https://example-blog.com');
+    await form.getByLabel(/Admin API key/).fill('abc123:def456');
+    await form.getByRole('button', { name: 'Connect Ghost' }).click();
+
+    await expect(form).toBeHidden();
+    expect(connectBody).toMatchObject({
+      apiKey: 'abc123:def456',
+      ghostUrl: 'https://example-blog.com',
+    });
+  });
 });

@@ -1,17 +1,6 @@
 'use client';
 
-import type {
-  IElementCamera,
-  IElementCameraMovement,
-  IElementLens,
-  IElementLighting,
-  IElementMood,
-  IElementScene,
-  IElementStyle,
-  IFontFamily,
-  IPreset,
-  IWorkflow,
-} from '@genfeedai/contracts/interfaces';
+import type { IPreset, IWorkflow } from '@genfeedai/contracts/interfaces';
 import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import type {
   ModalArticleProps,
@@ -22,6 +11,7 @@ import type {
   ModalBrandGenerateProps,
   ModalBrandLinkProps,
   ModalConfirmProps,
+  ModalCreateProps,
   ModalCrudProps,
   ModalExportProps,
   ModalFolderProps,
@@ -38,7 +28,6 @@ import type {
   ModalSoundProps,
   ModalTagProps,
   ModalTextOverlayProps,
-  ModalTrainingProps,
   ModalTrimProps,
   ModalUploadProps,
 } from '@genfeedai/props/modals/modal.props';
@@ -94,33 +83,33 @@ export const LazyModalBlacklist = dynamic(
 export const LazyModalCamera = dynamic(
   () => import('@/components/modals/elements/camera/ModalCamera'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementCamera>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalCameraMovement = dynamic(
   () =>
     import('@/components/modals/elements/camera-movement/ModalCameraMovement'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementCameraMovement>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalFontFamily = dynamic(
   () => import('@/components/modals/elements/font/ModalFontFamily'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IFontFamily>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalLens = dynamic(
   () => import('@/components/modals/elements/lens/ModalLens'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementLens>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalLighting = dynamic(
   () => import('@/components/modals/elements/lighting/ModalLighting'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementLighting>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalMood = dynamic(
   () => import('@/components/modals/elements/mood/ModalMood'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementMood>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalPreset = dynamic(
   () => import('@/components/modals/elements/preset/ModalPreset'),
@@ -130,7 +119,7 @@ export const LazyModalPreset = dynamic(
 export const LazyModalScene = dynamic(
   () => import('@/components/modals/elements/scene/ModalScene'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementScene>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalSound = dynamic(
   () => import('@/components/modals/elements/sound/ModalSound'),
@@ -140,7 +129,7 @@ export const LazyModalSound = dynamic(
 export const LazyModalStyle = dynamic(
   () => import('@/components/modals/elements/style/ModalStyle'),
   { ssr: false },
-) as ComponentType<ModalCrudProps<IElementStyle>>;
+) as ComponentType<ModalCreateProps>;
 
 export const LazyModalTag = dynamic(
   () => import('@/components/modals/elements/tag/ModalTag'),
@@ -234,11 +223,6 @@ export const LazyModalModel = dynamic(
   () => import('@/components/modals/models/ModalModel'),
   { ssr: false },
 ) as ComponentType<ModalModelProps>;
-
-export const LazyModalTraining = dynamic(
-  () => import('@/components/modals/trainings/ModalTraining'),
-  { ssr: false },
-) as ComponentType<ModalTrainingProps>;
 
 export const LazyModalTrainingNew = dynamic(
   () => import('@/components/modals/trainings/ModalTrainingNew'),

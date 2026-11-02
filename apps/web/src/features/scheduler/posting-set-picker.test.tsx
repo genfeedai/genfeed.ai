@@ -196,6 +196,27 @@ describe('PostingSetPicker', () => {
     });
   });
 
+  it('shows the loading skeleton, not the empty message, until the sets arrive', async () => {
+    render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[]}
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('status', { name: 'Loading posting sets…' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'No posting sets yet. Save the current selection to reuse it.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Short-form trio')).toBeInTheDocument();
+  });
+
   it('expands a selected set and applies targets without failing on unhealthy channels', async () => {
     const onApply = vi.fn();
     render(
@@ -341,7 +362,9 @@ describe('PostingSetPicker', () => {
     ).toBeVisible();
     expect(mocks.loggerError).not.toHaveBeenCalled();
     expect(mocks.error).not.toHaveBeenCalled();
-    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading posting sets…' }),
+    ).not.toBeInTheDocument();
   });
 
   it('ignores a stale posting-set failure after navigation aborts its signal', async () => {
@@ -391,6 +414,8 @@ describe('PostingSetPicker', () => {
     );
     expect(mocks.error).toHaveBeenCalledWith('Failed to load posting sets');
     expect(mocks.findAllSets.mock.calls[0]?.[1].aborted).toBe(false);
-    expect(screen.queryByText('Loading posting sets…')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading posting sets…' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -35,6 +35,18 @@
   "empty": "No social accounts connected yet.",
   "emptyAccountsTitle": "No accounts connected yet",
   "expires": " · expires {time}",
+  "ghostConnect": {
+    "apiKeyHelp": "Ghost Admin → Settings → Integrations → Add custom integration. Paste the Admin API key (id:secret).",
+    "apiKeyLabel": "Admin API key",
+    "apiKeyPlaceholder": "64f0c0…:9a1b…",
+    "connectError": "Could not connect Ghost. Check the site URL and Admin API key.",
+    "connected": "Ghost connected",
+    "description": "Paste your Ghost site URL and Admin API key. Articles from this brand publish to this site.",
+    "submit": "Connect Ghost",
+    "title": "Connect Ghost",
+    "urlLabel": "Site URL",
+    "urlPlaceholder": "https://yourblog.com"
+  },
   "health": {
     "accountAgeFailed": "Platform account-age check failed. Missing or stale evidence is tracked separately.",
     "accountAgeMissing": "{publishedPosts, plural, one {# published post} other {# published posts}}. Native social-account age is not yet verified by the platform.",

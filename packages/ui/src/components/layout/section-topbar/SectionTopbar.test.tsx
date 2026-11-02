@@ -13,15 +13,14 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 
 describe('SectionTopbar', () => {
   it.each(['visible', 'sr-only'] as const)(
-    'places Library ghost actions before controls with %s titles',
+    'places the "..." menu before controls with %s titles',
     (titleVisibility) => {
       render(
         <SectionTopbar
           title="Library"
           titleVisibility={titleVisibility}
-          iconActionsPlacement="before-controls"
           actions={<span>Filters</span>}
-          iconActions={<span>Refresh</span>}
+          overflow={<span>More actions</span>}
         />,
       );
       expect(
@@ -34,19 +33,15 @@ describe('SectionTopbar', () => {
   );
 
   it.each(['visible', 'sr-only'] as const)(
-    'defaults to search left and ghosts, filters, primary order with %s titles',
+    'defaults to search left, then the "..." menu, Refresh, filters, primary with %s titles',
     (titleVisibility) => {
       render(
         <SectionTopbar
           title="Publishing"
           titleVisibility={titleVisibility}
           leading={<input aria-label="Search posts" />}
-          iconActions={
-            <>
-              <button type="button">Ghost action</button>
-              <button type="button">Refresh</button>
-            </>
-          }
+          overflow={<button type="button">More actions</button>}
+          refresh={<button type="button">Refresh</button>}
           actions={
             <>
               <button type="button">Filter</button>
@@ -61,7 +56,7 @@ describe('SectionTopbar', () => {
       );
       const controls = [
         search,
-        screen.getByRole('button', { name: 'Ghost action' }),
+        screen.getByRole('button', { name: 'More actions' }),
         screen.getByRole('button', { name: 'Refresh' }),
         screen.getByRole('button', { name: 'Filter' }),
         screen.getByRole('button', { name: 'New post' }),
@@ -341,7 +336,7 @@ describe('SectionTopbar', () => {
     );
   });
 
-  it('enforces the right-cluster order: Refresh, tabs, ghost actions, controls, primary', () => {
+  it('enforces the right-cluster order: "..." menu, Refresh, tabs, controls, primary', () => {
     navigationState.hasCanonicalBreadcrumb = true;
     // Props are passed in a deliberately scrambled order: slot position, not
     // JSX order, decides where each control lands.
@@ -355,15 +350,15 @@ describe('SectionTopbar', () => {
           </>
         }
         tabs={<a href="/content">All content</a>}
-        iconActions={<button type="button">Mark all read</button>}
+        overflow={<button type="button">More actions</button>}
         refresh={<button type="button">Refresh</button>}
       />,
     );
 
     const ordered = [
+      screen.getByRole('button', { name: 'More actions' }),
       screen.getByRole('button', { name: 'Refresh' }),
       screen.getByRole('link', { name: 'All content' }),
-      screen.getByRole('button', { name: 'Mark all read' }),
       screen.getByRole('button', { name: 'Filter' }),
       screen.getByRole('button', { name: 'New post' }),
     ];
@@ -375,40 +370,37 @@ describe('SectionTopbar', () => {
     }
   });
 
-  it('keeps Refresh in the lead cluster even when the title is visible', () => {
+  it('keeps the "..." menu and Refresh in the lead cluster even when the title is visible', () => {
     render(
       <SectionTopbar
         title="Content"
         titleVisibility="visible"
-        iconActions={<button type="button">Ghost</button>}
+        overflow={<button type="button">More actions</button>}
         refresh={<button type="button">Refresh</button>}
       />,
     );
 
     const leadActions = screen.getByTestId('section-topbar-icon-actions');
-    expect(leadActions).toContainElement(
-      screen.getByRole('button', { name: 'Refresh' }),
-    );
     expect(
-      leadActions.compareDocumentPosition(
-        screen.getByRole('button', { name: 'Ghost' }),
-      ) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      Array.from(leadActions.querySelectorAll('button')).map(
+        (button) => button.textContent,
+      ),
+    ).toEqual(['More actions', 'Refresh']);
   });
 
   it('leaves the details toggle to the app topbar', () => {
     render(
       <SectionTopbar
         actions={<span>Upload</span>}
-        iconActions={<button type="button">Ghost</button>}
+        overflow={<button type="button">More actions</button>}
         title="Library"
         titleVisibility="sr-only"
       />,
     );
 
-    expect(
-      screen.getByTestId('section-topbar-ghost-actions'),
-    ).toHaveTextContent('Ghost');
+    expect(screen.getByTestId('section-topbar-icon-actions')).toHaveTextContent(
+      'More actions',
+    );
     expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
     expect(screen.queryByTestId('content-inspector-fallback')).toBeNull();

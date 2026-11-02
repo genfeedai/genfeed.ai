@@ -62,7 +62,7 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       href: APP_ROUTES.STUDIO.TURBO,
       label: APP_DISPLAY_LABELS.turbo,
       organizationModule: 'turbo',
-      matchPaths: [APP_ROUTES.STUDIO.TURBO, APP_ROUTES.STUDIO.TURBO_NEW],
+      matchPaths: [APP_ROUTES.STUDIO.TURBO],
       outline: Rocket,
       solid: Rocket,
     },

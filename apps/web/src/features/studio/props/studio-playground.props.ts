@@ -258,20 +258,18 @@ export interface StudioPlaygroundStarterCharacterCandidate
   hasReferenceImage?: boolean;
 }
 
-/** Agent-written drafts shown above the starter ideas (#7341). */
-export interface StudioPlaygroundAgentProposalsProps {
+/**
+ * The Playground's empty state: the agent's drafts for the brand (#7341) and
+ * the starter ideas, as the same suggested prompt cards the agent shows.
+ */
+export interface StudioPlaygroundEmptyStateProps {
   brandId?: string;
-  isDisabled?: boolean;
-  onSelect: (selection: StudioPlaygroundStarterSelection) => void;
-  type: StudioPlaygroundType;
-}
-
-export interface StudioPlaygroundStarterIdeasProps {
   character?: StudioPlaygroundStarterCharacter;
   isDisabled?: boolean;
   offeringKind?: 'physical' | 'service' | 'software' | 'unknown';
   onSelect: (selection: StudioPlaygroundStarterSelection) => void;
   productReference?: StudioPlaygroundStarterProductReference;
+  type: StudioPlaygroundType;
 }
 
 export interface StudioPlaygroundResultsProps {

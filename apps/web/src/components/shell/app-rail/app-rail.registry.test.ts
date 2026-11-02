@@ -98,9 +98,9 @@ describe('app rail registry', () => {
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/clipper')).toBe(
       'clipper',
     );
-    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/new')).toBe(
-      'turbo',
-    );
+    expect(
+      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/project-1'),
+    ).toBe('turbo');
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio')).toBe(
       undefined,
     );

@@ -1,3 +1,5 @@
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+
 export class PagesService {
   public static currentPage: number = 1;
   public static totalPages: number = 1;
@@ -33,6 +35,17 @@ export class PagesService {
     PagesService.setTotalPages(totals.pages);
     PagesService.setTotalDocs(totals.total);
     return true;
+  }
+
+  /**
+   * The totals the latest list response recorded. Read it right after that
+   * response, inside the same query function, to keep them with its rows.
+   */
+  static snapshot(): IPageTotals {
+    return {
+      totalDocs: PagesService.totalDocs,
+      totalPages: PagesService.totalPages,
+    };
   }
 
   static getCurrentPage() {

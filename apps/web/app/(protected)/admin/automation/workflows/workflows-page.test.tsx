@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   buildSystemWorkflowMetadata,
@@ -39,6 +43,11 @@ vi.mock('next-intl', () => ({
     }
     return translator;
   },
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 /** One stable getter per service factory, like the real hook. */
@@ -223,7 +232,7 @@ async function clickRowAction(label: string, action: string) {
 }
 
 async function renderLoadedPage() {
-  render(<WorkflowsPage />);
+  render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
   await screen.findByText('Launch thread');
 }
 
@@ -275,7 +284,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     });
 
     it('shows one page of rows, newest first, with the total', async () => {
-      render(<WorkflowsPage />);
+      render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
       await screen.findByText('Workflow 20');
 
       expect(renderedLabels()).toHaveLength(ITEMS_PER_PAGE);
@@ -285,7 +294,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
 
     it('shows the remaining rows on page 2', async () => {
       mocks.searchParams = new URLSearchParams('page=2');
-      render(<WorkflowsPage />);
+      render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
       await screen.findByText('Workflow 05');
 
       expect(renderedLabels()).toEqual([
@@ -299,7 +308,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
 
     it('goes to the next page through the URL', async () => {
       const user = userEvent.setup();
-      render(<WorkflowsPage />);
+      render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
       await screen.findByText('Workflow 20');
 
       await user.click(screen.getByRole('link', { name: /next/i }));
@@ -312,7 +321,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
 
     it('falls back to the last page when ?page= is past the end', async () => {
       mocks.searchParams = new URLSearchParams('page=9');
-      render(<WorkflowsPage />);
+      render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
       await screen.findByText('Workflow 01');
 
       expect(renderedLabels()).toHaveLength(5);
@@ -476,6 +485,48 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     });
   });
 
+  it('shows the skeleton, not an empty table, while the first read is in flight', () => {
+    mocks.findAllPages.mockReturnValue(new Promise(() => {}));
+
+    render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
+
+    expect(screen.queryByText('Launch thread')).not.toBeInTheDocument();
+    expect(screen.queryByText('No workflows found')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: /^Featured/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('paints the cached workflows and pins at once when coming back while they revalidate', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<WorkflowsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await screen.findByText('Launch thread');
+    firstVisit.unmount();
+
+    mocks.findAllPages.mockReturnValue(new Promise(() => {}));
+    mocks.list.mockReturnValue(new Promise(() => {}));
+    mocks.listSystemCatalog.mockReturnValue(new Promise(() => {}));
+    render(<WorkflowsPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Launch thread')).toBeInTheDocument();
+    expect(
+      within(featuredSection()).getAllByTestId('admin-featured-workflow-row'),
+    ).toHaveLength(2);
+  });
+
+  it('shows the read failure in the table instead of an empty list', async () => {
+    mocks.findAllPages.mockRejectedValue(new Error('down'));
+
+    render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
+
+    expect(
+      await screen.findByText('Failed to load workflows'),
+    ).toBeInTheDocument();
+    expect(notificationsService.error).toHaveBeenCalledTimes(1);
+  });
+
   it('reloads the pins when a write is refused', async () => {
     const user = userEvent.setup();
     mocks.reorder.mockRejectedValue(new Error('409'));
@@ -580,7 +631,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
   it('shows only system workflows for ?type=system', async () => {
     mocks.searchParams = new URLSearchParams('type=system');
 
-    render(<WorkflowsPage />);
+    render(<WorkflowsPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('Ad optimizer');
 
     expect(renderedLabels()).toEqual([

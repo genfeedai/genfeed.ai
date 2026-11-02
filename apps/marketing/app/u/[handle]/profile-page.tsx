@@ -6,8 +6,10 @@ import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { Video } from '@models/ingredients/video.model';
 import type { Brand } from '@models/organization/brand.model';
 import type { Link as LinkModel } from '@models/social/link.model';
+import BrandProfileHeader, {
+  hasBrandProfileHeaderOverlap,
+} from '@ui/brand/BrandProfileHeader';
 import NotFoundPage from '@ui/error/not-found/not-found-page';
-import { Avatar } from '@ui/primitives/avatar';
 import ProfileArticles from '@web-components/profile/ProfileArticles';
 import ProfileEmptyState from '@web-components/profile/ProfileEmptyState';
 import ProfileFooter from '@web-components/profile/ProfileFooter';
@@ -15,7 +17,6 @@ import ProfileImages from '@web-components/profile/ProfileImages';
 import ProfileSocialLinks from '@web-components/profile/ProfileSocialLinks';
 import ProfileVideos from '@web-components/profile/ProfileVideos';
 import '@styles/masonry.css';
-import Image from 'next/image';
 import type { PublicProfilePageData } from './profile-loader';
 
 interface ProfileContentProps {
@@ -55,40 +56,17 @@ function ProfileContent({
 
   return (
     <div className="max-w-md mx-auto w-full space-y-6">
-      <div className="relative">
-        {brand.bannerUrl && (
-          <div className="relative h-32 overflow-hidden bg-muted">
-            <Image
-              src={brand.bannerUrl}
-              alt={`${brand.label} banner`}
-              className="w-full h-full object-cover object-center"
-              fill
-              sizes="(min-width: 768px) 28rem, 100vw"
-              priority
-            />
-          </div>
-        )}
-
-        {brand.logoUrl && (
-          <Avatar
-            alt={`${brand.label} logo`}
-            className={
-              brand.bannerUrl
-                ? 'absolute left-1/2 -translate-x-1/2 -bottom-12'
-                : 'mx-auto'
-            }
-            name={brand.label}
-            shape="square"
-            size="2xl"
-            src={brand.logoUrl}
-          />
-        )}
-      </div>
+      <BrandProfileHeader
+        bannerSizes="(min-width: 768px) 28rem, 100vw"
+        bannerUrl={brand.bannerUrl}
+        label={brand.label}
+        logoUrl={brand.logoUrl}
+      />
 
       <div
         className={cn(
           'flex flex-col items-center',
-          brand.bannerUrl && brand.logoUrl ? 'pt-14' : 'pt-4',
+          hasBrandProfileHeaderOverlap(brand.bannerUrl) ? 'pt-14' : 'pt-4',
         )}
       >
         <h1 className="text-xl font-semibold mb-2 text-center text-foreground">

@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   APP_ROUTES,
+  ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
   ONBOARDING_MAX_DRAFT_ROUNDS,
   ONBOARDING_MAX_MEDIA_RETRIES,
 } from '@genfeedai/contracts/constants';
@@ -268,7 +269,11 @@ export function useFirstDrafts(): FirstDraftsState {
         setResult(next);
         setRound((current) => current + 1);
         setPhase('review');
-        setIsGenerating(Boolean(next.videoIngredientId && !next.videoUrl));
+        setIsGenerating(
+          Boolean(
+            next.campaignImages?.some((image) => image.status === 'pending'),
+          ),
+        );
       } catch (caught) {
         if (controller.signal.aborted || liveScope.current !== epoch) return;
         logger.error('Onboarding request needs reconciliation', caught);
@@ -390,9 +395,12 @@ export function useFirstDrafts(): FirstDraftsState {
     [brandId, scopeKey, verdicts],
   );
 
-  const hasMissingMedia = (result?.drafts ?? []).some((draft) =>
-    draft.platform === 'tiktok' ? !result?.videoUrl : !result?.imageUrl,
-  );
+  const hasMissingMedia =
+    (result?.drafts.length ?? 0) > 0 &&
+    (!result?.imageUrl ||
+      result.campaignImages?.length !==
+        ONBOARDING_CAMPAIGN_IMAGE_SLOTS.length ||
+      result.campaignImages.some((image) => image.status !== 'ready'));
   const likedDrafts = (result?.drafts ?? []).filter(
     (item) => verdicts[item.postId] === 'up',
   );

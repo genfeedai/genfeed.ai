@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IElementLighting } from '@genfeedai/contracts/interfaces';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { LightingsService } from '@genfeedai/services/elements/lightings.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -12,15 +12,16 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 export default function ModalLighting({
-  item,
   onConfirm,
   onClose,
-}: ModalCrudProps<IElementLighting>) {
+}: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementLighting,
     ElementSimpleSchema
@@ -32,7 +33,7 @@ export default function ModalLighting({
       key: '',
       label: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.LIGHTING,
     onClose,
     onConfirm,
@@ -60,10 +61,7 @@ export default function ModalLighting({
   };
 
   return (
-    <Modal
-      id={ModalEnum.LIGHTING}
-      title={item ? 'Edit Lighting' : 'Create Lighting'}
-    >
+    <Modal id={ModalEnum.LIGHTING} title={t('lighting')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -124,7 +122,7 @@ export default function ModalLighting({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

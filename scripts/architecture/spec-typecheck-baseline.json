@@ -7033,14 +7033,6 @@
       "workspace": "web"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/src/components/modals/trainings/ModalTraining.test.tsx",
-      "fingerprint": "777c541a6610c7a88edc",
-      "message": "Conversion of type '{ current: null; }' to type 'RefObject<HTMLFormElement>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'current' are incompatible.     Type 'null' is not comparable to type 'HTMLFormElement'.",
-      "workspace": "web"
-    },
-    {
       "code": 2559,
       "count": 1,
       "file": "apps/web/src/components/modals/trainings/ModalTrainingNew.test.tsx",

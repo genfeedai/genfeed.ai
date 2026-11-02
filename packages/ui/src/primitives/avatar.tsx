@@ -25,6 +25,12 @@ export interface AvatarProps
   badge?: ReactNode;
   /** Drawn over the picture and clipped to the frame, such as edit actions. */
   children?: ReactNode;
+  /**
+   * Draws the hairline border on the frame instead of on the picture, so a
+   * picture and its initials fallback wear the same border. `BrandAvatar`
+   * sets it; people and account avatars leave it off.
+   */
+  isFramed?: boolean;
   referrerPolicy?: ImgHTMLAttributes<HTMLImageElement>['referrerPolicy'];
   onLoadingStatusChange?: (
     status: 'idle' | 'loading' | 'loaded' | 'error',
@@ -37,6 +43,7 @@ function Avatar({
   children,
   className,
   fallback,
+  isFramed = false,
   name,
   onLoadingStatusChange,
   ref,
@@ -49,7 +56,11 @@ function Avatar({
   const avatar = (
     <AvatarPrimitive.Root
       ref={ref}
-      className={cn(avatarVariants({ shape, size }), !badge && className)}
+      className={cn(
+        avatarVariants({ shape, size }),
+        isFramed && 'outline-media',
+        !badge && className,
+      )}
       data-shape={shape ?? 'circle'}
       data-size={size ?? 'lg'}
       {...props}
@@ -57,7 +68,10 @@ function Avatar({
       {src ? (
         <AvatarPrimitive.Image
           alt={alt}
-          className="aspect-square size-full object-cover outline-media"
+          className={cn(
+            'aspect-square size-full object-cover',
+            !isFramed && 'outline-media',
+          )}
           onLoadingStatusChange={onLoadingStatusChange}
           referrerPolicy={referrerPolicy}
           src={src}

@@ -36,8 +36,8 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -392,10 +392,9 @@ export default function AnalyticsAccounts() {
               render: (row: IAccountAnalytics) =>
                 row.identity.brandLabel ? (
                   <span className="flex min-w-0 items-center gap-2">
-                    <Avatar
+                    <BrandAvatar
                       alt={row.identity.brandLabel}
                       name={row.identity.brandLabel}
-                      shape="square"
                       size="sm"
                       src={brandLogoById.get(row.identity.brandId)}
                     />

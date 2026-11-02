@@ -1,10 +1,15 @@
-import type { OrganizationCategory } from '@genfeedai/contracts';
+import type {
+  OrganizationCategory,
+  OrganizationLifecycleStatus,
+} from '@genfeedai/contracts';
 import type {
   IBrandWithStats,
   IEntityStatsTotals,
+  IOrganizationConcierge,
   IOrganizationOwner,
   IOrganizationWithStats,
   IOrgLeaderboardItem,
+  OrganizationOwnerEmailClass,
 } from '@genfeedai/contracts/interfaces';
 
 export class OrgLeaderboardItemEntity implements IOrgLeaderboardItem {
@@ -26,13 +31,19 @@ export class OrgLeaderboardItemEntity implements IOrgLeaderboardItem {
 }
 
 export class OrgWithStatsEntity implements IOrganizationWithStats {
+  declare readonly concierge?: IOrganizationConcierge;
+  declare readonly plan?: string;
+  declare readonly status: OrganizationLifecycleStatus;
   declare readonly id: string;
   declare readonly name: string;
   declare readonly logo?: string;
   declare readonly owner?: IOrganizationOwner;
   declare readonly slug?: string;
   declare readonly type?: OrganizationCategory;
+  declare readonly ownerEmailClass: OrganizationOwnerEmailClass;
   declare readonly createdAt?: string;
+  declare readonly lastActiveAt?: string;
+  declare readonly totalGenerations: number;
   declare readonly totalPosts: number;
   declare readonly totalEngagement: number;
   declare readonly totalViews: number;
@@ -66,6 +77,7 @@ export class BrandWithStatsEntity implements IBrandWithStats {
 
 export class PaginatedOrgsResponse {
   declare readonly data: OrgWithStatsEntity[];
+  declare readonly totals: IEntityStatsTotals;
   declare readonly pagination: {
     page: number;
     limit: number;

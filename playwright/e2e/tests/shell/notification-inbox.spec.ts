@@ -239,17 +239,17 @@ for (const fixture of [
       `/${fixture.slug}/~/agent/older-thread`,
       page.url(),
     ).href;
-    const selectedThreadRequest = page.waitForRequest((request) =>
-      new URL(request.url()).pathname.startsWith(
-        '/v1/agent/threads/older-thread',
-      ),
-    );
     await page
       .getByRole('link')
       .filter({ hasText: 'Older conversation' })
       .click();
-    await selectedThreadRequest;
+    // `/agent/[id]` is the split master + Threads layout: the URL selects the
+    // thread, and the panel opens it from the loaded list, so no per-thread
+    // request is made for an id the list does not hold.
     await expect(page).toHaveURL(expectedThreadUrl);
+    await expect(
+      page.getByRole('region', { name: 'Primary workspace canvas' }),
+    ).toBeVisible();
     await context.close();
   });
 }

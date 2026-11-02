@@ -14,7 +14,7 @@ import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
@@ -245,10 +245,9 @@ function OrganizationIdentityEditor({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start gap-6">
-        <Avatar
+        <BrandAvatar
           alt={translate('logoAlt', { label: saved.label })}
           name={saved.label}
-          shape="square"
           size="2xl"
           src={logoUrl}
         >
@@ -280,7 +279,7 @@ function OrganizationIdentityEditor({
               />
             </div>
           </div>
-        </Avatar>
+        </BrandAvatar>
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <EditableText

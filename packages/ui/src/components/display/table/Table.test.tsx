@@ -44,6 +44,21 @@ describe('Table', () => {
     expect(rootElement).toBeInTheDocument();
   });
 
+  it('keeps the column headers for screen readers only when hideHeader is set', () => {
+    render(
+      <Table
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+        hideHeader
+        items={[{ id: 'a', name: 'One' }]}
+      />,
+    );
+
+    const header = screen.getByRole('columnheader', { name: 'Name' });
+    expect(header.closest('thead')).toHaveClass('sr-only');
+    expect(header.closest('thead')).not.toHaveClass('sticky');
+  });
+
   it('pins the column header and one day heading under the section bar', () => {
     render(
       <Table

@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IElementLens } from '@genfeedai/contracts/interfaces';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { LensesService } from '@genfeedai/services/elements/lenses.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -12,15 +12,13 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalLens({
-  item,
-  onConfirm,
-  onClose,
-}: ModalCrudProps<IElementLens>) {
+export default function ModalLens({ onConfirm, onClose }: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementLens,
     ElementSimpleSchema
@@ -32,7 +30,7 @@ export default function ModalLens({
       key: '',
       label: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.LENS,
     onClose,
     onConfirm,
@@ -60,7 +58,7 @@ export default function ModalLens({
   };
 
   return (
-    <Modal id={ModalEnum.LENS} title={item ? 'Edit Lens' : 'Create Lens'}>
+    <Modal id={ModalEnum.LENS} title={t('lens')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -121,7 +119,7 @@ export default function ModalLens({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

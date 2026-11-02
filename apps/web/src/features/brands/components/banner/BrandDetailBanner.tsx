@@ -3,11 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailBannerProps } from '@props/pages/brand-detail.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import { BrandBanner } from '@ui/primitives/brand-banner';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
 import { Sparkles, Upload } from 'lucide-react';
-import Image from 'next/image';
 
 const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 
@@ -18,20 +17,12 @@ export default function BrandDetailBanner({
   onGenerateBanner,
 }: BrandDetailBannerProps) {
   return (
-    <div className="group relative mb-8 h-48 bg-muted">
-      <Image
-        src={
-          brand.bannerUrl
-            ? brand.bannerUrl
-            : `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`
-        }
-        alt={`${brand.label} banner`}
-        className="size-full object-cover object-center"
-        width={1500}
-        height={500}
-        priority
-      />
-
+    <BrandBanner
+      alt={`${brand.label} banner`}
+      isPriority
+      shape="rounded"
+      src={brand.bannerUrl}
+    >
       <div
         className={cn(
           'absolute inset-0 bg-black/50 transition-opacity' /* design-system-allow-content-color */,
@@ -58,6 +49,6 @@ export default function BrandDetailBanner({
           />
         </div>
       </div>
-    </div>
+    </BrandBanner>
   );
 }

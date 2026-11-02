@@ -2194,6 +2194,24 @@ export function buildUnhandledApiMockBody(url: string): unknown {
   if (/^(?:\/v1)?\/referrals\/me\/?$/.test(parsedUrl.pathname)) {
     return buildReferralProgramMockBody();
   }
+  // The prompt slot report is one object, not a collection, so the empty
+  // list below would crash its renderer.
+  if (
+    /^(?:\/v1)?\/admin\/content-learning\/prompt-slots\/?$/.test(
+      parsedUrl.pathname,
+    )
+  ) {
+    return {
+      data: {
+        groups: [],
+        isPooled: false,
+        isTruncated: false,
+        organizationIds: [],
+        postCount: 0,
+        skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+      },
+    };
+  }
   if (
     parsedUrl.pathname === '/v1/costs/summary' ||
     parsedUrl.pathname === '/costs/summary'

@@ -93,6 +93,11 @@ export type ActivityMessageId =
   | 'activity.trends.ready'
   | 'activity.breakout.remix_offered'
   | 'activity.approval.requested'
+  | 'activity.post.transition'
+  | 'activity.brand_os_export.download'
+  | 'activity.brand_os_export.publish'
+  | 'activity.brand_os_export.revoke'
+  | 'activity.brand_os_export.public_read'
   | 'activity.fallback';
 
 export interface ActivityMessageDescriptor {
@@ -104,9 +109,13 @@ export interface ActivityMessageDescriptor {
     articleSubject: string;
     capitalizedSubject: string;
     fallbackSubject: string;
+    /** Post transition source state, humanized; 'none' when not recorded. */
+    fromState: string;
     operation: string;
     source: string;
     subject: string;
+    /** Post transition target state, humanized; 'none' when not recorded. */
+    toState: string;
   };
 }
 
@@ -192,12 +201,13 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
   [ActivityKey.BREAKOUT_REMIX_OFFERED]: 'activity.breakout.remix_offered',
   [ActivityKey.MCP_APPROVAL_REQUESTED]: 'activity.approval.requested',
-  // Audit rows keep their humanized fallback label.
-  [ActivityKey.POST_LIFECYCLE_TRANSITION]: 'activity.fallback',
-  [ActivityKey.BRAND_OS_EXPORT_DOWNLOAD]: 'activity.fallback',
-  [ActivityKey.BRAND_OS_EXPORT_PUBLISH]: 'activity.fallback',
-  [ActivityKey.BRAND_OS_EXPORT_REVOKE]: 'activity.fallback',
-  [ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ]: 'activity.fallback',
+  // Audit rows read as the event they record, not a generic subject label.
+  [ActivityKey.POST_LIFECYCLE_TRANSITION]: 'activity.post.transition',
+  [ActivityKey.BRAND_OS_EXPORT_DOWNLOAD]: 'activity.brand_os_export.download',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLISH]: 'activity.brand_os_export.publish',
+  [ActivityKey.BRAND_OS_EXPORT_REVOKE]: 'activity.brand_os_export.revoke',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ]:
+    'activity.brand_os_export.public_read',
 } as const satisfies Readonly<Record<ActivityKey, ActivityMessageId>>;
 
 const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
@@ -516,8 +526,13 @@ function withIndefiniteArticle(noun: string): string {
  */
 export function getActivityMessageDescriptor(
   key: string,
+  value?: string | null,
 ): ActivityMessageDescriptor {
   const parts = parseActivityKey(key);
+  const transition =
+    key === ActivityKey.POST_LIFECYCLE_TRANSITION
+      ? parsePostTransition(value)
+      : null;
   const subjectLabel = getActivitySubjectLabel(parts.subject);
   const params = {
     amount: 'none',
@@ -526,9 +541,11 @@ export function getActivityMessageDescriptor(
     articleSubject: withIndefiniteArticle(subjectLabel),
     capitalizedSubject: `${subjectLabel.charAt(0).toUpperCase()}${subjectLabel.slice(1)}`,
     fallbackSubject: humanizeToken(subjectLabel),
+    fromState: transition ? capitalize(humanizeToken(transition.from)) : 'none',
     operation: getActivityOperationLabel(parts.operation),
     source: 'none',
     subject: subjectLabel,
+    toState: transition ? capitalize(humanizeToken(transition.to)) : 'none',
   };
   const catalogId = ACTIVITY_MESSAGE_ID_LOOKUP[key];
 
@@ -884,9 +901,50 @@ export function formatActivityMessage(
     case 'activity.approval.requested':
       return 'Tool approval needed';
 
+    case 'activity.post.transition':
+      return descriptor.params.fromState !== 'none' &&
+        descriptor.params.toState !== 'none'
+        ? `Post moved from ${descriptor.params.fromState} to ${descriptor.params.toState}`
+        : 'Post state changed';
+
+    case 'activity.brand_os_export.download':
+      return 'Brand OS export downloaded';
+
+    case 'activity.brand_os_export.publish':
+      return 'Brand OS export published';
+
+    case 'activity.brand_os_export.revoke':
+      return 'Brand OS export revoked';
+
+    case 'activity.brand_os_export.public_read':
+      return 'Brand OS export opened from its public link';
+
     default:
       return descriptor.params.fallbackSubject;
   }
+}
+
+/** The states a `post.lifecycle.transition` row recorded, when it carries both. */
+export function parsePostTransition(
+  value?: string | null,
+): { from: string; to: string } | null {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed && typeof parsed === 'object') {
+      const { from, to } = parsed as Record<string, unknown>;
+      if (typeof from === 'string' && typeof to === 'string' && from && to) {
+        return { from, to };
+      }
+    }
+  } catch {
+    // A row without parseable from/to reads as the generic label.
+  }
+  return null;
+}
+
+function capitalize(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function humanizeToken(value: string): string {

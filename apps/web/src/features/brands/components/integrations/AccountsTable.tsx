@@ -139,10 +139,12 @@ export default function AccountsTable({
     () =>
       createSummaryRowSidebar<BrandDetailSocialConnection>({
         getBadges: (connection) => (
-          <AccountStatusBadge
-            connection={connection}
-            health={healthByCredentialId.get(connection.credentialId)}
-          />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <AccountStatusBadge
+              connection={connection}
+              health={healthByCredentialId.get(connection.credentialId)}
+            />
+          </div>
         ),
         getFacts: (connection) => [
           {

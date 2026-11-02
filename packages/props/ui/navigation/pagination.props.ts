@@ -1,3 +1,4 @@
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
 export interface PaginationProps {
@@ -20,6 +21,13 @@ export interface AutoPaginationProps {
    * @default "results"
    */
   totalLabel?: string;
+
+  /**
+   * The totals cached with the rows on screen (`usePagedAuthedQuery`). Without
+   * them the footer reads the totals of the last list request, which on a
+   * cached page can be another list's.
+   */
+  totals?: IPageTotals;
 }
 
 export interface PaginationStepperProps {

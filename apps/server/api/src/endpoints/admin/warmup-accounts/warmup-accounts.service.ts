@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ContentPreviewsService } from '@api/collections/content-previews/services/content-previews.service';
 import {
   InvitationService,
   type InvitationView,
@@ -140,6 +141,7 @@ export class AdminWarmupAccountsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly invitationService: InvitationService,
+    private readonly contentPreviews: ContentPreviewsService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -176,8 +178,12 @@ export class AdminWarmupAccountsService {
     const account = await this.getAccount(id);
     const invitation = await this.loadInvitation(account);
 
+    const previews = await this.contentPreviews.listForWarmups([account.id]);
     return {
       ...this.toView(account, invitation),
+      previews: (previews.get(account.id) ?? []).map((preview) =>
+        this.contentPreviews.toView(preview),
+      ),
       readiness: await warmupReadiness(this.prisma, account),
     };
   }
@@ -336,10 +342,16 @@ export class AdminWarmupAccountsService {
     // Readiness is computed for this page's accounts only, in a fixed number
     // of batched queries rather than one query fan-out per account.
     const readiness = await warmupReadinessBatch(this.prisma, accounts);
+    const previews = await this.contentPreviews.listForWarmups(
+      accounts.map((account) => account.id),
+    );
 
     return buildPaginatedResult(
       accounts.map((account, index) => ({
         ...this.toView(account),
+        previews: (previews.get(account.id) ?? []).map((preview) =>
+          this.contentPreviews.toView(preview),
+        ),
         readiness: readiness[index],
       })),
       totalDocs,

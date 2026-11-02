@@ -1,6 +1,7 @@
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ClipperProjectsCoreModule } from '@api/collections/clipper-projects/clipper-projects-core.module';
+import { ContentPreviewsModule } from '@api/collections/content-previews/content-previews.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
@@ -22,6 +23,7 @@ import { PublicMusicsController } from '@api/endpoints/public/controllers/musics
 import { PublicNewslettersController } from '@api/endpoints/public/controllers/newsletters/public.newsletters.controller';
 import { PublicPlatformFlagsController } from '@api/endpoints/public/controllers/platform-flags/public.platform-flags.controller';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
+import { PublicPreviewsController } from '@api/endpoints/public/controllers/previews/public.previews.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { PublicYoutubeClipperController } from '@api/endpoints/public/controllers/youtube-clipper/public-youtube-clipper.controller';
@@ -49,6 +51,7 @@ import { Module } from '@nestjs/common';
     PublicNewslettersController,
     PublicPlatformFlagsController,
     PublicPostsController,
+    PublicPreviewsController,
     PublicRSSController,
     PublicVideosController,
     PublicYoutubeClipperController,
@@ -59,6 +62,7 @@ import { Module } from '@nestjs/common';
     ArticlesModule,
     BrandsCoreModule,
     ClipperProjectsCoreModule,
+    ContentPreviewsModule,
     FilesClientModule,
     MediaUrlsModule,
     FileQueueModule,

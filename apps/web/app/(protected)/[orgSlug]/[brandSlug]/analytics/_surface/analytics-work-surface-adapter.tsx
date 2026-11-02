@@ -9,7 +9,6 @@ import {
 } from '@contexts/user/brand-context/brand-context.helpers';
 import { useAgentChatStore } from '@genfeedai/agent';
 import { useExportModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AnalyticsQueryFilterKey,
   AnalyticsQueryReference,
@@ -20,8 +19,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
 import { Download, LinkIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -236,10 +235,10 @@ function AnalyticsWorkSurfaceBridge({
 }
 
 /**
- * Exports exactly the query the page shows. Lives in the analytics toolbar;
- * renders nothing where the visible data has no authoritative export.
+ * Exports exactly the query the page shows. Lives in the analytics bar's "..."
+ * menu; renders nothing where the visible data has no authoritative export.
  */
-export function AnalyticsScopedExportButton() {
+export function AnalyticsScopedExportMenu() {
   const translate = useTranslations('pages.analytics.scopedExport');
   const openScopedExport = use(AnalyticsScopedExportContext);
 
@@ -248,15 +247,16 @@ export function AnalyticsScopedExportButton() {
   }
 
   return (
-    <Button
-      icon={<Download aria-hidden="true" className="size-4" />}
-      onClick={openScopedExport}
-      size={ButtonSize.SM}
-      variant={ButtonVariant.SECONDARY}
-      withWrapper={false}
-    >
-      {translate('label')}
-    </Button>
+    <SubbarOverflowMenu
+      actions={[
+        {
+          icon: <Download aria-hidden="true" className="size-4" />,
+          id: 'scoped-export',
+          label: translate('label'),
+          onSelect: openScopedExport,
+        },
+      ]}
+    />
   );
 }
 

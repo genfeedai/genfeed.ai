@@ -209,10 +209,23 @@ export const ONBOARDING_DRAFT_PLATFORMS: readonly OnboardingDraftPlatform[] = [
 export const ONBOARDING_MAX_DRAFT_ROUNDS = 2;
 
 /**
- * Times a run may regenerate its missing image or video. Each retry goes through
+ * Times a run may regenerate its missing campaign images. Each retry goes through
  * the normal billing gateway, so the count bounds what one run can spend.
  */
 export const ONBOARDING_MAX_MEDIA_RETRIES = 2;
+
+/**
+ * The platform images derived from the master campaign image, cheapest to show
+ * first. Each one is a single image generation, so a short wallet stops the
+ * campaign part-way instead of failing it.
+ */
+export const ONBOARDING_CAMPAIGN_IMAGE_SLOTS = [
+  { aspectRatio: '16:9', id: 'twitter', platform: 'twitter' },
+  { aspectRatio: '4:5', id: 'instagram', platform: 'instagram' },
+  { aspectRatio: '16:9', id: 'linkedin', platform: 'linkedin' },
+  { aspectRatio: '9:16', id: 'tiktok-1', platform: 'tiktok' },
+  { aspectRatio: '9:16', id: 'tiktok-2', platform: 'tiktok' },
+] as const;
 
 /**
  * Name of the organization created for a personal-mailbox signup. The URL slug

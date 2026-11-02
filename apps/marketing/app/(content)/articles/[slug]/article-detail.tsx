@@ -14,8 +14,8 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Alert } from '@ui/primitives/alert';
-import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { EmptyState } from '@ui/primitives/empty-state';
 import ArticleCover from '@website/(content)/articles/article-cover';
 import { ArrowRight, Calendar, Clock, User } from 'lucide-react';
@@ -139,10 +139,9 @@ export function ArticleAbout({
       <div className="space-y-4">
         {logoUrl && (
           <div className="flex justify-center lg:justify-start">
-            <Avatar
+            <BrandAvatar
               alt={`${label} logo`}
               name={label}
-              shape="square"
               size="2xl"
               src={logoUrl}
             />

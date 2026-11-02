@@ -32,6 +32,8 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import {
   LeaderboardOrder,
   LeaderboardSort,
+  OrganizationEmailClassFilter,
+  OrganizationUsageFilter,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -99,6 +101,7 @@ describe('EntityLeaderboardService', () => {
     $queryRaw: vi.fn(),
     brand: {
       count: vi.fn(),
+      findMany: vi.fn(),
       groupBy: vi.fn(),
     },
     member: {
@@ -109,6 +112,9 @@ describe('EntityLeaderboardService', () => {
       findMany: vi.fn(),
     },
     user: {
+      findMany: vi.fn(),
+    },
+    warmupAccount: {
       findMany: vi.fn(),
     },
   };
@@ -137,11 +143,13 @@ describe('EntityLeaderboardService', () => {
 
     mockPrismaService.$queryRaw.mockResolvedValue([]);
     mockPrismaService.brand.count.mockResolvedValue(0);
+    mockPrismaService.brand.findMany.mockResolvedValue([]);
     mockPrismaService.brand.groupBy.mockResolvedValue([]);
     mockPrismaService.member.groupBy.mockResolvedValue([]);
     mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.organization.findMany.mockResolvedValue([]);
     mockPrismaService.user.findMany.mockResolvedValue([]);
+    mockPrismaService.warmupAccount.findMany.mockResolvedValue([]);
     mockOrganizationLogoService.resolveLogoUrls.mockResolvedValue(new Map());
     mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 
@@ -890,7 +898,7 @@ describe('EntityLeaderboardService', () => {
       expect(result.data.map(({ id }) => id)).toEqual(['org-9']);
     });
 
-    it('keeps only organizations of the requested type, by account type then category', async () => {
+    it('keeps only organizations that declared the requested type at onboarding', async () => {
       const capturedQueries = captureQueryRawCalls([rankRows('agency-1')]);
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [{ id: 'agency-1', label: 'Agency One' }],
@@ -909,17 +917,11 @@ describe('EntityLeaderboardService', () => {
       );
 
       expect(capturedQueries[0].sql).toContain(
-        'COALESCE(e."accountType", e."category") = ?::"OrganizationCategory"',
+        'e."accountType" = ?::"OrganizationCategory"',
       );
       expect(capturedQueries[0].values).toContain('AGENCY');
       expect(mockPrismaService.organization.count).toHaveBeenCalledWith({
-        where: {
-          OR: [
-            { accountType: 'AGENCY' },
-            { accountType: null, category: 'AGENCY' },
-          ],
-          isDeleted: false,
-        },
+        where: { accountType: 'AGENCY', isDeleted: false },
       });
       expect(result.pagination.total).toBe(3);
     });
@@ -958,7 +960,7 @@ describe('EntityLeaderboardService', () => {
       },
     );
 
-    it('reports the organization type, preferring onboarding accountType over category', async () => {
+    it('reports the type an organization declared at onboarding, never the default category', async () => {
       mockPrismaService.$queryRaw.mockResolvedValueOnce(
         rankRows('org-a', 'org-b'),
       );
@@ -987,8 +989,261 @@ describe('EntityLeaderboardService', () => {
         ]),
       ).toEqual([
         ['org-a', 'a-slug', 'AGENCY', '2026-10-01T10:00:00.000Z'],
-        ['org-b', undefined, 'BUSINESS', undefined],
+        ['org-b', undefined, undefined, undefined],
       ]);
+    });
+
+    describe('owner email class', () => {
+      const classify = async (email: string | null) => {
+        mockPrismaService.$queryRaw.mockResolvedValueOnce(rankRows('org-a'));
+        mockOrganizationsService.findAll.mockResolvedValue({
+          docs: [{ id: 'org-a', label: 'A', userId: 'user-a' }],
+        });
+        mockPrismaService.user.findMany.mockResolvedValue([
+          {
+            avatar: null,
+            email,
+            firstName: null,
+            handle: 'a',
+            id: 'user-a',
+            lastActiveAt: null,
+            lastName: null,
+            name: null,
+          },
+        ]);
+        const result = await service.getOrganizationsWithStats();
+        return result.data[0].ownerEmailClass;
+      };
+
+      it.each([
+        ['founder@acme.io', 'company'],
+        ['someone@gmail.com', 'personal'],
+        ['someone@proton.me', 'personal'],
+        [null, 'unknown'],
+      ] as const)('reads %s as %s', async (email, expected) => {
+        expect(await classify(email)).toBe(expected);
+      });
+    });
+
+    it('returns generations in the range and the owner last-active time', async () => {
+      const capturedQueries: string[] = [];
+      mockPrismaService.$queryRaw.mockImplementation(
+        (strings: TemplateStringsArray) => {
+          const sql = strings.join('?').replace(/\s+/g, ' ');
+          capturedQueries.push(sql);
+          if (sql.includes('SELECT e."id" AS entity_id')) {
+            return Promise.resolve(rankRows('org-a', 'org-b'));
+          }
+          if (sql.includes('FROM "ingredients"')) {
+            return Promise.resolve([{ entity_id: 'org-a', total: 42n }]);
+          }
+          return Promise.resolve([]);
+        },
+      );
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'org-a', label: 'A', userId: 'user-a' },
+          { id: 'org-b', label: 'B', userId: 'user-b' },
+        ],
+      });
+      mockPrismaService.user.findMany.mockResolvedValue([
+        {
+          avatar: null,
+          email: 'ada@acme.io',
+          firstName: null,
+          handle: 'ada',
+          id: 'user-a',
+          lastActiveAt: new Date('2026-11-01T09:30:00.000Z'),
+          lastName: null,
+          name: 'Ada',
+        },
+        {
+          avatar: null,
+          email: 'bob@gmail.com',
+          firstName: null,
+          handle: 'bob',
+          id: 'user-b',
+          lastActiveAt: null,
+          lastName: null,
+          name: 'Bob',
+        },
+      ]);
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(
+        result.data.map(({ id, totalGenerations, lastActiveAt }) => [
+          id,
+          totalGenerations,
+          lastActiveAt,
+        ]),
+      ).toEqual([
+        ['org-a', 42, '2026-11-01T09:30:00.000Z'],
+        ['org-b', 0, undefined],
+      ]);
+    });
+
+    it("falls back to the organization's first brand logo when it has none of its own", async () => {
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        rankRows('org-a', 'org-b', 'org-c'),
+      );
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          { id: 'org-a', label: 'A' },
+          { id: 'org-b', label: 'B' },
+          { id: 'org-c', label: 'C' },
+        ],
+      });
+      mockOrganizationLogoService.resolveLogoUrls.mockResolvedValue(
+        new Map([['org-a', 'https://cdn/a-logo.png']]),
+      );
+      mockPrismaService.brand.findMany.mockResolvedValue([
+        { id: 'brand-a', organizationId: 'org-a' },
+        { id: 'brand-b1', organizationId: 'org-b' },
+        { id: 'brand-b2', organizationId: 'org-b' },
+      ]);
+      mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(
+        new Map([
+          ['brand-a', 'https://cdn/brand-a.png'],
+          ['brand-b2', 'https://cdn/brand-b2.png'],
+        ]),
+      );
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data.map(({ id, logo }) => [id, logo])).toEqual([
+        ['org-a', 'https://cdn/a-logo.png'],
+        ['org-b', 'https://cdn/brand-b2.png'],
+        ['org-c', undefined],
+      ]);
+    });
+
+    describe('email class and usage filters', () => {
+      it('keeps work-email owners by excluding the free domains in play', async () => {
+        const capturedQueries: { sql: string; values: unknown[] }[] = [];
+        mockPrismaService.$queryRaw.mockImplementation(
+          (strings: TemplateStringsArray, ...values: unknown[]) => {
+            const query = captureSqlQuery(strings, values);
+            capturedQueries.push(query);
+            if (query.sql.includes('SELECT DISTINCT')) {
+              return Promise.resolve([
+                { domain: 'acme.io' },
+                { domain: 'gmail.com' },
+                { domain: 'proton.me' },
+              ]);
+            }
+            if (query.sql.includes('COUNT(*) AS total FROM "organizations"')) {
+              return Promise.resolve([{ total: 4n }]);
+            }
+            return Promise.resolve([]);
+          },
+        );
+
+        const result = await service.getOrganizationsWithStats(
+          undefined,
+          undefined,
+          1,
+          10,
+          LeaderboardSort.ENGAGEMENT,
+          undefined,
+          undefined,
+          undefined,
+          LeaderboardOrder.DESC,
+          { emailClass: OrganizationEmailClassFilter.COMPANY },
+        );
+
+        const ranking = capturedQueries.find((query) =>
+          query.sql.includes('SELECT e."id" AS entity_id'),
+        );
+        expect(ranking?.sql).toContain('<> ALL(?::text[])');
+        // Only the free domains in play reach SQL, never the business one.
+        expect(ranking?.values).toContainEqual(['gmail.com', 'proton.me']);
+        expect(result.pagination.total).toBe(4);
+        expect(mockPrismaService.organization.count).not.toHaveBeenCalled();
+      });
+
+      it('keeps personal-email owners by matching the free domains in play', async () => {
+        const capturedQueries: { sql: string; values: unknown[] }[] = [];
+        mockPrismaService.$queryRaw.mockImplementation(
+          (strings: TemplateStringsArray, ...values: unknown[]) => {
+            const query = captureSqlQuery(strings, values);
+            capturedQueries.push(query);
+            return Promise.resolve(
+              query.sql.includes('SELECT DISTINCT')
+                ? [{ domain: 'acme.io' }, { domain: 'gmail.com' }]
+                : [],
+            );
+          },
+        );
+
+        await service.getOrganizationsWithStats(
+          undefined,
+          undefined,
+          1,
+          10,
+          LeaderboardSort.ENGAGEMENT,
+          undefined,
+          undefined,
+          undefined,
+          LeaderboardOrder.DESC,
+          { emailClass: OrganizationEmailClassFilter.PERSONAL },
+        );
+
+        const ranking = capturedQueries.find((query) =>
+          query.sql.includes('SELECT e."id" AS entity_id'),
+        );
+        expect(ranking?.sql).toContain('= ANY(?::text[])');
+        expect(ranking?.values).toContainEqual(['gmail.com']);
+      });
+
+      it.each([
+        [OrganizationUsageFilter.ACTIVE, 'AND ( EXISTS'],
+        [OrganizationUsageFilter.INACTIVE, 'AND NOT ( EXISTS'],
+      ])(
+        'filters %s organizations by generations and posts in the range',
+        async (usage, fragment) => {
+          const capturedQueries = captureQueryRawCalls([[]]);
+
+          await service.getOrganizationsWithStats(
+            undefined,
+            undefined,
+            1,
+            10,
+            LeaderboardSort.ENGAGEMENT,
+            undefined,
+            undefined,
+            undefined,
+            LeaderboardOrder.DESC,
+            { usage },
+          );
+
+          expect(capturedQueries[0].sql).toContain(fragment);
+          expect(capturedQueries[0].sql).toContain('FROM "ingredients" i');
+          expect(capturedQueries[0].sql).toContain('FROM "posts" p');
+          expect(capturedQueries[0].sql).toContain('i."createdAt" >=');
+          expect(capturedQueries[0].sql).toContain('p."publishedAt" >=');
+        },
+      );
+
+      it('ranks by generations created in the date range', async () => {
+        const capturedQueries = captureQueryRawCalls([[]]);
+
+        await service.getOrganizationsWithStats(
+          '2026-10-01',
+          '2026-10-07',
+          1,
+          10,
+          LeaderboardSort.GENERATIONS,
+        );
+
+        expect(capturedQueries[0].sql).toContain('FROM "ingredients"');
+        expect(capturedQueries[0].sql).toContain(
+          `"origin" = 'GENERATED'::"IngredientOrigin"`,
+        );
+        expect(capturedQueries[0].sql).toContain('"createdAt" >=');
+        expect(capturedQueries[0].sql).toContain('"createdAt" <=');
+        expect(capturedQueries[0].sql).not.toContain('"date" >=');
+      });
     });
 
     it('should not count brands when the page is empty', async () => {

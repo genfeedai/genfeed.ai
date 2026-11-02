@@ -26,7 +26,7 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import Table from '@ui/display/table/Table';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
@@ -323,10 +323,9 @@ export default function AnalyticsOrganizationOverview({
               key: 'name',
               render: (brand) => (
                 <div className="flex items-center gap-3">
-                  <Avatar
+                  <BrandAvatar
                     alt={brand.name}
                     name={brand.name}
-                    shape="square"
                     size="lg"
                     src={brand.logo}
                   />

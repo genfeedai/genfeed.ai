@@ -1,8 +1,8 @@
 import ClipperNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/page';
 import EditorNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/editor/new/page';
-import TurboNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/turbo/new/page';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import TurboCreatePane from '@/features/workflows/pages/turbo/TurboCreatePane';
 
 const state = vi.hoisted(() => ({
   organizationId: 'org-1',
@@ -25,7 +25,7 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-vi.mock('@/features/workflows/pages/turbo/TurboNewProjectPage', () => ({
+vi.mock('@/features/workflows/pages/turbo/TurboNewPane', () => ({
   default: () => (
     <button type="button" onClick={state.create}>
       Create project
@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 describe('Studio creation routes', () => {
   it.each([
-    ['turbo', TurboNewPage],
+    ['turbo', TurboCreatePane],
     ['clipper', ClipperNewPage],
     ['editor', EditorNewPage],
   ] as const)(

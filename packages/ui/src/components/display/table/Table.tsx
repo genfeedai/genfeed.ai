@@ -513,12 +513,15 @@ export default function AppTable<T>({
           >
             <thead
               className={cn(
-                'border-b border-border',
-                !enableDragScroll && 'sticky',
-                hasPinnedHeader
-                  ? 'z-20 bg-background'
-                  : 'top-0 z-10 bg-card/60',
-                hideHeader && 'sr-only',
+                hideHeader
+                  ? 'sr-only'
+                  : cn(
+                      'border-b border-border',
+                      !enableDragScroll && 'sticky',
+                      hasPinnedHeader
+                        ? 'z-20 bg-background'
+                        : 'top-0 z-10 bg-card/60',
+                    ),
               )}
               style={
                 hasPinnedHeader

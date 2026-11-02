@@ -2,6 +2,12 @@
   "title": "Organizations",
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
+  "learningTab": "Learning",
+  "libraryTab": "Library",
+  "libraryEmpty": "This organization has not generated any content yet",
+  "libraryLoadError": "Failed to load the organization library. Please try again.",
+  "libraryLoadMoreError": "Failed to load more of the library.",
+  "libraryRetry": "Retry",
   "settingsTab": "Settings",
   "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
@@ -22,10 +28,50 @@
   "membersLabel": "Members",
   "brandsLabel": "Brands",
   "profileLoadError": "Failed to load organization details.",
+  "emailColumn": "Email",
+  "emailLabel": "Owner email",
+  "emailClassFilterLabel": "Owner email",
+  "allEmailClasses": "Any email",
+  "emailClasses": {
+    "company": "Work email",
+    "personal": "Personal email",
+    "unknown": "No email"
+  },
+  "typeColumn": "Type",
+  "typeNotSet": "Not set",
+  "generationsColumn": "Generations",
+  "generationsLabel": "Generations",
+  "lastActiveLabel": "Owner last active",
+  "neverActive": "Never",
+  "usageFilterLabel": "Usage",
+  "allUsage": "Any usage",
+  "usage": {
+    "active": "Generated or published",
+    "inactive": "No activity"
+  },
   "types": {
     "CREATOR": "Creator",
     "BUSINESS": "Business",
     "AGENCY": "Agency",
     "EXPERT": "Expert"
-  }
+  },
+  "statusColumn": "Status",
+  "statusFilterLabel": "Status",
+  "allStatuses": "Any status",
+  "statuses": {
+    "onboarding": "Onboarding",
+    "free": "Free",
+    "trial": "Trial",
+    "subscribed": "Subscribed",
+    "past_due": "Past due",
+    "cancelled": "Cancelled"
+  },
+  "sourceFilterLabel": "Source",
+  "allSources": "Any source",
+  "sources": {
+    "concierge": "Concierge",
+    "self_serve": "Self-serve"
+  },
+  "planLabel": "Plan",
+  "openOwner": "Open owner"
 }

@@ -1,12 +1,11 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   IElementStyle,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementStyle } from '@models/elements/style.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -18,7 +17,7 @@ import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-ro
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
@@ -28,6 +27,7 @@ import type {
   StylesListAction,
   StylesListState,
 } from '@/features/admin/props/styles.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function stylesListReducer(
@@ -39,8 +39,6 @@ function stylesListReducer(
       return { ...state, isLoading: action.payload };
     case 'SET_STYLES':
       return { ...state, styles: action.payload, isLoading: false };
-    case 'SET_SELECTED_STYLE':
-      return { ...state, selectedStyle: action.payload };
     default:
       return state;
   }
@@ -71,10 +69,9 @@ function StylesListContent({
   const [state, dispatch] = useReducer(stylesListReducer, {
     styles: [],
     isLoading: true,
-    selectedStyle: null,
   });
 
-  const { styles, isLoading, selectedStyle } = state;
+  const { styles, isLoading } = state;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -131,15 +128,15 @@ function StylesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (style: IElementStyle) =>
-              openStyleModal(ModalEnum.STYLE, style),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (style: IElementStyle) =>
-              openStyleModal(ModalEnum.CONFIRM, style),
+              openConfirm({
+                confirmLabel: 'Delete',
+                isError: true,
+                label: 'Delete Style',
+                message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
+                onConfirm: () => handleDelete(style),
+              }),
             tooltip: 'Delete',
           },
         ]
@@ -226,48 +223,50 @@ function StylesListContent({
     }
   }, [onRefresh, findAllStyles]);
 
-  const openStyleModal = (modalId: ModalEnum, style?: IElementStyle) => {
-    dispatch({ type: 'SET_SELECTED_STYLE', payload: style ?? null });
-
-    if (modalId === ModalEnum.CONFIRM && style) {
-      return openConfirm({
-        confirmLabel: 'Delete',
-        isError: true,
-        label: 'Delete Style',
-        message: `Are you sure you want to delete "${style.label}"? This action cannot be undone.`,
-        onConfirm: () => handleDelete(style),
-      });
-    }
-
-    openModal(modalId);
-  };
-
   const handleDelete = async (style: IElementStyle) => {
     try {
       const service = await getStylesService();
       await service.delete(style.id);
       notificationsService.success('Style deleted');
-      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
       findAllStyles(true);
     } catch (error) {
       logger.error('Failed to delete style', error);
       notificationsService.error('Failed to delete style');
-      dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
     }
   };
+
+  const saveStyle = useInlineRecordSave<Partial<IElementStyle>>({
+    errorMessage: 'Failed to update style',
+    onSaved: () => findAllStyles(true),
+    save: async (id, patch) => (await getStylesService()).patch(id, patch),
+  });
+
+  const isEditable = scope === PageScope.SUPERADMIN;
 
   const rowSidebar = useElementRowSidebar<ElementStyle>({
     getExtraFacts: (style) => [
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('models'),
+              kind: 'multiselect',
+              onSave: (models) => saveStyle(style.id, { models }),
+              options: Object.values(MODEL_KEYS).map((model) => ({
+                label: model,
+                value: model,
+              })),
+              placeholder: '-',
+              values: style.models,
+            }
+          : undefined,
         id: 'models',
         label: fieldsT('models'),
         value: style.models?.join(', '),
       },
     ],
-    onEdit:
-      scope === PageScope.SUPERADMIN
-        ? (element) => openStyleModal(ModalEnum.STYLE, element)
-        : undefined,
+    onSave: isEditable
+      ? (element, patch) => saveStyle(element.id, patch)
+      : undefined,
   });
 
   return (
@@ -286,20 +285,7 @@ function StylesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <>
-          <LazyModalStyle
-            item={selectedStyle}
-            onClose={() =>
-              dispatch({ type: 'SET_SELECTED_STYLE', payload: null })
-            }
-            onConfirm={() => {
-              dispatch({ type: 'SET_SELECTED_STYLE', payload: null });
-              findAllStyles(true);
-            }}
-          />
-
-          {/* LazyModalConfirm migrated to GlobalModalsProvider */}
-        </>
+        <LazyModalStyle onConfirm={() => findAllStyles(true)} />
       )}
 
       <div className="mt-4">

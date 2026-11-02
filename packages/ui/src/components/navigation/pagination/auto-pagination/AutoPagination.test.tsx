@@ -47,4 +47,17 @@ describe('AutoPagination', () => {
     render(<AutoPagination showTotal totalLabel="posts" />);
     expect(screen.getByText(/posts/)).toBeInTheDocument();
   });
+
+  it("shows the cached rows' own totals instead of the last list request's", () => {
+    render(
+      <AutoPagination
+        showTotal
+        totalLabel="roles"
+        totals={{ totalDocs: 61, totalPages: 3 }}
+      />,
+    );
+
+    expect(screen.getByText('61 roles')).toBeInTheDocument();
+    expect(screen.queryByText('50 roles')).not.toBeInTheDocument();
+  });
 });

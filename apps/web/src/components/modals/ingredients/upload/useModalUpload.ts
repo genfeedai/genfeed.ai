@@ -10,6 +10,10 @@ import {
   UploadStatus,
   VoiceProvider,
 } from '@genfeedai/contracts';
+import {
+  BRAND_BANNER_HEIGHT,
+  BRAND_BANNER_WIDTH,
+} from '@genfeedai/contracts/constants';
 import type {
   IAsset,
   IHttpInterceptorError,
@@ -38,6 +42,7 @@ import {
 } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useAudioRecording } from '@/hooks/media/use-audio-recording/use-audio-recording';
+import { cropFileToBanner } from './banner-crop.util';
 import { isSvgUpload, rasterizeSvgFile } from './svg-rasterize.util';
 import {
   getAcceptedTypes,
@@ -449,6 +454,14 @@ export function useModalUpload({
             selectedFile = await rasterizeSvgFile(selectedFile);
           }
 
+          // A banner is always the X header format (1500x500, 3:1).
+          if (
+            category === AssetCategory.BANNER &&
+            selectedFile.type.startsWith('image/')
+          ) {
+            selectedFile = await cropFileToBanner(selectedFile);
+          }
+
           const handleProgress = (
             progress: number,
             loaded: number,
@@ -654,7 +667,10 @@ export function useModalUpload({
     isAudioLike,
     isLibraryImage,
   );
-  const dimensionText = getDimensionText(width, height);
+  const dimensionText =
+    category === AssetCategory.BANNER
+      ? `Cropped to ${BRAND_BANNER_WIDTH}x${BRAND_BANNER_HEIGHT}px (3:1), the X header size.`
+      : getDimensionText(width, height);
   const selectedFileList = recordedFile ? [recordedFile] : files;
 
   return {

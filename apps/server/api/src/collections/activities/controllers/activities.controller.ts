@@ -149,6 +149,11 @@ export class ActivitiesController {
           async () => await this.activitiesService.findAll(aggregate, options),
         )
       : await this.activitiesService.findAll(aggregate, options);
+    if (isSuperAdmin) {
+      data.docs = await this.activitiesService.attachOrganizationLabels(
+        data.docs,
+      );
+    }
     return serializeCollection(request, ActivitySerializer, data);
   }
 

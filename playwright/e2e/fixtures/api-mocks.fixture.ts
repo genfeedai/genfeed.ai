@@ -3592,6 +3592,59 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
   return { avatars };
 }
 
+const MOCK_BRAND_LOGO_DATA_URL =
+  'data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22256%22 height=%22256%22%3E%3Crect width=%22256%22 height=%22256%22 fill=%22%23222%22/%3E%3C/svg%3E';
+const MOCK_BRAND_BANNER_DATA_URL =
+  'data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221500%22 height=%22500%22%3E%3Crect width=%221500%22 height=%22500%22 fill=%22%23345%22/%3E%3C/svg%3E';
+
+/** The mocked brand, with a logo and a banner, on every endpoint the brand page reads. */
+export async function mockBrandWithMedia(page: Page): Promise<void> {
+  const brand = {
+    banner: {
+      category: 'BANNER',
+      cdnUrl: MOCK_BRAND_BANNER_DATA_URL,
+      id: 'asset-banner-1',
+    },
+    createdAt: new Date().toISOString(),
+    credentials: [],
+    description: 'Brand detail fixture',
+    id: 'brand-1',
+    label: 'Brand 1',
+    links: [],
+    logo: {
+      category: 'LOGO',
+      cdnUrl: MOCK_BRAND_LOGO_DATA_URL,
+      id: 'asset-logo-1',
+    },
+    scope: 'private',
+    slug: 'brand-1',
+    updatedAt: new Date().toISOString(),
+  };
+  const single = JSON.stringify({
+    data: { attributes: brand, id: brand.id, type: 'brand' },
+  });
+
+  await routeUsersPattern(page, '/me/brands**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: [{ attributes: brand, id: brand.id, type: 'brand' }],
+        meta: { page: 1, pageSize: 1, totalCount: 1 },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+  for (const pattern of ['/brands/brand-1', '/brands/slug**']) {
+    await routeApiPattern(page, pattern, async (route) => {
+      await route.fulfill({
+        body: single,
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+  }
+}
+
 export async function mockBrandIdentityDefaults(page: Page): Promise<{
   avatars: {
     fallback: MockAvatarIdentityFixture;

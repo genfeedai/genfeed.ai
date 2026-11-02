@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
@@ -100,13 +101,16 @@ test.describe('Admin Organization', () => {
                   growth: 0,
                   id: 'org-e2e-1',
                   name: 'Acme Inc',
+                  status: 'free',
                   owner: {
                     email: 'ada@example.com',
                     id: 'user-e2e-1',
                     name: 'Ada Lovelace',
                   },
+                  ownerEmailClass: 'company',
                   totalBrands: 1,
                   totalEngagement: 0,
+                  totalGenerations: 0,
                   totalMembers: 1,
                   totalPosts: 0,
                   totalViews: 0,
@@ -130,6 +134,229 @@ test.describe('Admin Organization', () => {
     await expect(ownerLink.getByText('ada@example.com')).toBeVisible();
   });
 
+  test('organizations list highlights work emails, shows logos and usage, and filters by owner email', async ({
+    adminPage,
+  }) => {
+    const requestedEmailClasses: Array<string | null> = [];
+    const organization = (
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      avgEngagementRate: 0,
+      growth: 0,
+      ownerEmailClass: 'unknown',
+      status: 'free',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+      ...overrides,
+    });
+    // Registered after the fixture's catch-all analytics mock, so it wins.
+    await adminPage.route('**/analytics/organizations**', (route) => {
+      const emailClass = new URL(route.request().url()).searchParams.get(
+        'emailClass',
+      );
+      requestedEmailClasses.push(emailClass);
+      const organizations = [
+        organization({
+          id: 'org-e2e-work',
+          logo: 'https://cdn.example.test/gateway.png',
+          name: 'Gateway Ventures',
+          owner: {
+            email: 'poya@vitae.ai',
+            id: 'user-e2e-work',
+            name: 'Poya',
+          },
+          ownerEmailClass: 'company',
+          totalGenerations: 12,
+          type: 'BUSINESS',
+        }),
+        organization({
+          id: 'org-e2e-personal',
+          name: 'Personal',
+          owner: {
+            email: 'someone@gmail.com',
+            id: 'user-e2e-personal',
+            name: 'Someone',
+          },
+          ownerEmailClass: 'personal',
+        }),
+      ];
+      const visible =
+        emailClass === 'company' ? organizations.slice(0, 1) : organizations;
+      return route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: visible,
+              pagination: {
+                limit: 10,
+                page: 1,
+                total: visible.length,
+                totalPages: 1,
+              },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      });
+    });
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const main = adminPage.getByRole('main');
+    const workRow = main.getByRole('row', { name: /Gateway Ventures/ });
+    const personalRow = main.getByRole('row', { name: /Personal/ });
+    await expect(workRow.getByText('Work email')).toBeVisible();
+    await expect(workRow.getByText('Business', { exact: true })).toBeVisible();
+    await expect(workRow.getByText('12')).toBeVisible();
+    await expect(personalRow.getByText('Personal email')).toBeVisible();
+    await expect(personalRow.getByText('Not set')).toBeVisible();
+    await adminPage
+      .getByRole('button', { exact: true, name: 'Filters' })
+      .click();
+    await adminPage.getByRole('menuitem', { name: /^Owner email/ }).click();
+    const filtered = adminPage.waitForRequest((request) =>
+      request.url().includes('emailClass=company'),
+    );
+    await adminPage.getByRole('menuitemradio', { name: 'Work email' }).click();
+    await filtered;
+
+    expect(requestedEmailClasses).toContain('company');
+    await adminPage.keyboard.press('Escape');
+    await expect(
+      main.getByRole('row', { name: /Gateway Ventures/ }),
+    ).toBeVisible();
+    await expect(main.getByRole('row', { name: /Personal/ })).toHaveCount(0);
+  });
+
+  test('organizations list shows the lifecycle status, filters by it and opens the concierge handoff in the sidebar', async ({
+    adminPage,
+  }) => {
+    const requested: Array<{ source: string | null; status: string | null }> =
+      [];
+    const organization = (
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      avgEngagementRate: 0,
+      growth: 0,
+      lifetimePosts: 0,
+      ownerEmailClass: 'company',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+      ...overrides,
+    });
+    await adminPage.route('**/analytics/organizations**', (route) => {
+      const params = new URL(route.request().url()).searchParams;
+      requested.push({
+        source: params.get('source'),
+        status: params.get('status'),
+      });
+      const organizations = [
+        organization({
+          concierge: { id: 'warmup-e2e-1', status: 'INVITED' },
+          id: 'org-e2e-concierge',
+          name: 'Vitae',
+          owner: { email: 'poya@vitae.ai', id: 'user-e2e-3', name: 'Poya' },
+          status: 'onboarding',
+        }),
+        organization({
+          id: 'org-e2e-paid',
+          name: 'Acme Inc',
+          plan: 'SCALE',
+          status: 'subscribed',
+        }),
+      ];
+      const visible =
+        params.get('status') === 'onboarding'
+          ? organizations.slice(0, 1)
+          : organizations;
+      return route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: visible,
+              pagination: {
+                limit: 10,
+                page: 1,
+                total: visible.length,
+                totalPages: 1,
+              },
+              totals: {
+                growth: 0,
+                totalEngagement: 0,
+                totalPosts: 0,
+                totalViews: 0,
+              },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      });
+    });
+    await adminPage.route('**/admin/warmup-accounts/warmup-e2e-1**', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              auditEvents: [],
+              diagnostics: { steps: [] },
+              leadEmail: 'poya@vitae.ai',
+              readiness: { availableCredits: 500, blockers: [], ready: true },
+              status: 'PROVISIONED',
+            },
+            id: 'warmup-e2e-1',
+            type: 'warmup-account',
+          },
+        },
+      }),
+    );
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const main = adminPage.getByRole('main');
+    const conciergeRow = main.getByRole('row', { name: /Vitae/ });
+    await expect(conciergeRow.getByText('Onboarding')).toBeVisible();
+    await expect(conciergeRow.getByText('Invited')).toBeVisible();
+    await expect(
+      main.getByRole('row', { name: /Acme Inc/ }).getByText('Subscribed'),
+    ).toBeVisible();
+
+    // The concierge page is gone: concierge is a filter and a sidebar now.
+    await adminPage
+      .getByRole('button', { exact: true, name: 'Filters' })
+      .click();
+    await adminPage.getByRole('menuitem', { name: /^Status/ }).click();
+    const filtered = adminPage.waitForRequest((request) =>
+      request.url().includes('status=onboarding'),
+    );
+    await adminPage.getByRole('menuitemradio', { name: 'Onboarding' }).click();
+    await filtered;
+    expect(requested.some(({ status }) => status === 'onboarding')).toBe(true);
+    await adminPage.keyboard.press('Escape');
+    await expect(main.getByRole('row', { name: /Acme Inc/ })).toHaveCount(0);
+
+    await conciergeRow.getByText('Work email').click();
+    const sidebar = adminPage.getByTestId('context-sidebar');
+    await expect(
+      sidebar.getByRole('heading', { name: 'Concierge handoff' }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole('button', { name: 'Send invitation' }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole('link', { name: 'Open owner' }),
+    ).toHaveAttribute('href', /\/admin\/administration\/users\/user-e2e-3$/);
+  });
+
   test('flags releases card points to per-organization release access', async ({
     adminPage,
   }) => {
@@ -145,6 +372,104 @@ test.describe('Admin Organization', () => {
       new RegExp(`${APP_ROUTES.ADMIN.ORGANIZATIONS}$`),
     );
     await expect(organizationsListSurface(adminPage)).toBeVisible();
+  });
+
+  test('organization settings lists every app with one switch and keeps the tabs in the page', async ({
+    adminPage,
+  }) => {
+    const settingsRoute = `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/settings`;
+    await assertRouteRenders(adminPage, settingsRoute);
+
+    const main = adminPage.getByRole('main');
+
+    // The Analytics / Settings tabs sit in the page, under the profile header.
+    await expect(
+      main
+        .getByRole('navigation', { name: 'Organization' })
+        .getByRole('link', { name: 'Settings' }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(
+      main
+        .getByRole('navigation', { name: 'Organization' })
+        .getByRole('link', { name: 'Analytics' }),
+    ).toBeVisible();
+
+    // One list, one switch per app, with readable names, not raw keys.
+    await expect(
+      main.getByRole('heading', { exact: true, name: 'Apps' }),
+    ).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Motion' })).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Campaigns' })).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Brands' })).toBeVisible();
+    await expect(main.getByText(/release analytics_/)).toHaveCount(0);
+    await expect(main.getByText(/^show /)).toHaveCount(0);
+
+    // One plain header per section: no eyebrow above "Apps" or "Settings".
+    await expect(main.getByText('Organization Controls')).toHaveCount(0);
+  });
+
+  test("organization library is a tab in the page that lists that organization's generated content", async ({
+    adminPage,
+  }) => {
+    const requestedUrls: string[] = [];
+    await adminPage.route('**/v1/ingredients**', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      requestedUrls.push(route.request().url());
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                category: IngredientCategory.IMAGE,
+                cdnUrl: 'https://cdn.genfeed.ai/mock/org-library.jpg',
+                createdAt: '2026-11-01T10:00:00.000Z',
+                height: 1024,
+                status: 'GENERATED',
+                width: 1024,
+              },
+              id: 'org-library-asset-1',
+              type: 'ingredients',
+            },
+          ],
+          meta: { page: 1, pageSize: 48, totalCount: 1 },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/library`,
+    );
+
+    const main = adminPage.getByRole('main');
+    const tabs = main.getByRole('navigation', { name: 'Organization' });
+    await expect(tabs.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(tabs.getByRole('link', { name: 'Analytics' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Spending' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Settings' })).toBeVisible();
+
+    // The organization on screen narrows the shared Library list.
+    await expect
+      .poll(() =>
+        requestedUrls.some(
+          (url) => new URL(url).searchParams.get('organizationId') === 'qa-org',
+        ),
+      )
+      .toBe(true);
+    await expect(
+      main.getByRole('button', { name: 'Asset preview unavailable' }),
+    ).toBeVisible();
+    await expect(
+      main.getByText('This organization has not generated any content yet'),
+    ).toHaveCount(0);
   });
 
   test('folders view stays interactive', async ({ adminPage }) => {
@@ -260,5 +585,68 @@ test.describe('Admin Organization', () => {
     await expect(
       adminPage.getByRole('link', { name: 'Open spending', exact: true }),
     ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
+  });
+
+  test('organization Learning tab shows the prompt slot report for that organization', async ({
+    adminPage,
+  }) => {
+    let requestedOrganization: string | null = null;
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern(
+        'admin/content-learning/prompt-slots(?:\\?.*)?$',
+      ),
+      (route) => {
+        requestedOrganization = new URL(route.request().url()).searchParams.get(
+          'organizationId',
+        );
+        return route.fulfill({
+          json: {
+            data: {
+              groups: [
+                {
+                  category: 'IMAGE',
+                  comparison: {
+                    alpha: 0.05,
+                    comparisonCount: 1,
+                    comparisons: [
+                      {
+                        difference: 0.7,
+                        filled: { count: 25, mean: 0.5 },
+                        lower: 0.4,
+                        rest: { count: 25, mean: -0.2 },
+                        slot: 'lighting',
+                        upper: 1,
+                        value: null,
+                        verdict: 'better',
+                      },
+                    ],
+                    excludedCount: 0,
+                    observationCount: 50,
+                  },
+                  objective: 'engagement',
+                  postCount: 50,
+                },
+              ],
+              isPooled: false,
+              isTruncated: false,
+              organizationIds: ['org-learning-1'],
+              postCount: 50,
+              skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+            },
+          },
+        });
+      },
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/org-learning-1/learning`,
+    );
+
+    await expect(
+      adminPage.getByRole('main').getByRole('cell', { name: 'lighting' }),
+    ).toBeVisible();
+    await expect(adminPage.getByText('50 posts read.')).toBeVisible();
+    expect(requestedOrganization).toBe('org-learning-1');
   });
 });

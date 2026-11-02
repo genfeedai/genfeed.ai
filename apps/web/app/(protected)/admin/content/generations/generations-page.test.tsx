@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
@@ -16,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
-    download,
+    overflow,
     dropdowns,
     filters,
     onRefresh,
@@ -24,7 +28,7 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
     title,
   }: {
     children: ReactNode;
-    download?: ReactNode;
+    overflow?: ReactNode;
     dropdowns?: ReactNode;
     filters?: ReactNode;
     onRefresh?: () => void;
@@ -36,10 +40,10 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
         <h1 className="sr-only">{title}</h1>
         {search}
         {filters}
+        {overflow}
         <button aria-label="Refresh" onClick={onRefresh} type="button">
           Refresh
         </button>
-        {download}
         {dropdowns}
       </div>
       <div data-testid="content">{children}</div>
@@ -83,6 +87,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', () => ({ useTranslations: () => mocks.translate }));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', async () => {
   const { useCallback } = await import('react');
@@ -156,7 +165,7 @@ describe('admin Generations page', () => {
   });
 
   it('puts every control in the subbar and draws no header in the content', async () => {
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('empty');
 
     const subbar = within(screen.getByTestId('subbar'));
@@ -175,7 +184,12 @@ describe('admin Generations page', () => {
     ).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(subbar.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
-    expect(subbar.getByRole('button', { name: 'download' })).toBeDisabled();
+    // Download is a secondary action, so it lives in the "..." menu.
+    await userEvent.click(subbar.getByRole('button', { name: 'moreActions' }));
+    expect(
+      await screen.findByRole('menuitem', { name: 'download' }),
+    ).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.keyboard('{Escape}');
     expect(subbar.getByTestId('org-filter')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('content')).queryByRole('heading', {
@@ -187,7 +201,7 @@ describe('admin Generations page', () => {
 
   it('lists a generation as a row: status badge, model, owner, cost, prompt', async () => {
     mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
 
     const row = await screen.findByRole('button', {
       name: 'open ingredient-1',
@@ -209,6 +223,7 @@ describe('admin Generations page', () => {
         <GenerationsPage />
         <ContextSidebarOutlet testId="rail" />
       </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
     );
   }
 
@@ -254,7 +269,7 @@ describe('admin Generations page', () => {
     );
     mocks.organization = 'org-1';
     mocks.brand = 'brand-1';
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() =>
       expect(mocks.findAdminGenerationReviews).toHaveBeenCalledWith(
@@ -283,7 +298,7 @@ describe('admin Generations page', () => {
         user: { email: 'user@example.com' },
       },
     ]);
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
 
     const row = await screen.findByRole('button', { name: 'open prompt-1' });
     expect(within(row).getByText('a lone prompt')).toBeVisible();
@@ -300,7 +315,7 @@ describe('admin Generations page', () => {
 
   it('writes a filter change to the URL and resets the page', () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
     const search = screen.getByPlaceholderText('search');
     fireEvent.change(search, { target: { value: 'sunset' } });
     fireEvent.keyDown(search, { key: 'Enter' });
@@ -317,7 +332,9 @@ describe('admin Generations page', () => {
     mocks.findAdminGenerationReviews
       .mockResolvedValueOnce([generation])
       .mockRejectedValueOnce(new Error('Request failed'));
-    const view = render(<GenerationsPage />);
+    const view = render(<GenerationsPage />, {
+      wrapper: queryClientWrapper(),
+    });
     await screen.findByRole('button', { name: 'open ingredient-1' });
 
     mocks.searchParams = new URLSearchParams('page=2');
@@ -341,13 +358,33 @@ describe('admin Generations page', () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => undefined);
-    render(<GenerationsPage />);
+    render(<GenerationsPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('button', { name: 'open ingredient-1' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'download' }));
+    await userEvent.click(screen.getByRole('button', { name: 'moreActions' }));
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'download' }),
+    );
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
     vi.unstubAllGlobals();
+  });
+
+  it('paints the cached generations on a return visit, with no skeleton', async () => {
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    const client = createTestQueryClient();
+    const first = render(<GenerationsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await screen.findByRole('button', { name: 'open ingredient-1' });
+    first.unmount();
+    mocks.findAdminGenerationReviews.mockReturnValueOnce(new Promise(() => {}));
+
+    render(<GenerationsPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(
+      screen.getByRole('button', { name: 'open ingredient-1' }),
+    ).toBeVisible();
   });
 });
