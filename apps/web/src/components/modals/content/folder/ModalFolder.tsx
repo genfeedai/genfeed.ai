@@ -40,6 +40,7 @@ export default function ModalFolder({
   brandId: propBrandId,
   scope = PageScope.BRAND,
 }: ModalFolderProps) {
+  const t = useTranslations('ui.folderFields');
   const translateCreate = useTranslations('ui.createModal');
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
@@ -120,23 +121,23 @@ export default function ModalFolder({
           </Alert>
         )}
 
-        <FormControl label="Label">
+        <FormControl label={t('label')}>
           <Input
             type="text"
             name="label"
             control={form.control}
             onChange={updateModalFolder}
-            placeholder="Enter folder name"
+            placeholder={t('labelPlaceholder')}
             isRequired={true}
             isDisabled={isSubmitting}
           />
         </FormControl>
-        <FormControl label="Description">
+        <FormControl label={t('description')}>
           <Textarea
             name="description"
             control={form.control}
             onChange={updateModalFolder}
-            placeholder="Enter description (optional)"
+            placeholder={t('descriptionPlaceholder')}
             isDisabled={isSubmitting}
             onKeyDown={processKeyDownModalFolder}
             rows={3}
@@ -144,14 +145,14 @@ export default function ModalFolder({
         </FormControl>
 
         {brands.length > 0 && !isManagerApp && (
-          <FormControl label="Brand (Optional)">
+          <FormControl label={t('brand')}>
             <SelectField
               name="brandId"
               control={form.control}
               onChange={updateModalFolder}
               isDisabled={isSubmitting}
             >
-              <option value="">None</option>
+              <option value="">{t('brandNone')}</option>
               {brands.map((brand: IBrand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.label}

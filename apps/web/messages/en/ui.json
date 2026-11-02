@@ -940,7 +940,18 @@
     "referenceFrames": "Reference frames",
     "timeframe": "Timeframe"
   },
+  "folderFields": {
+    "brand": "Brand (Optional)",
+    "brandNone": "None",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter description (optional)",
+    "label": "Label",
+    "labelPlaceholder": "Enter folder name"
+  },
   "createModal": {
+    "cancel": "Cancel",
+    "folder": "Create Folder",
+    "preset": "Create Preset",
     "create": "Create",
     "blacklist": "Create Blacklist",
     "cameraMovement": "Create Camera Movement",
@@ -952,9 +963,6 @@
     "scene": "Create Scene",
     "sound": "Create Sound",
     "style": "Create Style",
-    "role": "Create Role",
-    "cancel": "Cancel",
-    "folder": "Create Folder",
-    "preset": "Create Preset"
+    "role": "Create Role"
   }
 }

@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { Article } from '@models/content/article.model';
 import { act, render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -28,14 +32,25 @@ function IntlWrapper({ children }: PropsWithChildren) {
     </NextIntlClientProvider>
   );
 }
-function render(ui: ReactElement) {
-  return rtlRender(ui, { wrapper: IntlWrapper });
+function render(ui: ReactElement, client = createTestQueryClient()) {
+  const QueryWrapper = queryClientWrapper(client);
+  return rtlRender(ui, {
+    wrapper: ({ children }: PropsWithChildren) => (
+      <QueryWrapper>
+        <IntlWrapper>{children}</IntlWrapper>
+      </QueryWrapper>
+    ),
+  });
 }
 
 const getWebsiteTraffic = vi.fn();
 const getService = async () => ({ getWebsiteTraffic });
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => ({ organizationId: 'org-1', brandId: 'brand-1' }),
@@ -92,7 +107,7 @@ it('aborts the old range and ignores its result after switching periods', async 
     )
     .mockResolvedValueOnce({ ...available, totalViews: 7 });
   render(<ArticleTrafficPanel article={article} />);
-  await screen.findByText('Loading website traffic…');
+  await screen.findByRole('status', { name: 'Loading website traffic…' });
   await userEvent.click(screen.getByRole('radio', { name: '7 days' }));
   await screen.findByText('7');
   expect(getWebsiteTraffic.mock.calls[0][2].aborted).toBe(true);
@@ -130,4 +145,20 @@ it('links the header to the article editor and lists the article facts', async (
     screen.getByRole('link', { name: 'Open Reviewed guide' }),
   ).toHaveAttribute('href', '/acme/news/publishing/posts/article-1');
   expect(screen.getByText('vincent')).toBeInTheDocument();
+});
+
+it('paints the traffic it already loaded straight away when the article is reopened', async () => {
+  getWebsiteTraffic.mockResolvedValue({ ...available, totalViews: 42 });
+  const client = createTestQueryClient();
+  const firstOpen = render(<ArticleTrafficPanel article={article} />, client);
+  await screen.findByText('42');
+  firstOpen.unmount();
+
+  getWebsiteTraffic.mockReturnValue(new Promise(() => {}));
+  render(<ArticleTrafficPanel article={article} />, client);
+
+  expect(screen.getByText('42')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('status', { name: 'Loading website traffic…' }),
+  ).not.toBeInTheDocument();
 });

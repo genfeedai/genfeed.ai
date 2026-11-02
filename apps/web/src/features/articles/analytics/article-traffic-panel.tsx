@@ -1,24 +1,22 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type {
-  ArticleTraffic,
-  ArticleTrafficPeriod,
-} from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
+import type { ArticleTrafficPeriod } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { ArticlesService } from '@services/content/articles.service';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import dynamic from 'next/dynamic';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ArticleTrafficPanelProps } from '@/features/articles/props/article-traffic.props';
 
 const ArticleTrafficChart = dynamic(() => import('./article-traffic-chart'), {
@@ -44,43 +42,25 @@ export default function ArticleTrafficPanel({
   const translateList = useTranslations('pages.articles.list');
   const locale = useLocale();
   const { organizationId, brandId } = useCollectionScope();
-  const getService = useAuthedService(
-    useCallback((token: string) => ArticlesService.getInstance(token), []),
-  );
   const [period, setPeriod] = useState<ArticleTrafficPeriod>('30d');
-  const [traffic, setTraffic] = useState<ArticleTraffic | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const [reload, setReload] = useState(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reload and collection scope deliberately invalidate the in-flight report.
-  useEffect(() => {
-    if (!organizationId) {
-      setIsLoading(false);
-      return;
-    }
-    const controller = new AbortController();
-    setIsLoading(true);
-    setTraffic(null);
-    setIsError(false);
-    void (async () => {
-      try {
-        const service = await getService();
-        if (controller.signal.aborted) return;
-        const data = await service.getWebsiteTraffic(
-          article.id,
-          period,
-          controller.signal,
-        );
-        if (!controller.signal.aborted) setTraffic(data);
-      } catch {
-        if (!controller.signal.aborted) setIsError(true);
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    })();
-    return () => controller.abort();
-  }, [article.id, period, getService, organizationId, brandId, reload]);
+  // Cached per article, range and scope: reopening an article, or going back
+  // to a range already viewed, paints its traffic at once while it refreshes.
+  const trafficQuery = useAuthedQuery({
+    enabled: Boolean(organizationId),
+    queryFn: (service, signal) =>
+      service.getWebsiteTraffic(article.id, period, signal),
+    queryKey: [
+      'article-traffic',
+      article.id,
+      period,
+      { brandId: brandId ?? null, organizationId },
+    ],
+    service: (token: string) => ArticlesService.getInstance(token),
+  });
+  const traffic = trafficQuery.data ?? null;
+  const isLoading = Boolean(organizationId) && trafficQuery.isPending;
+  const { isError, refetch } = trafficQuery;
 
   return (
     <div data-testid="article-traffic-panel">
@@ -123,7 +103,13 @@ export default function ArticleTrafficPanel({
           }))}
           value={period}
         />
-        {isLoading ? <p role="status">{translate('loading')}</p> : null}
+        {isLoading ? (
+          <SkeletonCard
+            label={translate('loading')}
+            showActions={false}
+            showImage={false}
+          />
+        ) : null}
         {isError || traffic?.status === 'unavailable' ? (
           <div className="space-y-3" role="status">
             <p>
@@ -135,7 +121,9 @@ export default function ArticleTrafficPanel({
             </p>
             <Button
               variant={ButtonVariant.SECONDARY}
-              onClick={() => setReload((value) => value + 1)}
+              onClick={() => {
+                void refetch();
+              }}
             >
               {translate('retry')}
             </Button>

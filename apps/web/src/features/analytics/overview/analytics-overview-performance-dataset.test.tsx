@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +65,11 @@ const getService = async () => ({
   ),
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -109,7 +118,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
 
   it('renders nothing while there is no summary yet', () => {
     requestState.summary = null;
-    const { container } = render(<AnalyticsOverviewPerformanceDataset />);
+    const { container } = render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -118,7 +129,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     // instead of rejecting -- this must degrade to the same "nothing yet"
     // state as no summary, not throw reading `dataset.confidence`. #5381.
     requestState.summary = { topPerformers: [] };
-    const { container } = render(<AnalyticsOverviewPerformanceDataset />);
+    const { container } = render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(mocks.getWeeklySummary).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
@@ -126,7 +139,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
 
   it('shows the dataset line and confidence badge', async () => {
     requestState.summary = buildSummary();
-    render(<AnalyticsOverviewPerformanceDataset />);
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('5 posts · 3 imported')).toBeInTheDocument();
     expect(screen.getByText('Low confidence')).toBeInTheDocument();
@@ -134,7 +149,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
 
   it('requests the summary for the selected analytics date range', async () => {
     requestState.summary = buildSummary();
-    render(<AnalyticsOverviewPerformanceDataset />);
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await screen.findByText('Low confidence');
     expect(mocks.getWeeklySummary).toHaveBeenCalledWith({
@@ -153,7 +170,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
         totalPosts: 0,
       },
     });
-    render(<AnalyticsOverviewPerformanceDataset />);
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const link = await screen.findByRole('link', {
       name: 'Connect more accounts',
@@ -173,7 +192,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
         totalPosts: 40,
       },
     });
-    render(<AnalyticsOverviewPerformanceDataset />);
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await screen.findByText('High confidence');
     expect(
@@ -215,7 +236,9 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
         },
       ],
     });
-    render(<AnalyticsOverviewPerformanceDataset />);
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await screen.findByText('Genfeed win');
     expect(screen.getByText('Imported win')).toBeInTheDocument();
@@ -225,5 +248,22 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
       'href',
       '/acme/brand/publishing/posts/post-1',
     );
+  });
+
+  it('paints the dataset line it already loaded straight away when you come back', async () => {
+    requestState.summary = buildSummary();
+    const client = createTestQueryClient();
+    const firstVisit = render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('5 posts · 3 imported')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.getWeeklySummary.mockImplementation(() => new Promise(() => {}));
+    render(<AnalyticsOverviewPerformanceDataset />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('5 posts · 3 imported')).toBeInTheDocument();
   });
 });

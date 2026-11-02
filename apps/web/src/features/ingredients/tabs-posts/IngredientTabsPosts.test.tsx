@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,6 +22,11 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => {
   const resolveService = async () => service;
   return { useAuthedService: () => resolveService };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -41,6 +50,7 @@ describe('IngredientTabsPosts', () => {
     getPostsMock.mockResolvedValue([]);
     const { container } = render(
       <IngredientTabsPosts ingredient={ingredient} />,
+      { wrapper: queryClientWrapper() },
     );
     expect(container.firstChild).toBeInTheDocument();
   });
@@ -55,7 +65,9 @@ describe('IngredientTabsPosts', () => {
       },
     ]);
 
-    render(<IngredientTabsPosts ingredient={ingredient} />);
+    render(<IngredientTabsPosts ingredient={ingredient} />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const link = await screen.findByRole('link', { name: 'Spring teaser' });
     expect(link).toHaveAttribute(
@@ -68,5 +80,33 @@ describe('IngredientTabsPosts', () => {
 
     fireEvent.click(screen.getByText('scheduled'));
     expect(screen.getByTestId('post-detail-panel')).toHaveTextContent('post-1');
+  });
+
+  it('paints the posts it already loaded straight away when you come back', async () => {
+    getPostsMock.mockResolvedValue([
+      {
+        id: 'post-1',
+        label: 'Spring teaser',
+        platform: 'instagram',
+        status: 'scheduled',
+      },
+    ]);
+    const client = createTestQueryClient();
+    const firstVisit = render(<IngredientTabsPosts ingredient={ingredient} />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByRole('link', { name: 'Spring teaser' }),
+    ).toBeInTheDocument();
+    firstVisit.unmount();
+
+    getPostsMock.mockReturnValue(new Promise(() => {}));
+    render(<IngredientTabsPosts ingredient={ingredient} />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'Spring teaser' }),
+    ).toBeInTheDocument();
   });
 });
