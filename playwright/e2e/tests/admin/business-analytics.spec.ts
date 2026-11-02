@@ -253,11 +253,11 @@ test.describe('Admin Business Analytics', () => {
     await expect(leaderRow('Initech LLC', '3.8K')).toHaveCount(1);
   });
 
-  test('business analytics tab is accessible from analytics nav', async ({
+  test('business analytics is reachable from the admin sidebar', async ({
     adminPage,
   }) => {
     const admin = new AdminPage(adminPage);
-    // Navigate to overview analytics first, then click Business tab
+    // Open analytics first, then follow the sidebar's Business entry.
     await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, {
       waitUntil: 'domcontentloaded',
     });
@@ -267,9 +267,13 @@ test.describe('Admin Business Analytics', () => {
       APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL,
     );
 
-    const businessTab = adminPage.getByRole('link', { name: /business/i });
-    await expect(businessTab).toBeVisible();
-    await businessTab.click();
+    await expect(adminPage.getByRole('main').getByRole('tab')).toHaveCount(0);
+    const businessLink = adminPage.getByRole('link', {
+      exact: true,
+      name: 'Business',
+    });
+    await expect(businessLink).toBeVisible();
+    await businessLink.click();
 
     await admin.waitForPageLoad();
     await expect(adminPage).toHaveURL(/admin\/overview\/analytics\/business/);
@@ -278,5 +282,15 @@ test.describe('Admin Business Analytics', () => {
       APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
     );
     await expect(kpi(adminPage, 'Revenue', 'Today')).toContainText('$1,234');
+  });
+
+  test('brands list has no analytics tab switcher', async ({ adminPage }) => {
+    const admin = new AdminPage(adminPage);
+    await admin.gotoAnalyticsBrands();
+
+    await expect(adminPage.getByRole('main').getByRole('tab')).toHaveCount(0);
+    await expect(
+      adminPage.getByRole('button', { name: /^Filters/ }),
+    ).toBeVisible();
   });
 });

@@ -140,6 +140,23 @@ describe('AnalyticsBrandOverview', () => {
     );
   });
 
+  it('shows no zero placeholders before the first fetch resolves', async () => {
+    render(<AnalyticsBrandOverview brandId="brand-1" />);
+
+    // First paint is already the loading state: every KPI tile is busy, so no
+    // "0" tiles flip to a skeleton and then to the data.
+    expect(screen.getAllByTestId('metric-card')[0]).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /open analytics brand row/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('keeps analytics section titles outside their framed bodies', () => {
     render(<AnalyticsBrandOverview brandId="brand-1" />);
 

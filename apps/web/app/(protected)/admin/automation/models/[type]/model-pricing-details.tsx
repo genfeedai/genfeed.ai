@@ -324,7 +324,7 @@ function pricingColumns(
       key: 'status',
       render: (row) => (
         <div className="text-xs">
-          <p className="font-medium capitalize">{row.status}</p>
+          <Badge status={row.status} />
           <p className="max-w-sm text-muted-foreground">
             {row.reasons.join(' · ')}
           </p>

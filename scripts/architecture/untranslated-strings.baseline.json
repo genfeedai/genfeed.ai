@@ -147,7 +147,7 @@
     "apps/web/app/(protected)/admin/organizations/components/edit-setting-modal.tsx": 3,
     "apps/web/app/(protected)/admin/organizations/components/organization-settings-table.tsx": 31,
     "apps/web/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx": 37,
-    "apps/web/app/(protected)/admin/overview/analytics/layout.tsx": 5,
+    "apps/web/app/(protected)/admin/overview/analytics/layout.tsx": 1,
     "apps/web/app/(protected)/admin/overview/overview-page.tsx": 17,
     "apps/web/app/(protected)/home/content.tsx": 9,
     "apps/web/app/(public)/agent-auth/claim/page.tsx": 1,

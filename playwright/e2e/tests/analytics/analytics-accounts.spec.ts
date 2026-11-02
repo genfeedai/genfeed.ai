@@ -29,6 +29,17 @@ test.describe('Analytics — Accounts', () => {
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
+  test('fleet table has no platform column and no bare number input in the toolbar', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/accounts`);
+
+    await expect(
+      authenticatedPage.getByRole('columnheader', { name: 'Platform' }),
+    ).toHaveCount(0);
+    await expect(authenticatedPage.getByRole('spinbutton')).toHaveCount(0);
+  });
+
   test('account drill-down exposes Manage account', async ({
     authenticatedPage,
   }) => {
