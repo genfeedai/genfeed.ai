@@ -1,13 +1,13 @@
 import '@testing-library/jest-dom/vitest';
-import { ViewType } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import TurboProjectsPage from './TurboProjectsPage';
+import TurboProjectsList from './TurboProjectsList';
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  remove: vi.fn(),
   getService: vi.fn(),
 }));
 
@@ -33,38 +33,91 @@ vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
-vi.mock(
-  '@/hooks/utils/use-collection-view-preference/use-collection-view-preference',
-  () => ({
-    useCollectionViewPreference: () => ({
-      view: ViewType.LIST,
-      setView: vi.fn(),
-    }),
-  }),
-);
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     leading,
-    right,
+    refresh,
   }: {
     children: ReactNode;
     leading?: ReactNode;
-    right?: ReactNode;
+    refresh?: ReactNode;
   }) => (
     <main>
       {leading}
-      {right}
+      {refresh}
       {children}
     </main>
   ),
 }));
 
-describe('TurboProjectsPage load recovery', () => {
+describe('TurboProjectsList load recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getService.mockResolvedValue({ list: mocks.list });
     mocks.list.mockResolvedValue([]);
+    mocks.remove.mockResolvedValue(undefined);
+  });
+
+  it('lists each project as a link to its page with its status', async () => {
+    mocks.list.mockResolvedValue([
+      {
+        id: 'project-1',
+        itemCounts: { total: 3 },
+        kind: 'ideas',
+        name: 'Spring launch',
+        status: 'draft',
+        updatedAt: '2026-10-01T10:00:00.000Z',
+      },
+    ]);
+
+    render(<TurboProjectsList />);
+
+    expect(
+      await screen.findByRole('link', { name: /Spring launch/ }),
+    ).toHaveAttribute('href', '/acme/moonrise/turbo/project-1');
+    expect(screen.getByText('3 items')).toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
+  });
+
+  it('tells the creator to describe a project on the left when there are none', async () => {
+    render(<TurboProjectsList />);
+
+    expect(await screen.findByText('No Turbo projects yet')).toBeVisible();
+    expect(
+      screen.getByText('Describe one on the left and it shows up here.'),
+    ).toBeVisible();
+  });
+
+  it('removes a project from the list after deleting it', async () => {
+    const user = userEvent.setup();
+    mocks.list.mockResolvedValue([
+      {
+        id: 'project-1',
+        itemCounts: { total: 0 },
+        kind: 'ideas',
+        name: 'Spring launch',
+        status: 'draft',
+        updatedAt: '2026-10-01T10:00:00.000Z',
+      },
+    ]);
+    mocks.getService.mockResolvedValue({
+      list: mocks.list,
+      remove: mocks.remove,
+    });
+
+    render(<TurboProjectsList />);
+    await user.click(
+      await screen.findByRole('button', { name: 'Actions for Spring launch' }),
+    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', { name: /Spring launch/ }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(mocks.remove).toHaveBeenCalledWith('project-1');
   });
 
   it('shows a plan denial with organization billing navigation instead of a futile retry', async () => {
@@ -78,7 +131,7 @@ describe('TurboProjectsPage load recovery', () => {
         },
       ],
     });
-    render(<TurboProjectsPage />);
+    render(<TurboProjectsList />);
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'An active subscription is required',
     );
@@ -88,12 +141,7 @@ describe('TurboProjectsPage load recovery', () => {
     expect(
       screen.queryByRole('button', { name: 'Retry loading' }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'New project' }),
-    ).not.toBeInTheDocument();
     expect(mocks.list).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Recent')).toBeNull();
-    expect(screen.queryByText('All projects')).toBeNull();
   });
 
   it.each([
@@ -107,14 +155,11 @@ describe('TurboProjectsPage load recovery', () => {
     'preserves the reason and explicit recovery for $status $title',
     async (error) => {
       mocks.list.mockRejectedValueOnce({ errors: [error] });
-      render(<TurboProjectsPage />);
+      render(<TurboProjectsList />);
       expect(await screen.findByRole('alert')).toHaveTextContent(error.detail);
       expect(
         screen.queryByRole('link', { name: 'Manage subscription' }),
       ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('link', { name: 'New project' }),
-      ).toBeInTheDocument();
       expect(mocks.list).toHaveBeenCalledTimes(1);
       await waitFor(() =>
         expect(
@@ -122,7 +167,7 @@ describe('TurboProjectsPage load recovery', () => {
         ).toBeEnabled(),
       );
       fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));
-      await screen.findByText('Turn your brand into a week of content');
+      await screen.findByText('No Turbo projects yet');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(mocks.list).toHaveBeenCalledTimes(2);
       expect(mocks.list).toHaveBeenLastCalledWith(
@@ -136,7 +181,7 @@ describe('TurboProjectsPage load recovery', () => {
 
   it('retains an offline error without retrying automatically', async () => {
     mocks.list.mockRejectedValue(new Error('Network offline'));
-    render(<TurboProjectsPage />);
+    render(<TurboProjectsList />);
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Network offline',
     );
@@ -161,7 +206,7 @@ describe('TurboProjectsPage load recovery', () => {
       },
     ]);
 
-    render(<TurboProjectsPage />);
+    render(<TurboProjectsList />);
     expect(await screen.findAllByText('Spring launch')).not.toHaveLength(0);
 
     mocks.list.mockResolvedValue([]);
@@ -179,8 +224,6 @@ describe('TurboProjectsPage load recovery', () => {
       expect.any(AbortSignal),
       'nothing like this',
     );
-    expect(
-      screen.queryByText('Turn your brand into a week of content'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No Turbo projects yet')).not.toBeInTheDocument();
   });
 });

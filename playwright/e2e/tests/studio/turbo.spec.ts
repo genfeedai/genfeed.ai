@@ -2,7 +2,6 @@ import { TurboProjectKind } from '@genfeedai/contracts';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
-import { chooseView } from '../../utils/view-menu';
 
 const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
@@ -112,51 +111,55 @@ test.describe('Persisted Turbo projects', () => {
     ).toBeVisible();
   });
 
-  test('creates a saved idea project and reopens it from list and grid on mobile', async ({
+  test('describes a project in the workspace prompt, opens it and finds it in the list', async ({
     authenticatedPage: page,
-  }, testInfo) => {
+  }) => {
     const state = await mockTurboProject(page, TurboProjectKind.IDEAS);
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${base}/new`);
+    await page.goto(base);
+    // No separate list or new page: the prompt is on the left, projects on the right.
+    await expect(
+      page.getByRole('heading', { name: 'What should Turbo make?' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /Saved project/ }),
+    ).toBeVisible();
     await page
-      .getByRole('radio', { name: 'From ideas', exact: true })
-      .first()
-      .click();
-    await page
-      .getByRole('textbox', { name: 'Project name' })
+      .getByRole('textbox', { name: 'Creative angle' })
       .fill('Launch collection');
     await page
       .getByRole('button', { name: 'Create project', exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${base}/persisted-project`));
+    expect(state.getProject().name).toBe('Launch collection');
+    await expect
+      .poll(() => state.getProject().settings.ideas?.angle)
+      .toBe('Launch collection');
     // A fresh idea draft keeps its name under the collapsed Options.
     await page.getByRole('button', { name: 'Options' }).click();
     await expect(
       page.getByRole('textbox', { name: 'Project name' }),
     ).toHaveValue('Launch collection');
-    expect(state.getProject().name).toBe('Launch collection');
-    await page.screenshot({
-      path: testInfo.outputPath('project-detail-mobile.png'),
-      fullPage: true,
-    });
     await page.getByRole('link', { name: 'All projects', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${base}/?$`));
     await expect(
-      page.getByText('Launch collection', { exact: true }).first(),
+      page.getByRole('link', { name: /Launch collection/ }),
     ).toBeVisible();
-    await chooseView(page, 'Grid');
-    await page.screenshot({
-      path: testInfo.outputPath('project-list-mobile.png'),
-      fullPage: true,
-    });
+  });
+
+  test('starts from a starter card on mobile without horizontal scrolling', async ({
+    authenticatedPage: page,
+  }) => {
+    await mockTurboProject(page, TurboProjectKind.IDEAS);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(base);
+    await page.getByRole('button', { name: /Weekly content mix/ }).click();
+    await expect(
+      page.getByRole('textbox', { name: 'Creative angle' }),
+    ).toContainText('A balanced week of posts');
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth,
     );
     expect(overflow).toBe(false);
-    await page.getByRole('link', { name: 'Open', exact: true }).first().click();
-    await page.getByRole('button', { name: 'Options' }).click();
-    await expect(
-      page.getByRole('textbox', { name: 'Project name' }),
-    ).toHaveValue('Launch collection');
   });
 
   test('invalid files and permanent upload errors do not block later valid uploads or saves', async ({
@@ -227,17 +230,16 @@ test.describe('Persisted Turbo projects', () => {
     ).toBeEnabled();
   });
 
-  test('new project offers ideas and workflow creation when there are no saved workflows', async ({
+  test('the workspace offers ideas and workflow creation when there are no saved workflows', async ({
     authenticatedPage: page,
   }) => {
     await mockTurboProject(page, TurboProjectKind.IDEAS);
     await page.route('**/workflows?**', (route) =>
       route.fulfill({ json: { data: [] } }),
     );
-    await page.goto(`${base}/new`);
-    await page
-      .getByRole('radio', { name: 'From a workflow', exact: true })
-      .click();
+    await page.goto(base);
+    await page.getByRole('combobox', { name: 'Project source' }).click();
+    await page.getByRole('option', { name: 'From a workflow' }).click();
     await expect(
       page.getByText('No saved workflows yet.', { exact: false }),
     ).toBeVisible();
@@ -245,7 +247,7 @@ test.describe('Persisted Turbo projects', () => {
       page.getByRole('link', { name: 'Create a workflow' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('radio', { name: 'From ideas', exact: true }).first(),
+      page.getByRole('button', { name: 'From ideas', exact: true }),
     ).toBeEnabled();
   });
 });
