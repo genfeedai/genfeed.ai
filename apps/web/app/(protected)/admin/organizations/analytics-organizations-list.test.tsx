@@ -199,7 +199,11 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           id: 'org-1',
           logo: 'https://cdn.test/acme.png',
           name: 'Acme Inc',
-          owner: { id: 'user-9', name: 'Ada Lovelace' },
+          owner: {
+            email: 'ada@example.com',
+            id: 'user-9',
+            name: 'Ada Lovelace',
+          },
           totalBrands: 1,
           totalEngagement: 0,
           totalMembers: 1,
@@ -230,6 +234,38 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       screen.getByRole('link', { name: 'Open user Ada Lovelace' }),
     ).toHaveAttribute('href', '/admin/administration/users/user-9');
     expect(screen.getAllByRole('link', { name: /Open user/ })).toHaveLength(1);
+    expect(screen.getByText('ada@example.com')).toBeVisible();
+  });
+
+  it('does not repeat the email when it is the only name the owner has', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-1',
+          name: 'Gateway Ventures',
+          owner: {
+            email: 'poya@vitae.ai',
+            id: 'user-3',
+            name: 'poya@vitae.ai',
+          },
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    expect(
+      await screen.findByRole('link', { name: 'Open user poya@vitae.ai' }),
+    ).toBeVisible();
+    expect(screen.getAllByText('poya@vitae.ai')).toHaveLength(1);
   });
 
   describe('server-side ordering and type filter', () => {

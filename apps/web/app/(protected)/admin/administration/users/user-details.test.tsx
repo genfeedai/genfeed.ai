@@ -134,6 +134,21 @@ describe('UserDetails', () => {
     expect(actions.profile).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [true, 'Completed'],
+    [false, 'In progress'],
+  ])(
+    'shows onboarding status as a badge when completed is %s',
+    (isOnboardingCompleted, label) => {
+      render(<UserDetails user={{ ...user, isOnboardingCompleted }} />);
+
+      const badge = screen
+        .getByText('Status')
+        .nextElementSibling?.querySelector('[data-slot="badge"]');
+      expect(badge).toHaveTextContent(label);
+    },
+  );
+
   it('shows the signup source fields the record carries', () => {
     render(<UserDetails user={user} />);
 
