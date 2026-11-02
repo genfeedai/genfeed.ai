@@ -7,9 +7,7 @@ UPDATE "models"
 SET "isActive" = false,
     "isDefault" = false,
     "lifecycle" = 'RETIRED'::"ModelLifecycle",
-    "isDeprecated" = true,
     "succeededBy" = 'bytedance/seedance-2.5',
-    "deprecatedAt" = COALESCE("deprecatedAt", CURRENT_TIMESTAMP),
     "updatedAt" = CURRENT_TIMESTAMP
 WHERE "key" = 'bytedance/seedance-1.5-pro'
   AND "organizationId" IS NULL
