@@ -359,7 +359,6 @@ export const APP_ROUTES = {
     CLIPPER: '/clipper',
     CLIPPER_NEW: '/clipper/new',
     EDITOR: '/editor',
-    EDITOR_NEW: '/editor/new',
     MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt
