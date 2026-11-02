@@ -1,6 +1,8 @@
 import type {
   AnalyticsMetric,
   OrganizationCategory,
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
 } from '@genfeedai/contracts';
 import type {
   IAccountAnalyticsList,
@@ -32,6 +34,8 @@ export type {
 
 export interface IPaginatedOrgsResponse {
   data: IOrgWithStats[];
+  /** Period totals across every matching organization, not just this page. */
+  totals: IEntityStatsTotals;
   pagination: {
     page: number;
     limit: number;
@@ -87,6 +91,10 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
   emailClass?: 'company' | 'personal';
   /** Organizations only: keep those that have (or never) generated or published. */
   usage?: 'active' | 'inactive';
+  /** Organizations only: keep one lifecycle status. */
+  status?: OrganizationLifecycleStatus;
+  /** Organizations only: keep concierge-prepared or self-serve signups. */
+  source?: OrganizationSourceFilter;
 }
 
 // Chart Data Types

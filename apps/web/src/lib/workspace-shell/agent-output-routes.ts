@@ -13,6 +13,12 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // `/agent/threads`) or one open thread (`/agent/[id]`). `/agent/new` and
   // `/agent/[id]/full` are the one full-width conversation.
   new RegExp(`^${APP_ROUTES.AGENT.ROOT}(?:/(?!new/?$|journey/?$)[^/]+)?/?$`),
+  // Turbo: `/turbo` is the prompt that starts a project beside the project
+  // list, `/turbo/[projectId]` is one open project.
+  new RegExp(`^${APP_ROUTES.STUDIO.TURBO}(?:/[^/]+)?/?$`),
+  // Motion: `/motion` is the prompt that starts a project beside the project
+  // list, `/motion/[projectId]` is one open project.
+  new RegExp(`^${APP_ROUTES.STUDIO.MOTION}(?:/[^/]+)?/?$`),
   // A Storyboard run, and `/storyboard/new`, where the idea is pitched in the
   // same chat-left, result-right layout the run opens in.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/[^/]+/?$`),

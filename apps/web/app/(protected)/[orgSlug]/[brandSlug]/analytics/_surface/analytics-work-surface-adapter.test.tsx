@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -89,7 +90,7 @@ import {
 } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 
 import AnalyticsWorkSurfaceAdapter, {
-  AnalyticsScopedExportButton,
+  AnalyticsScopedExportMenu,
 } from './analytics-work-surface-adapter';
 
 function AdapterHarness() {
@@ -234,25 +235,28 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     );
   });
 
-  it('offers the scoped export in the toolbar on exportable routes', () => {
+  it('offers the scoped export in the bar\'s "..." menu on exportable routes', async () => {
+    const user = userEvent.setup();
     navigation.pathname = '/acme/moonrise/analytics/posts';
     exportModalValue.openExport.mockClear();
 
     render(
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
-          <AnalyticsScopedExportButton />
+          <AnalyticsScopedExportMenu />
           <AdapterHarness />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    const exportButtons = screen.getAllByRole('button', {
-      name: 'Export scoped data',
-    });
-    expect(exportButtons).toHaveLength(1);
-
-    fireEvent.click(exportButtons[0]);
+    // The export lives in the bar's "..." menu, not as a button of its own.
+    expect(
+      screen.queryByRole('button', { name: 'Export scoped data' }),
+    ).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Export scoped data' }),
+    );
     expect(exportModalValue.openExport).toHaveBeenCalledTimes(1);
   });
 
@@ -265,16 +269,14 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
       render(
         <AnalyticsWorkspaceSurfaceAdapterProvider>
           <AnalyticsWorkSurfaceAdapter>
-            <AnalyticsScopedExportButton />
+            <AnalyticsScopedExportMenu />
           </AnalyticsWorkSurfaceAdapter>
         </AnalyticsWorkspaceSurfaceAdapterProvider>,
       );
 
       // The export endpoint has no source scope; offering it would export
       // posts the page is not showing.
-      expect(
-        screen.queryByRole('button', { name: 'Export scoped data' }),
-      ).toBeNull();
+      expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
     } finally {
       delete filters.source;
     }
@@ -286,13 +288,11 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     render(
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
-          <AnalyticsScopedExportButton />
+          <AnalyticsScopedExportMenu />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(
-      screen.queryByRole('button', { name: 'Export scoped data' }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
   });
 });

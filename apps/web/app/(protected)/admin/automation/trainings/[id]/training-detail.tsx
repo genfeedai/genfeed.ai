@@ -2,18 +2,14 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  ModalEnum,
-} from '@genfeedai/contracts';
+import { CardPadding } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
 import { Code } from '@genfeedai/ui';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { Training } from '@models/ai/training.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -24,11 +20,11 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { EditableText } from '@ui/primitives/editable-text';
 import { getErrorMessage } from '@utils/error/error-handler.util';
-import { Database, Image, Pencil } from 'lucide-react';
+import { Database, Image } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect } from 'react';
-import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
 
 export default function TrainingDetail({
   children,
@@ -77,6 +73,28 @@ export default function TrainingDetail({
       notificationsService.error(translate('loadError'));
     }
   }, [errorUpdatedAt, isError, notificationsService, translate]);
+
+  // Saves one edited field and reloads the record without the page-level
+  // loading state, so the title does not flash while it saves.
+  const getTrainingsService = useAuthedService(
+    useCallback((token: string) => TrainingsService.getInstance(token), []),
+  );
+  const saveTrainingField = useCallback(
+    async (patch: Partial<Training>) => {
+      const url = `PATCH /trainings/${trainingId}`;
+
+      try {
+        const service = await getTrainingsService();
+        await service.patch(trainingId, patch);
+        await refetch();
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error(translate('saveError'));
+        throw error;
+      }
+    },
+    [getTrainingsService, notificationsService, refetch, trainingId, translate],
+  );
 
   const isTrainingUnavailable = !isLoading && !training;
 
@@ -159,23 +177,24 @@ export default function TrainingDetail({
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-2">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    {training.label}
-                  </h2>
-                  <Button
-                    icon={<Pencil />}
-                    onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    tooltip={translate('editTraining')}
+                  <EditableText
+                    ariaLabel={translate('editLabel')}
+                    displayClassName="text-2xl font-semibold text-foreground"
+                    isRequired
+                    onSave={(label) => saveTrainingField({ label })}
+                    value={training.label}
                   />
                 </div>
 
-                {training.description && (
-                  <p className="text-muted-foreground mb-4">
-                    {training.description}
-                  </p>
-                )}
+                <EditableText
+                  ariaLabel={translate('editDescription')}
+                  className="mb-4"
+                  displayClassName="text-muted-foreground"
+                  isMultiline
+                  onSave={(description) => saveTrainingField({ description })}
+                  placeholder={translate('addDescription')}
+                  value={training.description}
+                />
 
                 <div className="flex flex-wrap gap-4 mt-4">
                   <div className="flex items-center gap-2">
@@ -233,10 +252,6 @@ export default function TrainingDetail({
             <SkeletonCard showImage={false} />
           )}
         </Card>
-
-        {training && (
-          <LazyModalTraining training={training} onSuccess={loadTraining} />
-        )}
       </Container>
 
       <AdminPageShell

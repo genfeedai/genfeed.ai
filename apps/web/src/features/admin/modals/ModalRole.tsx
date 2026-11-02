@@ -15,24 +15,27 @@ import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
-import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
-  const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
-    useCrudModal<IRole, RoleSchema>({
-      defaultValues: {
-        key: '',
-        label: '',
-        primaryColor: '',
-      },
-      entity: role || null,
-      modalId: ModalEnum.ROLE,
-      onConfirm,
-      schema: roleSchema,
-      serviceFactory: (token: string) => RolesService.getInstance(token),
-    });
+export default function ModalRole({ onConfirm }: ModalRoleProps) {
+  const t = useTranslations('ui.createModal');
+  const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
+    IRole,
+    RoleSchema
+  >({
+    defaultValues: {
+      key: '',
+      label: '',
+      primaryColor: '',
+    },
+    entity: null,
+    modalId: ModalEnum.ROLE,
+    onConfirm,
+    schema: roleSchema,
+    serviceFactory: (token: string) => RolesService.getInstance(token),
+  });
 
   function updateRoleField(e: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = e.target;
@@ -52,7 +55,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
   return (
     <Modal
       id={ModalEnum.ROLE}
-      title={role ? 'Edit Role' : 'Create Role'}
+      title={t('role')}
       onClose={() => closeModal(false)}
     >
       <Form ref={formRef} onSubmit={onSubmit}>
@@ -119,25 +122,13 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
             Cancel
           </Button>
 
-          {role && handleDelete && (
-            <Button
-              variant={ButtonVariant.DESTRUCTIVE}
-              type="button"
-              onClick={handleDelete}
-              disabled={isSubmitting}
-              aria-label="Delete role"
-            >
-              {isSubmitting ? <Spinner /> : <Trash2 />}
-            </Button>
-          )}
-
           <Button
             type="submit"
             variant={ButtonVariant.DEFAULT}
             disabled={isSubmitting || !form.formState.isValid}
           >
             {isSubmitting ? <Spinner /> : null}
-            {role ? 'Update' : 'Create'}
+            Create
           </Button>
         </ModalActions>
       </Form>

@@ -1,5 +1,6 @@
 'use client';
 
+import ConciergeHandoff from '@app/(protected)/admin/organizations/components/concierge/concierge-handoff';
 import {
   useAnalyticsContext,
   useAnalyticsSearch,
@@ -9,9 +10,15 @@ import {
   ButtonSize,
   ButtonVariant,
   OrganizationCategory,
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { formatPercentageSimple } from '@helpers/formatting/format/format.helper';
+import type { IWarmupAccount } from '@genfeedai/contracts/interfaces';
+import {
+  formatCompactNumberIntl,
+  formatPercentageSimple,
+} from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import {
@@ -23,6 +30,7 @@ import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import TableUserCell from '@ui/display/table/TableUserCell';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
@@ -42,6 +50,8 @@ const ALL_TYPES = 'all';
 const GENERATIONS_SORT = 'generations';
 const ALL_EMAIL_CLASSES = 'all';
 const ALL_USAGE = 'all';
+const ALL_STATUSES = 'all';
+const ALL_SOURCES = 'all';
 
 type OrganizationSortMetric =
   | AnalyticsMetric.ENGAGEMENT
@@ -70,6 +80,8 @@ export default function AnalyticsOrganizationsList({
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const analyticsT = useTranslations('ui.rowSidebar.analytics');
+  const kpiT = useTranslations('pages.analytics.brandsList.kpi');
+  const metricT = useTranslations('pages.analytics.metricLabels');
   const { dateRange, filters, refreshTrigger, setFilter } =
     useAnalyticsContext();
 
@@ -86,6 +98,8 @@ export default function AnalyticsOrganizationsList({
   const [type, setType] = useState<string>(ALL_TYPES);
   const [emailClass, setEmailClass] = useState<string>(ALL_EMAIL_CLASSES);
   const [usage, setUsage] = useState<string>(ALL_USAGE);
+  const [status, setStatus] = useState<string>(ALL_STATUSES);
+  const [source, setSource] = useState<string>(ALL_SOURCES);
 
   const isLoading = data === null;
   const searchTerm = filters.query ?? '';
@@ -121,6 +135,12 @@ export default function AnalyticsOrganizationsList({
             ...(usage !== ALL_USAGE
               ? { usage: usage as 'active' | 'inactive' }
               : {}),
+            ...(status !== ALL_STATUSES
+              ? { status: status as OrganizationLifecycleStatus }
+              : {}),
+            ...(source !== ALL_SOURCES
+              ? { source: source as OrganizationSourceFilter }
+              : {}),
           },
           controller.signal,
         );
@@ -145,6 +165,8 @@ export default function AnalyticsOrganizationsList({
     type,
     emailClass,
     usage,
+    status,
+    source,
     debouncedSearchTerm,
     refreshTrigger,
   ]);
@@ -184,6 +206,35 @@ export default function AnalyticsOrganizationsList({
     setPage(1);
   }, []);
 
+  const handleStatusChange = useCallback((value: string) => {
+    setStatus(value);
+    setPage(1);
+  }, []);
+
+  const handleSourceChange = useCallback((value: string) => {
+    setSource(value);
+    setPage(1);
+  }, []);
+
+  // The stage follows the sidebar: sending an invitation moves the badge in the row.
+  const handleConciergeChange = useCallback(
+    (organizationId: string, stage: IWarmupAccount['status']) => {
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.map((org) =>
+                org.id === organizationId && org.concierge
+                  ? { ...org, concierge: { ...org.concierge, status: stage } }
+                  : org,
+              ),
+            }
+          : current,
+      );
+    },
+    [],
+  );
+
   const search = useMemo(
     () => (
       <SearchField
@@ -194,6 +245,36 @@ export default function AnalyticsOrganizationsList({
       >
         <FilterMenu
           facets={[
+            {
+              defaultValue: ALL_STATUSES,
+              key: 'status',
+              label: translate('statusFilterLabel'),
+              onChange: handleStatusChange,
+              options: [
+                { label: translate('allStatuses'), value: ALL_STATUSES },
+                ...Object.values(OrganizationLifecycleStatus).map((value) => ({
+                  label: translate(`statuses.${value}`),
+                  value,
+                })),
+              ],
+              selection: 'single',
+              value: status,
+            },
+            {
+              defaultValue: ALL_SOURCES,
+              key: 'source',
+              label: translate('sourceFilterLabel'),
+              onChange: handleSourceChange,
+              options: [
+                { label: translate('allSources'), value: ALL_SOURCES },
+                ...Object.values(OrganizationSourceFilter).map((value) => ({
+                  label: translate(`sources.${value}`),
+                  value,
+                })),
+              ],
+              selection: 'single',
+              value: source,
+            },
             {
               defaultValue: ALL_TYPES,
               key: 'type',
@@ -250,6 +331,8 @@ export default function AnalyticsOrganizationsList({
             handleTypeChange(ALL_TYPES);
             handleEmailClassChange(ALL_EMAIL_CLASSES);
             handleUsageChange(ALL_USAGE);
+            handleStatusChange(ALL_STATUSES);
+            handleSourceChange(ALL_SOURCES);
           }}
         />
       </SearchField>
@@ -260,9 +343,13 @@ export default function AnalyticsOrganizationsList({
       type,
       emailClass,
       usage,
+      status,
+      source,
       handleTypeChange,
       handleEmailClassChange,
       handleUsageChange,
+      handleStatusChange,
+      handleSourceChange,
       translate,
     ],
   );
@@ -302,8 +389,16 @@ export default function AnalyticsOrganizationsList({
               src={org.logo}
             />
             <span className="font-medium">{org.name || 'Unknown'}</span>
+            {org.concierge ? (
+              <Badge status={org.concierge.status.toLowerCase()} />
+            ) : null}
           </Link>
         ),
+      },
+      {
+        header: translate('statusColumn'),
+        key: 'status',
+        render: (org) => <Badge status={org.status} />,
       },
       {
         header: translate('ownerColumn'),
@@ -436,6 +531,34 @@ export default function AnalyticsOrganizationsList({
 
   return (
     <div className="flex flex-col gap-4">
+      <KPISection
+        size="sm"
+        gridCols={{ desktop: 4, mobile: 1 }}
+        isLoading={isLoading}
+        items={[
+          {
+            label: kpiT('organizations'),
+            value: formatCompactNumberIntl(pagination?.total ?? 0),
+          },
+          {
+            analyticsMetric: 'posts',
+            label: metricT('posts'),
+            value: formatCompactNumberIntl(data?.totals?.totalPosts ?? 0),
+          },
+          {
+            analyticsMetric: 'views',
+            label: metricT('views'),
+            value: formatCompactNumberIntl(data?.totals?.totalViews ?? 0),
+          },
+          {
+            analyticsMetric: 'engagement',
+            label: metricT('engagement'),
+            trend: data?.totals?.growth,
+            trendLabel: kpiT('vsLastPeriod'),
+            value: formatCompactNumberIntl(data?.totals?.totalEngagement ?? 0),
+          },
+        ]}
+      />
       <AppTable<IOrgWithStats>
         actions={actions}
         items={orgs}
@@ -458,6 +581,7 @@ export default function AnalyticsOrganizationsList({
             <TableRowSummary
               badges={
                 <>
+                  <Badge status={org.status} />
                   {renderEmailClassBadge(org.ownerEmailClass)}
                   <Badge variant="outline">
                     {org.type
@@ -484,6 +608,7 @@ export default function AnalyticsOrganizationsList({
                   label: translate('emailLabel'),
                   value: org.owner?.email,
                 },
+                { id: 'plan', label: translate('planLabel'), value: org.plan },
                 { id: 'slug', label: translate('slugLabel'), value: org.slug },
                 {
                   id: 'generations',
@@ -542,7 +667,43 @@ export default function AnalyticsOrganizationsList({
               ]}
               openHref={`${APP_ROUTES.ADMIN.ORGANIZATIONS}/${org.id}`}
               openLabel={analyticsT('openOrganization')}
-            />
+            >
+              <div className="flex flex-wrap gap-2">
+                {org.owner ? (
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link
+                      href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+                    >
+                      {translate('openOwner')}
+                    </Link>
+                  </Button>
+                ) : null}
+                {getReleaseAccessHref ? (
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link href={getReleaseAccessHref(org.id)}>
+                      {translate('releaseAccess')}
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+              {org.concierge ? (
+                <ConciergeHandoff
+                  conciergeId={org.concierge.id}
+                  onAccountChange={(account) =>
+                    handleConciergeChange(org.id, account.status)
+                  }
+                  ownerName={org.owner?.name}
+                />
+              ) : null}
+            </TableRowSummary>
           ),
         }}
       />

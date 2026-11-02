@@ -10,11 +10,6 @@ function readAnalytics(relativePath: string): string {
 
 describe('analytics semantic theme surfaces', () => {
   it.each([
-    [
-      'overview/analytics-overview-placeholder-card.tsx',
-      'bg-white/5',
-      'bg-foreground/5',
-    ],
     // These delegate their surfaces to `@ui/kpi/kpi-section` (MetricCard owns
     // the icon chip tone); only the forbidden token is still their concern.
     ['platform-detail/analytics-platform-detail.tsx', 'bg-white/10', null],

@@ -409,18 +409,11 @@ describe('FoldersList', () => {
     },
   );
 
-  it('opens create/edit modals, toggles active state, and refreshes folders', async () => {
+  it('opens the create modal, toggles active state, and refreshes folders', async () => {
     render(<FoldersList scope={PageScope.BRAND} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Folder' }));
     expect(mocks.openModal).toHaveBeenCalled();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Edit Archive Folder' }),
-    );
-    expect(screen.getByTestId('folder-modal')).toHaveTextContent(
-      'Archive Folder',
-    );
 
     const refreshButton = screen.getByRole('button', {
       name: 'Refresh folders',

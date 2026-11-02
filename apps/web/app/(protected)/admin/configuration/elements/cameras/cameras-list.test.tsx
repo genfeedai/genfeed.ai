@@ -33,7 +33,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
+  patchCamera: vi.fn(),
   replace: vi.fn(),
 }));
 
@@ -46,10 +46,6 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -87,6 +83,7 @@ vi.mock('@services/elements/cameras.service', () => ({
     getInstance: () => ({
       delete: mocks.deleteCamera,
       findAll: mocks.findAll,
+      patch: mocks.patchCamera,
     }),
   },
 }));
@@ -246,13 +243,16 @@ describe('CamerasList', () => {
     vi.clearAllMocks();
     mocks.urlSort = null;
     mocks.deleteCamera.mockResolvedValue({ ok: true });
+    mocks.patchCamera.mockResolvedValue({ ok: true });
     mocks.findAll.mockResolvedValue(CAMERAS);
   });
 
   it('renders superadmin cameras and reads the admin filters from the URL', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
-    expect(await screen.findByText('Wide Camera')).toBeInTheDocument();
+    expect((await screen.findAllByText('Wide Camera')).length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getByText('Macro Camera')).toBeInTheDocument();
     expect(mocks.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -296,33 +296,89 @@ describe('CamerasList', () => {
     );
   });
 
-  it('opens the camera summary in the sidebar with Edit for superadmins', async () => {
+  it('shows the camera in the sidebar with fields editable in place for superadmins', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     const sidebar = within(await screen.findByTestId('row-sidebar'));
-    expect(sidebar.getByText('wide_camera')).toBeInTheDocument();
-    expect(sidebar.getByText('Camera description')).toBeInTheDocument();
+    expect(sidebar.getByRole('button', { name: 'Key' })).toHaveTextContent(
+      'wide_camera',
+    );
+    expect(
+      sidebar.getByRole('button', { name: 'Description' }),
+    ).toHaveTextContent('Camera description');
+    expect(
+      sidebar.queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(sidebar.getByRole('button', { name: 'Edit' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('camera-modal')).toHaveTextContent('Wide Camera');
+  it('saves a label edited in the sidebar and reloads the list', async () => {
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    fireEvent.click(sidebar.getByRole('button', { name: 'Label' }));
+    const input = sidebar.getByRole('textbox', { name: 'Label' });
+    const readsBefore = mocks.findAll.mock.calls.length;
+    fireEvent.change(input, { target: { value: 'Ultra Wide Camera' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mocks.patchCamera).toHaveBeenCalledWith('camera-1', {
+        label: 'Ultra Wide Camera',
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.findAll.mock.calls.length).toBeGreaterThan(readsBefore);
+    });
+  });
+
+  it('normalizes an edited key before saving it', async () => {
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    fireEvent.click(sidebar.getByRole('button', { name: 'Key' }));
+    const input = sidebar.getByRole('textbox', { name: 'Key' });
+    fireEvent.change(input, { target: { value: 'Ultra Wide!' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mocks.patchCamera).toHaveBeenCalledWith('camera-1', {
+        key: 'ultra-wide',
+      });
+    });
+  });
+
+  it('reports a failed in-place save', async () => {
+    mocks.patchCamera.mockRejectedValueOnce(new Error('patch failed'));
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    fireEvent.click(sidebar.getByRole('button', { name: 'Label' }));
+    const input = sidebar.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(input, { target: { value: 'Broken' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mocks.notificationsError).toHaveBeenCalledWith(
+        'Failed to update camera',
+      );
+    });
   });
 
   it('shows a read-only camera summary outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    expect(sidebar.getByText('wide_camera')).toBeInTheDocument();
     expect(
-      within(await screen.findByTestId('row-sidebar')).queryByRole('button', {
-        name: 'Edit',
-      }),
+      sidebar.queryByRole('button', { name: 'Label' }),
     ).not.toBeInTheDocument();
   });
 
-  it('registers external refresh and opens edit/delete flows with the selected camera', async () => {
+  it('registers external refresh and opens the delete flow with the selected camera', async () => {
     const onRefresh = vi.fn();
 
     renderList({ onRefresh, scope: PageScope.SUPERADMIN });
-    await screen.findByText('Macro Camera');
+    await screen.findAllByText('Macro Camera');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
     mocks.findAll.mockResolvedValue([
@@ -331,19 +387,15 @@ describe('CamerasList', () => {
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    expect(await screen.findByText('Refreshed Camera')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Refreshed Camera')).length,
+    ).toBeGreaterThan(0);
 
     mocks.findAll.mockResolvedValue(CAMERAS);
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    await screen.findByText('Macro Camera');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Macro Camera' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('camera-modal')).toHaveTextContent(
-      'Macro Camera',
-    );
+    await screen.findAllByText('Macro Camera');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Delete Macro Camera' }),
@@ -410,7 +462,7 @@ describe('CamerasList', () => {
   it('hides superadmin filters and actions outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
-    await screen.findByText('Wide Camera');
+    await screen.findAllByText('Wide Camera');
     expect(
       screen.queryByRole('button', { name: 'Edit Wide Camera' }),
     ).toBeNull();
@@ -435,7 +487,7 @@ describe('CamerasList', () => {
     mocks.findAll.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
-    expect(screen.getByText('Wide Camera')).toBeInTheDocument();
+    expect(screen.getAllByText('Wide Camera').length).toBeGreaterThan(0);
     expect(screen.getByText('Pagination: 14 cameras')).toBeInTheDocument();
     expect(screen.queryByText('Loading cameras')).not.toBeInTheDocument();
   });

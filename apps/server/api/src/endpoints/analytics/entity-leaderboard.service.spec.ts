@@ -114,6 +114,9 @@ describe('EntityLeaderboardService', () => {
     user: {
       findMany: vi.fn(),
     },
+    warmupAccount: {
+      findMany: vi.fn(),
+    },
   };
 
   const mockOrganizationLogoService = {
@@ -146,6 +149,7 @@ describe('EntityLeaderboardService', () => {
     mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.organization.findMany.mockResolvedValue([]);
     mockPrismaService.user.findMany.mockResolvedValue([]);
+    mockPrismaService.warmupAccount.findMany.mockResolvedValue([]);
     mockOrganizationLogoService.resolveLogoUrls.mockResolvedValue(new Map());
     mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 

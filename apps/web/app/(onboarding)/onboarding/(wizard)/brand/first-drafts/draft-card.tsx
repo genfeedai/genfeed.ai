@@ -8,9 +8,8 @@ import type { FirstDraftCardProps } from '@/features/onboarding/props/first-draf
 
 export default function DraftCard({
   draft,
-  imageUrl,
-  videoUrl,
-  videoStatus,
+  images,
+  masterUrl,
   brandName,
   avatarUrl,
   isSaving,
@@ -20,9 +19,16 @@ export default function DraftCard({
   verdict,
 }: FirstDraftCardProps) {
   const t = useTranslations('pages.onboarding.firstDrafts');
-  const isVideo = draft.platform === 'tiktok';
   const rejected = verdict === 'down';
-  const mediaUrl = isVideo ? videoUrl : imageUrl;
+  // A run saved before campaign images has none of its own: it shows the master.
+  const mediaUrls =
+    images.length > 0
+      ? images.flatMap((image) => (image.url ? [image.url] : []))
+      : masterUrl
+        ? [masterUrl]
+        : [];
+  const isSlideshow = draft.platform === 'tiktok' && mediaUrls.length > 1;
+  const status = images.find((image) => image.status !== 'ready')?.status;
   return (
     <div data-testid={`onboarding-draft-${draft.platform}`} className="min-w-0">
       <div className={rejected ? 'opacity-35' : undefined}>
@@ -32,37 +38,31 @@ export default function DraftCard({
             platform: draft.platform,
             caption: draft.text,
             author: { name: brandName || t('brandFallback'), avatarUrl },
-            media: mediaUrl
-              ? [
-                  {
-                    id: `${draft.postId}-media`,
-                    kind: isVideo ? 'short_video' : 'image',
-                    url: mediaUrl,
-                    alt: t(isVideo ? 'videoAlt' : 'imageAlt', {
-                      platform: t(`platforms.${draft.platform}`),
-                    }),
-                  },
-                ]
-              : [],
+            media: mediaUrls.map((url, index) => ({
+              id: `${draft.postId}-media-${index}`,
+              kind: isSlideshow ? 'carousel' : 'image',
+              url,
+              alt: t('imageAlt', {
+                platform: t(`platforms.${draft.platform}`),
+              }),
+            })),
           }}
           headerPresentation="account"
           statusLabel={verdict === 'up' ? t('verdict.kept') : undefined}
           showValidation={false}
         />
-        {isVideo && !videoUrl ? (
+        {status ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <p role="status" className="text-xs text-muted-foreground">
               {t(
-                videoStatus === 'pending'
-                  ? 'review.videoPending'
-                  : videoStatus === 'needs_credits'
-                    ? 'review.videoNeedsCredits'
-                    : 'review.videoFailed',
+                status === 'pending'
+                  ? 'review.imagePending'
+                  : status === 'needs_credits'
+                    ? 'review.imageNeedsCredits'
+                    : 'review.imageUnavailable',
               )}
             </p>
-            {onRetryMedia &&
-            videoStatus !== 'pending' &&
-            videoStatus !== 'needs_credits' ? (
+            {onRetryMedia && status === 'failed' ? (
               <Button
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}

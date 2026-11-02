@@ -91,6 +91,43 @@ describe('KnowledgeSourceDetailPanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('explains a failed capture and keeps the raw error as technical detail', () => {
+    renderPanel({
+      ...ROW,
+      version: {
+        ...ROW.version,
+        processingError:
+          'getaddrinfo ENOTFOUND example.invalid\n    at GetAddrInfoReqWrap.onlookup',
+      },
+    } as KnowledgeSourceRow);
+
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(
+      within(outlet).getByText('The address could not be reached.'),
+    ).toBeInTheDocument();
+    expect(within(outlet).getByText('Technical detail')).toBeInTheDocument();
+    expect(
+      within(outlet).getByText(/getaddrinfo ENOTFOUND example\.invalid/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the source address as a link', () => {
+    renderPanel({
+      ...ROW,
+      source: {
+        ...ROW.source,
+        kind: KnowledgeSourceKind.URL,
+        referenceUrl: 'https://www.brand.example/pricing',
+      },
+    } as KnowledgeSourceRow);
+
+    expect(
+      within(screen.getByTestId('context-sidebar-outlet')).getByRole('link', {
+        name: 'brand.example/pricing',
+      }),
+    ).toHaveAttribute('href', 'https://www.brand.example/pricing');
+  });
+
   it('renders nothing into the sidebar without a selected source', () => {
     renderPanel(null);
 

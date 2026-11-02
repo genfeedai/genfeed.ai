@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { TableRowSummaryProps } from '@genfeedai/props/ui/display/table-row-summary.props';
+import InlineField from '@ui/display/inline-field/InlineField';
 import { Button } from '@ui/primitives/button';
 import {
   DefinitionDetail,
@@ -27,9 +28,10 @@ export default function TableRowSummary({
   const t = useTranslations('ui.rowSidebar');
   const knownFacts = facts.filter(
     (fact) =>
-      fact.value !== undefined &&
-      fact.value !== null &&
-      !(typeof fact.value === 'string' && fact.value.trim() === ''),
+      fact.editor !== undefined ||
+      (fact.value !== undefined &&
+        fact.value !== null &&
+        !(typeof fact.value === 'string' && fact.value.trim() === '')),
   );
 
   return (
@@ -54,7 +56,13 @@ export default function TableRowSummary({
           {knownFacts.map((fact) => (
             <div key={fact.id}>
               <DefinitionTerm>{fact.label}</DefinitionTerm>
-              <DefinitionDetail>{fact.value}</DefinitionDetail>
+              <DefinitionDetail>
+                {fact.editor ? (
+                  <InlineField editor={fact.editor} />
+                ) : (
+                  fact.value
+                )}
+              </DefinitionDetail>
             </div>
           ))}
         </DefinitionList>

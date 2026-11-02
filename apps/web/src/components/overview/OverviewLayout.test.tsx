@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { Sparkles } from 'lucide-react';
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import OverviewLayout, { OverviewContent } from './OverviewLayout';
 
 describe('OverviewLayout', () => {
@@ -31,6 +31,22 @@ describe('OverviewLayout', () => {
     expect(screen.queryByText('Quick Actions')).not.toBeInTheDocument();
   });
 
+  it('keeps the quick actions as cards, never a second row of links', () => {
+    render(<OverviewLayout label="Overview" cards={cards} />);
+
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go' })).toBeInTheDocument();
+  });
+
+  it('makes the whole card the link, with no footer button inside it', () => {
+    render(<OverviewLayout label="Overview" cards={cards} />);
+
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link).toHaveTextContent('Create');
+    expect(link).toHaveTextContent('Start something new');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('should handle user interactions correctly', () => {
     const { container } = render(
       <OverviewLayout label="Overview" cards={cards} />,
@@ -57,21 +73,6 @@ describe('OverviewLayout', () => {
     expect(quickActionCard).toHaveClass('bg-card');
   });
 
-  it('invokes compact actions as buttons without requiring a destination', () => {
-    const onClick = vi.fn();
-    render(
-      <OverviewContent
-        actionsLayout="compact"
-        cards={[{ ...cards[0], href: undefined, onClick }]}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
-
-    expect(onClick).toHaveBeenCalledOnce();
-    expect(screen.queryByRole('link', { name: 'Go' })).not.toBeInTheDocument();
-  });
-
   it('lays quick actions on the container ladder without a fixed tile height', () => {
     const { container } = render(
       <OverviewLayout label="Overview" cards={cards} />,
@@ -82,41 +83,8 @@ describe('OverviewLayout', () => {
     expect(screen.getByTestId('overview-quick-actions')).toHaveClass(
       '@container',
     );
-    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-4');
+    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-5');
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
     expect(container.innerHTML).not.toContain('min-h-[220px]');
   });
-});
-
-it('puts compact publishing destinations before operational content as real links', () => {
-  render(
-    <OverviewContent
-      actionsLayout="compact"
-      actionsTitle="Publishing shortcuts"
-      cards={[
-        {
-          id: 'posts',
-          label: 'Not posted',
-          description: 'Drafts and scheduled posts',
-          href: '/publishing/posts',
-          cta: 'Browse drafts',
-          icon: Sparkles,
-        },
-      ]}
-      header={<p>Operational content</p>}
-    />,
-  );
-  const navigation = screen.getByRole('navigation', {
-    name: 'Publishing shortcuts',
-  });
-  expect(navigation.firstElementChild).toHaveAttribute(
-    'href',
-    '/publishing/posts',
-  );
-  expect(
-    navigation.compareDocumentPosition(
-      screen.getByText('Operational content'),
-    ) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
-  expect(screen.queryByText('Launch')).not.toBeInTheDocument();
 });

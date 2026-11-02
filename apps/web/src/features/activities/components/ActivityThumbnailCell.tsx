@@ -9,24 +9,12 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
-import {
-  Coins,
-  Eye,
-  FileText,
-  Image as ImageIcon,
-  Music,
-  Play,
-  Sparkles,
-  Unplug,
-  Video,
-  Workflow,
-} from 'lucide-react';
+import { Eye, Play } from 'lucide-react';
 import Image from 'next/image';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import {
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
-  getActivityTypeKind,
   getActivityVideoUrl,
   getBackgroundTaskStatus,
   getResultTypeFromActivityKey,
@@ -49,36 +37,14 @@ type Props = {
 /** Both inspect controls are icon-only, so the name lives on the button. */
 const INSPECT_LABEL = 'Inspect activity ingredient';
 
-function ActivityTypeIcon({ activity }: { activity: IActivity }) {
-  const TypeIcon = {
-    article: FileText,
-    audio: Music,
-    credits: Coins,
-    image: ImageIcon,
-    other: Sparkles,
-    post: FileText,
-    social: Unplug,
-    video: Video,
-    workflow: Workflow,
-  }[getActivityTypeKind(activity)];
-
-  return (
-    <div className="flex size-10 shrink-0 items-center justify-center bg-card text-foreground/70">
-      <TypeIcon aria-hidden="true" className="size-4" />
-    </div>
-  );
-}
-
 function ActivityAssetPreview({
   activity,
-  fallback,
   ingredient,
   onViewIngredient,
   resultType,
   src,
 }: {
   activity: IActivity;
-  fallback: ReactNode;
   ingredient: unknown;
   onViewIngredient?: (ingredient: unknown) => void;
   resultType: IngredientCategory | undefined;
@@ -91,7 +57,7 @@ function ActivityAssetPreview({
   const [failedVideoSrc, setFailedVideoSrc] = useState<string | null>(null);
   const videoSrc = getActivityVideoUrl(activity);
   if (failedSrc === src && (!videoSrc || failedVideoSrc === videoSrc)) {
-    return fallback;
+    return null;
   }
 
   const canInspect = Boolean(ingredient && onViewIngredient);
@@ -204,16 +170,15 @@ export default function ActivityThumbnailCell({
     status,
   });
   const ingredient = (activity as IActivityPopulated).ingredient;
-  const fallback = <ActivityTypeIcon activity={activity} />;
 
+  // Only real image/video previews render; other rows take no space.
   if (!previewUrl) {
-    return fallback;
+    return null;
   }
 
   return (
     <ActivityAssetPreview
       activity={activity}
-      fallback={fallback}
       ingredient={ingredient}
       onViewIngredient={onViewIngredient}
       resultType={resultType}

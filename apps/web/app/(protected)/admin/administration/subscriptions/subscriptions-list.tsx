@@ -281,7 +281,6 @@ export default function SubscriptionsList() {
     getSubtitle: (row) => row.ownerEmail ?? undefined,
     getTitle: (row) => row.organizationName || rowSidebarT('notAvailable'),
     kind: 'record',
-    onEdit: (row) => openSubscriptionModal(row.organizationId),
     openLabel: subscriptionT('openOrganization'),
   });
 

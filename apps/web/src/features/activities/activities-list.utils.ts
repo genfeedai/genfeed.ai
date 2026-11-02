@@ -12,6 +12,7 @@ import {
   Platform,
   parseActivityKey,
   parseCreditActivityValue,
+  parsePostTransition,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -336,7 +337,9 @@ export function getActivityDescription(
   }
 
   if (key) {
-    return formatActivityMessage(getActivityMessageDescriptor(key));
+    return formatActivityMessage(
+      getActivityMessageDescriptor(key, activity.value),
+    );
   }
 
   const sourceLabel = activity.source
@@ -349,17 +352,6 @@ export function getActivityDescription(
   return 'Activity recorded';
 }
 
-export type ActivityTypeKind =
-  | 'article'
-  | 'audio'
-  | 'credits'
-  | 'image'
-  | 'other'
-  | 'post'
-  | 'social'
-  | 'video'
-  | 'workflow';
-
 const MEDIA_SUBJECTS = new Set([
   'audio',
   'avatar',
@@ -368,21 +360,6 @@ const MEDIA_SUBJECTS = new Set([
   'video',
   'voice',
 ]);
-
-export function getActivityTypeKind(activity: IActivity): ActivityTypeKind {
-  const { subject } = parseActivityKey(activity.key);
-  if (subject === 'image' || subject === 'avatar') return 'image';
-  if (subject === 'video') return 'video';
-  if (subject === 'music' || subject === 'audio' || subject === 'voice') {
-    return 'audio';
-  }
-  if (subject === 'social' || subject === 'integration') return 'social';
-  if (subject === 'workflow') return 'workflow';
-  if (subject === 'article') return 'article';
-  if (subject === 'post') return 'post';
-  if (isCreditActivity(activity.key)) return 'credits';
-  return 'other';
-}
 
 export function getActivityDetailText(activity: IActivity): string | undefined {
   const value = activity.value?.trim();
@@ -505,7 +482,11 @@ export function parsePostActivityValue(
   return null;
 }
 
-/** The status badge an activity shows, whatever its kind. */
+/**
+ * The status badge an activity shows, whatever its kind. A post transition
+ * shows the state the post moved to; an audit row that carries no status
+ * returns an empty string, so the cell shows a dash instead of "pending".
+ */
 export function getActivityStatus(activity: IActivity): string {
   if (isBackgroundTask(activity)) {
     return getBackgroundTaskStatus(activity.key);
@@ -513,7 +494,66 @@ export function getActivityStatus(activity: IActivity): string {
   if (isCreditActivity(activity.key)) {
     return 'completed';
   }
-  return activity.status || 'pending';
+  if (activity.key === ActivityKey.POST_LIFECYCLE_TRANSITION) {
+    return parsePostTransition(activity.value)?.to.toLowerCase() ?? '';
+  }
+  return activity.status || '';
+}
+
+/** "ran 1m 42s" from a run's own timestamps, or null when it has no run. */
+export function getActivityRunDuration(activity: IActivity): string | null {
+  const fields = getActivityValueFields(activity);
+  const start = fields.startedAt ? new Date(fields.startedAt).getTime() : NaN;
+  const end = fields.completedAt ? new Date(fields.completedAt).getTime() : NaN;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return null;
+  }
+  const totalSeconds = Math.round((end - start) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours) return `${hours}h ${minutes}m`;
+  if (minutes) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+/** HH:MM:SS in UTC, the clock every admin row is read against. */
+export function formatActivityClock(createdAt: string | undefined): string {
+  const date = new Date(createdAt ?? '');
+  return Number.isFinite(date.getTime())
+    ? date.toISOString().slice(11, 19)
+    : '—';
+}
+
+/** The UTC calendar day a row belongs to, as YYYY-MM-DD. */
+export function getActivityDayKey(createdAt: string | undefined): string {
+  const date = new Date(createdAt ?? '');
+  return Number.isFinite(date.getTime())
+    ? date.toISOString().slice(0, 10)
+    : 'unknown';
+}
+
+/** "Today · Mon, Nov 2 · UTC", "Yesterday · …", then "Sun, Nov 1 · UTC". */
+export function formatActivityDayHeading(
+  dayKey: string,
+  now: Date = new Date(),
+): string {
+  if (dayKey === 'unknown') return 'Unknown date';
+  const day = new Date(`${dayKey}T00:00:00Z`);
+  const label = day.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+    weekday: 'short',
+  });
+  const dayMs = 86_400_000;
+  const todayKey = now.toISOString().slice(0, 10);
+  const yesterdayKey = new Date(now.getTime() - dayMs)
+    .toISOString()
+    .slice(0, 10);
+  if (dayKey === todayKey) return `Today · ${label} · UTC`;
+  if (dayKey === yesterdayKey) return `Yesterday · ${label} · UTC`;
+  return `${label} · UTC`;
 }
 
 /** The credit movement an activity records, or null when it has none. */

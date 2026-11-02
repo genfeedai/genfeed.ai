@@ -129,6 +129,8 @@ export class AnalyticsAdminController {
         req.query?.order || 'desc',
         req.query?.emailClass || 'any',
         req.query?.usage || 'any',
+        req.query?.status || 'any',
+        req.query?.source || 'any',
       ]),
     tags: ['analytics', 'super-admin', 'organizations'],
     ttl: 300,
@@ -156,7 +158,12 @@ export class AnalyticsAdminController {
         query.organizationId,
         query.type,
         query.order,
-        { emailClass: query.emailClass, usage: query.usage },
+        {
+          emailClass: query.emailClass,
+          source: query.source,
+          status: query.status,
+          usage: query.usage,
+        },
       ),
     );
     return serializeSingle(req, AnalyticsOrgStatsSerializer, data);

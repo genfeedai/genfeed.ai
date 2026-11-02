@@ -11,9 +11,8 @@ import { useMemo } from 'react';
 
 export interface ITimeSeriesDataPoint {
   date: string;
-  posts: number;
-  users: number;
-  credits: number;
+  views: number;
+  likes: number;
 }
 
 export interface UseAdminStatsReturn {
@@ -26,7 +25,14 @@ export interface UseAdminStatsReturn {
   refresh: () => Promise<void>;
 }
 
-export function useAdminStats(): UseAdminStatsReturn {
+/** Days of platform activity the timeseries covers. */
+export const ADMIN_ACTIVITY_RANGE_DAYS = { '30d': 30, '7d': 7 } as const;
+export type AdminActivityRange = keyof typeof ADMIN_ACTIVITY_RANGE_DAYS;
+
+export function useAdminStats(
+  range: AdminActivityRange = '7d',
+): UseAdminStatsReturn {
+  const rangeDays = ADMIN_ACTIVITY_RANGE_DAYS[range];
   const { isLoaded, isSignedIn, orgId, sessionId, userId } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
@@ -97,7 +103,7 @@ export function useAdminStats(): UseAdminStatsReturn {
     refetch: refetchTimeseries,
   } = useQuery({
     enabled: shouldFetch,
-    queryKey: ['admin-timeseries', ...queryOwner],
+    queryKey: ['admin-timeseries', ...queryOwner, rangeDays],
     queryFn: async ({ signal }) => {
       if (!shouldFetch) return [];
       signal.throwIfAborted();
@@ -105,7 +111,7 @@ export function useAdminStats(): UseAdminStatsReturn {
       signal.throwIfAborted();
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 7);
+      startDate.setDate(startDate.getDate() - rangeDays);
 
       const result = await service.getTimeSeries({
         endDate: endDate.toISOString().split('T')[0],
@@ -159,10 +165,9 @@ export function useAdminStats(): UseAdminStatsReturn {
       });
 
       return {
-        credits: totalLikes,
         date: item.date as string,
-        posts: totalViews,
-        users: totalLikes,
+        likes: totalLikes,
+        views: totalViews,
       };
     });
   }, [shouldFetch, timeseriesData]);

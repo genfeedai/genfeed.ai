@@ -9,7 +9,7 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { StylesService } from '@genfeedai/services/elements/styles.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -19,15 +19,13 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalStyle({
-  item,
-  onConfirm,
-  onClose,
-}: ModalCrudProps<IElementStyle>) {
+export default function ModalStyle({ onConfirm, onClose }: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementStyle,
     ElementStyleSchema
@@ -40,7 +38,7 @@ export default function ModalStyle({
       label: '',
       models: [],
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.STYLE,
     onClose,
     onConfirm,
@@ -68,7 +66,7 @@ export default function ModalStyle({
   };
 
   return (
-    <Modal id={ModalEnum.STYLE} title={item ? 'Edit Style' : 'Create Style'}>
+    <Modal id={ModalEnum.STYLE} title={t('style')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
           <Alert variant="destructive">
@@ -204,7 +202,7 @@ export default function ModalStyle({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

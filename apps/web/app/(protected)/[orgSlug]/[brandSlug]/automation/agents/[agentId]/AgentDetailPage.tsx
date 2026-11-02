@@ -455,12 +455,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                 {
                   label: cadenceLabels('scheduled'),
                   value: performance.cadence.week,
-                  description: `${cadenceLabels('weeklyTarget')}: ${performance.cadence.weeklyTarget} · ${cadenceLabels('publishingCeiling')}: ${performance.cadence.publishingCeiling}`,
                 },
                 {
                   label: cadenceLabels('ready'),
                   value: performance.cadence.readyDrafts,
-                  description: `${cadenceLabels('draftReserve')}: ${performance.cadence.draftReserve}`,
                 },
                 {
                   label: cadenceLabels('pending'),
@@ -486,16 +484,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           gridCols={{ desktop: 4, mobile: 2 }}
           items={[
             {
-              description: detail('budget', {
-                amount: strategy.dailyCreditBudget,
-              }),
               label: detail('creditsToday'),
               value: strategy.creditsUsedToday,
             },
             {
-              description: detail('budget', {
-                amount: strategy.weeklyCreditBudget,
-              }),
               label: detail('creditsThisWeek'),
               value: strategy.creditsUsedThisWeek,
             },

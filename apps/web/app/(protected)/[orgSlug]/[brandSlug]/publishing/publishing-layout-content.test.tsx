@@ -87,17 +87,17 @@ class MockIntersectionObserver {
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 function ToolbarFixture() {
-  const { setLeadingNode, setFiltersNode, setExportNode } = usePostsLayout();
+  const { setLeadingNode, setFiltersNode, setOverflowNode } = usePostsLayout();
   useEffect(() => {
     setLeadingNode(<input aria-label="Search posts" />);
     setFiltersNode(<button type="button">Filter posts</button>);
-    setExportNode(<a href="/acme/main/publishing/approvals">Approval queue</a>);
+    setOverflowNode(<button type="button">More actions</button>);
     return () => {
       setLeadingNode(null);
       setFiltersNode(null);
-      setExportNode(null);
+      setOverflowNode(null);
     };
-  }, [setLeadingNode, setFiltersNode, setExportNode]);
+  }, [setLeadingNode, setFiltersNode, setOverflowNode]);
   return <div>posts</div>;
 }
 
@@ -126,7 +126,7 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
-  it('puts existing search left and refresh, queue, filters, New post on the right', () => {
+  it('puts existing search left and the "..." menu, refresh, filters, New post on the right', () => {
     render(
       <PublishingLayoutContent>
         <ToolbarFixture />
@@ -138,8 +138,8 @@ describe('PublishingLayoutContent', () => {
     );
     const controls = [
       search,
+      screen.getByRole('button', { name: 'More actions' }),
       screen.getByRole('button', { name: /refresh/i }),
-      screen.getByRole('link', { name: 'Approval queue' }),
       screen.getByRole('button', { name: 'Filter posts' }),
       screen.getByRole('button', { name: /new post/i }),
     ];

@@ -27,12 +27,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -231,7 +226,7 @@ describe('StylesList', () => {
     );
   });
 
-  it('registers external refresh and opens edit/delete flows with the clicked style', async () => {
+  it('registers external refresh and opens the delete flow with the clicked style', async () => {
     const onRefresh = vi.fn();
 
     render(<StylesList scope={PageScope.SUPERADMIN} onRefresh={onRefresh} />);
@@ -243,10 +238,6 @@ describe('StylesList', () => {
       await onRefresh.mock.calls[0][0]();
     });
     expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Editorial' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('style-modal')).toHaveTextContent('Editorial');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Editorial' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(

@@ -59,55 +59,37 @@ export default function EconomicsOverviewReport() {
 
     return [
       {
-        description: translate('overview.kpis.revenueDescription', {
-          events: formatCount(totals.revenueEvents),
-          organizations: formatCount(totals.payingOrganizations),
-        }),
         label: translate('overview.kpis.revenue'),
         trend: percentChange(totals.revenueUsd, before.revenueUsd),
         trendLabel: previous(before.revenueUsd),
         value: formatUsd(totals.revenueUsd),
       },
       {
-        description: translate('overview.kpis.providerCostDescription', {
-          llm: formatUsd(totals.llmCostUsd),
-          media: formatUsd(totals.mediaCostUsd),
-        }),
         label: translate('overview.kpis.providerCost'),
         value: formatUsd(totals.providerCostUsd),
       },
       {
-        description: translate('overview.kpis.grossMarginDescription', {
+        label: translate('overview.kpis.grossMargin', {
           percent: formatMarginPercent(totals.grossMarginPercent),
         }),
-        label: translate('overview.kpis.grossMargin'),
         value: formatUsd(totals.grossMarginUsd),
         tone: totals.grossMarginUsd < 0 ? ('destructive' as const) : undefined,
       },
       {
-        description: translate('overview.kpis.creditValueDescription', {
-          credits: formatCount(Math.round(totals.creditsConsumed)),
-          organizations: formatCount(totals.activeOrganizations),
-        }),
         label: translate('overview.kpis.creditValue'),
         trend: percentChange(totals.creditValueUsd, before.creditValueUsd),
         trendLabel: previous(before.creditValueUsd),
         value: formatUsd(totals.creditValueUsd),
       },
       {
-        description: translate('overview.kpis.pricingMarginDescription', {
+        label: translate('overview.kpis.pricingMargin', {
           percent: formatMarginPercent(totals.pricingMarginPercent),
         }),
-        label: translate('overview.kpis.pricingMargin'),
         value: formatUsd(totals.pricingMarginUsd),
         tone:
           totals.pricingMarginUsd < 0 ? ('destructive' as const) : undefined,
       },
       {
-        description: translate('overview.kpis.callsDescription', {
-          llm: formatCount(totals.llmCalls),
-          media: formatCount(totals.mediaGenerations),
-        }),
         label: translate('overview.kpis.calls'),
         value: formatCount(totals.llmCalls + totals.mediaGenerations),
       },

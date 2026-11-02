@@ -28,12 +28,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -257,13 +252,10 @@ describe('MoodsList', () => {
     );
   });
 
-  it('opens edit and delete flows with the clicked mood', async () => {
+  it('opens the delete flow with the clicked mood', async () => {
     render(<MoodsList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Urgent');
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Urgent' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('mood-modal')).toHaveTextContent('Urgent');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Urgent' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(
