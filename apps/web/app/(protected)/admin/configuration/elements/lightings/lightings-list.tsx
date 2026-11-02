@@ -9,12 +9,12 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementLighting } from '@models/elements/lighting.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { LightingsService } from '@services/elements/lightings.service';
-import { useQuery } from '@tanstack/react-query';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
@@ -36,6 +36,7 @@ import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const LIGHTING_SORT_KEYS = ['label', 'key'];
+const EMPTY_LIGHTINGS: ElementLighting[] = [];
 
 function LightingsListContent({
   filters,
@@ -76,24 +77,11 @@ function LightingsListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
-  const {
-    data: lightings = [] as ElementLighting[],
-    isLoading,
-    isFetching,
-    error: lightingsError,
-    refetch: refreshLightings,
-  } = useQuery({
-    queryKey: [
-      'lightings',
-      currentPage,
-      scope,
-      adminOrg,
-      adminBrand,
-      filters?.search,
-      sort,
-    ],
-    queryFn: async () => {
-      const service = await getLightingsService();
+  // Cached per page with the signed-in account in the key: coming back paints
+  // the rows and footer it already has while they refresh.
+  const lightingsQuery = usePagedAuthedQuery({
+    enabled: Boolean(isSignedIn),
+    queryFn: async (service, signal) => {
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -110,21 +98,48 @@ function LightingsListContent({
         }
       }
 
-      const data = await service.findAll(query);
-      logger.info('GET /lightings success', data);
-      return data;
+      try {
+        const data = await service.findAll(query, signal);
+        logger.info('GET /lightings success', data);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /lightings failed', error);
+        }
+        throw error;
+      }
     },
-    enabled: !!isSignedIn,
+    queryKey: [
+      'admin',
+      'lightings',
+      {
+        adminBrand,
+        adminOrg,
+        page: currentPage,
+        scope,
+        search: filters?.search,
+        sort,
+      },
+    ],
+    service: (token: string) => LightingsService.getInstance(token),
   });
-
+  const lightings = lightingsQuery.data?.items ?? EMPTY_LIGHTINGS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshLightings,
+  } = lightingsQuery;
   const isRefreshing = isFetching && !isLoading;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (lightingsError) {
-      logger.error('GET /lightings failed', lightingsError);
+    if (isError) {
       notificationsService.error('Failed to load lightings');
     }
-  }, [lightingsError, notificationsService]);
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {
@@ -260,7 +275,11 @@ function LightingsListContent({
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="lightings" />
+        <AutoPagination
+          showTotal
+          totalLabel="lightings"
+          totals={lightingsQuery.data?.totals}
+        />
       </div>
     </>
   );
