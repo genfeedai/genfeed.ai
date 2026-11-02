@@ -8,8 +8,10 @@ import { ButtonVariant, CardPadding, CardVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
+  EMPTY_PAGE_TOTALS,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -157,7 +159,9 @@ function AuthorizedApiKeysContent({
   const defaultKeyName = translate('fields.keyNamePlaceholder');
   const loadErrorMessage = translate('errors.load');
 
-  const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>(() => []);
+  const [productKeysPage, setProductKeysPage] =
+    useState<IPaginatedResponse<ApiKey> | null>(null);
+  const productApiKeys = productKeysPage?.items ?? [];
   const [productForm, setProductForm] = useState<ProductApiKeyForm>(() =>
     createInitialProductApiKeyForm(defaultKeyName),
   );
@@ -242,13 +246,13 @@ function AuthorizedApiKeysContent({
       try {
         const service = await acquireService(isCurrentFetch);
         if (!service || !isCurrentFetch()) return;
-        const apiKeys = await service.findAll(
+        const apiKeys = await service.findAllPage(
           { limit: ITEMS_PER_PAGE, page: currentPage },
           signal ?? pageControllerRef.current?.signal,
         );
 
         if (isCurrentFetch()) {
-          setProductApiKeys(Array.isArray(apiKeys) ? apiKeys : []);
+          setProductKeysPage(apiKeys);
           setHasProductKeysLoadError(false);
         }
       } catch (error) {
@@ -256,7 +260,7 @@ function AuthorizedApiKeysContent({
         if (isCurrentFetch()) {
           logger.error('Failed to fetch Genfeed API keys', error);
           NotificationsService.getInstance().error(loadErrorMessage);
-          setProductApiKeys([]);
+          setProductKeysPage(null);
           setHasProductKeysLoadError(true);
         }
       } finally {
@@ -270,7 +274,7 @@ function AuthorizedApiKeysContent({
 
   useEffect(() => {
     if (!organizationId || !isReady) {
-      setProductApiKeys([]);
+      setProductKeysPage(null);
       setProductPlainKey(null);
       setHasProductKeysLoadError(false);
       setIsProductLoading(false);
@@ -278,7 +282,7 @@ function AuthorizedApiKeysContent({
     }
     const controller = new AbortController();
 
-    setProductApiKeys([]);
+    setProductKeysPage(null);
     setProductPlainKey(null);
     setHasProductKeysLoadError(false);
     setIsProductLoading(true);
@@ -690,7 +694,18 @@ function AuthorizedApiKeysContent({
                     </div>
                   </div>
                 ))}
-                <AutoPagination showTotal totalLabel="keys" />
+                <AutoPagination
+                  showTotal
+                  totalLabel="keys"
+                  totals={
+                    productKeysPage
+                      ? {
+                          totalDocs: productKeysPage.total,
+                          totalPages: productKeysPage.totalPages,
+                        }
+                      : EMPTY_PAGE_TOTALS
+                  }
+                />
               </div>
             )}
           </div>

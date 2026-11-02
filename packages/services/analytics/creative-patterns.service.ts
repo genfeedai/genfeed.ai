@@ -1,15 +1,15 @@
 import type {
   ICreativePattern,
+  IPaginatedResponse,
   PatternType,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   extractCollection,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 export interface CreativePatternListFilters {
   brandId?: string;
@@ -36,15 +36,13 @@ export class CreativePatternsService extends HTTPBaseService {
   }
 
   /**
-   * One page of patterns. When `query.page` is set the page totals are
-   * published to PagesService so AutoPagination can render the controls.
+   * One page of patterns with metadata from the same response.
    */
   public async findAll(
     filters: CreativePatternListFilters = {},
     query: CreativePatternListQuery = {},
     signal?: AbortSignal,
-  ): Promise<ICreativePattern[]> {
-    const requestId = PagesService.beginRequest();
+  ): Promise<IPaginatedResponse<ICreativePattern>> {
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: {
         brandId: filters.brandId || undefined,
@@ -56,8 +54,9 @@ export class CreativePatternsService extends HTTPBaseService {
       },
       signal,
     });
-    recordPageTotals(response.data, query, requestId);
-
-    return extractCollection<ICreativePattern>(response.data);
+    return toPaginatedResponse(
+      extractCollection<ICreativePattern>(response.data),
+      response.data,
+    );
   }
 }

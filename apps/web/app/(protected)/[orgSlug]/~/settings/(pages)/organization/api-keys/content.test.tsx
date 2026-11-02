@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
@@ -93,7 +96,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} keys / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
@@ -140,7 +147,7 @@ vi.mock('@services/management/api-keys.service', () => ({
       return {
         cancelPendingRequests: mocks.cancelPendingRequests,
         createApiKey: mocks.createApiKey,
-        findAll: mocks.findAllApiKeys,
+        findAllPage: mocks.findAllApiKeys,
         revokeApiKey: mocks.revokeApiKey,
         rotateApiKey: mocks.rotateApiKey,
       };
@@ -148,7 +155,7 @@ vi.mock('@services/management/api-keys.service', () => ({
     getInstance: () => ({
       cancelPendingRequests: mocks.cancelPendingRequests,
       createApiKey: mocks.createApiKey,
-      findAll: mocks.findAllApiKeys,
+      findAllPage: mocks.findAllApiKeys,
       revokeApiKey: mocks.revokeApiKey,
       rotateApiKey: mocks.rotateApiKey,
     }),
@@ -330,7 +337,7 @@ describe('SettingsApiKeysPage', () => {
     mocks.organizationId = 'org-1';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.searchParams = new URLSearchParams();
-    mocks.findAllApiKeys.mockResolvedValue(productApiKeys());
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse(productApiKeys()));
     mocks.createApiKey.mockResolvedValue({
       id: 'key-2',
       key: 'gf_test_created',
@@ -350,7 +357,7 @@ describe('SettingsApiKeysPage', () => {
     });
     mocks.getApiKeysService.mockResolvedValue({
       createApiKey: mocks.createApiKey,
-      findAll: mocks.findAllApiKeys,
+      findAllPage: mocks.findAllApiKeys,
       revokeApiKey: mocks.revokeApiKey,
       rotateApiKey: mocks.rotateApiKey,
     });
@@ -436,7 +443,7 @@ describe('SettingsApiKeysPage', () => {
   it.each(['initial', 'refresh'])(
     'ignores stale %s results through A to B to A',
     async (kind) => {
-      const pending = deferred<unknown[]>();
+      const pending = deferred<IPaginatedResponse<unknown>>();
       if (kind === 'initial')
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
       const view = render(<SettingsApiKeysPage />);
@@ -457,7 +464,9 @@ describe('SettingsApiKeysPage', () => {
       view.rerender(<SettingsApiKeysPage />);
       await screen.findByText('MCP Key');
       await act(async () =>
-        pending.resolve([{ id: 'stale', label: 'STALE SECRET' }]),
+        pending.resolve(
+          paginatedResponse([{ id: 'stale', label: 'STALE SECRET' }]),
+        ),
       );
       expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
       expect(mocks.notificationsError).not.toHaveBeenCalled();
@@ -567,7 +576,7 @@ describe('SettingsApiKeysPage', () => {
   it.each(['initial', 'refresh'])(
     'suppresses stale %s errors after identity replacement',
     async (kind) => {
-      const pending = deferred<unknown[]>();
+      const pending = deferred<IPaginatedResponse<unknown>>();
       if (kind === 'initial')
         mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
       const view = render(<SettingsApiKeysPage />);
@@ -678,7 +687,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('does not let a stale list overwrite a key created during the initial load', async () => {
-    let resolveInitialLoad: (value: unknown[]) => void = () => undefined;
+    let resolveInitialLoad: (value: unknown) => void = () => undefined;
     mocks.findAllApiKeys
       .mockImplementationOnce(
         () =>
@@ -686,14 +695,16 @@ describe('SettingsApiKeysPage', () => {
             resolveInitialLoad = resolve;
           }),
       )
-      .mockResolvedValueOnce([
-        {
-          id: 'key-2',
-          label: 'Created During Load',
-          lastUsedAt: null,
-          scopes: ['videos:read'],
-        },
-      ]);
+      .mockResolvedValueOnce(
+        paginatedResponse([
+          {
+            id: 'key-2',
+            label: 'Created During Load',
+            lastUsedAt: null,
+            scopes: ['videos:read'],
+          },
+        ]),
+      );
 
     render(<SettingsApiKeysPage />);
 
@@ -706,7 +717,7 @@ describe('SettingsApiKeysPage', () => {
     expect(await screen.findByText('gf_test_created')).toBeInTheDocument();
     expect(await screen.findByText('Created During Load')).toBeInTheDocument();
 
-    resolveInitialLoad([]);
+    await act(async () => resolveInitialLoad(paginatedResponse([])));
 
     await waitFor(() => {
       expect(screen.getByText('Created During Load')).toBeInTheDocument();
@@ -717,7 +728,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('creates a key from an empty list using the default name', async () => {
-    mocks.findAllApiKeys.mockResolvedValue([]);
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
     render(<SettingsApiKeysPage />);
 
     expect(
@@ -773,7 +784,7 @@ describe('SettingsApiKeysPage', () => {
   });
 
   it('enables Create Key when the Scale org has no keys', async () => {
-    mocks.findAllApiKeys.mockResolvedValue([]);
+    mocks.findAllApiKeys.mockResolvedValue(paginatedResponse([]));
     render(<SettingsApiKeysPage />);
 
     expect(
@@ -828,6 +839,16 @@ describe('SettingsApiKeysPage', () => {
         'API key revoked',
       );
     });
+  });
+  it('keeps server page totals with the API keys', async () => {
+    mocks.findAllApiKeys.mockResolvedValue(
+      paginatedResponse(productApiKeys(), { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<SettingsApiKeysPage />);
+    await screen.findByText('MCP Key');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 keys / 5 pages');
   });
 });
 

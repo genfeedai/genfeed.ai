@@ -4,7 +4,6 @@ import type {
   BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts';
 import { ContentRunsService } from '@services/content/content-runs.service';
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -127,7 +126,7 @@ describe('ContentRunsService', () => {
       params: {},
       signal: undefined,
     });
-    expect(result).toEqual([]);
+    expect(result.items).toEqual([]);
   });
 
   it('forwards status and skillSlug filters when listing brand content runs', async () => {
@@ -156,12 +155,12 @@ describe('ContentRunsService', () => {
       params: { skillSlug: 'trend-remix', status: 'completed' },
       signal: undefined,
     });
-    expect(result).toEqual([
+    expect(result.items).toEqual([
       { _id: 'run-1', skillSlug: 'trend-remix', status: 'completed' },
     ]);
   });
 
-  it('requests a server page and records the pagination totals', async () => {
+  it('returns the requested server page and its totals', async () => {
     mockGet.mockResolvedValue({
       data: {
         data: [],
@@ -172,7 +171,7 @@ describe('ContentRunsService', () => {
     const controller = new AbortController();
 
     const service = new ContentRunsService('token');
-    await service.list(
+    const page = await service.list(
       'brand-1',
       { limit: 15, page: 2, status: ContentRunStatus.FAILED },
       controller.signal,
@@ -182,9 +181,7 @@ describe('ContentRunsService', () => {
       params: { limit: 15, page: 2, status: 'failed' },
       signal: controller.signal,
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(4);
-    expect(PagesService.getTotalDocs()).toBe(52);
+    expect(page).toMatchObject({ page: 2, totalPages: 4, total: 52 });
   });
 
   it('fetches a single content run by id', async () => {
@@ -804,5 +801,33 @@ describe('character receipt read adapters', () => {
       ),
     ).rejects.toThrow();
     expect(mockPost).not.toHaveBeenCalled();
+  });
+  it('keeps each list response metadata when requests resolve out of order', async () => {
+    let resolveFirst: ((value: unknown) => void) | undefined;
+    mockGet
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        data: {
+          data: [],
+          links: { pagination: { limit: 15, page: 2, pages: 4, total: 52 } },
+        },
+      });
+    mockDeserializeCollection.mockReturnValue([]);
+    const service = new ContentRunsService('token');
+    const first = service.list('brand-1', { page: 1 });
+    const second = await service.list('brand-2', { page: 2 });
+    resolveFirst?.({
+      data: {
+        data: [],
+        links: { pagination: { limit: 15, page: 1, pages: 1, total: 10 } },
+      },
+    });
+    expect(await first).toMatchObject({ page: 1, totalPages: 1, total: 10 });
+    expect(second).toMatchObject({ page: 2, totalPages: 4, total: 52 });
   });
 });

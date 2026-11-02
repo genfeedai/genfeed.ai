@@ -1,3 +1,5 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,7 +19,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} runs / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -88,23 +94,25 @@ describe('ContentRunListPage', () => {
   });
 
   it('links every run row to its brand-scoped detail page', async () => {
-    list.mockResolvedValue([
-      {
-        id: 'run-1',
-        brief: { angle: 'AI workflow proof' },
-        createdAt: '2026-05-01T09:00:00.000Z',
-        skillSlug: 'trend-remix',
-        status: 'completed',
-        variants: [{ id: 'variant-a' }],
-      },
-      {
-        brief: { hypothesis: 'Turn the trend into a proof thread.' },
-        id: 'run-2',
-        publish: [{ variantId: 'variant-b' }],
-        skillSlug: 'trend-remix',
-        status: 'running',
-      },
-    ]);
+    list.mockResolvedValue(
+      paginatedResponse([
+        {
+          id: 'run-1',
+          brief: { angle: 'AI workflow proof' },
+          createdAt: '2026-05-01T09:00:00.000Z',
+          skillSlug: 'trend-remix',
+          status: 'completed',
+          variants: [{ id: 'variant-a' }],
+        },
+        {
+          brief: { hypothesis: 'Turn the trend into a proof thread.' },
+          id: 'run-2',
+          publish: [{ variantId: 'variant-b' }],
+          skillSlug: 'trend-remix',
+          status: 'running',
+        },
+      ]),
+    );
 
     renderContentRunList();
 
@@ -133,7 +141,7 @@ describe('ContentRunListPage', () => {
 
   it('requests the server page named in the URL', async () => {
     navigation.searchParams = new URLSearchParams('page=3');
-    list.mockResolvedValue([]);
+    list.mockResolvedValue(paginatedResponse([]));
 
     renderContentRunList();
 
@@ -148,7 +156,7 @@ describe('ContentRunListPage', () => {
 
   it('sends the searched text to the server and explains an empty result', async () => {
     navigation.searchParams = new URLSearchParams('q=launch');
-    list.mockResolvedValue([]);
+    list.mockResolvedValue(paginatedResponse([]));
 
     renderContentRunList();
 
@@ -169,7 +177,7 @@ describe('ContentRunListPage', () => {
   });
 
   it('points the empty state back at Discovery, where content runs originate', async () => {
-    list.mockResolvedValue([]);
+    list.mockResolvedValue(paginatedResponse([]));
 
     renderContentRunList();
 
@@ -192,11 +200,24 @@ describe('ContentRunListPage', () => {
         screen.getByText('Content runs could not be loaded.'),
       ).toBeInTheDocument();
     });
-    list.mockResolvedValue([]);
+    list.mockResolvedValue(paginatedResponse([]));
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(await screen.findByText('No content runs yet')).toBeInTheDocument();
     expect(list).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('renders the response total independently of the visible runs', async () => {
+    list.mockResolvedValue(
+      paginatedResponse(
+        [{ id: 'run-1', brief: { angle: 'Paged run' }, status: 'completed' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
+    renderContentRunList();
+    await screen.findByRole('link', { name: /Paged run/ });
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 runs / 5 pages');
   });
 });

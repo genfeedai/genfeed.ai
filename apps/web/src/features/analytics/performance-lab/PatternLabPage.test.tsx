@@ -1,3 +1,5 @@
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PatternLabPage from '@/features/analytics/performance-lab/PatternLabPage';
@@ -32,8 +34,10 @@ vi.mock('@/features/analytics/performance-lab/PatternCard', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel?: string }) => (
-    <div data-testid="auto-pagination">{totalLabel}</div>
+  default: ({ totalLabel, totals }: AutoPaginationProps) => (
+    <div data-testid="auto-pagination">
+      {totalLabel}: {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </div>
   ),
 }));
 
@@ -50,6 +54,7 @@ describe('PatternLabPage', () => {
       error: null,
       isLoading: false,
       patterns,
+      pageTotals: { totalDocs: patterns.length, totalPages: 1 },
     });
   });
 
@@ -83,6 +88,7 @@ describe('PatternLabPage', () => {
       error: null,
       isLoading: false,
       patterns: [],
+      pageTotals: EMPTY_PAGE_TOTALS,
     });
 
     render(<PatternLabPage />);
@@ -96,6 +102,7 @@ describe('PatternLabPage', () => {
       error: null,
       isLoading: false,
       patterns: [],
+      pageTotals: EMPTY_PAGE_TOTALS,
     });
 
     render(<PatternLabPage />);
@@ -108,6 +115,7 @@ describe('PatternLabPage', () => {
       error: null,
       isLoading: true,
       patterns: [],
+      pageTotals: EMPTY_PAGE_TOTALS,
     });
     const { rerender } = render(<PatternLabPage />);
     expect(screen.queryByTestId('auto-pagination')).not.toBeInTheDocument();
@@ -116,8 +124,21 @@ describe('PatternLabPage', () => {
       error: 'boom',
       isLoading: false,
       patterns: [],
+      pageTotals: EMPTY_PAGE_TOTALS,
     });
     rerender(<PatternLabPage />);
     expect(screen.queryByTestId('auto-pagination')).not.toBeInTheDocument();
+  });
+  it('renders the totals returned by the pattern query', () => {
+    usePatternContextMock.mockReturnValue({
+      error: null,
+      isLoading: false,
+      patterns,
+      pageTotals: { totalDocs: 61, totalPages: 5 },
+    });
+    render(<PatternLabPage />);
+    expect(screen.getByTestId('auto-pagination')).toHaveTextContent(
+      '61 rows / 5 pages',
+    );
   });
 });

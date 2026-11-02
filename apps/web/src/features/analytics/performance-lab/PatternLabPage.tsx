@@ -90,7 +90,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     scope: scope || undefined,
   };
 
-  const { patterns, isLoading, error } = usePatternContext(
+  const { patterns, isLoading, error, pageTotals } = usePatternContext(
     filters,
     currentPage,
   );
@@ -225,7 +225,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
 
       {!isLoading && !error && (patterns.length > 0 || currentPage > 1) && (
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="patterns" />
+          <AutoPagination showTotal totalLabel="patterns" totals={pageTotals} />
         </div>
       )}
     </div>

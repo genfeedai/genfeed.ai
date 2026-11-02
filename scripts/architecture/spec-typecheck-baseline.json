@@ -7625,14 +7625,6 @@
       "workspace": "web"
     },
     {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/src/features/posts/[id]/ingredient-posts.test.tsx",
-      "fingerprint": "307db22c9a874bdc8b77",
-      "message": "Type '{ id: string; page: number; ingredient: Ingredient & { totalPosts?: number | undefined; totalViews?: number | undefined; }; posts: never[]; }' is not assignable to type 'IntrinsicAttributes & IngredientPostsProps'.   Property 'page' does not exist on type 'IntrinsicAttributes & IngredientPostsProps'.",
-      "workspace": "web"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/web/src/features/posts/detail/post-detail-preview.helpers.test.ts",
