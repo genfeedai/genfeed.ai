@@ -44,15 +44,34 @@ export interface IOnboardingFirstDraft {
  */
 export type OnboardingFirstDraftsStatus = 'ready' | 'partial' | 'unavailable';
 
+/**
+ * `needs_credits`: the organization cannot pay for this image, so none was
+ * attempted. The rest of the campaign is unaffected.
+ */
+export type OnboardingCampaignImageStatus =
+  | 'pending'
+  | 'ready'
+  | 'failed'
+  | 'needs_credits';
+
+/** One platform image derived from the master campaign image. */
+export interface IOnboardingCampaignImage {
+  aspectRatio: string;
+  /** Stable slot id: `twitter`, `instagram`, `linkedin`, `tiktok-1`, `tiktok-2`. */
+  id: string;
+  ingredientId: string | null;
+  platform: OnboardingDraftPlatform;
+  status: OnboardingCampaignImageStatus;
+  url: string | null;
+}
+
 export interface IOnboardingFirstDraftsResult {
   drafts: IOnboardingFirstDraft[];
-  videoIngredientId?: string | null;
-  videoUrl?: string | null;
-  /** `needs_credits`: the organization cannot pay for video, so none was attempted. */
-  videoStatus?: 'pending' | 'ready' | 'failed' | 'needs_credits';
-  /** Library id of the shared image, attached to a post when it is scheduled. */
+  /** Platform images derived from the master, in the order they are generated. */
+  campaignImages?: IOnboardingCampaignImage[];
+  /** Library id of the master campaign image, attached to a post when it is scheduled. */
   imageIngredientId: string | null;
-  /** The one image shared by the X, Instagram and LinkedIn drafts. */
+  /** The master campaign image every platform image is derived from. */
   imageUrl: string | null;
   /** Request key of the X draft, passed back to link a regeneration to it. */
   requestKey: string | null;
@@ -62,7 +81,7 @@ export interface IOnboardingFirstDraftsResult {
 /** Server-owned onboarding outputs; reads never create or charge for content. */
 export interface IOnboardingDraftRun {
   id: string;
-  /** Retries left for a missing image or video; the run's own bounded allowance. */
+  /** Retries left for missing campaign images; the run's own bounded allowance. */
   mediaRetriesRemaining: number;
   status: 'running' | 'complete' | 'interrupted';
   result: IOnboardingFirstDraftsResult | null;

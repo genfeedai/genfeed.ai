@@ -98,9 +98,9 @@ describe('app rail registry', () => {
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/clipper')).toBe(
       'clipper',
     );
-    expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/new')).toBe(
-      'turbo',
-    );
+    expect(
+      getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/turbo/project-1'),
+    ).toBe('turbo');
     expect(getActiveAppId(APP_RAIL_REGISTRY, '/acme/brand/studio')).toBe(
       undefined,
     );
@@ -190,7 +190,7 @@ describe('app rail registry', () => {
       '/admin/content/ingredients/images/abc',
       '/admin/content/ingredients/videos/abc',
       '/admin/folders',
-      '/admin/library/voices',
+      '/admin/content/voices',
       '/admin/configuration/tags',
       '/admin/configuration/elements/moods',
     ]) {

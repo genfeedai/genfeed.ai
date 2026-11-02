@@ -158,7 +158,7 @@ describe('semantic theme surface contracts', () => {
   // must be a direct list child (a wrapper would make every row "last").
   it('uses the theme border token for Turbo project dividers', () => {
     const page = readSource(
-      'src/features/workflows/pages/turbo/TurboProjectsPage.tsx',
+      'src/features/workflows/pages/turbo/TurboProjectsList.tsx',
     );
     const listRow = readSource(
       '../../packages/ui/src/components/lists/list-row/ListRow.tsx',
@@ -168,7 +168,7 @@ describe('semantic theme surface contracts', () => {
     expect(page).toContain('<CollectionList>');
     expect(page).toContain('<ListRow');
     expect(page).toContain(
-      '<Fragment key={project.id}>{row(project)}</Fragment>',
+      '<CollectionList>{projects.map(row)}</CollectionList>',
     );
     expect(listRow).toContain('border-b border-border');
     expect(listRow).toContain('last:border-b-0');

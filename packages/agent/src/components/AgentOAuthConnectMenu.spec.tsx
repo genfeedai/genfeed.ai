@@ -41,6 +41,20 @@ describe('AgentOAuthConnectMenu', () => {
     },
   );
 
+  it('leaves out Ghost, which connects with a key from the brand Connect account modal', async () => {
+    const user = userEvent.setup();
+    render(<AgentOAuthConnectMenu onOAuthConnect={vi.fn()} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+
+    expect(screen.getByRole('button', { name: 'X' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Ghost' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('connects one available Threads action through its canonical service path', async () => {
     const user = userEvent.setup();
     const onOAuthConnect = vi.fn().mockResolvedValue(undefined);

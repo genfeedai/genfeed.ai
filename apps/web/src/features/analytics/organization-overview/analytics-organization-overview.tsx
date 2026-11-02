@@ -8,7 +8,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -25,13 +25,12 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import Table from '@ui/display/table/Table';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
@@ -172,30 +171,11 @@ export default function AnalyticsOrganizationOverview({
     startDate,
   });
 
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
-
-  const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
-  const [loadingBrands, setLoadingBrands] = useState(false);
-  const [platformData, setPlatformData] = useState<PlatformBreakdownData[]>([]);
-  const [loadingPlatform, setLoadingPlatform] = useState(false);
-
-  useEffect(() => {
-    const fetchBrandsData = async () => {
-      if (!isSignedIn || !isFetchReady) {
-        return;
-      }
-      if (!dateRange.startDate || !dateRange.endDate) {
-        return;
-      }
-
-      setLoadingBrands(true);
+  const hasDateRange = Boolean(dateRange.startDate && dateRange.endDate);
+  const brandsQuery = useAuthedQuery({
+    enabled: isSignedIn && isFetchReady && hasDateRange,
+    queryFn: async (service) => {
       try {
-        const service = await getAnalyticsService();
         const response = await service.getBrandsWithStats({
           endDate,
           limit: ITEMS_PER_PAGE,
@@ -204,69 +184,59 @@ export default function AnalyticsOrganizationOverview({
           sort: AnalyticsMetric.ENGAGEMENT,
           startDate,
         });
-        setBrandsData(response.data);
+        return response.data;
       } catch (error) {
         logger.error('Failed to fetch organization brand analytics', error);
-        setBrandsData([]);
-      } finally {
-        setLoadingBrands(false);
+        throw error;
       }
-    };
+    },
+    queryKey: [
+      'analytics',
+      'organization-brands',
+      organizationId,
+      startDate,
+      endDate,
+    ],
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const brandsData: IBrandWithStats[] = brandsQuery.data ?? [];
+  // Loading from the first paint until data is cached: a scope that is not
+  // ready yet or a read in flight, never the empty table first.
+  const loadingBrands = brandsQuery.data === undefined && !brandsQuery.isError;
 
-    fetchBrandsData();
-  }, [
-    isSignedIn,
-    isFetchReady,
-    dateRange,
-    getAnalyticsService,
-    endDate,
-    organizationId,
-    startDate,
-  ]);
-
-  useEffect(() => {
-    const fetchPlatformData = async () => {
-      if (!isSignedIn || !isFetchReady || !organizationId) {
-        return;
-      }
-
-      setLoadingPlatform(true);
+  const platformQuery = useAuthedQuery({
+    enabled: isSignedIn && isFetchReady && Boolean(organizationId),
+    queryFn: async (service) => {
       try {
-        const service = await getOrganizationsService();
         const platforms = await service.findOrganizationAnalyticsPlatforms(
           organizationId,
-          {
-            brandId: brandId || undefined,
-            endDate,
-            startDate,
-          },
+          { brandId: brandId || undefined, endDate, startDate },
         );
-
-        setPlatformData(
-          platforms.map((row) => ({
+        return platforms.map(
+          (row): PlatformBreakdownData => ({
             platform: row.platform,
             posts: row.postCount,
             value: row.views,
-          })),
+          }),
         );
       } catch (error) {
         logger.error('Failed to fetch organization platform analytics', error);
-        setPlatformData([]);
-      } finally {
-        setLoadingPlatform(false);
+        throw error;
       }
-    };
-
-    fetchPlatformData();
-  }, [
-    isSignedIn,
-    isFetchReady,
-    getOrganizationsService,
-    organizationId,
-    brandId,
-    startDate,
-    endDate,
-  ]);
+    },
+    queryKey: [
+      'analytics',
+      'organization-platforms',
+      organizationId,
+      brandId ?? null,
+      startDate,
+      endDate,
+    ],
+    service: (token: string) => OrganizationsService.getInstance(token),
+  });
+  const platformData: PlatformBreakdownData[] = platformQuery.data ?? [];
+  const loadingPlatform =
+    platformQuery.data === undefined && !platformQuery.isError;
 
   const brandChartData: BrandPerformanceData[] = brandsData.map((brand) => ({
     engagement: brand.totalEngagement,
@@ -338,10 +308,9 @@ export default function AnalyticsOrganizationOverview({
               key: 'name',
               render: (brand) => (
                 <div className="flex items-center gap-3">
-                  <Avatar
+                  <BrandAvatar
                     alt={brand.name}
                     name={brand.name}
-                    shape="square"
                     size="lg"
                     src={brand.logo}
                   />

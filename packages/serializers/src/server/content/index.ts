@@ -24,6 +24,7 @@ export * from '@serializers/server/content/content-pattern.serializer';
 export * from '@serializers/server/content/content-performance.serializer';
 export * from '@serializers/server/content/content-plan.serializer';
 export * from '@serializers/server/content/content-plan-item.serializer';
+export * from '@serializers/server/content/content-preview.serializer';
 export * from '@serializers/server/content/content-run.serializer';
 export * from '@serializers/server/content/content-skill.serializer';
 export * from '@serializers/server/content/content-skill-version.serializer';

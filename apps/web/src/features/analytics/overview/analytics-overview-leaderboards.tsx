@@ -22,7 +22,7 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -86,10 +86,9 @@ export default function AnalyticsOverviewLeaderboards({
             href={`${scopedBasePath}/organizations/${item.organization.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
-            <Avatar
+            <BrandAvatar
               alt={item.organization.name || 'Org'}
               name={item.organization.name}
-              shape="square"
               size="sm"
               src={item.organization.logo}
             />
@@ -149,10 +148,9 @@ export default function AnalyticsOverviewLeaderboards({
             href={`${scopedBasePath}/brands/${item.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
-            <Avatar
+            <BrandAvatar
               alt={item.name || 'Brand'}
               name={item.name}
-              shape="square"
               size="sm"
               src={item.logo}
             />

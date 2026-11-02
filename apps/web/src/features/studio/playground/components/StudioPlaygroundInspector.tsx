@@ -1,6 +1,7 @@
 'use client';
 
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import { ContextSidebarHeaderSlot } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import {
@@ -12,6 +13,7 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { IngredientContinuationOperation } from '@genfeedai/props/content/masonry.props';
+import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -25,6 +27,7 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -36,8 +39,11 @@ import {
 import { PanelTabs } from '@ui/primitives/tabs';
 import {
   Download,
+  FileText,
   GitBranch,
+  History,
   ImagePlus,
+  Link2,
   Maximize2,
   MessageSquare,
   Pencil,
@@ -45,6 +51,7 @@ import {
   Scissors,
   Send,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -89,7 +96,8 @@ function isInspectorTab(value: string): value is InspectorTab {
 
 /**
  * The asset renderer inside the shell's context sidebar: preview and facts on
- * top, Recipe / Used in / History below, actions pinned to the bottom. Title,
+ * top, the Recipe / Used in / History section below (picked from a menu in the
+ * header), actions pinned to the bottom. Title,
  * model and close live in the sidebar header.
  */
 export default function StudioPlaygroundInspector({
@@ -97,6 +105,7 @@ export default function StudioPlaygroundInspector({
   job,
   onOpenPreview,
   onPreviewRecovered,
+  onRemove,
   onRemix,
   onEdit,
   onAnimate,
@@ -916,81 +925,141 @@ export default function StudioPlaygroundInspector({
     );
   }
 
+  const isFailed = job.status === IngredientStatus.FAILED;
+  const tabItems = [
+    {
+      content: recipePanel,
+      id: 'recipe',
+      isOpen: true,
+      label: translate('inspector.recipe'),
+    },
+    {
+      content: usedInPanel,
+      id: 'used-in',
+      isOpen: true,
+      label: translate('inspector.usedIn'),
+    },
+    {
+      content: historyPanel,
+      id: 'history',
+      isOpen: true,
+      label: translate('inspector.history'),
+    },
+  ];
+  const handleTabChange = (tab: string) => {
+    if (isInspectorTab(tab)) {
+      setTabSelection({ jobId: job.id, tab });
+    }
+  };
+
+  const factList = (
+    <DefinitionList variant="properties">
+      {factRows.map((row) => (
+        <DefinitionRow key={row.key}>
+          <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
+          <DefinitionDetail className="truncate text-right" variant="compact">
+            {row.value}
+          </DefinitionDetail>
+        </DefinitionRow>
+      ))}
+    </DefinitionList>
+  );
+
+  if (isFocused) {
+    return (
+      <div
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]"
+        data-testid="studio-playground-inspector"
+      >
+        <div className="flex min-w-0 flex-col gap-3">
+          {preview}
+          {factList}
+        </div>
+
+        <PanelTabs
+          activeTab={activeTab}
+          ariaLabel={translate('inspector.title')}
+          className="h-auto min-h-[32rem] flex-1"
+          footer={actions}
+          items={tabItems}
+          onTabChange={handleTabChange}
+          testId="studio-playground-inspector-tabs"
+        />
+      </div>
+    );
+  }
+
+  // In the context sidebar the header owns the controls: the section menu,
+  // Preview and Remove sit in the title row, and only the content below
+  // scrolls. A failed generation has nothing to preview.
+  const sectionOptions: ViewOption<InspectorTab>[] = [
+    {
+      icon: <FileText />,
+      label: translate('inspector.recipe'),
+      type: 'recipe',
+    },
+    {
+      icon: <Link2 />,
+      label: translate('inspector.usedIn'),
+      type: 'used-in',
+    },
+    {
+      icon: <History />,
+      label: translate('inspector.history'),
+      type: 'history',
+    },
+  ];
+  const activePanel = tabItems.find((item) => item.id === activeTab);
+
   return (
     <div
-      className={
-        isFocused
-          ? 'grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]'
-          : 'flex min-h-0 flex-1 flex-col'
-      }
+      className="flex min-h-0 flex-1 flex-col"
       data-testid="studio-playground-inspector"
     >
-      <div
-        className={
-          isFocused
-            ? 'flex min-w-0 flex-col gap-3'
-            : 'flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4'
-        }
-      >
-        {preview}
-        {onOpenPreview && !isFocused ? (
+      <ContextSidebarHeaderSlot>
+        <ViewMenu
+          activeView={activeTab}
+          onChange={handleTabChange}
+          options={sectionOptions}
+          trigger="label"
+        />
+        {onOpenPreview && !isFailed ? (
           <Button
+            ariaLabel={translate('focusedPreview.open')}
             data-testid="studio-open-focused-preview"
             icon={<Maximize2 className="size-4" />}
-            label={translate('focusedPreview.open')}
             onClick={onOpenPreview}
+            size={ButtonSize.ICON}
+            tooltip={translate('focusedPreview.open')}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        ) : null}
+        {onRemove && isFailed ? (
+          <Button
+            ariaLabel={translate('removeGenerationAria', {
+              prompt: studioAssetAccessibleLabel(job),
+              type: label,
+            })}
+            data-testid="studio-remove-generation"
+            icon={<Trash2 className="size-4" />}
+            label={translate('remove')}
+            onClick={() => onRemove(job)}
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
         ) : null}
-        <DefinitionList variant="properties">
-          {factRows.map((row) => (
-            <DefinitionRow key={row.key}>
-              <DefinitionTerm variant="muted">{row.label}</DefinitionTerm>
-              <DefinitionDetail
-                className="truncate text-right"
-                variant="compact"
-              >
-                {row.value}
-              </DefinitionDetail>
-            </DefinitionRow>
-          ))}
-        </DefinitionList>
-      </div>
+      </ContextSidebarHeaderSlot>
 
-      <PanelTabs
-        activeTab={activeTab}
-        ariaLabel={translate('inspector.title')}
-        className="h-auto min-h-[32rem] flex-1"
-        footer={actions}
-        items={[
-          {
-            content: recipePanel,
-            id: 'recipe',
-            isOpen: true,
-            label: translate('inspector.recipe'),
-          },
-          {
-            content: usedInPanel,
-            id: 'used-in',
-            isOpen: true,
-            label: translate('inspector.usedIn'),
-          },
-          {
-            content: historyPanel,
-            id: 'history',
-            isOpen: true,
-            label: translate('inspector.history'),
-          },
-        ]}
-        onTabChange={(tab: string) => {
-          if (isInspectorTab(tab)) {
-            setTabSelection({ jobId: job.id, tab });
-          }
-        }}
-        testId="studio-playground-inspector-tabs"
-      />
+      <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4">
+        {preview}
+        {factList}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {activePanel?.content}
+      </div>
+      {actions}
     </div>
   );
 }

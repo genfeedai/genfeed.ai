@@ -52,6 +52,8 @@ export function collectFirstRunReferenceIds(
 export type FirstRunOnboardingImageBodyInput = {
   brandId?: string;
   height: number;
+  /** Library ids placed before the brand kit references, e.g. the campaign master. */
+  leadingReferenceIds?: string[];
   nodeEnv?: string;
   onReferenceError?: (error: unknown) => void;
   organizationId: string;
@@ -89,7 +91,12 @@ export async function buildFirstRunOnboardingImageBody(
   const routing = resolveFirstRunImageRouting({
     nodeEnv: input.nodeEnv,
   });
-  const references = await readFirstRunBrandVisualReferenceIds(input);
+  const references = [
+    ...new Set([
+      ...(input.leadingReferenceIds ?? []),
+      ...(await readFirstRunBrandVisualReferenceIds(input)),
+    ]),
+  ].slice(0, FIRST_RUN_REFERENCE_LIMIT);
 
   return {
     ...routing,

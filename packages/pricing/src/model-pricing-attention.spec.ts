@@ -7,6 +7,7 @@ import {
   classifyModelPricingAttention,
   enumerateReviewedVariantSelectors,
   isModelPricingRed,
+  isUnreadableRateDraft,
   type ModelPricingAttentionInput,
   needsModelPricingFix,
 } from './model-pricing-attention';
@@ -329,5 +330,69 @@ describe('needsModelPricingFix', () => {
         isRateApprovalAvailable: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('refresh that cannot read a provider rate', () => {
+  it('is not stale: no later run would move the timestamp', () => {
+    expect(
+      classifyModelPricingAttention({
+        ...base,
+        providerPricingSyncedAt: '2026-09-20T00:00:00Z',
+        providerSyncFailureCode: 'rates_unavailable:unmapped_metric',
+        providerSyncStatus: 'quarantined',
+      }),
+    ).toEqual([]);
+  });
+
+  it('is still orange when the refresh failed outright', () => {
+    expect(
+      classifyModelPricingAttention({
+        ...base,
+        providerSyncFailureCode: 'rates_unavailable:unmapped_metric',
+        providerSyncStatus: 'failed',
+      }),
+    ).toMatchObject([{ code: 'refresh_failed', level: 'orange' }]);
+  });
+
+  it('names the provider outcome, not the legacy tariff, on a red model', () => {
+    expect(
+      classifyModelPricingAttention({
+        ...base,
+        profile: { ...profile, reviewedPricing: null, rateVersion: null },
+        providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+      }),
+    ).toMatchObject([
+      {
+        code: 'price_missing',
+        reason:
+          'Provider rates could not be read (rates_unavailable:no_billing_config)',
+      },
+    ]);
+  });
+});
+
+describe('isUnreadableRateDraft', () => {
+  it.each([
+    [{ isActive: false, providerSyncStatus: 'quarantined' }, true],
+    [
+      {
+        isActive: false,
+        providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+      },
+      true,
+    ],
+    [{ isActive: true, providerSyncStatus: 'quarantined' }, false],
+    [
+      {
+        isActive: false,
+        providerSyncStatus: 'quarantined',
+        reviewedProviderContractVersion: 'rates:sha256:a',
+      },
+      false,
+    ],
+    [{ isActive: false, providerSyncStatus: 'review_required' }, false],
+  ])('%j is %s', (input, expected) => {
+    expect(isUnreadableRateDraft(input)).toBe(expected);
   });
 });

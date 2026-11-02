@@ -9,16 +9,21 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  formatActivityClock,
+  formatActivityDayHeading,
   getActivityAssetId,
   getActivityCreditAmount,
+  getActivityCreditsDelta,
+  getActivityDayKey,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
   getActivityIngredientPreviewUrl,
   getActivityLifecycleText,
   getActivityMediaPreviewUrl,
+  getActivityRunDuration,
   getActivitySourceLabel,
-  getActivityTypeKind,
+  getActivityStatus,
   getActivityValueFields,
   getActivityVideoUrl,
   getGenerationCreditAmount,
@@ -127,16 +132,6 @@ describe('getActivityDescription', () => {
         value: 'Daily trends digest',
       } as IActivity),
     ).toBe('/automation/runs/exec-7');
-    expect(
-      getActivityTypeKind({
-        key: ActivityKey.IMAGE_FAILED,
-      } as IActivity),
-    ).toBe('image');
-    expect(
-      getActivityTypeKind({
-        key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
-      } as IActivity),
-    ).toBe('social');
     expect(
       getActivityDetailText({
         key: ActivityKey.IMAGE_FAILED,
@@ -296,5 +291,115 @@ describe('activity output and timing', () => {
     expect(getActivityValueFields({ value: 'plain text' })).toEqual({
       raw: 'plain text',
     });
+  });
+});
+
+describe('getActivityCreditsDelta', () => {
+  it('is the plain signed amount of a credit movement', () => {
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.CREDITS_REMOVE,
+        source: 'system',
+        value: JSON.stringify({ description: 'Image generation', value: 4 }),
+      } as IActivity),
+    ).toBe('\u22124');
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.CREDITS_ADD,
+        source: 'system',
+        value: '25',
+      } as IActivity),
+    ).toBe('+25');
+  });
+
+  it('has nothing for activities that move no credits', () => {
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.POST_PUBLISHED,
+        source: 'system',
+        value: 'Published',
+      } as IActivity),
+    ).toBeNull();
+  });
+});
+
+describe('getActivityStatus', () => {
+  it('reports the state a post moved to for transition rows', () => {
+    const activity = {
+      key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+      value: JSON.stringify({ from: 'scheduled', to: 'Publishing' }),
+    } as IActivity;
+
+    expect(getActivityStatus(activity)).toBe('publishing');
+  });
+
+  it('is empty for audit rows that record no status', () => {
+    expect(
+      getActivityStatus({
+        key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+        value: 'not json',
+      } as IActivity),
+    ).toBe('');
+    expect(
+      getActivityStatus({
+        key: ActivityKey.BRAND_OS_EXPORT_DOWNLOAD,
+      } as IActivity),
+    ).toBe('');
+  });
+
+  it('keeps the stored status on other rows', () => {
+    expect(
+      getActivityStatus({
+        key: ActivityKey.POST_PUBLISHED,
+        status: 'completed',
+      } as IActivity),
+    ).toBe('completed');
+  });
+});
+
+describe('getActivityRunDuration', () => {
+  it('measures a run from its own timestamps', () => {
+    expect(
+      getActivityRunDuration({
+        key: ActivityKey.VIDEO_GENERATED,
+        value: JSON.stringify({
+          completedAt: '2026-11-02T10:01:42.000Z',
+          startedAt: '2026-11-02T10:00:00.000Z',
+        }),
+      } as IActivity),
+    ).toBe('1m 42s');
+  });
+
+  it('is null when the row has no run', () => {
+    expect(
+      getActivityRunDuration({
+        key: ActivityKey.POST_PUBLISHED,
+        value: 'Published to instagram',
+      } as IActivity),
+    ).toBeNull();
+  });
+});
+
+describe('activity time formatting', () => {
+  it('reads the clock and day in UTC', () => {
+    expect(formatActivityClock('2026-11-02T23:59:07.000Z')).toBe('23:59:07');
+    expect(getActivityDayKey('2026-11-02T23:59:07.000Z')).toBe('2026-11-02');
+    expect(formatActivityClock(undefined)).toBe('—');
+    expect(getActivityDayKey(undefined)).toBe('unknown');
+  });
+
+  it('labels today, yesterday and older days', () => {
+    const now = new Date('2026-11-02T12:00:00.000Z');
+
+    expect(formatActivityDayHeading('2026-11-02', now)).toBe(
+      'Today · Mon, Nov 2 · UTC',
+    );
+    expect(formatActivityDayHeading('2026-11-01', now)).toBe(
+      'Yesterday · Sun, Nov 1 · UTC',
+    );
+    expect(formatActivityDayHeading('2026-10-30', now)).toBe(
+      'Fri, Oct 30 · UTC',
+    );
+    expect(formatActivityDayHeading('unknown', now)).toBe('Unknown date');
   });
 });

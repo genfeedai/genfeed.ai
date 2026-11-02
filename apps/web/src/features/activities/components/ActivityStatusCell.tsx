@@ -13,5 +13,8 @@ type Props = {
 
 /** Same uppercase status pill as the tasks list: tone, icon, and label. */
 export default function ActivityStatusCell({ status }: Props) {
+  if (!status) {
+    return <span className="text-sm text-foreground/70">—</span>;
+  }
   return <Badge status={STATUS_ALIASES[status] ?? status} />;
 }

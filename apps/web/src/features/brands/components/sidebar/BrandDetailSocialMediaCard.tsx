@@ -51,6 +51,7 @@ import {
   STATE_MESSAGE_KEYS,
 } from '@/features/brands/components/integrations/account-connection-status.util';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
+import GhostConnectDialog from '@/features/brands/components/integrations/GhostConnectDialog';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import { rememberOAuthConnectContext } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
@@ -66,7 +67,7 @@ type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
  */
 type ConnectablePlatform = Pick<
   ResolvedOAuthConnectPlatform,
-  'isConnectAvailable' | 'label' | 'platform' | 'servicePath'
+  'connectMethod' | 'isConnectAvailable' | 'label' | 'platform' | 'servicePath'
 >;
 
 function ConnectedAccount({
@@ -234,6 +235,9 @@ export default function BrandDetailSocialMediaCard({
   // whether to import its existing posts; the answer rides the connect call.
   const [importChoiceTarget, setImportChoiceTarget] =
     useState<ConnectablePlatform | null>(null);
+  // Ghost connects with a site URL + Admin API key, so it opens a form
+  // instead of redirecting to a provider.
+  const [isGhostConnectOpen, setIsGhostConnectOpen] = useState(false);
 
   const connectedConnections = connections;
   const hasVisibleConnections = connectedConnections.length > 0;
@@ -415,6 +419,13 @@ export default function BrandDetailSocialMediaCard({
     isHistoryImportRequested?: boolean,
   ) => {
     if (!item.isConnectAvailable) {
+      return;
+    }
+
+    if (item.connectMethod === 'api_key') {
+      setIsConnectAccountModalOpen(false);
+      setIsDialogOpen(false);
+      setIsGhostConnectOpen(true);
       return;
     }
 
@@ -715,6 +726,17 @@ export default function BrandDetailSocialMediaCard({
     </Dialog>
   );
 
+  const ghostConnectDialog = (
+    <GhostConnectDialog
+      brandId={brandId}
+      onConnected={async () => {
+        await Promise.all([onRefresh?.(), refreshBrands()]);
+      }}
+      onOpenChange={setIsGhostConnectOpen}
+      open={isGhostConnectOpen}
+    />
+  );
+
   const importChoiceDialog = (
     <Dialog
       open={Boolean(importChoiceTarget)}
@@ -861,6 +883,7 @@ export default function BrandDetailSocialMediaCard({
 
         {disconnectDialog}
         {importChoiceDialog}
+        {ghostConnectDialog}
         {overrideDialog}
       </>
     );
@@ -979,6 +1002,7 @@ export default function BrandDetailSocialMediaCard({
 
       {disconnectDialog}
       {importChoiceDialog}
+      {ghostConnectDialog}
       {overrideDialog}
     </>
   );

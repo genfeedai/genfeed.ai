@@ -185,6 +185,7 @@ vi.mock('next/link', () => ({
 // The shell owns the real sidebar chrome; this stand-in renders the panel in
 // place with the sidebar header's title and close control.
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     onClose,

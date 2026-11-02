@@ -8,8 +8,9 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
+import { ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
@@ -175,32 +176,32 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               data-testid="stop-generation-button"
             />
           ) : null}
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            icon={<ArrowUp />}
-            isDisabled={
-              isGenerateBlocked ||
-              isGenerateDisabled ||
-              !isFormValid ||
-              !watchedTextTrimmed
-            }
-            onClick={() => onSubmit()}
-            tooltip={
-              activeGenerationsCount > 0
-                ? `${generateLabel} (Queue)`
-                : generateLabel
-            }
-            tooltipPosition="top"
+          <PromptBarSendButton
             ariaLabel={
               activeGenerationsCount > 0
                 ? `${generateLabel} (Queue)`
                 : generateLabel
             }
             className={cn(
-              'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
+              'absolute right-1.5 top-1/2 -translate-y-1/2',
               activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
             )}
-            data-testid="generate-button"
+            isDisabled={
+              isGenerateBlocked ||
+              isGenerateDisabled ||
+              !isFormValid ||
+              !watchedTextTrimmed
+            }
+            // A generation that cannot be cancelled shows as loading; one
+            // that can has Stop beside the send.
+            isLoading={isGenerating && !onCancel}
+            onClick={() => onSubmit()}
+            testId="generate-button"
+            tooltip={
+              activeGenerationsCount > 0
+                ? `${generateLabel} (Queue)`
+                : generateLabel
+            }
           />
         </div>
 

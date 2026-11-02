@@ -92,6 +92,7 @@ export type ConnectPlatformReadiness = 'available' | 'unavailable' | 'unknown';
  */
 export interface ConnectAccountPlatform {
   category: string;
+  connectMethod?: 'oauth' | 'api_key';
   connectId?: string;
   Icon: IconComponent;
   iconClassName: string;
@@ -123,4 +124,12 @@ export interface ConnectAccountModalProps {
     Record<CredentialPlatform, BrandDetailSocialConnection[]>
   >;
   platformGroups: ConnectAccountPlatformGroup[];
+}
+
+export interface GhostConnectDialogProps {
+  brandId: string;
+  /** Runs after the credential is stored, to reload the brand's accounts. */
+  onConnected: () => void | Promise<void>;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
 }

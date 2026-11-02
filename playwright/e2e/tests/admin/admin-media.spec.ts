@@ -8,7 +8,7 @@ test.describe('Admin Media', () => {
   const routes = [
     `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images/mock-id`,
     `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos/mock-id`,
-    APP_ROUTES.ADMIN.LIBRARY.VOICES,
+    APP_ROUTES.ADMIN.CONTENT.VOICES,
   ];
 
   for (const route of routes) {
@@ -18,7 +18,7 @@ test.describe('Admin Media', () => {
   }
 
   test('voices library stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.LIBRARY.VOICES);
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONTENT.VOICES);
     await tryClick(
       adminPage,
       '[data-testid="voices-library-controls-surface"] button',

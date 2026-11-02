@@ -1,6 +1,5 @@
 import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
 import type { LucideIcon } from 'lucide-react';
-import type { StudioPresetLayout } from '@/props/studio/studio-presets.props';
 
 export type TurboPresetId =
   | 'weeklyMix'
@@ -10,9 +9,9 @@ export type TurboPresetId =
   | 'launchCountdown'
   | 'mythBusting';
 
-/** One ready-to-run idea project. Titles live in i18n by `id`. */
+/** One starter for an idea project. Titles live in i18n by `id`. */
 export interface TurboPreset {
-  /** Creative angle saved on the draft (max 300 chars). */
+  /** Creative angle sent to the idea generator (max 300 chars). */
   angle: string;
   /** Total ideas, spread across the formats (at least 3). */
   count: number;
@@ -21,12 +20,8 @@ export interface TurboPreset {
   id: TurboPresetId;
 }
 
-export interface TurboPresetGridProps {
-  layout?: StudioPresetLayout;
-  presets: readonly TurboPreset[];
-}
-
-export interface TurboIdeaStripProps {
-  count: number;
-  formats: readonly TurboIdeaFormat[];
+export interface TurboPresetCardsProps {
+  isDisabled?: boolean;
+  /** Called with the chosen starter and its translated title. */
+  onSelect: (preset: TurboPreset, title: string) => void;
 }

@@ -162,6 +162,41 @@ describe('formatActivityMessage', () => {
       ),
     ).toBe('Content is ready for review');
   });
+  it('reads audit rows as the event they record', () => {
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(
+          ActivityKey.POST_LIFECYCLE_TRANSITION,
+          JSON.stringify({ from: 'scheduled', to: 'publishing' }),
+        ),
+      ),
+    ).toBe('Post moved from Scheduled to Publishing');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.POST_LIFECYCLE_TRANSITION),
+      ),
+    ).toBe('Post state changed');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.BRAND_OS_EXPORT_DOWNLOAD),
+      ),
+    ).toBe('Brand OS export downloaded');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.BRAND_OS_EXPORT_PUBLISH),
+      ),
+    ).toBe('Brand OS export published');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.BRAND_OS_EXPORT_REVOKE),
+      ),
+    ).toBe('Brand OS export revoked');
+    expect(
+      formatActivityMessage(
+        getActivityMessageDescriptor(ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ),
+      ),
+    ).toBe('Brand OS export opened from its public link');
+  });
 });
 
 describe('getActivityLifecycleStatus', () => {

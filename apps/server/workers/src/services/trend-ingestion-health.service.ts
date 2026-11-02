@@ -232,8 +232,9 @@ export class TrendIngestionHealthService {
       ]);
       for (const sourceId of sourceIds) {
         const scoped = evaluatedBySource.get(sourceId) ?? [];
+        const missedScope = scoped.find((entry) => entry.isMissed);
         await this.reconcileIncident({
-          description: `${platform} trends has no successful refresh in two completed 24-hour windows for one connected tenant scope while the global refresh is healthy. Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
+          description: `${platform} trends has no successful refresh in two completed 24-hour windows for one connected tenant scope while the global refresh is healthy. ${this.describeScopeReceipt(missedScope?.receipt)} Inspect that tenant's provider credentials and rate limits, then retry this dataset.`,
           evaluated: isGlobalOutage ? [] : scoped,
           now,
           recoveredDescription: (latestSuccess) =>
@@ -263,7 +264,18 @@ export class TrendIngestionHealthService {
     const isMissed =
       !(successAt && successAt.getTime() >= twoWindowsAgo) &&
       baseline.getTime() <= twoWindowsAgo;
-    return { baseline, isMissed, successAt };
+    return { baseline, isMissed, receipt, successAt };
+  }
+
+  // Tells the operator what the scope's last attempt actually did, so the
+  // alert names the failure (for example authentication_required) instead of
+  // sending them to guess between credentials and rate limits.
+  private describeScopeReceipt(
+    receipt: TrendRefreshHealth | undefined,
+  ): string {
+    if (!receipt)
+      return 'No scoped refresh attempt is recorded for this scope, so the scoped refresh may not be scheduling it.';
+    return `Last attempt: ${receipt.lastAttemptAt}. Outcome: ${receipt.outcome}${receipt.reason ? ` (${receipt.reason})` : ''}.`;
   }
 
   // Source ids with an alert and no recovery yet, under one prefix.

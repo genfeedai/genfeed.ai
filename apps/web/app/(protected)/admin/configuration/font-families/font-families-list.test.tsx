@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -32,6 +36,11 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: mocks.openModal,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -272,7 +281,9 @@ describe('FontFamiliesList', () => {
   });
 
   it('loads superadmin font families and syncs admin filters to the URL', async () => {
-    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByText('Loading font families')).toBeInTheDocument();
     expect(await screen.findByText('Inter')).toBeInTheDocument();
@@ -286,6 +297,7 @@ describe('FontFamiliesList', () => {
         organization: 'org-1',
         page: 2,
       }),
+      expect.any(AbortSignal),
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
@@ -309,11 +321,14 @@ describe('FontFamiliesList', () => {
     'asks the API for the order named in the URL (sort=%s)',
     async (urlSort, sort) => {
       mocks.urlSort = urlSort;
-      render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+      render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+        wrapper: queryClientWrapper(),
+      });
 
       await waitFor(() => {
         expect(mocks.findAll).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
+          expect.any(AbortSignal),
         );
       });
     },
@@ -321,36 +336,29 @@ describe('FontFamiliesList', () => {
 
   it('ignores a URL sort on a column it cannot order by', async () => {
     mocks.urlSort = '-password';
-    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalled();
     });
     expect(mocks.findAll).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
+      expect.any(AbortSignal),
     );
   });
 
-  it('opens create/edit/delete flows and refreshes font families', async () => {
-    const onRefresh = vi.fn();
-
-    render(
-      <FontFamiliesList scope={PageScope.SUPERADMIN} onRefresh={onRefresh} />,
-    );
+  it('opens the create and delete flows and refreshes font families', async () => {
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await screen.findByText('Geist');
-    expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
-
-    await act(async () => {
-      await onRefresh.mock.calls[0][0]();
-    });
     expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Font Family' }));
     expect(mocks.openModal).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Geist' }));
-    expect(screen.getByTestId('font-family-modal')).toHaveTextContent('Geist');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Geist' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(
@@ -370,23 +378,23 @@ describe('FontFamiliesList', () => {
       'Font family deleted',
     );
 
+    const readsBeforeConfirm = mocks.findAll.mock.calls.length;
     fireEvent.click(
       screen.getByRole('button', { name: 'Confirm Font Family Modal' }),
     );
-    expect(mocks.findAll).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mocks.findAll.mock.calls.length).toBeGreaterThan(
+        readsBeforeConfirm,
+      ),
+    );
+    expect(screen.getByText('Geist')).toBeInTheDocument();
   });
 
-  it('reports load and delete failures while notifying parent loading state', async () => {
-    const onLoadingChange = vi.fn();
-    const onRefreshingChange = vi.fn();
-
+  it('reports load and delete failures', async () => {
     mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
-      <FontFamiliesList
-        scope={PageScope.SUPERADMIN}
-        onLoadingChange={onLoadingChange}
-        onRefreshingChange={onRefreshingChange}
-      />,
+      <FontFamiliesList scope={PageScope.SUPERADMIN} />,
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => {
@@ -397,8 +405,6 @@ describe('FontFamiliesList', () => {
       expect(mocks.notificationsError).toHaveBeenCalledWith(
         'Failed to load font families',
       );
-      expect(onLoadingChange).toHaveBeenCalledWith(false);
-      expect(onRefreshingChange).toHaveBeenCalledWith(false);
     });
     unmount();
 
@@ -409,7 +415,9 @@ describe('FontFamiliesList', () => {
     });
     mockFontFamilies();
     mocks.deleteFontFamily.mockRejectedValueOnce(new Error('delete failed'));
-    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />);
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(),
+    });
     await screen.findByText('Inter');
     fireEvent.click(screen.getByRole('button', { name: 'Delete Inter' }));
 
@@ -427,7 +435,9 @@ describe('FontFamiliesList', () => {
   });
 
   it('hides superadmin filters and actions outside superadmin scope', async () => {
-    render(<FontFamiliesList scope={PageScope.BRAND} />);
+    render(<FontFamiliesList scope={PageScope.BRAND} />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await screen.findByText('Inter');
     expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
@@ -435,5 +445,22 @@ describe('FontFamiliesList', () => {
       screen.queryByRole('button', { name: 'Add Font Family' }),
     ).toBeNull();
     expect(screen.queryByRole('button', { name: 'Edit Inter' })).toBeNull();
+  });
+
+  it('paints the cached font families on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await screen.findByText('Inter');
+    first.unmount();
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+
+    render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('Inter')).toBeInTheDocument();
+    expect(screen.queryByText('Loading font families')).not.toBeInTheDocument();
   });
 });

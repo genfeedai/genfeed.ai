@@ -1,4 +1,5 @@
 export * from './admin/announcements.interface';
+export * from './admin/content-preview.interface';
 export * from './admin/credit-holds.interface';
 export * from './admin/email-performance.interface';
 export * from './admin/fleet.interface';

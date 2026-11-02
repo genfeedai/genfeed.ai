@@ -33,7 +33,9 @@ function buildContextSidebar(
       origin: 'user',
       title: 'Launch still',
     },
+    headerTargets: { desktop: null, mobile: null },
     setDesktopTarget: vi.fn(),
+    setHeaderTarget: vi.fn(),
     setIsMobileOpen: vi.fn(),
     setMobileTarget: vi.fn(),
     toggle: vi.fn(),
@@ -97,6 +99,8 @@ describe('right sidebar single topbar guard', () => {
     /\b(PanelRightClose|PanelRightOpen|PanelLeftClose|PanelLeftOpen)\b/;
   const ALLOWED_SIDEBAR_ICON_FILES = new Set([
     'apps/web/src/components/workspace-shell/WorkspaceContextSidebar.tsx',
+    // The dock panel's own collapse control, in its header.
+    'apps/web/src/components/workspace-shell/WorkspacePanelHeader.tsx',
     'apps/web/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx',
     'apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx',
   ]);
@@ -131,14 +135,7 @@ describe('right sidebar single topbar guard', () => {
 
     expect(shell).toMatch(/<WorkspaceAgentContext\b/);
 
-    render(
-      <WorkspaceAgentContext
-        contextSidebar={buildContextSidebar()}
-        pageLabel="Assets"
-        referenceCount={1}
-        scopeLabel="Moonrise"
-      />,
-    );
+    render(<WorkspaceAgentContext contextSidebar={buildContextSidebar()} />);
 
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByTestId('context-sidebar-close')).toBeNull();

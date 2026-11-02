@@ -44,6 +44,7 @@ import { Suspense, useCallback } from 'react';
 function AutoPaginationContent({
   showTotal = true,
   totalLabel = 'results',
+  totals,
 }: AutoPaginationProps) {
   const { replace } = useRouter();
   const pathname = usePathname();
@@ -53,9 +54,10 @@ function AutoPaginationContent({
   // Read from URL (defaults to page 1)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // Read from PagesService (set by BaseService.findAll)
-  const totalPages = PagesService.getTotalPages();
-  const totalDocs = PagesService.getTotalDocs();
+  // The rows' own cached totals when given; otherwise the last list request's
+  // (set by BaseService.findAll).
+  const totalPages = totals?.totalPages ?? PagesService.getTotalPages();
+  const totalDocs = totals?.totalDocs ?? PagesService.getTotalDocs();
 
   // Handle page change while preserving all query parameters
   const handlePageChange = useCallback(

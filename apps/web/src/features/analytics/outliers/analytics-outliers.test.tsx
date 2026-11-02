@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import {
   ContextSidebarOutlet,
@@ -5,8 +9,14 @@ import {
 } from '@contexts/ui/context-sidebar-context';
 import AnalyticsOutliers from '@/features/analytics/outliers/analytics-outliers';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ComponentProps } from 'react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -25,6 +35,11 @@ const mocks = vi.hoisted(() => ({
     organizationId: 'org-1',
     pageScope: 'brand',
   },
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -62,8 +77,16 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+let queryClient: QueryClient;
+
+/** Every render shares one cache per test, as the app's provider does. */
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
+
 describe('AnalyticsOutliers', () => {
   beforeEach(() => {
+    queryClient = createTestQueryClient();
     mocks.listPosts.mockReset();
     mocks.openRemix.mockReset();
     mocks.getSnapshot.mockReset();
@@ -254,5 +277,39 @@ describe('AnalyticsOutliers', () => {
     await waitFor(() =>
       expect(screen.getByText('loadError')).toBeInTheDocument(),
     );
+  });
+
+  it('paints the cached list at once when the page is opened again', async () => {
+    mocks.listPosts.mockResolvedValue({
+      docs: [
+        {
+          baselineSnapshotId: 'snap-1',
+          id: 'p1',
+          logicalPostId: 'cached-post',
+          outlierRatio: 4,
+          outlierTier: 'breakout',
+          platform: 'tiktok',
+          postId: 'post-1',
+          views: 1000,
+        },
+      ],
+      total: 1,
+    });
+    const firstVisit = render(
+      <AnalyticsProvider>
+        <AnalyticsOutliers />
+      </AnalyticsProvider>,
+    );
+    await screen.findByText('cached-post');
+    firstVisit.unmount();
+
+    mocks.listPosts.mockReturnValue(new Promise(() => {}));
+    render(
+      <AnalyticsProvider>
+        <AnalyticsOutliers />
+      </AnalyticsProvider>,
+    );
+
+    expect(screen.getByText('cached-post')).toBeInTheDocument();
   });
 });

@@ -163,7 +163,9 @@ export default function PostingSetPicker({
   const [newSetLabel, setNewSetLabel] = useState('');
   const [selectedSignatureId, setSelectedSignatureId] =
     useState(NONE_SIGNATURE_VALUE);
-  const [isLoading, setIsLoading] = useState(false);
+  // The lists load on mount for a brand, so that first paint is loading,
+  // never the "no posting sets" message.
+  const [isLoading, setIsLoading] = useState(Boolean(brandId));
   const [isExpanding, setIsExpanding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 

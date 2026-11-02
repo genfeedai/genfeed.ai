@@ -38,6 +38,7 @@ const ORIGINAL_NAMES = [
   'brandIntegrations',
   'brandKitReview',
   'brandKitSettings',
+  'brandLinks',
   'brandLut',
   'brandOsSettings',
   'brandPublishingSettings',

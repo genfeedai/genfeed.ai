@@ -5,7 +5,7 @@ import {
   formatEnumLabel,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
@@ -21,7 +21,7 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Bot as BotIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
@@ -52,11 +52,9 @@ function getBotStatusVariant(
   }
 }
 
-export default function BotsPage() {
-  const getBotsService = useAuthedService((token: string) =>
-    BotsService.getInstance(token),
-  );
+const EMPTY_BOTS: Bot[] = [];
 
+export default function BotsPage() {
   const notificationsService = NotificationsService.getInstance();
 
   const searchParams = useSearchParams();
@@ -64,19 +62,12 @@ export default function BotsPage() {
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
 
-  const [bots, setBots] = useState<Bot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const loadBots = useCallback(
-    async (refresh: boolean = false, signal?: AbortSignal) => {
-      if (!refresh) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(refresh);
-
+  // Cached per page and search: coming back to Bots paints the rows it
+  // already has while it refreshes, and paging keeps the current rows on screen.
+  const botsQuery = usePagedAuthedQuery({
+    keepPreviousDataWithin: ['admin', 'bots'],
+    queryFn: async (service, signal) => {
       try {
-        const service = await getBotsService();
         const fetchedBots = await service.findAll(
           {
             limit: ITEMS_PER_PAGE,
@@ -86,29 +77,30 @@ export default function BotsPage() {
           },
           signal,
         );
-        if (signal?.aborted) return;
-
-        setBots(fetchedBots);
         logger.info('Loaded bots', { count: fetchedBots.length });
+        return fetchedBots;
       } catch (error) {
-        if (signal?.aborted) return;
-        logger.error('Failed to load bots', error);
-        notificationsService.error('Failed to load bots');
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-          setIsRefreshing(false);
+        if (!signal.aborted) {
+          logger.error('Failed to load bots', error);
         }
+        throw error;
       }
     },
-    [currentPage, getBotsService, notificationsService, search],
-  );
+    queryKey: ['admin', 'bots', { page: currentPage, search }],
+    service: (token: string) => BotsService.getInstance(token),
+  });
+  const bots = botsQuery.data?.items ?? EMPTY_BOTS;
+  const { isLoading, refetch } = botsQuery;
+  const isRefreshing = botsQuery.isFetching && !isLoading;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  const { errorUpdatedAt, isError } = botsQuery;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-    void loadBots(false, controller.signal);
-    return () => controller.abort();
-  }, [loadBots]);
+    if (isError) {
+      notificationsService.error('Failed to load bots');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   return (
     <AdminPageShell
@@ -122,7 +114,7 @@ export default function BotsPage() {
           value={search}
         />
       }
-      onRefresh={() => loadBots(true)}
+      onRefresh={() => void refetch()}
       isRefreshing={isRefreshing}
     >
       <WorkspaceSurface
@@ -204,7 +196,11 @@ export default function BotsPage() {
           )}
         </div>
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="bots" />
+          <AutoPagination
+            showTotal
+            totalLabel="bots"
+            totals={botsQuery.data?.totals}
+          />
         </div>
       </WorkspaceSurface>
     </AdminPageShell>

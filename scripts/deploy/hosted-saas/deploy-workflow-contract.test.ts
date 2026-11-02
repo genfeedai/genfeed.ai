@@ -33,10 +33,42 @@ describe('hosted SaaS Vercel deployment contract', () => {
 
   test('gates Genfeed frontends only on the Genfeed API release', async () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
-    expect(core).toContain('    needs: deploy');
+    expect(core).toContain('    needs: [deploy, deploy-vercel-frontends]');
+    expect(core).toContain(
+      "if: ${{ needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}",
+    );
     expect(core).not.toContain('deploy-marketplace-api');
     expect(core).not.toContain('marketplace_source_sha');
     expect(core).not.toContain('MARKETPLACE_DEPLOY_TOKEN');
+  });
+
+  test('stages frontends alongside the API and promotes them only after it is live', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const stage = await workflow('_deploy-hosted-saas-vercel.yml');
+    const promote = await workflow('_deploy-hosted-saas-vercel-promote.yml');
+    const stageJob = core.slice(
+      core.indexOf('  deploy-vercel-frontends:'),
+      core.indexOf('  promote-vercel-frontends:'),
+    );
+
+    // Staging starts with the API rollout instead of waiting for it.
+    expect(stageJob).not.toContain('needs:');
+    // Staging must never put the new build in front of users.
+    expect(stage).toContain('vercel deploy --prebuilt --prod --skip-domain');
+    expect(stage).not.toContain('vercel promote');
+    expect(stage).not.toContain('serwist/sw.js');
+    // Promotion reuses the staged build and serves it only after promote.
+    expect(promote).toContain('vercel promote "${STAGED_URL}"');
+    expect(promote).not.toContain('vercel build');
+    expect(promote).not.toContain('vercel deploy');
+    expect(promote).toContain('environment: production');
+    // The smoke and image promotion wait for the live frontends.
+    expect(core).toContain(
+      'needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends]',
+    );
+    expect(core).toContain(
+      'needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends, post-deploy-smoke]',
+    );
   });
 
   test('stabilizes metadata clients before rolling authenticated Files', async () => {

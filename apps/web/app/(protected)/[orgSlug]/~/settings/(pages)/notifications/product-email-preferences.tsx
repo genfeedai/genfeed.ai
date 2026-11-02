@@ -4,87 +4,96 @@ import {
   PRODUCT_EMAIL_PREFERENCES,
   type ProductEmailTopic,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+
+type ProductEmailPreferenceValues = Partial<Record<ProductEmailTopic, boolean>>;
+
+const PRODUCT_EMAIL_KEY = ['users', 'email-preferences', 'product'] as const;
 
 export default function ProductEmailPreferences() {
   const translate = useTranslations('pages.productEmailPreferences');
+  const queryClient = useQueryClient();
   const getService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const [preferences, setPreferences] = useState<
-    Partial<Record<ProductEmailTopic, boolean>>
-  >({});
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [request, setRequest] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: request explicitly retries the abortable preference load
-  useEffect(() => {
-    const controller = new AbortController();
-    async function load() {
-      setIsLoading(true);
-      setError(null);
+  // Cached: coming back to Notifications shows the saved values at once while
+  // they refresh, and the toggles show a skeleton, never "off", until the first
+  // read lands.
+  const preferencesQuery = useAuthedQuery({
+    queryFn: async (service, signal): Promise<ProductEmailPreferenceValues> => {
       try {
-        const service = await getService();
         const rows = await Promise.all(
           PRODUCT_EMAIL_PREFERENCES.map(({ topic }) =>
-            service.findProductEmailPreference(topic, controller.signal),
+            service.findProductEmailPreference(topic, signal),
           ),
         );
-        controller.signal.throwIfAborted();
-        setPreferences(
-          Object.fromEntries(rows.map((row) => [row.topic, row.isEnabled])),
+        return Object.fromEntries(
+          rows.map((row) => [row.topic, row.isEnabled]),
         );
       } catch (cause) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load product email preferences', cause);
-        setError('Email preferences could not be loaded.');
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
+        if (!signal.aborted) {
+          logger.error('Failed to load product email preferences', cause);
+        }
+        throw cause;
       }
-    }
-    void load();
-    return () => controller.abort();
-  }, [getService, request]);
+    },
+    queryKey: PRODUCT_EMAIL_KEY,
+    service: (token: string) => UsersService.getInstance(token),
+  });
+  const { isError, isPending, refetch } = preferencesQuery;
+  const preferences = preferencesQuery.data ?? {};
+  const error = saveError
+    ? saveError
+    : isError
+      ? 'Email preferences could not be loaded.'
+      : null;
 
   async function save(topic: ProductEmailTopic, isEnabled: boolean) {
     setIsSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       const service = await getService();
       const result = await service.patchProductEmailPreference(
         topic,
         isEnabled,
       );
-      setPreferences((previous) => ({
-        ...previous,
-        [topic]: result.isEnabled,
-      }));
+      queryClient.setQueriesData<ProductEmailPreferenceValues>(
+        { queryKey: PRODUCT_EMAIL_KEY },
+        (current) => ({ ...current, [topic]: result.isEnabled }),
+      );
     } catch (cause) {
       logger.error('Failed to update product email preference', cause);
-      setError('Your email preference could not be saved. Please try again.');
+      setSaveError(
+        'Your email preference could not be saved. Please try again.',
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
+  function retry() {
+    setSaveError(null);
+    void refetch();
+  }
+
   return (
-    <div className="space-y-3" aria-busy={isLoading}>
+    <div className="space-y-3" aria-busy={isPending}>
       {error ? (
         <Alert variant="warning">
           <span>{error}</span>
-          <Button
-            label={translate('retry')}
-            onClick={() => setRequest((value) => value + 1)}
-          />
+          <Button label={translate('retry')} onClick={retry} />
         </Alert>
       ) : null}
       {PRODUCT_EMAIL_PREFERENCES.map(({ topic, label, description }) => (
@@ -94,7 +103,8 @@ export default function ProductEmailPreferences() {
           label={label}
           description={description}
           isChecked={preferences[topic] ?? false}
-          isDisabled={isLoading || isSaving || preferences[topic] === undefined}
+          isDisabled={isSaving || preferences[topic] === undefined}
+          isLoading={isPending}
           onChange={(event) => {
             void save(topic, event.target.checked);
           }}

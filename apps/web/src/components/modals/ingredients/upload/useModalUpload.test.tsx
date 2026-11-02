@@ -19,6 +19,15 @@ import {
 } from 'vitest';
 import { useModalUpload } from './useModalUpload';
 
+// jsdom cannot decode or draw images; the crop itself is covered by
+// banner-crop.util.test.ts. Here it stands in as "the banner file was cropped".
+vi.mock('./banner-crop.util', () => ({
+  cropFileToBanner: vi.fn(
+    async (file: File) =>
+      new File(['cropped-bytes'], `banner-${file.name}`, { type: file.type }),
+  ),
+}));
+
 vi.mock('./svg-rasterize.util', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./svg-rasterize.util')>()),
   rasterizeSvgFile: vi.fn(
@@ -720,6 +729,36 @@ describe('actual upload service transport delegation and completion', () => {
       ).toMatchObject({ type: 'image/png' });
     },
   );
+
+  it('uploads the cropped 3:1 file for a banner and the picked file for a logo', async () => {
+    const banner = renderUpload({ category: AssetCategory.BANNER });
+    await pick(banner, [
+      new File(['bytes'], 'wide.png', { type: 'image/png' }),
+    ]);
+    await act(async () => {
+      await banner.result.current.handleSubmit();
+    });
+    expect(
+      ((boundary.assetUpload.mock.calls[0][0] as FormData).get('file') as File)
+        .name,
+    ).toBe('banner-wide.png');
+    expect(banner.result.current.dimensionText).toBe(
+      'Cropped to 1500x500px (3:1), the X header size.',
+    );
+
+    boundary.assetUpload.mockClear();
+    const logo = renderUpload({ category: AssetCategory.LOGO });
+    await pick(logo, [
+      new File(['bytes'], 'square.png', { type: 'image/png' }),
+    ]);
+    await act(async () => {
+      await logo.result.current.handleSubmit();
+    });
+    expect(
+      ((boundary.assetUpload.mock.calls[0][0] as FormData).get('file') as File)
+        .name,
+    ).toBe('square.png');
+  });
 
   it.each([
     ['Brand', 'brand-1', AssetParent.BRAND],

@@ -21,6 +21,7 @@ import { PostingCadencesService } from '@services/content/posting-cadences.servi
 import { PostsService } from '@services/content/posts.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -224,7 +225,7 @@ export default function ContentCalendarPage({
       credentialIds: filters.credentialId,
     });
   const {
-    setExportNode,
+    setOverflowNode,
     setFiltersNode,
     setLeadingNode,
     setRefresh,
@@ -357,15 +358,16 @@ export default function ContentCalendarPage({
 
   const newArticleAction = useMemo(
     () => (
-      <Button
-        size={ButtonSize.ICON}
-        variant={ButtonVariant.GHOST}
-        tooltip={translate('newArticle')}
-        aria-label={translate('newArticle')}
-        onClick={() => openModal(ModalEnum.ARTICLE)}
-      >
-        <FileText className="size-3.5" />
-      </Button>
+      <SubbarOverflowMenu
+        actions={[
+          {
+            icon: <FileText className="size-4" />,
+            id: 'new-article',
+            label: translate('newArticle'),
+            onSelect: () => openModal(ModalEnum.ARTICLE),
+          },
+        ]}
+      />
     ),
     [translate],
   );
@@ -377,12 +379,12 @@ export default function ContentCalendarPage({
   useEffect(() => {
     setFiltersNode(filterMenu);
     setScheduleActionsNode(cadenceActions);
-    setExportNode(newArticleAction);
+    setOverflowNode(newArticleAction);
   }, [
     cadenceActions,
     filterMenu,
     newArticleAction,
-    setExportNode,
+    setOverflowNode,
     setFiltersNode,
     setScheduleActionsNode,
   ]);
@@ -393,10 +395,10 @@ export default function ContentCalendarPage({
       setViewToggleNode(null);
       setFiltersNode(null);
       setScheduleActionsNode(null);
-      setExportNode(null);
+      setOverflowNode(null);
     };
   }, [
-    setExportNode,
+    setOverflowNode,
     setFiltersNode,
     setLeadingNode,
     setScheduleActionsNode,

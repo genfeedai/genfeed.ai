@@ -1,5 +1,10 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AnalyticsMetric, OrganizationCategory } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  OrganizationCategory,
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -18,6 +23,20 @@ export enum LeaderboardSort {
   ENGAGEMENT = 'engagement',
   VIEWS = 'views',
   POSTS = 'posts',
+  /** Generated assets created in the selected date range. */
+  GENERATIONS = 'generations',
+}
+
+/** Which owners an organization list keeps, by how they signed up. */
+export enum OrganizationEmailClassFilter {
+  COMPANY = 'company',
+  PERSONAL = 'personal',
+}
+
+/** Whether an organization has ever generated an asset or published a post. */
+export enum OrganizationUsageFilter {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
 }
 
 export enum LeaderboardOrder {
@@ -140,8 +159,7 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   order?: LeaderboardOrder = LeaderboardOrder.DESC;
 
   @ApiProperty({
-    description:
-      'Only organizations of this type (the onboarding account type, else the category)',
+    description: 'Only organizations that declared this type at onboarding',
     enum: OrganizationCategory,
     enumName: 'OrganizationCategory',
     required: false,
@@ -149,6 +167,50 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(OrganizationCategory)
   type?: OrganizationCategory;
+
+  @ApiProperty({
+    description:
+      'Only organizations whose owner signed up with a work address (company) or a free provider (personal)',
+    enum: OrganizationEmailClassFilter,
+    enumName: 'OrganizationEmailClassFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationEmailClassFilter)
+  emailClass?: OrganizationEmailClassFilter;
+
+  @ApiProperty({
+    description:
+      'Only organizations that have (active) or have never (inactive) generated an asset or published a post',
+    enum: OrganizationUsageFilter,
+    enumName: 'OrganizationUsageFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationUsageFilter)
+  usage?: OrganizationUsageFilter;
+
+  @ApiProperty({
+    description:
+      'Only organizations in this lifecycle status (onboarding, free, trial, subscribed, past_due, cancelled)',
+    enum: OrganizationLifecycleStatus,
+    enumName: 'OrganizationLifecycleStatus',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationLifecycleStatus)
+  status?: OrganizationLifecycleStatus;
+
+  @ApiProperty({
+    description:
+      'Only organizations an operator prepared (concierge) or that signed up on their own (self_serve)',
+    enum: OrganizationSourceFilter,
+    enumName: 'OrganizationSourceFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationSourceFilter)
+  source?: OrganizationSourceFilter;
 
   @ApiProperty({
     description:

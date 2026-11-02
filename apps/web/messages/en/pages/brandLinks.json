@@ -1,0 +1,11 @@
+{
+  "connectedAccountsTitle": "Connected accounts",
+  "manageAccounts": "Manage",
+  "noConnectedAccounts": "No accounts connected yet.",
+  "accountConnected": "Connected",
+  "accountNeedsReconnect": "Needs reconnect",
+  "websiteLinksTitle": "Website links",
+  "addLink": "Add link",
+  "noWebsiteLinks": "No website links yet.",
+  "editLink": "Edit {label}"
+}

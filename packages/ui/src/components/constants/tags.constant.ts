@@ -25,3 +25,13 @@ export const TAG_SCOPE_COLORS: Record<
     text: 'text-gray-500',
   },
 };
+
+/** Category choices for a tag; the empty value means "None". */
+export const TAG_CATEGORY_OPTIONS = [
+  { label: 'None', value: '' },
+  { label: 'Credential', value: TagCategory.CREDENTIAL },
+  { label: 'Ingredient', value: TagCategory.INGREDIENT },
+  { label: 'Prompt', value: TagCategory.PROMPT },
+  { label: 'Article', value: TagCategory.ARTICLE },
+  { label: 'Organization', value: TagCategory.ORGANIZATION },
+];

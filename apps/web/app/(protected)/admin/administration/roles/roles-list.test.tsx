@@ -1,19 +1,31 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { PagesService } from '@services/content/pages.service';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RolesList from './roles-list';
 
 const mocks = vi.hoisted(() => {
   const findAll = vi.fn();
+  const patch = vi.fn();
   return {
     findAll,
+    patch,
     // A stable reference, as the real hook returns, so the list loads once.
-    getService: async () => ({ findAll }),
-    openModal: vi.fn(),
+    getService: async () => ({ findAll, patch }),
   };
 });
 
@@ -22,8 +34,9 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -46,9 +59,7 @@ vi.mock('@services/organization/roles.service', () => ({
 }));
 
 vi.mock('@/features/admin/lazy/lazy-modal.admin', () => ({
-  LazyModalRole: ({ role }: { role: { label: string } | null }) => (
-    <div data-testid="role-modal">Modal role: {role?.label ?? 'none'}</div>
-  ),
+  LazyModalRole: () => <div data-testid="role-modal" />,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -58,7 +69,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: { totals?: { totalDocs: number } }) => (
+    <nav aria-label="pagination">
+      {totals ? `${totals.totalDocs} roles` : null}
+    </nav>
+  ),
 }));
 
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
@@ -70,17 +85,19 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
 describe('RolesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.patch.mockResolvedValue({});
     mocks.findAll.mockResolvedValue([
       { id: 'role-1', key: 'editor', label: 'Editor', primaryColor: '#f00' },
     ]);
   });
 
-  it('opens a role summary in the sidebar whose Edit opens the role form', async () => {
+  it('edits a role in the sidebar without opening a form', async () => {
     render(
       <ContextSidebarProvider>
         <RolesList />
         <ContextSidebarOutlet testId="rail" />
       </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
     );
 
     fireEvent.click(
@@ -90,9 +107,21 @@ describe('RolesList', () => {
     const rail = within(screen.getByTestId('rail'));
     expect(rail.getByText('Color')).toBeInTheDocument();
 
-    fireEvent.click(rail.getByRole('button', { name: 'Edit' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('role-modal')).toHaveTextContent('Editor');
+    expect(rail.queryByRole('button', { name: 'Edit' })).toBeNull();
+
+    fireEvent.click(rail.getByRole('button', { name: 'Label' }));
+    const input = rail.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(input, { target: { value: 'Senior Editor' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mocks.patch).toHaveBeenCalledWith('role-1', {
+        label: 'Senior Editor',
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.findAll).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('requests the page size and renders pagination', async () => {
@@ -100,12 +129,66 @@ describe('RolesList', () => {
       <ContextSidebarProvider>
         <RolesList />
       </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
     );
 
     await screen.findByText('editor');
-    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 1 });
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      { limit: 15, page: 1 },
+      expect.any(AbortSignal),
+    );
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeInTheDocument();
+  });
+
+  it('paints the cached roles on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+    await screen.findByText('editor');
+    first.unmount();
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(screen.getByText('editor')).toBeInTheDocument();
+  });
+
+  it('keeps its own footer total on a return visit after another list was read', async () => {
+    mocks.findAll.mockImplementation(async () => {
+      PagesService.recordTotals({ page: 1, pages: 3, total: 61 });
+      return [{ id: 'role-1', key: 'editor', label: 'editor' }];
+    });
+    const client = createTestQueryClient();
+    const first = render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+    expect(await screen.findByText('61 roles')).toBeInTheDocument();
+    first.unmount();
+    // Another list (say, bots) is read in between and records its totals.
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(screen.getByText('61 roles')).toBeInTheDocument();
   });
 });

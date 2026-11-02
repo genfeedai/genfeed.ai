@@ -133,15 +133,17 @@ export default function BrandDetail() {
         <Alert variant="destructive">Error! Account not found.</Alert>
       ) : (
         <>
-          <BrandDetailBanner
-            brand={brand}
-            isGeneratingBanner={isGeneratingBanner}
-            onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
-            onGenerateBanner={handleGenerateBanner}
-          />
-
           <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
             <div className="flex flex-col gap-6 md:col-span-8">
+              <BrandDetailBanner
+                brand={brand}
+                isGeneratingBanner={isGeneratingBanner}
+                onUploadBanner={() =>
+                  handleOpenUploadModal(AssetCategory.BANNER)
+                }
+                onGenerateBanner={handleGenerateBanner}
+              />
+
               <BrandDetailOverview
                 brand={brand}
                 isGeneratingLogo={isGeneratingLogo}

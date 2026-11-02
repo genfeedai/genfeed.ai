@@ -3,6 +3,7 @@
 import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   groupOAuthConnectPlatforms,
+  isApiKeyConnectPlatform,
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@genfeedai/helpers/oauth/oauth-connect-platforms';
@@ -60,7 +61,11 @@ export function AgentOAuthConnectMenu({
     () =>
       catalog.filter(
         (item) =>
-          item.isConnectAvailable && !excludePlatforms?.has(item.platform),
+          item.isConnectAvailable &&
+          // Key-based tiles need a form this menu can't show; they connect
+          // from the brand's Connect account modal.
+          !isApiKeyConnectPlatform(item) &&
+          !excludePlatforms?.has(item.platform),
       ),
     [catalog, excludePlatforms],
   );

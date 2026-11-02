@@ -1,11 +1,14 @@
 import type {
   AnalyticsMetric,
   OrganizationCategory,
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
 } from '@genfeedai/contracts';
 import type {
   IAccountAnalyticsList,
   IAnalytics,
   IBrandWithStats,
+  IEntityStatsTotals,
   IOrgLeaderboardItem,
   IOrganizationWithStats as IOrgWithStats,
   IPlatformComparison,
@@ -31,6 +34,8 @@ export type {
 
 export interface IPaginatedOrgsResponse {
   data: IOrgWithStats[];
+  /** Period totals across every matching organization, not just this page. */
+  totals: IEntityStatsTotals;
   pagination: {
     page: number;
     limit: number;
@@ -41,6 +46,8 @@ export interface IPaginatedOrgsResponse {
 
 export interface IPaginatedBrandsResponse {
   data: IBrandWithStats[];
+  /** Period totals across every matching brand, not just this page. */
+  totals: IEntityStatsTotals;
   pagination: {
     page: number;
     limit: number;
@@ -75,9 +82,19 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
   sort?:
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.VIEWS
-    | AnalyticsMetric.POSTS;
-  /** Organizations only: keep one type (account type, else category). */
+    | AnalyticsMetric.POSTS
+    /** Generated assets created in the selected date range. */
+    | 'generations';
+  /** Organizations only: keep one type, as declared at onboarding. */
   type?: OrganizationCategory;
+  /** Organizations only: keep owners who signed up with a work or a free address. */
+  emailClass?: 'company' | 'personal';
+  /** Organizations only: keep those that have (or never) generated or published. */
+  usage?: 'active' | 'inactive';
+  /** Organizations only: keep one lifecycle status. */
+  status?: OrganizationLifecycleStatus;
+  /** Organizations only: keep concierge-prepared or self-serve signups. */
+  source?: OrganizationSourceFilter;
 }
 
 // Chart Data Types

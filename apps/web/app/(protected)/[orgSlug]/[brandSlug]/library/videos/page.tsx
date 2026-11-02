@@ -2,6 +2,7 @@ import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
+import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
@@ -23,7 +24,7 @@ export default function LibraryVideosPage() {
       scope={PageScope.BRAND}
       seededCategories={PRESET.categories}
     >
-      <Suspense fallback={null}>
+      <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

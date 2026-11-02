@@ -1,11 +1,11 @@
 'use client';
 
 import { IngredientStatus, type VoiceProvider } from '@genfeedai/contracts';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Voice } from '@models/ingredients/voice.model';
 import { logger } from '@services/core/logger.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 
 const DEFAULT_VOICE_CATALOG_STATUS = [
   IngredientStatus.DRAFT,
@@ -15,6 +15,9 @@ const DEFAULT_VOICE_CATALOG_STATUS = [
   IngredientStatus.FAILED,
   'completed',
 ];
+
+const LOAD_ERROR_MESSAGE = 'Voices could not be loaded.';
+const EMPTY_VOICES: Voice[] = [];
 
 interface UseVoiceCatalogOptions {
   isActive?: boolean;
@@ -36,75 +39,51 @@ export function useVoiceCatalog({
   search,
   status = DEFAULT_VOICE_CATALOG_STATUS,
 }: UseVoiceCatalogOptions = {}) {
-  const getVoicesService = useAuthedService((token: string) =>
-    VoicesService.getInstance(token),
-  );
-
-  // `providers` and `status` are routinely passed as inline array literals, so
-  // their identity changes on every render. Keying on their contents keeps
-  // `refresh` stable: otherwise a completed fetch sets a new `voices` array,
-  // re-renders, rebuilds the literal, invalidates `refresh`, and re-fires the
-  // effect — an endless refetch loop for any caller that does not memoize.
-  const providersKey = providers?.join('\u0001');
-  const statusKey = status.join('\u0001');
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on contents, not identity
-  const stableProviders = useMemo(() => providers, [providersKey]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on contents, not identity
-  const stableStatus = useMemo(() => status, [statusKey]);
-
-  const [voices, setVoices] = useState<Voice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const service = await getVoicesService();
-      const query = {
-        isActive,
-        limit,
-        page,
-        providers: stableProviders,
-        search,
-        status: stableStatus,
-      };
-      // The paged UI drives `page`/`limit` itself; every other caller renders
-      // the whole catalog and has to walk the server pages to get it.
-      const nextVoices = isPaginated
-        ? await service.findAll(query)
-        : await service.findAllPages(query);
-      setVoices(nextVoices);
-      setError(null);
-    } catch (error) {
-      logger.error('Failed to fetch voices', error);
-      setVoices([]);
-      setError('Voices could not be loaded.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    getVoicesService,
+  const query = {
     isActive,
-    isPaginated,
     limit,
     page,
+    providers,
     search,
-    stableProviders,
-    stableStatus,
-  ]);
+    status,
+  };
+  // Every filter is in the key by value, so inline array literals do not
+  // refetch, and coming back to a voice surface paints the cached catalog while
+  // it refreshes. Paging within one filter set keeps the current page on screen.
+  const scopeKey = [
+    'voices',
+    'catalog',
+    { isActive, isPaginated, providers, status },
+  ];
+  const voicesQuery = useAuthedQuery({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      try {
+        // The paged UI drives `page`/`limit` itself; every other caller renders
+        // the whole catalog and has to walk the server pages to get it.
+        return isPaginated
+          ? await service.findAll(query, signal)
+          : await service.findAllPages(query, signal);
+      } catch (error) {
+        logger.error('Failed to fetch voices', error);
+        throw error;
+      }
+    },
+    queryKey: [...scopeKey, { limit, page, search }],
+    service: (token: string) => VoicesService.getInstance(token),
+  });
 
-  useEffect(() => {
-    refresh().catch((error) => {
-      logger.error('Failed to initialize voices', error);
-    });
-  }, [refresh]);
+  const { refetch } = voicesQuery;
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
-    error,
-    isLoading,
+    error: voicesQuery.isError ? LOAD_ERROR_MESSAGE : null,
+    isLoading: voicesQuery.isLoading,
     refresh,
-    voices,
+    voices: voicesQuery.isError
+      ? EMPTY_VOICES
+      : (voicesQuery.data ?? EMPTY_VOICES),
   };
 }

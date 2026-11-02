@@ -29,8 +29,5 @@ export interface WorkspacePanelHeaderProps {
 
 export interface WorkspaceAgentContextProps {
   readonly contextSidebar?: ContextSidebarContextValue | null;
-  readonly pageLabel: string;
-  readonly referenceCount: number;
-  readonly scopeLabel: string;
   readonly target?: ContextSidebarOutletProps['target'];
 }

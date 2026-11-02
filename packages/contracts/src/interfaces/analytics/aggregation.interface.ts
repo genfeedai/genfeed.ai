@@ -1,5 +1,6 @@
 /** Shared analytics response contracts. */
-import type { OrganizationCategory } from '../..';
+import type { OrganizationCategory, OrganizationLifecycleStatus } from '../..';
+import type { IWarmupAccountStatus } from '../admin/warmup-accounts.interface';
 
 export interface IEntityAnalyticsStats {
   avgEngagementRate: number;
@@ -16,6 +17,16 @@ export interface IOrganizationOwner {
   name: string;
   email?: string;
   avatar?: string;
+  /** When the owner was last active in the app. */
+  lastActiveAt?: string;
+}
+
+export type OrganizationOwnerEmailClass = 'company' | 'personal' | 'unknown';
+
+/** The concierge account (`WarmupAccount`) prepared for an organization. */
+export interface IOrganizationConcierge {
+  id: string;
+  status: IWarmupAccountStatus;
 }
 
 export interface IOrganizationWithStats {
@@ -24,15 +35,40 @@ export interface IOrganizationWithStats {
   logo?: string;
   owner?: IOrganizationOwner;
   slug?: string;
-  /** What the organization said it is: `accountType` (onboarding), else `category`. */
+  /**
+   * What the organization said it is at onboarding (`accountType`). Absent
+   * until onboarding finishes: `category` always holds a default, so it says
+   * nothing about the organization.
+   */
   type?: OrganizationCategory;
+  /** Onboarding, free, trial, subscribed, past due or cancelled. */
+  status: OrganizationLifecycleStatus;
+  /** The subscription plan behind `status`, when there is one. */
+  plan?: string;
+  /** Present when the organization was prepared as a concierge account. */
+  concierge?: IOrganizationConcierge;
+  /** Whether the owner signed up with a work address, a free provider, or neither is known. */
+  ownerEmailClass: OrganizationOwnerEmailClass;
   createdAt?: string;
+  /** Generated assets created in the selected date range. */
+  totalGenerations: number;
+  /** When the owner was last active in the app. */
+  lastActiveAt?: string;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
   totalBrands: number;
   totalMembers: number;
   avgEngagementRate: number;
+  growth: number;
+}
+
+/** Period totals across every entity a list matches, not just the page on screen. */
+export interface IEntityStatsTotals {
+  totalPosts: number;
+  totalViews: number;
+  totalEngagement: number;
+  /** Engagement change against the previous period, in percent. */
   growth: number;
 }
 

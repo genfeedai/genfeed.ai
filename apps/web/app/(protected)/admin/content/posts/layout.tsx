@@ -17,7 +17,7 @@ import type {
 } from '@/features/admin/props/posts.props';
 
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
-  setExportNode: () => {},
+  setOverflowNode: () => {},
   setFiltersNode: () => {},
   setLeadingNode: () => {},
   setIsRefreshing: () => {},
@@ -31,7 +31,7 @@ const initialPostsLayoutState: PostsLayoutState = {
   isRefreshing: false,
   filtersNode: null,
   leadingNode: null,
-  exportNode: null,
+  overflowNode: null,
   viewToggleNode: null,
   scheduleActionsNode: null,
 };
@@ -57,10 +57,10 @@ function postsLayoutReducer(
       return state.filtersNode === action.payload
         ? state
         : { ...state, filtersNode: action.payload };
-    case 'SET_EXPORT_NODE':
-      return state.exportNode === action.payload
+    case 'SET_OVERFLOW_NODE':
+      return state.overflowNode === action.payload
         ? state
-        : { ...state, exportNode: action.payload };
+        : { ...state, overflowNode: action.payload };
     case 'SET_VIEW_TOGGLE_NODE':
       return state.viewToggleNode === action.payload
         ? state
@@ -85,7 +85,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     isRefreshing,
     filtersNode,
     leadingNode,
-    exportNode,
+    overflowNode,
     scheduleActionsNode,
   } = state;
 
@@ -105,8 +105,8 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     }
   }, [refreshFn, refresh]);
 
-  const setExportNode = useCallback(
-    (node: ReactNode) => dispatch({ type: 'SET_EXPORT_NODE', payload: node }),
+  const setOverflowNode = useCallback(
+    (node: ReactNode) => dispatch({ type: 'SET_OVERFLOW_NODE', payload: node }),
     [],
   );
   const setLeadingNode = useCallback(
@@ -139,7 +139,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
 
   const mainContextValue = useMemo(
     () => ({
-      setExportNode,
+      setOverflowNode,
       setFiltersNode,
       setLeadingNode,
       setIsRefreshing,
@@ -149,7 +149,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     }),
     // dispatch-wrapped callbacks are stable references (useCallback with [] deps)
     [
-      setExportNode,
+      setOverflowNode,
       setFiltersNode,
       setLeadingNode,
       setIsRefreshing,
@@ -176,7 +176,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
         search={leadingNode}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
-        download={exportNode}
+        overflow={overflowNode}
         dropdowns={
           isListRoute ? (
             <>

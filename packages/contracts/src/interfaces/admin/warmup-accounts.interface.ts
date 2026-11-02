@@ -2,6 +2,7 @@ import type {
   BrandKitFieldKey,
   IBrandKitDraft,
 } from '../organization/brand-kit.interface';
+import type { IContentPreview } from './content-preview.interface';
 export type IWarmupAccountStatus =
   | 'DRAFT'
   | 'PROVISIONING'
@@ -79,6 +80,8 @@ export interface IWarmupAccount {
   invitation?: IWarmupInvitation;
   diagnostics: IWarmupAccountDiagnostics;
   readiness?: IWarmupReadiness;
+  /** Shareable previews minted for this workspace, with view and claim counters. */
+  previews?: IContentPreview[];
   auditEvents: IWarmupAccountAuditEvent[];
   createdAt: string;
   updatedAt: string;
@@ -102,6 +105,8 @@ export interface IWarmupPreparation {
   context?: IBrandKitDraft;
   contextReviewedAt?: string;
   contextReviewedBy?: string;
+  /** Brand Kit fields the operator accepted while reviewing the imported context. */
+  appliedContextFields?: BrandKitFieldKey[];
   assetId?: string;
   articleId?: string;
   generation?: {

@@ -1,12 +1,13 @@
-import { ModalEnum } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Switch } from '@ui/primitives/switch';
-import { Pencil, Trash2 } from 'lucide-react';
+import { TAG_CATEGORY_OPTIONS } from '@ui-constants/tags.constant';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useMemo } from 'react';
 import type { TagsListProps } from '@/features/admin/props/tags-list.props';
@@ -31,12 +32,10 @@ function TagsListContent(props: TagsListProps) {
     isRefreshing,
     onSortChange,
     openDeleteConfirm,
-    openTagModal,
     organizationId,
     refresh,
+    saveTag,
     scope,
-    selectedTag,
-    setSelectedTag,
     sortDirection,
     sortKey,
   } = useTagsList(props);
@@ -106,31 +105,18 @@ function TagsListContent(props: TagsListProps) {
       scope === 'superadmin'
         ? [
             {
-              icon: <Pencil />,
-              onClick: (tag: ITag) => openTagModal(ModalEnum.TAG, tag),
-              tooltip: 'Edit',
-            },
-            {
               icon: <Trash2 />,
               onClick: openDeleteConfirm,
               tooltip: 'Delete',
             },
           ]
-        : [
-            {
-              icon: <Pencil />,
-              isVisible: canEditTag,
-              onClick: (tag: ITag) => openTagModal(ModalEnum.TAG, tag),
-              tooltip: 'Edit',
-            },
-          ],
-    [scope, canEditTag, openTagModal, openDeleteConfirm],
+        : [],
+    [scope, openDeleteConfirm],
   );
 
   const rowSidebar = useMemo(
     () =>
       createSummaryRowSidebar<ITag>({
-        canEdit: (tag) => scope === 'superadmin' || canEditTag(tag),
         getBadges: (tag) => (
           <>
             <TagLabelCell tag={tag} />
@@ -140,27 +126,115 @@ function TagsListContent(props: TagsListProps) {
             ) : null}
           </>
         ),
-        getFacts: (tag) => [
-          { id: 'key', label: fieldsT('key'), value: tag.key },
-          {
-            id: 'description',
-            label: fieldsT('description'),
-            value: tag.description,
-          },
-          {
-            id: 'organization',
-            label: fieldsT('organization'),
-            value: tag.organization?.label,
-          },
-          { id: 'account', label: fieldsT('account'), value: tag.user?.email },
-        ],
+        getFacts: (tag) => {
+          const isEditable = scope === 'superadmin' || canEditTag(tag);
+
+          return [
+            {
+              editor: isEditable
+                ? {
+                    ariaLabel: fieldsT('label'),
+                    isRequired: true,
+                    kind: 'text',
+                    onSave: (label) => saveTag(tag.id, { label }),
+                    value: tag.label,
+                  }
+                : undefined,
+              id: 'label',
+              label: fieldsT('label'),
+              value: tag.label,
+            },
+            {
+              editor: isEditable
+                ? {
+                    ariaLabel: fieldsT('key'),
+                    isRequired: true,
+                    kind: 'text',
+                    onSave: (key) =>
+                      saveTag(tag.id, { key: normalizeElementKey(key) }),
+                    value: tag.key,
+                  }
+                : undefined,
+              id: 'key',
+              label: fieldsT('key'),
+              value: tag.key,
+            },
+            {
+              editor: isEditable
+                ? {
+                    ariaLabel: fieldsT('category'),
+                    kind: 'select',
+                    onSave: (category) =>
+                      saveTag(tag.id, {
+                        category: (category || undefined) as ITag['category'],
+                      }),
+                    options: TAG_CATEGORY_OPTIONS,
+                    value: tag.category ?? '',
+                  }
+                : undefined,
+              id: 'category',
+              label: fieldsT('category'),
+              value: tag.category,
+            },
+            {
+              editor: isEditable
+                ? {
+                    ariaLabel: fieldsT('description'),
+                    isMultiline: true,
+                    kind: 'text',
+                    onSave: (description) => saveTag(tag.id, { description }),
+                    placeholder: '-',
+                    value: tag.description,
+                  }
+                : undefined,
+              id: 'description',
+              label: fieldsT('description'),
+              value: tag.description,
+            },
+            ...(isEditable
+              ? [
+                  {
+                    editor: {
+                      ariaLabel: fieldsT('backgroundColor'),
+                      kind: 'color' as const,
+                      onSave: (backgroundColor: string) =>
+                        saveTag(tag.id, { backgroundColor }),
+                      value: tag.backgroundColor,
+                    },
+                    id: 'backgroundColor',
+                    label: fieldsT('backgroundColor'),
+                  },
+                  {
+                    editor: {
+                      ariaLabel: fieldsT('textColor'),
+                      kind: 'color' as const,
+                      onSave: (textColor: string) =>
+                        saveTag(tag.id, { textColor }),
+                      value: tag.textColor,
+                    },
+                    id: 'textColor',
+                    label: fieldsT('textColor'),
+                  },
+                ]
+              : []),
+            {
+              id: 'organization',
+              label: fieldsT('organization'),
+              value: tag.organization?.label,
+            },
+            {
+              id: 'account',
+              label: fieldsT('account'),
+              value: tag.user?.email,
+            },
+          ];
+        },
         getId: (tag) => tag.id,
         getSubtitle: (tag) => tag.key,
         getTitle: (tag) => tag.label,
         kind: 'record',
-        onEdit: (tag) => openTagModal(ModalEnum.TAG, tag),
       }),
-    [scope, canEditTag, openTagModal, rowSidebarT, fieldsT],
+    [scope, canEditTag, saveTag, rowSidebarT, fieldsT],
   );
 
   return (
@@ -184,10 +258,8 @@ function TagsListContent(props: TagsListProps) {
 
       <TagsListModals
         scope={scope}
-        selectedTag={selectedTag}
         organizationId={organizationId}
         onConfirm={() => {
-          setSelectedTag(null);
           refresh();
         }}
       />

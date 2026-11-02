@@ -36,11 +36,11 @@ describe('BrandDetailBanner', () => {
     expect(image.getAttribute('src')).toContain('banner.jpg');
   });
 
-  it('falls back to the placeholder banner when the brand has none', () => {
+  it('shows an empty banner frame, not a placeholder picture, when the brand has none', () => {
     renderBanner({ brand: { ...brand, bannerUrl: undefined } as IBrand });
 
-    const image = screen.getByAltText('Acme banner');
-    expect(image.getAttribute('src')).toContain('placeholders');
+    expect(screen.queryByAltText('Acme banner')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload banner' })).toBeVisible();
   });
 
   it('should handle user interactions correctly', () => {
@@ -55,10 +55,9 @@ describe('BrandDetailBanner', () => {
     expect(onGenerateBanner).toHaveBeenCalledTimes(1);
   });
 
-  it('should apply correct styles and classes', () => {
+  it('keeps the banner in the X header frame, 1500x500', () => {
     const { container } = renderBanner();
     const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toHaveClass('relative');
-    expect(rootElement).toHaveClass('h-48');
+    expect(rootElement.getAttribute('data-ratio')).toBe('1500x500');
   });
 });

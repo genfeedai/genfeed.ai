@@ -312,11 +312,17 @@ export abstract class BaseService<
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
   ): Promise<T[]> {
+    const requestId = PagesService.beginRequest();
     return this.findAllPage(query, signal).then((result) => {
       if ((query as { page?: number }).page) {
-        PagesService.setCurrentPage(result.page);
-        PagesService.setTotalPages(result.totalPages);
-        PagesService.setTotalDocs(result.total);
+        PagesService.recordTotals(
+          {
+            page: result.page,
+            pages: result.totalPages,
+            total: result.total,
+          },
+          requestId,
+        );
       }
 
       return result.items;

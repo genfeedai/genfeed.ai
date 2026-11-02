@@ -1,6 +1,6 @@
 # Model provider artwork
 
-Verified 2026-09-24. `model-provider-icons.ts` contains locally bundled source artwork converted to React SVG elements. Do not redraw brand marks or apply catalog accent colors to them. Preserve the source viewBox, aspect ratio, paths, and multicolor fills. Monochrome glyphs inherit the foreground to support both themes. Gradient/pattern IDs use React `useId` so repeated marks do not collide.
+Verified 2026-09-24. `model-provider-icons.ts` (vector marks) and `model-provider-raster-icons.ts` (marks with embedded raster artwork, loaded on demand through `lazy-raster-brand-icons.ts`) contain locally bundled source artwork converted to React SVG elements. Do not redraw brand marks or apply catalog accent colors to them. Preserve the source viewBox, aspect ratio, paths, and multicolor fills. Monochrome glyphs inherit the foreground to support both themes. Gradient/pattern IDs use React `useId` so repeated marks do not collide.
 
 ## Lobe Icons
 

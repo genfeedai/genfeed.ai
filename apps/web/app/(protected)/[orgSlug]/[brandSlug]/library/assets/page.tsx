@@ -7,6 +7,7 @@ import {
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import LibraryCreditNotice from '../library-credit-notice';
@@ -40,7 +41,7 @@ export default async function LibraryAssetsPage({
   return (
     <LibraryBrowser place={LibraryPlace.ASSETS} scope={PageScope.BRAND}>
       <LibraryCreditNotice />
-      <Suspense fallback={null}>
+      <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <AssetDeepLink />
         <IngredientsList
           folderNavigation="shell"

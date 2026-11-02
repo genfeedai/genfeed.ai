@@ -110,12 +110,11 @@ import KnowledgeReferenceSection, {
 } from '@/features/library/knowledge/components/KnowledgeReferenceSection';
 import { usePromptCommandExtension } from '@/features/studio/components/prompt-editor/use-prompt-command-extension';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
-import StudioPlaygroundAgentProposals from '@/features/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';
+import StudioPlaygroundEmptyState from '@/features/studio/playground/components/StudioPlaygroundEmptyState';
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
-import StudioPlaygroundStarterIdeas from '@/features/studio/playground/components/StudioPlaygroundStarterIdeas';
 import { useCrunGenerationQuote } from '@/features/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
@@ -193,6 +192,7 @@ import {
   resolveStudioUploadReferenceRole,
   studioAudioReferenceIds,
 } from '@/features/studio/playground/utils/studio-reference-selection';
+import { selectStoppableStudioJobs } from '@/features/studio/playground/utils/studio-stoppable-jobs';
 import type { PromptBarContextItem } from '@/features/studio/props/prompt-bar-context-row.props';
 import type {
   StudioPlaygroundComposerProps,
@@ -976,11 +976,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     jobs: visibleJobs,
     recoverPreview,
   });
-  const showEmptyStarterIdeas =
-    !galleryError &&
-    !isLoadingGallery &&
-    galleryJobs.length === 0 &&
-    prompt.trim().length === 0;
+  // Like the agent's new conversation, the cards stay up while a prompt is
+  // being written or seeded: they leave only when there is something to show.
+  const showEmptyState =
+    !galleryError && !isLoadingGallery && galleryJobs.length === 0;
   const starterOffering = starterOfferingKind(selectedBrand);
   const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
@@ -1396,6 +1395,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const referencePreviewUrlRef = useRef<string | undefined>(undefined);
   // Generate submits at once now, so a double click must not send twice.
   const isSubmitInFlightRef = useRef(false);
+  // The same in-flight window, as state, so the send button can show it.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const stoppableJobs = useMemo(() => selectStoppableStudioJobs(jobs), [jobs]);
+  const handleStopGeneration = useCallback(async () => {
+    await Promise.all(stoppableJobs.map((job) => cancelJob(job)));
+  }, [cancelJob, stoppableJobs]);
   const handleSubmit = useCallback(
     (submitOptions?: StudioSubmitOptions) => {
       if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
@@ -1418,12 +1423,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       if (type === 'image-edit') {
         const editOptions = { ...previewOption, ...submitOptions };
         isSubmitInFlightRef.current = true;
+        setIsSubmitting(true);
         const submission = (
           Object.keys(editOptions).length
             ? submit(prompt, resolvedReferences, editOptions)
             : submit(prompt, resolvedReferences)
         ).finally(() => {
           isSubmitInFlightRef.current = false;
+          setIsSubmitting(false);
         });
         const submittedPrompt = prompt;
         void submission.then((accepted) => {
@@ -1448,6 +1455,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         notificationsService.warning(notice);
       }
       isSubmitInFlightRef.current = true;
+      setIsSubmitting(true);
       const submittedPrompt = prompt;
       const promptAuthor = resolveStudioPromptAuthor(
         agentPromptSeed,
@@ -1490,6 +1498,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       )
         .finally(() => {
           isSubmitInFlightRef.current = false;
+          setIsSubmitting(false);
         })
         .then((isAccepted) => {
           // A sent generation leaves an empty composer (and draft) behind; the
@@ -2904,23 +2913,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       {translate('history.retrying')}
                     </p>
                   ) : null}
-                  {showEmptyStarterIdeas ? (
-                    <>
-                      <StudioPlaygroundAgentProposals
-                        brandId={brandId || undefined}
-                        onSelect={handleStarterIdea}
-                        type={type}
-                      />
-                      <StudioPlaygroundStarterIdeas
-                        character={pickStarterCharacter(characterMentions)}
-                        offeringKind={starterOffering}
-                        onSelect={handleStarterIdea}
-                        productReference={pickStarterProductReference(
-                          selectedBrand?.references,
-                        )}
-                      />
-                    </>
-                  ) : !galleryError || visibleJobs.length > 0 ? (
+                  {!showEmptyState &&
+                  (!galleryError || visibleJobs.length > 0) ? (
                     <StudioPlaygroundResults
                       assetActions={{
                         ...assetActions,
@@ -2941,6 +2935,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               )}
             </div>
           </div>
+          {showEmptyState && !isFocusedPreview ? (
+            <StudioPlaygroundEmptyState
+              brandId={brandId || undefined}
+              character={pickStarterCharacter(characterMentions)}
+              offeringKind={starterOffering}
+              onSelect={handleStarterIdea}
+              productReference={pickStarterProductReference(
+                selectedBrand?.references,
+              )}
+              type={type}
+            />
+          ) : null}
           <PromptBarContainer
             className="px-5 pb-5"
             layoutMode="surface-fixed"
@@ -3063,7 +3069,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     clearCrunRestore();
                   updateSettings(patch);
                 }}
+                isStopAvailable={stoppableJobs.length > 0}
+                isSubmitting={isSubmitting}
                 onStartListening={startListening}
+                onStopGeneration={handleStopGeneration}
                 onStopListening={stopListening}
                 onSubmit={handleSubmit}
                 onTypeChange={(value) => {
@@ -3101,6 +3110,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             job={selectedJob}
             onOpenPreview={handleOpenFocusedPreview}
             onPreviewRecovered={recoverPreview}
+            onRemove={assetActions.onRemoveGeneration}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onAnimate={assetActions.onConvertToVideo}

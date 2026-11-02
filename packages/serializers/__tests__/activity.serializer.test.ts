@@ -37,3 +37,17 @@ describe('activity ingredient relationship', () => {
     });
   });
 });
+
+describe('activity organization label', () => {
+  it('serializes the organization name for admin tables', () => {
+    const result = ActivitySerializer.serialize({
+      id: 'activity-2',
+      key: 'post.lifecycle.transition',
+      organizationLabel: 'Acme Studio',
+    });
+
+    expect(result).toMatchObject({
+      data: { attributes: { organizationLabel: 'Acme Studio' } },
+    });
+  });
+});

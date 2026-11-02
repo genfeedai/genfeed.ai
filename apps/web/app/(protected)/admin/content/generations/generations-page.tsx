@@ -2,18 +2,19 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { ModelsService } from '@services/ai/models.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Image as ImageIcon } from 'lucide-react';
+import { Download, Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -45,6 +46,8 @@ const GENERATION_SKELETON_KEYS = [
 const PROMPT_ONLY_TYPE = 'prompt';
 
 const MODEL_OPTIONS_LIMIT = 100;
+const EMPTY_GENERATIONS: GenerationView[] = [];
+const EMPTY_MODEL_OPTIONS: GenerationStatusOption[] = [];
 
 function downloadCsv(rows: GenerationView[]): void {
   const url = URL.createObjectURL(
@@ -74,25 +77,8 @@ function GenerationsPageContent() {
   const model = params.get('model') ?? '';
   const search = params.get('q') ?? '';
 
-  const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance('ingredients', token),
-  );
-  const getPromptsService = useAuthedService((token: string) =>
-    PromptsService.getInstance(token),
-  );
-  const getModelsService = useAuthedService((token: string) =>
-    ModelsService.getInstance(token),
-  );
   const notificationsService = NotificationsService.getInstance();
-
-  const [generations, setGenerations] = useState<GenerationView[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [reloadVersion, setReloadVersion] = useState(0);
   const [selected, setSelected] = useState<GenerationView | null>(null);
-  const [modelOptions, setModelOptions] = useState<GenerationStatusOption[]>(
-    [],
-  );
 
   const isPromptOnly = type === PROMPT_ONLY_TYPE;
 
@@ -115,11 +101,21 @@ function GenerationsPageContent() {
     replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [pathname, replace, searchParamsString]);
 
-  const loadGenerations = useCallback(
-    async (signal: AbortSignal) => {
-      setIsLoading(true);
-      setHasError(false);
-
+  // Cached per filter set and page: coming back to Generations paints the rows
+  // it already has while it refreshes, and paging keeps the current rows on
+  // screen.
+  const filterKey = {
+    brand,
+    isPromptOnly,
+    model,
+    organization,
+    search,
+    status,
+    type,
+  };
+  const generationsQuery = usePagedAuthedQuery({
+    keepPreviousDataWithin: ['admin', 'generations', filterKey],
+    queryFn: async (services, signal) => {
       const query: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -131,88 +127,77 @@ function GenerationsPageContent() {
 
       try {
         if (isPromptOnly) {
-          const service = await getPromptsService();
-          const fetched = await service.findAdminWithoutGeneration(
+          const fetched = await services.prompts.findAdminWithoutGeneration(
             query,
             signal,
           );
-          if (signal.aborted) return;
-          setGenerations(
-            (Array.isArray(fetched) ? fetched : []).map(toPromptView),
-          );
-        } else {
-          if (status) query.status = status;
-          if (type) query.category = type;
-          if (model) query.model = model;
-          const service = await getIngredientsService();
-          const fetched = await service.findAdminGenerationReviews(
-            query,
-            signal,
-          );
-          if (signal.aborted) return;
-          setGenerations(
-            (Array.isArray(fetched) ? fetched : []).map(toGenerationView),
-          );
+          return (Array.isArray(fetched) ? fetched : []).map(toPromptView);
         }
+        if (status) query.status = status;
+        if (type) query.category = type;
+        if (model) query.model = model;
+        const fetched = await services.ingredients.findAdminGenerationReviews(
+          query,
+          signal,
+        );
+        return (Array.isArray(fetched) ? fetched : []).map(toGenerationView);
       } catch (error) {
-        if (signal.aborted) return;
-        logger.error('Failed to load generations', error);
-        setGenerations([]);
-        setHasError(true);
-        notificationsService.error(t('loadError'));
-      } finally {
-        if (!signal.aborted) setIsLoading(false);
+        if (!signal.aborted) {
+          logger.error('Failed to load generations', error);
+        }
+        throw error;
       }
     },
-    [
-      brand,
-      currentPage,
-      getIngredientsService,
-      getPromptsService,
-      isPromptOnly,
-      model,
-      notificationsService,
-      organization,
-      search,
-      status,
-      t,
-      type,
-    ],
-  );
+    queryKey: ['admin', 'generations', filterKey, { page: currentPage }],
+    service: (token: string) => ({
+      ingredients: IngredientsService.getInstance('ingredients', token),
+      prompts: PromptsService.getInstance(token),
+    }),
+  });
+  const {
+    errorUpdatedAt,
+    isError: hasError,
+    isFetching: isRefreshing,
+    isLoading,
+    refetch,
+  } = generationsQuery;
+  const generations = hasError
+    ? EMPTY_GENERATIONS
+    : (generationsQuery.data?.items ?? EMPTY_GENERATIONS);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadVersion is the explicit refresh and retry trigger
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-    void loadGenerations(controller.signal);
-    return () => controller.abort();
-  }, [loadGenerations, reloadVersion]);
+    if (hasError) {
+      notificationsService.error(t('loadError'));
+    }
+  }, [errorUpdatedAt, hasError, notificationsService, t]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void (async () => {
+  const modelsQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getModelsService();
         const models = await service.findAll(
           { limit: MODEL_OPTIONS_LIMIT, sort: 'label: 1' },
-          controller.signal,
+          signal,
         );
-        if (controller.signal.aborted) return;
-        setModelOptions(
-          models
-            .filter((item) => item.key)
-            .map((item) => ({
-              label: item.label || item.key,
-              value: item.key,
-            })),
-        );
+        return models
+          .filter((item) => item.key)
+          .map((item) => ({
+            label: item.label || item.key,
+            value: item.key,
+          }));
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!signal.aborted) {
           logger.error('Failed to load model filter options', error);
         }
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [getModelsService]);
+    },
+    queryKey: ['admin', 'generations', 'model-options'],
+    service: (token: string) => ModelsService.getInstance(token),
+  });
+  const modelOptions: GenerationStatusOption[] =
+    modelsQuery.data ?? EMPTY_MODEL_OPTIONS;
 
   const statusOptions = useMemo<GenerationStatusOption[]>(
     () => [
@@ -242,10 +227,9 @@ function GenerationsPageContent() {
     ];
   }, [model, modelOptions, t]);
 
-  const reload = useCallback(
-    () => setReloadVersion((version) => version + 1),
-    [],
-  );
+  const reload = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   return (
     <AdminPageShell
@@ -303,12 +287,18 @@ function GenerationsPageContent() {
         </SearchField>
       }
       onRefresh={reload}
-      isRefreshing={isLoading}
-      download={
-        <AdminDownloadButton
-          isDisabled={generations.length === 0}
-          label={t('download')}
-          onClick={() => downloadCsv(generations)}
+      isRefreshing={isRefreshing}
+      overflow={
+        <SubbarOverflowMenu
+          actions={[
+            {
+              icon: <Download className="size-4" />,
+              id: 'download',
+              isDisabled: generations.length === 0,
+              label: t('download'),
+              onSelect: () => downloadCsv(generations),
+            },
+          ]}
         />
       }
       dropdowns={<AdminOrgBrandUrlFilter />}
@@ -336,7 +326,7 @@ function GenerationsPageContent() {
                 onOpen={setSelected}
               />
             ))}
-            <AutoPagination />
+            <AutoPagination totals={generationsQuery.data?.totals} />
           </>
         )}
       </div>

@@ -621,9 +621,11 @@ jobs:
             --timeout-seconds 1200 \
             --stop-on-timeout
 
+  # Builds and stages the frontends alongside the ECS rollout with
+  # `--skip-domain`: nothing is live until promote-vercel-frontends runs, and
+  # that waits for the API/services rollout to succeed.
   deploy-vercel-frontends:
     name: Deploy Vercel frontends
-    needs: deploy
     permissions:
       contents: read
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
@@ -636,12 +638,25 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
+  promote-vercel-frontends:
+    name: Promote Vercel frontends
+    # Only after migrations, boot smoke and the service rollout succeeded.
+    # If either side fails nothing is promoted and production keeps serving the
+    # previous frontend.
+    needs: [deploy, deploy-vercel-frontends]
+    if: ${{ needs.deploy.result == 'success' && needs.deploy-vercel-frontends.result == 'success' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_deploy-hosted-saas-vercel-promote.yml
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
   post-deploy-smoke:
     name: Post-deploy smoke
     # Smoke the live API surface whenever the ECS deploy succeeded. A Vercel
     # frontend failure must not SKIP this job (default needs-failure behavior),
     # otherwise an API regression ships unverified when a frontend deploy flakes.
-    needs: [deploy, deploy-vercel-frontends]
+    needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends]
     if: ${{ always() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-latest
     environment: production
@@ -835,7 +850,7 @@ jobs:
 
   promote-server-image:
     name: Promote verified server image
-    needs: [deploy, deploy-vercel-frontends, post-deploy-smoke]
+    needs: [deploy, deploy-vercel-frontends, promote-vercel-frontends, post-deploy-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: production

@@ -1479,7 +1479,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it.each(['/org-123/brand-123/storyboard', '/org-123/brand-123/turbo/new'])(
+  it.each(['/org-123/brand-123/storyboard', '/org-123/brand-123/turbo'])(
     'keeps the %s rail app surface without a module nav column',
     (pathname) => {
       mockPathname.value = pathname;

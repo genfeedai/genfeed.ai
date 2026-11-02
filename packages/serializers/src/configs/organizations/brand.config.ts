@@ -1,6 +1,7 @@
 import { linkAttributes } from '@serializers/attributes';
 import {
   brandAttributes,
+  publicBrandAssetAttributes,
   publicBrandAttributes,
 } from '@serializers/attributes/organizations/brand.attributes';
 import { credentialAttributes } from '@serializers/attributes/organizations/credential.attributes';
@@ -25,6 +26,8 @@ export const brandSerializerConfig = {
 
 export const publicBrandSerializerConfig = {
   attributes: publicBrandAttributes,
+  banner: rel('asset', publicBrandAssetAttributes),
   links: rel('link', linkAttributes),
+  logo: rel('asset', publicBrandAssetAttributes),
   type: 'brand',
 };

@@ -1,6 +1,7 @@
 import {
   resolveAgentPromptSurface,
   resolveBrandSurfaceSuggestions,
+  sanitizeBrandTopic,
 } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
@@ -73,5 +74,59 @@ describe('resolveBrandSurfaceSuggestions', () => {
   it('falls back to existing hard-coded actions when no profile topics exist', () => {
     expect(resolveBrandSurfaceSuggestions('/agent', { voice: {} })).toEqual([]);
     expect(resolveBrandSurfaceSuggestions('/settings', profile)).toEqual([]);
+  });
+
+  it('strips stray punctuation from brand topics before pasting them into a label', () => {
+    const suggestions = resolveBrandSurfaceSuggestions('/agent', {
+      ...profile,
+      strategy: { topics: ['French builder identity;', 'content systems'] },
+    });
+
+    expect(suggestions[0]?.label).toBe('Create French builder identity');
+    expect(suggestions[0]?.prompt).toContain('French builder identity ');
+    expect(suggestions[0]?.prompt).not.toContain('identity;');
+  });
+
+  it('cuts a long label at a word with an ellipsis, never mid-word', () => {
+    const suggestions = resolveBrandSurfaceSuggestions('/agent', {
+      ...profile,
+      strategy: { topics: ['Founder-led distribution for developer tools'] },
+    });
+
+    expect(suggestions[0]?.label).toBe('Create Founder-led…');
+  });
+
+  it('skips a bare name so no card reads "Plan David"', () => {
+    const suggestions = resolveBrandSurfaceSuggestions('/agent', {
+      voice: { tone: 'direct' },
+      strategy: { topics: ['David', 'content systems', 'brand consistency'] },
+    });
+
+    expect(suggestions.map((suggestion) => suggestion.label)).not.toContain(
+      'Plan David',
+    );
+    expect(suggestions[0]?.label).toBe('Create content systems');
+  });
+
+  it('falls back to route actions when every topic is unusable', () => {
+    expect(
+      resolveBrandSurfaceSuggestions('/agent', {
+        strategy: { topics: ['David', ';'] },
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe('sanitizeBrandTopic', () => {
+  it.each([
+    ['French builder identity;', 'French builder identity'],
+    ['  AI   workflows. ', 'AI workflows'],
+    ['SEO', 'SEO'],
+    ['Product launches', 'Product launches'],
+    ['David', null],
+    ['', null],
+    [';', null],
+  ])('maps %j to %j', (input, expected) => {
+    expect(sanitizeBrandTopic(input)).toBe(expected);
   });
 });

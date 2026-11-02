@@ -1,5 +1,11 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IXGrowthReport } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import { render as renderView, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountXGrowth from './analytics-account-x-growth';
 
@@ -20,6 +26,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 const getService = async () => ({
   getXGrowthReport: mocks.getXGrowthReport,
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
@@ -106,6 +117,17 @@ function report(overrides: Partial<IXGrowthReport> = {}): IXGrowthReport {
     scopeKey: 'k',
     ...overrides,
   } as IXGrowthReport;
+}
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 
 describe('AnalyticsAccountXGrowth', () => {

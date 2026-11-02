@@ -23,14 +23,18 @@ vi.mock(
 );
 
 vi.mock(
+  '@/features/brands/components/sidebar/BrandDetailConnectedAccountsSection',
+  () => ({
+    default: ({ connections }: { connections: unknown[] }) => (
+      <div>Connected Accounts Section ({connections.length})</div>
+    ),
+  }),
+);
+
+vi.mock(
   '@/features/brands/components/sidebar/BrandDetailExternalLinksCard',
   () => ({
-    default: ({ social }: { social?: { connectedSocialCount: number } }) => (
-      <div>
-        External Links Card
-        {social ? ` (${social.connectedSocialCount} social)` : ''}
-      </div>
-    ),
+    default: () => <div>External Links Card</div>,
   }),
 );
 
@@ -93,10 +97,12 @@ describe('BrandDetailSidebar', () => {
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Media Card')).toBeInTheDocument();
     expect(screen.getByText('External Links Card')).toBeInTheDocument();
-    expect(screen.queryByText(/social\)/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Connected Accounts Section/),
+    ).not.toBeInTheDocument();
   });
 
-  it('merges social into the links card when only social manage href is set', () => {
+  it('lists connected accounts as their own section when the manage href is set', () => {
     render(
       <BrandDetailSidebar
         {...props}
@@ -119,10 +125,10 @@ describe('BrandDetailSidebar', () => {
     );
 
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
-    // Google Ads is an ad account, not a social profile, so it is not counted.
     expect(
-      screen.getByText('External Links Card (1 social)'),
+      screen.getByText('Connected Accounts Section (2)'),
     ).toBeInTheDocument();
+    expect(screen.getByText('External Links Card')).toBeInTheDocument();
     expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
   });
 });

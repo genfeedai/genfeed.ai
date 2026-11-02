@@ -1,15 +1,17 @@
 'use client';
 
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { PERSONAL_SETTINGS_ANCHOR } from '@/config/personal-settings-anchor';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Spinner from '@ui/primitives/spinner';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
@@ -18,7 +20,8 @@ import { Switch } from '@ui/primitives/switch';
 
 import ProductEmailPreferences from './product-email-preferences';
 
-type PreferenceLoadState = 'error' | 'loading' | 'ready';
+const WORKFLOW_EMAIL_KEY = ['users', 'email-preferences', 'workflow'] as const;
+const AGENT_EMAIL_KEY = ['users', 'email-preferences', 'agent'] as const;
 
 export default function SettingsNotificationsPage() {
   const translate = useTranslations('common');
@@ -28,96 +31,69 @@ export default function SettingsNotificationsPage() {
     UsersService.getInstance(token),
   );
 
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
-  const [isWorkflowNotificationsEmail, setIsWorkflowNotificationsEmail] =
-    useState(false);
-  const [workflowPreferenceLoadState, setWorkflowPreferenceLoadState] =
-    useState<PreferenceLoadState>('loading');
-  const [workflowPreferenceLoadRequest, setWorkflowPreferenceLoadRequest] =
-    useState(0);
 
-  const loadWorkflowPreference = useCallback(
-    async (signal: AbortSignal) => {
-      setWorkflowPreferenceLoadState('loading');
-
+  // Each preference is cached: coming back to Notifications shows the saved
+  // values at once while they refresh, and the toggles show a skeleton, never
+  // "off", until the first read lands.
+  const workflowPreferenceQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getUsersService();
         const preference =
           await service.findWorkflowEmailNotificationPreference(signal);
-        signal.throwIfAborted();
-        setIsWorkflowNotificationsEmail(preference.isEnabled);
-        setWorkflowPreferenceLoadState('ready');
+        return preference.isEnabled;
       } catch (error) {
-        if (signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load workflow email preference', error);
         }
-        logger.error('Failed to load workflow email preference', error);
-        setWorkflowPreferenceLoadState('error');
+        throw error;
       }
     },
-    [getUsersService],
-  );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: workflowPreferenceLoadRequest intentionally re-runs the abortable load after a manual retry
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadWorkflowPreference(controller.signal);
-    return () => controller.abort();
-  }, [loadWorkflowPreference, workflowPreferenceLoadRequest]);
-
-  const [isAgentNotificationsEmail, setIsAgentNotificationsEmail] =
-    useState(false);
-  const [agentPreferenceLoadState, setAgentPreferenceLoadState] =
-    useState<PreferenceLoadState>('loading');
-  const agentPreferenceController = useRef<AbortController | null>(null);
-
-  const loadAgentPreference = useCallback(
-    async (signal: AbortSignal) => {
-      setAgentPreferenceLoadState('loading');
-
+    queryKey: WORKFLOW_EMAIL_KEY,
+    service: (token: string) => UsersService.getInstance(token),
+  });
+  const agentPreferenceQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getUsersService();
         const preference =
           await service.findAgentEmailNotificationPreference(signal);
-        signal.throwIfAborted();
-        setIsAgentNotificationsEmail(preference.isEnabled);
-        setAgentPreferenceLoadState('ready');
+        return preference.isEnabled;
       } catch (error) {
-        if (signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load agent email preference', error);
         }
-        logger.error('Failed to load agent email preference', error);
-        setAgentPreferenceLoadState('error');
+        throw error;
       }
     },
-    [getUsersService],
+    queryKey: AGENT_EMAIL_KEY,
+    service: (token: string) => UsersService.getInstance(token),
+  });
+  const isWorkflowNotificationsEmail = workflowPreferenceQuery.data;
+  const isAgentNotificationsEmail = agentPreferenceQuery.data;
+  const { refetch: refetchWorkflowPreference } = workflowPreferenceQuery;
+  const { refetch: refetchAgentPreference } = agentPreferenceQuery;
+
+  const setCachedPreference = useCallback(
+    (queryKey: readonly string[], isEnabled: boolean | undefined) => {
+      queryClient.setQueriesData<boolean>({ queryKey }, isEnabled);
+    },
+    [queryClient],
   );
-
-  const refreshAgentPreference = useCallback(() => {
-    agentPreferenceController.current?.abort();
-    const controller = new AbortController();
-    agentPreferenceController.current = controller;
-    void loadAgentPreference(controller.signal);
-  }, [loadAgentPreference]);
-
-  useEffect(() => {
-    refreshAgentPreference();
-    return () => agentPreferenceController.current?.abort();
-  }, [refreshAgentPreference]);
 
   const handleWorkflowEmailPreferenceChange = useCallback(
     async (isEnabled: boolean) => {
       const previousValue = isWorkflowNotificationsEmail;
-      setIsWorkflowNotificationsEmail(isEnabled);
+      setCachedPreference(WORKFLOW_EMAIL_KEY, isEnabled);
       setIsSaving(true);
       try {
         const service = await getUsersService();
         const preference =
           await service.patchWorkflowEmailNotificationPreference(isEnabled);
-        setIsWorkflowNotificationsEmail(preference.isEnabled);
+        setCachedPreference(WORKFLOW_EMAIL_KEY, preference.isEnabled);
       } catch (error: unknown) {
         logger.error('Failed to update workflow email preference', error);
-        setIsWorkflowNotificationsEmail(previousValue);
+        setCachedPreference(WORKFLOW_EMAIL_KEY, previousValue);
         notifications.error(
           translate('settings.profile.workflowEmail.saveError'),
         );
@@ -125,28 +101,40 @@ export default function SettingsNotificationsPage() {
         setIsSaving(false);
       }
     },
-    [getUsersService, isWorkflowNotificationsEmail, notifications, translate],
+    [
+      getUsersService,
+      isWorkflowNotificationsEmail,
+      notifications,
+      setCachedPreference,
+      translate,
+    ],
   );
 
   const handleAgentEmailPreferenceChange = useCallback(
     async (isEnabled: boolean) => {
       const previousValue = isAgentNotificationsEmail;
-      setIsAgentNotificationsEmail(isEnabled);
+      setCachedPreference(AGENT_EMAIL_KEY, isEnabled);
       setIsSaving(true);
       try {
         const service = await getUsersService();
         const preference =
           await service.patchAgentEmailNotificationPreference(isEnabled);
-        setIsAgentNotificationsEmail(preference.isEnabled);
+        setCachedPreference(AGENT_EMAIL_KEY, preference.isEnabled);
       } catch (error: unknown) {
         logger.error('Failed to update agent email preference', error);
-        setIsAgentNotificationsEmail(previousValue);
+        setCachedPreference(AGENT_EMAIL_KEY, previousValue);
         notifications.error(translate('settings.profile.agentEmail.saveError'));
       } finally {
         setIsSaving(false);
       }
     },
-    [getUsersService, isAgentNotificationsEmail, notifications, translate],
+    [
+      getUsersService,
+      isAgentNotificationsEmail,
+      notifications,
+      setCachedPreference,
+      translate,
+    ],
   );
 
   if (!isLoaded) {
@@ -170,13 +158,14 @@ export default function SettingsNotificationsPage() {
             description={translate(
               'settings.profile.workflowEmail.description',
             )}
-            isChecked={isWorkflowNotificationsEmail}
-            isDisabled={isSaving || workflowPreferenceLoadState !== 'ready'}
+            isChecked={isWorkflowNotificationsEmail ?? false}
+            isDisabled={isSaving || isWorkflowNotificationsEmail === undefined}
+            isLoading={workflowPreferenceQuery.isPending}
             onChange={(e) =>
               handleWorkflowEmailPreferenceChange(e.target.checked)
             }
           />
-          {workflowPreferenceLoadState === 'error' ? (
+          {workflowPreferenceQuery.isError ? (
             <Alert variant="warning">
               <div className="flex items-center justify-between gap-3">
                 <span>
@@ -184,9 +173,7 @@ export default function SettingsNotificationsPage() {
                 </span>
                 <Button
                   label={translate('actions.retry')}
-                  onClick={() => {
-                    setWorkflowPreferenceLoadRequest((request) => request + 1);
-                  }}
+                  onClick={() => void refetchWorkflowPreference()}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                 />
@@ -197,11 +184,12 @@ export default function SettingsNotificationsPage() {
             aria-label={translate('settings.profile.agentEmail.label')}
             label={translate('settings.profile.agentEmail.label')}
             description={translate('settings.profile.agentEmail.description')}
-            isChecked={isAgentNotificationsEmail}
-            isDisabled={isSaving || agentPreferenceLoadState !== 'ready'}
+            isChecked={isAgentNotificationsEmail ?? false}
+            isDisabled={isSaving || isAgentNotificationsEmail === undefined}
+            isLoading={agentPreferenceQuery.isPending}
             onChange={(e) => handleAgentEmailPreferenceChange(e.target.checked)}
           />
-          {agentPreferenceLoadState === 'error' ? (
+          {agentPreferenceQuery.isError ? (
             <Alert variant="warning">
               <div className="flex items-center justify-between gap-3">
                 <span>
@@ -209,7 +197,7 @@ export default function SettingsNotificationsPage() {
                 </span>
                 <Button
                   label={translate('actions.retry')}
-                  onClick={refreshAgentPreference}
+                  onClick={() => void refetchAgentPreference()}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                 />

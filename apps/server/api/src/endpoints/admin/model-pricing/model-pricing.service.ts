@@ -19,6 +19,7 @@ import {
   enumerateReviewedVariantSelectors,
   hashReviewedProviderRates,
   hasPendingProviderRateDrift,
+  isUnreadableRateDraft,
   needsModelPricingFix,
   quoteModelBillablePricing,
   REVIEWED_RATE_SHEET_ENTRIES,
@@ -201,12 +202,16 @@ export function projectAdminModelPricing(
   // An inactive model still needs a price before an operator can switch it
   // on, so it is quoted and classified like an active one. A retired row never
   // bills (dispatch resolves its successor), and an inactive row the rate
-  // sheet deliberately leaves unpriced has its reason recorded already.
+  // sheet deliberately leaves unpriced has its reason recorded already. A draft
+  // whose provider publishes no readable rate has nothing to approve, so it is
+  // not an alert either.
   const pricingModel = {
     ...model,
     isActive:
       String(model.lifecycle) !== ModelLifecycle.RETIRED &&
-      (model.isActive || !Object.hasOwn(UNPRICED_MODELS, model.key)),
+      (model.isActive ||
+        (!Object.hasOwn(UNPRICED_MODELS, model.key) &&
+          !isUnreadableRateDraft(model))),
   };
   const profile = projectModelBillablePricingProfile(pricingModel, contracts);
   if (reviewed && profile.reviewedPricing) {

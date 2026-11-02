@@ -1,19 +1,19 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SoundsService } from '@services/elements/sounds.service';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
@@ -23,6 +23,7 @@ import type {
   SoundsListAction,
   SoundsListState,
 } from '@/features/admin/props/sounds.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
@@ -52,8 +53,6 @@ function soundsListReducer(
       next.delete(action.id);
       return { ...state, updatingIds: next };
     }
-    case 'SET_SELECTED_SOUND':
-      return { ...state, selectedSound: action.sound };
     default:
       return state;
   }
@@ -86,10 +85,9 @@ function SoundsListContent({
     sounds: [],
     fetchStatus: 'loading' as FetchStatus,
     updatingIds: new Set<string>(),
-    selectedSound: null,
   }));
 
-  const { sounds, fetchStatus, updatingIds, selectedSound } = state;
+  const { sounds, fetchStatus, updatingIds } = state;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -188,11 +186,6 @@ function SoundsListContent({
     }
   }, [onRefresh, findAllSounds]);
 
-  const openSoundModal = (modalId: ModalEnum, sound?: Sound) => {
-    dispatch({ type: 'SET_SELECTED_SOUND', sound: sound || null });
-    openModal(modalId);
-  };
-
   const handleToggleActive = async (sound: Sound) => {
     dispatch({ type: 'ADD_UPDATING_ID', id: sound.id });
     try {
@@ -228,12 +221,10 @@ function SoundsListContent({
       const service = await getSoundsService();
       await service.delete(sound.id);
       notificationsService.success('Sound deleted');
-      dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
       findAllSounds(true);
     } catch (error) {
       logger.error('Failed to delete sound', error);
       notificationsService.error('Failed to delete sound');
-      dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
     }
   };
 
@@ -251,14 +242,8 @@ function SoundsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (sound: Sound) => openSoundModal(ModalEnum.SOUND, sound),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (sound: Sound) => {
-              dispatch({ type: 'SET_SELECTED_SOUND', sound });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -272,6 +257,14 @@ function SoundsListContent({
         ]
       : [];
 
+  const saveSound = useInlineRecordSave<Partial<Sound> & { key?: string }>({
+    errorMessage: 'Failed to update sound',
+    onSaved: () => findAllSounds(true),
+    save: async (id, patch) => (await getSoundsService()).patch(id, patch),
+  });
+
+  const isEditable = scope === PageScope.SUPERADMIN;
+
   const rowSidebar = createSummaryRowSidebar<Sound>({
     getBadges: (sound) => (
       <ElementScopeBadge
@@ -280,19 +273,73 @@ function SoundsListContent({
       />
     ),
     getFacts: (sound) => [
-      { id: 'key', label: fieldsT('key'), value: (sound as ISound).key },
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('label'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (label) => saveSound(sound.id, { label }),
+              value: sound.label,
+            }
+          : undefined,
+        id: 'label',
+        label: fieldsT('label'),
+        value: sound.label,
+      },
+      {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('key'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (key) =>
+                saveSound(sound.id, { key: normalizeElementKey(key) }),
+              value: (sound as ISound).key,
+            }
+          : undefined,
+        id: 'key',
+        label: fieldsT('key'),
+        value: (sound as ISound).key,
+      },
+      {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('description'),
+              isMultiline: true,
+              kind: 'text',
+              onSave: (description) => saveSound(sound.id, { description }),
+              placeholder: '-',
+              value: sound.description,
+            }
+          : undefined,
         id: 'description',
         label: fieldsT('description'),
         value: sound.description,
       },
       { id: 'category', label: fieldsT('category'), value: sound.category },
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('sortOrder'),
+              kind: 'number',
+              onSave: (sortOrder) => saveSound(sound.id, { sortOrder }),
+              value: sound.sortOrder ?? 0,
+            }
+          : undefined,
         id: 'sortOrder',
         label: fieldsT('sortOrder'),
         value: sound.sortOrder ?? 0,
       },
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('default'),
+              isChecked: sound.isDefault === true,
+              kind: 'switch',
+              onSave: (isDefault) => saveSound(sound.id, { isDefault }),
+            }
+          : undefined,
         id: 'default',
         label: fieldsT('default'),
         value: sound.isDefault ? rowSidebarT('yes') : rowSidebarT('no'),
@@ -302,10 +349,6 @@ function SoundsListContent({
     getSubtitle: (sound) => (sound as ISound).key,
     getTitle: (sound) => sound.label ?? (sound as ISound).key ?? sound.id,
     kind: 'record',
-    onEdit:
-      scope === PageScope.SUPERADMIN
-        ? (sound) => openSoundModal(ModalEnum.SOUND, sound)
-        : undefined,
   });
 
   return (
@@ -325,9 +368,7 @@ function SoundsListContent({
 
       <SoundsListModals
         scope={scope}
-        selectedSound={selectedSound}
         onConfirm={() => {
-          dispatch({ type: 'SET_SELECTED_SOUND', sound: null });
           findAllSounds(true);
         }}
       />

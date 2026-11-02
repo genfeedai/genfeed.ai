@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -511,41 +512,36 @@ export default function StoryboardPlanEditor({
             />
           )
         }
-        iconActions={
+        overflow={
+          <SubbarOverflowMenu
+            actions={[
+              {
+                icon: <Undo2 className="size-4" />,
+                id: 'undo',
+                isDisabled: isDisabled || !autosave.canUndo,
+                label: translate('undo'),
+                onSelect: () => void perform(() => autosave.undo()),
+              },
+              {
+                icon: <RotateCcw className="size-4" />,
+                id: 'reset-plan',
+                isDisabled:
+                  isDisabled ||
+                  !run.config.generatedPlan ||
+                  Boolean(draft && draft.status !== 'saved'),
+                label: translate('resetPlan'),
+                onSelect: reset,
+              },
+            ]}
+          />
+        }
+        right={
           <>
             <StoryboardSaveIndicator
               status={autosave.status}
               error={autosave.error}
               onRetry={() => void autosave.flush().catch(() => undefined)}
             />
-            <Button
-              ariaLabel={translate('undo')}
-              icon={<Undo2 className="size-4" />}
-              isDisabled={isDisabled || !autosave.canUndo}
-              onClick={() => void perform(() => autosave.undo())}
-              size={ButtonSize.ICON}
-              tooltip={translate('undo')}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-            <Button
-              ariaLabel={translate('resetPlan')}
-              icon={<RotateCcw className="size-4" />}
-              isDisabled={
-                isDisabled ||
-                !run.config.generatedPlan ||
-                Boolean(draft && draft.status !== 'saved')
-              }
-              onClick={reset}
-              size={ButtonSize.ICON}
-              tooltip={translate('resetPlan')}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </>
-        }
-        right={
-          <>
             {actions}
             <Button
               label={approved ? translate('approved') : translate('approve')}

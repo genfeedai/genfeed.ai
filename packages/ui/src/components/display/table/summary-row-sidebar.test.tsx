@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -30,30 +30,40 @@ describe('createSummaryRowSidebar', () => {
     expect(sidebar.kind).toBe('record');
   });
 
-  it('renders facts and an Edit button that edits the record', () => {
-    const onEdit = vi.fn();
+  it('renders read-only facts as plain text', () => {
     const sidebar = createSummaryRowSidebar<Thing>({
       getFacts: (item) => [{ id: 'note', label: 'Note', value: item.note }],
       getId: (item) => item.id,
       getTitle: (item) => item.label,
       kind: 'record',
-      onEdit,
     });
 
     render(sidebar.render(thing));
 
     expect(screen.getByText('Note')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(onEdit).toHaveBeenCalledWith(thing);
+    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('hides Edit for records the viewer cannot edit', () => {
+  it('edits a fact in place and saves the new value without an Edit button', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
     const sidebar = createSummaryRowSidebar<Thing>({
-      canEdit: (item) => item.id !== 't1',
+      getFacts: (item) => [
+        {
+          editor: {
+            ariaLabel: 'Note',
+            kind: 'text',
+            onSave,
+            value: item.note,
+          },
+          id: 'note',
+          label: 'Note',
+          value: item.note,
+        },
+      ],
       getId: (item) => item.id,
       getTitle: (item) => item.label,
       kind: 'record',
-      onEdit: vi.fn(),
     });
 
     render(sidebar.render(thing));
@@ -61,9 +71,42 @@ describe('createSummaryRowSidebar', () => {
     expect(
       screen.queryByRole('button', { name: 'Edit' }),
     ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Note' }));
+    const input = screen.getByRole('textbox', { name: 'Note' });
+    fireEvent.change(input, { target: { value: 'goodbye' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith('goodbye');
+    });
   });
 
-  it('omits Edit and the Open link when not configured', () => {
+  it('shows an editable fact even when its value is empty', () => {
+    const sidebar = createSummaryRowSidebar<Thing>({
+      getFacts: () => [
+        {
+          editor: {
+            ariaLabel: 'Note',
+            kind: 'text',
+            onSave: vi.fn(),
+            placeholder: '-',
+            value: null,
+          },
+          id: 'note',
+          label: 'Note',
+        },
+      ],
+      getId: (item) => item.id,
+      getTitle: (item) => item.label,
+      kind: 'record',
+    });
+
+    render(sidebar.render({ id: 't2', label: 'Empty' }));
+
+    expect(screen.getByRole('button', { name: 'Note' })).toBeInTheDocument();
+  });
+
+  it('omits controls and the Open link when not configured', () => {
     const sidebar = createSummaryRowSidebar<Thing>({
       getId: (item) => item.id,
       getTitle: (item) => item.label,

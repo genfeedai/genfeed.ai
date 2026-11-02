@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IFontFamily } from '@genfeedai/contracts/interfaces';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { FontFamiliesService } from '@genfeedai/services/elements/font-families.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -12,14 +12,15 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 export default function ModalFontFamily({
-  item,
   onConfirm,
   onClose,
-}: ModalCrudProps<IFontFamily>) {
+}: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IFontFamily,
     ElementSimpleSchema
@@ -29,7 +30,7 @@ export default function ModalFontFamily({
       key: '',
       label: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.FONT_FAMILY,
     onClose,
     onConfirm,
@@ -57,10 +58,7 @@ export default function ModalFontFamily({
   };
 
   return (
-    <Modal
-      id={ModalEnum.FONT_FAMILY}
-      title={item ? 'Edit Font Family' : 'Create Font Family'}
-    >
+    <Modal id={ModalEnum.FONT_FAMILY} title={t('fontFamily')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -109,7 +107,7 @@ export default function ModalFontFamily({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

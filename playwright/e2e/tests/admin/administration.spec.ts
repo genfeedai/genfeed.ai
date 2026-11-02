@@ -19,7 +19,6 @@ test.describe('Admin Administration', () => {
     APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
     APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS,
     APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS,
-    APP_ROUTES.ADMIN.ADMINISTRATION.CONCIERGE_ACCOUNTS,
   ];
 
   for (const route of routes) {
@@ -31,21 +30,25 @@ test.describe('Admin Administration', () => {
   test('user detail shows the onboarding status as a badge', async ({
     adminPage,
   }) => {
+    // The pattern also matches the page URL itself, so only API calls are
+    // answered here; the document navigation goes on to the app.
     await adminPage.route('**/users/user-e2e-1', (route) =>
-      route.fulfill({
-        json: {
-          data: {
-            attributes: {
-              email: 'ada@example.com',
-              handle: 'ada',
-              isOnboardingCompleted: false,
-              name: 'Ada Lovelace',
+      route.request().resourceType() === 'document'
+        ? route.fallback()
+        : route.fulfill({
+            json: {
+              data: {
+                attributes: {
+                  email: 'ada@example.com',
+                  handle: 'ada',
+                  isOnboardingCompleted: false,
+                  name: 'Ada Lovelace',
+                },
+                id: 'user-e2e-1',
+                type: 'user',
+              },
             },
-            id: 'user-e2e-1',
-            type: 'user',
-          },
-        },
-      }),
+          }),
     );
 
     await assertRouteRenders(

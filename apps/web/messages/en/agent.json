@@ -65,9 +65,15 @@
   },
   "threadList": {
     "agent": "Agent",
+    "emptyDescription": "Start one to get going",
+    "emptyTitle": "No threads",
     "fork": "Fork thread",
+    "loadFailedDescription": "Check your connection and try again.",
+    "loadFailedTitle": "Failed to load threads",
+    "loading": "Loading threads",
     "pinned": "Pinned conversation",
     "rename": "Rename",
+    "retry": "Retry",
     "running": "Running"
   },
   "runsList": {

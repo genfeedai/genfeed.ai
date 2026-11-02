@@ -35,4 +35,37 @@ describe('recordPageTotals', () => {
 
     expect(PagesService.getTotalDocs()).toBe(0);
   });
+
+  it('keeps the newest request when an older response arrives late', () => {
+    const first = PagesService.beginRequest();
+    const second = PagesService.beginRequest();
+    const fresh = {
+      data: [],
+      links: { pagination: { limit: 20, page: 1, pages: 1, total: 4 } },
+    };
+
+    recordPageTotals(fresh as never, { page: 1 }, second);
+    recordPageTotals(document as never, { page: 2 }, first);
+
+    expect(PagesService.getTotalDocs()).toBe(4);
+    expect(PagesService.getTotalPages()).toBe(1);
+    expect(PagesService.getCurrentPage()).toBe(1);
+  });
+
+  it('applies responses that arrive in request order', () => {
+    const first = PagesService.beginRequest();
+    const second = PagesService.beginRequest();
+
+    recordPageTotals(document as never, { page: 2 }, first);
+    recordPageTotals(
+      {
+        data: [],
+        links: { pagination: { limit: 20, page: 1, pages: 1, total: 4 } },
+      } as never,
+      { page: 1 },
+      second,
+    );
+
+    expect(PagesService.getTotalDocs()).toBe(4);
+  });
 });

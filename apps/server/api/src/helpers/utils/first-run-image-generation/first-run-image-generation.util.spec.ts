@@ -101,6 +101,26 @@ describe('buildFirstRunOnboardingImageBody', () => {
     expect(body).not.toHaveProperty('quality');
   });
 
+  it('puts the campaign master first, ahead of the brand kit references', async () => {
+    const body = await buildFirstRunOnboardingImageBody({
+      brandId: 'brand-1',
+      height: 1024,
+      leadingReferenceIds: ['master-1'],
+      nodeEnv: 'test',
+      organizationId: 'org-1',
+      prompt: 'first post',
+      resolveBrandKitAssets: async () =>
+        ({
+          banner: null,
+          logo: { id: 'logo-1' },
+          references: [{ id: 'ref-1' }, { id: 'master-1' }],
+        }) as never,
+      width: 1024,
+    });
+
+    expect(body.references).toEqual(['master-1', 'ref-1', 'logo-1']);
+  });
+
   it('carries the structured slots next to the lead prompt', async () => {
     const body = await buildFirstRunOnboardingImageBody({
       height: 1024,

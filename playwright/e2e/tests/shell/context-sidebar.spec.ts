@@ -133,7 +133,7 @@ test.describe('Context sidebar — selection driven', () => {
     const panel = contextSidebar.getByTestId('studio-playground-inspector');
     await expect(panel).toBeVisible();
     await expect(
-      panel.getByRole('tablist', { name: 'Generation details' }),
+      contextSidebar.getByRole('button', { name: 'View: Recipe' }),
     ).toBeVisible();
     await expect(
       panel

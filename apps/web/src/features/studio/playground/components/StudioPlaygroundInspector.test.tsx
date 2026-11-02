@@ -1,4 +1,8 @@
 import {
+  ContextSidebarHeaderOutlet,
+  ContextSidebarProvider,
+} from '@genfeedai/contexts/ui/context-sidebar-context';
+import {
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -15,6 +19,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import StudioPlaygroundInspector from './StudioPlaygroundInspector';
 
 const mocks = vi.hoisted(() => {
@@ -876,7 +881,7 @@ describe('StudioPlaygroundInspector', () => {
     expect(receipts).toHaveTextContent('Version 1');
   });
 
-  it('puts Recipe, Used in and History in a PanelTabs row under the facts', () => {
+  it('picks Recipe, Used in and History from a menu, not tabs', async () => {
     render(
       <StudioPlaygroundInspector
         job={recipeJob}
@@ -888,15 +893,72 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    const tabList = screen.getByRole('tablist', { name: 'Generation details' });
-    expect(tabList.parentElement).toHaveClass('h-12', 'border-b');
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'Recipe',
-      'Used in',
-      'History',
-    ]);
+    expect(screen.queryByRole('tab')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    expect(
+      screen.getAllByRole('menuitemradio').map((item) => item.textContent),
+    ).toEqual(['Recipe', 'Used in', 'History']);
     // The sidebar header owns the title and close; the panel has neither.
     expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
+  });
+
+  describe('in the context sidebar header', () => {
+    function renderInSidebar(
+      job: typeof recipeJob,
+      onRemove?: (job: StudioPlaygroundJob) => void,
+    ) {
+      return render(
+        <ContextSidebarProvider>
+          <ContextSidebarHeaderOutlet testId="header-actions" />
+          <StudioPlaygroundInspector
+            job={job}
+            onOpenPreview={vi.fn()}
+            onRemove={onRemove}
+            onRemix={vi.fn()}
+            onSelect={vi.fn()}
+            onUseInPost={vi.fn()}
+            onVary={vi.fn()}
+            runJobs={[job]}
+          />
+        </ContextSidebarProvider>,
+      );
+    }
+
+    it('puts the section menu and the preview button in the header, not the body', () => {
+      renderInSidebar(recipeJob);
+
+      const actions = within(screen.getByTestId('header-actions'));
+      expect(
+        actions.getByRole('button', { name: 'View: Recipe' }),
+      ).toBeVisible();
+      expect(
+        actions.getByRole('button', { name: 'Open preview' }),
+      ).toBeVisible();
+      expect(screen.queryByRole('tab')).toBeNull();
+    });
+
+    it('offers Remove and no preview for a failed generation', async () => {
+      const onRemove = vi.fn();
+      const failedJob = { ...recipeJob, status: IngredientStatus.FAILED };
+      renderInSidebar(failedJob, onRemove);
+
+      const actions = within(screen.getByTestId('header-actions'));
+      expect(
+        actions.queryByRole('button', { name: 'Open preview' }),
+      ).toBeNull();
+      await userEvent.click(actions.getByRole('button', { name: /^Remove/ }));
+      expect(onRemove).toHaveBeenCalledWith(failedJob);
+    });
+
+    it('does not offer Remove for a finished generation', () => {
+      renderInSidebar(recipeJob, vi.fn());
+
+      expect(
+        within(screen.getByTestId('header-actions')).queryByRole('button', {
+          name: /^Remove/,
+        }),
+      ).toBeNull();
+    });
   });
 
   it('lists the asset facts it knows and omits credits when no hold paid for the asset', async () => {
@@ -1262,7 +1324,10 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Used in' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', { name: 'Used in' }),
+    );
 
     await waitFor(() =>
       expect(
@@ -1290,7 +1355,10 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', { name: 'History' }),
+    );
 
     expect(
       screen.getByRole('button', { name: 'Sibling output' }),

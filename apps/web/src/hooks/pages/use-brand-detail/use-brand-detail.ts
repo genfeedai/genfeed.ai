@@ -153,6 +153,9 @@ export function useBrandDetail(): UseBrandDetailReturn {
     links: [],
   });
 
+  // Orders overlapping brand fetches: only the latest request may write state.
+  const latestBrandRequestRef = useRef(0);
+
   const applyBrand = useCallback((brand: IBrand, links: ILink[]) => {
     brandStateRef.current = { brand, links };
     dispatch({ brand, links, type: 'SET_BRAND' });
@@ -263,12 +266,26 @@ export function useBrandDetail(): UseBrandDetailReturn {
         return;
       }
 
-      setIsLoading(!isRefreshing);
+      // The page only drops to its loading state while it has nothing of this
+      // brand to show. A refetch that starts because the auth identity settled
+      // (first session read after an OAuth redirect) or the user asked to
+      // refresh must keep the loaded brand on screen, never blank it again.
+      const loadedBrand = brandStateRef.current.brand;
+      const isShowingRouteBrand =
+        loadedBrand?.slug === brandSlug || loadedBrand?.id === brandSlug;
+      setIsLoading(!isRefreshing && !isShowingRouteBrand);
+
+      const requestId = ++latestBrandRequestRef.current;
       const url = `GET /brands/slug?slug=${brandSlug}`;
 
       try {
         const service = await getBrandsService();
         const brandResponse = await service.findOneBySlug(brandSlug);
+
+        // A newer request owns the state; this answer is stale.
+        if (requestId !== latestBrandRequestRef.current) {
+          return;
+        }
 
         logger.info(`${url} success`, brandResponse);
 
@@ -276,7 +293,9 @@ export function useBrandDetail(): UseBrandDetailReturn {
         setIsLoading(false);
       } catch (error) {
         logger.error(`${url} failed`, error);
-        setIsLoading(false);
+        if (requestId === latestBrandRequestRef.current) {
+          setIsLoading(false);
+        }
       }
     },
     [applyBrand, brandSlug, getBrandsService],

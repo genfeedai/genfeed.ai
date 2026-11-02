@@ -1,3 +1,4 @@
+import type { ContentPreviewsService } from '@api/collections/content-previews/services/content-previews.service';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import {
   AdminWarmupAccountsService,
@@ -228,6 +229,10 @@ describe('AdminWarmupAccountsService', () => {
     service = new AdminWarmupAccountsService(
       prisma as unknown as PrismaService,
       invitationService as unknown as InvitationService,
+      {
+        listForWarmups: vi.fn().mockResolvedValue(new Map()),
+        toView: vi.fn(),
+      } as unknown as ContentPreviewsService,
       logger as unknown as LoggerService,
     );
   });

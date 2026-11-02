@@ -25,7 +25,7 @@ import {
 import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
 
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
-  setExportNode: () => {
+  setOverflowNode: () => {
     /* noop */
   },
   setFiltersNode: () => {
@@ -61,7 +61,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     isRefreshing,
     filtersNode,
     leadingNode,
-    exportNode,
+    overflowNode,
     viewToggleNode,
     scheduleActionsNode,
   } = slots;
@@ -128,7 +128,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         refresh={
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         }
-        iconActions={exportNode}
+        overflow={overflowNode}
         right={
           <div className="flex min-w-0 items-center justify-end gap-2">
             {filtersNode}

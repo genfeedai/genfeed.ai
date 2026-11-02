@@ -510,5 +510,12 @@
     "badge": "Imported",
     "pendingMetrics": "Waiting for metrics",
     "unavailableMetrics": "Metrics unavailable"
+  },
+  "brandsList": {
+    "kpi": {
+      "brands": "Brands",
+      "organizations": "Organizations",
+      "vsLastPeriod": "vs last period"
+    }
   }
 }
