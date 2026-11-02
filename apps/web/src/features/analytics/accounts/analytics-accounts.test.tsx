@@ -1,13 +1,18 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
   afterAll,
   beforeAll,
@@ -87,6 +92,11 @@ const getService = async () => ({
   saveFleetEvaluationPolicy: mocks.saveFleetEvaluationPolicy,
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -146,6 +156,17 @@ vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <nav aria-label="pagination" />,
 }));
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
 
 describe('AnalyticsAccounts', () => {
   const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(

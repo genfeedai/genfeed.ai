@@ -1,3 +1,9 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
 import '@testing-library/jest-dom/vitest';
 import {
   AnalyticsProvider,
@@ -6,7 +12,7 @@ import {
 import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
@@ -60,6 +66,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@helpers/formatting/format/format.helper', () => ({
   formatCompactNumber: (value: number) => `${value}`,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -289,6 +300,17 @@ function hookResponse(): IViralHooksResult {
       },
     ],
   };
+}
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 
 describe('AnalyticsHooks', () => {

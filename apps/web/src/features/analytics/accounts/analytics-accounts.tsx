@@ -24,6 +24,7 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -137,11 +138,7 @@ export default function AnalyticsAccounts() {
   );
   const [search, setSearch] = useState('');
   const [metric, setMetric] = useState<AnalyticsMetric>(AnalyticsMetric.VIEWS);
-  const [list, setList] = useState<IAccountAnalyticsList | null>(null);
-  const [policy, setPolicy] = useState<IFleetEvaluationPolicy | null>(null);
   const [windowWeeks, setWindowWeeks] = useState('4');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // `/:org/:brand/...` lists that brand's accounts only; `/:org/~/...` lists
   // every brand's, so only then does the Brand column say anything.
@@ -164,19 +161,22 @@ export default function AnalyticsAccounts() {
     replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [pathname, replace, searchParamsString]);
 
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      if (!isFetchReady || !organizationId) {
-        return;
-      }
-
-      setError(null);
+  const { startDate, endDate } = getDateRangeWithDefaults(
+    dateRange.startDate ?? undefined,
+    dateRange.endDate ?? undefined,
+  );
+  const accountsQuery = useAuthedQuery({
+    enabled: isFetchReady && Boolean(organizationId),
+    // A new search, page or ranking keeps the current rows on screen until the
+    // next page lands, within the same organization and brand only.
+    keepPreviousDataWithin: [
+      'analytics',
+      'accounts',
+      organizationId,
+      brandId ?? null,
+    ],
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        const { startDate, endDate } = getDateRangeWithDefaults(
-          dateRange.startDate ?? undefined,
-          dateRange.endDate ?? undefined,
-        );
         const [accounts, evaluationPolicy] = await Promise.all([
           service.getAccountAnalytics({
             brandId: brandId || undefined,
@@ -193,54 +193,56 @@ export default function AnalyticsAccounts() {
             organizationId,
           }) as Promise<IFleetEvaluationPolicy>,
         ]);
-        if (signal.aborted) {
-          return;
-        }
-        if (currentPage > 1 && currentPage > accounts.totalPages) {
-          resetPage();
-          return;
-        }
-        setList(accounts);
-        setPolicy(evaluationPolicy);
-        if (evaluationPolicy?.windowWeeks) {
-          setWindowWeeks(String(evaluationPolicy.windowWeeks));
-        }
+        return { accounts, evaluationPolicy };
       } catch (requestError) {
-        if (!signal.aborted) {
-          logger.error('Failed to fetch account analytics', requestError);
-          setError(translate('loadError'));
-        }
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        logger.error('Failed to fetch account analytics', requestError);
+        throw requestError;
       }
     },
-    [
-      brandId,
-      currentPage,
-      dateRange.endDate,
-      dateRange.startDate,
-      getService,
-      isFetchReady,
-      metric,
+    queryKey: [
+      'analytics',
+      'accounts',
       organizationId,
-      resetPage,
+      brandId ?? null,
+      startDate,
+      endDate,
+      metric,
       search,
-      translate,
+      currentPage,
     ],
-  );
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const list: IAccountAnalyticsList | null =
+    accountsQuery.data?.accounts ?? null;
+  const policy: IFleetEvaluationPolicy | null =
+    accountsQuery.data?.evaluationPolicy ?? null;
+  const isLoading = !isFetchReady || accountsQuery.isLoading;
+  const error =
+    accountsQuery.isError && !accountsQuery.data
+      ? translate('loadError')
+      : null;
 
+  // The saved evaluation window seeds the weeks field once it is known.
+  const policyWindowWeeks = policy?.windowWeeks;
   useEffect(() => {
-    if (!isFetchReady || refreshTrigger < 0) {
-      return;
+    if (policyWindowWeeks) {
+      setWindowWeeks(String(policyWindowWeeks));
     }
+  }, [policyWindowWeeks]);
 
-    const controller = new AbortController();
-    setIsLoading(true);
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [isFetchReady, load, refreshTrigger]);
+  // A smaller result set can leave the URL page past the last page.
+  const totalPages = list?.totalPages;
+  useEffect(() => {
+    if (
+      !accountsQuery.isPlaceholderData &&
+      totalPages !== undefined &&
+      currentPage > 1 &&
+      currentPage > totalPages
+    ) {
+      resetPage();
+    }
+  }, [accountsQuery.isPlaceholderData, currentPage, resetPage, totalPages]);
 
   const accountFilterMenu = useMemo(() => {
     const facets: FilterMenuFacet[] = [

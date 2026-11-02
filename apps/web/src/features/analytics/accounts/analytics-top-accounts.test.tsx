@@ -1,5 +1,11 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { AnalyticsMetric } from '@genfeedai/contracts';
-import { render, screen } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import { render as renderView, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsTopAccounts from './analytics-top-accounts';
 
@@ -19,6 +25,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => mocks.pathname,
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     getTopAccounts: async () => ({
@@ -37,6 +48,17 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
   }),
 }));
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
 
 describe('AnalyticsTopAccounts navigation', () => {
   beforeEach(() => {
