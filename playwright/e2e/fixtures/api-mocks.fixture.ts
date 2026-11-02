@@ -3522,29 +3522,6 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
     });
   });
 
-  // The Learning report is one object, not a collection, so the catch-all
-  // empty list would crash its renderer.
-  await routeApiPattern(
-    page,
-    '/admin/content-learning/prompt-slots**',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            groups: [],
-            isPooled: false,
-            isTruncated: false,
-            organizationIds: [],
-            postCount: 0,
-            skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
-
   await routeApiPattern(page, '/organizations/**/settings**', async (route) => {
     const method = route.request().method();
 
