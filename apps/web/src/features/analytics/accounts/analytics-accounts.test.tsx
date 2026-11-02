@@ -22,6 +22,7 @@ import AnalyticsAccounts from './analytics-accounts';
 const requestState = vi.hoisted(() => ({
   accounts: [] as Array<Record<string, unknown>>,
   listError: false,
+  total: null as number | null,
 }));
 const scopeState = vi.hoisted(() => ({
   brandId: 'brand-1' as string | undefined,
@@ -76,7 +77,7 @@ const getService = async () => ({
           accounts: requestState.accounts,
           limit: 50,
           page: 1,
-          total: requestState.accounts.length,
+          total: requestState.total ?? requestState.accounts.length,
           totalPages: 1,
           unattributedPostCount: 0,
         }),
@@ -143,10 +144,6 @@ vi.mock('@/components/content/filter-menu/FilterMenu', () => ({
   ),
 }));
 
-vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
-}));
-
 describe('AnalyticsAccounts', () => {
   const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
     HTMLElement.prototype,
@@ -178,6 +175,7 @@ describe('AnalyticsAccounts', () => {
     vi.clearAllMocks();
     requestState.accounts = [];
     requestState.listError = false;
+    requestState.total = null;
     scopeState.brandId = 'brand-1';
     scopeState.pageScope = 'brand';
   });
@@ -236,8 +234,9 @@ describe('AnalyticsAccounts', () => {
     );
   });
 
-  it('pages server-side and renders the shared pagination', async () => {
+  it('pages server-side and shows the total of the list it rendered', async () => {
     requestState.accounts = [account()];
+    requestState.total = 11;
 
     render(<AnalyticsAccounts />);
 
@@ -245,9 +244,18 @@ describe('AnalyticsAccounts', () => {
     expect(mocks.getAccountAnalytics).toHaveBeenCalledWith(
       expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 1 }),
     );
+    expect(screen.getByText('11 accounts')).toBeInTheDocument();
+  });
+
+  it('leaves the platform to the account cell instead of repeating it in a column', async () => {
+    requestState.accounts = [account()];
+
+    render(<AnalyticsAccounts />);
+
+    await screen.findByText('Acme Social');
     expect(
-      screen.getByRole('navigation', { name: 'pagination' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('columnheader', { name: 'Platform' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows health as a badge and a dash for unavailable metrics', async () => {
@@ -313,7 +321,36 @@ describe('AnalyticsAccounts', () => {
     expect(
       screen.getByRole('group', { name: 'Rank by metric' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Evaluation weeks')).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Evaluation window' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+  });
+
+  it('saves the evaluation window picked in the filter menu', async () => {
+    const user = userEvent.setup();
+    requestState.accounts = [account()];
+    render(<AnalyticsAccounts />);
+    await screen.findByText('Acme Social');
+    const latest = (spy: typeof mocks.setSearchNode) =>
+      spy.mock.calls.filter(([node]) => node !== null).at(-1)?.[0] as ReactNode;
+
+    const search = render(latest(mocks.setSearchNode));
+    await user.click(
+      within(
+        screen.getByRole('group', { name: 'Evaluation window' }),
+      ).getByRole('button', { name: '8 weeks' }),
+    );
+    search.unmount();
+    render(latest(mocks.setToolbarNode));
+    await user.click(screen.getByRole('button', { name: 'Save evaluation' }));
+
+    await waitFor(() =>
+      expect(mocks.saveFleetEvaluationPolicy).toHaveBeenCalledWith(
+        expect.objectContaining({ windowWeeks: 8 }),
+        { organizationId: 'org-1' },
+      ),
+    );
   });
 
   it('opens an account summary in the sidebar from the row while the name links to its page', async () => {

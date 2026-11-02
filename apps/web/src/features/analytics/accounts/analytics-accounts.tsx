@@ -11,7 +11,6 @@ import {
   AccountEvaluationState,
   AnalyticsMetric,
   ButtonVariant,
-  formatPlatformLabel,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -35,11 +34,10 @@ import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -83,6 +81,9 @@ const MANUAL_HEALTH_BADGE = {
   labelKey: 'healthManual',
   variant: 'secondary',
 } as const;
+
+const EVALUATION_WINDOW_WEEKS = [1, 2, 4, 8, 12] as const;
+const DEFAULT_EVALUATION_WINDOW_WEEKS = 4;
 
 function toConnection(
   identity: IAccountAnalyticsIdentity,
@@ -139,7 +140,9 @@ export default function AnalyticsAccounts() {
   const [metric, setMetric] = useState<AnalyticsMetric>(AnalyticsMetric.VIEWS);
   const [list, setList] = useState<IAccountAnalyticsList | null>(null);
   const [policy, setPolicy] = useState<IFleetEvaluationPolicy | null>(null);
-  const [windowWeeks, setWindowWeeks] = useState('4');
+  const [windowWeeks, setWindowWeeks] = useState(
+    String(DEFAULT_EVALUATION_WINDOW_WEEKS),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -163,6 +166,20 @@ export default function AnalyticsAccounts() {
     const query = params.toString();
     replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }, [pathname, replace, searchParamsString]);
+
+  const changePage = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParamsString);
+      if (page === 1) {
+        params.delete('page');
+      } else {
+        params.set('page', String(page));
+      }
+      const query = params.toString();
+      replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, replace, searchParamsString],
+  );
 
   const load = useCallback(
     async (signal: AbortSignal) => {
@@ -262,6 +279,24 @@ export default function AnalyticsAccounts() {
         selection: 'single',
         value: metric,
       },
+      {
+        defaultValue: String(DEFAULT_EVALUATION_WINDOW_WEEKS),
+        // The window is saved with the evaluation policy, it does not narrow
+        // the list.
+        isCounted: false,
+        key: 'evaluationWindow',
+        label: translate('evaluationWindow'),
+        onChange: setWindowWeeks,
+        options: [...new Set([...EVALUATION_WINDOW_WEEKS, Number(windowWeeks)])]
+          .filter((weeks) => weeks > 0)
+          .sort((left, right) => left - right)
+          .map((weeks) => ({
+            label: translate('evaluationWindowOption', { weeks }),
+            value: String(weeks),
+          })),
+        selection: 'single',
+        value: windowWeeks,
+      },
     ];
 
     return (
@@ -270,24 +305,16 @@ export default function AnalyticsAccounts() {
         isAttached
         onClear={() => {
           setMetric(AnalyticsMetric.VIEWS);
+          setWindowWeeks(String(DEFAULT_EVALUATION_WINDOW_WEEKS));
           resetPage();
         }}
       />
     );
-  }, [metric, resetPage, translate]);
+  }, [metric, resetPage, translate, windowWeeks]);
 
   const accountToolbar = useMemo(() => {
     return (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <Input
-          aria-label={translate('evaluationWeeks')}
-          className="h-9 w-20"
-          min={1}
-          placeholder={translate('weeks')}
-          type="number"
-          value={windowWeeks}
-          onChange={(event) => setWindowWeeks(event.target.value)}
-        />
         <Button
           label={translate('saveEvaluation')}
           variant={ButtonVariant.SECONDARY}
@@ -304,7 +331,8 @@ export default function AnalyticsAccounts() {
                 metric,
                 minPublishedPosts: policy?.minPublishedPosts ?? 8,
                 watchMin: policy?.watchMin ?? 400,
-                windowWeeks: Number(windowWeeks) || 4,
+                windowWeeks:
+                  Number(windowWeeks) || DEFAULT_EVALUATION_WINDOW_WEEKS,
               },
               { organizationId },
             );
@@ -379,12 +407,6 @@ export default function AnalyticsAccounts() {
             },
           ]
         : []),
-      {
-        key: 'platform',
-        header: translate('platform'),
-        render: (row) =>
-          formatPlatformLabel(row.identity.platform) ?? row.identity.platform,
-      },
       {
         key: 'posts',
         header: (
@@ -482,7 +504,13 @@ export default function AnalyticsAccounts() {
         }}
       />
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="accounts" />
+        <Pagination
+          currentPage={list?.page ?? currentPage}
+          onPageChange={changePage}
+          totalItems={list?.total}
+          totalLabel="accounts"
+          totalPages={list?.totalPages ?? 1}
+        />
       </div>
     </>
   );
