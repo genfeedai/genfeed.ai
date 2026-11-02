@@ -16,7 +16,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -80,7 +80,7 @@ vi.mock('next/link', () => ({
 let queryClient: QueryClient;
 
 /** Every render shares one cache per test, as the app's provider does. */
-function render(ui: ReactElement) {
+function render(ui: ReactNode) {
   return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 

@@ -12,7 +12,7 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   afterAll,
   beforeAll,
@@ -164,7 +164,7 @@ beforeEach(() => {
 });
 
 /** Every render in a test shares one cache, as the app's provider does. */
-function render(ui: ReactElement) {
+function render(ui: ReactNode) {
   return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 

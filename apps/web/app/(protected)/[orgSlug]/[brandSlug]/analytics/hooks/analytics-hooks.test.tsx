@@ -3,7 +3,6 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import type { QueryClient } from '@tanstack/react-query';
-import type { ReactElement } from 'react';
 import '@testing-library/jest-dom/vitest';
 import {
   AnalyticsProvider,
@@ -309,7 +308,7 @@ beforeEach(() => {
 });
 
 /** Every render in a test shares one cache, as the app's provider does. */
-function render(ui: ReactElement) {
+function render(ui: ReactNode) {
   return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 

@@ -8,7 +8,7 @@ import {
   render as renderView,
   screen,
 } from '@testing-library/react';
-import type { ReactElement } from 'react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountDetail from './analytics-account-detail';
 
@@ -125,7 +125,7 @@ beforeEach(() => {
 });
 
 /** Every render in a test shares one cache, as the app's provider does. */
-function render(ui: ReactElement) {
+function render(ui: ReactNode) {
   return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 

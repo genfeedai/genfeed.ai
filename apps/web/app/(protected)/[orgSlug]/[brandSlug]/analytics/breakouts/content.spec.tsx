@@ -19,7 +19,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactElement } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BreakoutsContent from './content';
 import BreakoutResponseDetail from './response-detail';
@@ -154,7 +154,7 @@ beforeEach(() => {
 });
 
 /** Every render in a test shares one cache, as the app's provider does. */
-function render(ui: ReactElement) {
+function render(ui: ReactNode) {
   return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
 }
 
