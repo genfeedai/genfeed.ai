@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import { Users, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
@@ -90,10 +91,11 @@ export default function AutomationOverviewPage() {
           resetErrorBoundary={() => void refresh()}
         />
       ) : (
-        <div className="flex flex-col gap-8">
+        <div className={BLOCK_STACK_CLASS}>
           <RunStatsStrip isLoading={isLoading} stats={stats} />
 
           <KPISection
+            className="mb-0"
             gridCols={{ desktop: 2, mobile: 2 }}
             isLoading={areAgentsLoading || workflowsQuery.isLoading}
             items={[
