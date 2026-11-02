@@ -189,9 +189,6 @@
     "apps/web/app/(protected)/admin/administration/announcements/announcement-compose-form.tsx": {
       "button-restyle": 1
     },
-    "apps/web/app/(protected)/admin/administration/concierge-accounts/warmup-accounts-page.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/app/(protected)/admin/administration/users/user-details.tsx": {
       "unstyled-look": 1
     },

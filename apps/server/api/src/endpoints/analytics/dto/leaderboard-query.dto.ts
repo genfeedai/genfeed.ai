@@ -1,5 +1,10 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AnalyticsMetric, OrganizationCategory } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  OrganizationCategory,
+  OrganizationLifecycleStatus,
+  OrganizationSourceFilter,
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -184,6 +189,28 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(OrganizationUsageFilter)
   usage?: OrganizationUsageFilter;
+
+  @ApiProperty({
+    description:
+      'Only organizations in this lifecycle status (onboarding, free, trial, subscribed, past_due, cancelled)',
+    enum: OrganizationLifecycleStatus,
+    enumName: 'OrganizationLifecycleStatus',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationLifecycleStatus)
+  status?: OrganizationLifecycleStatus;
+
+  @ApiProperty({
+    description:
+      'Only organizations an operator prepared (concierge) or that signed up on their own (self_serve)',
+    enum: OrganizationSourceFilter,
+    enumName: 'OrganizationSourceFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationSourceFilter)
+  source?: OrganizationSourceFilter;
 
   @ApiProperty({
     description:

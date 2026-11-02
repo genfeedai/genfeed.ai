@@ -19,6 +19,7 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
+import { resolveOrganizationLifecycles } from '@api/endpoints/analytics/organization-lifecycle.sql';
 import {
   countGenerations,
   countOrganizationsInSql,
@@ -35,7 +36,10 @@ import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { OrganizationCategory } from '@genfeedai/contracts';
+import {
+  type OrganizationCategory,
+  OrganizationLifecycleStatus,
+} from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
   IEntityStatsTotals,
@@ -391,7 +395,12 @@ export class EntityLeaderboardService {
       : undefined;
 
     if (entityType === 'organization') {
-      if (filters.emailClass || filters.usage) {
+      if (
+        filters.emailClass ||
+        filters.usage ||
+        filters.status ||
+        filters.source
+      ) {
         return countOrganizationsInSql(this.prisma, filters, range);
       }
       return this.prisma.organization.count({
@@ -482,6 +491,8 @@ export class EntityLeaderboardService {
       order: options.order,
       organizationId: options.organizationId,
       search: options.search,
+      source: options.source,
+      status: options.status,
       type: options.type,
       usage: options.usage,
     });
@@ -831,6 +842,12 @@ export class EntityLeaderboardService {
         type,
       }),
     ]);
+    const totals = await this.getEntityTotals('organization', range, total, {
+      ...listFilters,
+      organizationId,
+      search: needle,
+      type,
+    });
 
     const organizationIds = rows.map(({ entity }) => entity.id);
     const [
@@ -840,6 +857,7 @@ export class EntityLeaderboardService {
       ownerMap,
       generationCountMap,
       brandLogoMap,
+      lifecycleMap,
     ] = await Promise.all([
       this.countBrandsByOrganization(organizationIds),
       this.countMembersByOrganization(organizationIds),
@@ -850,12 +868,14 @@ export class EntityLeaderboardService {
       ),
       countGenerations(this.prisma, organizationIds, range),
       resolveFirstBrandLogos(this.prisma, this.brandsService, organizationIds),
+      resolveOrganizationLifecycles(this.prisma, organizationIds),
     ]);
 
     const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
         new OrgWithStatsEntity({
           avgEngagementRate: stats.avgEngagementRate,
+          concierge: lifecycleMap.get(entity.id)?.concierge,
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
           // The organization's own logo asset, then the auth provider's, then
@@ -871,10 +891,14 @@ export class EntityLeaderboardService {
             undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
+          plan: lifecycleMap.get(entity.id)?.plan,
           ownerEmailClass: classifyEmail(
             entity.userId ? ownerMap.get(entity.userId)?.email : undefined,
           ),
           slug: entity.slug,
+          status:
+            lifecycleMap.get(entity.id)?.status ??
+            OrganizationLifecycleStatus.FREE,
           // Only what onboarding recorded: `category` always has a default.
           type: (entity.accountType ?? undefined) as
             | OrganizationCategory
@@ -889,9 +913,10 @@ export class EntityLeaderboardService {
         }),
     );
 
-    return new PaginatedOrgsResponse(
-      this.buildPaginationSlice(data, total, page, limit),
-    );
+    return new PaginatedOrgsResponse({
+      ...this.buildPaginationSlice(data, total, page, limit),
+      totals,
+    });
   }
 
   /**

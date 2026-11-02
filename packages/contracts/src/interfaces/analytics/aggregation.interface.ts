@@ -1,5 +1,6 @@
 /** Shared analytics response contracts. */
-import type { OrganizationCategory } from '../..';
+import type { OrganizationCategory, OrganizationLifecycleStatus } from '../..';
+import type { IWarmupAccountStatus } from '../admin/warmup-accounts.interface';
 
 export interface IEntityAnalyticsStats {
   avgEngagementRate: number;
@@ -22,6 +23,12 @@ export interface IOrganizationOwner {
 
 export type OrganizationOwnerEmailClass = 'company' | 'personal' | 'unknown';
 
+/** The concierge account (`WarmupAccount`) prepared for an organization. */
+export interface IOrganizationConcierge {
+  id: string;
+  status: IWarmupAccountStatus;
+}
+
 export interface IOrganizationWithStats {
   id: string;
   name: string;
@@ -34,6 +41,12 @@ export interface IOrganizationWithStats {
    * nothing about the organization.
    */
   type?: OrganizationCategory;
+  /** Onboarding, free, trial, subscribed, past due or cancelled. */
+  status: OrganizationLifecycleStatus;
+  /** The subscription plan behind `status`, when there is one. */
+  plan?: string;
+  /** Present when the organization was prepared as a concierge account. */
+  concierge?: IOrganizationConcierge;
   /** Whether the owner signed up with a work address, a free provider, or neither is known. */
   ownerEmailClass: OrganizationOwnerEmailClass;
   createdAt?: string;
