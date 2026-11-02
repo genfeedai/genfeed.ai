@@ -3,7 +3,10 @@ import type { MusicGenerationProviderRequest } from '@api/collections/musics/ser
 import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 describe('MurekaMusicGenerationProviderAdapter', () => {
   const buildRequest = (
@@ -138,7 +141,9 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
   ])(
     'caps the prompt for %s at %i characters',
     (_label, settings, maxLength) => {
-      const adapter = new MurekaMusicGenerationProviderAdapter({} as never);
+      const adapter = new MurekaMusicGenerationProviderAdapter({
+        isConfigured: () => true,
+      } as never);
 
       expect(() =>
         adapter.assertSupported({
@@ -154,4 +159,14 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
       ).toThrow(BadRequestException);
     },
   );
+
+  it('rejects the request up front when the platform has no Mureka key', () => {
+    const adapter = new MurekaMusicGenerationProviderAdapter({
+      isConfigured: () => false,
+    } as never);
+
+    expect(() =>
+      adapter.assertSupported({ instrumental: false, prompt: 'a song' }),
+    ).toThrow(ServiceUnavailableException);
+  });
 });
