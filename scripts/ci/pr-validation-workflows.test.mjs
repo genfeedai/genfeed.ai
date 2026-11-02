@@ -653,6 +653,20 @@ test('playwright PR smoke runs only after green same-repo CI and stays advisory'
     'the smoke is advisory: a red run is neutral, never failure',
   );
 
+  // GitHub rejects the whole workflow file (and every dispatch) when a status
+  // function such as cancelled() is used outside an `if:` condition.
+  for (const step of smoke.steps) {
+    assert.doesNotMatch(
+      JSON.stringify({ env: step.env, with: step.with, run: step.run }),
+      /\$\{\{[^}]*\b(?:cancelled|always|success|failure)\(\)/,
+      `step "${step.name ?? step.uses}" uses a status function outside if:`,
+    );
+  }
+  const cancelStep = smoke.steps.find(
+    (step) => step.name === 'Cancel check run',
+  );
+  assert.equal(cancelStep.if, 'cancelled()');
+
   const group = parsed.concurrency.group;
   assert.doesNotMatch(group, /github\.(?:head_ref|ref_name|sha)/);
   assert.equal(parsed.concurrency['cancel-in-progress'], true);

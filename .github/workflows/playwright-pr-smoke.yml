@@ -191,19 +191,16 @@ jobs:
 
       # Advisory: a failure is `neutral`, never `failure`, so it cannot block.
       - name: Finish check run
-        if: always()
+        if: success() || failure()
         env:
           CHECK_ID: ${{ steps.check.outputs.id }}
-          IS_CANCELLED: ${{ cancelled() }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           TESTS_OUTCOME: ${{ steps.tests.outcome }}
         run: |
           set -euo pipefail
           [ -n "${CHECK_ID}" ] || exit 0
           run_url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
-          if [ "${IS_CANCELLED}" = "true" ]; then
-            conclusion=cancelled; title="Playwright core smoke cancelled"
-          elif [ "${TESTS_OUTCOME}" = "success" ]; then
+          if [ "${TESTS_OUTCOME}" = "success" ]; then
             conclusion=success; title="Playwright core smoke passed"
           elif [ "${BUILD_OUTCOME}" != "success" ]; then
             conclusion=neutral; title="App build failed (advisory)"
@@ -215,3 +212,17 @@ jobs:
             -f conclusion="${conclusion}" \
             -f "output[title]=${title}" \
             -f "output[summary]=${title}. Advisory only; it does not block merging. Run: ${run_url}"
+
+      # A superseded run is cancelled; do not leave the check run spinning.
+      - name: Cancel check run
+        if: cancelled()
+        env:
+          CHECK_ID: ${{ steps.check.outputs.id }}
+        run: |
+          set -euo pipefail
+          [ -n "${CHECK_ID}" ] || exit 0
+          gh api --method PATCH "repos/${REPO}/check-runs/${CHECK_ID}" \
+            -f status=completed \
+            -f conclusion=cancelled \
+            -f "output[title]=Playwright core smoke cancelled" \
+            -f "output[summary]=A newer CI run replaced this one."
