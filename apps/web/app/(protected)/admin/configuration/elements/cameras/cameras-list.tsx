@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementCamera,
@@ -7,7 +7,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementCamera } from '@models/elements/camera.model';
@@ -19,12 +18,13 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalCamera } from '@/components/lazy/modal/LazyModal';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const CAMERA_SORT_KEYS = ['label', 'key'];
@@ -48,10 +48,6 @@ function CamerasListContent({
 
   const getCamerasService = useAuthedService(
     useCallback((token: string) => CamerasService.getInstance(token), []),
-  );
-
-  const [selectedCamera, setSelectedCamera] = useState<IElementCamera | null>(
-    null,
   );
 
   const { brand: adminBrand, organization: adminOrg } =
@@ -172,15 +168,8 @@ function CamerasListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (camera: ElementCamera) =>
-              openCameraModal(ModalEnum.CAMERA, camera),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (camera: ElementCamera) => {
-              setSelectedCamera(camera);
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -201,29 +190,28 @@ function CamerasListContent({
     }
   }, [onRefresh, refreshCameras]);
 
-  const openCameraModal = (modalId: ModalEnum, camera?: IElementCamera) => {
-    setSelectedCamera(camera || null);
-    openModal(modalId);
-  };
-
   const handleDelete = async (camera: IElementCamera) => {
     try {
       const service = await getCamerasService();
       await service.delete(camera.id);
       notificationsService.success('Camera deleted');
-      setSelectedCamera(null);
       refreshCameras();
     } catch (error) {
       logger.error('Failed to delete camera', error);
       notificationsService.error('Failed to delete camera');
-      setSelectedCamera(null);
     }
   };
 
+  const saveCamera = useInlineRecordSave<Partial<IElementCamera>>({
+    errorMessage: 'Failed to update camera',
+    onSaved: refreshCameras,
+    save: async (id, patch) => (await getCamerasService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementCamera>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) => openCameraModal(ModalEnum.CAMERA, element)
+        ? (camera, patch) => saveCamera(camera.id, patch)
         : undefined,
   });
 
@@ -243,14 +231,7 @@ function CamerasListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalCamera
-          item={selectedCamera}
-          onClose={() => setSelectedCamera(null)}
-          onConfirm={() => {
-            setSelectedCamera(null);
-            refreshCameras();
-          }}
-        />
+        <LazyModalCamera onConfirm={() => refreshCameras()} />
       )}
 
       <div className="mt-4">
