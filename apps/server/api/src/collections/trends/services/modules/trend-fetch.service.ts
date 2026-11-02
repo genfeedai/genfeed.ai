@@ -354,7 +354,6 @@ export class TrendFetchService {
   }
 
   private async fetchYoutubeTrends(
-    allowApifyFallback = true,
     organizationId?: string,
     brandId?: string,
   ): Promise<TrendData[]> {
@@ -405,9 +404,10 @@ export class TrendFetchService {
         ? keywords.slice(0, 5).join('|')
         : Array.from(new Set(words)).slice(0, 5).join(' ');
       if (!query) return [];
-      // A scoped search never falls back to an unrelated global chart.
-      allowApifyFallback = false;
     }
+    // YouTube trends come only from the Data API (the mostPopular chart, or
+    // a scoped search). Apify has no trending source, only a keyword search,
+    // and its results are videos that merely match the word, not trends.
     return this.fetchNativeFirst(
       'youtube',
       async () => {
@@ -441,11 +441,8 @@ export class TrendFetchService {
           topic: trend.title,
         }));
       },
-      async () =>
-        this.getSharedApifyTrends('youtube', () =>
-          this.apifyService.getYouTubeTrends({ limit: 20 }),
-        ),
-      allowApifyFallback,
+      async () => [],
+      false,
     );
   }
 
@@ -742,12 +739,7 @@ export class TrendFetchService {
                 brandId,
                 allowApifyFallback,
               ),
-            youtube: () =>
-              this.fetchYoutubeTrends(
-                allowApifyFallback,
-                organizationId,
-                brandId,
-              ),
+            youtube: () => this.fetchYoutubeTrends(organizationId, brandId),
           };
 
           const handler = platformHandlers[platform];
