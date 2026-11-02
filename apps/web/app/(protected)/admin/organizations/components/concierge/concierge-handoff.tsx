@@ -59,6 +59,10 @@ export default function ConciergeHandoff({
   const [pending, setPending] = useState<
     ConciergeInvitationAction | 'repair' | null
   >(null);
+  // The sidebar reuses this component when another organization is selected;
+  // work started for the previous one must not touch the new selection.
+  const activeConciergeIdRef = useRef(conciergeId);
+  activeConciergeIdRef.current = conciergeId;
   const onAccountChangeRef = useRef(onAccountChange);
   onAccountChangeRef.current = onAccountChange;
   const getService = useAuthedService((token: string) =>
@@ -76,6 +80,7 @@ export default function ConciergeHandoff({
     const controller = new AbortController();
     setAccount(null);
     setHasLoadError(false);
+    setPending(null);
 
     void (async () => {
       try {
@@ -90,12 +95,20 @@ export default function ConciergeHandoff({
         setAccount(loaded);
 
         if (loaded.invitationId) {
-          const inspected = await service.inspectInvitation(
-            conciergeId,
-            controller.signal,
-          );
-          if (!controller.signal.aborted) {
-            setAccount(inspected);
+          // A failed live check must not hide the account that did load: the
+          // Inspect action stays available to retry it.
+          try {
+            const inspected = await service.inspectInvitation(
+              conciergeId,
+              controller.signal,
+            );
+            if (!controller.signal.aborted) {
+              setAccount(inspected);
+            }
+          } catch (error) {
+            if (!controller.signal.aborted) {
+              logger.error('Failed to inspect concierge invitation', error);
+            }
           }
         }
       } catch (error) {
@@ -110,6 +123,8 @@ export default function ConciergeHandoff({
   }, [conciergeId, getService]);
 
   async function runInvitation(action: ConciergeInvitationAction) {
+    const startedFor = conciergeId;
+    const isStale = () => activeConciergeIdRef.current !== startedFor;
     setPending(action);
     try {
       const service = await getService();
@@ -121,6 +136,9 @@ export default function ConciergeHandoff({
             : action === 'resend'
               ? await service.resendInvitation(conciergeId)
               : await service.revokeInvitation(conciergeId);
+      if (isStale()) {
+        return;
+      }
       applyAccount(updated);
 
       if (action === 'inspect') {
@@ -140,6 +158,9 @@ export default function ConciergeHandoff({
         ),
       );
     } catch (error) {
+      if (isStale()) {
+        return;
+      }
       logger.error(`Concierge invitation ${action} failed`, error);
       NotificationsService.getInstance().error(
         translate(
@@ -153,22 +174,35 @@ export default function ConciergeHandoff({
         ),
       );
     } finally {
-      setPending(null);
+      if (!isStale()) {
+        setPending(null);
+      }
     }
   }
 
   async function repair() {
+    const startedFor = conciergeId;
+    const isStale = () => activeConciergeIdRef.current !== startedFor;
     setPending('repair');
     try {
       const service = await getService();
-      applyAccount(
-        await service.prepareWarmupAccount(conciergeId, { action: 'repair' }),
-      );
+      const repaired = await service.prepareWarmupAccount(conciergeId, {
+        action: 'repair',
+      });
+      if (!isStale()) {
+        applyAccount(repaired);
+      }
     } catch (error) {
-      logger.error('Concierge repair failed', error);
-      NotificationsService.getInstance().error(translate('preparation.error'));
+      if (!isStale()) {
+        logger.error('Concierge repair failed', error);
+        NotificationsService.getInstance().error(
+          translate('preparation.error'),
+        );
+      }
     } finally {
-      setPending(null);
+      if (!isStale()) {
+        setPending(null);
+      }
     }
   }
 

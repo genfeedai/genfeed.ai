@@ -318,4 +318,52 @@ describe('ConciergeHandoff', () => {
       'Invitation revoked',
     );
   });
+
+  it('keeps the loaded account when the live invitation check fails', async () => {
+    mocks.getWarmupAccount.mockResolvedValue(account);
+    mocks.inspectInvitation.mockRejectedValue(new Error('mail provider down'));
+
+    render(<ConciergeHandoff conciergeId="warmup_1" />);
+
+    expect(await screen.findByText('lead@example.com')).toBeVisible();
+    expect(screen.getByText('Preparation tools')).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Inspect invitation' }),
+    ).toBeVisible();
+  });
+
+  it('ignores a resend that finishes after another organization was selected', async () => {
+    const other = makeAccount({
+      id: 'warmup_2',
+      invitation: undefined,
+      invitationId: undefined,
+      leadEmail: 'other@example.com',
+      status: 'PROVISIONED',
+    });
+    let finishResend: (value: IWarmupAccount) => void = () => undefined;
+    mocks.resendInvitation.mockReturnValue(
+      new Promise<IWarmupAccount>((resolve) => {
+        finishResend = resolve;
+      }),
+    );
+    mocks.getWarmupAccount.mockImplementation(async (id: string) =>
+      id === 'warmup_2' ? other : account,
+    );
+    mocks.inspectInvitation.mockImplementation(async (id: string) =>
+      id === 'warmup_2' ? other : account,
+    );
+
+    const view = render(<ConciergeHandoff conciergeId="warmup_1" />);
+    fireEvent.click(await findEnabledButton('Resend invitation'));
+    view.rerender(<ConciergeHandoff conciergeId="warmup_2" />);
+    expect(await screen.findByText('other@example.com')).toBeVisible();
+
+    finishResend(withInvitation('delivered'));
+    await Promise.resolve();
+
+    expect(screen.getByText('other@example.com')).toBeVisible();
+    expect(screen.queryByText('lead@example.com')).not.toBeInTheDocument();
+    expect(mocks.notifications.success).not.toHaveBeenCalled();
+  });
 });
