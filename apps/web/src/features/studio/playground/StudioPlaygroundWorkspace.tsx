@@ -2962,7 +2962,9 @@ export default function StudioPlaygroundWorkspace({
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                     withWrapper={false}
-                  />
+                  >
+                    {translate('history.retry')}
+                  </Button>
                 </AlertDescription>
               </Alert>
             ) : null}

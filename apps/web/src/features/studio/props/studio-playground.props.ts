@@ -379,7 +379,7 @@ export interface StudioPlaygroundPreviewRecovery {
 }
 
 export interface StudioPlaygroundFocusedPreviewProps {
-  children: ReactElement;
+  children: ReactNode;
   job: StudioPlaygroundJob;
   jobs: readonly StudioPlaygroundJob[];
   onClose: () => void;

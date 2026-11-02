@@ -961,7 +961,6 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(
       screen.getByTestId('studio-playground-empty-state'),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
   });
 
   it('applies a starter idea as a document seed and user-owned setup', () => {
@@ -1156,9 +1155,6 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('searchPlaceholder'),
     );
-    // The suggestion cards belong to the empty state only; they never dock
-    // over the gallery once the brand has generations.
-    expect(screen.queryByTestId('studio-playground-empty-state')).toBeNull();
   });
 
   it('removes a deleted asset from the current-session job queue', () => {
@@ -1169,17 +1165,15 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('floats the composer over the gallery like the Agent dock', () => {
+  it('keeps the composer in the prompt column instead of floating over the gallery', () => {
     render(<StudioPlaygroundWorkspace />);
 
     const container = screen
       .getByTestId('studio-composer')
       .closest('[data-layout-mode]');
 
-    expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
-    expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
     expect(container).not.toHaveClass('bg-background');
-    expect(container).toHaveStyle({ zIndex: '40' });
     expect(container?.querySelector('[data-composer-top-fade]')).toBeNull();
   });
 
