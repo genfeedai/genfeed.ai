@@ -273,12 +273,13 @@ function TabsBar({
         aria-label={ariaLabel}
         data-testid={testId}
         className={cn(
-          'ml-auto flex min-w-0 justify-end',
+          'flex min-w-0',
+          listClassName === undefined && 'ml-auto justify-end',
           fullWidth && 'w-full',
           className,
         )}
       >
-        <div className={getTabsListClassName('ml-auto')}>
+        <div className={getTabsListClassName(listClassName ?? 'ml-auto')}>
           {normalizedTabs.map((tab) => {
             const key = getTabId(tab);
             const value = getTabId(tab);

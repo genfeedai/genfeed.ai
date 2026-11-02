@@ -49,16 +49,11 @@ export interface ContextSidebarRegistration {
 }
 
 /**
- * Where a selected page puts controls in the sidebar header: `actions` sit in
- * the title row (Preview, Remove), `tabs` are the strip pinned under it.
+ * Where a selected page puts controls in the sidebar header: the title row
+ * (section menu, Preview, Remove), one node per rail or drawer.
  */
-export type ContextSidebarHeaderSlotName = 'actions' | 'tabs';
-
 export type ContextSidebarHeaderTargets = Readonly<
-  Record<
-    'desktop' | 'mobile',
-    Readonly<Record<ContextSidebarHeaderSlotName, HTMLElement | null>>
-  >
+  Record<'desktop' | 'mobile', HTMLElement | null>
 >;
 
 export interface ContextSidebarContextValue {
@@ -74,11 +69,10 @@ export interface ContextSidebarContextValue {
     registration: ContextSidebarRegistration,
   ) => () => void;
   readonly selection: ContextSidebarSelection | null;
-  /** Header slot nodes the selected page portals into, per rail or drawer. */
+  /** Header nodes the selected page portals its controls into, per rail or drawer. */
   readonly headerTargets: ContextSidebarHeaderTargets;
   readonly setHeaderTarget: (
     mode: 'desktop' | 'mobile',
-    slot: ContextSidebarHeaderSlotName,
     element: HTMLElement | null,
   ) => void;
   readonly setDesktopTarget: (element: HTMLElement | null) => void;
@@ -108,12 +102,10 @@ export interface ContextSidebarOutletProps {
 
 export interface ContextSidebarHeaderSlotProps {
   readonly children: ReactNode;
-  readonly slot: ContextSidebarHeaderSlotName;
 }
 
 export interface ContextSidebarHeaderOutletProps {
   readonly className?: string;
-  readonly slot: ContextSidebarHeaderSlotName;
   readonly target?: 'desktop' | 'mobile';
   readonly testId?: string;
 }

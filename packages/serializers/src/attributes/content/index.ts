@@ -21,6 +21,7 @@ export * from '@serializers/attributes/content/clipper-result.attributes';
 export * from '@serializers/attributes/content/content-performance.attributes';
 export * from '@serializers/attributes/content/content-plan.attributes';
 export * from '@serializers/attributes/content/content-plan-item.attributes';
+export * from '@serializers/attributes/content/content-preview.attributes';
 export * from '@serializers/attributes/content/content-run.attributes';
 export * from '@serializers/attributes/content/content-skill.attributes';
 export * from '@serializers/attributes/content/content-skill-version.attributes';

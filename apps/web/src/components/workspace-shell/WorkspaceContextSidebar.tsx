@@ -31,8 +31,6 @@ type WorkspaceContextSidebarRailProps = WorkspaceContextSidebarProps & {
 
 const HEADER_ACTIONS_CLASS_NAME =
   'flex shrink-0 items-center gap-1 empty:hidden';
-// The tab strip belongs to the header, so it stays put while the body scrolls.
-const HEADER_TABS_CLASS_NAME = 'shrink-0 border-b border-border empty:hidden';
 
 const OUTLET_CLASS_NAME =
   'flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto';
@@ -77,7 +75,6 @@ export function WorkspaceContextSidebarRail({
           {titleBlock}
           <ContextSidebarHeaderOutlet
             className={HEADER_ACTIONS_CLASS_NAME}
-            slot="actions"
             target={target}
             testId="context-sidebar-header-actions"
           />
@@ -88,7 +85,6 @@ export function WorkspaceContextSidebarRail({
           <div className="flex shrink-0 items-center gap-1">
             <ContextSidebarHeaderOutlet
               className={HEADER_ACTIONS_CLASS_NAME}
-              slot="actions"
               target={target}
               testId="context-sidebar-header-actions"
             />
@@ -105,12 +101,6 @@ export function WorkspaceContextSidebarRail({
           </div>
         </div>
       )}
-      <ContextSidebarHeaderOutlet
-        className={HEADER_TABS_CLASS_NAME}
-        slot="tabs"
-        target={target}
-        testId="context-sidebar-header-tabs"
-      />
       <ContextSidebarOutlet
         className={OUTLET_CLASS_NAME}
         target={target}
@@ -140,7 +130,6 @@ export function WorkspaceContextSidebarDrawerBody({
           <div className="flex shrink-0 items-center gap-1">
             <ContextSidebarHeaderOutlet
               className={HEADER_ACTIONS_CLASS_NAME}
-              slot="actions"
               target="mobile"
               testId="context-sidebar-drawer-header-actions"
             />
@@ -156,12 +145,6 @@ export function WorkspaceContextSidebarDrawerBody({
           </div>
         </div>
       </DrawerHeader>
-      <ContextSidebarHeaderOutlet
-        className={HEADER_TABS_CLASS_NAME}
-        slot="tabs"
-        target="mobile"
-        testId="context-sidebar-drawer-header-tabs"
-      />
       <ContextSidebarOutlet
         className={OUTLET_CLASS_NAME}
         target="mobile"

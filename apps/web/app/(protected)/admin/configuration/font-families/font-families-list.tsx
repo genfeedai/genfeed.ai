@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { FontFamily } from '@models/elements/font-family.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -23,44 +24,21 @@ import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalFontFamily } from '@/components/lazy/modal/LazyModal';
-import type {
-  FontFamiliesAction as Action,
-  FontFamiliesState as State,
-} from '@/features/admin/props/font-families.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const FONT_FAMILY_SORT_KEYS = ['label', 'key'];
 
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case 'FETCH_START':
-      return {
-        ...state,
-        fetchStatus: action.isRefreshing ? 'refreshing' : 'loading',
-      };
-    case 'FETCH_SUCCESS':
-      return { ...state, fontFamilies: action.fontFamilies };
-    case 'FETCH_DONE':
-      return { ...state, fetchStatus: 'idle' };
-    case 'SET_SELECTED':
-      return { ...state, selectedFontFamily: action.fontFamily };
-    default:
-      return state;
-  }
-}
+const EMPTY_FONT_FAMILIES: FontFamily[] = [];
 
 function FontFamiliesListContent({
   scope = PageScope.BRAND,
-  onLoadingChange,
-  onRefreshingChange,
-  onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
   const fieldsT = useTranslations('ui.rowSidebar.fields');
@@ -79,29 +57,8 @@ function FontFamiliesListContent({
     useCallback((token: string) => FontFamiliesService.getInstance(token), []),
   );
 
-  const [state, dispatch] = useReducer(reducer, {
-    fontFamilies: [],
-    fetchStatus: 'loading',
-    selectedFontFamily: null,
-  });
-
-  const { fontFamilies, fetchStatus, selectedFontFamily } = state;
-
-  // Derive isLoading and isRefreshing from fetchStatus
-  const isLoading = fetchStatus === 'loading';
-  const isRefreshing = fetchStatus === 'refreshing';
-
-  // Use refs for callback props to prevent unnecessary re-renders
-  const onLoadingChangeRef = useRef(onLoadingChange);
-  const onRefreshingChangeRef = useRef(onRefreshingChange);
-  // Only the newest request may write results or end loading: a slower
-  // earlier search must not replace the current one.
-  const requestIdRef = useRef(0);
-
-  useEffect(() => {
-    onLoadingChangeRef.current = onLoadingChange;
-    onRefreshingChangeRef.current = onRefreshingChange;
-  });
+  const [selectedFontFamily, setSelectedFontFamily] =
+    useState<IFontFamily | null>(null);
 
   const columns: TableColumn<FontFamily>[] = [
     {
@@ -130,7 +87,7 @@ function FontFamiliesListContent({
           {
             icon: <Trash2 />,
             onClick: (fontFamily: FontFamily) => {
-              dispatch({ type: 'SET_SELECTED', fontFamily });
+              setSelectedFontFamily(fontFamily);
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -147,84 +104,61 @@ function FontFamiliesListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const findAllFontFamilies = useCallback(
-    async (isRefreshingArg = false) => {
-      const url = 'GET /font-families';
-
-      const requestId = ++requestIdRef.current;
-      dispatch({ type: 'FETCH_START', isRefreshing: isRefreshingArg });
-
-      // Notify parent of state changes
-      onRefreshingChangeRef.current?.(isRefreshingArg);
-      onLoadingChangeRef.current?.(!isRefreshingArg);
-
+  // Cached per page, search, sort and scope: coming back to Font Families
+  // paints the rows it already has while it refreshes, and paging keeps the
+  // current rows on screen.
+  const scopeFilter =
+    scope === PageScope.SUPERADMIN
+      ? {
+          ...(adminOrg ? { organization: adminOrg } : {}),
+          ...(adminBrand ? { brand: adminBrand } : {}),
+        }
+      : {};
+  const scopeKey = ['admin', 'font-families', { scope, ...scopeFilter }];
+  const fontFamiliesQuery = useAuthedQuery({
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      const query: IQueryParams = {
+        limit: ITEMS_PER_PAGE,
+        page: currentPage,
+        ...(search ? { search } : {}),
+        ...(sort ? { sort } : {}),
+        ...scopeFilter,
+      };
       try {
-        const service = await getFontFamiliesService();
-
-        // Build API query
-        const query: IQueryParams = {
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          ...(search ? { search } : {}),
-          ...(sort ? { sort } : {}),
-        };
-
-        if (scope === PageScope.SUPERADMIN) {
-          if (adminOrg) {
-            query.organization = adminOrg;
-          }
-          if (adminBrand) {
-            query.brand = adminBrand;
-          }
-        }
-
-        const data = await service.findAll(query);
-        if (requestId !== requestIdRef.current) {
-          return;
-        }
-        dispatch({ type: 'FETCH_SUCCESS', fontFamilies: data });
-
-        logger.info(`${url} success`, data);
+        const data = await service.findAll(query, signal);
+        logger.info('GET /font-families success', data);
+        return data;
       } catch (error) {
-        logger.error(`${url} failed`, error);
-        notificationsService.error('Failed to load font families');
-      } finally {
-        if (requestId === requestIdRef.current) {
-          dispatch({ type: 'FETCH_DONE' });
-          onLoadingChangeRef.current?.(false);
-          onRefreshingChangeRef.current?.(false);
+        if (!signal.aborted) {
+          logger.error('GET /font-families failed', error);
         }
+        throw error;
       }
     },
-    [
-      currentPage,
-      getFontFamiliesService,
-      notificationsService.error,
-      scope,
-      adminOrg,
-      adminBrand,
-      search,
-      sort,
-    ],
-  );
+    queryKey: [...scopeKey, { page: currentPage, search, sort }],
+    service: (token: string) => FontFamiliesService.getInstance(token),
+  });
+  const fontFamilies = fontFamiliesQuery.data ?? EMPTY_FONT_FAMILIES;
+  const { errorUpdatedAt, isError, isLoading, refetch } = fontFamiliesQuery;
+  const isRefreshing = fontFamiliesQuery.isFetching && !isLoading;
+  const findAllFontFamilies = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
-  // Fetch data on mount and when search params change
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    findAllFontFamilies();
-  }, [findAllFontFamilies]);
-
-  // Register refresh callback
-  useEffect(() => {
-    if (onRefresh) {
-      return onRefresh(() => findAllFontFamilies(true));
+    if (isError) {
+      notificationsService.error('Failed to load font families');
     }
-  }, [onRefresh, findAllFontFamilies]);
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   const openFontFamilyModal = (
     modalId: ModalEnum,
     fontFamily?: IFontFamily,
   ) => {
-    dispatch({ type: 'SET_SELECTED', fontFamily: fontFamily || null });
+    setSelectedFontFamily(fontFamily ?? null);
     openModal(modalId);
   };
 
@@ -233,12 +167,12 @@ function FontFamiliesListContent({
       const service = await getFontFamiliesService();
       await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
-      dispatch({ type: 'SET_SELECTED', fontFamily: null });
-      findAllFontFamilies(true);
+      setSelectedFontFamily(null);
+      findAllFontFamilies();
     } catch (error) {
       logger.error('Failed to delete font family', error);
       notificationsService.error('Failed to delete font family');
-      dispatch({ type: 'SET_SELECTED', fontFamily: null });
+      setSelectedFontFamily(null);
     }
   };
 
@@ -272,7 +206,7 @@ function FontFamiliesListContent({
           value={search}
         />
       }
-      onRefresh={() => findAllFontFamilies(true)}
+      onRefresh={() => findAllFontFamilies()}
       isRefreshing={isRefreshing}
       dropdowns={
         scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : undefined
@@ -304,10 +238,10 @@ function FontFamiliesListContent({
       {scope === PageScope.SUPERADMIN && (
         <LazyModalFontFamily
           item={selectedFontFamily}
-          onClose={() => dispatch({ type: 'SET_SELECTED', fontFamily: null })}
+          onClose={() => setSelectedFontFamily(null)}
           onConfirm={() => {
-            dispatch({ type: 'SET_SELECTED', fontFamily: null });
-            findAllFontFamilies(true);
+            setSelectedFontFamily(null);
+            findAllFontFamilies();
           }}
         />
       )}

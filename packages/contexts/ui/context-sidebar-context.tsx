@@ -3,7 +3,6 @@
 import type {
   ContextSidebarContextValue,
   ContextSidebarHeaderOutletProps,
-  ContextSidebarHeaderSlotName,
   ContextSidebarHeaderSlotProps,
   ContextSidebarHeaderTargets,
   ContextSidebarOutletProps,
@@ -31,8 +30,8 @@ import { createPortal } from 'react-dom';
 export const CONTEXT_SIDEBAR_COMPACT_QUERY = '(max-width: 1279px)';
 
 const EMPTY_HEADER_TARGETS: ContextSidebarHeaderTargets = {
-  desktop: { actions: null, tabs: null },
-  mobile: { actions: null, tabs: null },
+  desktop: null,
+  mobile: null,
 };
 
 const ContextSidebarContext = createContext<ContextSidebarContextValue | null>(
@@ -159,18 +158,9 @@ export function ContextSidebarProvider({
   }, []);
 
   const setHeaderTarget = useCallback(
-    (
-      mode: 'desktop' | 'mobile',
-      slot: ContextSidebarHeaderSlotName,
-      element: HTMLElement | null,
-    ) => {
+    (mode: 'desktop' | 'mobile', element: HTMLElement | null) => {
       setHeaderTargets((current) =>
-        current[mode][slot] === element
-          ? current
-          : {
-              ...current,
-              [mode]: { ...current[mode], [slot]: element },
-            },
+        current[mode] === element ? current : { ...current, [mode]: element },
       );
     },
     [],
@@ -284,13 +274,12 @@ export function ContextSidebarOutlet({
 }
 
 /**
- * Puts controls in the sidebar header instead of the scrolling body: `actions`
- * land in the title row, `tabs` in the strip pinned under it. Renders in the
- * page's React tree, so tab and button state keep every provider the page has.
+ * Puts controls in the sidebar header's title row instead of the scrolling
+ * body. Renders in the page's React tree, so menu and button state keep every
+ * provider the page has.
  */
 export function ContextSidebarHeaderSlot({
   children,
-  slot,
 }: ContextSidebarHeaderSlotProps): ReactNode {
   const contextSidebar = use(ContextSidebarContext);
   // Outside the protected frame there is no header to move into: render in place.
@@ -299,8 +288,7 @@ export function ContextSidebarHeaderSlot({
   }
 
   const { desktop, mobile } = contextSidebar.headerTargets;
-  const target =
-    contextSidebar.isMobileOpen && mobile[slot] ? mobile[slot] : desktop[slot];
+  const target = contextSidebar.isMobileOpen && mobile ? mobile : desktop;
 
   return target ? createPortal(children, target) : null;
 }
@@ -308,16 +296,14 @@ export function ContextSidebarHeaderSlot({
 /** The DOM node a selected page's header controls are portaled into. */
 export function ContextSidebarHeaderOutlet({
   className,
-  slot,
   target = 'desktop',
   testId,
 }: ContextSidebarHeaderOutletProps) {
   const contextSidebar = use(ContextSidebarContext);
   const setHeaderTarget = contextSidebar?.setHeaderTarget;
   const ref = useCallback(
-    (element: HTMLDivElement | null) =>
-      setHeaderTarget?.(target, slot, element),
-    [setHeaderTarget, slot, target],
+    (element: HTMLDivElement | null) => setHeaderTarget?.(target, element),
+    [setHeaderTarget, target],
   );
 
   return <div className={className} data-testid={testId} ref={ref} />;

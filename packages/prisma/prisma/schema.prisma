@@ -1008,6 +1008,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   dashboardLayouts              DashboardLayout[]              @relation("org_dashboard_layout")
   brandInterviews               BrandInterview[]
   warmupAccounts                WarmupAccount[]
+  contentPreviews               ContentPreview[]
   contentVersionPins            ContentVersionPin[]
   publishApprovals              PublishApproval[]
   studioLooks                   StudioLook[]
@@ -1220,6 +1221,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   llmVendorCosts             LlmVendorCost[]            @relation("llm_vendor_cost_brand")
   mediaVendorCosts           MediaVendorCost[]          @relation("media_vendor_cost_brand")
   warmupAccounts             WarmupAccount[]
+  contentPreviews            ContentPreview[]
   contentVersionPins         ContentVersionPin[]
   publishApprovals           PublishApproval[]
   outreachCampaigns          OutreachCampaign[]
@@ -1597,11 +1599,45 @@ model WarmupAccount {
   isDeleted        Boolean             @default(false)
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
+  contentPreviews  ContentPreview[]
 
   @@index([leadEmail, isDeleted, status], map: "warmup_accounts_lead_status_idx")
   @@index([status, isDeleted, createdAt(sort: Desc)], map: "warmup_accounts_status_created_idx")
   @@index([organizationId, isDeleted], map: "warmup_accounts_org_deleted_idx")
   @@map("warmup_accounts")
+}
+
+/// Public, token-gated, read-only projection of prepared warm-up content (#8788).
+/// The token is shown once at mint; only its SHA-256 hash is stored. `items` pins
+/// the content shown at mint time. Counters hold counts and timestamps only, never
+/// visitor identity (#8793).
+model ContentPreview {
+  id              String        @id @default(cuid())
+  tokenHash       String        @unique
+  warmupAccountId String
+  warmupAccount   WarmupAccount @relation(fields: [warmupAccountId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  brandId         String
+  brand           Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdByUserId String
+  /// Pinned content: [{ "kind": "POST", "id": "..." }]
+  items           Json          @default("[]")
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  firstViewedAt   DateTime?
+  lastViewedAt    DateTime?
+  viewCount       Int           @default(0)
+  ctaClickCount   Int           @default(0)
+  claimedAt       DateTime?
+  claimedByUserId String?
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([warmupAccountId, isDeleted, createdAt(sort: Desc)], map: "content_previews_warmup_idx")
+  @@index([organizationId, isDeleted], map: "content_previews_org_deleted_idx")
+  @@map("content_previews")
 }
 
 model Role {

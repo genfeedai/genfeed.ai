@@ -128,6 +128,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 4.2,
           id: 'org-1',
           name: 'Acme Inc',
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 3,
           totalEngagement: 900,
           totalMembers: 7,
@@ -163,6 +166,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 4.2,
           id: 'org-1',
           name: 'Acme Inc',
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 3,
           totalEngagement: 900,
           totalMembers: 7,
@@ -205,6 +211,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             id: 'user-9',
             name: 'Ada Lovelace',
           },
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
           totalMembers: 1,
@@ -216,6 +225,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 0,
           id: 'org-2',
           name: 'Orphan',
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
           totalMembers: 0,
@@ -251,6 +263,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             id: 'user-3',
             name: 'poya@vitae.ai',
           },
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
           totalMembers: 1,
@@ -269,6 +284,97 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     expect(screen.getAllByText('poya@vitae.ai')).toHaveLength(1);
   });
 
+  it('highlights a work email, and shows what each organization declared and generated', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-work',
+          lifetimePosts: 3,
+          name: 'Gateway Ventures',
+          owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
+          ownerEmailClass: 'company',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalGenerations: 12,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+          type: 'AGENCY',
+        },
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-personal',
+          lifetimePosts: 0,
+          name: 'Personal',
+          owner: { email: 'a@gmail.com', id: 'user-4', name: 'A' },
+          ownerEmailClass: 'personal',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalGenerations: 0,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 2, totalPages: 1 },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    const workRow = (
+      await screen.findByRole('link', { name: /Gateway Ventures/ })
+    ).closest('tr') as HTMLElement;
+    const personalRow = screen
+      .getByRole('link', { name: /Personal/ })
+      .closest('tr') as HTMLElement;
+    expect(within(workRow).getByText('Work email')).toBeVisible();
+    expect(within(workRow).getByText('Agency')).toBeVisible();
+    expect(within(workRow).getByText('12')).toBeVisible();
+    expect(within(personalRow).getByText('Personal email')).toBeVisible();
+    // The default category says nothing: no declared type reads as not set.
+    expect(within(personalRow).getByText('Not set')).toBeVisible();
+  });
+
+  it('shows lifetime usage and the owner email in the row sidebar', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValue({
+      data: [
+        {
+          avgEngagementRate: 0,
+          growth: 0,
+          id: 'org-work',
+          lastActiveAt: '2026-11-01T09:30:00.000Z',
+          lifetimePosts: 3,
+          name: 'Gateway Ventures',
+          owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
+          ownerEmailClass: 'company',
+          totalBrands: 1,
+          totalEngagement: 0,
+          totalGenerations: 12,
+          totalMembers: 1,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 1, totalPages: 1 },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    const row = (
+      await screen.findByRole('link', { name: /Gateway Ventures/ })
+    ).closest('tr') as HTMLElement;
+    fireEvent.click(within(row).getByText('Work email'));
+
+    const sidebar = screen.getByTestId('context-sidebar');
+    expect(within(sidebar).getByText('Generations (lifetime)')).toBeVisible();
+    expect(within(sidebar).getByText('Posts (lifetime)')).toBeVisible();
+    expect(within(sidebar).getByText('Nov 1, 2026')).toBeVisible();
+    expect(within(sidebar).getByText('poya@vitae.ai')).toBeVisible();
+  });
+
   describe('server-side ordering and type filter', () => {
     // One row, so the table renders its column headers.
     const onePage = {
@@ -278,6 +384,9 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 0,
           id: 'org-1',
           name: 'Acme Inc',
+          lifetimePosts: 0,
+          ownerEmailClass: 'unknown',
+          totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
           totalMembers: 1,
@@ -356,6 +465,56 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
 
       await waitFor(() => {
         expect(lastRequest()).toMatchObject({ page: 1, type: 'AGENCY' });
+      });
+    });
+
+    it('asks the API for lifetime generations when that header is clicked', async () => {
+      const user = userEvent.setup();
+      mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
+
+      render(<AnalyticsOrganizationsList />);
+
+      const generationsHeader = await screen.findByRole('columnheader', {
+        name: /Generations/,
+      });
+      await user.click(within(generationsHeader).getByRole('button'));
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({
+          order: 'asc',
+          sort: 'generations',
+        });
+      });
+    });
+
+    it.each([
+      ['Owner email', 'Work email', { emailClass: 'company' }],
+      ['Owner email', 'Personal email', { emailClass: 'personal' }],
+      ['Usage', 'Generated or published', { usage: 'active' }],
+      ['Usage', 'Nothing yet', { usage: 'inactive' }],
+    ])('filters by %s: %s', async (facet, option, expected) => {
+      const user = userEvent.setup();
+      mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
+
+      render(<AnalyticsOrganizationsList />);
+      await waitFor(() => {
+        expect(mocks.getOrganizationsWithStats).toHaveBeenCalled();
+      });
+      expect(lastRequest()).not.toHaveProperty('emailClass');
+      expect(lastRequest()).not.toHaveProperty('usage');
+
+      const searchNode = mocks.publishSearch.mock.calls.at(
+        -1,
+      )?.[0] as ReactNode;
+      render(<>{searchNode}</>);
+      await user.click(screen.getByRole('button', { name: /^Filters/ }));
+      screen.getByRole('menuitem', { name: new RegExp(facet) }).focus();
+      await user.keyboard('{ArrowRight}');
+      await user.click(
+        await screen.findByRole('menuitemradio', { name: option }),
+      );
+
+      await waitFor(() => {
+        expect(lastRequest()).toMatchObject({ page: 1, ...expected });
       });
     });
   });

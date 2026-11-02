@@ -5,6 +5,7 @@ import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -18,10 +19,12 @@ import { Button } from '@ui/primitives/button';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalRole } from '@/features/admin/lazy/lazy-modal.admin';
+
+const EMPTY_ROLES: IRole[] = [];
 
 export default function RolesList() {
   const fieldsT = useTranslations('ui.rowSidebar.fields');
@@ -33,15 +36,37 @@ export default function RolesList() {
     RolesService.getInstance(token),
   );
 
-  const [roles, setRoles] = useState<IRole[]>([]);
+  // Cached per page: coming back to Roles paints the rows it already has while
+  // it refreshes, and paging keeps the current rows on screen.
+  const rolesQuery = useAuthedQuery({
+    keepPreviousDataWithin: ['admin', 'roles'],
+    queryFn: async (service, signal) => {
+      try {
+        return await service.findAll(
+          { limit: ITEMS_PER_PAGE, page: currentPage },
+          signal,
+        );
+      } catch (error) {
+        logger.error('GET /roles failed', error);
+        throw error;
+      }
+    },
+    queryKey: ['admin', 'roles', { page: currentPage }],
+    service: (token: string) => RolesService.getInstance(token),
+  });
+  const roles = rolesQuery.data ?? EMPTY_ROLES;
+  const { isLoading } = rolesQuery;
+  const isRefreshing = rolesQuery.isFetching && !isLoading;
+  const { refetch } = rolesQuery;
+  const loadRoles = useCallback(() => {
+    void refetch();
+  }, [refetch]);
   // The API returns every role, so the search narrows them in memory.
   const visibleRoles = useFilteredData({
     data: roles,
     filter: search,
     filterFields: (role) => [role.label, role.key],
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRole, setSelectedRole] = useState<IRole | null>(null);
 
   const columns = [
@@ -100,34 +125,6 @@ export default function RolesList() {
     onEdit: (role) => openRoleModal(ModalEnum.ROLE, role),
   });
 
-  const loadRoles = useCallback(
-    async (refresh = false) => {
-      if (!refresh) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(refresh);
-
-      try {
-        const service = await getRolesService();
-        const data = await service.findAll({
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-        });
-        setRoles(data);
-      } catch (error) {
-        logger.error('GET /roles failed', error);
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
-    },
-    [currentPage, getRolesService],
-  );
-
-  useEffect(() => {
-    loadRoles();
-  }, [loadRoles]);
-
   const openRoleModal = (modalId: ModalEnum, role?: IRole) => {
     setSelectedRole(role ?? null);
     openModal(modalId);
@@ -140,7 +137,7 @@ export default function RolesList() {
     } catch (error) {
       logger.error(`DELETE /roles/${role.id} failed`, error);
     } finally {
-      loadRoles(true);
+      loadRoles();
     }
   };
 
@@ -156,7 +153,7 @@ export default function RolesList() {
           value={search}
         />
       }
-      onRefresh={() => loadRoles(true)}
+      onRefresh={() => loadRoles()}
       isRefreshing={isRefreshing}
       primaryAction={
         <Button
@@ -185,7 +182,7 @@ export default function RolesList() {
         </div>
       )}
 
-      <LazyModalRole role={selectedRole} onConfirm={() => loadRoles(true)} />
+      <LazyModalRole role={selectedRole} onConfirm={() => loadRoles()} />
     </AdminPageShell>
   );
 }

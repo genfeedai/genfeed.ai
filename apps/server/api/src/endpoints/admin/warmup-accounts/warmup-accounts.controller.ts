@@ -1,10 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import {
+  ExtendContentPreviewDto,
+  MintContentPreviewDto,
+} from '@api/endpoints/admin/warmup-accounts/dto/content-preview.dto';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
 import { PrepareWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/prepare-warmup-account.dto';
 import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
+import { WarmupPreviewsService } from '@api/endpoints/admin/warmup-accounts/warmup-previews.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   resolvePageWindow,
@@ -15,7 +20,10 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WarmupAccountSerializer } from '@genfeedai/serializers';
+import {
+  ContentPreviewSerializer,
+  WarmupAccountSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
@@ -42,6 +50,7 @@ export class WarmupAccountsController {
     private readonly warmupAccountsService: AdminWarmupAccountsService,
     private readonly loggerService: LoggerService,
     private readonly preparationService: WarmupPreparationService,
+    private readonly previewsService: WarmupPreviewsService,
   ) {}
 
   @Post()
@@ -193,6 +202,71 @@ export class WarmupAccountsController {
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'prepareWarmup');
+    }
+  }
+
+  @Post(':id/previews')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Mint a public, token-gated preview of prepared content',
+  })
+  async mintPreview(
+    @Param('id') id: string,
+    @Body() dto: MintContentPreviewDto,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const preview = await this.runAsPlatformAdmin(() =>
+        this.previewsService.mint(id, this.getActorUserId(user), dto),
+      );
+      return serializeSingle(request, ContentPreviewSerializer, preview);
+    } catch (error) {
+      return ErrorResponse.handle(error, this.loggerService, 'mintPreview');
+    }
+  }
+
+  @Post(':id/previews/:previewId/revoke')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke a preview; its link returns 404 at once' })
+  async revokePreview(
+    @Param('id') id: string,
+    @Param('previewId') previewId: string,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const preview = await this.runAsPlatformAdmin(() =>
+        this.previewsService.revoke(id, previewId, this.getActorUserId(user)),
+      );
+      return serializeSingle(request, ContentPreviewSerializer, preview);
+    } catch (error) {
+      return ErrorResponse.handle(error, this.loggerService, 'revokePreview');
+    }
+  }
+
+  @Post(':id/previews/:previewId/extend')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Extend a preview lifetime' })
+  async extendPreview(
+    @Param('id') id: string,
+    @Param('previewId') previewId: string,
+    @Body() dto: ExtendContentPreviewDto,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const preview = await this.runAsPlatformAdmin(() =>
+        this.previewsService.extend(
+          id,
+          previewId,
+          this.getActorUserId(user),
+          dto,
+        ),
+      );
+      return serializeSingle(request, ContentPreviewSerializer, preview);
+    } catch (error) {
+      return ErrorResponse.handle(error, this.loggerService, 'extendPreview');
     }
   }
 

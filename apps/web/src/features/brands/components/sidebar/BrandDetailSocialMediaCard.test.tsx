@@ -419,10 +419,10 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
-    // for credential-1 — the accounts table must show that live health
-    // instead of falling back to a bare "Connected" badge.
+    // for credential-1 — the accounts table must show that live health next
+    // to the account's "Connected" badge.
     expect(await screen.findByText('Warming')).toBeInTheDocument();
-    expect(screen.queryAllByText('Connected')).toHaveLength(0);
+    expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 
   it('still fetches account health when the only connection is connected but needs reconnecting', async () => {

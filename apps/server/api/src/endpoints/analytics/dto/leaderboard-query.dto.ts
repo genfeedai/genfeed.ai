@@ -18,6 +18,20 @@ export enum LeaderboardSort {
   ENGAGEMENT = 'engagement',
   VIEWS = 'views',
   POSTS = 'posts',
+  /** Lifetime generated assets; ignores the date range. */
+  GENERATIONS = 'generations',
+}
+
+/** Which owners an organization list keeps, by how they signed up. */
+export enum OrganizationEmailClassFilter {
+  COMPANY = 'company',
+  PERSONAL = 'personal',
+}
+
+/** Whether an organization has ever generated an asset or published a post. */
+export enum OrganizationUsageFilter {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
 }
 
 export enum LeaderboardOrder {
@@ -140,8 +154,7 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   order?: LeaderboardOrder = LeaderboardOrder.DESC;
 
   @ApiProperty({
-    description:
-      'Only organizations of this type (the onboarding account type, else the category)',
+    description: 'Only organizations that declared this type at onboarding',
     enum: OrganizationCategory,
     enumName: 'OrganizationCategory',
     required: false,
@@ -149,6 +162,28 @@ export class AdminOrgsQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEnum(OrganizationCategory)
   type?: OrganizationCategory;
+
+  @ApiProperty({
+    description:
+      'Only organizations whose owner signed up with a work address (company) or a free provider (personal)',
+    enum: OrganizationEmailClassFilter,
+    enumName: 'OrganizationEmailClassFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationEmailClassFilter)
+  emailClass?: OrganizationEmailClassFilter;
+
+  @ApiProperty({
+    description:
+      'Only organizations that have (active) or have never (inactive) generated an asset or published a post',
+    enum: OrganizationUsageFilter,
+    enumName: 'OrganizationUsageFilter',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(OrganizationUsageFilter)
+  usage?: OrganizationUsageFilter;
 
   @ApiProperty({
     description:

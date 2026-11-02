@@ -1,9 +1,18 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindOrganizationIngredients = vi.fn();
 const mockGetService = vi.fn();
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mockGetService,
@@ -42,22 +51,30 @@ describe('useAvatarImages', () => {
   });
 
   it('loads and filters avatar ingredients for the organization', async () => {
-    const { result } = renderHook(() => useAvatarImages('org-1'));
+    const { result } = renderHook(() => useAvatarImages('org-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.avatars).toEqual([AVATAR]);
     });
 
-    expect(mockFindOrganizationIngredients).toHaveBeenCalledWith('org-1', {
-      category: expect.any(String),
-      limit: 100,
-      sort: 'createdAt: -1',
-    });
+    expect(mockFindOrganizationIngredients).toHaveBeenCalledWith(
+      'org-1',
+      {
+        category: expect.any(String),
+        limit: 100,
+        sort: 'createdAt: -1',
+      },
+      expect.any(AbortSignal),
+    );
     expect(result.current.isLoading).toBe(false);
   });
 
   it('returns an empty list without an organization id', async () => {
-    const { result } = renderHook(() => useAvatarImages(undefined));
+    const { result } = renderHook(() => useAvatarImages(undefined), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -70,7 +87,9 @@ describe('useAvatarImages', () => {
   it('clears avatars when the fetch fails', async () => {
     mockFindOrganizationIngredients.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useAvatarImages('org-1'));
+    const { result } = renderHook(() => useAvatarImages('org-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -80,7 +99,9 @@ describe('useAvatarImages', () => {
   });
 
   it('refresh reloads the ingredients', async () => {
-    const { result } = renderHook(() => useAvatarImages('org-1'));
+    const { result } = renderHook(() => useAvatarImages('org-1'), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.avatars).toEqual([AVATAR]);
@@ -93,6 +114,51 @@ describe('useAvatarImages', () => {
       await result.current.refresh();
     });
 
-    expect(result.current.avatars).toEqual([nextAvatar]);
+    await waitFor(() => {
+      expect(result.current.avatars).toEqual([nextAvatar]);
+    });
+  });
+
+  it('is loading, with no avatars, on the first render of a first visit', () => {
+    mockFindOrganizationIngredients.mockReturnValue(new Promise(() => {}));
+    const firstRender: { avatarCount: number; isLoading: boolean }[] = [];
+
+    renderHook(
+      () => {
+        const state = useAvatarImages('org-1');
+        firstRender.push({
+          avatarCount: state.avatars.length,
+          isLoading: state.isLoading,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper() },
+    );
+
+    expect(firstRender[0]).toEqual({ avatarCount: 0, isLoading: true });
+  });
+
+  it('paints the cached avatars on a return visit without a loading state', async () => {
+    const client = createTestQueryClient();
+    const first = renderHook(() => useAvatarImages('org-1'), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.avatars).toEqual([AVATAR]));
+    first.unmount();
+
+    const firstRender: { avatars: unknown[]; isLoading: boolean }[] = [];
+    renderHook(
+      () => {
+        const state = useAvatarImages('org-1');
+        firstRender.push({
+          avatars: state.avatars,
+          isLoading: state.isLoading,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(firstRender[0]).toEqual({ avatars: [AVATAR], isLoading: false });
   });
 });

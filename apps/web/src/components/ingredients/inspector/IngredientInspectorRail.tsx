@@ -221,7 +221,7 @@ export default function IngredientInspectorRail({
     >
       {/* A failed generation has nothing to preview. */}
       {onOpenPreview && shelf !== LibraryShelf.FAILED ? (
-        <ContextSidebarHeaderSlot slot="actions">
+        <ContextSidebarHeaderSlot>
           <Button
             ariaLabel={translate('openPreview')}
             data-testid="library-open-preview"

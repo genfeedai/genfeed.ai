@@ -39,19 +39,26 @@ import { useDebounce } from '@/hooks/utils/use-debounce/use-debounce';
 const SEARCH_DEBOUNCE_MS = 300;
 const ALL_TYPES = 'all';
 
+const GENERATIONS_SORT = 'generations';
+const ALL_EMAIL_CLASSES = 'all';
+const ALL_USAGE = 'all';
+
 type OrganizationSortMetric =
   | AnalyticsMetric.ENGAGEMENT
   | AnalyticsMetric.VIEWS
-  | AnalyticsMetric.POSTS;
+  | AnalyticsMetric.POSTS
+  | typeof GENERATIONS_SORT;
 
 /** The columns the API can order by, and the metric each one stands for. */
 const SORT_METRIC_BY_COLUMN: Record<string, OrganizationSortMetric> = {
   totalEngagement: AnalyticsMetric.ENGAGEMENT,
+  totalGenerations: GENERATIONS_SORT,
   totalPosts: AnalyticsMetric.POSTS,
   totalViews: AnalyticsMetric.VIEWS,
 };
 const SORT_COLUMN_BY_METRIC: Record<OrganizationSortMetric, string> = {
   [AnalyticsMetric.ENGAGEMENT]: 'totalEngagement',
+  [GENERATIONS_SORT]: 'totalGenerations',
   [AnalyticsMetric.POSTS]: 'totalPosts',
   [AnalyticsMetric.VIEWS]: 'totalViews',
 };
@@ -77,6 +84,8 @@ export default function AnalyticsOrganizationsList({
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [type, setType] = useState<string>(ALL_TYPES);
+  const [emailClass, setEmailClass] = useState<string>(ALL_EMAIL_CLASSES);
+  const [usage, setUsage] = useState<string>(ALL_USAGE);
 
   const isLoading = data === null;
   const searchTerm = filters.query ?? '';
@@ -106,6 +115,12 @@ export default function AnalyticsOrganizationsList({
             ...(type !== ALL_TYPES
               ? { type: type as OrganizationCategory }
               : {}),
+            ...(emailClass !== ALL_EMAIL_CLASSES
+              ? { emailClass: emailClass as 'company' | 'personal' }
+              : {}),
+            ...(usage !== ALL_USAGE
+              ? { usage: usage as 'active' | 'inactive' }
+              : {}),
           },
           controller.signal,
         );
@@ -128,6 +143,8 @@ export default function AnalyticsOrganizationsList({
     sort,
     sortDirection,
     type,
+    emailClass,
+    usage,
     debouncedSearchTerm,
     refreshTrigger,
   ]);
@@ -157,6 +174,16 @@ export default function AnalyticsOrganizationsList({
     setPage(1);
   }, []);
 
+  const handleEmailClassChange = useCallback((value: string) => {
+    setEmailClass(value);
+    setPage(1);
+  }, []);
+
+  const handleUsageChange = useCallback((value: string) => {
+    setUsage(value);
+    setPage(1);
+  }, []);
+
   const search = useMemo(
     () => (
       <SearchField
@@ -182,19 +209,81 @@ export default function AnalyticsOrganizationsList({
               selection: 'single',
               value: type,
             },
+            {
+              defaultValue: ALL_EMAIL_CLASSES,
+              key: 'emailClass',
+              label: translate('emailClassFilterLabel'),
+              onChange: handleEmailClassChange,
+              options: [
+                {
+                  label: translate('allEmailClasses'),
+                  value: ALL_EMAIL_CLASSES,
+                },
+                {
+                  label: translate('emailClasses.company'),
+                  value: 'company',
+                },
+                {
+                  label: translate('emailClasses.personal'),
+                  value: 'personal',
+                },
+              ],
+              selection: 'single',
+              value: emailClass,
+            },
+            {
+              defaultValue: ALL_USAGE,
+              key: 'usage',
+              label: translate('usageFilterLabel'),
+              onChange: handleUsageChange,
+              options: [
+                { label: translate('allUsage'), value: ALL_USAGE },
+                { label: translate('usage.active'), value: 'active' },
+                { label: translate('usage.inactive'), value: 'inactive' },
+              ],
+              selection: 'single',
+              value: usage,
+            },
           ]}
           isAttached
-          onClear={() => handleTypeChange(ALL_TYPES)}
+          onClear={() => {
+            handleTypeChange(ALL_TYPES);
+            handleEmailClassChange(ALL_EMAIL_CLASSES);
+            handleUsageChange(ALL_USAGE);
+          }}
         />
       </SearchField>
     ),
-    [searchTerm, setFilter, type, handleTypeChange, translate],
+    [
+      searchTerm,
+      setFilter,
+      type,
+      emailClass,
+      usage,
+      handleTypeChange,
+      handleEmailClassChange,
+      handleUsageChange,
+      translate,
+    ],
   );
 
   useAnalyticsSearch(search);
 
   const orgs = data?.data || [];
   const pagination = data?.pagination;
+
+  // A work address is the lead signal, so it is the one that is coloured.
+  const renderEmailClassBadge = useCallback(
+    (ownerEmailClass: IOrgWithStats['ownerEmailClass']) =>
+      ownerEmailClass === 'company' ? (
+        <Badge variant="success">{translate('emailClasses.company')}</Badge>
+      ) : ownerEmailClass === 'personal' ? (
+        <Badge variant="outline">{translate('emailClasses.personal')}</Badge>
+      ) : (
+        <Badge variant="outline">{translate('emailClasses.unknown')}</Badge>
+      ),
+    [translate],
+  );
 
   const columns: TableColumn<IOrgWithStats>[] = useMemo(
     () => [
@@ -232,6 +321,33 @@ export default function AnalyticsOrganizationsList({
           ) : (
             <span className="text-foreground/40">{translate('noOwner')}</span>
           ),
+      },
+      {
+        header: translate('emailColumn'),
+        key: 'ownerEmailClass',
+        render: (org) => renderEmailClassBadge(org.ownerEmailClass),
+      },
+      {
+        header: translate('typeColumn'),
+        key: 'type',
+        render: (org) => (
+          <Badge variant="outline">
+            {org.type
+              ? translate(`types.${org.type}`)
+              : translate('typeNotSet')}
+          </Badge>
+        ),
+      },
+      {
+        className: 'text-right',
+        header: translate('generationsColumn'),
+        key: 'totalGenerations',
+        render: (org) => (
+          <span className="font-mono">
+            {org.totalGenerations.toLocaleString('en-US')}
+          </span>
+        ),
+        sortable: true,
       },
       {
         className: 'text-right',
@@ -298,7 +414,7 @@ export default function AnalyticsOrganizationsList({
         render: (org) => <span className="font-mono">{org.totalMembers}</span>,
       },
     ],
-    [translate],
+    [renderEmailClassBadge, translate],
   );
 
   const actions = useMemo<TableAction<IOrgWithStats>[]>(
@@ -342,11 +458,14 @@ export default function AnalyticsOrganizationsList({
           render: (org) => (
             <TableRowSummary
               badges={
-                org.type ? (
+                <>
+                  {renderEmailClassBadge(org.ownerEmailClass)}
                   <Badge variant="outline">
-                    {translate(`types.${org.type}`)}
+                    {org.type
+                      ? translate(`types.${org.type}`)
+                      : translate('typeNotSet')}
                   </Badge>
-                ) : undefined
+                </>
               }
               facts={[
                 {
@@ -361,7 +480,29 @@ export default function AnalyticsOrganizationsList({
                     </Link>
                   ) : undefined,
                 },
+                {
+                  id: 'email',
+                  label: translate('emailLabel'),
+                  value: org.owner?.email,
+                },
                 { id: 'slug', label: translate('slugLabel'), value: org.slug },
+                {
+                  id: 'generations',
+                  label: translate('generationsLabel'),
+                  value: org.totalGenerations.toLocaleString('en-US'),
+                },
+                {
+                  id: 'lifetimePosts',
+                  label: translate('lifetimePostsLabel'),
+                  value: org.lifetimePosts.toLocaleString('en-US'),
+                },
+                {
+                  id: 'lastActive',
+                  label: translate('lastActiveLabel'),
+                  value: org.lastActiveAt
+                    ? format(new Date(org.lastActiveAt), 'MMM d, yyyy')
+                    : translate('neverActive'),
+                },
                 {
                   id: 'created',
                   label: translate('createdLabel'),

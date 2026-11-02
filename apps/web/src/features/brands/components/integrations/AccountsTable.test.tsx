@@ -180,9 +180,9 @@ describe('AccountsTable', () => {
     );
 
     // Twitter runs the warmup blueprint, so the live health's "warming"
-    // state — not "Connected" — must win once it's wired through.
+    // state shows next to "Connected" once it's wired through.
     expect(screen.getByText('Warming')).toBeInTheDocument();
-    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 
   it('sorts rows by platform then name', () => {

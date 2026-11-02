@@ -2,18 +2,14 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { HeyGenSpeechVoice } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { HeyGenService } from '@services/ingredients/heygen.service';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 const LOAD_ERROR_MESSAGE =
   'HeyGen Voice voices could not be loaded. Retry or check your connection in Integrations.';
 
-interface HeyGenSpeechVoicesState {
-  hasPersonalConnection: boolean;
-  organizationId: string;
-  voices: readonly HeyGenSpeechVoice[];
-}
+const EMPTY_VOICES: readonly HeyGenSpeechVoice[] = [];
 
 export interface UseHeyGenSpeechVoicesOptions {
   /** Fetch only while a surface that speaks with HeyGen Voice is active. */
@@ -39,62 +35,30 @@ export function useHeyGenSpeechVoices({
   isEnabled = true,
 }: UseHeyGenSpeechVoicesOptions = {}): UseHeyGenSpeechVoicesReturn {
   const { organizationId } = useBrand();
-  const getService = useAuthedService((token: string) =>
-    HeyGenService.getInstance(token),
-  );
-  const [state, setState] = useState<HeyGenSpeechVoicesState | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const retry = useCallback(() => setRetryCount((count) => count + 1), []);
+  // The organization is in the key, so a previous organization's catalog never
+  // serves the current one, and coming back to a voice surface paints the
+  // cached catalog while it refreshes.
+  const query = useAuthedQuery({
+    enabled: isEnabled && Boolean(organizationId),
+    queryFn: (service, signal) => service.fetchSpeechVoices(signal),
+    queryKey: ['heygen', 'speech-voices', organizationId ?? null],
+    service: (token: string) => HeyGenService.getInstance(token),
+  });
+  const { refetch } = query;
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryCount explicitly requests a fresh load.
-  useEffect(() => {
-    if (!isEnabled || !organizationId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const loadingOrganizationId: string = organizationId;
-    const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
-
-    async function load() {
-      try {
-        const service = await getService();
-        if (controller.signal.aborted) return;
-        const catalog = await service.fetchSpeechVoices(controller.signal);
-        if (controller.signal.aborted) return;
-        setState({
-          hasPersonalConnection: catalog.hasPersonalConnection,
-          organizationId: loadingOrganizationId,
-          voices: catalog.voices,
-        });
-      } catch (caught) {
-        if (controller.signal.aborted) return;
-        if (caught instanceof Error && caught.name === 'AbortError') return;
-        setState(null);
-        setError(LOAD_ERROR_MESSAGE);
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
-    }
-
-    void load();
-    return () => controller.abort();
-  }, [getService, isEnabled, organizationId, retryCount]);
-
-  // A previous organization's catalog must never serve the current one.
-  const current =
-    isEnabled && state?.organizationId === organizationId ? state : null;
+  // A failed read degrades to "no HeyGen voices" so callers fall back to other
+  // providers' voices.
+  const catalog = isEnabled && !query.isError ? query.data : undefined;
 
   return {
-    error: isEnabled ? error : null,
-    hasPersonalConnection: current?.hasPersonalConnection ?? false,
-    isLoaded: current !== null,
-    isLoading: isEnabled && isLoading,
+    error: isEnabled && query.isError ? LOAD_ERROR_MESSAGE : null,
+    hasPersonalConnection: catalog?.hasPersonalConnection ?? false,
+    isLoaded: catalog !== undefined,
+    isLoading: isEnabled && query.isLoading,
     retry,
-    voices: current?.voices ?? [],
+    voices: catalog?.voices ?? EMPTY_VOICES,
   };
 }

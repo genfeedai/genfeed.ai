@@ -633,6 +633,25 @@ describe('KnowledgeSourcesList', () => {
     expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
+  it('shows a listed source at once while its selection reloads', () => {
+    mocks.search = 'sourceId=b';
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: true,
+      refresh: mocks.refresh,
+      rows: [
+        row('a', KnowledgeProcessingState.READY),
+        row('b', KnowledgeProcessingState.READY),
+      ],
+      spaces: [],
+      selectedRow: row('a', KnowledgeProcessingState.READY),
+    });
+
+    renderList();
+
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
+  });
+
   it('follows changed URL selection and never displays old details while loading', () => {
     mocks.search = 'sourceId=a';
     mocks.useKnowledgeLibrary.mockReturnValue({

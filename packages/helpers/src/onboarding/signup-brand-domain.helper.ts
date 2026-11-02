@@ -145,6 +145,8 @@ export function resolveSignupBrandDomain(
 export interface ResolveSignupWorkspaceLabelInput {
   email?: string | null;
   name?: string | null;
+  /** The free-mail domains to treat as personal; defaults to the short built-in list. */
+  personalEmailDomains?: readonly string[];
 }
 
 function titleCaseWorkspaceLabel(value: string): string {
@@ -170,7 +172,10 @@ function titleCaseWorkspaceLabel(value: string): string {
 export function resolveSignupWorkspaceLabel(
   input: ResolveSignupWorkspaceLabelInput,
 ): string {
-  const fromDomain = resolveSignupBrandDomain({ email: input.email });
+  const fromDomain = resolveSignupBrandDomain({
+    email: input.email,
+    personalEmailDomains: input.personalEmailDomains,
+  });
   if (fromDomain.brandName) {
     return fromDomain.brandName;
   }
@@ -196,7 +201,12 @@ export function resolveSignupWorkspaceLabel(
 export function resolveSignupOrganizationLabel(
   input: ResolveSignupWorkspaceLabelInput,
 ): string {
-  if (isPersonalEmailDomain(extractEmailDomain(input.email))) {
+  if (
+    isPersonalEmailDomain(
+      extractEmailDomain(input.email),
+      input.personalEmailDomains,
+    )
+  ) {
     return PERSONAL_ORGANIZATION_LABEL;
   }
 
