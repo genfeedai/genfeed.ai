@@ -1,11 +1,16 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAgentChatStore } from '@genfeedai/agent';
 import { ButtonVariant, TurboProjectKind } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   resolveOrganizationModulePresentationAccess,
 } from '@genfeedai/contracts/constants';
-import type { TurboIdeaFormat } from '@genfeedai/contracts/interfaces';
+import type {
+  CreativeAppAgentContext,
+  CreativeAppProjectReference,
+  TurboIdeaFormat,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -13,6 +18,7 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
 import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { Button } from '@ui/primitives/button';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
@@ -40,6 +46,8 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
+import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import TurboPromptCards from './TurboPromptCards';
 import { createTurboProjectsApi } from './turbo-projects-api';
 
@@ -90,6 +98,7 @@ export default function TurboNewPane() {
   const isIdeasEnabled = useFeatureFlag('turbo_ideas');
   const getService = useAuthedService(createTurboProjectsApi);
   const getWorkflows = useAuthedService(createWorkflowApiService);
+  const seedComposer = useAgentChatStore((state) => state.seedComposer);
   const workflowScope = useMemo(
     () => ({ brandId, getWorkflows }),
     [brandId, getWorkflows],
@@ -113,6 +122,10 @@ export default function TurboNewPane() {
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<CreativeAppProjectReference[] | null>(
+    null,
+  );
+  const [projectChoice, setProjectChoice] = useState<string | null>(null);
   const admission = useRef({
     organizationId,
     brandId,
@@ -164,6 +177,34 @@ export default function TurboNewPane() {
       });
     return () => controller.abort();
   }, [getWorkflows, brandId, t, workflowScope, kind, isWorkflowEnabled]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setProjects(null);
+    setProjectChoice(null);
+    if (!brandId) return () => controller.abort();
+    void getService()
+      .then((service) => service.list(brandId, 1, controller.signal))
+      .then((items) => {
+        if (!controller.signal.aborted)
+          setProjects(
+            items.map((item) => ({
+              id: item.id,
+              title: item.name || t('untitled'),
+            })),
+          );
+      })
+      .catch(() => {
+        // The list is only context for the agent; without it a change request
+        // starts a new project as before.
+        if (!controller.signal.aborted) setProjects([]);
+      });
+    return () => controller.abort();
+  }, [brandId, getService, t]);
+  const creativeApp = useMemo<CreativeAppAgentContext | null>(
+    () => (projects ? { app: 'turbo', projects } : null),
+    [projects],
+  );
+  useCreativeAppAgentContext(creativeApp);
   const trimmedPrompt = prompt.trim();
   const isIdeas = kind === TurboProjectKind.IDEAS;
   const canCreate =
@@ -188,9 +229,23 @@ export default function TurboNewPane() {
     if (preset && preset.angle === trimmedPrompt) return preset.title;
     return trimmedPrompt ? nameFromPrompt(trimmedPrompt) : t('untitled');
   }
-  async function create() {
+  function chooseProject(projectId: string) {
+    if (projectChoice) seedComposer(projectChoice);
+    router.push(href(`${APP_ROUTES.STUDIO.TURBO}/${projectId}`));
+  }
+  async function create(isNewProjectConfirmed = false) {
     if (busy || submitting.current || isSubscriptionRequired || !canCreate)
       return;
+    setProjectChoice(null);
+    if (
+      !isNewProjectConfirmed &&
+      isIdeas &&
+      projects?.length &&
+      isProjectChangeRequest(trimmedPrompt)
+    ) {
+      setProjectChoice(trimmedPrompt);
+      return;
+    }
     submitting.current = true;
     const intent = admission.current;
     setBusy(true);
@@ -281,6 +336,17 @@ export default function TurboNewPane() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
+      {projectChoice && projects ? (
+        <ProjectChoicePrompt
+          isDisabled={busy}
+          newProjectLabel={t('projectChoiceNew')}
+          onChoose={chooseProject}
+          onCreateNew={() => void create(true)}
+          projects={projects}
+          question={t('projectChoiceQuestion')}
+          request={projectChoice}
+        />
+      ) : (
       <PromptEmptyState
         description={t(isIdeas ? 'ideasDescription' : 'workflowDescription')}
         title={t('heroTitle')}
@@ -335,6 +401,7 @@ export default function TurboNewPane() {
           ) : null}
         </div>
       </PromptEmptyState>
+      )}
       <div className="mt-auto shrink-0 px-3 pb-3">
         <PromptBarContainer
           className="mx-auto w-full max-w-2xl"

@@ -24,6 +24,8 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   getService: vi.fn(),
   push: vi.fn(),
+  seedComposer: vi.fn(),
+  publishContext: vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -34,6 +36,17 @@ vi.mock('next-intl', async () => {
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
+
+vi.mock('@genfeedai/agent', () => ({
+  useAgentChatStore: (
+    select: (state: { seedComposer: typeof mocks.seedComposer }) => unknown,
+  ) => select({ seedComposer: mocks.seedComposer }),
+}));
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -530,5 +543,132 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     expect(mocks.list).not.toHaveBeenCalled();
+  });
+
+  describe('which project', () => {
+    const PROJECTS = [
+      { id: 'project-1', name: 'Spring launch' },
+      { id: 'project-2', name: 'Founder story' },
+    ];
+
+    beforeEach(() => {
+      mocks.list.mockResolvedValue(PROJECTS);
+    });
+
+    it('tells the agent it is on the Turbo New screen with the brand projects', async () => {
+      render(<TurboNewPane />);
+
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith({
+          app: 'turbo',
+          projects: [
+            { id: 'project-1', title: 'Spring launch' },
+            { id: 'project-2', title: 'Founder story' },
+          ],
+        }),
+      );
+    });
+
+    it('asks which project a change request applies to instead of creating one', async () => {
+      render(<TurboNewPane />);
+      await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+      await screen.findByRole('textbox', { name: 'Creative angle' });
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith(
+          expect.objectContaining({ app: 'turbo' }),
+        ),
+      );
+
+      typePrompt('revise the intro');
+      fireEvent.click(sendButton());
+
+      expect(
+        await screen.findByText('Which project should I apply this to?'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('revise the intro')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Spring launch' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Founder story' }),
+      ).toBeInTheDocument();
+      expect(mocks.create).not.toHaveBeenCalled();
+    });
+
+    it('opens the chosen project with the request ready in its agent', async () => {
+      render(<TurboNewPane />);
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith(
+          expect.objectContaining({ app: 'turbo' }),
+        ),
+      );
+
+      typePrompt('revise the intro');
+      fireEvent.click(sendButton());
+      fireEvent.click(await screen.findByRole('button', { name: 'Founder story' }));
+
+      expect(mocks.seedComposer).toHaveBeenCalledWith('revise the intro');
+      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/project-2');
+      expect(mocks.create).not.toHaveBeenCalled();
+    });
+
+    it('starts a new project when the viewer declines to pick one', async () => {
+      render(<TurboNewPane />);
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith(
+          expect.objectContaining({ app: 'turbo' }),
+        ),
+      );
+
+      typePrompt('revise the intro');
+      fireEvent.click(sendButton());
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'Start a new project instead',
+        }),
+      );
+
+      await waitFor(() =>
+        expect(mocks.create).toHaveBeenCalledWith({
+          brandId: 'brand-1',
+          kind: TurboProjectKind.IDEAS,
+          name: 'revise the intro',
+        }),
+      );
+      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1');
+    });
+
+    it('creates a project for new work even when projects exist', async () => {
+      render(<TurboNewPane />);
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith(
+          expect.objectContaining({ app: 'turbo' }),
+        ),
+      );
+
+      typePrompt('a week of posts about spring');
+      fireEvent.click(sendButton());
+
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      expect(
+        screen.queryByText('Which project should I apply this to?'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('creates a project for a change request when the brand has none', async () => {
+      mocks.list.mockResolvedValue([]);
+      render(<TurboNewPane />);
+      await waitFor(() =>
+        expect(mocks.publishContext).toHaveBeenLastCalledWith({
+          app: 'turbo',
+          projects: [],
+        }),
+      );
+
+      typePrompt('revise the intro');
+      fireEvent.click(sendButton());
+
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    });
   });
 });

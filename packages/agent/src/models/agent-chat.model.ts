@@ -20,6 +20,7 @@ import type {
   AgentUIBlock,
   AgentUiBrandedReceipt,
   AnalyticsQueryReference,
+  CreativeAppAgentContext,
   KnowledgeReceipt,
   KnowledgeSelection,
   ScopedResearchFindingReference,
@@ -547,6 +548,8 @@ export interface AgentThreadSnapshot {
 export interface AgentPageContext {
   analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
+  /** Which creative app the page is, whether a project is open, and the projects. */
+  creativeApp?: CreativeAppAgentContext;
   draftBody?: string;
   draftInstructions?: string;
   draftSummary?: string;

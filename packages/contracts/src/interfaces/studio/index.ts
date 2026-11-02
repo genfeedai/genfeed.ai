@@ -1,5 +1,6 @@
 export * from './agent-studio-handoff.interface';
 export * from './camera-movement.interface';
+export * from './creative-app-context.interface';
 export * from './conversation-canvas.interface';
 export * from './conversation-sidebar.interface';
 export * from './generation-setup.interface';
