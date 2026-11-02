@@ -36,6 +36,15 @@ export interface IOrganizationWithStats {
   growth: number;
 }
 
+/** Period totals across every entity a list matches, not just the page on screen. */
+export interface IEntityStatsTotals {
+  totalPosts: number;
+  totalViews: number;
+  totalEngagement: number;
+  /** Engagement change against the previous period, in percent. */
+  growth: number;
+}
+
 export interface IBrandWithStats {
   id: string;
   name: string;

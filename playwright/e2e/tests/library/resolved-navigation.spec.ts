@@ -114,6 +114,12 @@ test('list to detail navigation preserves resolved record parameters', async ({
                 },
               ],
               pagination: { limit: 64, page: 1, total: 1, totalPages: 1 },
+              totals: {
+                growth: 0,
+                totalEngagement: 0,
+                totalPosts: 0,
+                totalViews: 0,
+              },
             },
           },
         },
@@ -121,6 +127,8 @@ test('list to detail navigation preserves resolved record parameters', async ({
     },
   );
   await adminPage.goto(APP_ROUTES.ADMIN.BRANDS);
+  // The period totals sit above the table.
+  await expect(adminPage.getByTestId('metric-card-grid')).toBeVisible();
   const destination = `${APP_ROUTES.ADMIN.BRANDS}/brand-1`;
   const link = adminPage.getByRole('link', {
     name: 'Open Brand 1 analytics',
