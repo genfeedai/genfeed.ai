@@ -7,6 +7,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import '@testing-library/jest-dom/vitest';
+import { PagesService } from '@services/content/pages.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RolesList from './roles-list';
@@ -67,7 +68,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: { totals?: { totalDocs: number } }) => (
+    <nav aria-label="pagination">
+      {totals ? `${totals.totalDocs} roles` : null}
+    </nav>
+  ),
 }));
 
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
@@ -143,5 +148,33 @@ describe('RolesList', () => {
     );
 
     expect(screen.getByText('editor')).toBeInTheDocument();
+  });
+
+  it('keeps its own footer total on a return visit after another list was read', async () => {
+    mocks.findAll.mockImplementation(async () => {
+      PagesService.recordTotals({ page: 1, pages: 3, total: 61 });
+      return [{ id: 'role-1', key: 'editor', label: 'editor' }];
+    });
+    const client = createTestQueryClient();
+    const first = render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+    expect(await screen.findByText('61 roles')).toBeInTheDocument();
+    first.unmount();
+    // Another list (say, bots) is read in between and records its totals.
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(screen.getByText('61 roles')).toBeInTheDocument();
   });
 });

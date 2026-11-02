@@ -9,8 +9,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { FontFamily } from '@models/elements/font-family.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -115,7 +115,7 @@ function FontFamiliesListContent({
         }
       : {};
   const scopeKey = ['admin', 'font-families', { scope, ...scopeFilter }];
-  const fontFamiliesQuery = useAuthedQuery({
+  const fontFamiliesQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: scopeKey,
     queryFn: async (service, signal) => {
       const query: IQueryParams = {
@@ -139,7 +139,7 @@ function FontFamiliesListContent({
     queryKey: [...scopeKey, { page: currentPage, search, sort }],
     service: (token: string) => FontFamiliesService.getInstance(token),
   });
-  const fontFamilies = fontFamiliesQuery.data ?? EMPTY_FONT_FAMILIES;
+  const fontFamilies = fontFamiliesQuery.data?.items ?? EMPTY_FONT_FAMILIES;
   const { errorUpdatedAt, isError, isLoading, refetch } = fontFamiliesQuery;
   const isRefreshing = fontFamiliesQuery.isFetching && !isLoading;
   const findAllFontFamilies = useCallback(() => {
@@ -247,7 +247,11 @@ function FontFamiliesListContent({
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="font families" />
+        <AutoPagination
+          showTotal
+          totalLabel="font families"
+          totals={fontFamiliesQuery.data?.totals}
+        />
       </div>
     </AdminPageShell>
   );

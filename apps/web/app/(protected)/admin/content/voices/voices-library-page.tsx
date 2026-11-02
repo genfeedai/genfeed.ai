@@ -2,8 +2,9 @@
 
 import type { VoiceProvider } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -78,7 +79,7 @@ function VoicesLibraryPageContent() {
   // Cached per page, provider, search and sort: coming back to the Voice
   // Library paints the rows it already has while it refreshes, and paging keeps
   // the current rows on screen.
-  const catalogQuery = useAuthedQuery({
+  const catalogQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: VOICES_CATALOG_KEY,
     queryFn: async (service, signal) => {
       try {
@@ -113,7 +114,9 @@ function VoicesLibraryPageContent() {
     isLoading,
     refetch,
   } = catalogQuery;
-  const voices = hasError ? EMPTY_VOICES : (catalogQuery.data ?? EMPTY_VOICES);
+  const voices = hasError
+    ? EMPTY_VOICES
+    : (catalogQuery.data?.items ?? EMPTY_VOICES);
   const loadVoices = useCallback(async () => {
     await refetch();
   }, [refetch]);
@@ -168,12 +171,15 @@ function VoicesLibraryPageContent() {
         });
 
         // Every cached page that lists this voice shows the change at once.
-        queryClient.setQueriesData<ExternalVoice[]>(
+        queryClient.setQueriesData<IPagedItems<ExternalVoice>>(
           { queryKey: VOICES_CATALOG_KEY },
           (current) =>
-            current?.map((item) =>
-              item.id === updatedVoice.id ? updatedVoice : item,
-            ),
+            current && {
+              ...current,
+              items: current.items.map((item) =>
+                item.id === updatedVoice.id ? updatedVoice : item,
+              ),
+            },
         );
       } catch (error) {
         logger.error(`PATCH /voices/catalog/${voice.id} failed`, error);
@@ -234,7 +240,9 @@ function VoicesLibraryPageContent() {
           onSortChange={onSortChange}
           onToggle={handleToggle}
         />
-        {hasError || voices.length === 0 ? null : <AutoPagination />}
+        {hasError || voices.length === 0 ? null : (
+          <AutoPagination totals={catalogQuery.data?.totals} />
+        )}
       </div>
     </AdminPageShell>
   );

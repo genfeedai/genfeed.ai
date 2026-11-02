@@ -5,8 +5,8 @@ import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import type { TableAction } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -38,7 +38,7 @@ export default function RolesList() {
 
   // Cached per page: coming back to Roles paints the rows it already has while
   // it refreshes, and paging keeps the current rows on screen.
-  const rolesQuery = useAuthedQuery({
+  const rolesQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: ['admin', 'roles'],
     queryFn: async (service, signal) => {
       try {
@@ -54,7 +54,7 @@ export default function RolesList() {
     queryKey: ['admin', 'roles', { page: currentPage }],
     service: (token: string) => RolesService.getInstance(token),
   });
-  const roles = rolesQuery.data ?? EMPTY_ROLES;
+  const roles = rolesQuery.data?.items ?? EMPTY_ROLES;
   const { isLoading } = rolesQuery;
   const isRefreshing = rolesQuery.isFetching && !isLoading;
   const { refetch } = rolesQuery;
@@ -178,7 +178,11 @@ export default function RolesList() {
       />
       {search ? null : (
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="roles" />
+          <AutoPagination
+            showTotal
+            totalLabel="roles"
+            totals={rolesQuery.data?.totals}
+          />
         </div>
       )}
 
