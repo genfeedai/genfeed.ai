@@ -125,15 +125,17 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  const tree = (
+  // A fresh element each time: React skips an identical one, and the page has
+  // to read the URL it wrote for the default organization.
+  const tree = () => (
     <QueryClientProvider client={client}>
       <LearningPage />
     </QueryClientProvider>
   );
-  const view = render(tree);
+  const view = render(tree());
   // The page writes the default organization into the URL on mount; render
   // again so it reads that URL, as the router would.
-  view.rerender(tree);
+  view.rerender(tree());
 }
 
 describe('LearningPage', () => {
