@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -31,6 +35,11 @@ vi.mock(
     default: () => <div data-testid="email-performance-report" />,
   }),
 );
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getSystemEmailsService,
@@ -142,7 +151,7 @@ describe('SystemEmailsPage', () => {
     ['SIGNUPS', 'Welcome day 0'],
   ])('keeps the email that matches the search %j', async (search, name) => {
     mocks.search = search;
-    render(<SystemEmailsPage />);
+    render(<SystemEmailsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByRole('button', { name: new RegExp(name) }),
@@ -151,7 +160,7 @@ describe('SystemEmailsPage', () => {
 
   it('says so when no email matches the search', async () => {
     mocks.search = 'no such email';
-    render(<SystemEmailsPage />);
+    render(<SystemEmailsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByText('No system emails match your search'),
@@ -162,7 +171,7 @@ describe('SystemEmailsPage', () => {
   });
 
   it('loads and renders lifecycle system email copy and triggers', async () => {
-    render(<SystemEmailsPage />);
+    render(<SystemEmailsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mocks.getSystemEmails).toHaveBeenCalledWith(
@@ -185,6 +194,22 @@ describe('SystemEmailsPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText('system.lifecycle-email.welcome-day-0'),
+    ).toBeInTheDocument();
+  });
+
+  it('paints the cached emails on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(<SystemEmailsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await screen.findByRole('button', { name: /Welcome day 0/ });
+    first.unmount();
+    mocks.getSystemEmails.mockReturnValue(new Promise(() => {}));
+
+    render(<SystemEmailsPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(
+      screen.getByRole('button', { name: /Welcome day 0/ }),
     ).toBeInTheDocument();
   });
 });
