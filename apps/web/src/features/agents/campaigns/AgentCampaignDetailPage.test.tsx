@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   act,
   fireEvent,
   render,
@@ -62,6 +66,11 @@ const resolveCampaignsService = async () => campaignsServiceMock;
 // `useAuthedService` returns a `useCallback`-stable resolver; minting a new
 // async function per render invalidates consumer callbacks and re-fires their
 // effects on every commit.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => resolveCampaignsService),
 }));
@@ -206,7 +215,7 @@ describe('AgentCampaignDetailPage', () => {
   });
 
   it('renders campaign details after loading', async () => {
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Spring Launch')).toBeInTheDocument();
@@ -223,7 +232,7 @@ describe('AgentCampaignDetailPage', () => {
   });
 
   it('shows exactly one primary action — Pause — for a running program, with Complete in overflow', async () => {
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Spring Launch')).toBeInTheDocument();
@@ -250,7 +259,7 @@ describe('AgentCampaignDetailPage', () => {
       status: 'paused',
     });
 
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
@@ -287,7 +296,7 @@ describe('AgentCampaignDetailPage', () => {
         }),
     );
 
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
@@ -333,7 +342,7 @@ describe('AgentCampaignDetailPage', () => {
         }),
     );
 
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
@@ -372,7 +381,7 @@ describe('AgentCampaignDetailPage', () => {
       status: 'completed',
     });
 
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Wrapped Up')).toBeInTheDocument();
@@ -385,7 +394,7 @@ describe('AgentCampaignDetailPage', () => {
   });
 
   it('renders the known lifecycle facts on one line, omitting the absent end date', async () => {
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Spring Launch')).toBeInTheDocument();
@@ -408,7 +417,7 @@ describe('AgentCampaignDetailPage', () => {
       status: 'draft',
     });
 
-    render(<AgentCampaignDetailPage />);
+    render(<AgentCampaignDetailPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Program Not Found')).toBeInTheDocument();
@@ -435,7 +444,9 @@ describe('AgentCampaignDetailPage', () => {
       status: 'draft',
     });
 
-    const { rerender } = render(<AgentCampaignDetailPage />);
+    const { rerender } = render(<AgentCampaignDetailPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     // The load resolves the service before it calls `getById`, so the first
     // request is only in flight after a microtask. Switching brands earlier
@@ -470,5 +481,24 @@ describe('AgentCampaignDetailPage', () => {
 
     expect(screen.getByText('Brand B Program')).toBeInTheDocument();
     expect(screen.queryByText('Brand A Program')).not.toBeInTheDocument();
+  });
+
+  it('paints a Program it already loaded straight away when you come back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<AgentCampaignDetailPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Spring Launch')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    getByIdMock.mockReturnValue(new Promise(() => {}));
+    render(<AgentCampaignDetailPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('Spring Launch')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading Program' }),
+    ).not.toBeInTheDocument();
   });
 });

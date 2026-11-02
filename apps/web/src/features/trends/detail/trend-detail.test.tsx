@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
 import {
@@ -75,6 +79,11 @@ const getTrendsServiceMock = async () => ({
   getTrendById: getTrendByIdMock,
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getTrendsServiceMock,
 }));
@@ -103,7 +112,9 @@ describe('TrendDetail', () => {
   });
 
   it('renders the trend metrics once loaded', async () => {
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     // The shell chrome ('Trend Metrics', 'Mentions') renders before the
     // request resolves, so wait on the loaded value rather than the labels.
@@ -114,7 +125,9 @@ describe('TrendDetail', () => {
   });
 
   it('prefixes a positive growth rate', async () => {
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(screen.getByText('+25%')).toBeInTheDocument();
@@ -127,7 +140,9 @@ describe('TrendDetail', () => {
       trend: { ...trendDetailFixture.trend, metadata: undefined },
     });
 
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(3);
@@ -135,7 +150,9 @@ describe('TrendDetail', () => {
   });
 
   it('normalises hashtags to a single leading hash', async () => {
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(screen.getByText('#aiagents')).toBeInTheDocument();
@@ -144,7 +161,9 @@ describe('TrendDetail', () => {
   });
 
   it('renders the sample content when present', async () => {
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(
@@ -172,7 +191,9 @@ describe('TrendDetail', () => {
       ],
     });
 
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     const link = await screen.findByRole('link', {
       name: 'Open Agent tooling',
@@ -197,7 +218,9 @@ describe('TrendDetail', () => {
   it('shows the shell chrome before the request resolves', () => {
     getTrendByIdMock.mockReturnValue(new Promise(() => undefined));
 
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByText('Loading trend…')).toBeInTheDocument();
     expect(screen.getByText('Trend Metrics')).toBeInTheDocument();
@@ -215,7 +238,9 @@ describe('TrendDetail', () => {
   it('surfaces a failure and notifies the user', async () => {
     getTrendByIdMock.mockRejectedValue(new Error('nope'));
 
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load trend details')).toBeVisible();
@@ -229,7 +254,9 @@ describe('TrendDetail', () => {
     getTrendByIdMock.mockRejectedValue(new Error('nope'));
     const user = userEvent.setup();
 
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /go back/i })).toBeVisible();
@@ -242,7 +269,9 @@ describe('TrendDetail', () => {
 
   it('routes the remix action into the agent', async () => {
     const user = userEvent.setup();
-    render(<TrendDetail trendId="trend-1" />);
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(
@@ -254,5 +283,22 @@ describe('TrendDetail', () => {
 
     expect(pushMock).toHaveBeenCalledTimes(1);
     expect(String(pushMock.mock.calls[0]?.[0])).toContain('/agent');
+  });
+
+  it('paints a trend it already loaded straight away when you come back', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('88/100')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    getTrendByIdMock.mockReturnValue(new Promise(() => undefined));
+    render(<TrendDetail trendId="trend-1" />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('88/100')).toBeInTheDocument();
+    expect(screen.queryByText('Loading trend…')).not.toBeInTheDocument();
   });
 });
