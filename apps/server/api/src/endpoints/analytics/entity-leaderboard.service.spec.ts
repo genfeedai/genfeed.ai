@@ -1021,7 +1021,7 @@ describe('EntityLeaderboardService', () => {
       });
     });
 
-    it('returns lifetime generations, lifetime posts and the owner last-active time', async () => {
+    it('returns generations in the range and the owner last-active time', async () => {
       const capturedQueries: string[] = [];
       mockPrismaService.$queryRaw.mockImplementation(
         (strings: TemplateStringsArray) => {
@@ -1032,12 +1032,6 @@ describe('EntityLeaderboardService', () => {
           }
           if (sql.includes('FROM "ingredients"')) {
             return Promise.resolve([{ entity_id: 'org-a', total: 42n }]);
-          }
-          if (
-            sql.includes('"publishedAt" IS NOT NULL') &&
-            !sql.includes('>=')
-          ) {
-            return Promise.resolve([{ entity_id: 'org-a', total: 7n }]);
           }
           return Promise.resolve([]);
         },
@@ -1074,17 +1068,14 @@ describe('EntityLeaderboardService', () => {
       const result = await service.getOrganizationsWithStats();
 
       expect(
-        result.data.map(
-          ({ id, totalGenerations, lifetimePosts, lastActiveAt }) => [
-            id,
-            totalGenerations,
-            lifetimePosts,
-            lastActiveAt,
-          ],
-        ),
+        result.data.map(({ id, totalGenerations, lastActiveAt }) => [
+          id,
+          totalGenerations,
+          lastActiveAt,
+        ]),
       ).toEqual([
-        ['org-a', 42, 7, '2026-11-01T09:30:00.000Z'],
-        ['org-b', 0, 0, undefined],
+        ['org-a', 42, '2026-11-01T09:30:00.000Z'],
+        ['org-b', 0, undefined],
       ]);
     });
 
@@ -1205,7 +1196,7 @@ describe('EntityLeaderboardService', () => {
         [OrganizationUsageFilter.ACTIVE, 'AND ( EXISTS'],
         [OrganizationUsageFilter.INACTIVE, 'AND NOT ( EXISTS'],
       ])(
-        'filters %s organizations by lifetime generations and posts',
+        'filters %s organizations by generations and posts in the range',
         async (usage, fragment) => {
           const capturedQueries = captureQueryRawCalls([[]]);
 
@@ -1225,10 +1216,12 @@ describe('EntityLeaderboardService', () => {
           expect(capturedQueries[0].sql).toContain(fragment);
           expect(capturedQueries[0].sql).toContain('FROM "ingredients" i');
           expect(capturedQueries[0].sql).toContain('FROM "posts" p');
+          expect(capturedQueries[0].sql).toContain('i."createdAt" >=');
+          expect(capturedQueries[0].sql).toContain('p."publishedAt" >=');
         },
       );
 
-      it('ranks by lifetime generations, ignoring the date range', async () => {
+      it('ranks by generations created in the date range', async () => {
         const capturedQueries = captureQueryRawCalls([[]]);
 
         await service.getOrganizationsWithStats(
@@ -1243,6 +1236,8 @@ describe('EntityLeaderboardService', () => {
         expect(capturedQueries[0].sql).toContain(
           `"origin" = 'GENERATED'::"IngredientOrigin"`,
         );
+        expect(capturedQueries[0].sql).toContain('"createdAt" >=');
+        expect(capturedQueries[0].sql).toContain('"createdAt" <=');
         expect(capturedQueries[0].sql).not.toContain('"date" >=');
       });
     });

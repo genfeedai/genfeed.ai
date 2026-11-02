@@ -36,7 +36,6 @@ export class OrgWithStatsEntity implements IOrganizationWithStats {
   declare readonly ownerEmailClass: OrganizationOwnerEmailClass;
   declare readonly createdAt?: string;
   declare readonly lastActiveAt?: string;
-  declare readonly lifetimePosts: number;
   declare readonly totalGenerations: number;
   declare readonly totalPosts: number;
   declare readonly totalEngagement: number;

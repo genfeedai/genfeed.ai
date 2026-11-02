@@ -35,15 +35,14 @@
   "typeColumn": "Type",
   "typeNotSet": "Not set",
   "generationsColumn": "Generations",
-  "generationsLabel": "Generations (lifetime)",
-  "lifetimePostsLabel": "Posts (lifetime)",
+  "generationsLabel": "Generations",
   "lastActiveLabel": "Owner last active",
   "neverActive": "Never",
   "usageFilterLabel": "Usage",
   "allUsage": "Any usage",
   "usage": {
     "active": "Generated or published",
-    "inactive": "Nothing yet"
+    "inactive": "No activity"
   },
   "types": {
     "CREATOR": "Creator",

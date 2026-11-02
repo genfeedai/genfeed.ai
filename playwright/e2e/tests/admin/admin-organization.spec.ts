@@ -139,7 +139,6 @@ test.describe('Admin Organization', () => {
     ): Record<string, unknown> => ({
       avgEngagementRate: 0,
       growth: 0,
-      lifetimePosts: 0,
       ownerEmailClass: 'unknown',
       totalBrands: 1,
       totalEngagement: 0,

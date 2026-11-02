@@ -491,11 +491,6 @@ export default function AnalyticsOrganizationsList({
                   value: org.totalGenerations.toLocaleString('en-US'),
                 },
                 {
-                  id: 'lifetimePosts',
-                  label: translate('lifetimePostsLabel'),
-                  value: org.lifetimePosts.toLocaleString('en-US'),
-                },
-                {
                   id: 'lastActive',
                   label: translate('lastActiveLabel'),
                   value: org.lastActiveAt

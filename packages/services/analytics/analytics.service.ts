@@ -79,7 +79,7 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.VIEWS
     | AnalyticsMetric.POSTS
-    /** Lifetime generated assets; ignores the date range. */
+    /** Generated assets created in the selected date range. */
     | 'generations';
   /** Organizations only: keep one type, as declared at onboarding. */
   type?: OrganizationCategory;

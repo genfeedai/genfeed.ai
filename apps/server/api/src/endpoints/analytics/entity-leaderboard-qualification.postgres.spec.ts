@@ -22,7 +22,7 @@ if (connectionString) {
 
 /**
  * The admin organizations list qualifies leads in raw SQL: the owner's email
- * domain, and lifetime generations and posts. A mocked `$queryRaw` cannot prove
+ * domain, and generations and posts inside the date range. A mocked `$queryRaw` cannot prove
  * any of it, so this runs the real statements against a disposable local
  * PostgreSQL with throwaway temp tables.
  */
@@ -67,7 +67,8 @@ describe.skipIf(!connectionString)(
           "isDeleted" boolean DEFAULT false, "createdAt" timestamp DEFAULT now()
         );
         CREATE TEMP TABLE ingredients (
-          id text, "organizationId" text, "isDeleted" boolean DEFAULT false, origin "IngredientOrigin"
+          id text, "organizationId" text, "isDeleted" boolean DEFAULT false, origin "IngredientOrigin",
+          "createdAt" timestamp
         );
         CREATE TEMP TABLE posts (
           id text, "organizationId" text, "brandId" text, "isDeleted" boolean DEFAULT false, "publishedAt" timestamp
@@ -91,13 +92,15 @@ describe.skipIf(!connectionString)(
           ('no-email', 'No email', 'u-none', NULL, '2026-01-05');
         INSERT INTO organizations (id, label, "userId", "isDeleted", "createdAt")
           VALUES ('gone', 'Gone', 'u-work', true, '2026-01-06');
-        -- Only live GENERATED assets count: acme has two, the deleted and the uploaded one do not.
-        INSERT INTO ingredients (id, "organizationId", "isDeleted", origin) VALUES
-          ('i1', 'acme', false, 'GENERATED'),
-          ('i2', 'acme', false, 'GENERATED'),
-          ('i3', 'acme', true, 'GENERATED'),
-          ('i4', 'acme', false, 'UPLOADED'),
-          ('i5', 'personal-gmail', false, 'GENERATED');
+        -- Only live GENERATED assets inside the window (2026-10-20 to 2026-10-26) count:
+        -- acme has two; the deleted, the uploaded and proton's older one do not.
+        INSERT INTO ingredients (id, "organizationId", "isDeleted", origin, "createdAt") VALUES
+          ('i1', 'acme', false, 'GENERATED', '2026-10-21'),
+          ('i2', 'acme', false, 'GENERATED', '2026-10-22'),
+          ('i3', 'acme', true, 'GENERATED', '2026-10-21'),
+          ('i4', 'acme', false, 'UPLOADED', '2026-10-21'),
+          ('i5', 'personal-gmail', false, 'GENERATED', '2026-10-25'),
+          ('i6', 'personal-proton', false, 'GENERATED', '2025-03-01');
         -- vitae published one post long before the date window.
         INSERT INTO posts (id, "organizationId", "brandId", "isDeleted", "publishedAt") VALUES
           ('p1', 'vitae', 'b', false, '2025-01-01'),
@@ -162,7 +165,7 @@ describe.skipIf(!connectionString)(
       await client.end();
     });
 
-    it('ranks by lifetime generations, counting only live generated assets', async () => {
+    it('ranks by generations created in the range, counting only live generated assets', async () => {
       const { ids } = await list({});
       expect(ids.slice(0, 2)).toEqual(['acme', 'personal-gmail']);
     });
@@ -184,29 +187,29 @@ describe.skipIf(!connectionString)(
       expect(personal.total).toBe(2);
     });
 
-    it('treats an organization that has generated or published as active', async () => {
+    it('treats an organization that generated or published in the range as active', async () => {
       const active = await list({ usage: OrganizationUsageFilter.ACTIVE });
-      expect([...active.ids].sort()).toEqual([
-        'acme',
-        'personal-gmail',
+      expect([...active.ids].sort()).toEqual(['acme', 'personal-gmail']);
+      expect(active.total).toBe(2);
+    });
+
+    it('treats an organization with nothing in the range as inactive, even if it was active before', async () => {
+      const inactive = await list({ usage: OrganizationUsageFilter.INACTIVE });
+      expect([...inactive.ids].sort()).toEqual([
+        'no-email',
+        'personal-proton',
         'vitae',
       ]);
-      expect(active.total).toBe(3);
+      expect(inactive.total).toBe(3);
     });
 
-    it('treats an organization that never generated or published as inactive', async () => {
-      const inactive = await list({ usage: OrganizationUsageFilter.INACTIVE });
-      expect([...inactive.ids].sort()).toEqual(['no-email', 'personal-proton']);
-      expect(inactive.total).toBe(2);
-    });
-
-    it('combines the filters: work-email owners that have never used the product', async () => {
+    it('combines the filters: work-email owners with nothing in the range', async () => {
       expect(
         await list({
           emailClass: OrganizationEmailClassFilter.COMPANY,
           usage: OrganizationUsageFilter.INACTIVE,
         }),
-      ).toEqual({ ids: [], total: 0 });
+      ).toEqual({ ids: ['vitae'], total: 1 });
     });
   },
 );
