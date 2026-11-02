@@ -68,6 +68,8 @@ export interface IPublicContentPreviewBrand {
   primaryColor?: string;
   secondaryColor?: string;
   logoUrl?: string;
+  /** Short-lived signed URL, 3:1. Present only when the operator accepted the banner. */
+  bannerUrl?: string;
 }
 
 /** Everything a logged-out visitor can read. Allowlist only. */
