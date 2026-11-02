@@ -3,6 +3,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { ModelsService } from '@services/ai/models.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
@@ -112,7 +113,7 @@ function GenerationsPageContent() {
     status,
     type,
   };
-  const generationsQuery = useAuthedQuery({
+  const generationsQuery = usePagedAuthedQuery({
     keepPreviousDataWithin: ['admin', 'generations', filterKey],
     queryFn: async (services, signal) => {
       const query: Record<string, unknown> = {
@@ -162,7 +163,7 @@ function GenerationsPageContent() {
   } = generationsQuery;
   const generations = hasError
     ? EMPTY_GENERATIONS
-    : (generationsQuery.data ?? EMPTY_GENERATIONS);
+    : (generationsQuery.data?.items ?? EMPTY_GENERATIONS);
 
   // One toast per failed read, after its retry, not one per attempt.
   // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
@@ -319,7 +320,7 @@ function GenerationsPageContent() {
                 onOpen={setSelected}
               />
             ))}
-            <AutoPagination />
+            <AutoPagination totals={generationsQuery.data?.totals} />
           </>
         )}
       </div>
