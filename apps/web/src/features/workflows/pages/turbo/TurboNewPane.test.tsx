@@ -690,6 +690,20 @@ describe('TurboNewPane from a workflow', () => {
       expect(db.visited).toEqual(['/acme/moonrise/turbo/run-1']);
     });
 
+    it('holds a change request until the project list has loaded', async () => {
+      mocks.list.mockReturnValue(new Promise(() => {}));
+      render(<TurboNewPane />);
+
+      typePrompt('revise the intro');
+      fireEvent.click(sendButton());
+
+      await act(async () => {});
+      expect(mocks.create).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText('Which project should I apply this to?'),
+      ).not.toBeInTheDocument();
+    });
+
     it('creates a project for new work even when projects exist', async () => {
       render(<TurboNewPane />);
       await waitFor(() =>

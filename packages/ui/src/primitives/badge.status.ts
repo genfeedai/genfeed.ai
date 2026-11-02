@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   type StatusKey,
   statusBadge,
+  statusBadgeVariant,
   statusIcon,
 } from '../tokens/status-colors';
 import type { BadgeVariant } from './badge.variants';
@@ -12,23 +13,6 @@ export interface BadgeStatus {
   Icon?: LucideIcon;
   label: string;
   variant: BadgeVariant;
-}
-
-function getCanonicalStatusVariant(status: StatusKey): BadgeVariant {
-  const tone = statusBadge[status];
-  if (tone.includes('text-success')) {
-    return 'success';
-  }
-  if (tone.includes('text-destructive')) {
-    return 'destructive';
-  }
-  if (tone.includes('text-warning')) {
-    return 'warning';
-  }
-  if (tone.includes('text-info')) {
-    return 'info';
-  }
-  return 'secondary';
 }
 
 function toLabel(status: string): string {
@@ -63,7 +47,7 @@ export function getBadgeStatus(status: string): BadgeStatus {
     return fromCanonical(
       canonical,
       toLabel(canonical),
-      getCanonicalStatusVariant(canonical),
+      statusBadgeVariant[canonical],
     );
   }
 
