@@ -13,14 +13,17 @@ export { GoogleColorIcon } from './google-color-icon';
 export { GoogleIcon } from './google-icon';
 export { HackerNewsIcon } from './hacker-news-icon';
 export { InstagramIcon } from './instagram-icon';
+export {
+  ArgilIcon,
+  HeygenIcon,
+  WanIcon,
+} from './lazy-raster-brand-icons';
 export { LinkedinIcon } from './linkedin-icon';
 export { MastodonIcon } from './mastodon-icon';
 export { MediumIcon } from './medium-icon';
 export { MetaIcon } from './meta-icon';
 export {
-  ArgilIcon,
   FalIcon,
-  HeygenIcon,
   HiggsfieldIcon,
   IdeogramIcon,
   KlingIcon,
@@ -32,7 +35,6 @@ export {
   ReplicateIcon,
   RunwayIcon,
   TopazIcon,
-  WanIcon,
 } from './model-provider-icons';
 export { OpenAiIcon } from './openai-icon';
 export { PinterestIcon } from './pinterest-icon';
