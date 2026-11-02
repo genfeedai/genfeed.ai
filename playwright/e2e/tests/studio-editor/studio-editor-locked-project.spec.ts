@@ -29,11 +29,11 @@ import {
 
 const LOCKED_ID = 'composition-project-1';
 const COPY_ID = 'composition-project-1-copy';
-/** The inspector (Add text, effects, properties) lives in the output pane's Context tab. */
+/** The inspector (Add text, effects, properties) lives in the Context view the topbar icon opens. */
 async function openInspector(page: Page) {
   const addText = page.getByRole('button', { exact: true, name: '+ Add Text' });
   if (!(await addText.isVisible())) {
-    await page.getByRole('tab', { exact: true, name: 'Context' }).click();
+    await page.getByTestId('topbar-context-toggle').click();
   }
   return addText;
 }
