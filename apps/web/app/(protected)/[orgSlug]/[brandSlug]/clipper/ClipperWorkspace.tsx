@@ -7,6 +7,7 @@ import {
   ComponentSize,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
@@ -21,6 +22,8 @@ import { Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type {
   ClipperWorkspaceProps,
   ProviderOption,
@@ -89,6 +92,18 @@ function ClipperProjectWorkspace({ projectId }: { projectId: string }) {
   const t = useTranslations('pages.studioClipper');
   const { href } = useOrgUrl();
   const clipperPage = useStudioClipperPage({ projectId });
+  const projectName = clipperPage.project?.name;
+  // With a project open, change requests belong to it; the agent only needs
+  // to know which one that is.
+  const creativeApp = useMemo<CreativeAppAgentContext>(
+    () => ({
+      app: 'clipper',
+      openProjectId: projectId,
+      projects: [{ id: projectId, title: projectName || t('newProject') }],
+    }),
+    [projectId, projectName, t],
+  );
+  useCreativeAppAgentContext(creativeApp);
 
   return (
     <AgentOutputShell>

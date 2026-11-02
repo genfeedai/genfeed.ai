@@ -5,6 +5,7 @@ import '@testing-library/jest-dom/vitest';
 import ClipperWorkspace from './ClipperWorkspace';
 
 const mocks = vi.hoisted(() => ({
+  publishContext: vi.fn(),
   replace: vi.fn(),
   searchParams: new URLSearchParams(),
   useStudioClipperProjects: vi.fn(),
@@ -20,6 +21,11 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <nav aria-label="pagination" />,
 }));
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 
 vi.mock('./useStudioClipperProjects', () => ({
   useStudioClipperProjects: mocks.useStudioClipperProjects,
@@ -127,6 +133,73 @@ describe('ClipperWorkspace chrome stability', () => {
     expect(
       screen.queryByRole('link', { name: 'New project' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('tells the agent which projects are on screen once the list has loaded', () => {
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [
+        {
+          failedClipCount: 0,
+          id: 'clip-1',
+          isDraft: false,
+          name: 'Demo clip',
+          pendingClipCount: 0,
+          progress: 100,
+          readyClipCount: 1,
+          status: 'completed',
+        },
+      ],
+    });
+
+    render(<ClipperWorkspace />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'clipper',
+      projects: [{ id: 'clip-1', title: 'Demo clip' }],
+    });
+  });
+
+  it('tells the agent nothing while the project list is still loading', () => {
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: true,
+      projects: [],
+    });
+
+    render(<ClipperWorkspace />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith(null);
+  });
+
+  it('tells the agent which project is open', () => {
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+    mocks.useStudioClipperPage.mockReturnValue(
+      baseClipperPageState({
+        isHydrating: false,
+        project: {
+          clips: [],
+          highlights: [],
+          name: 'Podcast cut',
+          projectId: 'source-1',
+          status: 'failed',
+        },
+        step: 'review',
+      }),
+    );
+
+    render(<ClipperWorkspace projectId="source-1" />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'clipper',
+      openProjectId: 'source-1',
+      projects: [{ id: 'source-1', title: 'Podcast cut' }],
+    });
   });
 
   it('tells the creator to import a source on the left when there are no projects', () => {

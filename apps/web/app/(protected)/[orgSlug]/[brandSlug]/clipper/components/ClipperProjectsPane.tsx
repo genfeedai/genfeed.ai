@@ -1,12 +1,15 @@
 'use client';
 
+import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useStudioClipperProjects } from '../useStudioClipperProjects';
 import ClipperProjectList from './ClipperProjectList';
 
@@ -20,6 +23,22 @@ export default function ClipperProjectsPane() {
   const { deleteProject, error, isLoading, projects, renameProject } =
     useStudioClipperProjects({ isEnabled: true });
   const { search, setSearch } = useAdminSearchParam();
+  // The agent hears about the projects on screen once the list has loaded, so
+  // a change request is never matched against a half-known list.
+  const creativeApp = useMemo<CreativeAppAgentContext | null>(
+    () =>
+      isLoading || error
+        ? null
+        : {
+            app: 'clipper',
+            projects: projects.map((item) => ({
+              id: item.id,
+              title: item.name || t('newProject'),
+            })),
+          },
+    [error, isLoading, projects, t],
+  );
+  useCreativeAppAgentContext(creativeApp);
   const isSearching = search !== '';
   const hasProjects = projects.length > 0;
   const isEmpty = !isLoading && !hasProjects && !error;
