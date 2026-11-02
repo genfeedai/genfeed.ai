@@ -1,17 +1,6 @@
 'use client';
 
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
-import {
-  formatCount,
-  formatMarginPercent,
-  formatUsd,
-} from '@protected/economics/economics-report.util';
-import EconomicsReportError from '@protected/economics/economics-report-error';
-import { useUnitEconomicsColumns } from '@protected/economics/organizations/unit-economics-columns';
-import {
-  getUnitEconomicsRowId,
-  useUnitEconomicsRowSidebar,
-} from '@protected/economics/organizations/unit-economics-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -21,6 +10,17 @@ import type {
   OrganizationSpendingPanelProps,
   UnitEconomicsTableRow,
 } from '@/features/admin/props/unit-economics.props';
+import {
+  formatCount,
+  formatMarginPercent,
+  formatUsd,
+} from '../../economics/economics-report.util';
+import EconomicsReportError from '../../economics/economics-report-error';
+import { useUnitEconomicsColumns } from '../../economics/organizations/unit-economics-columns';
+import {
+  getUnitEconomicsRowId,
+  useUnitEconomicsRowSidebar,
+} from '../../economics/organizations/unit-economics-row-sidebar';
 
 /**
  * One organization's revenue, provider cost and margin for the period, then the
