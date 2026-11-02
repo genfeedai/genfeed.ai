@@ -13,11 +13,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ClipperIngredientImportProps } from '@/features/clipper/props/clipper-ingredient-import.props';
 import { ClipperApiService } from './services/clipper-api.service';
-
-interface ClipperIngredientImportProps {
-  videoId: string;
-}
 
 let pendingCreation: { key: string; promise: Promise<string> } | null = null;
 
