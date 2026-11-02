@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 type Props = {
   campaigns: OutreachCampaign[];
+  isLoading?: boolean;
   activeCampaignsCount: number;
   totalReplies: number;
   successRate: number;
@@ -13,6 +14,7 @@ type Props = {
 
 export default function OutreachCampaignsKPI({
   campaigns,
+  isLoading = false,
   activeCampaignsCount,
   totalReplies,
   successRate,
@@ -23,6 +25,7 @@ export default function OutreachCampaignsKPI({
     <KPISection
       title={translate('statisticsTitle')}
       gridCols={{ desktop: 4, mobile: 2 }}
+      isLoading={isLoading}
       items={[
         {
           label: translate('totalSequences'),
