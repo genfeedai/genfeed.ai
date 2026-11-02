@@ -46,16 +46,17 @@ function IntlWrapper({ children }: PropsWithChildren) {
     </NextIntlClientProvider>
   );
 }
+let QueryWrapper = queryClientWrapper();
+function TestWrapper({ children }: PropsWithChildren) {
+  return (
+    <QueryWrapper>
+      <IntlWrapper>{children}</IntlWrapper>
+    </QueryWrapper>
+  );
+}
 function render(ui: ReactElement, client?: QueryClient) {
-  const QueryWrapper = queryClientWrapper(client);
-  function Wrapper({ children }: PropsWithChildren) {
-    return (
-      <QueryWrapper>
-        <IntlWrapper>{children}</IntlWrapper>
-      </QueryWrapper>
-    );
-  }
-  return rtlRender(ui, { wrapper: Wrapper });
+  QueryWrapper = queryClientWrapper(client);
+  return rtlRender(ui, { wrapper: TestWrapper });
 }
 
 const mockFindAll = vi.fn();
