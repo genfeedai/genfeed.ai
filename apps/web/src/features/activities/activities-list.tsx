@@ -120,6 +120,7 @@ export default function ActivitiesList({
         // button, and read rows show nothing.
         render: (a: IActivity) =>
           a.isRead ? null : (
+            // ui-guard-allow:table-action -- unread dot is the row's mark-as-read control, matching the notification inbox
             <Button
               ariaLabel={translate('markRead')}
               onClick={() => toggleActivityRead(a.id)}
