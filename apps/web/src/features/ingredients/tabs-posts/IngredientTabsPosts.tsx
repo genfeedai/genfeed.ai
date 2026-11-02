@@ -5,7 +5,7 @@ import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { TableAction } from '@genfeedai/props/ui/display/table.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -16,65 +16,35 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import { Badge } from '@ui/primitives/badge';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 import type { IngredientTabsPostsProps } from '@/props/content/ingredient.props';
 
 export default function IngredientTabsPosts({
   ingredient,
 }: IngredientTabsPostsProps) {
-  const getIngredientsService = useAuthedService((token) =>
-    IngredientsService.getInstance(token),
-  );
-
   const { href } = useOrgUrl();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
-  const [posts, setPosts] = useState<IPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  const findAllIngredientsPosts = useCallback(
-    async (signal: AbortSignal) => {
+  // Cached per ingredient: coming back to its Posts tab paints the rows at
+  // once while they refresh.
+  const { data: posts = [], isPending: isLoading } = useAuthedQuery({
+    queryFn: async (service) => {
       const url = `GET /ingredients/${ingredient.id}/posts`;
-      setIsLoading(true);
-
       try {
-        const service = await getIngredientsService();
         const data = await service.getPosts(ingredient.id);
-
-        if (signal.aborted) {
-          return;
-        }
-
         logger.info(`${url} success`, data);
-
-        setPosts(data);
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        return data;
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
         logger.error(`${url} failed`, error);
-        setPosts([]);
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
     },
-    [ingredient.id, getIngredientsService],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    findAllIngredientsPosts(controller.signal);
-
-    return () => {
-      controller.abort();
-    };
-  }, [findAllIngredientsPosts]);
+    queryKey: ['ingredient-posts', ingredient.id],
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
 
   const columns = [
     {

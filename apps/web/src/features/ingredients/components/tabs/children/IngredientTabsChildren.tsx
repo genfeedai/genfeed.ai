@@ -1,13 +1,11 @@
 'use client';
 import { TransformationCategory } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@genfeedai/hooks/auth/use-authed-query/use-authed-query';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
-import Loading from '@ui/loading/default/Loading';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { useEffect, useState } from 'react';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import type { ExtendedIngredientTabsChildrenProps } from '@/props/content/ingredient.props';
 
@@ -15,35 +13,25 @@ export default function IngredientTabsChildren({
   ingredient,
   onViewChild,
 }: ExtendedIngredientTabsChildrenProps) {
-  const [children, setChildren] = useState<IIngredient[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const getIngredientsService = useAuthedService((token) =>
-    IngredientsService.getInstance(token),
-  );
-
-  useEffect(() => {
-    const findAllChildren = async () => {
-      setIsLoading(true);
-
+  // Cached per ingredient: coming back to its children paints them at once
+  // while they refresh.
+  const { data: children = [], isPending } = useAuthedQuery({
+    queryFn: async (service) => {
       try {
-        const service = await getIngredientsService();
         const data = await service.findChildren(ingredient.id);
-
-        setChildren(data);
         logger.info('Children fetched', data);
-        setIsLoading(false);
+        return data;
       } catch (error) {
         logger.error('Failed to fetch children', error);
-        setIsLoading(false);
+        throw error;
       }
-    };
+    },
+    queryKey: ['ingredient-children', ingredient.id],
+    service: (token: string) => IngredientsService.getInstance(token),
+  });
 
-    findAllChildren();
-  }, [ingredient.id, getIngredientsService]);
-
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
+  if (isPending) {
+    return <SkeletonCard label="Loading child assets" showActions={false} />;
   }
 
   // Separate captioned and other children
