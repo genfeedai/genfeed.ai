@@ -1,4 +1,8 @@
 import { selectFilterOption } from '@app-tests/filter-menu.helpers';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { AgentFailureReason } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,6 +30,10 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/automation/failures',
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -89,8 +97,8 @@ describe('AgentFailuresPage', () => {
     mocks.list.mockResolvedValue([]);
   });
 
-  it('renders an empty feed and aborts requests on unmount', async () => {
-    const { unmount } = render(<AgentFailuresPage />);
+  it('renders an empty feed', async () => {
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByText('No agent failures found'),
     ).toBeInTheDocument();
@@ -101,14 +109,24 @@ describe('AgentFailuresPage', () => {
       'open',
       '',
     );
+  });
+
+  it('aborts a request still in flight on unmount', async () => {
+    mocks.list.mockReturnValueOnce(new Promise(() => {}));
+    const { unmount } = render(<AgentFailuresPage />, {
+      wrapper: queryClientWrapper(),
+    });
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledOnce());
     const signal = mocks.list.mock.calls[0][2];
+
     unmount();
-    expect(signal.aborted).toBe(true);
+
+    await waitFor(() => expect(signal.aborted).toBe(true));
   });
 
   it('sends the searched text to the server and explains an empty result', async () => {
     mocks.searchParams = new URLSearchParams('q=timeout');
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByText('No agent failures match your search'),
@@ -129,7 +147,7 @@ describe('AgentFailuresPage', () => {
 
   it('supports retry after a failed request', async () => {
     mocks.list.mockRejectedValueOnce(new Error('offline'));
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByText('Agent failures could not be loaded.'),
     ).toBeInTheDocument();
@@ -154,7 +172,7 @@ describe('AgentFailuresPage', () => {
         },
       })),
     );
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByText('org-19')).toBeInTheDocument();
     expect(
       screen.getAllByText('Provider request abc timed out after 60 seconds.'),
@@ -185,7 +203,7 @@ describe('AgentFailuresPage', () => {
       })),
     );
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('run-19');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('No agent failures found');
@@ -211,7 +229,7 @@ describe('AgentFailuresPage', () => {
       })),
     );
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('run-19');
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('No agent failures found');
@@ -247,7 +265,7 @@ describe('AgentFailuresPage', () => {
       },
     ]);
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByText('Acme Studio')).toBeInTheDocument();
     expect(
       screen.getByText('request.threadId is required'),
@@ -277,7 +295,7 @@ describe('AgentFailuresPage', () => {
       failureResolvedAt: '2026-09-02T12:00:00Z',
     });
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('run-1');
     await user.click(screen.getByRole('button', { name: 'Mark resolved' }));
     await waitFor(() =>
@@ -299,7 +317,7 @@ describe('AgentFailuresPage', () => {
     ]);
     mocks.setResolved.mockRejectedValue(new Error('offline'));
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('run-1');
     await user.click(screen.getByRole('button', { name: 'Mark resolved' }));
     await waitFor(() =>
@@ -323,7 +341,7 @@ describe('AgentFailuresPage', () => {
     ]);
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('run-1');
     await user.click(
       screen.getByRole('button', { name: 'Create GitHub issue' }),
@@ -337,7 +355,7 @@ describe('AgentFailuresPage', () => {
 
   it('lists resolved failures when the status filter changes', async () => {
     const user = userEvent.setup();
-    render(<AgentFailuresPage />);
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper() });
     await screen.findByText('No agent failures found');
     await selectFilterOption(user, 'Status', 'Resolved');
     await waitFor(() =>
@@ -349,5 +367,30 @@ describe('AgentFailuresPage', () => {
         '',
       ),
     );
+  });
+
+  it('paints the cached failures on a return visit, with no skeleton', async () => {
+    mocks.list.mockResolvedValueOnce([
+      {
+        id: 'run-cached',
+        organizationId: 'org-cached',
+        workflowId: 'workflow-1',
+        createdAt: '2026-09-01T12:00:00Z',
+        failureReason: 'TIMEOUT',
+        error: 'Provider request timed out.',
+      },
+    ]);
+    const client = createTestQueryClient();
+    const first = render(<AgentFailuresPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('org-cached')).toBeInTheDocument();
+    first.unmount();
+    mocks.list.mockReturnValueOnce(new Promise(() => {}));
+
+    render(<AgentFailuresPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('org-cached')).toBeInTheDocument();
+    expect(screen.queryByText('Loading failures')).not.toBeInTheDocument();
   });
 });
