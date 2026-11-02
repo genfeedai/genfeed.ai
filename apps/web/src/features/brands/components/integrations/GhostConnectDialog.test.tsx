@@ -1,10 +1,18 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GhostConnectDialog from '@/features/brands/components/integrations/GhostConnectDialog';
 
-const { postConnectWithApiKey } = vi.hoisted(() => ({
-  postConnectWithApiKey: vi.fn(),
+interface RecordedConnectRequest {
+  apiKey: string;
+  brandId: string;
+  ghostUrl: string;
+}
+
+const connectState = vi.hoisted(() => ({
+  isRejecting: false,
+  requests: [] as RecordedConnectRequest[],
 }));
 
 vi.mock('next-intl', async () => {
@@ -12,65 +20,75 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ getToken: vi.fn(async () => 'token') }),
+  useAuthIdentity: () => ({ getToken: async () => 'token' }),
 }));
 vi.mock('@helpers/auth/auth.helper', () => ({
-  resolveAuthToken: vi.fn(async () => 'token'),
+  resolveAuthToken: async () => 'token',
 }));
 vi.mock('@services/external/services.service', () => ({
   ServicesService: class {
-    postConnectWithApiKey = postConnectWithApiKey;
+    async postConnectWithApiKey(body: RecordedConnectRequest) {
+      connectState.requests.push(body);
+      if (connectState.isRejecting) {
+        throw new Error('401');
+      }
+      return { id: 'credential-1' };
+    }
   },
 }));
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
+    getInstance: () => ({ error: () => undefined, success: () => undefined }),
   },
 }));
 
-function renderDialog(overrides: { onConnected?: () => void } = {}) {
-  const onConnected = overrides.onConnected ?? vi.fn();
-  const onOpenChange = vi.fn();
-  render(
-    <GhostConnectDialog
-      brandId="brand-1"
-      onConnected={onConnected}
-      onOpenChange={onOpenChange}
-      open
-    />,
+/** Stands in for the brand card: owns `open` and shows when accounts reload. */
+function Harness() {
+  const [isOpen, setIsOpen] = useState(true);
+  const [hasReloaded, setHasReloaded] = useState(false);
+
+  return (
+    <>
+      <GhostConnectDialog
+        brandId="brand-1"
+        onConnected={() => setHasReloaded(true)}
+        onOpenChange={setIsOpen}
+        open={isOpen}
+      />
+      {hasReloaded ? <p>Accounts reloaded</p> : null}
+    </>
   );
-  return { onConnected, onOpenChange };
 }
 
-function fillForm() {
+function fillForm(url: string, key: string) {
   fireEvent.change(screen.getByLabelText(/Site URL/), {
-    target: { value: 'https://example-blog.com' },
+    target: { value: url },
   });
   fireEvent.change(screen.getByLabelText(/Admin API key/), {
-    target: { value: 'abc123:def456' },
+    target: { value: key },
   });
 }
 
 describe('GhostConnectDialog', () => {
   beforeEach(() => {
-    postConnectWithApiKey.mockReset();
-    postConnectWithApiKey.mockResolvedValue({ id: 'credential-1' });
+    connectState.isRejecting = false;
+    connectState.requests = [];
   });
 
   it('keeps Connect Ghost disabled until both the URL and key are entered', () => {
-    renderDialog();
+    render(<Harness />);
 
     expect(
       screen.getByRole('button', { name: 'Connect Ghost' }),
     ).toBeDisabled();
 
-    fillForm();
+    fillForm('https://example-blog.com', 'abc123:def456');
 
     expect(screen.getByRole('button', { name: 'Connect Ghost' })).toBeEnabled();
   });
 
   it('masks the Admin API key', () => {
-    renderDialog();
+    render(<Harness />);
 
     expect(screen.getByLabelText(/Admin API key/)).toHaveAttribute(
       'type',
@@ -78,37 +96,40 @@ describe('GhostConnectDialog', () => {
     );
   });
 
-  it('sends the trimmed URL, key and brand, then reports the connection', async () => {
-    const { onConnected, onOpenChange } = renderDialog();
-    fireEvent.change(screen.getByLabelText(/Site URL/), {
-      target: { value: '  https://example-blog.com  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/Admin API key/), {
-      target: { value: ' abc123:def456 ' },
-    });
+  it('sends the trimmed URL, key and brand, closes, and reloads the accounts', async () => {
+    render(<Harness />);
+    fillForm('  https://example-blog.com  ', ' abc123:def456 ');
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect Ghost' }));
 
-    await waitFor(() => expect(onConnected).toHaveBeenCalledTimes(1));
-    expect(postConnectWithApiKey).toHaveBeenCalledWith({
-      apiKey: 'abc123:def456',
-      brandId: 'brand-1',
-      ghostUrl: 'https://example-blog.com',
-    });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(await screen.findByText('Accounts reloaded')).toBeInTheDocument();
+    expect(connectState.requests).toEqual([
+      {
+        apiKey: 'abc123:def456',
+        brandId: 'brand-1',
+        ghostUrl: 'https://example-blog.com',
+      },
+    ]);
+    expect(
+      screen.queryByRole('dialog', { name: 'Connect Ghost' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows an error and stays open when the key is rejected', async () => {
-    postConnectWithApiKey.mockRejectedValue(new Error('401'));
-    const { onConnected, onOpenChange } = renderDialog();
-    fillForm();
+    connectState.isRejecting = true;
+    render(<Harness />);
+    fillForm('https://example-blog.com', 'wrong:key');
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect Ghost' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not connect Ghost. Check the site URL and Admin API key.',
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Could not connect Ghost. Check the site URL and Admin API key.',
+      ),
     );
-    expect(onConnected).not.toHaveBeenCalled();
-    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('dialog', { name: 'Connect Ghost' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Accounts reloaded')).not.toBeInTheDocument();
   });
 });
