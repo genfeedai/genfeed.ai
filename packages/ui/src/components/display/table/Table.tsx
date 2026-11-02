@@ -565,7 +565,7 @@ export default function AppTable<T>({
                           : undefined
                       }
                       className={cn(
-                        'h-10 select-none text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+                        'h-10 select-none text-left align-middle text-xs font-medium text-muted-foreground',
                         isCompact ? 'px-2' : 'px-4',
                         column.className,
                       )}
@@ -573,7 +573,7 @@ export default function AppTable<T>({
                       {isColumnSortableNow ? (
                         <Button
                           ariaLabel={column.sortLabel}
-                          className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
+                          className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
                           onClick={() => handleSort(columnKey)}
                           textTransform="none"
                           variant={ButtonVariant.UNSTYLED}
