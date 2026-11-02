@@ -369,7 +369,6 @@ export const APP_ROUTES = {
     STORYBOARD: '/storyboard',
     STORYBOARD_NEW: '/storyboard/new',
     TURBO: '/turbo',
-    TURBO_NEW: '/turbo/new',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',

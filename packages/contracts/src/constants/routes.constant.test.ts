@@ -87,7 +87,6 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
     expect(APP_ROUTES.STUDIO.EDITOR).toBe('/editor');
     expect(APP_ROUTES.STUDIO.TURBO).toBe('/turbo');
-    expect(APP_ROUTES.STUDIO.TURBO_NEW).toBe('/turbo/new');
   });
 
   it('reclaims Publish Campaigns without moving Automate Programs', () => {

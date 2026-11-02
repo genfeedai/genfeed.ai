@@ -1,6 +1,6 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, formatEnumLabel, ViewType } from '@genfeedai/contracts';
+import { formatEnumLabel } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ITurboProject } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -9,26 +9,26 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
-import Card from '@ui/card/Card';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
-import CollectionSection from '@ui/collection/CollectionSection';
-import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { useLocale, useTranslations } from 'next-intl';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
-import TurboPresetShelf from './TurboPresetShelf';
-import TurboProjectsOnboarding from './TurboProjectsOnboarding';
 import { createTurboProjectsApi } from './turbo-projects-api';
 
-export default function TurboProjectsPage() {
+/**
+ * The right side of the Turbo workspace while no project is open: one list of
+ * the brand's projects. A row opens the project; creating one happens in the
+ * prompt on the left.
+ */
+export default function TurboProjectsList() {
   const t = useTranslations('pages.turboProjects');
   const locale = useLocale();
   const { brandId } = useBrand();
@@ -43,10 +43,6 @@ export default function TurboProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
-  const { view, setView } = useCollectionViewPreference({
-    surface: 'studio.turbo',
-    defaultView: ViewType.LIST,
-  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: changing brand resets pagination and loaded rows.
   useEffect(() => {
     setProjects([]);
@@ -101,61 +97,49 @@ export default function TurboProjectsPage() {
       setError(getJsonApiErrorMessage(reason, t('saveFailed')));
     }
   }
-  function actions(project: ITurboProject) {
-    return (
-      <CollectionItemActions
-        primary={
-          <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={href(`${APP_ROUTES.STUDIO.TURBO}/${project.id}`)}>
-              {t('open')}
-            </Link>
-          </Button>
-        }
-        overflowLabel={t('actions', { name: project.name })}
-        overflow={[
-          {
-            id: 'delete',
-            label: t('delete'),
-            isDestructive: true,
-            onSelect: () => void remove(project.id),
-          },
-        ]}
-      />
-    );
-  }
-  function facts(project: ITurboProject) {
-    return (
-      <>
-        <span>{formatEnumLabel(project.kind)}</span>
-        <span>{formatEnumLabel(project.status)}</span>
-        <span>{t('itemCount', { count: project.itemCounts.total })}</span>
-        <span>
-          {project.updatedAt
-            ? new Date(project.updatedAt).toLocaleString(locale)
-            : ''}
-        </span>
-      </>
-    );
-  }
   function row(project: ITurboProject) {
     return (
       <ListRow
         density="compact"
+        href={href(`${APP_ROUTES.STUDIO.TURBO}/${project.id}`)}
+        key={project.id}
+        meta={
+          <>
+            <span>{formatEnumLabel(project.kind)}</span>
+            <span>{t('itemCount', { count: project.itemCounts.total })}</span>
+            <span>
+              {project.updatedAt
+                ? new Date(project.updatedAt).toLocaleString(locale)
+                : ''}
+            </span>
+          </>
+        }
         title={project.name}
-        meta={facts(project)}
-        trailing={actions(project)}
+        trailing={
+          <div className="flex items-center gap-2">
+            <Badge status={project.status.toLowerCase()}>
+              {formatEnumLabel(project.status)}
+            </Badge>
+            <CollectionItemActions
+              overflow={[
+                {
+                  id: 'delete',
+                  isDestructive: true,
+                  label: t('delete'),
+                  onSelect: () => void remove(project.id),
+                },
+              ]}
+              overflowLabel={t('actions', { name: project.name })}
+            />
+          </div>
+        }
       />
     );
   }
   const isSearching = search.trim() !== '';
-  const recent = [...projects]
-    .sort(
-      (a, b) => Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''),
-    )
-    .slice(0, 5);
   if (isSubscriptionRequired) {
     return (
-      <Container label={t('title')}>
+      <Container label={t('title')} moduleChrome>
         <SubscriptionRequiredState
           message={error ?? t('loadFailed')}
           manageHref={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
@@ -164,6 +148,7 @@ export default function TurboProjectsPage() {
       </Container>
     );
   }
+  const isEmpty = !loading && !projects.length && !error;
   return (
     <Container
       label={t('title')}
@@ -175,52 +160,30 @@ export default function TurboProjectsPage() {
           value={search}
         />
       }
-      right={
-        <div className="flex items-center gap-2">
-          <CollectionViewToggle onViewChange={setView} view={view} />
-          <Button asChild>
-            <Link href={href(APP_ROUTES.STUDIO.TURBO_NEW)}>{t('new')}</Link>
-          </Button>
-        </div>
+      moduleChrome
+      refresh={
+        <ButtonRefresh
+          isRefreshing={loading}
+          onClick={() => {
+            if (page === 1) setRefresh((value) => value + 1);
+            else setPage(1);
+          }}
+        />
       }
+      titleVisibility="sr-only"
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-4">
         {error && <p role="alert">{error}</p>}
-        {!loading && !projects.length && !error && !isSearching && (
-          <TurboProjectsOnboarding />
-        )}
-        {(projects.length > 0 || isSearching) && <TurboPresetShelf />}
-        {isSearching && !loading && !projects.length && !error && (
-          <p>{t('emptySearch')}</p>
-        )}
-        <CollectionSection title={t('recent')} itemCount={recent.length}>
-          <CollectionList>
-            {recent.map((project) => (
-              <Fragment key={project.id}>{row(project)}</Fragment>
-            ))}
-          </CollectionList>
-        </CollectionSection>
-        <CollectionSection
-          title={t('all')}
-          itemCount={projects.length}
-          isLoading={loading}
-        >
-          <CollectionView
-            items={projects}
-            view={view}
-            isLoading={loading && !projects.length}
-            getItemKey={(project) => project.id}
-            renderListItem={row}
-            renderGridItem={(project) => (
-              <Card label={project.name}>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {facts(project)}
-                </div>
-                {actions(project)}
-              </Card>
-            )}
+        {isEmpty && isSearching ? <p>{t('emptySearch')}</p> : null}
+        {isEmpty && !isSearching ? (
+          <EmptyState
+            description={t('emptyDescription')}
+            title={t('emptyTitle')}
           />
-        </CollectionSection>
+        ) : null}
+        {projects.length > 0 ? (
+          <CollectionList>{projects.map(row)}</CollectionList>
+        ) : null}
         {(hasMore || error) && (
           <Button
             isDisabled={loading}
