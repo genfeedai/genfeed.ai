@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
@@ -24,6 +28,11 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: mocks.openModal,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -81,6 +90,7 @@ describe('RolesList', () => {
         <RolesList />
         <ContextSidebarOutlet testId="rail" />
       </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
     );
 
     fireEvent.click(
@@ -100,12 +110,38 @@ describe('RolesList', () => {
       <ContextSidebarProvider>
         <RolesList />
       </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
     );
 
     await screen.findByText('editor');
-    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 1 });
+    expect(mocks.findAll).toHaveBeenCalledWith(
+      { limit: 15, page: 1 },
+      expect.any(AbortSignal),
+    );
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeInTheDocument();
+  });
+
+  it('paints the cached roles on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+    await screen.findByText('editor');
+    first.unmount();
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(screen.getByText('editor')).toBeInTheDocument();
   });
 });
