@@ -130,7 +130,11 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
+  useAuthIdentity: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  }),
 }));
 
 vi.mock('@/hooks/data/analytics/use-analytics/use-analytics', () => ({
