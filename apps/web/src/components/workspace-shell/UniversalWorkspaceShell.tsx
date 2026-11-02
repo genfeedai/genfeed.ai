@@ -1231,9 +1231,7 @@ function UniversalWorkspaceShellContent({
     return {
       agent: <ConversationDockPanel apiService={agentApiService} />,
       agentTitle: activeThread?.title?.trim() || undefined,
-      contextPanel: (
-        <WorkspaceAgentContext contextSidebar={contextSidebar} />
-      ),
+      contextPanel: <WorkspaceAgentContext contextSidebar={contextSidebar} />,
       isContextOpen: isOutputContextOpen,
       onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,

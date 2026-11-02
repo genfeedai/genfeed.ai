@@ -1744,7 +1744,9 @@ describe('UniversalWorkspaceShell', () => {
       // Narrowing the window removes the rail. Nothing is open in a sheet, so
       // the topbar toggle must not read as pressed.
       isCompact = true;
-      act(() => changeListeners.forEach((listener) => listener()));
+      act(() => {
+        for (const listener of changeListeners) listener();
+      });
       await waitFor(() => expect(dock?.panel?.activeView).toBeNull());
 
       showPanelView(dock, 'details');

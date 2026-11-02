@@ -3,7 +3,6 @@
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { BotMessageSquare, Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -29,19 +28,20 @@ function PanelToggle({
   testId,
 }: PanelToggleProps) {
   return (
+    // ui-guard-allow:selection-button -- discloses a panel (aria-expanded) and shows it open; not a choice group
     <Button
       aria-controls={ariaControls}
       aria-expanded={isPressed}
       aria-keyshortcuts={ariaKeyShortcuts}
       ariaLabel={label}
-      className={cn('size-8', isPressed && 'bg-accent text-foreground')}
+      className="size-8"
       data-active={isPressed ? 'true' : 'false'}
       data-testid={testId}
       onClick={onToggle}
       size={ButtonSize.ICON}
       tooltip={label}
       type="button"
-      variant={ButtonVariant.GHOST}
+      variant={isPressed ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
       withWrapper={false}
     >
       {icon}

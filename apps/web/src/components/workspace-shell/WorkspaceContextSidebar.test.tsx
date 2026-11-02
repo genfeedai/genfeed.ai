@@ -97,6 +97,8 @@ describe('right sidebar single topbar guard', () => {
     /\b(PanelRightClose|PanelRightOpen|PanelLeftClose|PanelLeftOpen)\b/;
   const ALLOWED_SIDEBAR_ICON_FILES = new Set([
     'apps/web/src/components/workspace-shell/WorkspaceContextSidebar.tsx',
+    // The dock panel's own collapse control, in its header.
+    'apps/web/src/components/workspace-shell/WorkspacePanelHeader.tsx',
     'apps/web/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx',
     'apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx',
   ]);
