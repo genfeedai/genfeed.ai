@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type { EditorPageContentProps } from '@/features/studio/props/editor-page-content.props';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import EditorLayout from './EditorLayout';
 import EditorLoadingState from './EditorLoadingState';
 import EditorNotFound from './EditorNotFound';
