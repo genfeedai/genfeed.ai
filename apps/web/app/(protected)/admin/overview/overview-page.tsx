@@ -20,13 +20,17 @@ import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { OverviewActionCard } from '@/components/overview/OverviewLayout';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type {
   LeaderboardCardProps,
   StatsGridProps,
 } from '@/features/admin/props/dashboard.props';
-import { useAdminStats } from '@/hooks/data/analytics/use-admin-stats/use-admin-stats';
+import {
+  type AdminActivityRange,
+  useAdminStats,
+} from '@/hooks/data/analytics/use-admin-stats/use-admin-stats';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
 const ActivityChart = dynamic(() => import('./activity-chart'), { ssr: false });
@@ -226,6 +230,7 @@ function QuickActionsGrid() {
 
 export default function OverviewPage() {
   const translate = useTranslations('common');
+  const [activityRange, setActivityRange] = useState<AdminActivityRange>('7d');
   const {
     stats,
     leaderboard,
@@ -234,7 +239,7 @@ export default function OverviewPage() {
     isLoading,
     isRefreshing,
     refresh,
-  } = useAdminStats();
+  } = useAdminStats(activityRange);
   const hasFailedStats = isError && !stats;
 
   // Totals only: the API has no period-over-period figures, so no trend is shown.
@@ -308,7 +313,12 @@ export default function OverviewPage() {
         <QuickActionsGrid />
 
         <div className={cn('grid grid-cols-1 lg:grid-cols-2', BLOCK_GAP_CLASS)}>
-          <ActivityChart data={timeseries} isLoading={isLoading} />
+          <ActivityChart
+            data={timeseries}
+            isLoading={isLoading}
+            onRangeChange={setActivityRange}
+            range={activityRange}
+          />
           <LeaderboardCard data={leaderboard} isLoading={isLoading} />
         </div>
       </div>

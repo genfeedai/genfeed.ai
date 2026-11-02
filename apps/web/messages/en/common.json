@@ -126,6 +126,16 @@
     "scenes": "Search scenes"
   },
   "adminDashboard": {
+    "activityChart": {
+      "description": "Views and likes across connected platforms",
+      "empty": "No activity in this period",
+      "likes": "Likes",
+      "loading": "Loading chart…",
+      "range30": "30 Days",
+      "range7": "7 Days",
+      "title": "Platform Activity",
+      "views": "Views"
+    },
     "loadFailed": "Could not load the platform stats. Try again.",
     "quickActions": {
       "elements": {

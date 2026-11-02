@@ -102,10 +102,9 @@ function payload(value: number, name: string) {
     ],
     visibleTimeseries: [
       {
-        credits: value + 2,
         date: '2026-10-17',
-        posts: value,
-        users: value + 2,
+        likes: value + 2,
+        views: value,
       },
     ],
   };
@@ -244,7 +243,7 @@ describe('useAdminStats', () => {
     const { result } = renderHook(useAdminStats, createHarness());
     await waitFor(() =>
       expect(result.current.timeseries).toEqual([
-        { credits: 28, date: '2026-10-17', posts: 280, users: 28 },
+        { date: '2026-10-17', likes: 28, views: 280 },
       ]),
     );
   });
@@ -260,6 +259,16 @@ describe('useAdminStats', () => {
     expect(fixture.timeseries).toHaveBeenCalledWith('actor-a:session-a:org-a', {
       endDate: '2026-10-18',
       startDate: '2026-10-11',
+    });
+  });
+
+  it('requests thirty days of activity when the 30 day range is chosen', async () => {
+    vi.setSystemTime(new Date('2026-10-18T12:00:00Z'));
+    const { result } = renderHook(() => useAdminStats('30d'), createHarness());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fixture.timeseries).toHaveBeenCalledWith('actor-a:session-a:org-a', {
+      endDate: '2026-10-18',
+      startDate: '2026-09-18',
     });
   });
 

@@ -85,4 +85,16 @@ describe('Admin overview page', () => {
       screen.getByRole('heading', { name: 'Top Organizations' }),
     ).toBeInTheDocument();
   });
+
+  it('puts View All Entities in the Top Organizations header, not under the list', () => {
+    render(<OverviewPage />);
+
+    const header = screen
+      .getByRole('heading', { name: 'Top Organizations' })
+      .closest('div[class*="justify-between"]') as HTMLElement;
+
+    expect(
+      within(header).getByRole('link', { name: 'View All Entities' }),
+    ).toHaveAttribute('href', '/admin/organizations');
+  });
 });

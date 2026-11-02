@@ -1,144 +1,173 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
+import { CardEmptySize, ComponentSize } from '@genfeedai/contracts';
+import { ChartContainer, ChartTooltipContent, chartColorVar } from '@ui/charts';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
-import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { ActivityChartProps } from '@/features/admin/props/dashboard.props';
+import {
+  chartAxisStroke,
+  chartAxisTick,
+  chartGridStroke,
+} from '@/features/analytics/components/analytics/charts/chart-theme';
 
-const Area = dynamic(() => import('recharts').then((module) => module.Area), {
-  ssr: false,
-});
-const AreaChart = dynamic(
-  () => import('recharts').then((module) => module.AreaChart),
-  { ssr: false },
-);
-const ResponsiveContainer = dynamic(
-  () => import('recharts').then((module) => module.ResponsiveContainer),
-  { ssr: false },
-);
-const Tooltip = dynamic(
-  () => import('recharts').then((module) => module.Tooltip),
-  { ssr: false },
-);
-const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
-  ssr: false,
-});
-const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
-  ssr: false,
-});
+const SERIES_KEYS = ['views', 'likes'] as const;
 
-const _dateFormatter = new Intl.DateTimeFormat('en-US', {
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'short',
 });
 
-const _compactNumberFormatter = new Intl.NumberFormat('en-US', {
+const compactNumberFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
 });
 
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return _dateFormatter.format(date);
+function formatDate(value: string) {
+  return dateFormatter.format(new Date(value));
 }
 
-export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
+export default function ActivityChart({
+  data,
+  isLoading,
+  onRangeChange,
+  range,
+}: ActivityChartProps) {
   const selectionLabels = useTranslations('ui.selectionGroups');
-  const [range, setRange] = useState<'7d' | '30d'>('7d');
+  const translate = useTranslations('common');
+  const chartConfig = {
+    likes: {
+      color: 'var(--accent-rose)',
+      label: translate('adminDashboard.activityChart.likes'),
+    },
+    views: {
+      color: 'var(--foreground)',
+      label: translate('adminDashboard.activityChart.views'),
+    },
+  };
+  const hasData = data.length > 0;
 
   return (
     <WorkspaceSurface
-      title="Platform Activity"
-      tone="muted"
-      data-testid="activity-chart"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div className="text-sm text-foreground/60">
-          Real-time throughput metrics
-        </div>
+      actions={
         <SegmentedControl
           ariaLabel={selectionLabels('activityRange')}
-          onValueChange={setRange}
+          onValueChange={onRangeChange}
           options={[
-            { label: '7 Days', value: '7d' },
-            { label: '30 Days', value: '30d' },
+            {
+              label: translate('adminDashboard.activityChart.range7'),
+              value: '7d',
+            },
+            {
+              label: translate('adminDashboard.activityChart.range30'),
+              value: '30d',
+            },
           ]}
           size="sm"
           value={range}
         />
-      </div>
+      }
+      data-testid="activity-chart"
+      description={translate('adminDashboard.activityChart.description')}
+      title={translate('adminDashboard.activityChart.title')}
+      tone="muted"
+    >
       <div className="h-chart-sm">
         {isLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Spinner aria-hidden="true" size={ComponentSize.SM} />
-              Loading chart…
-            </div>
+          <div className="flex h-full items-center justify-center gap-2 text-muted-foreground">
+            <Spinner aria-hidden="true" size={ComponentSize.SM} />
+            {translate('adminDashboard.activityChart.loading')}
           </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
+        ) : hasData ? (
+          <ChartContainer
+            className="border-0 bg-transparent p-0 shadow-none"
+            config={chartConfig}
+            height="100%"
+          >
             <AreaChart
+              accessibilityLayer
               data={data}
               margin={{ bottom: 0, left: 0, right: 10, top: 10 }}
             >
               <defs>
-                <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--foreground))"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--foreground))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
+                {SERIES_KEYS.map((key) => (
+                  <linearGradient
+                    id={`activity-${key}`}
+                    key={key}
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={chartColorVar(key)}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={chartColorVar(key)}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                ))}
               </defs>
+              <CartesianGrid stroke={chartGridStroke} vertical={false} />
               <XAxis
-                dataKey="date"
-                tickFormatter={formatDate}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
                 axisLine={false}
+                dataKey="date"
+                minTickGap={24}
+                stroke={chartAxisStroke}
+                tick={chartAxisTick}
+                tickFormatter={formatDate}
+                tickLine={false}
               />
               <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
+                allowDecimals={false}
                 axisLine={false}
-                tickFormatter={(value) => _compactNumberFormatter.format(value)}
+                stroke={chartAxisStroke}
+                tick={chartAxisTick}
+                tickFormatter={(value: number) =>
+                  compactNumberFormatter.format(value)
+                }
+                tickLine={false}
+                width={40}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                }}
-                labelStyle={{
-                  color: 'hsl(var(--foreground))',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                }}
-                itemStyle={{ color: 'hsl(var(--foreground))' }}
-                labelFormatter={(label) => formatDate(String(label))}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) => formatDate(String(label))}
+                  />
+                }
               />
-              <Area
-                type="monotone"
-                dataKey="posts"
-                name="Activity"
-                stroke="hsl(var(--foreground))"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorPosts)"
-              />
+              {SERIES_KEYS.map((key) => (
+                <Area
+                  dataKey={key}
+                  fill={`url(#activity-${key})`}
+                  key={key}
+                  stroke={chartColorVar(key)}
+                  strokeWidth={2}
+                  type="monotone"
+                />
+              ))}
             </AreaChart>
-          </ResponsiveContainer>
+          </ChartContainer>
+        ) : (
+          <EmptyState
+            isFill
+            size={CardEmptySize.SM}
+            title={translate('adminDashboard.activityChart.empty')}
+          />
         )}
       </div>
     </WorkspaceSurface>
