@@ -243,9 +243,6 @@
     "apps/web/src/components/folders/sidebar/FoldersSidebar.tsx": {
       "button-restyle": 3
     },
-    "apps/web/src/components/ingredients/inspector/IngredientInspectorRail.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/components/ingredients/inspector/IngredientPromptBlock.tsx": {
       "unstyled-look": 1
     },

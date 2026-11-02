@@ -1032,12 +1032,11 @@ export default function StudioPlaygroundInspector({
         <div className="px-4 py-2">
           <TabsList
             aria-label={translate('inspector.title')}
-            className="gen-shell-segmented flex w-full min-w-0 gap-0.5 rounded-md p-0.5"
+            className="w-full"
           >
             {tabItems.map((item) => (
               <TabsTrigger
-                className="gen-shell-segmented-button h-control-sm min-w-0 flex-1 gap-1.5 rounded-[5px] border-0 px-2 text-xs shadow-none"
-                data-active={activeTab === item.id}
+                className="min-w-0 flex-1"
                 key={item.id}
                 value={item.id}
               >
