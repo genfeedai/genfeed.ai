@@ -87,9 +87,7 @@ test.describe('Studio Editor — Interactions', () => {
 
     await expect(authenticatedPage).not.toHaveURL(/\/login/);
     await expect(
-      authenticatedPage.getByText(
-        '1 video is ready to open on the timeline.',
-      ),
+      authenticatedPage.getByText('1 video is ready to open on the timeline.'),
     ).toBeVisible({ timeout: 15_000 });
     await expectNoErrorOverlay(authenticatedPage);
   });

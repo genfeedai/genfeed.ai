@@ -3,7 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
-  IngredientFormat,
+  type IngredientFormat,
 } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import {

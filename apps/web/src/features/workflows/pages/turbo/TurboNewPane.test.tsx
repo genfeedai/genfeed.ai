@@ -24,6 +24,8 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   getService: vi.fn(),
   push: vi.fn(),
+  // Projects the fake service has persisted, in creation order.
+  saved: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('next-intl', async () => {
@@ -111,8 +113,21 @@ function resetMocks() {
     update: mocks.update,
   });
   mocks.list.mockResolvedValue([]);
-  mocks.create.mockResolvedValue({ id: 'run-1' });
-  mocks.update.mockResolvedValue({ id: 'run-1' });
+  mocks.saved = [];
+  mocks.create.mockImplementation(async (input: Record<string, unknown>) => {
+    const project = { id: `run-${mocks.saved.length + 1}`, ...input };
+    mocks.saved.push(project);
+    return { id: project.id };
+  });
+  mocks.update.mockImplementation(
+    async (id: string, patch: Record<string, unknown>) => {
+      const project = mocks.saved.find((saved) => saved.id === id);
+      if (project) {
+        Object.assign(project, patch);
+      }
+      return { id };
+    },
+  );
 }
 
 function promptBox() {
@@ -160,7 +175,7 @@ describe('TurboNewPane', () => {
     fireEvent.click(screen.getByRole('button', { name: /Weekly content mix/ }));
 
     expect(promptBox()).toHaveValue(WEEKLY_MIX_ANGLE);
-    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.saved).toEqual([]);
   });
 
   it('names the project after the starter when the prompt is left as the starter', async () => {
@@ -172,20 +187,21 @@ describe('TurboNewPane', () => {
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
-    expect(mocks.create).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      kind: TurboProjectKind.IDEAS,
-      name: 'Weekly content mix',
-    });
-    expect(mocks.update).toHaveBeenCalledWith('run-1', {
-      settings: {
-        ideas: {
-          angle: WEEKLY_MIX_ANGLE,
-          count: 6,
-          formats: ['image', 'video'],
+    expect(mocks.saved).toEqual([
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        kind: TurboProjectKind.IDEAS,
+        name: 'Weekly content mix',
+        settings: {
+          ideas: {
+            angle: WEEKLY_MIX_ANGLE,
+            count: 6,
+            formats: ['image', 'video'],
+          },
         },
       },
-    });
+    ]);
   });
 
   it('saves a typed prompt as the angle and opens the new project', async () => {
@@ -197,20 +213,21 @@ describe('TurboNewPane', () => {
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
-    expect(mocks.create).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      kind: TurboProjectKind.IDEAS,
-      name: 'Spring sale teasers',
-    });
-    expect(mocks.update).toHaveBeenCalledWith('run-1', {
-      settings: {
-        ideas: {
-          angle: 'Spring sale teasers',
-          count: 6,
-          formats: ['image', 'video'],
+    expect(mocks.saved).toEqual([
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        kind: TurboProjectKind.IDEAS,
+        name: 'Spring sale teasers',
+        settings: {
+          ideas: {
+            angle: 'Spring sale teasers',
+            count: 6,
+            formats: ['image', 'video'],
+          },
         },
       },
-    });
+    ]);
   });
 
   it('sends the chosen formats and idea count', async () => {
@@ -223,12 +240,15 @@ describe('TurboNewPane', () => {
     typePrompt('Product demos');
     fireEvent.click(sendButton());
 
-    await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
-    expect(mocks.update).toHaveBeenCalledWith('run-1', {
-      settings: {
-        ideas: { angle: 'Product demos', count: 12, formats: ['video'] },
-      },
-    });
+    await waitFor(() =>
+      expect(mocks.saved).toEqual([
+        expect.objectContaining({
+          settings: {
+            ideas: { angle: 'Product demos', count: 12, formats: ['video'] },
+          },
+        }),
+      ]),
+    );
   });
 
   it('lets Turbo pick the angle when the prompt is empty', async () => {
@@ -239,14 +259,15 @@ describe('TurboNewPane', () => {
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
-    expect(mocks.create).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      kind: TurboProjectKind.IDEAS,
-      name: 'Untitled project',
-    });
-    expect(mocks.update).toHaveBeenCalledWith('run-1', {
-      settings: { ideas: { count: 6, formats: ['image', 'video'] } },
-    });
+    expect(mocks.saved).toEqual([
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        kind: TurboProjectKind.IDEAS,
+        name: 'Untitled project',
+        settings: { ideas: { count: 6, formats: ['image', 'video'] } },
+      },
+    ]);
   });
 
   it('still opens the project when saving the idea settings fails', async () => {
@@ -271,7 +292,7 @@ describe('TurboNewPane', () => {
       'Keep the prompt under 300 characters.',
     );
     expect(sendButton()).toBeDisabled();
-    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.saved).toEqual([]);
   });
 
   it('cannot send without a brand', () => {
@@ -313,11 +334,13 @@ describe('TurboNewPane', () => {
     typePrompt('My draft');
     fireEvent.click(sendButton());
     await waitFor(() =>
-      expect(mocks.create).toHaveBeenCalledWith({
-        brandId: 'brand-1',
-        kind: TurboProjectKind.IDEAS,
-        name: 'My draft',
-      }),
+      expect(mocks.saved).toEqual([
+        expect.objectContaining({
+          brandId: 'brand-1',
+          kind: TurboProjectKind.IDEAS,
+          name: 'My draft',
+        }),
+      ]),
     );
     expect(mocks.list).not.toHaveBeenCalled();
   });
@@ -337,9 +360,9 @@ describe('TurboNewPane', () => {
       typePrompt('Still works');
       fireEvent.click(sendButton());
       await waitFor(() =>
-        expect(mocks.create).toHaveBeenCalledWith(
+        expect(mocks.saved).toEqual([
           expect.objectContaining({ kind: TurboProjectKind.IDEAS }),
-        ),
+        ]),
       );
       expect(mocks.list).not.toHaveBeenCalled();
     },
@@ -365,7 +388,7 @@ describe('TurboNewPane', () => {
       resolve?.({ create: mocks.create });
     });
 
-    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.saved).toEqual([]);
     expect(mocks.push).not.toHaveBeenCalled();
   });
 
@@ -422,7 +445,7 @@ describe('TurboNewPane', () => {
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
-    expect(mocks.create).toHaveBeenCalledTimes(2);
+    expect(mocks.saved).toHaveLength(1);
   });
 });
 
@@ -450,13 +473,15 @@ describe('TurboNewPane from a workflow', () => {
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
     );
-    expect(mocks.create).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      kind: TurboProjectKind.WORKFLOW,
-      name: 'Weekly recap',
-      workflowId: 'wf-2',
-    });
-    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.saved).toEqual([
+      {
+        id: 'run-1',
+        brandId: 'brand-1',
+        kind: TurboProjectKind.WORKFLOW,
+        name: 'Weekly recap',
+        workflowId: 'wf-2',
+      },
+    ]);
   });
 
   it('points to creating a workflow, or back to ideas, when there are none', async () => {
@@ -489,7 +514,7 @@ describe('TurboNewPane from a workflow', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Workflow access denied',
     );
-    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.saved).toEqual([]);
   });
 
   it('ignores a stale workflow error after returning to ideas', async () => {

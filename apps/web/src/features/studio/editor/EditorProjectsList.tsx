@@ -32,12 +32,7 @@ import { Input } from '@ui/primitives/input';
 import { Film, Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 

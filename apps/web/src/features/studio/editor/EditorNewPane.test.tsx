@@ -114,7 +114,9 @@ describe('EditorNewPane', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/editor/project-1'),
+      expect(mocks.push).toHaveBeenCalledWith(
+        '/acme/moonrise/editor/project-1',
+      ),
     );
     expect(mocks.create).toHaveBeenCalledWith({
       name: 'Untitled Project',

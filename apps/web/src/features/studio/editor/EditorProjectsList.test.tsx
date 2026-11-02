@@ -102,13 +102,15 @@ vi.mock('@ui/card/Card', () => ({
     className,
     description,
     label,
+    'data-testid': dataTestId,
   }: {
     children?: ReactNode;
     className?: string;
     description?: ReactNode;
     label?: ReactNode;
+    'data-testid'?: string;
   }) => (
-    <section className={className}>
+    <section className={className} data-testid={dataTestId}>
       {label ? <h4>{label}</h4> : null}
       {description ? <p>{description}</p> : null}
       {children}

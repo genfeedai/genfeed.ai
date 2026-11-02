@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { IngredientFormat } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';

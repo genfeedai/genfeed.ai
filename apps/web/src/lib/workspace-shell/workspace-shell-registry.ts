@@ -899,10 +899,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/editor',
-      '/:orgSlug/:brandSlug/editor/:id',
-    ],
+    ['/:orgSlug/:brandSlug/editor', '/:orgSlug/:brandSlug/editor/:id'],
     {
       fallback: '/:orgSlug/:brandSlug/editor',
       mode: 'canvas',

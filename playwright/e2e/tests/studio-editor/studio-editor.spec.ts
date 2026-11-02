@@ -282,7 +282,9 @@ test.describe('Studio Editor', () => {
       ).toContainText('Vertical short');
       await createProjectButton(authenticatedPage).click();
 
-      await expect(authenticatedPage).toHaveURL(new RegExp(`${PROJECT_ROUTE}$`));
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${PROJECT_ROUTE}$`),
+      );
       expect(created[0]).toMatchObject({
         name: 'Vertical short',
         settings: { format: 'portrait', height: 1920, width: 1080 },
@@ -308,7 +310,9 @@ test.describe('Studio Editor', () => {
       ).toBeVisible();
       await createProjectButton(authenticatedPage).click();
 
-      await expect(authenticatedPage).toHaveURL(new RegExp(`${PROJECT_ROUTE}$`));
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${PROJECT_ROUTE}$`),
+      );
       expect(created[0]).toMatchObject({
         name: 'Video Edit',
         sourceVideoIds: ['shot-2', 'shot-1'],

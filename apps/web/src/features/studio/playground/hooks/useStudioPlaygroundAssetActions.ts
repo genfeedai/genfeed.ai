@@ -225,9 +225,7 @@ export function useStudioPlaygroundAssetActions({
   // so a rename of the editor route carries through here.
   const onOpenInEditor = useCallback(
     (ingredient: IIngredient) => {
-      router.push(
-        href(`${APP_ROUTES.STUDIO.EDITOR}?video=${ingredient.id}`),
-      );
+      router.push(href(`${APP_ROUTES.STUDIO.EDITOR}?video=${ingredient.id}`));
     },
     [href, router],
   );
