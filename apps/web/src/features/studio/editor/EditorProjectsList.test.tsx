@@ -10,8 +10,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ANALYTICS_EVENTS } from '@/lib/analytics';
-import EditorProjectsPane from './EditorProjectsPane';
+import EditorProjectsList from './EditorProjectsList';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -30,7 +29,6 @@ vi.mock('next-intl', async () => {
 
 const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
-  captureAnalyticsEvent: vi.fn(),
   deleteProject: vi.fn(),
   findAll: vi.fn(),
   getEditorService: vi.fn(),
@@ -80,11 +78,6 @@ vi.mock('@services/editor/editor-projects.service', () => ({
   },
 }));
 
-vi.mock('@/lib/analytics', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/analytics')>()),
-  captureAnalyticsEvent: mocks.captureAnalyticsEvent,
-}));
-
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -107,8 +100,8 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
+    'data-testid': testId,
     description,
-    'data-testid': dataTestId,
     label,
   }: {
     children?: ReactNode;
@@ -117,7 +110,7 @@ vi.mock('@ui/card/Card', () => ({
     description?: ReactNode;
     label?: ReactNode;
   }) => (
-    <section className={className} data-testid={dataTestId}>
+    <section className={className} data-testid={testId}>
       {label ? <h4>{label}</h4> : null}
       {description ? <p>{description}</p> : null}
       {children}
@@ -130,23 +123,23 @@ vi.mock('@ui/layout/container/Container', () => ({
     children,
     label,
     leading,
-    right,
+    refresh,
   }: {
     children?: ReactNode;
     label?: string;
     leading?: ReactNode;
-    right?: ReactNode;
+    refresh?: ReactNode;
   }) => (
     <main>
       <h1>{label}</h1>
       {leading}
-      {right}
+      {refresh}
       {children}
     </main>
   ),
 }));
 
-describe('EditorProjectsPane', () => {
+describe('EditorProjectsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal(
@@ -171,24 +164,28 @@ describe('EditorProjectsPane', () => {
     vi.unstubAllGlobals();
   });
 
-  it('lists every project as a row that opens it, without previews', async () => {
+  it('lists every project as one row that opens it', async () => {
     mocks.findAll.mockResolvedValue(
-      Array.from({ length: 6 }, (_, index) => ({
+      Array.from({ length: 4 }, (_, index) => ({
         id: `project-${index}`,
         name: `Cut ${index}`,
         status: 'draft',
         tracks: [],
-        thumbnailUrl: `https://cdn.example.com/cut-${index}.jpg`,
         updatedAt: `2026-10-0${index + 1}T12:00:00Z`,
       })),
     );
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
 
-    const rows = within(
-      await screen.findByTestId('editor-projects-all-collection'),
-    );
-    expect(rows.getAllByRole('link', { name: /^Open Cut/ })).toHaveLength(6);
-    expect(screen.queryByRole('img')).toBeNull();
+    const all = within(await screen.findByTestId('editor-projects-all'));
+    expect(
+      all.getAllByRole('link').map((link) => link.getAttribute('href')),
+    ).toEqual([
+      '/acme/~/editor/project-0',
+      '/acme/~/editor/project-1',
+      '/acme/~/editor/project-2',
+      '/acme/~/editor/project-3',
+    ]);
+    expect(all.getByRole('link', { name: /Cut 3/ })).toBeVisible();
   });
 
   it('requests the server page from the URL and renders pagination', async () => {
@@ -202,12 +199,10 @@ describe('EditorProjectsPane', () => {
         updatedAt: '2026-09-01T12:00:00Z',
       },
     ]);
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
 
-    const all = within(
-      await screen.findByTestId('editor-projects-all-collection'),
-    );
-    expect(all.getByRole('link', { name: 'Open Older cut' })).toBeVisible();
+    const all = within(await screen.findByTestId('editor-projects-all'));
+    expect(all.getByRole('link', { name: /Older cut/ })).toBeVisible();
     expect(mocks.findAll).toHaveBeenCalledWith(
       { limit: ITEMS_PER_PAGE, page: 2 },
       expect.any(AbortSignal),
@@ -228,9 +223,9 @@ describe('EditorProjectsPane', () => {
         updatedAt: '2026-10-01T12:00:00Z',
       },
     ]);
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
 
-    expect(await screen.findAllByText('Launch cut')).not.toHaveLength(0);
+    expect(await screen.findByText('Launch cut')).toBeVisible();
     expect(mocks.findAll).toHaveBeenCalledWith(
       { limit: ITEMS_PER_PAGE, page: 1, search: 'launch' },
       expect.any(AbortSignal),
@@ -240,18 +235,18 @@ describe('EditorProjectsPane', () => {
     ).toHaveValue('launch');
   });
 
-  it('says nothing matched instead of offering a first project', async () => {
+  it('says nothing matched instead of pointing at the prompt', async () => {
     mocks.searchParams = new URLSearchParams('q=zzz');
     mocks.findAll.mockResolvedValue([]);
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
 
     expect(
       await screen.findByText('No projects match your search.'),
     ).toBeVisible();
-    expect(screen.queryByText('No Editor projects yet')).toBeNull();
+    expect(screen.queryByText('No projects yet')).toBeNull();
   });
 
-  it('loads video editor projects and deletes a project from the list', async () => {
+  it('shows the age and status of each project and deletes one from its menu', async () => {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60_000).toISOString();
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60_000).toISOString();
 
@@ -259,9 +254,8 @@ describe('EditorProjectsPane', () => {
       {
         id: 'project-1',
         name: 'Launch cut',
-        settings: { format: 'portrait' },
         status: 'draft',
-        tracks: [{ id: 'track-1' }, { id: 'track-2' }],
+        tracks: [],
         updatedAt: thirtyMinutesAgo,
       },
       {
@@ -274,25 +268,13 @@ describe('EditorProjectsPane', () => {
     ]);
     mocks.deleteProject.mockResolvedValue(undefined);
 
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
 
-    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
-      ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED,
-      { surface: 'index' },
-    );
-    expect(await screen.findByText('Your Projects (2)')).toBeVisible();
-    const all = within(screen.getByTestId('editor-projects-all-collection'));
-    expect(all.getByText('Launch cut')).toBeVisible();
-    expect(
-      all
-        .getByRole('link', { name: 'Open Launch cut' })
-        .querySelector('button'),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Delete' }),
-    ).not.toBeInTheDocument();
+    const all = within(await screen.findByTestId('editor-projects-all'));
     expect(all.getByText('30m ago')).toBeVisible();
     expect(all.getByText('2d ago')).toBeVisible();
+    expect(all.getByText('Draft')).toBeVisible();
+    expect(all.getByText('Ready')).toBeVisible();
     await userEvent.click(
       all.getByRole('button', { name: 'More actions for Launch cut' }),
     );
@@ -308,7 +290,7 @@ describe('EditorProjectsPane', () => {
     expect(screen.getByText('Teaser edit')).toBeVisible();
   });
 
-  it('renames from overflow and updates both collections', async () => {
+  it('renames from the row menu and updates the list', async () => {
     mocks.findAll.mockResolvedValue([
       {
         id: 'project-1',
@@ -319,7 +301,7 @@ describe('EditorProjectsPane', () => {
       },
     ]);
     mocks.updateProject.mockResolvedValue(undefined);
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
     await screen.findByText('Launch cut');
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'More actions for Launch cut' }),
@@ -346,18 +328,16 @@ describe('EditorProjectsPane', () => {
   it('renders empty and error states with retry', async () => {
     mocks.findAll.mockResolvedValueOnce([]);
 
-    const { unmount } = render(<EditorProjectsPane />);
-    expect(await screen.findByText('No Editor projects yet')).toBeVisible();
+    const { unmount } = render(<EditorProjectsList />);
+    expect(await screen.findByText('No projects yet')).toBeVisible();
     expect(
-      screen.getByText('Start one on the left and it shows up here.'),
+      screen.getByText('Name one on the left and it shows up here.'),
     ).toBeVisible();
-    expect(
-      screen.queryByRole('link', { name: /new project/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /new project/i })).toBeNull();
 
     unmount();
     mocks.findAll.mockRejectedValueOnce(new Error('offline'));
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
     expect(await screen.findByText('Failed to load projects')).toBeVisible();
     expect(mocks.loggerError).toHaveBeenCalledWith(
       'Failed to load editor projects',
@@ -366,17 +346,16 @@ describe('EditorProjectsPane', () => {
 
     mocks.findAll.mockResolvedValueOnce([]);
     fireEvent.click(screen.getByText('Try again'));
-    expect(await screen.findByText('No Editor projects yet')).toBeVisible();
+    expect(await screen.findByText('No projects yet')).toBeVisible();
   });
 
   it('loads projects once even when the translator identity changes', async () => {
     mocks.hasUnstableTranslator = true;
     mocks.findAll.mockRejectedValueOnce(new Error('offline'));
 
-    const { rerender } = render(<EditorProjectsPane />);
+    const { rerender } = render(<EditorProjectsList />);
     expect(await screen.findByText('Failed to load projects')).toBeVisible();
-    rerender(<EditorProjectsPane />);
-
+    rerender(<EditorProjectsList />);
     expect(screen.getByText('Failed to load projects')).toBeVisible();
     expect(mocks.findAll).toHaveBeenCalledTimes(1);
   });
@@ -394,7 +373,7 @@ describe('EditorProjectsPane', () => {
     ]);
     mocks.deleteProject.mockRejectedValue(deleteError);
 
-    render(<EditorProjectsPane />);
+    render(<EditorProjectsList />);
     expect(await screen.findByText('Launch cut')).toBeVisible();
     await userEvent.click(
       screen.getByRole('button', { name: 'More actions for Launch cut' }),

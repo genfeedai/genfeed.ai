@@ -21,7 +21,7 @@ const EDITOR_DETAIL = '/test-org/brand-1/editor/test-project-id';
 test.describe('Studio Editor — Interactions', () => {
   test.setTimeout(90_000);
 
-  test('renders the workspace with the project prompt and an empty project list', async ({
+  test('renders the workspace with the prompt and the empty project list', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(EDITOR_LIST, {
@@ -29,20 +29,22 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: 'Create project',
+      }),
     ).toBeVisible({ timeout: 15_000 });
 
-    // #5165 removed the Features marketing grid; the default mock returns no
-    // projects, so the list renders its empty state instead.
-    await expect(
-      authenticatedPage.getByText('No Editor projects yet'),
-    ).toBeVisible({ timeout: 15_000 });
+    // The default mock returns no projects, so the list renders its empty state.
+    await expect(authenticatedPage.getByText('No projects yet')).toBeVisible({
+      timeout: 15_000,
+    });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('sends the creator from the workspace to the Library to pick a video', async ({
+  test('fills the name from a starter card without leaving the workspace', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(EDITOR_LIST, {
@@ -50,23 +52,43 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     await authenticatedPage
-      .getByRole('button', { name: 'Edit a Library video' })
+      .getByRole('button', { name: /Square post/ })
       .click({ timeout: 15_000 });
 
-    await expect(authenticatedPage).toHaveURL(/\/library\/assets/);
+    await expect(
+      authenticatedPage.getByRole('textbox', { name: 'Project name' }),
+    ).toContainText('Square post');
+    await expect(authenticatedPage).toHaveURL(/\/editor$/);
+    await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('seeds a project from a source video query param', async ({
+  test('exercises the back navigation control from the projects list', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${EDITOR_LIST}?video=mock-video-1`, {
+    await authenticatedPage.goto(EDITOR_LIST, {
       waitUntil: 'domcontentloaded',
     });
+
+    await tryClick(authenticatedPage, 'a[aria-label="Back to Studio"]');
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).not.toHaveURL(/\/login/);
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
+    await expectNoErrorOverlay(authenticatedPage);
+  });
+
+  test('keeps a source video query param on the workspace', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${EDITOR_LIST}?video=mock-video-1`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await expect(authenticatedPage).not.toHaveURL(/\/login/);
+    await expect(
+      authenticatedPage.getByText('1 video is ready to open on the timeline.'),
+    ).toBeVisible({ timeout: 15_000 });
     await expectNoErrorOverlay(authenticatedPage);
   });
 
@@ -118,7 +140,10 @@ test.describe('Studio Editor — Interactions', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: 'Create project',
+      }),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -134,7 +159,10 @@ test.describe('Studio Editor — Interactions', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'What are you editing?' }),
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: 'Create project',
+      }),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

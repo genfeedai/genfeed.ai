@@ -205,7 +205,7 @@ vi.mock('../../../[brandSlug]/editor/[id]/editor-page-content', async () => {
   };
 });
 
-vi.mock('../../../[brandSlug]/editor/EditorWorkspace', () => ({
+vi.mock('@/features/studio/editor/EditorWorkspace', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 

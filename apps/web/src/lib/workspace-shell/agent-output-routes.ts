@@ -28,7 +28,7 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // A Clipper project; `/clipper/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
   // Editor: `/editor` is the prompt that starts a project beside the project
-  // list, and a project opens in the same layout.
+  // list, `/editor/[projectId]` is one open project.
   new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}(?:/[^/]+)?/?$`),
 ];
 

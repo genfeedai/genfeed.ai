@@ -1,24 +1,21 @@
 'use client';
-import {
-  ButtonSize,
-  ButtonVariant,
-  formatEnumLabel,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionView from '@ui/collection/CollectionView';
+import CollectionList from '@ui/collection/CollectionList';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -33,13 +30,11 @@ import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Film, Pencil, Trash2 } from 'lucide-react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 type EditorProjectsTranslate = ReturnType<typeof useTranslations>;
 
@@ -74,7 +69,7 @@ function formatRelativeTime(
  * the brand's projects. A row opens the project; starting one happens in the
  * prompt on the left.
  */
-export default function EditorProjectsPane() {
+export default function EditorProjectsList() {
   const translate = useTranslations('pages.studioEditor');
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
@@ -82,7 +77,6 @@ export default function EditorProjectsPane() {
   const currentPage = Number(searchParams.get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
-  const [totalProjects, setTotalProjects] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [renameTarget, setRenameTarget] = useState<IEditorProject | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -113,9 +107,6 @@ export default function EditorProjectsPane() {
           return;
         }
         setProjects(pageProjects);
-        setTotalProjects(
-          Math.max(PagesService.getTotalDocs(), pageProjects.length),
-        );
       } catch (error) {
         if (
           signal?.aborted ||
@@ -131,12 +122,6 @@ export default function EditorProjectsPane() {
   );
 
   useEffect(() => {
-    captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
-      surface: 'index',
-    });
-  }, []);
-
-  useEffect(() => {
     const controller = new AbortController();
     void loadProjects(controller.signal);
     return () => controller.abort();
@@ -148,7 +133,6 @@ export default function EditorProjectsPane() {
         const service = await getEditorService();
         await service.delete(projectId);
         setProjects((prev) => (prev ?? []).filter((p) => p.id !== projectId));
-        setTotalProjects((prev) => Math.max(0, prev - 1));
       } catch (error) {
         logger.error('Failed to delete editor project', {
           error,
@@ -216,66 +200,43 @@ export default function EditorProjectsPane() {
     ],
   );
 
-  function renderProjectActions(project: IEditorProject) {
-    return (
-      <CollectionItemActions
-        overflow={[
-          {
-            icon: <Pencil className="size-4" />,
-            id: 'rename',
-            label: translate('rename'),
-            onSelect: () => openRename(project),
-          },
-          {
-            icon: <Trash2 className="size-4" />,
-            id: 'delete',
-            isDestructive: true,
-            label: translate('delete'),
-            onSelect: () => void handleDelete(project.id),
-          },
-        ]}
-        overflowLabel={translate('projectActions', { name: project.name })}
-        primary={
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            <Link
-              aria-label={translate('openProject', { name: project.name })}
-              href={href(`${APP_ROUTES.STUDIO.EDITOR}/${project.id}`)}
-            >
-              {translate('open')}
-            </Link>
-          </Button>
-        }
-      />
-    );
-  }
-
-  function renderProjectFacts(project: IEditorProject) {
-    return (
-      <>
-        <span>{formatRelativeTime(project.updatedAt, translate)}</span>
-        {project.status ? (
-          <>
-            <span aria-hidden="true">&middot;</span>
-            <span>{formatEnumLabel(project.status)}</span>
-          </>
-        ) : null}
-      </>
-    );
-  }
-
   function renderProjectRow(project: IEditorProject) {
     return (
       <ListRow
-        data-testid={`editor-project-row-${project.id}`}
         density="compact"
-        meta={renderProjectFacts(project)}
+        href={href(`${APP_ROUTES.STUDIO.EDITOR}/${project.id}`)}
+        key={project.id}
+        meta={<span>{formatRelativeTime(project.updatedAt, translate)}</span>}
         title={project.name}
-        trailing={renderProjectActions(project)}
+        trailing={
+          <div className="flex items-center gap-2">
+            {project.status ? (
+              <Badge status={project.status.toLowerCase()}>
+                {formatEnumLabel(project.status)}
+              </Badge>
+            ) : null}
+            <CollectionItemActions
+              overflow={[
+                {
+                  icon: <Pencil className="size-4" />,
+                  id: 'rename',
+                  label: translate('rename'),
+                  onSelect: () => openRename(project),
+                },
+                {
+                  icon: <Trash2 className="size-4" />,
+                  id: 'delete',
+                  isDestructive: true,
+                  label: translate('delete'),
+                  onSelect: () => void handleDelete(project.id),
+                },
+              ]}
+              overflowLabel={translate('projectActions', {
+                name: project.name,
+              })}
+            />
+          </div>
+        }
       />
     );
   }
@@ -290,31 +251,22 @@ export default function EditorProjectsPane() {
           value={search}
         />
       }
-      label={
-        hasProjects
-          ? translate('yourProjectsCount', { count: totalProjects })
-          : isLoading
-            ? translate('yourProjects')
-            : translate('editor')
+      label={translate('projects')}
+      refresh={
+        <ButtonRefresh
+          isRefreshing={isLoading}
+          onClick={() => void loadProjects()}
+        />
       }
       titleVisibility="sr-only"
-      // `right` disappears on error, which would otherwise flip Container
-      // between module chrome and the classic layout as the page moves
-      // through loading/error/loaded. Declare the chrome mode once so it
-      // stays stable across all three.
+      // The chrome mode is declared once so it stays stable as the list moves
+      // through loading, error and loaded.
       moduleChrome
     >
       {isLoading ? (
-        <CollectionView
-          data-testid="editor-projects-loading"
-          getItemKey={(project: IEditorProject) => project.id}
-          isLoading
-          items={[]}
-          renderGridItem={renderProjectRow}
-          renderListItem={renderProjectRow}
-          skeletonCount={3}
-          view={ViewType.LIST}
-        />
+        <CollectionList data-testid="editor-projects-loading">
+          <ListRowsSkeleton rows={3} />
+        </CollectionList>
       ) : hasError ? (
         <ErrorFallback
           title={translate('loadFailedTitle')}
@@ -323,14 +275,9 @@ export default function EditorProjectsPane() {
         />
       ) : hasProjects ? (
         <div className="flex flex-col gap-4">
-          <CollectionView
-            data-testid="editor-projects-all-collection"
-            getItemKey={(project) => project.id}
-            items={projects}
-            renderGridItem={renderProjectRow}
-            renderListItem={renderProjectRow}
-            view={ViewType.LIST}
-          />
+          <CollectionList data-testid="editor-projects-all">
+            {projects.map(renderProjectRow)}
+          </CollectionList>
           <AutoPagination showTotal totalLabel="projects" />
         </div>
       ) : search ? (

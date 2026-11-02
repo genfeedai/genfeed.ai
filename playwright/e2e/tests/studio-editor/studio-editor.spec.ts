@@ -17,7 +17,7 @@ import {
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
- * Tests verify the Editor surface load, new project creation, toolbar
+ * Tests verify the Editor workspace load, starting a project from its prompt, toolbar
  * visibility, and save/publish controls.
  *
  * Every route is visited with the explicit E2E org+brand slugs (brandPath),
@@ -27,9 +27,6 @@ import {
  */
 
 const EDIT_ROUTE = brandPath(APP_ROUTES.STUDIO.EDITOR);
-// `/editor?video=` imports library videos into a fresh project (the old
-// /editor/new redirect): EditorVideoImport creates it and opens its editor.
-const EDIT_IMPORT_ROUTE = `${EDIT_ROUTE}?video=video-1`;
 const PROJECT_ID = 'editor-project-1';
 const PROJECT_ROUTE = brandPath(`${APP_ROUTES.STUDIO.EDITOR}/${PROJECT_ID}`);
 const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
@@ -83,6 +80,8 @@ interface EditorProjectsMockOptions {
   createStatus?: 201 | 500;
   /** Number of list GETs that fail with 500 before succeeding (default: 0). */
   listFailures?: number;
+  /** Receives the JSON body of every create POST. */
+  onCreate?: (body: unknown) => void;
 }
 
 /**
@@ -96,6 +95,7 @@ async function mockEditorProjects(
     createStatus = 201,
     listFailures = 0,
     listedProjects = [],
+    onCreate,
   }: EditorProjectsMockOptions = {},
 ): Promise<void> {
   let remainingListFailures = listFailures;
@@ -107,6 +107,7 @@ async function mockEditorProjects(
     const isDetail = pathname.endsWith(`/editor-projects/${PROJECT_ID}`);
 
     if (method === 'POST' && !isDetail) {
+      onCreate?.(request.postDataJSON());
       if (createStatus === 500) {
         await fulfillJson(route, 500, {
           errors: [{ title: 'Internal Server Error' }],
@@ -163,7 +164,7 @@ async function expectProjectEditor(page: Page): Promise<void> {
 }
 
 const createProjectButton = (page: Page) =>
-  page.getByRole('button', { name: 'Create project' });
+  page.getByRole('button', { exact: true, name: 'Create project' });
 
 test.describe('Studio Editor', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -173,8 +174,13 @@ test.describe('Studio Editor', () => {
     });
   });
 
-  test.describe('Studio Editor Projects Page', () => {
-    test('should list existing projects next to the create prompt', async ({
+  /**
+   * `/editor` is one workspace: the prompt that starts a project on the left
+   * (new-pane), the brand's projects on the right. There is no list page and
+   * no `/editor/new`.
+   */
+  test.describe('Studio Editor Workspace', () => {
+    test('lists existing projects beside the prompt', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage, {
@@ -183,19 +189,21 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // Real content (EditorProjectsPane.tsx): one list of the brand's
-      // projects on the right; creating happens in the pane on the left.
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'What are we editing?',
+        }),
+      ).toBeVisible();
       const allProjects = authenticatedPage.getByTestId('editor-projects-all');
       await expect(
-        allProjects.getByRole('link', { name: 'Open Untitled Project' }),
-      ).toBeVisible();
+        allProjects.getByRole('link', { name: /Untitled Project/ }),
+      ).toHaveAttribute('href', new RegExp(`${PROJECT_ROUTE}$`));
       await expect(
         allProjects.getByText('Draft', { exact: true }),
       ).toBeVisible();
-      await expect(createProjectButton(authenticatedPage)).toBeVisible();
     });
 
-    test('should display the empty state next to the create pane', async ({
+    test('says there are no projects yet when the list is empty', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -203,16 +211,12 @@ test.describe('Studio Editor', () => {
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
       await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'What are you editing?',
-        }),
+        authenticatedPage.getByRole('heading', { name: 'No projects yet' }),
       ).toBeVisible();
-      await expect(
-        authenticatedPage.getByText('No Editor projects yet'),
-      ).toBeVisible();
+      await expect(createProjectButton(authenticatedPage)).toBeVisible();
     });
 
-    test('should render the projects list on mobile viewport', async ({
+    test('renders the workspace on mobile viewport without horizontal scrolling', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -221,14 +225,15 @@ test.describe('Studio Editor', () => {
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
       await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'What are you editing?',
-        }),
+        authenticatedPage.getByRole('button', { name: /Vertical short/ }),
       ).toBeVisible();
-      await expect(createProjectButton(authenticatedPage)).toBeVisible();
+      const hasOverflow = await authenticatedPage.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      expect(hasOverflow).toBe(false);
     });
 
-    test('should render the projects list on tablet viewport', async ({
+    test('renders the workspace on tablet viewport', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -236,57 +241,99 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'What are you editing?',
-        }),
-      ).toBeVisible();
       await expect(createProjectButton(authenticatedPage)).toBeVisible();
     });
   });
 
-  /**
-   * `/editor?video=` (EditorVideoImport.tsx) is a transient redirect: it
-   * POSTs a new project on mount and replaces the URL with `/editor/:id`
-   * on success, or back to `/editor` if the create call fails.
-   */
-  test.describe('Editor video import', () => {
-    test('creates a project and lands on its editor with real toolbar controls', async ({
+  test.describe('Starting an Editor project', () => {
+    test('creates an untitled project and lands on its editor with real toolbar controls', async ({
       authenticatedPage,
     }) => {
-      await mockEditorProjects(authenticatedPage);
+      const created: unknown[] = [];
+      await mockEditorProjects(authenticatedPage, {
+        onCreate: (body) => created.push(body),
+      });
+      await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      await assertRouteRenders(authenticatedPage, EDIT_IMPORT_ROUTE);
-
-      await expectProjectEditor(authenticatedPage);
-    });
-
-    test('renders on mobile viewport', async ({ authenticatedPage }) => {
-      await mockEditorProjects(authenticatedPage);
-      await authenticatedPage.setViewportSize({ height: 667, width: 375 });
-
-      await assertRouteRenders(authenticatedPage, EDIT_IMPORT_ROUTE);
+      await createProjectButton(authenticatedPage).click();
 
       await expectProjectEditor(authenticatedPage);
+      expect(created).toHaveLength(1);
+      expect(created[0]).toMatchObject({
+        name: 'Untitled Project',
+        settings: { format: 'landscape', height: 1080, width: 1920 },
+      });
     });
 
-    test('falls back to the projects list when project creation fails', async ({
+    test('names the project after the prompt and cuts it for the chosen starter', async ({
+      authenticatedPage,
+    }) => {
+      const created: unknown[] = [];
+      await mockEditorProjects(authenticatedPage, {
+        onCreate: (body) => created.push(body),
+      });
+      await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
+
+      await authenticatedPage
+        .getByRole('button', { name: /Vertical short/ })
+        .click();
+      await expect(
+        authenticatedPage.getByRole('textbox', { name: 'Project name' }),
+      ).toContainText('Vertical short');
+      await createProjectButton(authenticatedPage).click();
+
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${PROJECT_ROUTE}$`),
+      );
+      expect(created[0]).toMatchObject({
+        name: 'Vertical short',
+        settings: { format: 'portrait', height: 1920, width: 1080 },
+      });
+    });
+
+    test('starts the timeline from the videos in ?video=', async ({
+      authenticatedPage,
+    }) => {
+      const created: unknown[] = [];
+      await mockEditorProjects(authenticatedPage, {
+        onCreate: (body) => created.push(body),
+      });
+      await assertRouteRenders(
+        authenticatedPage,
+        `${EDIT_ROUTE}?video=shot-2&video=shot-1`,
+      );
+
+      await expect(
+        authenticatedPage.getByText(
+          '2 videos are ready to open on the timeline, in order.',
+        ),
+      ).toBeVisible();
+      await createProjectButton(authenticatedPage).click();
+
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${PROJECT_ROUTE}$`),
+      );
+      expect(created[0]).toMatchObject({
+        name: 'Video Edit',
+        sourceVideoIds: ['shot-2', 'shot-1'],
+      });
+    });
+
+    test('stays on the workspace and says so when project creation fails', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage, { createStatus: 500 });
+      await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      await assertRouteRenders(authenticatedPage, EDIT_IMPORT_ROUTE);
+      await createProjectButton(authenticatedPage).click();
 
-      // EditorVideoImport.tsx's catch branch replaces the URL with the
-      // plain list — the real, current behaviour of a failed create, not a
-      // crash or a blank page.
+      await expect(
+        authenticatedPage
+          .getByRole('alert')
+          .filter({ hasText: 'Could not create the project. Try again.' }),
+      ).toBeVisible();
       await expect(authenticatedPage).toHaveURL(new RegExp(`${EDIT_ROUTE}$`));
       await expectNoErrorOverlay(authenticatedPage);
-      await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'What are you editing?',
-        }),
-      ).toBeVisible();
     });
   });
 
@@ -307,15 +354,18 @@ test.describe('Studio Editor', () => {
       await expectNoErrorOverlay(authenticatedPage);
     });
 
-    test('should create a project from the workspace prompt', async ({
+    test('should open a project from its row in the list', async ({
       authenticatedPage,
     }) => {
-      await mockEditorProjects(authenticatedPage);
+      await mockEditorProjects(authenticatedPage, {
+        listedProjects: [projectDocument()],
+      });
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // EditorNewPane.tsx always renders the create prompt on the left,
-      // whether or not the org has existing projects.
-      await createProjectButton(authenticatedPage).click();
+      await authenticatedPage
+        .getByTestId('editor-projects-all')
+        .getByRole('link', { name: /Untitled Project/ })
+        .click();
 
       await expectProjectEditor(authenticatedPage);
     });
@@ -329,7 +379,7 @@ test.describe('Studio Editor', () => {
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // Real error state (editor-projects-page.tsx → ErrorFallback): a
+      // Real error state (EditorProjectsList → ErrorFallback): a
       // distinct alert, not the empty-state affordance and not a crash.
       // Scoped past Next.js's own `role="alert"` route announcer
       // (#__next-route-announcer__, present on every page) via `.filter()`
@@ -348,9 +398,7 @@ test.describe('Studio Editor', () => {
       // "Try again" (resetErrorBoundary → loadProjects) actually recovers.
       await errorAlert.getByRole('button', { name: 'Try again' }).click();
       await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'What are you editing?',
-        }),
+        authenticatedPage.getByRole('heading', { name: 'No projects yet' }),
       ).toBeVisible();
       await expect(errorAlert).toHaveCount(0);
     });

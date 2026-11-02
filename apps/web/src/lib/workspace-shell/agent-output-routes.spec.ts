@@ -78,7 +78,7 @@ describe('isAgentOutputRoute', () => {
     );
   });
 
-  it('matches the editor workspace and an editor project', () => {
+  it('matches the editor workspace and an open editor project', () => {
     expect(isAgentOutputRoute('/editor')).toBe(true);
     expect(isAgentOutputRoute('/editor/')).toBe(true);
     expect(isAgentOutputRoute('/editor/project-1')).toBe(true);

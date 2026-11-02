@@ -1,7 +1,7 @@
 import ClipperNewPage from '@app/(protected)/[orgSlug]/[brandSlug]/clipper/new/page';
-import EditorCreatePane from '@app/(protected)/[orgSlug]/[brandSlug]/editor/EditorCreatePane';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import EditorCreatePane from '@/features/studio/editor/EditorCreatePane';
 import TurboCreatePane from '@/features/workflows/pages/turbo/TurboCreatePane';
 
 const state = vi.hoisted(() => ({
@@ -42,7 +42,7 @@ vi.mock(
     ),
   }),
 );
-vi.mock('@app/(protected)/[orgSlug]/[brandSlug]/editor/EditorNewPane', () => ({
+vi.mock('@/features/studio/editor/EditorNewPane', () => ({
   default: () => (
     <button type="button" onClick={state.create}>
       Create project

@@ -1,29 +1,50 @@
 {
   "allProjects": "All projects",
   "cancel": "Cancel",
+  "createFailed": "Could not create the project. Try again.",
+  "createProject": "Create project",
   "daysAgo": "{count}d ago",
   "delete": "Delete",
   "deleteFailed": "Failed to delete project",
-  "editor": "Editor",
-  "emptyDescription": "Start one on the left and it shows up here.",
+  "emptyDescription": "Name one on the left and it shows up here.",
   "emptySearch": "No projects match your search.",
-  "emptyTitle": "No Editor projects yet",
+  "emptyTitle": "No projects yet",
+  "format": "Format",
+  "heroDescription": "Name a project and pick a canvas, then arrange clips, audio and effects on the timeline.",
+  "heroTitle": "What are we editing?",
   "hoursAgo": "{count}h ago",
   "inspector": "Inspector",
   "justNow": "Just now",
   "loadFailed": "Failed to load projects",
   "loadFailedTitle": "Projects could not be loaded.",
   "minutesAgo": "{count}m ago",
-  "open": "Open",
-  "openProject": "Open {name}",
+  "namePlaceholder": "Name your project, or leave it empty to start untitled",
+  "nameTooLong": "Keep the name under {max} characters.",
+  "new": "New",
   "projectActions": "More actions for {name}",
   "projectName": "Project name",
+  "projects": "Projects",
   "rename": "Rename",
   "renameDescription": "Choose a new name for this project.",
   "renameFailed": "Failed to rename project",
   "renameTitle": "Rename project",
   "save": "Save",
   "search": "Search projects",
+  "sourceVideos": "{count, plural, one {# video is ready to open on the timeline.} other {# videos are ready to open on the timeline, in order.}}",
+  "starters": {
+    "landscape": {
+      "title": "Landscape video",
+      "description": "16:9 for YouTube and the web"
+    },
+    "portrait": {
+      "title": "Vertical short",
+      "description": "9:16 for Reels, TikTok and Shorts"
+    },
+    "square": {
+      "title": "Square post",
+      "description": "1:1 for feeds"
+    }
+  },
   "toolbar": {
     "redo": "Redo",
     "redoTooltip": "Redo (Shift+Cmd/Ctrl+Z)",
@@ -34,16 +55,6 @@
     "undoTooltip": "Undo (Cmd/Ctrl+Z)",
     "unsaved": "Unsaved changes"
   },
-  "yourProjects": "Your Projects",
-  "yourProjectsCount": "Your Projects ({count})",
-  "heroTitle": "What are you editing?",
-  "heroDescription": "Start a blank timeline, or open a video from your Library. Generated videos from the Studio open here too.",
-  "startBlank": "Blank project",
-  "startBlankDescription": "An empty timeline. Add clips, audio and effects as you go.",
-  "startFromLibrary": "Edit a Library video",
-  "startFromLibraryDescription": "Pick a video in your Library and open it on the timeline.",
-  "untitledProject": "Untitled Project",
-  "projectNamePlaceholder": "Name your project (optional)",
-  "createProject": "Create project",
-  "createFailed": "Could not create the project. Try again."
+  "untitled": "Untitled Project",
+  "videoEdit": "Video Edit"
 }
