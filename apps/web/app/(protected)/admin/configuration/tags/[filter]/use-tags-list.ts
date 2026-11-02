@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   ContentScope,
+  IPaginatedResponse,
   IQueryParams,
   ITag,
 } from '@genfeedai/contracts/interfaces';
@@ -229,20 +230,24 @@ export function useTagsList({
         notificationsService.success(
           `Tag ${newValue ? 'activated' : 'deactivated'}`,
         );
-        if (tagsPage) {
-          queryClient.setQueryData(tagsQueryKey, {
-            ...tagsPage,
-            items: tagsPage.items.map((t) =>
-              t.id === tag.id ? { ...t, isActive: newValue } : t,
-            ),
-          });
-        }
+        queryClient.setQueryData<IPaginatedResponse<ITag> | null>(
+          tagsQueryKey,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.map((item) =>
+                    item.id === tag.id ? { ...item, isActive: newValue } : item,
+                  ),
+                }
+              : current,
+        );
       } catch (error) {
         logger.error('Failed to update tag status', error);
         notificationsService.error('Failed to update tag status');
       }
     },
-    [getTagsService, notificationsService, tagsPage, queryClient, tagsQueryKey],
+    [getTagsService, notificationsService, queryClient, tagsQueryKey],
   );
 
   const canEditTag = useCallback(
