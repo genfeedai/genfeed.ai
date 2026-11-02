@@ -40,13 +40,18 @@ export default function LibraryOverview({
   const needsReview = summary?.byShelf[LibraryShelf.NEEDS_REVIEW] ?? 0;
   const failed = summary?.byShelf[LibraryShelf.FAILED] ?? 0;
   const starred = summary?.starredCount ?? 0;
-  const storage = formatIngredientFileSize(summary?.storageBytes) ?? '0 B';
+  const total = summary?.total ?? 0;
+  // Generated assets do not record a file size, so a zero sum next to a
+  // non-empty library means "not measured", not "nothing stored".
+  const storage =
+    formatIngredientFileSize(summary?.storageBytes) ??
+    (total > 0 ? '-' : '0 B');
 
   const kpiItems = [
     {
       isLoading,
       label: translate('kpi.total'),
-      value: summary?.total ?? 0,
+      value: total,
     },
     {
       isLoading,
@@ -97,6 +102,7 @@ export default function LibraryOverview({
     {
       color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
       cta: translate('cards.recent.cta'),
+      description: translate('cards.recent.description'),
       href: href(RECENT_ROUTE),
       icon: Clock,
       id: 'recent',
@@ -119,6 +125,7 @@ export default function LibraryOverview({
           {
             color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
             cta: translate('cards.references.cta'),
+            description: translate('cards.references.description'),
             href: href(APP_ROUTES.LIBRARY.REFERENCES),
             icon: ScanFace,
             id: 'references',
@@ -134,6 +141,7 @@ export default function LibraryOverview({
       cards={cards}
       header={
         <KPISection
+          className="mb-0"
           error={error ? translate('error') : null}
           gridCols={{ desktop: 4, mobile: 2 }}
           isLoading={isLoading}

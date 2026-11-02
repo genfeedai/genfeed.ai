@@ -117,13 +117,23 @@ and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/cha
    `instagram_manage_messages`, `pages_manage_metadata`, and
    `pages_show_list`; private replies to comments need
    `instagram_manage_comments` and `pages_messaging`. Direct messages are
-   polled from the Page `conversations` edge; there is no Meta webhook
-   receiver.
+   read from the Page `conversations` edge, fetched by the Messages Sync
+   button and, once the webhook below is registered, whenever Meta reports a
+   new inbound message.
 4. Add operator/test accounts while the Meta app is in development mode. Live
    use requires the applicable permissions to pass Meta App Review.
 5. Set `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`,
    `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, and
    `INSTAGRAM_GRAPH_URL=https://graph.facebook.com`.
+6. Optional real-time Direct messages: choose a random string for
+   `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`, then in the Meta app dashboard register
+   `{API_ORIGIN}/v1/webhooks/instagram` as the Instagram webhook callback with
+   that verify token and subscribe the `messages` field. Deliveries are
+   checked against `INSTAGRAM_APP_SECRET` (or `FACEBOOK_APP_SECRET`). Genfeed
+   subscribes each Page to the app when an account is connected, so accounts
+   connected earlier must reconnect. Meta only delivers webhooks for people
+   without an app role once the app is live and the messaging permissions are
+   approved.
 
 ### Facebook and Meta Ads
 

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import { buildPublicPreviewBrand } from '@api/collections/content-previews/services/content-preview-brand.util';
+import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -24,6 +25,8 @@ import { Injectable } from '@nestjs/common';
 export const DEFAULT_PREVIEW_LIFETIME_DAYS = 14;
 export const MAX_PREVIEW_LIFETIME_DAYS = 90;
 export const MAX_PREVIEW_ITEMS = 6;
+/** A claim email is not sent again inside this window, so a link cannot be used to mail-bomb the prepared address. */
+export const CLAIM_EMAIL_COOLDOWN_MS = 5 * 60 * 1000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -48,6 +51,7 @@ export class ContentPreviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaUrls: AuthorizedMediaUrlService,
+    private readonly invitations: InvitationService,
   ) {}
 
   async create(
@@ -182,11 +186,47 @@ export class ContentPreviewsService {
     });
   }
 
-  async recordCtaClick(token: string): Promise<void> {
+  /**
+   * The visitor asked to claim. The claim itself never happens on this public
+   * route: the content moves only when the person opens the invitation email
+   * sent to the address the workspace was prepared for, so a forwarded link
+   * cannot take the workspace. Counts the click, then re-sends that email
+   * unless the preview is already claimed or one went out in the last few
+   * minutes. The answer is the same in every case.
+   */
+  async requestClaim(token: string): Promise<void> {
     const preview = await this.resolveOpen(token);
     await this.prisma.contentPreview.updateMany({
       data: { ctaClickCount: { increment: 1 } },
       where: scopedWhere(preview.organizationId, { id: preview.id }),
+    });
+    if (preview.claimedAt) return;
+    const account = await this.prisma.warmupAccount.findFirst({
+      select: { id: true, invitationId: true, operatorUserId: true },
+      where: scopedWhere(preview.organizationId, {
+        id: preview.warmupAccountId,
+        status: WarmupAccountStatus.INVITED,
+      }),
+    });
+    if (!account?.invitationId) return;
+    let invitation: Awaited<ReturnType<InvitationService['getInvitation']>>;
+    try {
+      invitation = await this.invitations.getInvitation(
+        account.invitationId,
+        preview.organizationId,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) return;
+      throw error;
+    }
+    if (invitation.acceptedAt || invitation.revokedAt) return;
+    const isRecent =
+      Date.now() - invitation.updatedAt.getTime() < CLAIM_EMAIL_COOLDOWN_MS;
+    if (isRecent && invitation.status !== 'delivery-failed') return;
+    await this.invitations.resendInvitation({
+      invitationId: invitation.id,
+      invitedByUserId: account.operatorUserId,
+      organizationId: preview.organizationId,
     });
   }
 
@@ -295,35 +335,44 @@ export class ContentPreviewsService {
       ];
     });
 
-    const logoUrl = await this.readLogoUrl(scope);
+    const [logoUrl, bannerUrl] = await Promise.all([
+      this.readBrandAssetUrl(scope, AssetCategory.LOGO),
+      this.readBrandAssetUrl(scope, AssetCategory.BANNER),
+    ]);
     const diagnostics = account.diagnostics as {
       preparation?: IWarmupPreparation;
     };
     return {
-      brand: buildPublicPreviewBrand(brand, diagnostics.preparation, logoUrl),
+      brand: buildPublicPreviewBrand(brand, diagnostics.preparation, {
+        bannerUrl,
+        logoUrl,
+      }),
       expiresAt: preview.expiresAt.toISOString(),
       id: 'preview',
       items,
     };
   }
 
-  private async readLogoUrl(scope: {
-    brandId: string;
-    organizationId: string;
-    userId: string;
-  }): Promise<string | undefined> {
-    const logo = await this.prisma.asset.findFirst({
+  private async readBrandAssetUrl(
+    scope: {
+      brandId: string;
+      organizationId: string;
+      userId: string;
+    },
+    category: AssetCategory,
+  ): Promise<string | undefined> {
+    const asset = await this.prisma.asset.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { id: true },
       where: {
-        category: AssetCategory.LOGO,
+        category,
         isDeleted: false,
         parentBrandId: scope.brandId,
         parentOrgId: scope.organizationId,
       },
     });
-    if (!logo) return undefined;
-    const [projection] = await this.mediaUrls.projectAssets(scope, [logo.id]);
+    if (!asset) return undefined;
+    const [projection] = await this.mediaUrls.projectAssets(scope, [asset.id]);
     return projection?.url ?? undefined;
   }
 

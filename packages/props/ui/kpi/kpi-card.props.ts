@@ -10,7 +10,6 @@ export interface KPICardProps {
   analyticsMetricVariant?: AnalyticsMetricVariant;
   label: string;
   value: ReactNode;
-  description?: string;
   icon?: IconComponent;
   tone?: MetricCardTone;
   trend?: number;

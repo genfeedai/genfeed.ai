@@ -9,10 +9,11 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import TableGroupHeading from '@ui/display/table/TableGroupHeading';
 import Container from '@ui/layout/container/Container';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Check, Inbox, LayoutGrid } from 'lucide-react';
+import { Check, CheckCheck, Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import {
@@ -234,21 +235,23 @@ function WorkspacePageContentContent({
     [isWorkspaceRefreshing, refreshWorkspaceTasks],
   );
 
-  const workspaceGhostActions = useMemo(
+  const workspaceOverflow = useMemo(
     () =>
       isInboxSection ? (
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
-          disabled={
-            inboxRead.read.isPending ||
-            !inboxRead.state.data ||
-            !inboxRead.state.data?.unreadCount
-          }
-          onClick={() => inboxRead.read.mutate(null)}
-        >
-          {translate('inbox.markAllRead')}
-        </Button>
+        <SubbarOverflowMenu
+          actions={[
+            {
+              icon: <CheckCheck className="size-4" />,
+              id: 'mark-all-read',
+              isDisabled:
+                inboxRead.read.isPending ||
+                !inboxRead.state.data ||
+                !inboxRead.state.data?.unreadCount,
+              label: translate('inbox.markAllRead'),
+              onSelect: () => inboxRead.read.mutate(null),
+            },
+          ]}
+        />
       ) : undefined,
     [isInboxSection, inboxRead, translate],
   );
@@ -359,7 +362,7 @@ function WorkspacePageContentContent({
       fullWidth
       titleVisibility="sr-only"
       refresh={isOverviewSection ? undefined : workspaceRefresh}
-      iconActions={isOverviewSection ? undefined : workspaceGhostActions}
+      overflow={isOverviewSection ? undefined : workspaceOverflow}
       right={
         isOverviewSection ? undefined : (
           <>

@@ -514,6 +514,7 @@
   "brandsList": {
     "kpi": {
       "brands": "Brands",
+      "organizations": "Organizations",
       "vsLastPeriod": "vs last period"
     }
   }

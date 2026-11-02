@@ -3,11 +3,7 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { TargetExecutionState, TurboRunItemStatus } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  createPublishingPostsFilterRoute,
-} from '@genfeedai/contracts/constants';
-import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isBrandResourceReady,
@@ -15,7 +11,6 @@ import {
   toBrandListParams,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -24,7 +19,7 @@ import { TurboRunsService } from '@services/turbo/turbo-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
-import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
+import { BLOCK_GAP_CLASS, BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import { useEffect, useMemo } from 'react';
 import { OverviewContent } from '@/components/overview/OverviewLayout';
 import type { AsyncState } from '@/props/shared';
@@ -38,13 +33,6 @@ import BlockedTargetsSection from './components/BlockedTargetsSection';
 import CadenceGapsSection from './components/CadenceGapsSection';
 import Next24hQueueSection from './components/Next24hQueueSection';
 import { buildNext24hQueue } from './next-24h-queue.util';
-
-const NOT_POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
-  publicationState: 'not-posted',
-});
-const POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
-  publicationState: 'posted',
-});
 
 const QUEUE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -101,7 +89,6 @@ async function fetchPublicationTotal({
 }
 
 export default function PublishingOverviewPage() {
-  const { href } = useOrgUrl();
   const { credentials } = useBrand();
   const connections = useMemo(
     () => buildSocialConnections({ credentials }),
@@ -402,70 +389,12 @@ export default function PublishingOverviewPage() {
     },
   ];
 
-  const cards: OverviewCard[] = [
-    {
-      color: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-      cta: 'Open Review',
-      description: turboRunsQuery.isError
-        ? 'Review queue could not be loaded.'
-        : turboRunsQuery.isLoading
-          ? 'Loading review queue...'
-          : reviewPulse.ready > 0
-            ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`
-            : 'Approve or reject generated posts.',
-      href: href(APP_ROUTES.PUBLISHING.APPROVALS),
-      icon: ClipboardCheck,
-      id: 'review',
-      label: 'Review queue',
-    },
-    {
-      color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-      cta: 'Browse drafts',
-      description: notPostedTotalQuery.isError
-        ? 'Not-posted posts could not be loaded.'
-        : notPostedTotalQuery.isLoading
-          ? 'Loading not-posted posts...'
-          : notPostedTotal > 0
-            ? `${notPostedTotal} draft or scheduled post${notPostedTotal === 1 ? '' : 's'} in the pipeline.`
-            : 'No drafts waiting. Create a release when you are ready.',
-      href: href(NOT_POSTED_POSTS_PATH),
-      icon: List,
-      id: 'drafts',
-      label: 'Not posted',
-    },
-    {
-      color: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-      cta: 'Open calendar',
-      href: href(APP_ROUTES.PUBLISHING.CALENDAR),
-      icon: Calendar,
-      id: 'calendar',
-      label: 'Calendar',
-    },
-    {
-      color: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
-      cta: 'View published',
-      description: publishedTotalQuery.isError
-        ? 'Published posts could not be loaded.'
-        : publishedTotalQuery.isLoading
-          ? 'Loading published posts...'
-          : publishedTotal > 0
-            ? `${publishedTotal} live post${publishedTotal === 1 ? '' : 's'} across destinations.`
-            : 'Browse posts published to your channels.',
-      href: href(POSTED_POSTS_PATH),
-      icon: Send,
-      id: 'published',
-      label: 'Published',
-    },
-  ];
-
   return (
     <OverviewContent
-      actionsTitle="Publishing shortcuts"
-      actionsLayout="compact"
-      cards={cards}
       header={
-        <div className="space-y-6">
+        <div className={BLOCK_STACK_CLASS}>
           <KPISection
+            className="mb-0"
             size="sm"
             error={
               isMetricsError ? 'Publishing metrics could not be loaded.' : null
@@ -474,7 +403,12 @@ export default function PublishingOverviewPage() {
             isLoading={isMetricsLoading}
             items={kpiItems}
           />
-          <div className="grid items-start gap-6 @[60rem]:grid-cols-2">
+          <div
+            className={cn(
+              'grid items-start @[60rem]:grid-cols-2',
+              BLOCK_GAP_CLASS,
+            )}
+          >
             <Next24hQueueSection onRetry={retryQueue} state={queueState} />
             <BlockedTargetsSection
               onRetry={retryBlocked}
@@ -482,7 +416,12 @@ export default function PublishingOverviewPage() {
             />
           </div>
           {isBrandReady ? (
-            <div className="grid items-start gap-6 @[60rem]:grid-cols-2">
+            <div
+              className={cn(
+                'grid items-start @[60rem]:grid-cols-2',
+                BLOCK_GAP_CLASS,
+              )}
+            >
               <AccountHealthSection
                 connections={connections}
                 onRetry={retryAccountHealth}

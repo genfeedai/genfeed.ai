@@ -2373,10 +2373,12 @@ export function buildUnhandledApiMockBody(url: string): unknown {
         to: day,
         totals: {
           byokCalls: 0,
+          costPerGenerationUsd: null,
           llmCalls: 0,
           llmCostUsd: 0,
           mediaCostUsd: 0,
           mediaGenerations: 0,
+          mediaPricedGenerations: 0,
           providerCostUsd: 0,
           unpricedCalls: 0,
         },

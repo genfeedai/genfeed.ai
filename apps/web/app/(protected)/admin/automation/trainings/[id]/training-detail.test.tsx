@@ -1,4 +1,8 @@
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +25,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brands: [],
   })),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -74,6 +83,7 @@ describe('TrainingDetail shell-first loading', () => {
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
       </TrainingDetail>,
+      { wrapper: queryClientWrapper() },
     );
     expect(container.firstChild).toBeInTheDocument();
   });
@@ -85,6 +95,7 @@ describe('TrainingDetail shell-first loading', () => {
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
       </TrainingDetail>,
+      { wrapper: queryClientWrapper() },
     );
 
     expect(screen.getAllByTestId('container')).toHaveLength(2);
@@ -111,6 +122,7 @@ describe('TrainingDetail shell-first loading', () => {
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
       </TrainingDetail>,
+      { wrapper: queryClientWrapper() },
     );
 
     expect(await screen.findByText('Sample Training')).toBeVisible();
@@ -126,6 +138,7 @@ describe('TrainingDetail shell-first loading', () => {
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
       </TrainingDetail>,
+      { wrapper: queryClientWrapper() },
     );
 
     expect(
@@ -148,6 +161,7 @@ describe('TrainingDetail shell-first loading', () => {
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
       </TrainingDetail>,
+      { wrapper: queryClientWrapper() },
     );
 
     expect(
@@ -162,5 +176,33 @@ describe('TrainingDetail shell-first loading', () => {
       'data-module-chrome',
       'section-topbar',
     );
+  });
+  it('paints the cached training at once when coming back while it revalidates', async () => {
+    mocks.findOne.mockResolvedValueOnce({
+      description: '',
+      id: 'training-123',
+      label: 'Sample Training',
+      status: 'completed',
+    });
+    const client = createTestQueryClient();
+    const firstVisit = render(
+      <TrainingDetail trainingId="training-123">
+        <div>Tab content</div>
+      </TrainingDetail>,
+      { wrapper: queryClientWrapper(client) },
+    );
+    expect(await screen.findByText('Sample Training')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.findOne.mockReturnValueOnce(new Promise(() => undefined));
+    render(
+      <TrainingDetail trainingId="training-123">
+        <div>Tab content</div>
+      </TrainingDetail>,
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(screen.getByText('Sample Training')).toBeVisible();
+    expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument();
   });
 });

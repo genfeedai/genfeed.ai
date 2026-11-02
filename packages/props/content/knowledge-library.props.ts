@@ -18,14 +18,34 @@ export interface KnowledgeSourceRow {
   spaceIds: string[];
 }
 
+/** A web address a source was captured from, safe to render as a link. */
+export interface KnowledgeSourceLink {
+  href: string;
+  /** Host and path without the protocol, for display. */
+  label: string;
+}
+
+/** Why a capture failed, in the terms the sidebar explains it. */
+export type KnowledgeFailureKind =
+  | 'invalidResult'
+  | 'noText'
+  | 'serviceUnavailable'
+  | 'unreachable'
+  | 'unknown';
+
+/** The Knowledge list filters, stored in the URL as `q`, `space`, `status` and `type`. */
+export interface KnowledgeFilters {
+  /** `null` is every space. */
+  spaceId: string | null;
+  /** Lowercase processing state, or `null` for every state. */
+  status: string | null;
+  /** Lowercase source kind, or `null` for every kind. */
+  type: string | null;
+  search: string;
+}
+
 export interface KnowledgeSourcesListProps {
   brandId: string;
-  isAddOpen: boolean;
-  onAddClose: () => void;
-  /** Called once the pending Brand Kit seed request has been handled. */
-  onSeedHandled: () => void;
-  /** Monotonic counter; a change above the last handled value seeds the website. */
-  seedRequestId: number;
   website?: string;
 }
 

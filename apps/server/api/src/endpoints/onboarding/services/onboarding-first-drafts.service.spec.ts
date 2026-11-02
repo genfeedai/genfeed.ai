@@ -3,7 +3,11 @@ import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corp
 import { OnboardingFirstDraftsService } from '@api/endpoints/onboarding/services/onboarding-first-drafts.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
+import { ONBOARDING_CAMPAIGN_IMAGE_SLOTS } from '@genfeedai/contracts/constants';
+import type {
+  IOnboardingCampaignImage,
+  IOnboardingFirstDraftsResult,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 vi.mock(
@@ -44,7 +48,7 @@ describe('OnboardingFirstDraftsService', () => {
   };
   const postGeneration = { generateDraftText: vi.fn() };
   const signupPrefill = { scanBrandUrl: vi.fn() };
-  const gateway = { generateImage: vi.fn(), generateVideo: vi.fn() };
+  const gateway = { generateImage: vi.fn() };
   const runs = { execute: vi.fn(), retryMedia: vi.fn() };
   const voiceCorpus = { buildCorpus: vi.fn() };
 
@@ -69,7 +73,6 @@ describe('OnboardingFirstDraftsService', () => {
         };
       },
     );
-    gateway.generateVideo.mockResolvedValue({ data: { id: 'video_1' } });
     gateway.generateImage.mockResolvedValue({
       data: { id: 'ing_1' },
       url: 'x',
@@ -151,7 +154,7 @@ describe('OnboardingFirstDraftsService', () => {
   });
 
   describe('generate', () => {
-    it('drafts all four channels with one shared image', async () => {
+    it('drafts all four channels with a master image and one image per platform slot', async () => {
       const result = await service.generate(user, 'brand_1', {});
 
       expect(result.status).toBe('ready');
@@ -164,7 +167,40 @@ describe('OnboardingFirstDraftsService', () => {
       expect(result.imageUrl).toBe('https://cdn.example.com/a.png');
       expect(result.imageIngredientId).toBe('ing_1');
       expect(result.requestKey).toBe(result.drafts[0]?.requestKey);
-      expect(gateway.generateImage).toHaveBeenCalledTimes(1);
+      expect(
+        result.campaignImages?.map((image) => [image.id, image.status]),
+      ).toEqual([
+        ['twitter', 'ready'],
+        ['instagram', 'ready'],
+        ['linkedin', 'ready'],
+        ['tiktok-1', 'ready'],
+        ['tiktok-2', 'ready'],
+      ]);
+      expect(gateway.generateImage).toHaveBeenCalledTimes(6);
+    });
+
+    it('derives each platform image from the master at that platform size', async () => {
+      await service.generate(user, 'brand_1', {});
+
+      const bodies = vi
+        .mocked(buildFirstRunOnboardingImageBody)
+        .mock.calls.map(([input]) => input);
+      expect(bodies[0].leadingReferenceIds).toBeUndefined();
+      expect(
+        bodies
+          .slice(1)
+          .map((input) => [
+            input.leadingReferenceIds,
+            input.width,
+            input.height,
+          ]),
+      ).toEqual([
+        [['ing_1'], 1024, 576],
+        [['ing_1'], 1024, 1280],
+        [['ing_1'], 1024, 576],
+        [['ing_1'], 576, 1024],
+        [['ing_1'], 576, 1024],
+      ]);
     });
 
     it('writes the other channels from the X post, which is drafted first', async () => {
@@ -321,6 +357,14 @@ describe('OnboardingFirstDraftsService', () => {
       expect(result.status).toBe('partial');
       expect(result.imageUrl).toBeNull();
       expect(result.drafts).toHaveLength(4);
+      expect(result.campaignImages?.map((image) => image.status)).toEqual([
+        'failed',
+        'failed',
+        'failed',
+        'failed',
+        'failed',
+      ]);
+      expect(gateway.generateImage).toHaveBeenCalledTimes(1);
       expect(logger.error).toHaveBeenCalledWith(
         'Onboarding image generation failed',
         expect.any(Error),
@@ -369,70 +413,99 @@ describe('OnboardingFirstDraftsService', () => {
       );
     });
   });
-  it('creates a short cost-priority video through the normal billing gateway', async () => {
+  it('keeps the master and the other images when one platform image fails', async () => {
+    gateway.generateImage
+      .mockResolvedValueOnce({ data: { id: 'ing_master' } })
+      .mockRejectedValueOnce(new Error('provider failed'));
     const result = await service.generate(user, 'brand_1', {});
-    expect(gateway.generateVideo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        principal: {
-          brandId: 'brand_1',
-          organizationId: 'org_1',
-          userId: 'user_1',
-        },
-        body: expect.objectContaining({
-          brandId: 'brand_1',
-          duration: 5,
-          prioritize: 'cost',
-          waitForCompletion: true,
-          references: ['ing_1'],
-        }),
-      }),
-    );
-    expect(result.videoIngredientId).toBe('video_1');
-    expect(result.videoUrl).toBeTruthy();
-  });
-  it('keeps every saved image and text draft if video rendering fails', async () => {
-    gateway.generateVideo.mockRejectedValueOnce(new Error('provider failed'));
-    const result = await service.generate(user, 'brand_1', {});
-    expect(result.videoStatus).toBe('failed');
+    expect(result.campaignImages?.map((image) => image.status)).toEqual([
+      'failed',
+      'ready',
+      'ready',
+      'ready',
+      'ready',
+    ]);
+    expect(result.imageIngredientId).toBe('ing_master');
     expect(result.drafts).toHaveLength(4);
-    expect(result.imageIngredientId).toBe('ing_1');
     expect(result.status).toBe('partial');
   });
 
   describe.each([
     [
       'a deferred-credits payment error',
-      () => createInsufficientCreditsException(30, 0),
+      () => createInsufficientCreditsException(12, 0),
     ],
     [
       'an insufficient-credits business error',
-      () => new InsufficientCreditsException(30, 0),
+      () => new InsufficientCreditsException(12, 0),
     ],
   ])(
-    'when the organization cannot pay for video (%s)',
+    'when the organization cannot pay for an image (%s)',
     (_label, buildError) => {
-      it('records needs_credits and drops the placeholder instead of failing', async () => {
-        gateway.generateVideo.mockImplementationOnce(
-          async (input: {
-            onPlaceholderCreated: (id: string) => Promise<void>;
-          }) => {
-            await input.onPlaceholderCreated('video_placeholder');
-            throw buildError();
-          },
-        );
+      it('stops after the images it can pay for and marks the rest needs_credits', async () => {
+        gateway.generateImage
+          .mockResolvedValueOnce({ data: { id: 'ing_master' } })
+          .mockResolvedValueOnce({ data: { id: 'ing_twitter' } })
+          .mockImplementationOnce(
+            async (input: {
+              onPlaceholderCreated: (id: string) => Promise<void>;
+            }) => {
+              await input.onPlaceholderCreated('placeholder');
+              throw buildError();
+            },
+          );
         const result = await service.generate(user, 'brand_1', {});
-        expect(result.videoStatus).toBe('needs_credits');
-        expect(result.videoIngredientId).toBeNull();
-        expect(result.videoUrl).toBeNull();
+        expect(
+          result.campaignImages?.map((image) => [
+            image.id,
+            image.status,
+            image.ingredientId,
+          ]),
+        ).toEqual([
+          ['twitter', 'ready', 'ing_twitter'],
+          ['instagram', 'needs_credits', null],
+          ['linkedin', 'needs_credits', null],
+          ['tiktok-1', 'needs_credits', null],
+          ['tiktok-2', 'needs_credits', null],
+        ]);
+        expect(gateway.generateImage).toHaveBeenCalledTimes(3);
+        expect(result.imageIngredientId).toBe('ing_master');
         expect(result.drafts).toHaveLength(4);
-        expect(result.imageIngredientId).toBe('ing_1');
         expect(result.status).toBe('partial');
+      });
+
+      it('marks every platform image needs_credits when even the master is unaffordable', async () => {
+        gateway.generateImage.mockRejectedValueOnce(buildError());
+        const result = await service.generate(user, 'brand_1', {});
+        expect(result.imageUrl).toBeNull();
+        expect(result.campaignImages?.map((image) => image.status)).toEqual([
+          'needs_credits',
+          'needs_credits',
+          'needs_credits',
+          'needs_credits',
+          'needs_credits',
+        ]);
+        expect(gateway.generateImage).toHaveBeenCalledTimes(1);
+        expect(logger.error).not.toHaveBeenCalled();
       });
     },
   );
 
   describe('retryMedia', () => {
-    const saved = (): IOnboardingFirstDraftsResult => ({
+    const readyImage = (
+      slot: (typeof slots)[number],
+    ): IOnboardingCampaignImage => ({
+      aspectRatio: slot.aspectRatio,
+      id: slot.id,
+      ingredientId: `ing_${slot.id}`,
+      platform: slot.platform,
+      status: 'ready',
+      url: `https://cdn.example.com/${slot.id}.png`,
+    });
+    const slots = ONBOARDING_CAMPAIGN_IMAGE_SLOTS;
+    const saved = (
+      overrides: Partial<IOnboardingFirstDraftsResult> = {},
+    ): IOnboardingFirstDraftsResult => ({
       drafts: (['twitter', 'instagram', 'tiktok', 'linkedin'] as const).map(
         (platform, index) => ({
           isProvisional: false,
@@ -443,27 +516,27 @@ describe('OnboardingFirstDraftsService', () => {
           text: `${platform} saved text`,
         }),
       ),
+      campaignImages: [],
       imageIngredientId: null,
       imageUrl: null,
       requestKey: 'key_0',
       status: 'partial',
-      videoIngredientId: null,
-      videoStatus: 'pending',
-      videoUrl: null,
+      ...overrides,
     });
-    const run = (missing: { image: boolean; video: boolean }) => {
-      const result = saved();
+    const run = (
+      missing: { campaign: boolean; image: boolean },
+      result = saved(),
+    ) => {
       runs.retryMedia.mockImplementation(async (_user, _brand, generate) =>
         generate(missing, result, vi.fn()),
       );
       return service.retryMedia(user, 'brand_1');
     };
 
-    it('regenerates a missing image and video without writing any text again', async () => {
-      const result = await run({ image: true, video: true });
+    it('regenerates a missing master and its platform images without writing any text again', async () => {
+      const result = await run({ campaign: true, image: true });
       expect(postGeneration.generateDraftText).not.toHaveBeenCalled();
-      expect(gateway.generateImage).toHaveBeenCalledTimes(1);
-      expect(gateway.generateVideo).toHaveBeenCalledTimes(1);
+      expect(gateway.generateImage).toHaveBeenCalledTimes(6);
       expect(result.drafts.map((draft) => draft.text)).toEqual([
         'twitter saved text',
         'instagram saved text',
@@ -471,34 +544,70 @@ describe('OnboardingFirstDraftsService', () => {
         'linkedin saved text',
       ]);
       expect(result.imageIngredientId).toBe('ing_1');
-      expect(result.videoStatus).toBe('ready');
       expect(result.status).toBe('ready');
     });
 
-    it('references the new image in the new video', async () => {
-      await run({ image: true, video: true });
-      expect(gateway.generateVideo.mock.calls[0][0].body.references).toEqual([
-        'ing_1',
-      ]);
+    it('derives the new platform images from a master that already exists', async () => {
+      await run(
+        { campaign: true, image: false },
+        saved({
+          imageIngredientId: 'ing_master',
+          imageUrl: 'https://cdn.example.com/master.png',
+        }),
+      );
+      expect(gateway.generateImage).toHaveBeenCalledTimes(5);
+      expect(
+        vi
+          .mocked(buildFirstRunOnboardingImageBody)
+          .mock.calls.map(([input]) => input.leadingReferenceIds),
+      ).toEqual(Array(5).fill(['ing_master']));
     });
 
-    it('leaves a finished image alone when only the video is missing', async () => {
-      const result = await run({ image: false, video: true });
-      expect(gateway.generateImage).not.toHaveBeenCalled();
-      expect(gateway.generateVideo).toHaveBeenCalledTimes(1);
-      expect(result.videoStatus).toBe('ready');
+    it('keeps the platform images that already came back', async () => {
+      const result = await run(
+        { campaign: true, image: false },
+        saved({
+          campaignImages: [readyImage(slots[0]), readyImage(slots[1])],
+          imageIngredientId: 'ing_master',
+          imageUrl: 'https://cdn.example.com/master.png',
+        }),
+      );
+      expect(gateway.generateImage).toHaveBeenCalledTimes(3);
+      expect(result.campaignImages?.[0].ingredientId).toBe('ing_twitter');
+      expect(result.status).toBe('ready');
     });
 
-    it('stays partial and keeps the drafts when the image fails again', async () => {
+    it('generates the images that needed credits once the wallet can pay', async () => {
+      const result = await run(
+        { campaign: true, image: false },
+        saved({
+          campaignImages: slots.map((slot) => ({
+            aspectRatio: slot.aspectRatio,
+            id: slot.id,
+            ingredientId: null,
+            platform: slot.platform,
+            status: 'needs_credits' as const,
+            url: null,
+          })),
+          imageIngredientId: 'ing_master',
+          imageUrl: 'https://cdn.example.com/master.png',
+        }),
+      );
+      expect(
+        result.campaignImages?.every((image) => image.status === 'ready'),
+      ).toBe(true);
+    });
+
+    it('stays partial and keeps the drafts when the master fails again', async () => {
       gateway.generateImage.mockRejectedValueOnce(new Error('provider failed'));
-      const result = await run({ image: true, video: false });
+      const result = await run({ campaign: true, image: true });
       expect(result.imageUrl).toBeNull();
       expect(result.drafts).toHaveLength(4);
       expect(result.status).toBe('partial');
     });
 
     it('scopes the brand lookup to the caller organization', async () => {
-      await run({ image: true, video: false });
+      await run({ campaign: false, image: true });
       expect(brandsService.findOne).toHaveBeenCalledWith(
         { id: 'brand_1', isDeleted: false, organizationId: 'org_1' },
         'none',

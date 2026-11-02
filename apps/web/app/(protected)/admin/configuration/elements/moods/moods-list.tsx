@@ -1,12 +1,11 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementMood,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementMood } from '@models/elements/mood.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -17,7 +16,7 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -34,6 +33,7 @@ import type {
   MoodsListAction,
   MoodsListState,
 } from '@/features/admin/props/moods.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function moodsListReducer(
@@ -45,8 +45,6 @@ function moodsListReducer(
       return { ...state, moods: action.payload };
     case 'SET_IS_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_SELECTED_MOOD':
-      return { ...state, selectedMood: action.payload };
   }
 }
 
@@ -70,10 +68,9 @@ function MoodsListContent({
   const [state, dispatch] = useReducer(moodsListReducer, undefined, () => ({
     moods: [],
     isLoading: true,
-    selectedMood: null,
   }));
 
-  const { moods, isLoading, selectedMood } = state;
+  const { moods, isLoading } = state;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -186,11 +183,6 @@ function MoodsListContent({
     }
   }, [onRefresh, findAllMoods]);
 
-  function openMoodModal(modalId: ModalEnum, mood?: IElementMood): void {
-    dispatch({ type: 'SET_SELECTED_MOOD', payload: mood ?? null });
-    openModal(modalId);
-  }
-
   async function handleDelete(mood: IElementMood | null): Promise<void> {
     if (!mood) {
       return;
@@ -200,17 +192,14 @@ function MoodsListContent({
       const service = await getMoodsService();
       await service.delete(mood.id);
       notificationsService.success('Mood deleted');
-      dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
       findAllMoods(true);
     } catch (error) {
       logger.error('Failed to delete mood', error);
       notificationsService.error('Failed to delete mood');
-      dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
     }
   }
 
   function handleConfirmDelete(mood: ElementMood): void {
-    dispatch({ type: 'SET_SELECTED_MOOD', payload: mood });
     openConfirm({
       confirmLabel: 'Delete',
       isError: true,
@@ -224,11 +213,6 @@ function MoodsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (mood: ElementMood) => openMoodModal(ModalEnum.MOOD, mood),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: handleConfirmDelete,
             tooltip: 'Delete',
@@ -236,10 +220,16 @@ function MoodsListContent({
         ]
       : [];
 
+  const saveMood = useInlineRecordSave<Partial<IElementMood>>({
+    errorMessage: 'Failed to update mood',
+    onSaved: () => findAllMoods(true),
+    save: async (id, patch) => (await getMoodsService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementMood>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) => openMoodModal(ModalEnum.MOOD, element)
+        ? (element, patch) => saveMood(element.id, patch)
         : undefined,
   });
 
@@ -259,14 +249,7 @@ function MoodsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalMood
-          item={selectedMood}
-          onClose={() => dispatch({ type: 'SET_SELECTED_MOOD', payload: null })}
-          onConfirm={() => {
-            dispatch({ type: 'SET_SELECTED_MOOD', payload: null });
-            findAllMoods(true);
-          }}
-        />
+        <LazyModalMood onConfirm={() => findAllMoods(true)} />
       )}
 
       <div className="mt-4">

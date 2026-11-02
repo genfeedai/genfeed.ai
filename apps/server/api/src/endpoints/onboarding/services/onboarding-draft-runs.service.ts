@@ -6,12 +6,16 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { readUsableCdnAssetUrl } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
-import { ONBOARDING_MAX_MEDIA_RETRIES } from '@genfeedai/contracts/constants';
+import {
+  ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
+  ONBOARDING_MAX_MEDIA_RETRIES,
+} from '@genfeedai/contracts/constants';
 import type {
   IOnboardingDraftRun,
+  IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
 } from '@genfeedai/contracts/interfaces';
-import type { ContentRun } from '@genfeedai/prisma';
+import type { ContentRun, IngredientStatus } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -31,12 +35,25 @@ const resultSchema = z.object({
   imageUrl: z.string().nullable(),
   requestKey: z.string().nullable(),
   status: z.enum(['ready', 'partial', 'unavailable']),
-  videoIngredientId: z.string().nullable().optional(),
-  videoUrl: z.string().nullable().optional(),
-  videoStatus: z
-    .enum(['pending', 'ready', 'failed', 'needs_credits'])
+  campaignImages: z
+    .array(
+      z.object({
+        aspectRatio: z.string(),
+        id: z.string(),
+        ingredientId: z.string().nullable(),
+        platform: z.enum(['twitter', 'instagram', 'tiktok', 'linkedin']),
+        status: z.enum(['pending', 'ready', 'failed', 'needs_credits']),
+        url: z.string().nullable(),
+      }),
+    )
     .optional(),
 });
+
+const READY_INGREDIENT_STATUSES: IngredientStatus[] = [
+  'GENERATED',
+  'UPLOADED',
+  'VALIDATED',
+];
 const legacyArtifactSchema = z.object({
   artifact: z.object({ kind: z.literal('post'), id: z.string() }),
 });
@@ -66,24 +83,24 @@ export class OnboardingDraftRunsService {
         platform: draft.platform,
         content: draft.text,
         status: 'draft',
-        type:
-          draft.platform === 'tiktok'
-            ? 'video'
-            : result?.imageIngredientId
-              ? 'image'
-              : 'text',
-        assetIds:
-          draft.platform === 'tiktok'
-            ? result?.videoIngredientId
-              ? [result.videoIngredientId]
-              : []
-            : result?.imageIngredientId
-              ? [result.imageIngredientId]
-              : [],
+        type: result?.imageIngredientId ? 'image' : 'text',
+        assetIds: this.assetIdsFor(draft.platform, result),
         metadata: { source: 'onboarding', receiptId: draft.receiptId },
       })),
       result,
     });
+  }
+
+  /** The images a platform's draft carries: its own derived images, else the master. */
+  private assetIdsFor(
+    platform: IOnboardingFirstDraft['platform'],
+    result: IOnboardingFirstDraftsResult | null,
+  ): string[] {
+    const own = (result?.campaignImages ?? []).filter(
+      (image) => image.platform === platform && image.ingredientId,
+    );
+    if (own.length) return own.map((image) => image.ingredientId as string);
+    return result?.imageIngredientId ? [result.imageIngredientId] : [];
   }
 
   async latest(
@@ -132,33 +149,40 @@ export class OnboardingDraftRunsService {
             null)
           : null;
     }
-    if (config.result?.videoIngredientId) {
-      const video = await this.prisma.ingredient.findFirst({
-        where: {
-          id: config.result.videoIngredientId,
-          organizationId: String(user.organizationId),
-          brandId,
-          isDeleted: false,
-        },
-        select: { s3Key: true, status: true },
-      });
-      if (video) {
-        const ready = ['GENERATED', 'UPLOADED', 'VALIDATED'].includes(
-          video.status,
-        );
-        config.result.videoUrl = ready
-          ? (readUsableCdnAssetUrl(video, this.config.ingredientsEndpoint) ??
-            null)
-          : null;
-        config.result.videoStatus =
-          ready && config.result.videoUrl
-            ? 'ready'
-            : video.status === 'PROCESSING'
-              ? 'pending'
-              : 'failed';
-      } else {
-        config.result.videoUrl = null;
-        config.result.videoStatus = 'failed';
+    let hasPendingCampaignImage = false;
+    if (config.result?.campaignImages?.length) {
+      const ids = config.result.campaignImages.flatMap((image) =>
+        image.ingredientId ? [image.ingredientId] : [],
+      );
+      const rows = ids.length
+        ? await this.prisma.ingredient.findMany({
+            where: {
+              id: { in: ids },
+              organizationId: String(user.organizationId),
+              brandId,
+              isDeleted: false,
+            },
+            select: { id: true, s3Key: true, status: true },
+          })
+        : [];
+      for (const image of config.result.campaignImages) {
+        if (!image.ingredientId) {
+          hasPendingCampaignImage ||= image.status === 'pending';
+          continue;
+        }
+        const row = rows.find((item) => item.id === image.ingredientId);
+        const url =
+          row && READY_INGREDIENT_STATUSES.includes(row.status)
+            ? (readUsableCdnAssetUrl(row, this.config.ingredientsEndpoint) ??
+              null)
+            : null;
+        image.url = url;
+        image.status = url
+          ? 'ready'
+          : row?.status === 'PROCESSING'
+            ? 'pending'
+            : 'failed';
+        hasPendingCampaignImage ||= image.status === 'pending';
       }
     }
     if (config.result)
@@ -176,7 +200,7 @@ export class OnboardingDraftRunsService {
         (row.status === ContentRunStatus.COMPLETED ||
           row.status === 'complete') &&
         !isImageProcessing &&
-        config.result?.videoStatus !== 'pending'
+        !hasPendingCampaignImage
           ? 'complete'
           : row.status === ContentRunStatus.FAILED ||
               row.status === 'interrupted' ||
@@ -297,7 +321,6 @@ export class OnboardingDraftRunsService {
         drafts.find((draft) => draft.platform === 'twitter')?.requestKey ??
         null,
       status: drafts.length ? 'partial' : 'unavailable',
-      videoStatus: 'failed',
     };
     const id =
       'onboarding-legacy-' +
@@ -333,22 +356,13 @@ export class OnboardingDraftRunsService {
   ): Promise<void> {
     const organizationId = String(user.organizationId);
     for (const draft of result.drafts) {
-      const ingredientId =
-        draft.platform === 'tiktok'
-          ? result.videoIngredientId
-          : result.imageIngredientId;
-      if (!ingredientId) continue;
-      const ingredient = await this.prisma.ingredient.findFirst({
-        where: {
-          id: ingredientId,
-          organizationId,
-          brandId,
-          isDeleted: false,
-          status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
-        },
-        select: { id: true },
-      });
-      if (!ingredient) continue;
+      const ingredientIds = await this.readReadyIngredientIds(
+        organizationId,
+        brandId,
+        draft.platform,
+        result,
+      );
+      if (!ingredientIds.length) continue;
       const post = await this.prisma.post.updateMany({
         where: {
           id: draft.postId,
@@ -360,28 +374,63 @@ export class OnboardingDraftRunsService {
           contentRunId: null,
           ingredientLinks: { none: {} },
         },
-        data: {
-          contentRunId: runId,
-          category: draft.platform === 'tiktok' ? 'VIDEO' : 'IMAGE',
-        },
+        data: { contentRunId: runId, category: 'IMAGE' },
       });
       if (post.count)
         await this.prisma.postIngredient.createMany({
-          data: [
-            {
-              postId: draft.postId,
-              ingredientId,
-              organizationId,
-              position: 0,
-            },
-          ],
+          data: ingredientIds.map((ingredientId, position) => ({
+            postId: draft.postId,
+            ingredientId,
+            organizationId,
+            position,
+          })),
           skipDuplicates: true,
         });
     }
   }
 
   /**
-   * Regenerates the image or video a finished run is missing, once per call and
+   * What a draft carries once its images have settled: its own derived images,
+   * or the master when none of them came back. Nothing until every one of the
+   * platform's images has finished, so a post is linked once and never half.
+   */
+  private async readReadyIngredientIds(
+    organizationId: string,
+    brandId: string,
+    platform: IOnboardingFirstDraft['platform'],
+    result: IOnboardingFirstDraftsResult,
+  ): Promise<string[]> {
+    const own = (result.campaignImages ?? []).filter(
+      (image) => image.platform === platform,
+    );
+    if (own.some((image) => image.status === 'pending')) return [];
+    const wanted = own.some((image) => image.ingredientId)
+      ? own.flatMap((image) => (image.ingredientId ? [image.ingredientId] : []))
+      : result.imageIngredientId
+        ? [result.imageIngredientId]
+        : [];
+    if (!wanted.length) return [];
+    const ready = await this.prisma.ingredient.findMany({
+      where: {
+        id: { in: wanted },
+        organizationId,
+        brandId,
+        isDeleted: false,
+        status: { in: READY_INGREDIENT_STATUSES },
+      },
+      select: { id: true },
+    });
+    const readyIds = new Set(ready.map((ingredient) => ingredient.id));
+    const available = wanted.filter((id) => readyIds.has(id));
+    return available.length || !result.imageIngredientId
+      ? available
+      : readyIds.has(result.imageIngredientId)
+        ? [result.imageIngredientId]
+        : [];
+  }
+
+  /**
+   * Regenerates the master or platform images a finished run is missing, once per call and
    * at most ONBOARDING_MAX_MEDIA_RETRIES times per run. The text drafts and any
    * media that came back are never touched. The run row is claimed by comparing
    * the `updatedAt` just read, so two tabs cannot both start the same retry.
@@ -405,14 +454,13 @@ export class OnboardingDraftRunsService {
     if (run.status === 'running')
       throw new ConflictException('Your media is still being created.');
     const missing: OnboardingMissingMedia = {
-      image:
-        !result.imageUrl &&
-        result.drafts.some((draft) => draft.platform !== 'tiktok'),
-      video:
-        !result.videoUrl &&
-        result.drafts.some((draft) => draft.platform === 'tiktok'),
+      campaign:
+        result.campaignImages?.length !==
+          ONBOARDING_CAMPAIGN_IMAGE_SLOTS.length ||
+        result.campaignImages.some((image) => image.status !== 'ready'),
+      image: !result.imageUrl,
     };
-    if (!missing.image && !missing.video) return result;
+    if (!missing.image && !missing.campaign) return result;
     if (!run.mediaRetriesRemaining)
       throw new ConflictException(
         'This run has used all of its media retries.',
@@ -424,11 +472,7 @@ export class OnboardingDraftRunsService {
     if (missing.image) {
       next.imageIngredientId = null;
       next.imageUrl = null;
-    }
-    if (missing.video) {
-      next.videoIngredientId = null;
-      next.videoUrl = null;
-      next.videoStatus = 'pending';
+      next.campaignImages = [];
     }
     const claimed = await this.prisma.contentRun.updateMany({
       where: {
@@ -458,8 +502,8 @@ export class OnboardingDraftRunsService {
     // A retry that ends without media is a finished run, not an interrupted
     // one: the drafts are intact and a retry may remain.
     const finish = async (current: IOnboardingFirstDraftsResult) => {
-      if (current.videoStatus === 'pending' && !current.videoUrl)
-        current.videoStatus = 'failed';
+      for (const image of current.campaignImages ?? [])
+        if (image.status === 'pending' && !image.url) image.status = 'failed';
       await save(current);
       await this.prisma.contentRun.updateMany({
         where: { id: row.id, organizationId, brandId, isDeleted: false },

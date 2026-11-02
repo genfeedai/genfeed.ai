@@ -52,6 +52,15 @@ vi.mock('@contexts/ui/context-sidebar-context', () => ({
     ) : null,
 }));
 
+vi.mock(
+  '@app/(protected)/admin/organizations/components/concierge/concierge-handoff',
+  () => ({
+    default: ({ conciergeId }: { conciergeId: string }) => (
+      <div>Concierge handoff {conciergeId}</div>
+    ),
+  }),
+);
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => async () => ({
     getOrganizationsWithStats: mocks.getOrganizationsWithStats,
@@ -129,6 +138,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           id: 'org-1',
           name: 'Acme Inc',
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 3,
           totalEngagement: 900,
@@ -166,6 +176,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           id: 'org-1',
           name: 'Acme Inc',
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 3,
           totalEngagement: 900,
@@ -210,6 +221,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             name: 'Ada Lovelace',
           },
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
@@ -223,6 +235,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           id: 'org-2',
           name: 'Orphan',
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
@@ -260,6 +273,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             name: 'poya@vitae.ai',
           },
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
@@ -289,6 +303,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           name: 'Gateway Ventures',
           owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
           ownerEmailClass: 'company',
+          status: 'free',
           totalBrands: 1,
           totalEngagement: 0,
           totalGenerations: 12,
@@ -304,6 +319,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           name: 'Personal',
           owner: { email: 'a@gmail.com', id: 'user-4', name: 'A' },
           ownerEmailClass: 'personal',
+          status: 'free',
           totalBrands: 1,
           totalEngagement: 0,
           totalGenerations: 0,
@@ -342,6 +358,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           name: 'Gateway Ventures',
           owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
           ownerEmailClass: 'company',
+          status: 'free',
           totalBrands: 1,
           totalEngagement: 0,
           totalGenerations: 12,
@@ -367,6 +384,121 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     expect(within(sidebar).getByText('poya@vitae.ai')).toBeVisible();
   });
 
+  describe('lifecycle status and concierge', () => {
+    const baseOrg = {
+      avgEngagementRate: 0,
+      growth: 0,
+      ownerEmailClass: 'company',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+    };
+    const page = {
+      data: [
+        {
+          ...baseOrg,
+          concierge: { id: 'warm-1', status: 'INVITED' },
+          id: 'org-concierge',
+          name: 'Vitae',
+          owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
+          status: 'onboarding',
+        },
+        {
+          ...baseOrg,
+          id: 'org-paid',
+          name: 'Acme Inc',
+          plan: 'SCALE',
+          status: 'subscribed',
+        },
+      ],
+      pagination: { limit: 10, page: 1, total: 2, totalPages: 1 },
+      totals: {
+        growth: 12.5,
+        totalEngagement: 2300,
+        totalPosts: 41,
+        totalViews: 9800,
+      },
+    };
+
+    it('shows where each organization stands, and the concierge stage beside the name', async () => {
+      mocks.getOrganizationsWithStats.mockResolvedValue(page);
+
+      render(<AnalyticsOrganizationsList />);
+
+      const conciergeRow = (
+        await screen.findByRole('link', { name: /Vitae/ })
+      ).closest('tr') as HTMLElement;
+      const paidRow = screen
+        .getByRole('link', { name: /Acme Inc/ })
+        .closest('tr') as HTMLElement;
+      expect(
+        within(screen.getByRole('table')).getByRole('columnheader', {
+          name: 'Status',
+        }),
+      ).toBeVisible();
+      expect(within(conciergeRow).getByText('Onboarding')).toBeVisible();
+      expect(within(conciergeRow).getByText('Invited')).toBeVisible();
+      expect(within(paidRow).getByText('Subscribed')).toBeVisible();
+      expect(within(paidRow).queryByText('Invited')).not.toBeInTheDocument();
+    });
+
+    it('shows the period totals of every match above the table', async () => {
+      mocks.getOrganizationsWithStats.mockResolvedValue(page);
+
+      render(<AnalyticsOrganizationsList />);
+
+      expect(await screen.findByText('9.8K')).toBeVisible();
+      expect(screen.getByText('2.3K')).toBeVisible();
+      expect(screen.getByText('41')).toBeVisible();
+    });
+
+    it('holds the concierge handoff, owner and release access in the sidebar of a concierge organization', async () => {
+      mocks.getOrganizationsWithStats.mockResolvedValue(page);
+
+      render(
+        <AnalyticsOrganizationsList
+          getReleaseAccessHref={(id) => `/admin/organizations/${id}/settings`}
+        />,
+      );
+
+      const row = (await screen.findByText('Vitae')).closest(
+        'tr',
+      ) as HTMLElement;
+      fireEvent.click(within(row).getByText('Work email'));
+
+      const sidebar = screen.getByTestId('context-sidebar');
+      expect(
+        within(sidebar).getByText('Concierge handoff warm-1'),
+      ).toBeVisible();
+      expect(
+        within(sidebar).getByRole('link', { name: 'Open owner' }),
+      ).toHaveAttribute('href', '/admin/administration/users/user-3');
+      expect(
+        within(sidebar).getByRole('link', { name: 'Release access' }),
+      ).toHaveAttribute('href', '/admin/organizations/org-concierge/settings');
+    });
+
+    it('shows no concierge handoff and the plan for a self-serve organization', async () => {
+      mocks.getOrganizationsWithStats.mockResolvedValue(page);
+
+      render(<AnalyticsOrganizationsList />);
+
+      const row = (
+        await screen.findByRole('link', { name: /Acme Inc/ })
+      ).closest('tr') as HTMLElement;
+      fireEvent.click(within(row).getByText('Subscribed'));
+
+      const sidebar = screen.getByTestId('context-sidebar');
+      expect(within(sidebar).getByText('SCALE')).toBeVisible();
+      expect(
+        within(sidebar).queryByText(/Concierge handoff/),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('server-side ordering and type filter', () => {
     // One row, so the table renders its column headers.
     const onePage = {
@@ -377,6 +509,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           id: 'org-1',
           name: 'Acme Inc',
           ownerEmailClass: 'unknown',
+          status: 'free',
           totalGenerations: 0,
           totalBrands: 1,
           totalEngagement: 0,
@@ -482,6 +615,10 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       ['Owner email', 'Personal email', { emailClass: 'personal' }],
       ['Usage', 'Generated or published', { usage: 'active' }],
       ['Usage', 'No activity', { usage: 'inactive' }],
+      ['Status', 'Onboarding', { status: 'onboarding' }],
+      ['Status', 'Past due', { status: 'past_due' }],
+      ['Source', 'Concierge', { source: 'concierge' }],
+      ['Source', 'Self-serve', { source: 'self_serve' }],
     ])('filters by %s: %s', async (facet, option, expected) => {
       const user = userEvent.setup();
       mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
@@ -492,6 +629,8 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       });
       expect(lastRequest()).not.toHaveProperty('emailClass');
       expect(lastRequest()).not.toHaveProperty('usage');
+      expect(lastRequest()).not.toHaveProperty('status');
+      expect(lastRequest()).not.toHaveProperty('source');
 
       const searchNode = mocks.publishSearch.mock.calls.at(
         -1,

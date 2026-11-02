@@ -39,8 +39,7 @@ const VALUE_SKELETON: Record<MetricCardSize, string> = {
   xs: 'h-5 w-10',
 };
 
-const LABEL_CLASS =
-  'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
+const LABEL_CLASS = 'text-xs font-medium text-muted-foreground';
 
 const VALUE_CLASS = 'font-semibold tracking-[-0.02em] tabular-nums';
 
@@ -114,7 +113,7 @@ function resolveValueContent(
  * **One component, states via props** — do not invent StatCard / KPICard /
  * SummaryMetricCard / raw metric divs:
  * - `appearance="tile"` (default) — framed {@link Card}: the value first and
- *   largest, the label under it, then the detail line
+ *   largest, the label under it
  * - `appearance="inset"` — the same tile as a recessed panel inside a card
  * - `appearance="inline"` — frameless value/label pair for {@link MetricSummary}
  * - `size` — xs / sm / md / lg scale only
@@ -130,7 +129,6 @@ const MetricCard = memo(function MetricCard({
   analyticsMetricVariant,
   appearance = 'tile',
   className,
-  description,
   icon: Icon,
   isLoading = false,
   label,
@@ -245,12 +243,6 @@ const MetricCard = memo(function MetricCard({
       >
         {labelNode}
       </p>
-
-      {description ? (
-        <p className="mt-1 text-xs leading-5 text-foreground/60">
-          {description}
-        </p>
-      ) : null}
     </Card>
   );
 });

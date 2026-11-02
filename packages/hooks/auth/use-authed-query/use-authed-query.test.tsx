@@ -194,4 +194,29 @@ describe('useAuthedQuery', () => {
     expect(view.result.current.data).toBeUndefined();
     expect(view.result.current.isLoading).toBe(true);
   });
+  it('matches an object scope by value, so a scope rebuilt each render keeps the rows', async () => {
+    const view = renderHook(
+      ({ brand, page }) =>
+        useAuthedQuery({
+          keepPreviousDataWithin: ['report', { brand }],
+          queryFn: (service: ReportService, signal) => service.read(signal),
+          queryKey: ['report', { brand }, { page }],
+          service: reportService([`${brand}-${page}`]),
+        }),
+      {
+        initialProps: { brand: 'brand-1', page: 1 },
+        wrapper: wrapperFor(client),
+      },
+    );
+    await waitFor(() =>
+      expect(view.result.current.data).toEqual(['brand-1-1:token-a']),
+    );
+
+    view.rerender({ brand: 'brand-1', page: 2 });
+    expect(view.result.current.data).toEqual(['brand-1-1:token-a']);
+    expect(view.result.current.isLoading).toBe(false);
+
+    view.rerender({ brand: 'brand-2', page: 2 });
+    expect(view.result.current.data).toBeUndefined();
+  });
 });

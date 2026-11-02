@@ -39,7 +39,6 @@ export interface WorkspaceSurfaceProps
   contentClassName?: string;
   density?: WorkspaceSurfaceDensity;
   description?: ReactNode;
-  eyebrow?: ReactNode;
   /** Drops the frame around the body. Use when the child brings its own frame (a Table). */
   framed?: boolean;
   /** Removes body padding so rows and tables run border to border inside the frame. */
@@ -60,7 +59,6 @@ export function WorkspaceSurface({
   contentClassName,
   density = 'comfortable',
   description,
-  eyebrow,
   flush = false,
   framed = true,
   isLoading = false,
@@ -69,7 +67,7 @@ export function WorkspaceSurface({
   tone = 'default',
   ...props
 }: WorkspaceSurfaceProps): ReactElement {
-  const hasHeader = Boolean(eyebrow || title || description || actions);
+  const hasHeader = Boolean(title || description || actions);
 
   return (
     <section {...props} className={cn('flex flex-col', className)}>
@@ -78,11 +76,6 @@ export function WorkspaceSurface({
           {/* Title row: actions always sit on one line with the title block. */}
           <div className="flex min-h-control-sm items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              {eyebrow ? (
-                <p className="text-2xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  {eyebrow}
-                </p>
-              ) : null}
               {title ? (
                 <h2
                   className={cn(

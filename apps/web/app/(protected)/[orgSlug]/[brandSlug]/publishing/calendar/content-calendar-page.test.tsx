@@ -26,6 +26,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePostsLayoutSlots } from '@/features/posts/hooks/use-posts-layout-slots/use-posts-layout-slots';
@@ -460,7 +461,7 @@ function SubbarHost({ children }: { children: ReactNode }) {
         {slots.filtersNode}
         {slots.viewToggleNode}
         {slots.scheduleActionsNode}
-        {slots.exportNode}
+        {slots.overflowNode}
       </div>
       {children}
     </PostsLayoutContext.Provider>
@@ -590,8 +591,12 @@ describe('ContentCalendarPage', () => {
   });
 
   it('mounts the standalone calendar article modal and preserves creation navigation', async () => {
+    const user = userEvent.setup();
     await renderLoaded();
-    fireEvent.click(screen.getByRole('button', { name: 'New article' }));
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'New article' }),
+    );
     expect(articleModal.open).toHaveBeenCalledWith('modal-article');
     expect(articleModal.mount).toHaveBeenCalled();
     articleModal.onCreated?.('article-created');
@@ -601,9 +606,13 @@ describe('ContentCalendarPage', () => {
   });
 
   it('uses the parent article modal for the embedded publishing calendar', async () => {
+    const user = userEvent.setup();
     renderCalendarPage(true);
     expect(articleModal.mount).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'New article' }));
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'New article' }),
+    );
     expect(articleModal.open).toHaveBeenCalledWith('modal-article');
   });
 

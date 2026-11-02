@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
+import { useKeepRoutesPrefetched } from '@/hooks/navigation/use-keep-routes-prefetched/use-keep-routes-prefetched';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   AppRailItemMenuProps,
@@ -275,6 +276,14 @@ export function AppRail({
     () => items.filter((item) => item.app.group === 'app'),
     [items],
   );
+  // Every destination the rail can open, including the ones behind More,
+  // stays prefetched so a click paints the page at once instead of waiting
+  // on the server render.
+  const destinationHrefs = useMemo(
+    () => items.map((item) => item.href),
+    [items],
+  );
+  useKeepRoutesPrefetched(destinationHrefs);
   const adminExitItem = items.find((item) => item.app.group === 'admin-exit');
   const adminCategoryItems = items.filter(
     (item) => item.app.group === 'admin-category',

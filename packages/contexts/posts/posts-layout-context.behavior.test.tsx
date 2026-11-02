@@ -14,7 +14,7 @@ describe('usePostsLayout', () => {
     const { result } = renderHook(() => usePostsLayout());
 
     expect(() => {
-      result.current.setExportNode(null);
+      result.current.setOverflowNode(null);
       result.current.setFiltersNode(null);
       result.current.setLeadingNode(null);
       result.current.setIsRefreshing(true);
@@ -26,7 +26,7 @@ describe('usePostsLayout', () => {
 
   it('returns the provided context value inside a provider', () => {
     const value = {
-      setExportNode: vi.fn(),
+      setOverflowNode: vi.fn(),
       setFiltersNode: vi.fn(),
       setLeadingNode: vi.fn(),
       setIsRefreshing: vi.fn(),

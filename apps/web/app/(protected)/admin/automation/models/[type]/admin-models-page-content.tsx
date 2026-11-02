@@ -62,7 +62,7 @@ export default function AdminModelsPageContent({
       onRefresh={refreshPricing}
       rowActions={rowActions}
       isModelPinned={isModelPinned}
-      renderToolbar={(models) => <ModelPricingToolbar models={models} />}
+      renderOverflow={(models) => <ModelPricingToolbar models={models} />}
     />
   );
 }

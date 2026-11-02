@@ -11,7 +11,7 @@ import { ChartColumn } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import AnalyticsWorkSurfaceAdapter, {
-  AnalyticsScopedExportButton,
+  AnalyticsScopedExportMenu,
 } from './_surface/analytics-work-surface-adapter';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
@@ -33,7 +33,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
       }
-      iconActions={<AnalyticsScopedExportButton />}
+      overflow={<AnalyticsScopedExportMenu />}
       right={
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {toolbarNode}

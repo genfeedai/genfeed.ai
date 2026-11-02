@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IElementCamera } from '@genfeedai/contracts/interfaces';
-import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { CamerasService } from '@genfeedai/services/elements/cameras.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -12,15 +12,13 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalCamera({
-  item,
-  onConfirm,
-  onClose,
-}: ModalCrudProps<IElementCamera>) {
+export default function ModalCamera({ onConfirm, onClose }: ModalCreateProps) {
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IElementCamera,
     ElementSimpleSchema
@@ -32,7 +30,7 @@ export default function ModalCamera({
       key: '',
       label: '',
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.CAMERA,
     onClose,
     onConfirm,
@@ -60,7 +58,7 @@ export default function ModalCamera({
   };
 
   return (
-    <Modal id={ModalEnum.CAMERA} title={item ? 'Edit Camera' : 'Create Camera'}>
+    <Modal id={ModalEnum.CAMERA} title={t('camera')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -121,7 +119,7 @@ export default function ModalCamera({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

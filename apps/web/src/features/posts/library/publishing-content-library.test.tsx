@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => ({
   search: '',
   setFiltersNode: vi.fn(),
   setLeadingNode: vi.fn(),
-  setExportNode: vi.fn(),
+  setOverflowNode: vi.fn(),
   setIsRefreshing: vi.fn(),
   setRefresh: vi.fn(),
   setViewToggleNode: vi.fn(),
@@ -88,7 +88,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setFiltersNode: mocks.setFiltersNode,
     setLeadingNode: mocks.setLeadingNode,
-    setExportNode: mocks.setExportNode,
+    setOverflowNode: mocks.setOverflowNode,
     setIsRefreshing: mocks.setIsRefreshing,
     setRefresh: mocks.setRefresh,
     setViewToggleNode: mocks.setViewToggleNode,
