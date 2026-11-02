@@ -45,7 +45,10 @@ describe('ModalTag', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Label' }), {
       target: { value: 'Launch week' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    // Save stays disabled until the schema validation of the new label settles.
+    const save = screen.getByRole('button', { name: 'Save' });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.click(save);
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(true));
     expect(fixture.posted).toEqual([

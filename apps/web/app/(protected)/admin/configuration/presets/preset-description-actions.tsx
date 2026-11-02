@@ -7,7 +7,7 @@ import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { Copy, Sparkles, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PresetDescriptionActionsProps } from '@/features/admin/props/presets.props';
 import { usePromptEnhance } from '@/hooks/ui/use-prompt-enhance/use-prompt-enhance';
 
@@ -31,14 +31,14 @@ export default function PresetDescriptionActions({
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const description = preset.description ?? '';
 
-  const clearUndoTimeout = () => {
+  const clearUndoTimeout = useCallback(() => {
     if (undoTimeoutRef.current) {
       clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = null;
     }
-  };
+  }, []);
 
-  useEffect(() => clearUndoTimeout, []);
+  useEffect(() => clearUndoTimeout, [clearUndoTimeout]);
 
   const handleEnhance = async () => {
     clearUndoTimeout();

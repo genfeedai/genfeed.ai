@@ -236,6 +236,15 @@ export default function TurboNewPane() {
   async function create(isNewProjectConfirmed = false) {
     if (busy || submitting.current || isSubscriptionRequired || !canCreate)
       return;
+    // A change request is routed by the brand's project list; wait for it
+    // rather than creating a project for work that already exists.
+    if (
+      !isNewProjectConfirmed &&
+      isIdeas &&
+      projects === null &&
+      isProjectChangeRequest(trimmedPrompt)
+    )
+      return;
     setProjectChoice(null);
     if (
       !isNewProjectConfirmed &&

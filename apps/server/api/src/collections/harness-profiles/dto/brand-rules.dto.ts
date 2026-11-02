@@ -13,10 +13,6 @@ const MAX_TEXT_LENGTH = 10_000;
 const MAX_REASON_LENGTH = 2_000;
 
 export class ProposeBrandRulesDto {
-  @IsString()
-  @IsNotEmpty()
-  brandId!: string;
-
   /** The generated text the user started from (plain text or the editor's HTML). */
   @IsOptional()
   @IsString()
