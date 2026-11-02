@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
+import { ONBOARDING_CAMPAIGN_IMAGE_SLOTS } from '@genfeedai/contracts/constants';
 import type {
+  IOnboardingCampaignImage,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
 } from '@genfeedai/contracts/interfaces';
@@ -154,6 +156,22 @@ const SCANNED: IOnboardingScanResult = {
   },
 };
 
+function campaignImages(
+  overrides: Partial<Record<string, IOnboardingCampaignImage['status']>> = {},
+): IOnboardingCampaignImage[] {
+  return ONBOARDING_CAMPAIGN_IMAGE_SLOTS.map((slot) => {
+    const status = overrides[slot.id] ?? 'ready';
+    return {
+      aspectRatio: slot.aspectRatio,
+      id: slot.id,
+      ingredientId: status === 'ready' ? `ingredient-${slot.id}` : null,
+      platform: slot.platform,
+      status,
+      url: status === 'ready' ? `https://cdn.example.com/${slot.id}.png` : null,
+    };
+  });
+}
+
 function drafts(
   status: IOnboardingFirstDraftsResult['status'] = 'ready',
 ): IOnboardingFirstDraftsResult {
@@ -168,6 +186,7 @@ function drafts(
         text: `${platform} draft text`,
       }),
     ),
+    campaignImages: campaignImages(),
     imageIngredientId: 'ingredient-1',
     imageUrl: 'https://cdn.example.com/a.png',
     requestKey: 'key-twitter',
@@ -574,21 +593,16 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
   });
 
-  it('retries a missing image and video without generating new drafts', async () => {
+  it('retries a missing campaign image without generating new drafts', async () => {
     const missing = {
       ...drafts('partial'),
       imageUrl: null,
       imageIngredientId: null,
-      videoStatus: 'failed' as const,
     };
     mocks.readDrafts
       .mockResolvedValueOnce({ ...savedRun(), result: missing })
       .mockResolvedValue({ ...savedRun(), mediaRetriesRemaining: 1 });
-    mocks.retryDraftMedia.mockResolvedValue({
-      ...drafts(),
-      videoUrl: 'https://cdn.example.com/v.mp4',
-      videoStatus: 'ready',
-    });
+    mocks.retryDraftMedia.mockResolvedValue(drafts());
     render(<FirstDraftsOnboarding />);
     await screen.findByText('twitter draft text');
     fireEvent.click(screen.getAllByRole('button', { name: 'Retry media' })[0]);
@@ -601,19 +615,43 @@ describe('FirstDraftsOnboarding', () => {
     expect(mocks.generateDrafts).not.toHaveBeenCalled();
   });
 
-  it('says the video needs credits instead of calling it unavailable', async () => {
+  it('shows the campaign image first and one image for each platform', async () => {
+    mocks.readDrafts.mockResolvedValue(savedRun());
+    render(<FirstDraftsOnboarding />);
+    expect(
+      await screen.findByRole('img', { name: /Campaign image for/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Made from your campaign image'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('img', { name: 'Generated image for Instagram' }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByText(
+        'Want this as video? Video is available with paid credits.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('says an image needs credits instead of calling it unavailable', async () => {
     mocks.readDrafts.mockResolvedValue({
       ...savedRun(),
       result: {
         ...drafts('partial'),
-        videoUrl: null,
-        videoIngredientId: null,
-        videoStatus: 'needs_credits' as const,
+        campaignImages: campaignImages({
+          instagram: 'needs_credits',
+          linkedin: 'needs_credits',
+        }),
       },
     });
     render(<FirstDraftsOnboarding />);
-    await screen.findByText(/Video needs credits\./);
-    expect(screen.queryByText(/Video unavailable/)).not.toBeInTheDocument();
+    expect(
+      (await screen.findAllByText(/This image needs credits\./)).length,
+    ).toBe(2);
+    expect(
+      screen.queryByText('Image unavailable. Your draft is saved.'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Retry media' }),
     ).not.toBeInTheDocument();

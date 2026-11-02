@@ -199,13 +199,16 @@
       "partial": "Some posts couldn’t be created. Your other drafts are saved.",
       "imageFailed": "Image unavailable. Your text drafts are saved.",
       "continueAnyway": "Continue to my workspace",
-      "videoNote": "Video renders after you approve the script.",
       "schedule": "Connect and schedule {count, plural, one {# post} other {# posts}}",
       "generic": "We didn't have much to go on, so these are generic. Say what's wrong and we'll redo them.",
       "skipScheduling": "Skip scheduling, continue",
-      "videoPending": "Creating your video…",
-      "videoFailed": "Video unavailable. Your script is saved.",
-      "videoNeedsCredits": "Video needs credits. Your script is saved. Add credits in billing once your workspace is set up.",
+      "imagePending": "Creating your image…",
+      "imageUnavailable": "Image unavailable. Your draft is saved.",
+      "imageNeedsCredits": "This image needs credits. Your draft is saved. Add credits in billing once your workspace is set up.",
+      "videoWithCredits": "Want this as video? Video is available with paid credits.",
+      "masterTitle": "Campaign image",
+      "masterDescription": "Made first from your brand kit. Every image below reuses it, so each platform shares one look.",
+      "derivedTitle": "Made from your campaign image",
       "retryMedia": "Retry media"
     },
     "platforms": {
@@ -304,7 +307,7 @@
     "progress": "Onboarding progress",
     "gettingStarted": "Getting started",
     "brandFallback": "Your brand",
-    "videoAlt": "Generated video for {platform}",
+    "masterAlt": "Campaign image for {brand}",
     "appName": "Genfeed"
   }
 }
