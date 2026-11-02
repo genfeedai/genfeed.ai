@@ -93,6 +93,7 @@
   "importSourceDescription": "Add a YouTube URL or upload audio or video. We will save the project, transcribe it, and find highlights.",
   "sourceVideoPreview": "Source video preview",
   "playSourceVideo": "Play source video",
+  "title": "Clipper",
   "transcript": "Transcript",
   "transcriptPending": "The transcript will appear here after transcription.",
   "avatarDefaultsHint": "Avatar video generation needs a saved HeyGen avatar and voice. You can analyze the source without them.",
