@@ -2,12 +2,9 @@
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  IPerformanceContentItem,
-  IWeeklyPerformanceSummary,
-} from '@genfeedai/contracts/interfaces';
+import type { IPerformanceContentItem } from '@genfeedai/contracts/interfaces';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -19,7 +16,6 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 import PerformanceDatasetBadge, {
   LOW_CONFIDENCE_STATES,
 } from '@/components/analytics/performance-dataset-badge/PerformanceDatasetBadge';
@@ -30,51 +26,34 @@ export default function AnalyticsOverviewPerformanceDataset() {
   const scope = useCollectionScope();
   const { brandId } = scope;
   const { brandSlug, href, orgHref } = useOrgUrl();
-  const { dateRange } = useAnalyticsContext();
+  const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
     dateRange.endDate ?? undefined,
   );
   const isFetchReady = isCollectionFetchReady(scope) && Boolean(brandId);
-  const getService = useAuthedService((token: string) =>
-    ContentPerformanceService.getInstance(token),
-  );
-  const [summary, setSummary] = useState<IWeeklyPerformanceSummary | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isFetchReady || !brandId) {
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsLoading(true);
-    void (async () => {
+  // Cached per brand and range: coming back to the overview paints the
+  // dataset line at once while it refreshes.
+  const { data: summary = null, isPending: isLoading } = useAuthedQuery({
+    enabled: isFetchReady && Boolean(brandId),
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        const data = await service.getWeeklySummary({
-          brandId,
-          endDate,
-          startDate,
-        });
-        if (!controller.signal.aborted) {
-          setSummary(data);
-        }
+        return (
+          (await service.getWeeklySummary({
+            brandId: brandId ?? '',
+            endDate,
+            startDate,
+          })) ?? null
+        );
       } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch weekly performance summary', error);
-          setSummary(null);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        logger.error('Failed to fetch weekly performance summary', error);
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [brandId, endDate, getService, isFetchReady, startDate]);
+    },
+    queryKey: ['weekly-performance-summary', brandId, startDate, endDate],
+    refreshKey: refreshTrigger,
+    service: (token: string) => ContentPerformanceService.getInstance(token),
+  });
 
   // A malformed or partial response (e.g. an unhandled API error falling
   // through to a generic empty-collection shape) can resolve successfully
