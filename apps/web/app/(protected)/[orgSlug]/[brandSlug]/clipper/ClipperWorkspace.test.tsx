@@ -63,11 +63,12 @@ vi.mock('./components/ClipperInputForm', () => ({
 }));
 
 vi.mock('./components/ClipperProjectList', () => ({
-  default: ({ isRecentVisible }: { isRecentVisible?: boolean }) => (
-    <div
-      data-recent-visible={String(isRecentVisible)}
-      data-testid="clipper-project-list"
-    />
+  default: () => <div data-testid="clipper-project-list" />,
+}));
+
+vi.mock('./ClipperIngredientImport', () => ({
+  default: ({ videoId }: { videoId: string }) => (
+    <p role="status">Importing {videoId}</p>
   ),
 }));
 
@@ -102,16 +103,7 @@ describe('ClipperWorkspace chrome stability', () => {
     mocks.useStudioClipperPage.mockReturnValue(baseClipperPageState());
   });
 
-  it('shows no topbar until there is an action, then puts New project in it', () => {
-    mocks.useStudioClipperProjects.mockReturnValue({
-      error: null,
-      isLoading: false,
-      projects: [],
-    });
-
-    const { rerender } = render(<ClipperWorkspace />);
-    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
-
+  it('lists the projects with the search in the topbar and no New project action', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
       error: null,
       isLoading: false,
@@ -128,13 +120,16 @@ describe('ClipperWorkspace chrome stability', () => {
         },
       ],
     });
-    rerender(<ClipperWorkspace />);
-    expect(screen.getByTestId('section-topbar')).toContainElement(
-      screen.getByRole('link', { name: 'New project' }),
-    );
+
+    render(<ClipperWorkspace />);
+
+    expect(screen.getByTestId('clipper-project-list')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'New project' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('points an empty project list at the new-project route instead of an unsaved form', () => {
+  it('tells the creator to import a source on the left when there are no projects', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
       error: null,
       isLoading: false,
@@ -143,12 +138,25 @@ describe('ClipperWorkspace chrome stability', () => {
 
     render(<ClipperWorkspace />);
 
-    expect(screen.getByTestId('clipper-empty-state')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'New project' })).toHaveAttribute(
-      'href',
-      '/acme/demo/clipper/new',
-    );
+    expect(screen.getByText('No clip projects yet')).toBeVisible();
     expect(screen.queryByTestId('clipper-input-form')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'New project' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('turns a Library video into a project instead of showing the list', () => {
+    mocks.searchParams = new URLSearchParams('video=video-1');
+    mocks.useStudioClipperProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+
+    render(<ClipperWorkspace />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Importing video-1');
+    expect(screen.queryByText('No clip projects yet')).not.toBeInTheDocument();
   });
 
   it('renders the actual downloading phase without an unsupported completion estimate', () => {
@@ -273,7 +281,7 @@ describe('ClipperWorkspace chrome stability', () => {
     );
   });
 
-  it('pages the project list and drops "Recent" after the first page', () => {
+  it('pages the project list', () => {
     mocks.searchParams = new URLSearchParams('page=2');
     mocks.useStudioClipperProjects.mockReturnValue({
       error: null,
@@ -297,10 +305,6 @@ describe('ClipperWorkspace chrome stability', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
-    expect(screen.getByTestId('clipper-project-list')).toHaveAttribute(
-      'data-recent-visible',
-      'false',
-    );
   });
 
   it('puts the search in the topbar, keeps it on a miss, and searches by the q param', () => {

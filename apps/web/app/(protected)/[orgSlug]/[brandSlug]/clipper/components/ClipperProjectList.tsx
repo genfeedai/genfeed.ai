@@ -1,13 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { NotificationsService } from '@services/core/notifications.service';
-import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
@@ -26,24 +24,16 @@ import { Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import type {
   ClipperProjectListProps,
   ClipperProjectSummary,
 } from '@/props/studio/clipper.props';
 import { youtubeThumbnailUrl } from '../utils/youtube-thumbnail';
 
-import ClipperProjectCard from './ClipperProjectCard';
-
-function updatedTime(project: ClipperProjectSummary): number {
-  return Date.parse(project.updatedAt ?? project.createdAt ?? '') || 0;
-}
-
 export default function ClipperProjectList({
   isLoading,
-  isRecentVisible = true,
   projects,
-  view,
   onRename,
   onDelete,
 }: ClipperProjectListProps) {
@@ -53,11 +43,6 @@ export default function ClipperProjectList({
     useState<ClipperProjectSummary | null>(null);
   const [name, setName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const recent = useMemo(
-    () =>
-      [...projects].sort((a, b) => updatedTime(b) - updatedTime(a)).slice(0, 3),
-    [projects],
-  );
   const projectHref = (project: ClipperProjectSummary) =>
     href(`${APP_ROUTES.STUDIO.CLIPPER}/${project.id}`);
 
@@ -166,55 +151,21 @@ export default function ClipperProjectList({
   }
 
   return (
-    <div className="flex flex-col gap-8" data-testid="clipper-project-list">
-      {!isLoading && isRecentVisible && (
-        <CollectionCarouselSection
-          data-testid="clipper-projects-recent"
-          title={t('recent')}
-          itemCount={recent.length}
-        >
-          {recent.map((project) => (
-            <div
-              key={project.id}
-              className="min-w-64 shrink-0 basis-[calc((100%_-_2rem)/3)]"
-            >
-              <ClipperProjectCard
-                project={project}
-                href={projectHref(project)}
-                actions={actions(project)}
-              />
-            </div>
-          ))}
-        </CollectionCarouselSection>
-      )}
-      <CollectionSection
-        data-testid="clipper-projects-all"
-        title={t('allProjects')}
-        itemCount={projects.length}
+    <div className="flex flex-col gap-4" data-testid="clipper-project-list">
+      <CollectionView
+        data-testid={
+          isLoading
+            ? 'clipper-project-list-loading'
+            : 'clipper-projects-all-collection'
+        }
+        getItemKey={(project) => project.id}
         isLoading={isLoading}
-        isCountVisible
-      >
-        <CollectionView
-          data-testid={
-            isLoading
-              ? 'clipper-project-list-loading'
-              : 'clipper-projects-all-collection'
-          }
-          items={projects}
-          view={view}
-          isLoading={isLoading}
-          skeletonCount={3}
-          getItemKey={(project) => project.id}
-          renderListItem={row}
-          renderGridItem={(project) => (
-            <ClipperProjectCard
-              project={project}
-              href={projectHref(project)}
-              actions={actions(project)}
-            />
-          )}
-        />
-      </CollectionSection>
+        items={projects}
+        renderGridItem={row}
+        renderListItem={row}
+        skeletonCount={3}
+        view={ViewType.LIST}
+      />
       <Dialog
         open={renameTarget !== null}
         onOpenChange={(open) => {

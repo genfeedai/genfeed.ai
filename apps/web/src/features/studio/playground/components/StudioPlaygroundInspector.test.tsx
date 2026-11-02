@@ -1249,7 +1249,7 @@ describe('StudioPlaygroundInspector', () => {
 
     expect(
       within(actions).getByRole('link', { name: 'Make clips' }),
-    ).toHaveAttribute('href', '/acme/northstar/clipper/new?video=vid-1');
+    ).toHaveAttribute('href', '/acme/northstar/clipper?video=vid-1');
 
     fireEvent.click(
       within(actions).getByRole('button', {

@@ -84,7 +84,7 @@ export const STUDIO_APP_MENU_ITEMS: Readonly<
       href: APP_ROUTES.STUDIO.CLIPPER,
       label: APP_DISPLAY_LABELS.clipper,
       organizationModule: 'clipper',
-      matchPaths: [APP_ROUTES.STUDIO.CLIPPER, APP_ROUTES.STUDIO.CLIPPER_NEW],
+      matchPaths: [APP_ROUTES.STUDIO.CLIPPER],
       outline: GalleryHorizontalStart,
       solid: GalleryHorizontalStart,
     },
@@ -112,7 +112,7 @@ const STUDIO_APP_ROOTS: Readonly<Record<StudioAppId, string>> = {
   turbo: APP_ROUTES.STUDIO.TURBO,
 };
 
-/** The Studio app that owns a product path such as `/clipper/new`. */
+/** The Studio app that owns a product path such as `/clipper/project-1`. */
 export function getStudioAppForPath(
   productPath: string,
 ): StudioAppId | undefined {

@@ -296,13 +296,11 @@ async function mockDraftProject(page: Page): Promise<DraftSession> {
   return session;
 }
 
-/** Opens the source import page without creating a draft. */
+/** Opens the Clipper workspace, whose left pane imports a source without creating a draft. */
 async function openNewProject(page: Page): Promise<DraftSession> {
   const session = await mockDraftProject(page);
 
   await page.goto(CLIPPER_URL);
-  await page.getByRole('link', { name: /new project/i }).click();
-  await expect(page).toHaveURL(new RegExp(`${CLIPPER_URL}/new`));
   await expect(page.getByLabel(/youtube url/i)).toBeVisible();
 
   return session;
@@ -367,12 +365,11 @@ test.describe('Clip Factory', () => {
 
     await authenticatedPage.goto(CLIPPER_URL);
 
-    // The list renders each project in both the Recent and All projects
-    // sections; the row title is plain text and "Open" is the row's primary
-    // link, so scope to the row inside All projects.
-    const projectRow = authenticatedPage
-      .getByTestId('clipper-projects-all')
-      .getByTestId(`clipper-project-row-${MOCK_PROJECT_ID}`);
+    // The project list sits on the right of the workspace; "Open" is the row's
+    // primary link.
+    const projectRow = authenticatedPage.getByTestId(
+      `clipper-project-row-${MOCK_PROJECT_ID}`,
+    );
     await expect(projectRow).toBeVisible();
     await expect(projectRow).toContainText(/podcast ep 12/i);
     await expect(projectRow.getByText(/8 clips/i)).toBeVisible();
@@ -448,7 +445,7 @@ test.describe('Clip Factory', () => {
     // The Library "Make clips" link targets this route (asserted in the
     // IngredientDetailVideo unit test).
     await authenticatedPage.goto(
-      brandPath(`${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${MOCK_VIDEO_ID}`),
+      brandPath(`${APP_ROUTES.STUDIO.CLIPPER}?video=${MOCK_VIDEO_ID}`),
     );
 
     await expect(authenticatedPage).toHaveURL(
@@ -479,7 +476,7 @@ test.describe('Clip Factory', () => {
     });
 
     await authenticatedPage.goto(
-      brandPath(`${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${MOCK_VIDEO_ID}`),
+      brandPath(`${APP_ROUTES.STUDIO.CLIPPER}?video=${MOCK_VIDEO_ID}`),
     );
 
     await expect(
@@ -1144,9 +1141,9 @@ test.describe('Clip Factory', () => {
     expect(analyzeRequestBody).toMatchObject({ youtubeUrl: MOCK_YOUTUBE_URL });
     expect(createRequestBody).not.toHaveProperty('avatarId');
     expect(createRequestBody).not.toHaveProperty('voiceId');
-    // The /clipper list stays mounted (hidden) behind /clipper/new while
-    // the route is retained, so its preset badges also match these labels.
-    // Scope to the visible route; the assertions are unchanged.
+    // The project list stays mounted behind the opened project while the route
+    // is retained, so its status labels also match these. Scope to the visible
+    // route; the assertions are unchanged.
     await expect(
       authenticatedPage
         .getByText('Raw cut', { exact: true })

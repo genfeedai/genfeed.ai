@@ -52,11 +52,12 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/turbo/project-1/extra')).toBe(false);
   });
 
-  it('matches a clipper project and leaves the list and the create form', () => {
+  it('matches the clipper workspace and a clipper project', () => {
+    expect(isAgentOutputRoute('/clipper')).toBe(true);
+    expect(isAgentOutputRoute('/clipper/')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1/')).toBe(true);
-    expect(isAgentOutputRoute('/clipper')).toBe(false);
-    expect(isAgentOutputRoute('/clipper/new')).toBe(false);
+    expect(isAgentOutputRoute('/clipper/project-1/extra')).toBe(false);
   });
 
   it('keeps Library, Publishing and Approvals on the dock', () => {

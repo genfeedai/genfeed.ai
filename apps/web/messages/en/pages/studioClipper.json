@@ -2,7 +2,6 @@
   "allProjects": "All projects",
   "approveHook": "Approve hook",
   "audioOrVideoFile": "Audio or video file",
-  "backToClips": "Back to Clipper",
   "backToLibrary": "Back to Library",
   "backToProjects": "Back to projects",
   "cancel": "Cancel",
@@ -77,7 +76,6 @@
   "uploadingSource": "Uploading source… {progress}%",
   "youtubeUrl": "YouTube URL",
   "youtubeUrlPlaceholder": "https://www.youtube.com/watch?v=...",
-  "recent": "Recent",
   "open": "Open",
   "projectActions": "Actions for {name}",
   "rename": "Rename",
@@ -92,7 +90,6 @@
   "importAndTranscribe": "Import & transcribe",
   "importingSource": "Importing source…",
   "importCreditsNotice": "Uses credits to transcribe and find highlights. No avatar videos are generated.",
-  "importSourceTitle": "Import a clip source",
   "importSourceDescription": "Add a YouTube URL or upload audio or video. We will save the project, transcribe it, and find highlights.",
   "sourceVideoPreview": "Source video preview",
   "playSourceVideo": "Play source video",
@@ -104,16 +101,7 @@
   "downloadingSource": "Downloading source media…",
   "extractingSourceAudio": "Extracting source audio…",
   "transcribingAndAnalyzingSource": "Transcribing and analyzing this source…",
-  "onboarding": {
-    "title": "Turn one long video into a batch of short clips",
-    "description": "Add a YouTube link or upload a file. Genfeed finds the strongest moments, cuts them and gets them ready to publish.",
-    "presetsTitle": "Start with a preset",
-    "presetsDescription": "A preset picks the clip style and how many highlights to find. You add the video next, so nothing is processed until you start."
-  },
   "presets": {
-    "listAria": "Clip presets",
-    "use": "Use this preset",
-    "useAria": "Start a clip project with the {title} preset",
     "appliedStatus": "{title} preset applied: up to {count} clips scoring {score} or higher. Add a video to start.",
     "maxClips": "{count, plural, one {Up to # clip} other {Up to # clips}}",
     "minScore": "Score {score}+",
@@ -121,9 +109,6 @@
       "avatar": "Avatar",
       "raw-cut": "Raw cut"
     },
-    "shelfTitle": "Start from a preset",
-    "seeAll": "See all presets",
-    "showFewer": "Show fewer",
     "items": {
       "podcastHighlights": {
         "title": "Podcast highlights",
@@ -152,5 +137,6 @@
     }
   },
   "search": "Search clip projects",
-  "emptySearch": "No clip projects match your search."
+  "emptySearch": "No clip projects match your search.",
+  "heroTitle": "What should Clipper cut?"
 }
