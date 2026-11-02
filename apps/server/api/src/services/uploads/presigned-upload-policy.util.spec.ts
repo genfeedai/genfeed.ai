@@ -15,6 +15,8 @@ describe('presigned upload policy', () => {
     [IngredientCategory.IMAGE, 'image/gif'],
     [IngredientCategory.IMAGE, 'image/heic'],
     [IngredientCategory.IMAGE, 'image/heif'],
+    [IngredientCategory.IMAGE, 'image/svg+xml'],
+    [IngredientCategory.AVATAR, 'IMAGE/SVG+XML'],
     [IngredientCategory.IMAGE, 'image/png; charset=binary'],
     [IngredientCategory.VIDEO, 'video/mp4'],
     [IngredientCategory.VIDEO, 'video/quicktime'],
@@ -28,8 +30,9 @@ describe('presigned upload policy', () => {
 
   it.each([
     [IngredientCategory.IMAGE, 'text/html'],
-    [IngredientCategory.IMAGE, 'image/svg+xml'],
     [IngredientCategory.IMAGE, 'application/x-msdownload'],
+    [IngredientCategory.VIDEO, 'image/svg+xml'],
+    [IngredientCategory.AUDIO, 'image/svg+xml'],
     [IngredientCategory.IMAGE, 'video/mp4'],
     [IngredientCategory.VIDEO, 'application/octet-stream'],
     [IngredientCategory.AUDIO, 'image/png'],
