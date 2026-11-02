@@ -3,8 +3,8 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
-import { useState } from 'react';
 import type { ReactElement } from 'react';
+import { useState } from 'react';
 import StudioPlaygroundFailureDetailsDialog from '@/features/studio/playground/components/StudioPlaygroundFailureDetailsDialog';
 import StudioPlaygroundFailureNotice from '@/features/studio/playground/components/StudioPlaygroundFailureNotice';
 import { getStudioPlaygroundTypeConfig } from '@/features/studio/playground/utils/studio-playground-types';
@@ -60,7 +60,9 @@ export default function StudioPlaygroundJobStatus({
   if (!isFailed) return null;
 
   if (job.phase === 'cancelled') {
-    return <GenerationStatus assetLabel={label.toLowerCase()} status="cancelled" />;
+    return (
+      <GenerationStatus assetLabel={label.toLowerCase()} status="cancelled" />
+    );
   }
 
   return (

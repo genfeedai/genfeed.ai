@@ -2950,9 +2950,7 @@ export default function StudioPlaygroundWorkspace({
                   {translate(`history.${galleryError}FailedTitle`)}
                 </AlertTitle>
                 <AlertDescription>
-                  <p>
-                    {translate(`history.${galleryError}FailedDescription`)}
-                  </p>
+                  <p>{translate(`history.${galleryError}FailedDescription`)}</p>
                   <Button
                     aria-busy={isLoadingGallery}
                     ariaLabel={translate('history.retry')}
@@ -3017,36 +3015,36 @@ export default function StudioPlaygroundWorkspace({
           {newPane}
         </>
       )}
-    <ContentLibraryPicker
-      description={
-        contentLibraryRole === 'audioReference'
-          ? audioLibrary.hasError
-            ? 'Audio references could not be loaded. Close and reopen the Library to retry.'
-            : 'Choose recorded audio, a generated voice, or music to condition the video alongside an image or video reference.'
-          : undefined
-      }
-      isLoading={
-        contentLibraryItems.length === 0 &&
-        (contentLibraryRole === 'audioReference'
-          ? audioLibrary.isLoading
-          : isContentLibraryLoading || isLoadingGallery)
-      }
-      isOpen={isContentLibraryOpen}
-      items={contentLibraryItems}
-      knowledgeSection={
-        type !== 'image-edit' ? (
-          <KnowledgeReferenceSection
-            brandId={brandId || undefined}
-            key={brandId || 'no-brand'}
-            onChange={handleKnowledgeSelectionChange}
-            value={knowledgeSelection}
-          />
-        ) : null
-      }
-      onOpenChange={setIsContentLibraryOpen}
-      onSelect={handleSelectContentReference}
-      selectedIds={selectedContentIds}
-    />
+      <ContentLibraryPicker
+        description={
+          contentLibraryRole === 'audioReference'
+            ? audioLibrary.hasError
+              ? 'Audio references could not be loaded. Close and reopen the Library to retry.'
+              : 'Choose recorded audio, a generated voice, or music to condition the video alongside an image or video reference.'
+            : undefined
+        }
+        isLoading={
+          contentLibraryItems.length === 0 &&
+          (contentLibraryRole === 'audioReference'
+            ? audioLibrary.isLoading
+            : isContentLibraryLoading || isLoadingGallery)
+        }
+        isOpen={isContentLibraryOpen}
+        items={contentLibraryItems}
+        knowledgeSection={
+          type !== 'image-edit' ? (
+            <KnowledgeReferenceSection
+              brandId={brandId || undefined}
+              key={brandId || 'no-brand'}
+              onChange={handleKnowledgeSelectionChange}
+              value={knowledgeSelection}
+            />
+          ) : null
+        }
+        onOpenChange={setIsContentLibraryOpen}
+        onSelect={handleSelectContentReference}
+        selectedIds={selectedContentIds}
+      />
     </div>
   );
 }

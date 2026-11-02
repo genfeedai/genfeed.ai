@@ -1830,7 +1830,9 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-composer')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
-    expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground/image-10');
+    expect(mocks.push).toHaveBeenLastCalledWith(
+      '/acme/moonrise/playground/image-10',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
     expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
@@ -1852,7 +1854,9 @@ describe('StudioPlaygroundWorkspace', () => {
 
     expect(screen.queryByTestId('studio-focused-preview')).toBeNull();
     expect(screen.getByText('focusedPreview.unavailable')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'focusedPreview.back' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'focusedPreview.back' }),
+    );
     expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
   });
 
