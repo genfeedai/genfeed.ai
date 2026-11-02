@@ -22,13 +22,6 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-/**
- * How long a page may report no selection (its detail is reloading) before the
- * sidebar collapses. A selection that comes back inside the gap keeps the
- * sidebar exactly as it was, so only the data swaps.
- */
-export const CONTEXT_SIDEBAR_SELECTION_GAP_MS = 2_000;
-
 /** Below `xl` the rail is display:none and the sidebar renders as a drawer. */
 export const CONTEXT_SIDEBAR_COMPACT_QUERY = '(max-width: 1279px)';
 
@@ -70,8 +63,6 @@ export function ContextSidebarProvider({
   const [desktopTarget, setDesktopTarget] = useState<HTMLElement | null>(null);
   const [mobileTarget, setMobileTarget] = useState<HTMLElement | null>(null);
   const activeRef = useRef<ActiveRegistration | null>(null);
-  const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const heldKeyRef = useRef<string | null>(null);
   const openedRef = useRef<{
     readonly key: string | null;
     readonly origin: ContextSidebarSelectionOrigin | null;
@@ -98,48 +89,22 @@ export function ContextSidebarProvider({
     [],
   );
 
-  useEffect(
-    () => () => {
-      if (gapTimerRef.current) {
-        clearTimeout(gapTimerRef.current);
-      }
-    },
-    [],
-  );
-
   // Every new selection opens the sidebar; the same selection re-registering
   // (a title refresh, a new close handler) never fights a collapse. A tap on
-  // the item the page had picked automatically is a new user selection. A
-  // selection that vanishes while its detail reloads and comes back inside
-  // the gap is the same selection: the sidebar neither closes nor reopens.
+  // the item the page had picked automatically is a new user selection.
   useEffect(() => {
     const previous = openedRef.current;
     openedRef.current = { key: activeKey, origin };
 
     if (!activeKey) {
       if (previous.key) {
-        heldKeyRef.current = previous.key;
-        if (gapTimerRef.current) {
-          clearTimeout(gapTimerRef.current);
-        }
-        gapTimerRef.current = setTimeout(() => {
-          gapTimerRef.current = null;
-          heldKeyRef.current = null;
-          setIsOpen(false);
-          setIsMobileOpen(false);
-        }, CONTEXT_SIDEBAR_SELECTION_GAP_MS);
+        setIsOpen(false);
+        setIsMobileOpen(false);
       }
       return;
     }
 
-    if (gapTimerRef.current) {
-      clearTimeout(gapTimerRef.current);
-      gapTimerRef.current = null;
-    }
-    const previousKey = previous.key ?? heldKeyRef.current;
-    heldKeyRef.current = null;
-
-    const isNewSelection = previousKey !== activeKey;
+    const isNewSelection = previous.key !== activeKey;
     const isTapOnAutomaticSelection =
       !isNewSelection && previous.origin === 'automatic' && origin === 'user';
     if (!isNewSelection && !isTapOnAutomaticSelection) {
