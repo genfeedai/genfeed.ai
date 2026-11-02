@@ -7,12 +7,12 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { Preset } from '@models/elements/preset.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
-import { useQuery } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -42,6 +42,7 @@ import PresetsListModals from './presets-list-modals';
 // A preset's label and key live in its JSON config, which the API cannot order
 // by, so only the real columns sort.
 const PRESET_SORT_KEYS = ['category', 'isActive'];
+const EMPTY_PRESETS: Preset[] = [];
 
 function PresetsListContent({
   scope = PageScope.BRAND,
@@ -74,26 +75,11 @@ function PresetsListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const {
-    data: presets = [] as Preset[],
-    isLoading,
-    isFetching,
-    error: presetsError,
-    refetch: refreshPresets,
-  } = useQuery({
-    queryKey: [
-      'presets',
-      currentPage,
-      scope,
-      adminOrg,
-      adminBrand,
-      search,
-      sort,
-    ],
-    queryFn: async () => {
-      const url = `GET /presets`;
-      const service = await getPresetsService();
-
+  // Cached per page with the signed-in account in the key: coming back paints
+  // the rows and footer it already has while they refresh.
+  const presetsQuery = usePagedAuthedQuery({
+    enabled: Boolean(isSignedIn),
+    queryFn: async (service, signal) => {
       const queryParams: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -110,22 +96,42 @@ function PresetsListContent({
         }
       }
 
-      const data = await service.findAll(queryParams);
-
-      logger.info(`${url} success`, data);
-      return data;
+      try {
+        const data = await service.findAll(queryParams, signal);
+        logger.info('GET /presets success', data);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /presets failed', error);
+        }
+        throw error;
+      }
     },
-    enabled: !!isSignedIn,
+    queryKey: [
+      'admin',
+      'presets',
+      { adminBrand, adminOrg, page: currentPage, scope, search, sort },
+    ],
+    service: (token: string) => PresetsService.getInstance(token),
   });
+  const presets = presetsQuery.data?.items ?? EMPTY_PRESETS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshPresets,
+  } = presetsQuery;
 
   const isRefreshing = isFetching && !isLoading;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (presetsError) {
-      logger.error('GET /presets failed', presetsError);
+    if (isError) {
       notificationsService.error('Failed to load presets');
     }
-  }, [presetsError, notificationsService]);
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   // Notify parent of loading/refreshing state changes
   useEffect(() => {
@@ -352,7 +358,11 @@ function PresetsListContent({
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="presets" />
+        <AutoPagination
+          showTotal
+          totalLabel="presets"
+          totals={presetsQuery.data?.totals}
+        />
       </div>
     </AdminPageShell>
   );

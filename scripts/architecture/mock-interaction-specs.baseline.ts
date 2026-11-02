@@ -35,7 +35,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(protected)/admin/configuration/elements/sounds/sounds-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/elements/styles/styles-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/font-families/font-families-list.test.tsx',
-  'apps/web/app/(protected)/admin/configuration/presets/presets-list.test.tsx',
   'apps/web/app/(protected)/admin/configuration/tags/[filter]/tags-list.test.tsx',
   'apps/web/app/(protected)/admin/folders/folders-list.test.tsx',
   'apps/web/app/(protected)/admin/settings/system-notifications-panel.test.tsx',
