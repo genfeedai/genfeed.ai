@@ -60,9 +60,6 @@ export default function AutomationOverviewPage() {
   });
 
   const workflowTotal = workflowsQuery.data?.pagination.total ?? 0;
-  const activeAgents = strategies.filter(
-    (strategy) => strategy.isActive,
-  ).length;
 
   const activeExecutions = useMemo(
     () =>
@@ -103,7 +100,6 @@ export default function AutomationOverviewPage() {
                 icon: Users,
                 label: 'Agents',
                 value: strategies.length.toLocaleString('en-US'),
-                description: `${activeAgents.toLocaleString('en-US')} active`,
               },
               {
                 icon: Workflow,

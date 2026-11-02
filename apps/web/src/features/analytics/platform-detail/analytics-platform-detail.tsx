@@ -172,7 +172,6 @@ export default function AnalyticsPlatformDetail({
             value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
-            description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
             icon: Heart,
             analyticsMetric: 'engagement' as const,
             label: 'Total Engagement',

@@ -71,6 +71,11 @@ export function microsToUsd(micros: number): number {
   return Number((micros / MICROS_PER_USD).toFixed(6));
 }
 
+/** Cost per unit, or null when there is nothing to divide by. */
+export function costPerUnitUsd(costUsd: number, units: number): number | null {
+  return units > 0 ? Number((costUsd / units).toFixed(6)) : null;
+}
+
 export function minorToUsd(minor: number): number {
   return Number((minor / MINOR_UNITS_PER_USD).toFixed(2));
 }

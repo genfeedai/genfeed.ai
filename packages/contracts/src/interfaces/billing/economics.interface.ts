@@ -128,10 +128,18 @@ export type EconomicsCostKind = 'llm' | 'media';
 
 export interface IEconomicsCostTotals {
   byokCalls: number;
+  /**
+   * Generation cost divided by the generations we paid a known price for
+   * (not BYOK, not recorded at $0). Null when there are none, so unpriced and
+   * BYOK rows never pull the average toward zero.
+   */
+  costPerGenerationUsd: number | null;
   llmCalls: number;
   llmCostUsd: number;
   mediaCostUsd: number;
   mediaGenerations: number;
+  /** Generations with a known provider price: not BYOK, not recorded at $0. */
+  mediaPricedGenerations: number;
   providerCostUsd: number;
   /** Non-BYOK calls the ledger recorded at $0: the price was unknown. */
   unpricedCalls: number;
@@ -161,8 +169,12 @@ export interface IEconomicsCostModelRow {
 export interface IEconomicsCostCategoryRow {
   /** Ingredient category of the generation, e.g. `IMAGE`. */
   category: string;
+  /** Cost over priced generations; null when none were priced. */
+  costPerGenerationUsd: number | null;
   costUsd: number;
   generations: number;
+  /** Generations with a known provider price: not BYOK, not recorded at $0. */
+  pricedGenerations: number;
 }
 
 export interface IEconomicsCostReport {
