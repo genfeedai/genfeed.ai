@@ -102,8 +102,10 @@ export function SidebarActiveHighlight({
 
     if (previous && previous !== element) {
       // The old row keeps its highlight until its own render drops it; hide it
-      // so only the gliding one shows.
-      previous.style.visibility = 'hidden';
+      // so only the gliding one shows. display, not visibility: the global
+      // reduced-motion rule gives every element a 0.01ms transition, and a
+      // visibility change would linger for a frame under it.
+      previous.style.display = 'none';
       memory.current.hidden = previous;
     }
 
@@ -130,7 +132,7 @@ export function SidebarActiveHighlight({
         // A highlight that took over and is now gone (a navigation that never
         // landed) gives the previous one back.
         if (hidden?.isConnected) {
-          hidden.style.visibility = '';
+          hidden.style.display = '';
         }
         memory.current.element = hidden;
         memory.current.lastRect = {
