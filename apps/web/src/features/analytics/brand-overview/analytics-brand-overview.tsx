@@ -47,9 +47,11 @@ export default function AnalyticsBrandOverview({
     PlatformTimeSeriesDataPoint[]
   >([]);
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
-  const [isLoadingTimeSeries, setIsLoadingTimeSeries] = useState(false);
+  // Each section starts loading: starting at false paints a zero for one frame
+  // before the fetch effect flips it, then a skeleton, then the data.
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingTimeSeries, setIsLoadingTimeSeries] = useState(true);
   const [brandName, setBrandName] = useState('');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 

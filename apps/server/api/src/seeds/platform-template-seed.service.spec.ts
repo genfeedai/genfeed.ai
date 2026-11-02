@@ -1,7 +1,9 @@
 import { PLATFORM_TEMPLATES } from '@api/seeds/platform-template-catalog';
 import { PlatformTemplateSeedService } from '@api/seeds/platform-template-seed.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentTemplateKey, PromptTemplateKey } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import Handlebars from 'handlebars';
 import { describe, expect, it, vi } from 'vitest';
 
 function fixture() {
@@ -43,10 +45,51 @@ describe('PlatformTemplateSeedService', () => {
     }
   });
 
-  it('passes the prompt through unescaped so seeding changes no generation', () => {
-    for (const template of PLATFORM_TEMPLATES) {
-      expect(template.content).toBe('{{{prompt}}}');
-    }
+  it.each([
+    [ContentTemplateKey.VIDEO_DEFAULT],
+    [ContentTemplateKey.IMAGE_DEFAULT],
+    [ContentTemplateKey.MUSIC_DEFAULT],
+    [PromptTemplateKey.TEXT_DEFAULT],
+  ])(
+    'passes the prompt through unescaped for %s so seeding changes no generation',
+    (key) => {
+      const template = PLATFORM_TEMPLATES.find((t) => t.key === key);
+
+      expect(template?.content).toBe('{{{prompt}}}');
+    },
+  );
+
+  it('seeds the article brief that article generation looks up', () => {
+    const template = PLATFORM_TEMPLATES.find(
+      (t) => t.key === PromptTemplateKey.ARTICLE_GENERATE,
+    );
+    const rendered = Handlebars.compile(template?.content ?? '')({
+      category: 'post',
+      count: 2,
+      keywords: 'AI & content',
+      prompt: 'Why "operated content" beats tools',
+    });
+
+    expect(rendered).toContain('Write 2 article draft(s)');
+    expect(rendered).toContain('Brief: Why "operated content" beats tools');
+    expect(rendered).toContain('Category: post');
+    expect(rendered).toContain('Keywords to work in naturally: AI & content');
+    expect(rendered).toContain('Return exactly 2 item(s) in "articles".');
+  });
+
+  it('leaves out the optional lines when there is no category or keywords', () => {
+    const template = PLATFORM_TEMPLATES.find(
+      (t) => t.key === PromptTemplateKey.ARTICLE_GENERATE,
+    );
+    const rendered = Handlebars.compile(template?.content ?? '')({
+      category: '',
+      count: 1,
+      keywords: '',
+      prompt: 'A brief',
+    });
+
+    expect(rendered).not.toContain('Category:');
+    expect(rendered).not.toContain('Keywords to work in');
   });
 
   it('is idempotent: existing keys, including deleted ones, are left alone', async () => {

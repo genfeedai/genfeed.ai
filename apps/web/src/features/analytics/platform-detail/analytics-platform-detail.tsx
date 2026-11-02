@@ -55,7 +55,8 @@ export default function AnalyticsPlatformDetail({
   );
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Starts loading so the first paint is a skeleton, not zeros.
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {

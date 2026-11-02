@@ -110,6 +110,14 @@ export function getBadgeStatus(status: string): BadgeStatus {
     case 'multimodal':
       return { label: 'Multimodal', variant: 'default' };
 
+    // Pricing reconciliation
+    case 'verified':
+      return fromCanonical('completed', 'Verified', 'success');
+    case 'discrepant':
+      return fromCanonical('error', 'Discrepant', 'destructive');
+    case 'unresolved':
+      return fromCanonical('pending', 'Unresolved', 'warning');
+
     // Operational status
     case 'validated':
     case 'operational':
@@ -118,10 +126,34 @@ export function getBadgeStatus(status: string): BadgeStatus {
     // Subscription lifecycle states that have no canonical tone of their own
     case 'trialing':
       return { label: toLabel(normalized), variant: 'info' };
+    case 'trial':
+      return { label: 'Trial', variant: 'info' };
+    case 'free':
+      return { label: 'Free', variant: 'secondary' };
+    case 'subscribed':
+      return fromCanonical('active', 'Subscribed', 'success');
     case 'past_due':
+    case 'pastdue':
     case 'incomplete':
     case 'unpaid':
-      return fromCanonical('pending', toLabel(normalized), 'warning');
+      return fromCanonical(
+        'pending',
+        toLabel(normalized === 'pastdue' ? 'past_due' : normalized),
+        'warning',
+      );
+
+    // A user part-way through onboarding
+    case 'onboarding':
+      return fromCanonical('in_progress', 'Onboarding', 'warning');
+
+    // Concierge account lifecycle
+    case 'provisioning':
+      return fromCanonical('running', 'Provisioning', 'info');
+    case 'provisioned':
+    case 'claimed':
+      return fromCanonical('active', toLabel(normalized), 'success');
+    case 'invited':
+      return fromCanonical('pending', 'Invited', 'warning');
 
     default:
       // An unmapped status still names itself; an empty dot says nothing.

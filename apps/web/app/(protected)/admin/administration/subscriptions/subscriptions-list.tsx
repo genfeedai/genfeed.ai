@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
+import TableUserCell from '@ui/display/table/TableUserCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
@@ -136,7 +137,9 @@ export default function SubscriptionsList() {
       header: t('columnOwner'),
       key: 'ownerEmail',
       sortable: true,
-      render: (row: IOrganizationBilling) => row.ownerEmail ?? EMPTY_CELL,
+      render: (row: IOrganizationBilling) => (
+        <TableUserCell emptyLabel={EMPTY_CELL} email={row.ownerEmail} />
+      ),
     },
     {
       header: t('columnPlan'),
