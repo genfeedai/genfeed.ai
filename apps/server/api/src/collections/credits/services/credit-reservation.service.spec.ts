@@ -108,6 +108,7 @@ describe('CreditReservationService', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -306,23 +307,47 @@ describe('CreditReservationService', () => {
     expect(prisma.creditReservation.create).not.toHaveBeenCalled();
   });
 
-  it('stops retrying raw reservation conflicts after three attempts', async () => {
+  it('yields between wallet conflicts and recovers after four aborted attempts', async () => {
+    vi.useFakeTimers();
+    const conflict = {
+      code: 'P2010',
+      meta: { driverAdapterError: { cause: { originalCode: '40001' } } },
+    };
+    const operation = vi
+      .fn()
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValueOnce('reserved');
+    const result = service.runSerializable(operation);
+    const assertion = expect(result).resolves.toBe('reserved');
+    void assertion.catch(() => {});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(operation).toHaveBeenCalledTimes(1);
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(operation).toHaveBeenCalledTimes(5);
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(5);
+  });
+
+  it('stops retrying raw reservation conflicts after five attempts', async () => {
+    vi.useFakeTimers();
     prisma.creditReservation.findFirst.mockResolvedValue(null);
     const error = { code: 'P2010', meta: { code: '40001' } };
-    creditBalanceService.applyDelta
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error)
-      .mockRejectedValueOnce(error);
-    await expect(
-      service.reserve({
-        organizationId: 'org_1',
-        billingAccountId: 'ba_1',
-        actorUserId: 'user_1',
-        amount: 20,
-        idempotencyKey: 'retry_1',
-      }),
-    ).rejects.toBe(error);
-    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(3);
+    creditBalanceService.applyDelta.mockRejectedValue(error);
+    const result = service.reserve({
+      organizationId: 'org_1',
+      billingAccountId: 'ba_1',
+      actorUserId: 'user_1',
+      amount: 20,
+      idempotencyKey: 'retry_1',
+    });
+    const assertion = expect(result).rejects.toBe(error);
+    void assertion.catch(() => {});
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(5);
     expect(prisma.creditReservation.create).not.toHaveBeenCalled();
   });
 
