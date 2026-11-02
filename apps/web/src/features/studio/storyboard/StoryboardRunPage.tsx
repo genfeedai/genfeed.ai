@@ -11,7 +11,6 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
-import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type { StoryboardRunPageProps } from '@/features/studio/props/storyboard.props';
 import StoryboardRunPanel from '@/features/studio/storyboard/components/StoryboardRunPanel';
 import StoryboardRunRecipe from '@/features/studio/storyboard/components/StoryboardRunRecipe';
@@ -21,6 +20,7 @@ import { useStoryboardRun } from '@/features/studio/storyboard/hooks/use-storybo
 import StoryboardDraftPage from '@/features/studio/storyboard/StoryboardDraftPage';
 import { getStoryboardEditorSeed } from '@/features/studio/storyboard/utils/storyboard-editor-seed';
 import { buildStoryboardRunEdits } from '@/features/studio/storyboard/utils/storyboard-run';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 
 /** One storyboard run, restored from its latest saved server revision. */
 export function LegacyStoryboardRunPage({

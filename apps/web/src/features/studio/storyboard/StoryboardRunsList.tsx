@@ -12,10 +12,10 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, type ReactElement, useMemo, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
-import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type { StoryboardListRun } from '@/features/studio/props/storyboard.props';
 import { useStoryboardRuns } from '@/features/studio/storyboard/hooks/use-storyboard-runs';
 import { isStoryboardRunNeedingAttention } from '@/features/studio/storyboard/utils/storyboard-run-summary';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 
 /**
  * The right side of the Storyboard workspace while no run is open: every saved
