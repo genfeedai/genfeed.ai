@@ -510,9 +510,9 @@ async function expectPlayableOwnedVideo(
       ),
     )
     .toBe(true);
+  // The open generation lives at /playground/:id, so a reload keeps it open.
+  await expect(page).toHaveURL(new RegExp(`/playground/${ownedId}$`));
   await page.reload();
-  await expect(card).toBeVisible();
-  await card.click();
   await expect(video).toHaveAttribute('src', ownedUrl);
 }
 for (const key of [klingKey, veoKey]) {

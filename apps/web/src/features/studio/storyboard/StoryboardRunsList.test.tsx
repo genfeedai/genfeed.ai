@@ -1,21 +1,11 @@
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  brandId: 'brand-1' as string | null,
-  create: vi.fn<(input: unknown) => Promise<string>>(),
-  createError: null as string | null,
   loadMore: vi.fn(),
-  push: vi.fn(),
   searches: [] as string[],
   state: {
     error: null as string | null,
@@ -31,21 +21,6 @@ vi.mock('@/features/studio/storyboard/hooks/use-storyboard-runs', () => ({
     return { ...mocks.state, loadMore: mocks.loadMore };
   },
 }));
-
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrandId: () => mocks.brandId,
-}));
-
-vi.mock('@/features/studio/storyboard/hooks/use-create-storyboard', () => ({
-  useCreateStoryboard: () => ({
-    create: mocks.create,
-    error: mocks.createError,
-    isCreating: false,
-    isCurrentResult: () => true,
-  }),
-}));
-
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/northstar${path}` }),
@@ -64,7 +39,7 @@ vi.mock('next-intl', async () => {
   return { useLocale: () => 'en-US', useTranslations: translateFromCatalog };
 });
 
-import StoryboardRunsPage from './StoryboardRunsPage';
+import StoryboardRunsList from './StoryboardRunsList';
 
 function summary(
   overrides: Partial<BrandRemixRunSummary> = {},
@@ -84,19 +59,17 @@ function summary(
   };
 }
 
-describe('StoryboardRunsPage', () => {
+describe('StoryboardRunsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.brandId = 'brand-1';
-    mocks.createError = null;
     mocks.searches = [];
     mocks.state = { error: null, hasMore: false, isLoading: false, runs: [] };
   });
 
-  it('lists each run with source kind, state, shots, runtime and an Open link', () => {
+  it('lists each run with source kind, state, shots and runtime, linked to the run', () => {
     mocks.state.runs = [summary()];
 
-    render(<StoryboardRunsPage />);
+    render(<StoryboardRunsList />);
 
     const row = screen.getByTestId('storyboard-run-row');
     expect(within(row).getByText('Proof-led hook')).toBeVisible();
@@ -106,7 +79,7 @@ describe('StoryboardRunsPage', () => {
     expect(within(row).getByText('12.5s')).toBeVisible();
     expect(within(row).getByText(/^Edited /)).toBeVisible();
     expect(
-      within(row).getByRole('link', { name: 'Open Proof-led hook' }),
+      screen.getByRole('link', { name: /Proof-led hook/ }),
     ).toHaveAttribute('href', '/acme/northstar/storyboard/run-1');
   });
 
@@ -120,7 +93,7 @@ describe('StoryboardRunsPage', () => {
       }),
     ];
 
-    render(<StoryboardRunsPage />);
+    render(<StoryboardRunsList />);
 
     const needsYou = screen.getByRole('heading', { name: /Needs you/ });
     expect(needsYou).toBeVisible();
@@ -132,7 +105,7 @@ describe('StoryboardRunsPage', () => {
     const user = userEvent.setup();
     mocks.state.runs = [summary({ id: 'run-1', title: 'Proof-led hook' })];
 
-    const { rerender } = render(<StoryboardRunsPage />);
+    const { rerender } = render(<StoryboardRunsList />);
     expect(mocks.searches.at(-1)).toBe('');
 
     await user.type(
@@ -142,15 +115,14 @@ describe('StoryboardRunsPage', () => {
     expect(mocks.searches.at(-1)).toBe('recap');
 
     mocks.state.runs = [];
-    rerender(<StoryboardRunsPage />);
+    rerender(<StoryboardRunsList />);
     expect(screen.getByText('No storyboards match your search.')).toBeVisible();
-    expect(screen.queryByTestId('storyboard-onboarding')).toBeNull();
   });
 
   it('omits the runtime when the run has none and hides Needs you when nothing is waiting', () => {
     mocks.state.runs = [summary({ runtimeSeconds: null })];
 
-    render(<StoryboardRunsPage />);
+    render(<StoryboardRunsList />);
 
     expect(
       within(screen.getByTestId('storyboard-run-row')).queryByText(
@@ -160,80 +132,22 @@ describe('StoryboardRunsPage', () => {
     expect(screen.queryByRole('heading', { name: /Needs you/ })).toBeNull();
   });
 
-  it('shows the onboarding with presets and the create entry points', () => {
-    render(<StoryboardRunsPage />);
+  it('points an empty list at the prompt on the left, with no presets or hero', () => {
+    render(<StoryboardRunsList />);
 
-    expect(screen.getByTestId('storyboard-onboarding')).toBeVisible();
+    expect(screen.getByText('No storyboards yet')).toBeVisible();
     expect(
-      screen.getByRole('heading', { name: 'Turn an idea into a storyboard' }),
+      screen.getByText('Pitch one on the left and it shows up here.'),
     ).toBeVisible();
-    expect(screen.getAllByTestId('storyboard-preset')).toHaveLength(8);
-    for (const link of screen.getAllByRole('link', {
-      name: /New storyboard|Choose a video/,
-    }))
-      expect(link).toHaveAttribute('href', '/acme/northstar/storyboard/new');
-  });
-
-  it('creates a storyboard from a preset in one click and opens it', async () => {
-    mocks.create.mockResolvedValue('run-new');
-
-    render(<StoryboardRunsPage />);
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Create a storyboard from Product launch teaser',
-      }),
-    );
-
-    await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith(
-        '/acme/northstar/storyboard/run-new',
-      ),
-    );
-    expect(mocks.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        planSettings: {
-          cast: [],
-          format: '9:16',
-          runtimeBudgetSeconds: 15,
-          styleReferenceAssetIds: [],
-          videoModelKey: null,
-        },
-        source: expect.objectContaining({ kind: 'brief' }),
-      }),
-    );
-  });
-
-  it('disables presets until a brand is selected', () => {
-    mocks.brandId = null;
-
-    render(<StoryboardRunsPage />);
-
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Choose a brand to start a storyboard from a preset.',
-    );
-    expect(
-      screen.getByRole('button', {
-        name: 'Create a storyboard from Product launch teaser',
-      }),
-    ).toBeDisabled();
-  });
-
-  it('keeps presets discoverable above existing runs as one row', () => {
-    mocks.state.runs = [summary()];
-
-    render(<StoryboardRunsPage />);
-
     expect(screen.queryByTestId('storyboard-onboarding')).toBeNull();
-    expect(screen.getAllByTestId('storyboard-preset')).toHaveLength(4);
-    fireEvent.click(screen.getByRole('button', { name: 'See all presets' }));
-    expect(screen.getAllByTestId('storyboard-preset')).toHaveLength(8);
+    expect(screen.queryByTestId('storyboard-preset')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'New storyboard' })).toBeNull();
   });
 
   it('surfaces a load failure with a retry', () => {
     mocks.state.error = 'Network down';
 
-    render(<StoryboardRunsPage />);
+    render(<StoryboardRunsList />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Network down');
     fireEvent.click(screen.getByRole('button', { name: 'Retry loading' }));

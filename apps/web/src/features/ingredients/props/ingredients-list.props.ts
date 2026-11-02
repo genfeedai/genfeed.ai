@@ -121,7 +121,6 @@ export interface IngredientsListFooterProps {
   lightboxOpen: boolean;
   lightboxIndex: number;
   onCloseLightbox: () => void;
-  selectedFolderForModal: IFolder | null;
   onFolderModalConfirm: (isRefreshing?: boolean) => void;
   showFolderModal?: boolean;
 }
@@ -149,7 +148,6 @@ export interface UseIngredientsListReturn {
   hasFilteredEmptyState: boolean;
   folders: IFolder[];
   selectedFolderId?: string;
-  selectedFolderForModal: IFolder | null;
   selectedIngredientIds: string[];
   setSelectedIngredientIds: Dispatch<SetStateAction<string[]>>;
   isActionsEnabled: boolean;

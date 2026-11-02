@@ -49,6 +49,34 @@ describe('CollectionView', () => {
     expect(screen.getByTestId('collection')).toHaveClass('@container');
   });
 
+  it('renders a list when a record list gives no view or grid renderer', () => {
+    render(
+      <CollectionView
+        data-testid="collection"
+        getItemKey={(item) => item.id}
+        items={ITEMS}
+        renderListItem={(item) => <div data-testid="row">{item.name}</div>}
+      />,
+    );
+
+    expect(screen.getAllByTestId('row')).toHaveLength(2);
+    expect(screen.getByTestId('collection')).toHaveClass('rounded-card');
+  });
+
+  it('falls back to the list when grid is asked for without a grid renderer', () => {
+    render(
+      <CollectionView
+        data-testid="collection"
+        getItemKey={(item) => item.id}
+        items={ITEMS}
+        renderListItem={(item) => <div data-testid="row">{item.name}</div>}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getAllByTestId('row')).toHaveLength(2);
+  });
+
   it('mirrors the active view in its loading skeleton', () => {
     const { rerender } = renderView({ isLoading: true, view: ViewType.LIST });
     expect(screen.getByTestId('list-rows-skeleton')).toBeInTheDocument();

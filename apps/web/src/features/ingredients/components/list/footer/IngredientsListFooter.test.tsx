@@ -25,7 +25,6 @@ describe('IngredientsListFooter', () => {
     onCloseLightbox: vi.fn(),
     onFolderModalConfirm: vi.fn(),
     scope: PageScope.BRAND,
-    selectedFolderForModal: null,
   };
 
   it('should render without crashing', () => {

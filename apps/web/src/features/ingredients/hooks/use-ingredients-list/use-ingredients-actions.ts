@@ -111,8 +111,6 @@ export function useIngredientsActions({
   const [selectedIngredientIds, setSelectedIngredientIds] = useState<string[]>(
     [],
   );
-  const [selectedFolderForModal, setSelectedFolderForModal] =
-    useState<IFolder | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
@@ -487,13 +485,11 @@ export function useIngredientsActions({
   );
 
   const handleCreateFolder = useCallback(() => {
-    setSelectedFolderForModal(null);
     openModal(ModalEnum.FOLDER);
   }, []);
 
   const handleFolderModalConfirm = useCallback(
     (isRefreshing?: boolean) => {
-      setSelectedFolderForModal(null);
       findAllFolders();
       if (isRefreshing) {
         findAllIngredientsByCategory(true);
@@ -723,7 +719,6 @@ export function useIngredientsActions({
     lightboxOpen,
     openIngredientModal,
     openLightboxForIngredient,
-    selectedFolderForModal,
     selectedIngredientIds,
     setSelectedIngredientIds,
   };

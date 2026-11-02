@@ -1,5 +1,3 @@
-import { selectView } from '@app-tests/view-menu.helpers';
-import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -324,7 +322,6 @@ vi.mock('./useWorkflowLibraryPage', () => ({
 describe('WorkflowLibraryPage card semantics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     mocks.favoriteIds = [];
     mocks.favorites = [];
     mocks.mostUsed = [];
@@ -374,42 +371,35 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeTruthy();
   });
 
-  it.each(['list', 'grid'])(
-    'keeps navigation, selection and schedule commands separate in %s',
-    async (view) => {
-      render(<WorkflowLibraryPage />);
-      if (view === 'grid') await selectView(userEvent.setup(), 'Grid');
-      const link = screen.getByRole('link', {
-        name: 'Open Scheduled workflow',
-      });
-      const scheduleSwitch = screen.getByRole('switch', {
-        name: 'Disable schedule for Scheduled workflow',
-      });
-      expect(link).toHaveAttribute(
-        'href',
-        '/acme/brand/automation/workflows/workflow-1',
-      );
-      expect(scheduleSwitch.closest('a')).toBeNull();
-      fireEvent.click(scheduleSwitch);
-      expect(mocks.handleToggleSchedule).toHaveBeenCalledWith(
-        'workflow-1',
-        false,
-      );
-      fireEvent.click(
-        screen.getByRole('checkbox', { name: 'Select Scheduled workflow' }),
-      );
-      expect(mocks.toggleSelected).toHaveBeenCalledWith('workflow-1');
-      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
-      expect(mocks.handleDuplicate).toHaveBeenCalledWith('workflow-1');
-      fireEvent.click(screen.getByRole('button', { name: 'Add to favorites' }));
-      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'workflow-1' }),
-      );
-      expect(screen.queryByText('Scheduled workflow preview') !== null).toBe(
-        view === 'grid',
-      );
-    },
-  );
+  it('keeps navigation, selection and schedule commands separate', () => {
+    render(<WorkflowLibraryPage />);
+    const link = screen.getByRole('link', {
+      name: 'Open Scheduled workflow',
+    });
+    const scheduleSwitch = screen.getByRole('switch', {
+      name: 'Disable schedule for Scheduled workflow',
+    });
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows/workflow-1',
+    );
+    expect(scheduleSwitch.closest('a')).toBeNull();
+    fireEvent.click(scheduleSwitch);
+    expect(mocks.handleToggleSchedule).toHaveBeenCalledWith(
+      'workflow-1',
+      false,
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Select Scheduled workflow' }),
+    );
+    expect(mocks.toggleSelected).toHaveBeenCalledWith('workflow-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    expect(mocks.handleDuplicate).toHaveBeenCalledWith('workflow-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Add to favorites' }));
+    expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workflow-1' }),
+    );
+  });
 
   it('defaults to rows and shows favorites, team usage, recent, then all', () => {
     const workflow = mocks.workflows[0];
@@ -423,7 +413,6 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.favoriteIds = ['workflow-7'];
     mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
     render(<WorkflowLibraryPage />);
-    expect(screen.queryByTestId('workflow-library-card')).toBeNull();
     expect(
       screen
         .getAllByRole('heading', { level: 2 })
@@ -458,27 +447,21 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeInTheDocument();
   });
 
-  it.each(['list', 'grid'])(
-    'only permits removing existing favorites from read-only team rows in %s',
-    async (view) => {
-      mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
-      const { rerender } = render(<WorkflowLibraryPage />);
-      if (view === 'grid') await selectView(userEvent.setup(), 'Grid');
-      const team = within(screen.getByTestId('workflow-section-most-used'));
-      expect(
-        team.queryByRole('button', { name: 'Add to favorites' }),
-      ).toBeNull();
-      mocks.favoriteIds = ['workflow-1'];
-      rerender(<WorkflowLibraryPage />);
-      fireEvent.click(
-        team.getByRole('button', { name: 'Remove from favorites' }),
-      );
-      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'workflow-1' }),
-      );
-      expect(team.queryByRole('button', { name: 'Duplicate' })).toBeNull();
-    },
-  );
+  it('only permits removing existing favorites from read-only team rows', () => {
+    mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
+    const { rerender } = render(<WorkflowLibraryPage />);
+    const team = within(screen.getByTestId('workflow-section-most-used'));
+    expect(team.queryByRole('button', { name: 'Add to favorites' })).toBeNull();
+    mocks.favoriteIds = ['workflow-1'];
+    rerender(<WorkflowLibraryPage />);
+    fireEvent.click(
+      team.getByRole('button', { name: 'Remove from favorites' }),
+    );
+    expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'workflow-1' }),
+    );
+    expect(team.queryByRole('button', { name: 'Duplicate' })).toBeNull();
+  });
 
   it('keeps the library usable when Favorites fails', () => {
     mocks.favoriteError = true;
@@ -495,14 +478,9 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows bulk commands for selected rows across views', async () => {
+  it('shows bulk commands for selected rows', () => {
     mocks.selectedIds = new Set(['workflow-1']);
     render(<WorkflowLibraryPage />);
-    expect(screen.getByRole('checkbox')).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await selectView(userEvent.setup(), 'Grid');
     expect(screen.getByRole('checkbox')).toHaveAttribute(
       'aria-checked',
       'true',

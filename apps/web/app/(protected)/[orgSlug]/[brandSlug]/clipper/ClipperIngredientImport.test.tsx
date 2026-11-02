@@ -10,38 +10,9 @@ const mocks = vi.hoisted(() => ({
     isReady: true,
     selectedBrand: { id: 'brand-1' } as { id: string } | undefined,
   },
-  analyze: vi.fn(),
-  createDraft: vi.fn(),
   createFromIngredient: vi.fn(),
   loggerError: vi.fn(),
   replace: vi.fn(),
-  searchParamsGet: vi.fn(),
-}));
-
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-vi.mock('../useStudioClipperPage', () => ({
-  useStudioClipperPage: () => ({
-    draftSaveState: 'idle',
-    error: null,
-    generationMode: 'avatar',
-    isSubmitting: false,
-    maxClips: 10,
-    minViralityScore: 50,
-    handleAnalyze: mocks.analyze,
-    setGenerationMode: vi.fn(),
-    handleStartFromYoutube: vi.fn(),
-    setMaxClips: vi.fn(),
-    setMinViralityScore: vi.fn(),
-    setSourceFile: vi.fn(),
-    setSourceKind: vi.fn(),
-    setYoutubeUrl: vi.fn(),
-    sourceFile: null,
-    sourceKind: 'youtube',
-    uploadProgress: 0,
-    youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-  }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -62,17 +33,14 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: mocks.loggerError },
 }));
 
-vi.mock('../services/clipper-api.service', () => ({
+vi.mock('./services/clipper-api.service', () => ({
   ClipperApiService: class {
-    createDraft = mocks.createDraft;
     createFromIngredient = mocks.createFromIngredient;
   },
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
   useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => ({ get: mocks.searchParamsGet }),
 }));
 
 vi.mock('next/link', () => ({
@@ -86,64 +54,31 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { default: NewClipperProjectPage } = await import(
-  './new-clipper-project-page'
+const { default: ClipperIngredientImport } = await import(
+  './ClipperIngredientImport'
 );
 
-describe('NewClipperProjectPage', () => {
+describe('ClipperIngredientImport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.brand = { isReady: true, selectedBrand: { id: 'brand-1' } };
-    mocks.createDraft.mockResolvedValue('draft-1');
     mocks.createFromIngredient.mockResolvedValue({ projectId: 'project-2' });
-    mocks.searchParamsGet.mockReturnValue(null);
-  });
-
-  it('shows source import without creating an empty draft or starting work on mount', () => {
-    render(<NewClipperProjectPage />);
-    expect(
-      screen.getByRole('heading', { name: 'Import a clip source' }),
-    ).toBeVisible();
-    expect(mocks.createDraft).not.toHaveBeenCalled();
-    expect(mocks.analyze).not.toHaveBeenCalled();
-    expect(mocks.replace).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole('button', { name: /import & transcribe/i }),
-    );
-    expect(mocks.analyze).toHaveBeenCalledOnce();
-    expect(mocks.createFromIngredient).not.toHaveBeenCalled();
-  });
-
-  it('does not create duplicate empty projects during StrictMode remount', () => {
-    render(
-      <StrictMode>
-        <NewClipperProjectPage />
-      </StrictMode>,
-    );
-    expect(mocks.createDraft).not.toHaveBeenCalled();
-    expect(mocks.analyze).not.toHaveBeenCalled();
-    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('waits for the brand before creating anything', async () => {
     mocks.brand = { isReady: false, selectedBrand: undefined };
-    mocks.searchParamsGet.mockReturnValue('video-1');
 
-    render(<NewClipperProjectPage />);
+    render(<ClipperIngredientImport videoId="video-1" />);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mocks.createDraft).not.toHaveBeenCalled();
+    expect(mocks.createFromIngredient).not.toHaveBeenCalled();
     expect(
       screen.getByRole('status', { name: 'Creating project…' }),
     ).toBeInTheDocument();
   });
 
   it('starts a project from a Library video and opens its analysis', async () => {
-    mocks.searchParamsGet.mockImplementation((key: string) =>
-      key === 'video' ? 'video-1' : null,
-    );
-
-    render(<NewClipperProjectPage />);
+    render(<ClipperIngredientImport videoId="video-1" />);
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith(
@@ -154,18 +89,25 @@ describe('NewClipperProjectPage', () => {
       brandId: 'brand-1',
       ingredientId: 'video-1',
     });
-    expect(mocks.createDraft).not.toHaveBeenCalled();
+  });
+
+  it('creates one project when React remounts during the request', async () => {
+    render(
+      <StrictMode>
+        <ClipperIngredientImport videoId="video-1" />
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+    expect(mocks.createFromIngredient).toHaveBeenCalledTimes(1);
   });
 
   it('shows the refusal with a way back instead of redirecting', async () => {
-    mocks.searchParamsGet.mockImplementation((key: string) =>
-      key === 'video' ? 'video-1' : null,
-    );
     mocks.createFromIngredient.mockRejectedValue(
       new Error('Clip sources must be at least 15 seconds long.'),
     );
 
-    render(<NewClipperProjectPage />);
+    render(<ClipperIngredientImport videoId="video-1" />);
 
     expect(
       await screen.findByText('Clip sources must be at least 15 seconds long.'),

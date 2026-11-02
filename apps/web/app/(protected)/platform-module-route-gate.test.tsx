@@ -61,14 +61,14 @@ describe('PlatformModuleRouteGate (#5468)', () => {
 
   it('blocks disabled Clips creation for regular users', () => {
     state.flags = { clipper: false };
-    state.pathname = '/acme/brand/clipper/new';
+    state.pathname = '/acme/brand/clipper';
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
   });
 
   it('preserves superadmin inspection of disabled Clips creation', () => {
     state.flags = { clipper: false };
     state.isSuperAdmin = true;
-    state.pathname = '/acme/brand/clipper/new';
+    state.pathname = '/acme/brand/clipper';
     renderGate();
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
@@ -82,7 +82,7 @@ describe('PlatformModuleRouteGate (#5468)', () => {
 
   it('keeps other apps open when one app is off', () => {
     state.flags = { studio: true, motion: false };
-    state.pathname = '/acme/brand/storyboard/new';
+    state.pathname = '/acme/brand/storyboard';
 
     renderGate();
 

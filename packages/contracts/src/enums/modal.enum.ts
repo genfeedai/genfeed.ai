@@ -46,7 +46,6 @@ export enum ModalEnum {
   SCRIPT = 'modal-script',
   SOUND = 'modal-sound',
   STYLE = 'modal-style',
-  SUBSCRIPTION = 'modal-subscription',
   TAG = 'modal-tag',
   TEXT_OVERLAY = 'modal-text-overlay',
   TRAINING = 'modal-training',

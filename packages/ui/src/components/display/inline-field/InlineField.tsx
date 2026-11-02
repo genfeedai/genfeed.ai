@@ -1,49 +1,22 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import type {
-  InlineColorFieldEditor,
   InlineFieldProps,
-  InlineMultiSelectFieldEditor,
   InlineNumberFieldEditor,
-  InlineSelectFieldEditor,
   InlineSwitchFieldEditor,
 } from '@genfeedai/props/ui/display/inline-field.props';
-import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { ColorInput } from '@ui/primitives/color-input';
+import { useInlineSave } from '@ui/display/inline-field/use-inline-save';
 import { EditableText } from '@ui/primitives/editable-text';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Switch } from '@ui/primitives/switch';
-import { useState } from 'react';
+import dynamic from 'next/dynamic';
 
-/** Runs a save and keeps the control disabled until it settles. */
-function useInlineSave() {
-  const [isSaving, setIsSaving] = useState(false);
-
-  const save = async (run: () => Promise<void> | void) => {
-    setIsSaving(true);
-    try {
-      await run();
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return { isSaving, save };
-}
+// Select, multi-select and color editors load on first use (see the file).
+const InlineFieldPicker = dynamic(
+  () => import('@ui/display/inline-field/InlineFieldPicker'),
+  { loading: () => <Skeleton className="h-8 w-full" />, ssr: false },
+);
 
 function InlineNumberField({ editor }: { editor: InlineNumberFieldEditor }) {
   const min = editor.min ?? 0;
@@ -63,126 +36,6 @@ function InlineNumberField({ editor }: { editor: InlineNumberFieldEditor }) {
         return editor.onSave(Math.max(min, parsed));
       }}
       value={String(editor.value ?? min)}
-    />
-  );
-}
-
-function InlineSelectField({ editor }: { editor: InlineSelectFieldEditor }) {
-  const { isSaving, save } = useInlineSave();
-
-  return (
-    <Select
-      disabled={editor.isDisabled || isSaving}
-      onValueChange={(value) => {
-        if (value !== (editor.value ?? '')) {
-          void save(() => editor.onSave(value));
-        }
-      }}
-      value={editor.value ?? ''}
-    >
-      <SelectTrigger aria-label={editor.ariaLabel} className="h-8 w-full">
-        <SelectValue placeholder={editor.placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {editor.options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function InlineMultiSelectField({
-  editor,
-}: {
-  editor: InlineMultiSelectFieldEditor;
-}) {
-  const { isSaving, save } = useInlineSave();
-  const [draft, setDraft] = useState<string[] | null>(null);
-  const saved = editor.values ?? [];
-  const current = draft ?? saved;
-
-  const commit = () => {
-    const next = draft;
-    setDraft(null);
-    if (
-      next !== null &&
-      (next.length !== saved.length || next.some((v) => !saved.includes(v)))
-    ) {
-      void save(() => editor.onSave(next));
-    }
-  };
-
-  const toggle = (value: string, isChecked: boolean) =>
-    setDraft(
-      isChecked
-        ? [...current, value]
-        : current.filter((candidate) => candidate !== value),
-    );
-
-  const summary = current
-    .map((value) => editor.options.find((o) => o.value === value)?.label)
-    .filter(Boolean)
-    .join(', ');
-
-  return (
-    <Popover
-      onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          commit();
-        }
-      }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          ariaLabel={editor.ariaLabel}
-          className="h-8 w-full justify-start text-left"
-          isDisabled={editor.isDisabled || isSaving}
-          label={summary || editor.placeholder || '-'}
-          variant={ButtonVariant.SECONDARY}
-        />
-      </PopoverTrigger>
-      <PopoverContent className="max-h-64 w-64 space-y-2 overflow-y-auto p-3">
-        {editor.options.map((option) => (
-          <Checkbox
-            isChecked={current.includes(option.value)}
-            key={option.value}
-            label={option.label}
-            name={`${editor.ariaLabel}-${option.value}`}
-            onChange={(event) => toggle(option.value, event.target.checked)}
-          />
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-/** A native color input only takes `#rrggbb`; anything else shows black. */
-function toColorValue(value: string | undefined): string {
-  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : '#000000';
-}
-
-function InlineColorField({ editor }: { editor: InlineColorFieldEditor }) {
-  const { isSaving, save } = useInlineSave();
-  const [draft, setDraft] = useState<string | null>(null);
-
-  const commit = () => {
-    const next = draft;
-    setDraft(null);
-    if (next !== null && next !== toColorValue(editor.value)) {
-      void save(() => editor.onSave(next));
-    }
-  };
-
-  return (
-    <ColorInput
-      aria-label={editor.ariaLabel}
-      disabled={editor.isDisabled || isSaving}
-      onBlur={commit}
-      onChange={(event) => setDraft(event.target.value)}
-      value={draft ?? toColorValue(editor.value)}
     />
   );
 }
@@ -223,11 +76,11 @@ export default function InlineField({ className, editor }: InlineFieldProps) {
         />
       ) : null}
       {editor.kind === 'number' ? <InlineNumberField editor={editor} /> : null}
-      {editor.kind === 'select' ? <InlineSelectField editor={editor} /> : null}
-      {editor.kind === 'multiselect' ? (
-        <InlineMultiSelectField editor={editor} />
+      {editor.kind === 'select' ||
+      editor.kind === 'multiselect' ||
+      editor.kind === 'color' ? (
+        <InlineFieldPicker editor={editor} />
       ) : null}
-      {editor.kind === 'color' ? <InlineColorField editor={editor} /> : null}
       {editor.kind === 'switch' ? <InlineSwitchField editor={editor} /> : null}
     </div>
   );

@@ -1,5 +1,4 @@
 import { PageScope } from '@genfeedai/contracts';
-import type { IFolder } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -86,7 +85,6 @@ vi.mock('@genfeedai/helpers/ui/form-error/form-error.helper', () => ({
 
 describe('ModalFolder', () => {
   const defaultProps = {
-    item: null,
     onConfirm: vi.fn(),
   };
 
@@ -96,17 +94,6 @@ describe('ModalFolder', () => {
 
   it('renders folder form', () => {
     render(<ModalFolder {...defaultProps} />);
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
-  });
-
-  it('renders with existing folder', () => {
-    const folder = {
-      id: 'folder-1',
-      label: 'Test Folder',
-    };
-    render(
-      <ModalFolder {...defaultProps} item={folder as unknown as IFolder} />,
-    );
     expect(screen.getByTestId('modal')).toBeInTheDocument();
   });
 

@@ -1,8 +1,5 @@
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 
-/** View-preference key for the Workflows library (`useCollectionViewPreference`). */
-export const WORKFLOW_LIBRARY_SURFACE = 'automation.workflows';
-
 /** Recent shows at most this many compact rows. */
 export const WORKFLOW_RECENT_LIMIT = 5;
 

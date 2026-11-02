@@ -26,9 +26,6 @@
       "@components/modals/ModalRole": [
         "./src/features/admin/modals/ModalRole.tsx"
       ],
-      "@components/modals/ModalSubscription": [
-        "./src/features/admin/modals/ModalSubscription.tsx"
-      ],
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],
       "@app-tests/*": ["./tests/*"],

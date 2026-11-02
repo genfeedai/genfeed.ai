@@ -18,7 +18,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import LibraryTagManagerDialog from '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog';
 import type {
@@ -126,6 +126,7 @@ export function LibraryBrowserOverflowMenu({
   const translate = useTranslations('pages.library.browser.toolbar');
   const translateTags = useTranslations('pages.library.tags');
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const overflowTriggerRef = useRef<HTMLButtonElement>(null);
   const actions: CollectionOverflowAction[] = [
     ...(reviewUnsortedHref
       ? [
@@ -153,10 +154,11 @@ export function LibraryBrowserOverflowMenu({
 
   return (
     <>
-      <SubbarOverflowMenu actions={actions} />
+      <SubbarOverflowMenu actions={actions} triggerRef={overflowTriggerRef} />
       <LibraryTagManagerDialog
         isOpen={isTagManagerOpen}
         onOpenChange={setIsTagManagerOpen}
+        returnFocusRef={overflowTriggerRef}
       />
     </>
   );

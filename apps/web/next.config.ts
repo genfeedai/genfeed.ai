@@ -356,8 +356,6 @@ config.turbopack = {
     '@components/modals/modal/Modal':
       '../../packages/ui/src/components/modals/modal/Modal.tsx',
     '@components/modals/ModalRole': './src/features/admin/modals/ModalRole.tsx',
-    '@components/modals/ModalSubscription':
-      './src/features/admin/modals/ModalSubscription.tsx',
     '@genfeedai/actions': '../../packages/actions/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',

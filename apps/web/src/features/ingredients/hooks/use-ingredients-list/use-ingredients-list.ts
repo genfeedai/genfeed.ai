@@ -209,7 +209,6 @@ export function useIngredientsList({
     openLightboxForIngredient,
     presets: generationState.presets,
     scope,
-    selectedFolderForModal: actionsState.selectedFolderForModal,
     selectedFolderId,
     selectedIngredientIds: actionsState.selectedIngredientIds,
     setIngredients,

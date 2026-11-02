@@ -863,7 +863,7 @@ export default function StudioPlaygroundInspector({
             size: ButtonSize.SM,
             variant: ButtonVariant.SECONDARY,
           })}
-          href={href(`${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${ingredient.id}`)}
+          href={href(`${APP_ROUTES.STUDIO.CLIPPER}?video=${ingredient.id}`)}
         >
           <Scissors aria-hidden="true" className="size-3.5" />
           {translate('makeClips')}

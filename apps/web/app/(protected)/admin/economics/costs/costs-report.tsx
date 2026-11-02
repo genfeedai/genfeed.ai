@@ -91,6 +91,14 @@ export default function EconomicsCostsReport() {
         value: formatOptionalUsd(totals?.costPerGenerationUsd ?? null),
       },
       {
+        label: translate('costs.kpis.marginPerGeneration'),
+        tone:
+          (totals?.marginPerGenerationUsd ?? 0) < 0
+            ? ('destructive' as const)
+            : undefined,
+        value: formatOptionalUsd(totals?.marginPerGenerationUsd ?? null),
+      },
+      {
         label: translate('costs.kpis.unpriced'),
         value: formatCount(totals?.unpricedCalls ?? 0),
         tone:
@@ -213,7 +221,7 @@ export default function EconomicsCostsReport() {
         <div className="flex flex-col gap-6">
           <KPISection
             className="mb-0"
-            gridCols={{ desktop: 5, mobile: 1 }}
+            gridCols={{ desktop: 3, mobile: 1 }}
             isLoading={isLoading}
             items={items}
             size="md"

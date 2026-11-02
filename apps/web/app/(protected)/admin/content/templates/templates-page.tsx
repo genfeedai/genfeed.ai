@@ -1,14 +1,12 @@
 'use client';
-import { ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -17,13 +15,11 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { FileText } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import type { TemplateView } from '@/features/admin/props/templates.props';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { toTemplateView } from './template-view';
 
 const EMPTY_TEMPLATES: IContentTemplate[] = [];
@@ -34,10 +30,6 @@ function TemplatesPageContent() {
     () => NotificationsService.getInstance(),
     [],
   );
-  const { view, setView } = useCollectionViewPreference({
-    surface: 'admin.content.templates',
-    defaultView: ViewType.LIST,
-  });
   const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -141,7 +133,6 @@ function TemplatesPageContent() {
           value={search}
         />
       }
-      views={<CollectionViewToggle view={view} onViewChange={setView} />}
       onRefresh={reload}
       isRefreshing={isRefreshing}
     >
@@ -158,13 +149,9 @@ function TemplatesPageContent() {
         </Alert>
       ) : (
         <CollectionView
-          data-testid={
-            view === ViewType.LIST ? 'templates-list' : 'templates-grid'
-          }
-          view={view}
+          data-testid="templates-list"
           items={items}
           isLoading={isLoading}
-          maxColumns={3}
           getItemKey={(template) => template.id}
           emptyState={<EmptyState title={t('empty')} />}
           renderListItem={(template) => (
@@ -179,33 +166,6 @@ function TemplatesPageContent() {
               description={template.description}
               meta={facts(template)}
             />
-          )}
-          renderGridItem={(template) => (
-            <Link
-              href={href(template)}
-              aria-label={t('open', { name: template.title })}
-              className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Card
-                data-testid="template-card"
-                isInteractive
-                className="h-full"
-                bodyClassName="flex h-full flex-col"
-              >
-                <h3 className="text-sm font-semibold">{template.title}</h3>
-                {template.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {template.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {facts(template)}
-                </div>
-                <span className="mt-auto text-sm font-medium">
-                  {t('details')}
-                </span>
-              </Card>
-            </Link>
           )}
         />
       )}

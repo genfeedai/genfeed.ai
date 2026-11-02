@@ -2374,8 +2374,11 @@ export function buildUnhandledApiMockBody(url: string): unknown {
         totals: {
           byokCalls: 0,
           costPerGenerationUsd: null,
+          generationCreditValueUsd: 0,
           llmCalls: 0,
           llmCostUsd: 0,
+          marginPerGenerationUsd: null,
+          mediaChargedGenerations: 0,
           mediaCostUsd: 0,
           mediaGenerations: 0,
           mediaPricedGenerations: 0,

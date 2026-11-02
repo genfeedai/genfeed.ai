@@ -25,10 +25,6 @@ export interface AgentHubRowProps extends AgentHubActionHandlers {
   strategy: AgentStrategy;
 }
 
-export interface AgentHubCardProps extends AgentHubActionHandlers {
-  strategy: AgentStrategy;
-}
-
 export interface AgentHubStatusBadgeProps {
   strategy: AgentStrategy;
 }

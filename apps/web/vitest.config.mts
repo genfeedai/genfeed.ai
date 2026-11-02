@@ -75,13 +75,6 @@ export default mergeConfig(
           ),
         },
         {
-          find: /^@components\/modals\/ModalSubscription$/,
-          replacement: path.resolve(
-            __dirname,
-            './src/features/admin/modals/ModalSubscription.tsx',
-          ),
-        },
-        {
           // Resolve Better Auth to a timer-free test implementation before
           // dependency externalization. Runtime vi.mock interception no longer
           // covers the package-local realpath used by Better Auth 1.6.23.

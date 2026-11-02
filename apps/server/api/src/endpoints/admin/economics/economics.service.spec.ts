@@ -1,5 +1,6 @@
 import { EconomicsService } from '@api/endpoints/admin/economics/economics.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 describe('EconomicsService', () => {
@@ -244,16 +245,23 @@ describe('EconomicsService', () => {
       mediaCategories: [
         {
           category: 'IMAGE',
+          chargedGenerations: 2n,
           costMicros: 500_000n,
           generations: 3n,
           pricedGenerations: 2n,
         },
         {
           category: 'VIDEO',
+          chargedGenerations: 1n,
           costMicros: 0n,
           generations: 1n,
           pricedGenerations: 0n,
         },
+      ],
+      creditsBySource: [
+        { credits: 60, source: ActivitySource.IMAGE_GENERATION },
+        { credits: 90, source: ActivitySource.VIDEO_GENERATION },
+        { credits: 50, source: ActivitySource.AGENT_CHAT },
       ],
       models: [
         {
@@ -286,8 +294,11 @@ describe('EconomicsService', () => {
     expect(report.totals).toEqual({
       byokCalls: 3,
       costPerGenerationUsd: 0.25,
+      generationCreditValueUsd: 1.5,
       llmCalls: 5,
       llmCostUsd: 1.5,
+      marginPerGenerationUsd: 0.333333,
+      mediaChargedGenerations: 3,
       mediaCostUsd: 0.5,
       mediaGenerations: 4,
       mediaPricedGenerations: 2,
