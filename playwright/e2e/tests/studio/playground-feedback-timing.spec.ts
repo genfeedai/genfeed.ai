@@ -305,6 +305,8 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
     await expect(tile).toHaveAttribute('data-asset-media-state', 'ready');
   }
   // A card opens its generation at /playground/:id with the preview in view.
+  const nextPrompt = 'Keep this next generation draft while browsing siblings';
+  await editor.fill(nextPrompt);
   await page.getByTestId('studio-asset-sibling-a').click();
   const focused = page.getByTestId('studio-focused-preview');
   for (let i = 0; i < count; i++) {
@@ -319,6 +321,7 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
       focused.getByRole('button', { name: id, exact: true }),
     ).toHaveAttribute('aria-pressed', 'true');
   }
+  await expect(editor).toContainText(nextPrompt);
   const receipt = {
     kind: 'deterministic-browser-fixture',
     samples: { pending, sibling, completion },
