@@ -58,4 +58,20 @@ describe('OrganizationLibrary', () => {
 
     expect(screen.queryByText('libraryEmpty')).not.toBeInTheDocument();
   });
+
+  it('keeps what already loaded and offers a retry when a later page fails', () => {
+    libraryState.value = {
+      ...libraryState.value,
+      isError: true,
+      items: [{ category: 'image', id: 'asset-1' }],
+    };
+
+    render(<OrganizationLibrary organizationId="org-1" />);
+
+    expect(screen.getByText('libraryLoadMoreError')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'libraryRetry' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('libraryLoadError')).not.toBeInTheDocument();
+  });
 });

@@ -6,6 +6,8 @@
   "libraryTab": "Library",
   "libraryEmpty": "This organization has not generated any content yet",
   "libraryLoadError": "Failed to load the organization library. Please try again.",
+  "libraryLoadMoreError": "Failed to load more of the library.",
+  "libraryRetry": "Retry",
   "settingsTab": "Settings",
   "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
