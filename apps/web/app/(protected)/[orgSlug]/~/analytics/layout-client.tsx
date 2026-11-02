@@ -10,7 +10,7 @@ import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import AnalyticsWorkSurfaceAdapter, {
-  AnalyticsScopedExportButton,
+  AnalyticsScopedExportMenu,
 } from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
@@ -32,7 +32,7 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
       refresh={
         <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
       }
-      iconActions={<AnalyticsScopedExportButton />}
+      overflow={<AnalyticsScopedExportMenu />}
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}

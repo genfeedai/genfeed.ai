@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 
 /**
  * Admin page chrome. Every admin page puts its title in the shell breadcrumb
- * and its controls in the subbar, in one fixed order: refresh, download, then
- * the `SubbarControls` cluster (the dropdowns, org filter first, the one
+ * and its controls in the subbar, in one fixed order: the "..." menu, refresh,
+ * then the `SubbarControls` cluster (the dropdowns, org filter first, the one
  * Filters menu, the view switcher, the primary CTA last). Slots instead of a
  * free-form `right` node, so a page cannot reorder them.
  */
@@ -21,8 +21,8 @@ export interface AdminPageShellProps {
   tabs?: TabsProps;
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  /** Ghost download / export button, directly after refresh. */
-  download?: ReactNode;
+  /** The "..." menu (`SubbarOverflowMenu`) with the page's download, export and import; the first control. */
+  overflow?: ReactNode;
   /** Dropdown filters such as the organization picker. */
   dropdowns?: ReactNode;
   /** List/grid view toggle, after the dropdowns and before the primary action. */
@@ -30,10 +30,4 @@ export interface AdminPageShellProps {
   /** The page's single primary action; always the last control. */
   primaryAction?: ReactNode;
   children: ReactNode;
-}
-
-export interface AdminDownloadButtonProps {
-  label: string;
-  onClick: () => void;
-  isDisabled?: boolean;
 }

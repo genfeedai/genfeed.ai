@@ -328,7 +328,7 @@ vi.mock('@ui/loading/default/Loading', () => ({
 
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
-    setExportNode: vi.fn(),
+    setOverflowNode: vi.fn(),
     setFiltersNode: mocks.setFiltersNode,
     setIsRefreshing: vi.fn(),
     setLeadingNode: mocks.setLeadingNode,

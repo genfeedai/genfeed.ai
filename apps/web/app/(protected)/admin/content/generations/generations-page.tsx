@@ -9,11 +9,11 @@ import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import AdminDownloadButton from '@ui/layout/admin-page-shell/AdminDownloadButton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { Image as ImageIcon } from 'lucide-react';
+import { Download, Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
@@ -304,11 +304,17 @@ function GenerationsPageContent() {
       }
       onRefresh={reload}
       isRefreshing={isLoading}
-      download={
-        <AdminDownloadButton
-          isDisabled={generations.length === 0}
-          label={t('download')}
-          onClick={() => downloadCsv(generations)}
+      overflow={
+        <SubbarOverflowMenu
+          actions={[
+            {
+              icon: <Download className="size-4" />,
+              id: 'download',
+              isDisabled: generations.length === 0,
+              label: t('download'),
+              onSelect: () => downloadCsv(generations),
+            },
+          ]}
         />
       }
       dropdowns={<AdminOrgBrandUrlFilter />}

@@ -443,7 +443,7 @@
       "unstyled-look": 1
     },
     "apps/web/src/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog.tsx": {
-      "unstyled-look": 2
+      "unstyled-look": 1
     },
     "apps/web/src/features/models/list/components/ModelsTableColumns.tsx": {
       "unstyled-look": 1

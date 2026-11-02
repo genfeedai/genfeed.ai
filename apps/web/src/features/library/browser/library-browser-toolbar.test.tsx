@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryBrowserToolbar, {
-  LibraryBrowserIconActions,
+  LibraryBrowserOverflowMenu,
   LibraryBrowserSearch,
 } from './library-browser-toolbar';
 
@@ -31,7 +31,8 @@ vi.mock('@/hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
 vi.mock(
   '@/features/library/components/tags/library-tag-picker/LibraryTagManagerDialog',
   () => ({
-    default: () => <button type="button">Manage tags</button>,
+    default: ({ isOpen }: { isOpen: boolean }) =>
+      isOpen ? <div aria-label="Manage tags" role="dialog" /> : null,
   }),
 );
 
@@ -423,11 +424,17 @@ describe('LibraryBrowserToolbar', () => {
       ).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('offers tag management in the ghost action cluster', () => {
-      render(<LibraryBrowserIconActions onUpload={vi.fn()} />);
+    it('offers tag management in the "..." menu and opens the manager', async () => {
+      const user = userEvent.setup();
+      render(<LibraryBrowserOverflowMenu onUpload={vi.fn()} />);
+
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      await user.click(
+        await screen.findByRole('menuitem', { name: 'Manage tags' }),
+      );
 
       expect(
-        screen.getByRole('button', { name: 'Manage tags' }),
+        await screen.findByRole('dialog', { name: 'Manage tags' }),
       ).toBeInTheDocument();
     });
   });
@@ -474,15 +481,16 @@ describe('LibraryBrowserToolbar', () => {
     expect(onClearAllFilters).toHaveBeenCalledOnce();
   });
 
-  it('groups Upload in the shared ghost action slot, leaving Refresh to the topbar refresh slot', () => {
+  it('puts Upload in the "..." menu, leaving Refresh to the topbar refresh slot', async () => {
+    const user = userEvent.setup();
     const onUpload = vi.fn();
-    render(<LibraryBrowserIconActions onUpload={onUpload} />);
-    const iconActions = screen.getByTestId('library-toolbar-icon-actions');
+    render(<LibraryBrowserOverflowMenu onUpload={onUpload} />);
+
     expect(screen.queryByTestId('refresh-button')).toBeNull();
-    expect(iconActions).toContainElement(
-      screen.getByRole('button', { name: 'Upload' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(screen.queryByRole('button', { name: 'Upload' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Upload' }));
+
     expect(onUpload).toHaveBeenCalledTimes(1);
   });
 
@@ -530,14 +538,18 @@ describe('LibraryBrowserToolbar', () => {
   });
 });
 
-it('starts an Agent review request from Unsorted', () => {
+it('starts an Agent review request from Unsorted', async () => {
+  const user = userEvent.setup();
   render(
-    <LibraryBrowserIconActions
+    <LibraryBrowserOverflowMenu
       onUpload={vi.fn()}
       reviewUnsortedHref="/org/brand/agent/new?prompt=review-unsorted"
     />,
   );
+  await user.click(screen.getByRole('button', { name: 'More actions' }));
   expect(
-    screen.getByRole('link', { name: 'Start Unsorted review with Agent' }),
+    await screen.findByRole('menuitem', {
+      name: 'Start Unsorted review with Agent',
+    }),
   ).toHaveAttribute('href', '/org/brand/agent/new?prompt=review-unsorted');
 });
