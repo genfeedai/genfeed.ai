@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   DEFAULT_PLATFORM_FLAGS,
   PLATFORM_FLAG_KEYS,
 } from '@genfeedai/contracts/constants';
@@ -28,6 +32,11 @@ const getPlatformSettingsService = vi.hoisted(() =>
     updateSettings: mocks.updateSettings,
   })),
 );
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getPlatformSettingsService,
@@ -71,7 +80,9 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('@ui/display/skeleton/skeleton', () => ({
-  SkeletonCard: () => <div data-testid="skeleton" />,
+  SkeletonCard: ({ label }: { label: string }) => (
+    <div aria-label={label} role="status" />
+  ),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
@@ -135,7 +146,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('narrows the cards to the flags that match the search', async () => {
     mocks.search = 'analytics';
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByRole('switch', { name: 'Analytics' }),
@@ -147,7 +158,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('says so when no flag matches the search', async () => {
     mocks.search = 'no such flag';
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByText('No flags match your search'),
@@ -156,7 +167,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('lists every flag on one page with its stored state', async () => {
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByRole('switch', { name: 'Analytics' }),
@@ -180,7 +191,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('links the releases section to per-organization release access', async () => {
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByRole('link', {
@@ -191,7 +202,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('lists releases off until an operator releases them', async () => {
     mocks.getSettings.mockResolvedValue({ flags: { release_turbo: true } });
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(
       await screen.findByRole('switch', { name: 'Release Turbo' }),
@@ -205,7 +216,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('gives each app its own card, with its features inside', async () => {
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     const studioSwitch = await screen.findByRole('switch', { name: 'Studio' });
     expect(studioSwitch.closest(CARD)).toHaveAttribute(
@@ -236,7 +247,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('names the switched-off flag that keeps a nested row off', async () => {
     mocks.getSettings.mockResolvedValue({ flags: { turbo: false } });
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     const turboIdeas = await screen.findByRole('switch', {
       name: 'Turbo ideas',
@@ -249,7 +260,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('lists every Studio app as its own switch', async () => {
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     for (const name of ['Motion', 'Storyboard', 'Clipper', 'Turbo', 'Editor']) {
       expect(await screen.findByRole('switch', { name })).toBeInTheDocument();
@@ -260,7 +271,7 @@ describe('AdminFlagsPage (#5468)', () => {
     mocks.getSettings.mockResolvedValue({
       flags: { library: false, library_canvas: true },
     });
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     const canvas = await screen.findByRole('switch', {
       name: 'Library canvas',
@@ -276,7 +287,7 @@ describe('AdminFlagsPage (#5468)', () => {
   });
 
   it('saves only the switched flag, at once', async () => {
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
@@ -303,7 +314,7 @@ describe('AdminFlagsPage (#5468)', () => {
         finishSave = resolve;
       }),
     );
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
@@ -322,7 +333,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('reverts the switch when the save fails', async () => {
     mocks.updateSettings.mockRejectedValue(new Error('boom'));
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
@@ -336,7 +347,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('shows the load failure instead of default switches', async () => {
     mocks.getSettings.mockRejectedValue(new Error('boom'));
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Flags could not be loaded',
@@ -347,7 +358,7 @@ describe('AdminFlagsPage (#5468)', () => {
 
   it('shows every module and feature on, and every release off, before an operator changed any', async () => {
     mocks.getSettings.mockResolvedValue({ flags: {} });
-    render(<AdminFlagsPage />);
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
 
     await screen.findByRole('switch', { name: 'Library canvas' });
     for (const toggle of screen.getAllByRole('switch')) {
@@ -360,5 +371,40 @@ describe('AdminFlagsPage (#5468)', () => {
       );
     }
     expect(DEFAULT_PLATFORM_FLAGS.library_canvas).toBe(true);
+  });
+
+  it('shows placeholder cards inside the final sections until the flags land', async () => {
+    mocks.getSettings.mockReturnValue(new Promise(() => {}));
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper() });
+
+    expect(
+      screen.getByRole('heading', { name: 'Modules' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('status', { name: 'Loading flag' }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+  });
+
+  it('paints the stored switches at once when coming back to the page', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<AdminFlagsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByRole('switch', { name: 'Analytics' }),
+    ).toHaveAttribute('aria-checked', 'false');
+    firstVisit.unmount();
+
+    mocks.getSettings.mockReturnValue(new Promise(() => {}));
+    render(<AdminFlagsPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByRole('switch', { name: 'Analytics' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(
+      screen.queryByRole('status', { name: 'Loading flag' }),
+    ).not.toBeInTheDocument();
   });
 });
