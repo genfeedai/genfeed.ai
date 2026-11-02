@@ -13,8 +13,7 @@ import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
 import { Code } from '@genfeedai/ui';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Training } from '@models/ai/training.model';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -28,7 +27,7 @@ import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { Database, Image, Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { LazyModalTraining } from '@/components/lazy/modal/LazyModal';
 
 export default function TrainingDetail({
@@ -38,77 +37,46 @@ export default function TrainingDetail({
   const translate = useTranslations('pages.adminTrainings');
   const { brands } = useBrand();
 
-  const abortControllerRef = useRef<AbortController | null>(null);
   const notificationsService = NotificationsService.getInstance();
 
-  const [training, setTraining] = useState<Training | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const getTrainingsService = useAuthedService((token: string) =>
-    TrainingsService.getInstance(token),
-  );
-
-  const abortCurrentTrainingLoad = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
-
-  const loadTraining = useCallback(
-    async (controller = new AbortController()) => {
-      const url = `GET /trainings/${trainingId}`;
-
+  // Cached per training: coming back to it paints the details at once while
+  // they refresh.
+  const trainingQuery = useAuthedQuery({
+    enabled: Boolean(trainingId),
+    queryFn: async (service, signal) => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        abortCurrentTrainingLoad();
-        abortControllerRef.current = controller;
-
-        controller.signal.throwIfAborted();
-
-        const service = await getTrainingsService();
-
-        controller.signal.throwIfAborted();
-
-        const data = await service.findOne(trainingId, {}, controller.signal);
-
-        controller.signal.throwIfAborted();
-
-        setTraining(data);
-        logger.info(`${url} success`, data);
+        return (await service.findOne(trainingId, {}, signal)) ?? null;
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error(`GET /trainings/${trainingId} failed`, error);
         }
-
-        logger.error(`${url} failed`, error);
-        const errorMessage = getErrorMessage(error, translate('loadError'));
-        setError(errorMessage);
-        notificationsService.error(translate('loadError'));
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
     },
-    [
-      abortCurrentTrainingLoad,
-      getTrainingsService,
-      notificationsService,
-      trainingId,
-      translate,
-    ],
-  );
+    queryKey: ['admin', 'trainings', trainingId],
+    service: (token: string) => TrainingsService.getInstance(token),
+  });
+  const {
+    errorUpdatedAt,
+    isError,
+    isPending: isLoading,
+    refetch,
+  } = trainingQuery;
+  const training = trainingQuery.data ?? null;
+  const error = isError
+    ? getErrorMessage(trainingQuery.error, translate('loadError'))
+    : null;
+  const loadTraining = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const controller = new AbortController();
-
-    if (trainingId) {
-      void loadTraining(controller);
+    if (isError) {
+      notificationsService.error(translate('loadError'));
     }
-
-    return abortCurrentTrainingLoad;
-  }, [trainingId, loadTraining, abortCurrentTrainingLoad]);
+  }, [errorUpdatedAt, isError, notificationsService, translate]);
 
   const isTrainingUnavailable = !isLoading && !training;
 

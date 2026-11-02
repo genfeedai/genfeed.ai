@@ -12,6 +12,10 @@ const fixture = vi.hoisted(() => ({
   act: vi.fn(),
   getService: vi.fn(),
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => fixture.getService,
 }));
@@ -43,10 +47,11 @@ function report() {
     nextCursor: null,
   };
 }
-function show() {
-  const client = new QueryClient({
+function show(
+  client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+  }),
+) {
   render(
     <QueryClientProvider client={client}>
       <CreditHoldsPanel
@@ -63,6 +68,30 @@ beforeEach(() => {
   fixture.getService.mockResolvedValue(fixture);
 });
 describe('operator media hold panel', () => {
+  it('refreshes the subscriptions list after a recovery action', async () => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const subscriptionsKey = ['admin', 'subscriptions', { page: 1 }];
+    client.setQueryData(subscriptionsKey, { items: [] });
+    show(client);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Release hold' }),
+    );
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Credit hold recovery reason' }),
+      { target: { value: 'Provider confirmed failure' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm release' }));
+
+    await waitFor(() =>
+      expect(client.getQueryState(subscriptionsKey)?.isInvalidated).toBe(true),
+    );
+  });
+
   it('requires a reason and explicit confirmation and sends an org-scoped fixed-price action', async () => {
     show();
     fireEvent.click(

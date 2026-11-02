@@ -7,7 +7,7 @@ import {
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import {
   toBrandListParams,
   useCollectionScope,
@@ -22,7 +22,7 @@ import type {
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-
+import { useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -32,7 +32,7 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { LazyModalArticle } from '@/components/lazy/modal/LazyModal';
 import ArticleTrafficPanel from '@/features/articles/analytics/article-traffic-panel';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
@@ -42,6 +42,8 @@ interface ArticlesListProps {
 }
 
 const ARTICLE_SORT_KEYS = ['label', 'status', 'createdAt'] as const;
+const ARTICLES_LIST_KEY = ['articles', 'list'] as const;
+const EMPTY_ARTICLES: Article[] = [];
 
 function openCreateArticleModal(): void {
   openModal(ModalEnum.ARTICLE);
@@ -57,14 +59,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     allowedKeys: ARTICLE_SORT_KEYS,
   });
 
-  const getArticlesService = useAuthedService(
-    useCallback((token: string) => ArticlesService.getInstance(token), []),
-  );
-
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const requestId = useRef(0);
+  const queryClient = useQueryClient();
 
   const columns: TableColumn<Article>[] = [
     { header: translate('title'), key: 'label', sortable: true },
@@ -97,55 +92,51 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     },
   ];
 
-  const findAllArticles = useCallback(async () => {
-    if (!organizationId) {
-      return;
-    }
-
-    const currentRequest = ++requestId.current;
-    setIsLoading(true);
-
-    try {
-      const service = await getArticlesService();
+  // Cached per scope, status, page and sort: coming back to Articles paints the
+  // rows it already has while it refreshes, paging keeps the current rows on
+  // screen, and a failed refresh keeps the loaded rows under its error.
+  const scopeKey = { brandId, organizationId, status };
+  const articlesQuery = usePagedAuthedQuery({
+    enabled: Boolean(organizationId),
+    keepPreviousDataWithin: [...ARTICLES_LIST_KEY, scopeKey],
+    queryFn: async (service, signal) => {
       const query: IQueryParams = {
         ...toBrandListParams({ brandId }),
         limit: ITEMS_PER_PAGE,
-        organizationId: organizationId,
+        organizationId,
         page: currentPage,
         status,
         ...(sortKey ? { sortBy: sortKey, sortOrder: sortDirection } : {}),
       };
+      try {
+        return await service.findAll(query, signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /articles failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [
+      ...ARTICLES_LIST_KEY,
+      scopeKey,
+      { page: currentPage, sortDirection, sortKey },
+    ],
+    service: (token: string) => ArticlesService.getInstance(token),
+  });
+  const { errorUpdatedAt, isError, isPending, refetch } = articlesQuery;
+  const articles = articlesQuery.data?.items ?? EMPTY_ARTICLES;
+  const reloadArticles = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
-      const data = await service.findAll(query);
-      if (currentRequest !== requestId.current) return;
-      setArticles(data);
-      setIsError(false);
-      logger.info('GET /articles success', data);
-    } catch (error) {
-      if (currentRequest !== requestId.current) return;
-      setIsError(true);
-      logger.error('GET /articles failed', error);
-      NotificationsService.getInstance().error(translate('loadError'));
-    } finally {
-      if (currentRequest === requestId.current) setIsLoading(false);
-    }
-  }, [
-    translate,
-    currentPage,
-    getArticlesService,
-    brandId,
-    organizationId,
-    sortDirection,
-    sortKey,
-    status,
-  ]);
-
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    void findAllArticles();
-    return () => {
-      requestId.current += 1;
-    };
-  }, [findAllArticles]);
+    if (isError) {
+      NotificationsService.getInstance().error(translate('loadError'));
+    }
+  }, [errorUpdatedAt, isError, translate]);
 
   /** Refinement belongs to the artifact — open the article's own editor page. */
   function getRowLink(article: Article): TableRowLink {
@@ -172,7 +163,8 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   };
 
   function handleArticleCreated(): void {
-    findAllArticles();
+    // Every cached status and page may now list the new article.
+    void queryClient.invalidateQueries({ queryKey: ARTICLES_LIST_KEY });
   }
 
   return (
@@ -194,13 +186,13 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
           isError
             ? {
                 title: translate('loadError'),
-                onRetry: () => findAllArticles(),
+                onRetry: reloadArticles,
               }
             : undefined
         }
         items={articles}
         columns={columns}
-        isLoading={isLoading && articles.length === 0}
+        isLoading={isPending}
         getRowKey={(item) => item.id}
         getRowLink={getRowLink}
         rowSidebar={rowSidebar}
@@ -221,7 +213,11 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+        <AutoPagination
+          showTotal
+          totalLabel={translate('totalLabel')}
+          totals={articlesQuery.data?.totals}
+        />
       </div>
 
       <LazyModalArticle onConfirm={handleArticleCreated} />
