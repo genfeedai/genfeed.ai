@@ -68,22 +68,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    iconActions,
     leading,
+    overflow,
     refresh,
     right,
   }: {
     children: ReactNode;
-    iconActions?: ReactNode;
     leading?: ReactNode;
+    overflow?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
       <div role="toolbar">
         {leading}
+        {overflow}
         {refresh}
-        {iconActions}
         {right}
       </div>
       {children}
@@ -319,9 +319,12 @@ describe('KnowledgeSourcesList', () => {
   it('seeds the brand website as a Brand Truth URL source exactly once', async () => {
     mocks.capture.mockResolvedValue({ jobId: 'job', source: { id: 'seed' } });
 
+    const user = userEvent.setup();
+
     renderList({ website: 'https://brand.example/' });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Seed from Brand Kit' }),
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Seed from Brand Kit' }),
     );
 
     await waitFor(() => expect(mocks.capture).toHaveBeenCalledTimes(1));

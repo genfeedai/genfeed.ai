@@ -8,7 +8,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/web/app/(onboarding)/onboarding/(wizard)/corpus/corpus-content.behavior.test.tsx',
   'apps/web/app/(onboarding)/onboarding/(wizard)/page.test.tsx',
   'apps/web/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx',
-  'apps/web/app/(protected)/[orgSlug]/[brandSlug]/clipper/new/new-clipper-project-page.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/editor/[id]/EditorPreview.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link.test.tsx',
   'apps/web/app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page.test.tsx',

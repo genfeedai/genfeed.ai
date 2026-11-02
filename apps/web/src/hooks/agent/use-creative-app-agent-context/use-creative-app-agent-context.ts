@@ -23,15 +23,17 @@ export function useCreativeAppAgentContext(
       return;
     }
 
+    const openApp = creativeApp;
+
     function apply(): void {
       const current = useAgentChatStore.getState().pageContext;
-      if (current?.route === pathname && current.creativeApp === creativeApp) {
+      if (current?.route === pathname && current.creativeApp === openApp) {
         return;
       }
       setPageContext({
         suggestedActions: [],
         ...(current?.route === pathname ? current : {}),
-        creativeApp,
+        creativeApp: openApp,
         route: pathname,
       });
     }
