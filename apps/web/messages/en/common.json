@@ -1754,6 +1754,7 @@
         "send": "Send reply"
       },
       "selectBrand": "Select a brand to view replies.",
+      "loadingReply": "Loading reply",
       "description": "Choose how to respond — warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
       "platform": {
         "label": "Platform",
