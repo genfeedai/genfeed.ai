@@ -3,6 +3,13 @@ import { Wand2 } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 import MenuItem from '@/components/menus/item/MenuItem';
 
+const Outline = (props: { className?: string }) => (
+  <svg data-icon="outline" {...props} />
+);
+const Solid = (props: { className?: string }) => (
+  <svg data-icon="solid" {...props} />
+);
+
 describe('MenuItem', () => {
   it('should render without crashing', () => {
     const { container } = render(<MenuItem label="Inbox" />);
@@ -49,7 +56,9 @@ describe('MenuItem', () => {
       activeRow.querySelector('[data-sidebar-active-highlight]'),
     ).toHaveClass('bg-foreground/5');
     expect(activeRow).not.toHaveClass('bg-foreground/5');
-    expect(hoverRow.querySelector('[data-sidebar-active-highlight]')).toBeNull();
+    expect(
+      hoverRow.querySelector('[data-sidebar-active-highlight]'),
+    ).toBeNull();
     expect(hoverRow).toHaveClass('hover:bg-foreground/5');
   });
 
@@ -64,7 +73,12 @@ describe('MenuItem', () => {
     rerender(
       <>
         <MenuItem href="/workspace" label="Dashboard" variant="icon" />
-        <MenuItem href="/workspace/inbox" isActive label="Inbox" variant="icon" />
+        <MenuItem
+          href="/workspace/inbox"
+          isActive
+          label="Inbox"
+          variant="icon"
+        />
       </>,
     );
 
@@ -81,12 +95,6 @@ describe('MenuItem', () => {
   });
 
   it('keeps the label weight and the outline icon when the row becomes active', () => {
-    const Outline = (props: { className?: string }) => (
-      <svg data-icon="outline" {...props} />
-    );
-    const Solid = (props: { className?: string }) => (
-      <svg data-icon="solid" {...props} />
-    );
     const { rerender } = render(
       <MenuItem
         href="/workspace"

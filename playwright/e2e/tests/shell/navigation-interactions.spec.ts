@@ -163,16 +163,18 @@ test.describe('Shell — navigation interactions', () => {
 
     const target = sidebar
       .locator('a[href]')
-      .filter({ hasNot: authenticatedPage.locator('[data-sidebar-active-highlight]') })
+      .filter({
+        hasNot: authenticatedPage.locator('[data-sidebar-active-highlight]'),
+      })
       .filter({ hasText: /\S/ })
       .first();
     await target.click();
     await settle(authenticatedPage);
 
     await expect(highlight).toHaveCount(1);
-    await expect(
-      target.locator('[data-sidebar-active-highlight]'),
-    ).toHaveCount(1);
+    await expect(target.locator('[data-sidebar-active-highlight]')).toHaveCount(
+      1,
+    );
 
     await assertHealthy(authenticatedPage);
   });
