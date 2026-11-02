@@ -13,6 +13,7 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { IngredientContinuationOperation } from '@genfeedai/props/content/masonry.props';
+import type { ViewOption } from '@genfeedai/props/ui/navigation/view-option.props';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -26,6 +27,7 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -34,17 +36,14 @@ import {
   DefinitionRow,
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
-import {
-  PanelTabs,
-  TabsContent,
-  TabsList,
-  TabsRoot,
-  TabsTrigger,
-} from '@ui/primitives/tabs';
+import { PanelTabs } from '@ui/primitives/tabs';
 import {
   Download,
+  FileText,
   GitBranch,
+  History,
   ImagePlus,
+  Link2,
   Maximize2,
   MessageSquare,
   Pencil,
@@ -97,7 +96,8 @@ function isInspectorTab(value: string): value is InspectorTab {
 
 /**
  * The asset renderer inside the shell's context sidebar: preview and facts on
- * top, Recipe / Used in / History below, actions pinned to the bottom. Title,
+ * top, the Recipe / Used in / History section below (picked from a menu in the
+ * header), actions pinned to the bottom. Title,
  * model and close live in the sidebar header.
  */
 export default function StudioPlaygroundInspector({
@@ -989,17 +989,40 @@ export default function StudioPlaygroundInspector({
     );
   }
 
-  // In the context sidebar the header owns the controls: Preview and Remove
-  // sit in the title row, the tab strip is pinned under it, and only the
-  // content below scrolls. A failed generation has nothing to preview.
+  // In the context sidebar the header owns the controls: the section menu,
+  // Preview and Remove sit in the title row, and only the content below
+  // scrolls. A failed generation has nothing to preview.
+  const sectionOptions: ViewOption<InspectorTab>[] = [
+    {
+      icon: <FileText />,
+      label: translate('inspector.recipe'),
+      type: 'recipe',
+    },
+    {
+      icon: <Link2 />,
+      label: translate('inspector.usedIn'),
+      type: 'used-in',
+    },
+    {
+      icon: <History />,
+      label: translate('inspector.history'),
+      type: 'history',
+    },
+  ];
+  const activePanel = tabItems.find((item) => item.id === activeTab);
+
   return (
-    <TabsRoot
+    <div
       className="flex min-h-0 flex-1 flex-col"
       data-testid="studio-playground-inspector"
-      onValueChange={handleTabChange}
-      value={activeTab}
     >
-      <ContextSidebarHeaderSlot slot="actions">
+      <ContextSidebarHeaderSlot>
+        <ViewMenu
+          activeView={activeTab}
+          onChange={handleTabChange}
+          options={sectionOptions}
+          trigger="label"
+        />
         {onOpenPreview && !isFailed ? (
           <Button
             ariaLabel={translate('focusedPreview.open')}
@@ -1028,39 +1051,15 @@ export default function StudioPlaygroundInspector({
           />
         ) : null}
       </ContextSidebarHeaderSlot>
-      <ContextSidebarHeaderSlot slot="tabs">
-        <div className="px-4 py-2">
-          <TabsList
-            aria-label={translate('inspector.title')}
-            className="w-full"
-          >
-            {tabItems.map((item) => (
-              <TabsTrigger
-                className="min-w-0 flex-1"
-                key={item.id}
-                value={item.id}
-              >
-                <span className="truncate">{item.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-      </ContextSidebarHeaderSlot>
 
       <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4">
         {preview}
         {factList}
       </div>
-      {tabItems.map((item) => (
-        <TabsContent
-          className="mt-0 min-h-0 flex-1 flex-col overflow-y-auto data-[state=active]:flex"
-          key={item.id}
-          value={item.id}
-        >
-          {item.content}
-        </TabsContent>
-      ))}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {activePanel?.content}
+      </div>
       {actions}
-    </TabsRoot>
+    </div>
   );
 }

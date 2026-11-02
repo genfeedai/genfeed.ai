@@ -78,7 +78,7 @@ test.describe('Playground asset context panel', () => {
     );
   });
 
-  test('a finished asset puts Preview and the tabs in the header', async ({
+  test('a finished asset puts Preview and the section menu in the header', async ({
     authenticatedPage: page,
   }) => {
     await page.getByTestId('studio-asset-ready-image').click();
@@ -88,8 +88,13 @@ test.describe('Playground asset context panel', () => {
         .getByTestId('context-sidebar-header-actions')
         .getByRole('button', { name: 'Open preview' }),
     ).toBeVisible();
-    await expect(
-      page.getByTestId('context-sidebar-header-tabs').getByRole('tab'),
-    ).toHaveText(['Recipe', 'Used in', 'History']);
+    const actions = page.getByTestId('context-sidebar-header-actions');
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await actions.getByRole('button', { name: 'View: Recipe' }).click();
+    await expect(page.getByRole('menuitemradio')).toHaveText([
+      'Recipe',
+      'Used in',
+      'History',
+    ]);
   });
 });
