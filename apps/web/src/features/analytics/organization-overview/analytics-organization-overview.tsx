@@ -4,7 +4,6 @@ import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   formatCompactNumberIntl,
-  formatPercentage,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
@@ -66,20 +65,9 @@ export interface AnalyticsOrganizationOverviewProps {
 
 interface OrganizationMetricCard {
   analyticsMetric?: 'posts' | 'views';
-  accent: string;
   label: string;
+  trend?: number;
   value: string;
-}
-
-function formatGrowthAccent(
-  growth: number | null | undefined,
-  fallback: string,
-): string {
-  if (growth === null || growth === undefined) {
-    return fallback;
-  }
-
-  return `${formatPercentage(growth)} from last period`;
 }
 
 function OrganizationMetricStrip({
@@ -93,24 +81,21 @@ function OrganizationMetricStrip({
 
   const metrics: OrganizationMetricCard[] = [
     {
-      accent: 'Active brands',
       label: 'Total Brands',
       value: formatCompactNumberIntl(analytics?.totalBrands),
     },
     {
-      accent: 'Published content',
       analyticsMetric: 'posts',
       label: 'Total Posts',
       value: formatCompactNumberIntl(analytics?.totalPosts),
     },
     {
-      accent: formatGrowthAccent(analytics?.viewsGrowth, 'Total views'),
       analyticsMetric: 'views',
       label: 'Total Views',
+      trend: analytics?.viewsGrowth ?? undefined,
       value: formatCompactNumberIntl(analytics?.totalViews),
     },
     {
-      accent: 'Organization members',
       label: 'Total Members',
       value: formatCompactNumberIntl(analytics?.totalUsers),
     },
@@ -148,9 +133,9 @@ function OrganizationMetricStrip({
           <MetricCard
             key={metric.label}
             analyticsMetric={metric.analyticsMetric}
-            description={metric.accent}
             isLoading={isLoading}
             label={metric.label}
+            trend={metric.trend}
             value={metric.value}
           />
         ))}

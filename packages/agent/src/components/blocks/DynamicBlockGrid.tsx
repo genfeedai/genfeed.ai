@@ -156,7 +156,6 @@ function MetricCard({ block }: { block: MetricCardBlock }): ReactElement {
 
   return (
     <MetricCardUI
-      description={block.subtitle}
       isLoading={isLoading}
       label={block.title || 'Metric'}
       size="md"

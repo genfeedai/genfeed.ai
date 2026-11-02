@@ -27,6 +27,11 @@ export function formatUsd(value: number): string {
     : USD_FORMATTER.format(value);
 }
 
+/** A dash instead of a made-up zero when there is nothing to average. */
+export function formatOptionalUsd(value: number | null): string {
+  return value === null ? '-' : formatUsd(value);
+}
+
 /** Axis ticks: whole dollars once values are large, cents below that. */
 export function formatUsdAxis(value: number): string {
   return Math.abs(value) >= 10
