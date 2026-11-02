@@ -40,11 +40,17 @@ that suite, and is re-dispatched otherwise.
 ## Pull request smoke
 
 `playwright-pr-smoke.yml` runs Playwright `core` on one runner (no sharding) for
-pull requests that affect `@genfeedai/web` through the workspace graph. It is
-advisory (`continue-on-error`, not a required check) and exists so a UI change
-that breaks a browser spec is red on the PR instead of on master. It never
-runs the `full` tier and is not a dependency of `full-suite.yml` or
-`release.yml`.
+pull requests that affect `@genfeedai/web` through the workspace graph. It
+starts only after the `CI` workflow succeeds on a same-repository, non-draft
+pull request head (`workflow_run`), so superseded pushes and red heads never
+spend a runner and it does not compete with required CI. The result is a
+check run named `Playwright Core Smoke` on the head commit.
+
+It is advisory: a failure is reported as `neutral`, it is not a required check,
+and it exists so a UI change that breaks a browser spec is visible on the PR
+instead of on master. It never runs the `full` tier and is not a dependency of
+`full-suite.yml` or `release.yml`. To smoke a pull request by hand, dispatch the
+workflow with its `pr_number`.
 
 ## Playwright full-tier quarantines
 
