@@ -155,8 +155,17 @@ const mocks = vi.hoisted(() => ({
       }[];
     },
   },
-  notify: vi.fn(),
-  push: vi.fn(),
+  // Notices render into a list in the document, like a toast host, so tests
+  // read what the person would see.
+  notify: (message: string) => {
+    const item = document.createElement('li');
+    item.textContent = message;
+    document.querySelector('ol[aria-label="Notifications"]')?.append(item);
+  },
+  // Navigation lands in the jsdom URL so tests read where the person ended up.
+  push: (path: string) => {
+    window.history.pushState(null, '', path);
+  },
   results: vi.fn(),
   rehydratePending: vi.fn(),
   removeJob: vi.fn(),
@@ -792,9 +801,18 @@ async function renderLoaded(options?: Parameters<typeof render>[1]) {
   return view;
 }
 
+function notifications() {
+  return within(screen.getByRole('list', { name: 'Notifications' }));
+}
+
 describe('StudioPlaygroundWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    document.querySelector('ol[aria-label="Notifications"]')?.remove();
+    const host = document.createElement('ol');
+    host.setAttribute('aria-label', 'Notifications');
+    document.body.append(host);
+    window.history.pushState(null, '', '/');
     mocks.crunQuote.mockReturnValue({
       quote: null,
       status: 'idle',
@@ -1333,9 +1351,7 @@ describe('StudioPlaygroundWorkspace', () => {
       });
       render(<StudioPlaygroundWorkspace />);
       act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
-      expect(mocks.notify).toHaveBeenCalledWith(
-        expect.stringContaining('Selected skills'),
-      );
+      expect(notifications().getByText(/Selected skills/)).toBeInTheDocument();
       expect(mocks.submit).not.toHaveBeenCalled();
     },
   );
@@ -1564,9 +1580,9 @@ describe('StudioPlaygroundWorkspace', () => {
       expect(mocks.openConfirm).not.toHaveBeenCalled();
       expect(mocks.clearAttachments).not.toHaveBeenCalled();
       expect(mocks.submit).not.toHaveBeenCalled();
-      expect(mocks.notify).toHaveBeenCalledWith(
-        'continuation.sourceUnavailable',
-      );
+      expect(
+        notifications().getByText('continuation.sourceUnavailable'),
+      ).toBeInTheDocument();
     },
   );
 
@@ -1690,9 +1706,7 @@ describe('StudioPlaygroundWorkspace', () => {
 
     act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
 
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/moonrise/playground/card-1',
-    );
+    expect(window.location.pathname).toBe('/acme/moonrise/playground/card-1');
   });
 
   it('puts the prompt in the agent column and the list in the output column', () => {
@@ -1824,12 +1838,10 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-composer')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
-    expect(mocks.push).toHaveBeenLastCalledWith(
-      '/acme/moonrise/playground/image-10',
-    );
+    expect(window.location.pathname).toBe('/acme/moonrise/playground/image-10');
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
-    expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
+    expect(window.location.pathname).toBe('/acme/moonrise/playground');
 
     expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
       'Keep this draft',
@@ -1851,7 +1863,7 @@ describe('StudioPlaygroundWorkspace', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'focusedPreview.back' }),
     );
-    expect(mocks.push).toHaveBeenLastCalledWith('/acme/moonrise/playground');
+    expect(window.location.pathname).toBe('/acme/moonrise/playground');
   });
 
   it('remixes a selected image as an image reference', async () => {
@@ -1917,7 +1929,9 @@ describe('StudioPlaygroundWorkspace', () => {
       ),
     );
 
-    expect(mocks.notify).toHaveBeenCalledWith('continuation.draftLoading');
+    expect(
+      notifications().getByText('continuation.draftLoading'),
+    ).toBeInTheDocument();
     expect(mocks.openConfirm).not.toHaveBeenCalled();
     expect(
       mocks.settings.mock.results.at(-1)?.value.setType,
@@ -1979,9 +1993,9 @@ describe('StudioPlaygroundWorkspace', () => {
     act(() => mocks.results.mock.calls.at(-1)?.[0].onReprompt(job));
     expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('');
     expect(mocks.submit).not.toHaveBeenCalled();
-    expect(mocks.notify).toHaveBeenCalledWith(
-      'continuation.originalUnavailable',
-    );
+    expect(
+      notifications().getByText('continuation.originalUnavailable'),
+    ).toBeInTheDocument();
   });
 
   it('routes See Details to the URL of the same generation', () => {
@@ -2005,7 +2019,7 @@ describe('StudioPlaygroundWorkspace', () => {
       onInspectIngredient: (asset: IIngredient) => void;
     };
     act(() => hookParams.onInspectIngredient(ingredient));
-    expect(mocks.push).toHaveBeenLastCalledWith(
+    expect(window.location.pathname).toBe(
       '/acme/moonrise/playground/local-job',
     );
   });
@@ -2078,13 +2092,11 @@ describe('StudioPlaygroundWorkspace', () => {
       );
     });
     await waitFor(() => {
-      expect(mocks.notify).toHaveBeenCalledWith(
-        expect.stringContaining('model pick'),
-      );
+      expect(notifications().getByText(/model pick/)).toBeInTheDocument();
     });
-    expect(mocks.notify).toHaveBeenCalledWith(
-      expect.stringContaining('aspect ratio, duration, output count'),
-    );
+    expect(
+      notifications().getByText(/aspect ratio, duration, output count/),
+    ).toBeInTheDocument();
   });
 
   it('prefills avatar and voice from an identity handoff (#4717)', async () => {
@@ -2114,7 +2126,7 @@ describe('StudioPlaygroundWorkspace', () => {
       );
     });
     expect(screen.getByText('Say this as the brand')).toBeVisible();
-    expect(mocks.notify).not.toHaveBeenCalled();
+    expect(notifications().queryAllByRole('listitem')).toHaveLength(0);
   });
 
   it('keeps the rest of the prefill and notices when identity could not be carried (#4717)', async () => {
@@ -2140,9 +2152,7 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     expect(screen.getByText('Say this as the brand')).toBeVisible();
     await waitFor(() => {
-      expect(mocks.notify).toHaveBeenCalledWith(
-        expect.stringContaining('avatar and voice'),
-      );
+      expect(notifications().getByText(/avatar and voice/)).toBeInTheDocument();
     });
   });
 
@@ -2338,9 +2348,11 @@ describe('StudioPlaygroundWorkspace', () => {
       expect(mocks.updateSettings).toHaveBeenCalledWith({
         modelKey: AUTO_MODEL_OPTION_VALUE,
       });
-      expect(mocks.notify).toHaveBeenCalledWith(
-        'Your saved model is no longer available — Studio switched to Auto.',
-      );
+      expect(
+        notifications().getByText(
+          'Your saved model is no longer available — Studio switched to Auto.',
+        ),
+      ).toBeInTheDocument();
     } else {
       expect(mocks.updateSettings).not.toHaveBeenCalledWith({
         modelKey: AUTO_MODEL_OPTION_VALUE,
@@ -2448,9 +2460,11 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.updateSettings).toHaveBeenCalledWith({
       modelKey: 'provider/editor',
     });
-    expect(mocks.notify).toHaveBeenCalledWith(
-      'Your saved model is no longer available — Studio switched to Provider editor.',
-    );
+    expect(
+      notifications().getByText(
+        'Your saved model is no longer available — Studio switched to Provider editor.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('returns a saved avatar engine to Auto in simple mode, now that avatar has a model catalog', async () => {
@@ -2639,9 +2653,11 @@ describe('StudioPlaygroundWorkspace', () => {
     render(<StudioPlaygroundWorkspace />);
 
     await waitFor(() => {
-      expect(mocks.notify).toHaveBeenCalledWith(
-        'That Studio handoff has expired or was already used. Continuing with your usual defaults.',
-      );
+      expect(
+        notifications().getByText(
+          'That Studio handoff has expired or was already used. Continuing with your usual defaults.',
+        ),
+      ).toBeInTheDocument();
     });
     expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
     expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
@@ -2649,7 +2665,7 @@ describe('StudioPlaygroundWorkspace', () => {
     // Give the (mis-gated, pre-fix) model/param effect every chance to fire.
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mocks.updateSettings).not.toHaveBeenCalled();
-    expect(mocks.notify).toHaveBeenCalledTimes(1);
+    expect(notifications().getAllByRole('listitem')).toHaveLength(1);
   });
   describe('audio references', () => {
     function composer(): StudioPlaygroundComposerProps {
@@ -2930,7 +2946,9 @@ describe('StudioPlaygroundWorkspace', () => {
       act(() => composer().onOpenLibrary?.('audioReference'));
       expect(addFiles).not.toHaveBeenCalled();
       expect(mocks.findAllPage).not.toHaveBeenCalled();
-      expect(mocks.notify).toHaveBeenCalledWith('audioReferenceUnsupported');
+      expect(
+        notifications().getByText('audioReferenceUnsupported'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -3017,7 +3035,9 @@ describe('StudioPlaygroundWorkspace', () => {
         ]),
       );
       // One reference the server pruned and one the client could not load.
-      expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
+      expect(
+        notifications().getByText('draft.referencesDropped'),
+      ).toBeInTheDocument();
     });
 
     it('restores one Library image in both frame roles without merging their draft positions', async () => {
@@ -3148,9 +3168,11 @@ describe('StudioPlaygroundWorkspace', () => {
           expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
         ]),
       );
-      expect(mocks.notify).not.toHaveBeenCalledWith(
-        'Unsupported frame or video references were cleared for the selected model.',
-      );
+      expect(
+        notifications().queryByText(
+          'Unsupported frame or video references were cleared for the selected model.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     it('keeps a restored end frame in Auto, where the router picks a model that accepts it', async () => {
@@ -3220,9 +3242,11 @@ describe('StudioPlaygroundWorkspace', () => {
           expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
         ]),
       );
-      expect(mocks.notify).not.toHaveBeenCalledWith(
-        'Unsupported frame or video references were cleared for the selected model.',
-      );
+      expect(
+        notifications().queryByText(
+          'Unsupported frame or video references were cleared for the selected model.',
+        ),
+      ).not.toBeInTheDocument();
     });
 
     describe('attaching frames to a video prompt', () => {
@@ -3307,9 +3331,7 @@ describe('StudioPlaygroundWorkspace', () => {
             expect.objectContaining({ id: 'up-end.png', role: 'endFrame' }),
           ]),
         );
-        expect(mocks.notify).not.toHaveBeenCalledWith(
-          expect.stringContaining('cleared'),
-        );
+        expect(notifications().queryByText(/cleared/)).not.toBeInTheDocument();
         act(() => composerActions().onSubmit());
         expect(mocks.submit).toHaveBeenLastCalledWith(
           expect.any(String),
@@ -3343,9 +3365,11 @@ describe('StudioPlaygroundWorkspace', () => {
             ]),
           ),
         );
-        expect(mocks.notify).toHaveBeenCalledWith(
-          'Unsupported frame or video references were cleared for the selected model.',
-        );
+        expect(
+          notifications().getByText(
+            'Unsupported frame or video references were cleared for the selected model.',
+          ),
+        ).toBeInTheDocument();
       });
     });
 
@@ -3776,7 +3800,7 @@ describe('StudioPlaygroundWorkspace', () => {
           ]),
         );
         expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
-        expect(mocks.notify).not.toHaveBeenCalled();
+        expect(notifications().queryAllByRole('listitem')).toHaveLength(0);
         expect(removeAttachment).not.toHaveBeenCalled();
         expect(mocks.submit).not.toHaveBeenCalled();
         mocks.models.value = {
@@ -3792,7 +3816,7 @@ describe('StudioPlaygroundWorkspace', () => {
             endFrame: endId,
           }),
         );
-        expect(mocks.notify).not.toHaveBeenCalled();
+        expect(notifications().queryAllByRole('listitem')).toHaveLength(0);
         const veoKey = 'crun/google/veo3-1-fast-t2v';
         const veoControls = controlsFor('google/veo3-1-fast-t2v');
         mocks.models.value = {
@@ -3896,9 +3920,9 @@ describe('StudioPlaygroundWorkspace', () => {
         act(() => composer().onPromptChange('Keep prior composer'));
         vary();
         await waitFor(() =>
-          expect(mocks.notify).toHaveBeenCalledWith(
-            'crun.referenceUnavailable',
-          ),
+          expect(
+            notifications().getByText('crun.referenceUnavailable'),
+          ).toBeInTheDocument(),
         );
         expect(composer().prompt).toBe('Keep prior composer');
         expect(composer().isCrunRestoreBlocked).toBe(true);
@@ -3916,7 +3940,9 @@ describe('StudioPlaygroundWorkspace', () => {
       job.recipe.crunControls.contractVersion = 'old';
       await renderLoaded();
       vary(job);
-      expect(mocks.notify).toHaveBeenCalledWith('crun.videoQuoteStale');
+      expect(
+        notifications().getByText('crun.videoQuoteStale'),
+      ).toBeInTheDocument();
       expect(mocks.findByIds).not.toHaveBeenCalled();
       expect(composer().isCrunRestoreBlocked).toBe(true);
       expect(mocks.crunQuote.mock.calls.at(-1)?.[0].request).toBeNull();
@@ -4244,10 +4270,12 @@ describe('StudioPlaygroundWorkspace', () => {
           modelKey: DEFAULT_IMAGE_EDIT_MODEL_KEY,
         }),
       );
-      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
-      expect(mocks.notify).not.toHaveBeenCalledWith(
-        'editImage.aspectRatioFallback',
-      );
+      expect(
+        notifications().getByText('editImage.modelFallback'),
+      ).toBeInTheDocument();
+      expect(
+        notifications().queryByText('editImage.aspectRatioFallback'),
+      ).not.toBeInTheDocument();
     });
     it('keeps an editor model and matches the source when the ratio is unsupported', async () => {
       mocks.searchParams.value = 'editImage=source-cinema';
@@ -4274,9 +4302,9 @@ describe('StudioPlaygroundWorkspace', () => {
           modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
         }),
       );
-      expect(mocks.notify).toHaveBeenCalledWith(
-        'editImage.aspectRatioFallback',
-      );
+      expect(
+        notifications().getByText('editImage.aspectRatioFallback'),
+      ).toBeInTheDocument();
     });
     it('matches the source pixels when they are not a selectable ratio', async () => {
       mocks.searchParams.value = 'editImage=source-anamorphic';
@@ -4306,9 +4334,9 @@ describe('StudioPlaygroundWorkspace', () => {
         'image-edit',
         expect.objectContaining({ aspectRatio: '21:9' }),
       );
-      expect(mocks.notify).toHaveBeenCalledWith(
-        'editImage.aspectRatioFallback',
-      );
+      expect(
+        notifications().getByText('editImage.aspectRatioFallback'),
+      ).toBeInTheDocument();
     });
     it('keeps a recorded 16:9 and the ledger model without using portrait placeholders', async () => {
       mocks.searchParams.value = 'editImage=source-recorded';
@@ -4344,7 +4372,9 @@ describe('StudioPlaygroundWorkspace', () => {
         'image-edit',
         expect.objectContaining({ aspectRatio: '1:1' }),
       );
-      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
+      expect(
+        notifications().getByText('editImage.modelFallback'),
+      ).toBeInTheDocument();
     });
     it('keeps an edit model stored only on the image-edit recipe', async () => {
       mocks.searchParams.value = 'editImage=source-edited';
