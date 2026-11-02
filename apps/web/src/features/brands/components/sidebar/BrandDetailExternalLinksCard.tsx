@@ -7,6 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 function isManualLinkCategory(category: string | undefined): boolean {
@@ -34,6 +35,7 @@ export default function BrandDetailExternalLinksCard({
   links,
   onOpenLinkModal,
 }: BrandDetailExternalLinksCardProps) {
+  const t = useTranslations('pages.brandLinks');
   const manualLinks = useMemo(
     () => links.filter((link) => isManualLinkCategory(link.category)),
     [links],
@@ -44,16 +46,16 @@ export default function BrandDetailExternalLinksCard({
       actions={
         <Button
           icon={<Plus className="size-3" />}
-          label="Add link"
+          label={t('addLink')}
           onClick={() => onOpenLinkModal()}
           size={ButtonSize.XS}
           variant={ButtonVariant.SECONDARY}
         />
       }
-      title="Website links"
+      title={t('websiteLinksTitle')}
     >
       {manualLinks.length === 0 ? (
-        <EmptyState title="No website links yet." />
+        <EmptyState title={t('noWebsiteLinks')} />
       ) : (
         <Card>
           <ul className="flex flex-col divide-y divide-border">
@@ -75,7 +77,7 @@ export default function BrandDetailExternalLinksCard({
                   </span>
                 </Link>
                 <Button
-                  ariaLabel={`Edit ${link.label}`}
+                  ariaLabel={t('editLink', { label: link.label })}
                   icon={<Pencil className="size-3.5" />}
                   onClick={() => onOpenLinkModal(link)}
                   size={ButtonSize.ICON}

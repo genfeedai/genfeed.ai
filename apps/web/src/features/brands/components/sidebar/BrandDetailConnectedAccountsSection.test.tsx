@@ -1,8 +1,15 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import BrandDetailConnectedAccountsSection from '@/features/brands/components/sidebar/BrandDetailConnectedAccountsSection';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 
 function makeConnection(
   overrides: Partial<BrandDetailSocialConnection> = {},

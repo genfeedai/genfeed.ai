@@ -9,6 +9,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   getAccountConnectionStatus,
   getConnectionLabel,
@@ -23,17 +24,19 @@ export default function BrandDetailConnectedAccountsSection({
   connections,
   manageHref,
 }: BrandDetailConnectedAccountsSectionProps) {
+  const t = useTranslations('pages.brandLinks');
+
   return (
     <CollectionSection
       actions={
         <Button asChild size={ButtonSize.XS} variant={ButtonVariant.SECONDARY}>
-          <Link href={manageHref}>Manage</Link>
+          <Link href={manageHref}>{t('manageAccounts')}</Link>
         </Button>
       }
-      title="Connected accounts"
+      title={t('connectedAccountsTitle')}
     >
       {connections.length === 0 ? (
-        <EmptyState title="No accounts connected yet." />
+        <EmptyState title={t('noConnectedAccounts')} />
       ) : (
         <Card>
           <ul className="flex flex-col divide-y divide-border">
@@ -54,7 +57,9 @@ export default function BrandDetailConnectedAccountsSection({
                     {label}
                   </span>
                   <Badge variant={isConnected ? 'success' : 'warning'}>
-                    {isConnected ? 'Connected' : 'Needs reconnect'}
+                    {isConnected
+                      ? t('accountConnected')
+                      : t('accountNeedsReconnect')}
                   </Badge>
                 </li>
               );
