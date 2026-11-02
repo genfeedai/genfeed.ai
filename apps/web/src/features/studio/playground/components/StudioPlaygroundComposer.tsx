@@ -556,6 +556,7 @@ export default function StudioPlaygroundComposer({
                 }
               : serverEstimate;
   // A draft render never counts as an attempt, and a BYOK render holds no credits.
+  const [retryCreditBackRefresh, setRetryCreditBackRefresh] = useState(0);
   const retryCreditBackCredits = useStudioRetryCreditBack({
     credits:
       !isDraftActive &&
@@ -565,6 +566,7 @@ export default function StudioPlaygroundComposer({
         : null,
     modelKey: quoteModelKey,
     prompt,
+    refreshToken: retryCreditBackRefresh,
   });
   // Admission refuses these outright, so Generate waits instead of failing after submit.
   // ERROR, loading, Auto and Crun never block.
@@ -1452,6 +1454,7 @@ export default function StudioPlaygroundComposer({
                   type !== 'avatar'
                 }
                 model={selectedModel}
+                onOpen={() => setRetryCreditBackRefresh((count) => count + 1)}
                 retryCreditBackCredits={retryCreditBackCredits}
                 type={type}
                 label={translate('generate')}
