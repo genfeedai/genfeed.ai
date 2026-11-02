@@ -11,10 +11,22 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+/** Names what arrived, so a bad response can be told apart from a bad request. */
+function describeStoryboardDocument(document: unknown): string {
+  if (typeof document !== 'object' || document === null)
+    return document === '' ? 'an empty body' : `a ${typeof document} body`;
+  const primary = (document as JsonApiResponseDocument).data;
+  if (Array.isArray(primary)) return `a list of ${primary.length} resources`;
+  if (!primary) return 'a document without data';
+  if (!primary.attributes)
+    return `a ${primary.type} resource without attributes`;
+  return `a ${primary.type} resource without config`;
+}
+
 export function deserializeStoryboardRunDocument(
   document: JsonApiResponseDocument,
 ): StoryboardRun {
-  const primary = document.data;
+  const primary = document?.data;
   if (
     !primary ||
     Array.isArray(primary) ||
@@ -22,7 +34,7 @@ export function deserializeStoryboardRunDocument(
     !Object.hasOwn(primary.attributes, 'config')
   )
     throw new TypeError(
-      'Invalid Storyboard document: expected one resource with config',
+      `Invalid Storyboard document: expected one resource with config, received ${describeStoryboardDocument(document)}`,
     );
   const { config, ...attributes } = primary.attributes;
   const envelope: JsonApiResponseDocument = {

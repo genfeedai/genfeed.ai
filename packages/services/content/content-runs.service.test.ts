@@ -710,6 +710,14 @@ describe('ContentRunsService canonical storyboard drafts', () => {
       service.getStoryboardRun('brand-1', 'run-1'),
     ).rejects.toThrow();
   });
+  it('refuses to read a run without an id instead of requesting the run list', async () => {
+    const service = new ContentRunsService('token');
+    mockGet.mockClear();
+    await expect(service.getStoryboardRun('brand-1', '')).rejects.toThrow(
+      'A storyboard run id is required.',
+    );
+    expect(mockGet).not.toHaveBeenCalled();
+  });
 });
 
 describe('character receipt read adapters', () => {

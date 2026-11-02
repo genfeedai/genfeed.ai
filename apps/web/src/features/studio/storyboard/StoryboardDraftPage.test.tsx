@@ -20,14 +20,19 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const mocks = vi.hoisted(() => ({ flush: vi.fn(), push: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  flush: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  search: '',
+}));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
 }));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  useRouter: () => ({ push: mocks.push }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ push: mocks.push, replace: mocks.replace }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 // A settled outbox queue, so the page is not waiting on storage.
 vi.mock(
@@ -210,6 +215,8 @@ describe('draft detail page', () => {
   beforeEach(() => {
     mocks.flush.mockReset();
     mocks.push.mockReset();
+    mocks.replace.mockReset();
+    mocks.search = '';
     mocks.flush.mockResolvedValue({ revision: 1, value: run.config.plan });
   });
 
@@ -256,6 +263,33 @@ describe('draft detail page', () => {
       );
       expect(screen.getByText('Plan editor')).toBeInTheDocument();
       expect(mocks.push).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a storyboard just saved from a brief', () => {
+    it('drafts the saved brief into shots once, and drops the marker from the URL', async () => {
+      mocks.search = 'draft=1';
+      const draftPlan = vi.fn(() => new Promise<StoryboardRun>(() => {}));
+      renderPage({
+        run: savedBrief('A founder launches a product.'),
+        saveSource: vi.fn(),
+        draftPlan,
+      });
+      expect(await screen.findByText('Drafting')).toBeInTheDocument();
+      expect(mocks.replace).toHaveBeenCalledWith('/');
+    });
+    it('leaves a plain visit to a brief with no shots undrafted', () => {
+      renderPage({
+        run: savedBrief('A founder launches a product.'),
+        saveSource: vi.fn(),
+      });
+      expect(screen.queryByText('Drafting')).not.toBeInTheDocument();
+      expect(mocks.replace).not.toHaveBeenCalled();
+    });
+    it('does not redraft a storyboard that already has shots', () => {
+      mocks.search = 'draft=1';
+      renderPage({ run, saveSource: vi.fn() });
+      expect(screen.queryByText('Drafting')).not.toBeInTheDocument();
     });
   });
 
