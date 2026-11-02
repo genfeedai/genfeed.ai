@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { createRef } from 'react';
+import type { RefAttributes } from 'react';
+import { createRef, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   AnimatedIconComponent,
   AnimatedIconHandle,
+  AnimatedIconProps,
 } from './animated-icon.types';
 import { AArrowUpIcon } from './icons/a-arrow-up';
 import { ActivityIcon } from './icons/activity';
@@ -200,38 +202,39 @@ describe.each(icons)(
   (_name, Icon, expectedSvgSize) => {
     beforeEach(() => mocks.start.mockClear());
 
-    it('animates autonomous hover without forwarding controlled callbacks', () => {
-      const onMouseEnter = vi.fn();
-      const onMouseLeave = vi.fn();
-      render(
-        <Icon
-          data-testid="icon"
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
-        />,
+    function Host({
+      ref,
+      ...props
+    }: AnimatedIconProps & RefAttributes<AnimatedIconHandle>) {
+      const [interaction, setInteraction] = useState('idle');
+      return (
+        <>
+          <Icon
+            {...props}
+            ref={ref}
+            onMouseEnter={() => setInteraction('entered')}
+            onMouseLeave={() => setInteraction('left')}
+            onClick={() => setInteraction('clicked')}
+          />
+          <span role="status">{interaction}</span>
+        </>
       );
+    }
+
+    it('animates autonomous hover without changing its host state', () => {
+      render(<Host data-testid="icon" />);
       mocks.start.mockClear();
 
       fireEvent.mouseEnter(screen.getByTestId('icon'));
       expect(mocks.start).toHaveBeenLastCalledWith('animate');
       fireEvent.mouseLeave(screen.getByTestId('icon'));
       expect(mocks.start).toHaveBeenLastCalledWith('normal');
-      expect(onMouseEnter).not.toHaveBeenCalled();
-      expect(onMouseLeave).not.toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent('idle');
     });
 
-    it('exposes imperative controls and delegates hover to its controller', async () => {
+    it('exposes imperative controls and delegates hover to its host', async () => {
       const ref = createRef<AnimatedIconHandle>();
-      const onMouseEnter = vi.fn();
-      const onMouseLeave = vi.fn();
-      render(
-        <Icon
-          ref={ref}
-          data-testid="icon"
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
-        />,
-      );
+      render(<Host ref={ref} data-testid="icon" />);
 
       expect(ref.current).not.toBeNull();
       await act(async () => {
@@ -245,22 +248,20 @@ describe.each(icons)(
       mocks.start.mockClear();
 
       fireEvent.mouseEnter(screen.getByTestId('icon'));
+      expect(screen.getByRole('status')).toHaveTextContent('entered');
       fireEvent.mouseLeave(screen.getByTestId('icon'));
-      expect(onMouseEnter).toHaveBeenCalledTimes(1);
-      expect(onMouseLeave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('status')).toHaveTextContent('left');
       expect(mocks.start).not.toHaveBeenCalled();
     });
 
-    it('preserves div attributes, click behavior and SVG dimensions', () => {
-      const onClick = vi.fn();
+    it('preserves div attributes, visible click state and SVG dimensions', () => {
       render(
-        <Icon
+        <Host
           data-testid="icon"
           size={18}
           className="probe"
           title="Icon title"
           aria-label="Custom icon"
-          onClick={onClick}
         />,
       );
       const wrapper = screen.getByTestId('icon');
@@ -277,7 +278,7 @@ describe.each(icons)(
         String(expectedSvgSize),
       );
       fireEvent.click(wrapper);
-      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('status')).toHaveTextContent('clicked');
     });
   },
 );
