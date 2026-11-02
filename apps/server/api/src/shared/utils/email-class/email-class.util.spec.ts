@@ -1,7 +1,9 @@
 import {
   classifyEmail,
   PERSONAL_EMAIL_DOMAIN_LIST,
+  resolveDefaultOrganizationCategory,
 } from '@api/shared/utils/email-class/email-class.util';
+import { OrganizationCategory } from '@genfeedai/contracts';
 
 describe('classifyEmail', () => {
   it.each([
@@ -30,5 +32,20 @@ describe('classifyEmail', () => {
         domain.toLowerCase(),
       ),
     );
+  });
+});
+
+describe('resolveDefaultOrganizationCategory', () => {
+  it.each([
+    ['someone@gmail.com', OrganizationCategory.CREATOR],
+    ['someone@googlemail.com', OrganizationCategory.CREATOR],
+    ['someone@mailinator.com', OrganizationCategory.CREATOR],
+    ['founder@acme.io', OrganizationCategory.BUSINESS],
+    ['poya@vitae.ai', OrganizationCategory.BUSINESS],
+    [null, OrganizationCategory.BUSINESS],
+    [undefined, OrganizationCategory.BUSINESS],
+    ['not-an-email', OrganizationCategory.BUSINESS],
+  ] as const)('maps %s to %s', (email, expected) => {
+    expect(resolveDefaultOrganizationCategory(email)).toBe(expected);
   });
 });

@@ -248,6 +248,38 @@ describe('UserSetupService', () => {
       expect(mockOrganizationsService.create).toHaveBeenCalledTimes(1);
     });
 
+    it('starts a free-mail signup as a creator organization', async () => {
+      await service.initializeUserResources(userId, undefined, {
+        email: 'someone@gmail.com',
+      });
+
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ category: OrganizationCategory.CREATOR }),
+      );
+    });
+
+    it('starts a work-domain signup as a business organization', async () => {
+      await service.initializeUserResources(userId, undefined, {
+        email: 'founder@acme.io',
+      });
+
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ category: OrganizationCategory.BUSINESS }),
+      );
+    });
+
+    it('keeps an explicitly chosen category even for a free-mail signup', async () => {
+      await service.initializeUserResources(
+        userId,
+        OrganizationCategory.AGENCY,
+        { email: 'someone@gmail.com' },
+      );
+
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ category: OrganizationCategory.AGENCY }),
+      );
+    });
+
     it('should create credit balance for the organization', async () => {
       await service.initializeUserResources(userId);
 

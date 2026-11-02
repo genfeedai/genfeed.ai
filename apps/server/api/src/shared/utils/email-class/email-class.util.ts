@@ -1,4 +1,5 @@
 import { DISPOSABLE_EMAIL_DOMAINS } from '@api/auth/shared/disposable-email-domains.constant';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import type { OrganizationOwnerEmailClass } from '@genfeedai/contracts/interfaces';
 import { extractEmailDomain } from '@genfeedai/helpers';
 import freeEmailDomains from 'free-email-domains';
@@ -29,4 +30,18 @@ export function classifyEmail(
     return 'unknown';
   }
   return PERSONAL_EMAIL_DOMAINS.has(domain) ? 'personal' : 'company';
+}
+
+/**
+ * Category a new organization starts with when the signup did not pick one:
+ * a free or throwaway mailbox is a creator, a work domain is a business. An
+ * address-less signup (phone or social only) keeps the historical BUSINESS
+ * default.
+ */
+export function resolveDefaultOrganizationCategory(
+  email: string | null | undefined,
+): OrganizationCategory {
+  return classifyEmail(email) === 'personal'
+    ? OrganizationCategory.CREATOR
+    : OrganizationCategory.BUSINESS;
 }
