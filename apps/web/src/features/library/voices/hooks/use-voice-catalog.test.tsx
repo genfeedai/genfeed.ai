@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,15 +12,16 @@ const mockFindAllPages = vi.fn();
 const mockUseAuthedService = vi.fn();
 const mockLoggerError = vi.fn();
 
-// `useAuthedService` returns a `useCallback`-stable async resolver, so the
-// consumer's `refresh` identity survives a re-render. A mock that rebuilds its
-// return value each render makes `refresh` unstable, which re-fires the effect
-// on every commit and spins the hook forever — keep this reference stable.
 const voicesService = {
   findAll: mockFindAll,
   findAllPages: mockFindAllPages,
 };
 const resolveVoicesService = async () => voicesService;
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (...args: unknown[]) => mockUseAuthedService(...args),
@@ -51,41 +56,92 @@ describe('useVoiceCatalog', () => {
     const voices = [{ id: 'voice-1', provider: VoiceProvider.ELEVENLABS }];
     mockFindAll.mockResolvedValue(voices);
 
-    const { result } = renderHook(() =>
-      useVoiceCatalog({
-        isActive: true,
-        isPaginated: true,
-        limit: 12,
-        page: 2,
-        providers: [VoiceProvider.ELEVENLABS],
-        search: 'rachel',
-      }),
+    const { result } = renderHook(
+      () =>
+        useVoiceCatalog({
+          isActive: true,
+          isPaginated: true,
+          limit: 12,
+          page: 2,
+          providers: [VoiceProvider.ELEVENLABS],
+          search: 'rachel',
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(mockFindAll).toHaveBeenCalledWith({
-      isActive: true,
-      limit: 12,
-      page: 2,
-      providers: [VoiceProvider.ELEVENLABS],
-      search: 'rachel',
-      status: [
-        IngredientStatus.DRAFT,
-        IngredientStatus.UPLOADED,
-        IngredientStatus.PROCESSING,
-        IngredientStatus.GENERATED,
-        IngredientStatus.FAILED,
-        'completed',
-      ],
-    });
+    expect(mockFindAll).toHaveBeenCalledWith(
+      {
+        isActive: true,
+        limit: 12,
+        page: 2,
+        providers: [VoiceProvider.ELEVENLABS],
+        search: 'rachel',
+        status: [
+          IngredientStatus.DRAFT,
+          IngredientStatus.UPLOADED,
+          IngredientStatus.PROCESSING,
+          IngredientStatus.GENERATED,
+          IngredientStatus.FAILED,
+          'completed',
+        ],
+      },
+      expect.any(AbortSignal),
+    );
     expect(result.current.voices).toEqual(voices);
+  });
+
+  it('is loading, with no voices, on the first render of a first visit', () => {
+    mockFindAllPages.mockReturnValue(new Promise(() => {}));
+    const firstRender: { isLoading: boolean; voiceCount: number }[] = [];
+
+    renderHook(
+      () => {
+        const state = useVoiceCatalog();
+        firstRender.push({
+          isLoading: state.isLoading,
+          voiceCount: state.voices.length,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper() },
+    );
+
+    expect(firstRender[0]).toEqual({ isLoading: true, voiceCount: 0 });
+  });
+
+  it('paints the cached voices on a return visit without a loading state', async () => {
+    mockFindAllPages.mockResolvedValue([{ id: 'voice-1' }]);
+    const client = createTestQueryClient();
+    const first = renderHook(() => useVoiceCatalog(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.isLoading).toBe(false));
+    first.unmount();
+
+    const firstRender: { isLoading: boolean; voices: unknown[] }[] = [];
+    renderHook(
+      () => {
+        const state = useVoiceCatalog();
+        firstRender.push({ isLoading: state.isLoading, voices: state.voices });
+        return state;
+      },
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(firstRender[0]).toEqual({
+      isLoading: false,
+      voices: [{ id: 'voice-1' }],
+    });
   });
 
   it('falls back to an empty list on fetch failure', async () => {
     mockFindAllPages.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() => useVoiceCatalog());
+    const { result } = renderHook(() => useVoiceCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -99,7 +155,9 @@ describe('useVoiceCatalog', () => {
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce([{ id: 'voice-1' }]);
 
-    const { result } = renderHook(() => useVoiceCatalog());
+    const { result } = renderHook(() => useVoiceCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe('Voices could not be loaded.');
@@ -108,7 +166,7 @@ describe('useVoiceCatalog', () => {
       await result.current.refresh();
     });
 
-    expect(result.current.error).toBeNull();
+    await waitFor(() => expect(result.current.error).toBeNull());
     expect(result.current.voices).toEqual([{ id: 'voice-1' }]);
   });
 
@@ -117,10 +175,12 @@ describe('useVoiceCatalog', () => {
       .mockResolvedValueOnce([{ id: 'voice-1' }])
       .mockResolvedValueOnce([{ id: 'voice-2' }, { id: 'voice-3' }]);
 
-    const { result } = renderHook(() =>
-      useVoiceCatalog({
-        status: ['completed'],
-      }),
+    const { result } = renderHook(
+      () =>
+        useVoiceCatalog({
+          status: ['completed'],
+        }),
+      { wrapper: queryClientWrapper() },
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -130,24 +190,31 @@ describe('useVoiceCatalog', () => {
       await result.current.refresh();
     });
 
-    expect(mockFindAllPages).toHaveBeenLastCalledWith({
-      isActive: true,
-      limit: undefined,
-      page: undefined,
-      providers: undefined,
-      search: undefined,
-      status: ['completed'],
-    });
-    expect(result.current.voices).toEqual([
-      { id: 'voice-2' },
-      { id: 'voice-3' },
-    ]);
+    expect(mockFindAllPages).toHaveBeenLastCalledWith(
+      {
+        isActive: true,
+        limit: undefined,
+        page: undefined,
+        providers: undefined,
+        search: undefined,
+        status: ['completed'],
+      },
+      expect.any(AbortSignal),
+    );
+    await waitFor(() =>
+      expect(result.current.voices).toEqual([
+        { id: 'voice-2' },
+        { id: 'voice-3' },
+      ]),
+    );
   });
 
   it('does not refetch on rerender when using default status filters', async () => {
     mockFindAllPages.mockResolvedValue([{ id: 'voice-1' }]);
 
-    const { result, rerender } = renderHook(() => useVoiceCatalog());
+    const { result, rerender } = renderHook(() => useVoiceCatalog(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockFindAllPages).toHaveBeenCalledTimes(1);

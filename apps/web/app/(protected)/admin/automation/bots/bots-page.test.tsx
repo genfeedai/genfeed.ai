@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,8 +16,6 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
-// The real hook returns a referentially stable callback; the mock must too,
-// or every render re-fires the load effect and drains the *Once mocks.
 const getBotsServiceStable = vi.hoisted(() => async () => ({
   findAll: mocks.findAll,
 }));
@@ -22,6 +24,11 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getBotsServiceStable,
@@ -65,7 +72,7 @@ describe('BotsPage shell-first loading', () => {
     mocks.searchParams = new URLSearchParams('page=3');
     mocks.findAll.mockResolvedValueOnce([]);
 
-    render(<BotsPage />);
+    render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalledWith(
@@ -82,7 +89,7 @@ describe('BotsPage shell-first loading', () => {
     mocks.searchParams = new URLSearchParams('q=livestream');
     mocks.findAll.mockResolvedValueOnce([]);
 
-    render(<BotsPage />);
+    render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(mocks.findAll).toHaveBeenCalledWith(
@@ -106,7 +113,7 @@ describe('BotsPage shell-first loading', () => {
       }),
     );
 
-    render(<BotsPage />);
+    render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     expect(screen.getByRole('heading', { name: 'Bots' })).toBeVisible();
     expect(screen.getByTestId('automation-bots-surface')).toBeVisible();
@@ -127,11 +134,42 @@ describe('BotsPage shell-first loading', () => {
   it('shows the empty state inside the surface once loading resolves with no bots', async () => {
     mocks.findAll.mockResolvedValueOnce([]);
 
-    render(<BotsPage />);
+    render(<BotsPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('No bots yet')).toBeVisible();
     });
     expect(screen.getByTestId('automation-bots-surface')).toBeVisible();
+  });
+
+  it('paints the cached bots on a return visit, with no skeleton', async () => {
+    mocks.findAll.mockResolvedValueOnce([
+      {
+        category: 'engagement',
+        id: 'bot-1',
+        label: 'Sample bot',
+        status: 'ACTIVE',
+      },
+    ]);
+    const client = createTestQueryClient();
+    const first = render(<BotsPage />, { wrapper: queryClientWrapper(client) });
+    await screen.findByText('Sample bot');
+    first.unmount();
+    mocks.findAll.mockReturnValueOnce(new Promise(() => {}));
+
+    render(<BotsPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Sample bot')).toBeVisible();
+  });
+
+  it('toasts once when the bots fail to load', async () => {
+    mocks.findAll.mockRejectedValueOnce(new Error('boom'));
+
+    render(<BotsPage />, { wrapper: queryClientWrapper() });
+
+    await waitFor(() => {
+      expect(mocks.error).toHaveBeenCalledWith('Failed to load bots');
+    });
+    expect(mocks.error).toHaveBeenCalledTimes(1);
   });
 });

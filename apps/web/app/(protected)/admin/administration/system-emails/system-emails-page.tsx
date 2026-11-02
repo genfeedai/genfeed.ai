@@ -7,7 +7,7 @@ import {
   type LifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/contracts/constants';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -33,7 +33,7 @@ import {
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Mail } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
@@ -62,13 +62,33 @@ function resolvePreviewAction(email: LifecycleSystemEmailDefinition): string {
   return `${action.label} -> ${action.url}`;
 }
 
+const EMPTY_EMAILS: LifecycleSystemEmailDefinition[] = [];
+
 export default function SystemEmailsPage() {
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
-  const [emails, setEmails] = useState<LifecycleSystemEmailDefinition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const range = useSystemEmailRange();
+
+  const notificationsService = NotificationsService.getInstance();
+  // Cached: coming back to System emails paints the list it already has while
+  // it refreshes.
+  const emailsQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
+      try {
+        const data = await service.getSystemEmails(signal);
+        logger.info('System emails loaded', { count: data.length });
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load system emails', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: ['admin', 'system-emails'],
+    service: (token: string) => AdminSystemEmailsService.getInstance(token),
+  });
+  const emails = emailsQuery.data ?? EMPTY_EMAILS;
   const visibleEmails = useFilteredData({
     data: emails,
     filter: search,
@@ -80,49 +100,19 @@ export default function SystemEmailsPage() {
       email.trigger,
     ],
   });
-
-  const notificationsService = NotificationsService.getInstance();
-  const getSystemEmailsService = useAuthedService((token: string) =>
-    AdminSystemEmailsService.getInstance(token),
-  );
-
-  const loadEmails = useCallback(
-    async (signal: AbortSignal) => {
-      try {
-        const service = await getSystemEmailsService();
-        const data = await service.getSystemEmails(signal);
-
-        if (!signal.aborted) {
-          setEmails(data);
-          logger.info('System emails loaded', { count: data.length });
-        }
-      } catch (error) {
-        if (signal.aborted) {
-          return;
-        }
-        logger.error('Failed to load system emails', error);
-        notificationsService.error('Failed to load system emails');
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [getSystemEmailsService, notificationsService],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadEmails(controller.signal);
-
-    return () => controller.abort();
-  }, [loadEmails]);
-
+  const { errorUpdatedAt, isError, isLoading, refetch } = emailsQuery;
+  const isRefreshing = emailsQuery.isFetching && !isLoading;
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadEmails(new AbortController().signal);
-    setIsRefreshing(false);
-  }, [loadEmails]);
+    await refetch();
+  }, [refetch]);
+
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (isError) {
+      notificationsService.error('Failed to load system emails');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   return (
     <AdminPageShell

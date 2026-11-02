@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { selectView } from '@app-tests/view-menu.helpers';
 import {
   fireEvent,
@@ -38,6 +42,10 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <nav aria-label="pagination" />,
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => mocks.translate }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -101,7 +109,7 @@ beforeEach(() => {
 describe('admin templates collection', () => {
   it('renders one page of navigable rows and persists the grid choice', async () => {
     const user = userEvent.setup();
-    const first = render(<TemplatesPage />);
+    const first = render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByRole('link', { name: 'open Template 0' }),
     ).toHaveAttribute('href', expect.stringContaining('/template-0'));
@@ -112,11 +120,11 @@ describe('admin templates collection', () => {
     expect(screen.getByTestId('templates-grid')).toHaveClass('@container');
     expect(screen.getAllByTestId('template-card')).toHaveLength(15);
     first.unmount();
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByTestId('templates-grid')).toBeInTheDocument();
   });
   it('renders no in-content header: the breadcrumb is the title and the toggle lives in the subbar', async () => {
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByTestId('templates-list');
     expect(screen.queryByText('catalog')).not.toBeInTheDocument();
     expect(screen.queryByText('description')).not.toBeInTheDocument();
@@ -153,7 +161,7 @@ describe('admin templates collection', () => {
         content: 'Hi {{name}}',
       },
     ]);
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByRole('link', { name: 'open Video default' }),
     ).toBeInTheDocument();
@@ -170,7 +178,7 @@ describe('admin templates collection', () => {
 
   it('asks the API for the page and search in the URL instead of filtering the page', async () => {
     mocks.searchParams = new URLSearchParams('page=3&q=tweet');
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('link', { name: 'open Template 0' });
     expect(mocks.service.getTemplates).toHaveBeenCalledWith(
       { includeSystem: true, limit: 15, page: 3, search: 'tweet' },
@@ -184,7 +192,7 @@ describe('admin templates collection', () => {
 
   it('writes a search to the URL and returns to page 1', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('link', { name: 'open Template 0' });
     const input = screen.getByPlaceholderText('search');
     fireEvent.change(input, { target: { value: 'sunset' } });
@@ -199,7 +207,7 @@ describe('admin templates collection', () => {
 
   it('refreshes from the subbar', async () => {
     const user = userEvent.setup();
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('link', { name: 'open Template 0' });
     await user.click(screen.getByRole('button', { name: 'refresh' }));
     await waitFor(() =>
@@ -211,7 +219,7 @@ describe('admin templates collection', () => {
     mocks.service.getTemplates.mockResolvedValue([
       { id: 'legacy', label: 'Legacy prompt', isActive: null },
     ]);
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('link', { name: 'open Legacy prompt' });
     expect(screen.queryByText('inactive')).not.toBeInTheDocument();
     expect(screen.queryByText('active')).not.toBeInTheDocument();
@@ -223,7 +231,7 @@ describe('admin templates collection', () => {
       'grid',
     );
     mocks.service.getTemplates.mockReturnValue(new Promise(() => {}));
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(screen.getAllByTestId('skeleton-card')).toHaveLength(6);
     expect(screen.queryByTestId('list-rows-skeleton')).not.toBeInTheDocument();
   });
@@ -231,11 +239,28 @@ describe('admin templates collection', () => {
     mocks.service.getTemplates
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce([]);
-    render(<TemplatesPage />);
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByText('loadError')).toBeInTheDocument();
     expect(screen.queryByText('empty')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'retry' }));
     expect(await screen.findByText('empty')).toBeInTheDocument();
     expect(mocks.service.getTemplates).toHaveBeenCalledTimes(2);
+  });
+
+  it('paints the cached templates on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(<TemplatesPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    await screen.findByRole('link', { name: 'open Template 0' });
+    first.unmount();
+    mocks.service.getTemplates.mockReturnValue(new Promise(() => {}));
+
+    render(<TemplatesPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(
+      screen.getByRole('link', { name: 'open Template 0' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('list-rows-skeleton')).not.toBeInTheDocument();
   });
 });
