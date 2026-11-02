@@ -521,7 +521,9 @@ describe('Motion quote review', () => {
       fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
 
       expect(mocks.quote).not.toHaveBeenCalled();
-      expect(screen.queryByText('projectChoiceQuestion')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('projectChoiceQuestion'),
+      ).not.toBeInTheDocument();
     });
 
     it('quotes a new project for new work even when projects exist', async () => {
