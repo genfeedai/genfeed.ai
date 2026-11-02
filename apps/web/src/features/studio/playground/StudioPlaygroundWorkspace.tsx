@@ -2913,7 +2913,8 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       {translate('history.retrying')}
                     </p>
                   ) : null}
-                  {!showEmptyState && (!galleryError || visibleJobs.length > 0) ? (
+                  {!showEmptyState &&
+                  (!galleryError || visibleJobs.length > 0) ? (
                     <StudioPlaygroundResults
                       assetActions={{
                         ...assetActions,

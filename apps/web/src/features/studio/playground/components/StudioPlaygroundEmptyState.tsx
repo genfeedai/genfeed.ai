@@ -117,88 +117,81 @@ export default function StudioPlaygroundEmptyState({
       }),
     );
 
-    const starterCards = orderStarterIdeas(type).map(
-      (idea): EmptyStateCard => {
-        const taggedCharacter =
-          character !== undefined && idea.usesCharacter
-            ? character
-            : undefined;
-        const usesSoftwareCopy = starterIdeaUsesSoftwareCopy(
-          idea.id,
-          offeringKind,
+    const starterCards = orderStarterIdeas(type).map((idea): EmptyStateCard => {
+      const taggedCharacter =
+        character !== undefined && idea.usesCharacter ? character : undefined;
+      const usesSoftwareCopy = starterIdeaUsesSoftwareCopy(
+        idea.id,
+        offeringKind,
+      );
+      const copy = (part: 'lead' | 'tail', isTagged: boolean) =>
+        translate(
+          `starterIdeas.${starterCopyKey(idea.id, part, usesSoftwareCopy, isTagged)}`,
         );
-        const copy = (part: 'lead' | 'tail', isTagged: boolean) =>
-          translate(
-            `starterIdeas.${starterCopyKey(idea.id, part, usesSoftwareCopy, isTagged)}`,
-          );
-        const lead = copy('lead', taggedCharacter !== undefined);
-        const tail = taggedCharacter ? copy('tail', true) : undefined;
-        const preview = taggedCharacter
-          ? `${lead}${taggedCharacter.label}${tail ?? ''}`
-          : lead;
-        const productLabel = productReference
-          ? (productReference.label ??
-            translate('starterIdeas.productName'))
+      const lead = copy('lead', taggedCharacter !== undefined);
+      const tail = taggedCharacter ? copy('tail', true) : undefined;
+      const preview = taggedCharacter
+        ? `${lead}${taggedCharacter.label}${tail ?? ''}`
+        : lead;
+      const productLabel = productReference
+        ? (productReference.label ?? translate('starterIdeas.productName'))
+        : undefined;
+      const attachedProduct =
+        !usesSoftwareCopy &&
+        idea.usesProductReference &&
+        productReference &&
+        productLabel
+          ? {
+              id: productReference.id,
+              label: productLabel,
+              previewUrl: productReference.previewUrl,
+              role: starterProductReferenceRole(idea.type),
+            }
           : undefined;
-        const attachedProduct =
-          !usesSoftwareCopy &&
-          idea.usesProductReference &&
-          productReference &&
-          productLabel
-            ? {
-                id: productReference.id,
-                label: productLabel,
-                previewUrl: productReference.previewUrl,
-                role: starterProductReferenceRole(idea.type),
-              }
-            : undefined;
-        const detail = [
-          translate(`starterIdeas.${idea.id}.detail`),
-          taggedCharacter
-            ? translate('starterIdeas.tagsCharacter', {
-                name: taggedCharacter.label,
-              })
-            : null,
-          idea.usesProductReference && !usesSoftwareCopy
-            ? productLabel
-              ? translate('starterIdeas.usesProduct', { name: productLabel })
-              : translate('starterIdeas.needsProduct')
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ');
+      const detail = [
+        translate(`starterIdeas.${idea.id}.detail`),
+        taggedCharacter
+          ? translate('starterIdeas.tagsCharacter', {
+              name: taggedCharacter.label,
+            })
+          : null,
+        idea.usesProductReference && !usesSoftwareCopy
+          ? productLabel
+            ? translate('starterIdeas.usesProduct', { name: productLabel })
+            : translate('starterIdeas.needsProduct')
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
 
-        return {
-          item: {
-            description: detail,
-            icon: createElement(TYPE_ICONS[idea.type], {
-              className: ICON_CLASS,
-            }),
-            id: idea.id,
-            label: translate(`starterIdeas.${idea.id}.label`),
-            prompt: preview,
-          },
-          select: () => ({
-            aspectRatio: idea.aspectRatio,
-            content: buildStarterIdeaDocument(lead, tail, taggedCharacter),
-            instrumental: idea.instrumental,
-            ...(idea.usesProductReference &&
-            !usesSoftwareCopy &&
-            !attachedProduct
-              ? { openLibraryRole: starterProductReferenceRole(idea.type) }
-              : {}),
-            ...(attachedProduct ? { productReference: attachedProduct } : {}),
-            promptTemplate: usesSoftwareCopy
-              ? taggedCharacter
-                ? idea.characterPromptTemplate
-                : undefined
-              : starterIdeaPromptTemplate(idea, taggedCharacter !== undefined),
-            seedId: `${idea.id}:${taggedCharacter?.id ?? 'plain'}:${attachedProduct?.id ?? 'no-product'}:${Date.now()}`,
-            type: idea.type,
+      return {
+        item: {
+          description: detail,
+          icon: createElement(TYPE_ICONS[idea.type], {
+            className: ICON_CLASS,
           }),
-        };
-      },
-    );
+          id: idea.id,
+          label: translate(`starterIdeas.${idea.id}.label`),
+          prompt: preview,
+        },
+        select: () => ({
+          aspectRatio: idea.aspectRatio,
+          content: buildStarterIdeaDocument(lead, tail, taggedCharacter),
+          instrumental: idea.instrumental,
+          ...(idea.usesProductReference && !usesSoftwareCopy && !attachedProduct
+            ? { openLibraryRole: starterProductReferenceRole(idea.type) }
+            : {}),
+          ...(attachedProduct ? { productReference: attachedProduct } : {}),
+          promptTemplate: usesSoftwareCopy
+            ? taggedCharacter
+              ? idea.characterPromptTemplate
+              : undefined
+            : starterIdeaPromptTemplate(idea, taggedCharacter !== undefined),
+          seedId: `${idea.id}:${taggedCharacter?.id ?? 'plain'}:${attachedProduct?.id ?? 'no-product'}:${Date.now()}`,
+          type: idea.type,
+        }),
+      };
+    });
 
     return [...proposalCards, ...starterCards].slice(0, CARD_COUNT);
   }, [character, offeringKind, productReference, proposals, translate, type]);

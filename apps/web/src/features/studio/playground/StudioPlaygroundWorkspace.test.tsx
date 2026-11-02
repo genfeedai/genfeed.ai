@@ -367,17 +367,24 @@ vi.mock(
                 },
               }
             : { openLibraryRole: role }),
-          promptTemplate: type === 'video' ? 'product-ad-video' : 'product-photo',
+          promptTemplate:
+            type === 'video' ? 'product-ad-video' : 'product-photo',
           seedId: `${type === 'video' ? 'productAd' : 'productPhoto'}:plain:no-product:${Date.now()}`,
           type,
         });
       };
       return (
         <div data-testid="studio-playground-empty-state">
-          <button type="button" onClick={() => pickProduct('image', 'reference')}>
+          <button
+            type="button"
+            onClick={() => pickProduct('image', 'reference')}
+          >
             Product photo card
           </button>
-          <button type="button" onClick={() => pickProduct('video', 'startFrame')}>
+          <button
+            type="button"
+            onClick={() => pickProduct('video', 'startFrame')}
+          >
             Product ad card
           </button>
           <button
@@ -1909,6 +1916,11 @@ describe('StudioPlaygroundWorkspace', () => {
       status: IngredientStatus.GENERATED,
       prompt: 'Effective brand instructions',
     };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
     const { rerender } = await renderLoaded();
     act(() =>
       mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep my draft'),

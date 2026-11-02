@@ -82,56 +82,57 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
       {visibleSuggestions.map((suggestion) => {
         const tooltip = resolveSuggestionTooltip(suggestion, isCards);
         const button = (
-            <Button
-              variant={ButtonVariant.UNSTYLED}
-              ariaLabel={suggestion.label}
-              className={cn(
-                'h-auto min-w-0 max-w-full text-left normal-case tracking-normal',
-                isCards
-                  ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background px-3.5 py-3.5 text-foreground/90 shadow-md shadow-black/20 transition-colors hover:border-border/80 hover:bg-card'
-                  : // Elevated pills so transcript CTAs fade under them cleanly
-                    // without a tall opaque composer slab behind the row.
-                    'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/20 ring-1 ring-black/20 hover:border-border hover:bg-card',
-                isDisabled && 'pointer-events-none opacity-50',
-              )}
-              isDisabled={isDisabled}
-              withWrapper={false}
-              onClick={() => {
-                onSuggestionSelect(suggestion);
-              }}
-            >
-              {isCards ? (
-                <span className="flex min-w-0 flex-col items-start gap-2.5">
-                  {suggestion.icon ? (
-                    <span className="flex shrink-0" aria-hidden="true">
-                      {suggestion.icon}
-                    </span>
-                  ) : null}
-                  <span className="break-words text-left text-sm font-medium leading-snug text-foreground/90">
-                    {suggestion.label}
+          <Button
+            key={suggestion.id}
+            variant={ButtonVariant.UNSTYLED}
+            ariaLabel={suggestion.label}
+            className={cn(
+              'h-auto min-w-0 max-w-full text-left normal-case tracking-normal',
+              isCards
+                ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background px-3.5 py-3.5 text-foreground/90 shadow-md shadow-black/20 transition-colors hover:border-border/80 hover:bg-card'
+                : // Elevated pills so transcript CTAs fade under them cleanly
+                  // without a tall opaque composer slab behind the row.
+                  'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/20 ring-1 ring-black/20 hover:border-border hover:bg-card',
+              isDisabled && 'pointer-events-none opacity-50',
+            )}
+            isDisabled={isDisabled}
+            withWrapper={false}
+            onClick={() => {
+              onSuggestionSelect(suggestion);
+            }}
+          >
+            {isCards ? (
+              <span className="flex min-w-0 flex-col items-start gap-2.5">
+                {suggestion.icon ? (
+                  <span className="flex shrink-0" aria-hidden="true">
+                    {suggestion.icon}
                   </span>
-                  {suggestion.description ? (
-                    <span className="break-words text-left text-2xs leading-snug text-muted-foreground">
-                      {suggestion.description}
-                    </span>
-                  ) : null}
+                ) : null}
+                <span className="break-words text-left text-sm font-medium leading-snug text-foreground/90">
+                  {suggestion.label}
                 </span>
-              ) : (
-                <span className="flex min-w-0 items-center gap-2">
-                  {suggestion.icon ? (
-                    <span
-                      className="flex size-4 shrink-0 items-center justify-center [&>svg]:size-4"
-                      aria-hidden="true"
-                    >
-                      {suggestion.icon}
-                    </span>
-                  ) : null}
-                  <span className="truncate text-sm font-medium text-foreground/90">
-                    {suggestion.label}
+                {suggestion.description ? (
+                  <span className="break-words text-left text-2xs leading-snug text-muted-foreground">
+                    {suggestion.description}
                   </span>
+                ) : null}
+              </span>
+            ) : (
+              <span className="flex min-w-0 items-center gap-2">
+                {suggestion.icon ? (
+                  <span
+                    className="flex size-4 shrink-0 items-center justify-center [&>svg]:size-4"
+                    aria-hidden="true"
+                  >
+                    {suggestion.icon}
+                  </span>
+                ) : null}
+                <span className="truncate text-sm font-medium text-foreground/90">
+                  {suggestion.label}
                 </span>
-              )}
-            </Button>
+              </span>
+            )}
+          </Button>
         );
 
         return tooltip ? (

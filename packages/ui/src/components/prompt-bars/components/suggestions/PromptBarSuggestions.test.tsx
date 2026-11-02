@@ -108,24 +108,21 @@ describe('PromptBarSuggestions', () => {
       'has a description the card already shows',
       { description: 'Warm track', label: 'Soundtrack', prompt: 'warm track' },
     ],
-  ])(
-    'shows no tooltip when the only extra text %s',
-    async (_name, fields) => {
-      const user = userEvent.setup();
-      render(
-        <TooltipProvider delayDuration={0}>
-          <PromptBarSuggestions
-            suggestions={[{ id: 'plain', ...fields }]}
-            onSuggestionSelect={vi.fn()}
-            variant="cards"
-          />
-        </TooltipProvider>,
-      );
+  ])('shows no tooltip when the only extra text %s', async (_name, fields) => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider delayDuration={0}>
+        <PromptBarSuggestions
+          suggestions={[{ id: 'plain', ...fields }]}
+          onSuggestionSelect={vi.fn()}
+          variant="cards"
+        />
+      </TooltipProvider>,
+    );
 
-      await user.hover(screen.getByRole('button', { name: fields.label }));
-      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-    },
-  );
+    await user.hover(screen.getByRole('button', { name: fields.label }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
 
   it('renders card tiles when variant is cards', () => {
     render(
