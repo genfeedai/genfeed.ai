@@ -1,3 +1,4 @@
+import { useAgentChatStore } from '@genfeedai/agent';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardRunPage from './StoryboardRunPage';
@@ -5,12 +6,7 @@ import StoryboardRunPage from './StoryboardRunPage';
 const mocks = vi.hoisted(() => ({
   neutral: vi.fn(),
   legacy: vi.fn(),
-  publishContext: vi.fn(),
 }));
-vi.mock(
-  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
-  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
-);
 vi.mock(
   '@/features/studio/storyboard/hooks/use-durable-storyboard-run',
   () => ({
@@ -32,19 +28,20 @@ vi.mock('@/features/studio/storyboard/StoryboardDraftPage', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => path }),
 }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/storyboard/native' }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 describe('Storyboard detail transition', () => {
   beforeEach(() => {
+    useAgentChatStore.getState().setPageContext(null);
     mocks.neutral.mockReset();
     mocks.legacy.mockReset();
-    mocks.publishContext.mockReset();
   });
   it('tells the agent which run is open once it has loaded', () => {
     mocks.neutral.mockReturnValue({
       run: { id: 'native', config: { revision: 1 } },
     });
     render(<StoryboardRunPage runId="native" />);
-    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+    expect(useAgentChatStore.getState().pageContext?.creativeApp).toEqual({
       app: 'storyboard',
       openProjectId: 'native',
       projects: [{ id: 'native', title: 'runs.title' }],
@@ -53,7 +50,7 @@ describe('Storyboard detail transition', () => {
   it('tells the agent nothing while the run is still loading', () => {
     mocks.neutral.mockReturnValue({ run: null });
     render(<StoryboardRunPage runId="native" />);
-    expect(mocks.publishContext).toHaveBeenLastCalledWith(null);
+    expect(useAgentChatStore.getState().pageContext).toBeNull();
   });
   it('opens native runs with the new editor', () => {
     mocks.neutral.mockReturnValue({

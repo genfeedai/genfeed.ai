@@ -36,6 +36,7 @@ vi.mock('next-intl', async () => {
 vi.mock('@/hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: () => ({
     activities: mockActivities,
+    pageTotals: { totalDocs: 61, totalPages: 5 },
     activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
     clearCompletedActivities: vi.fn(() => Promise.resolve()),
     error: null,
@@ -60,6 +61,20 @@ vi.mock(
     }),
   }),
 );
+
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
+}));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/activities',
@@ -158,6 +173,12 @@ describe('ActivitiesList', () => {
       />,
     );
     expect(screen.getByText('Onboarding preview image')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
     expect(screen.getByText('−1')).toBeInTheDocument();
     expect(screen.queryByText('−1 credit')).not.toBeInTheDocument();
   });

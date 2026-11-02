@@ -13,7 +13,7 @@ import {
   type MockHttpInstance,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
-import { PagesService } from '@services/content/pages.service';
+
 import { BrandsService } from '@services/social/brands.service';
 import axios from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -296,10 +296,7 @@ describe('BrandsService HTTP methods', () => {
     expect(result[0]).toBeInstanceOf(Link);
   });
 
-  it('findBrandActivities records pagination when page is set', async () => {
-    const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-    const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+  it('findBrandActivities returns row metadata without publishing global totals', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'act_1', key: 'post.created' }], {
@@ -314,14 +311,12 @@ describe('BrandsService HTTP methods', () => {
       expect.stringContaining('/activities'),
       { params: { brandId, page: 2 } },
     );
-    expect(setCurrentPage).toHaveBeenCalledWith(2);
-    expect(setTotalPages).toHaveBeenCalledWith(3);
-    expect(setTotalDocs).toHaveBeenCalledWith(22);
-    expect(result[0]).toBeInstanceOf(Activity);
+
+    expect(result.items[0]).toBeInstanceOf(Activity);
+    expect(result).toMatchObject({ total: 22, totalPages: 3 });
   });
 
   it('findBrandPosts records pagination and returns items', async () => {
-    const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'post_1', label: 'P' }], {
@@ -335,7 +330,7 @@ describe('BrandsService HTTP methods', () => {
     expect(http.get).toHaveBeenCalledWith(expect.stringContaining('/posts'), {
       params: { brandId, page: 1 },
     });
-    expect(setTotalDocs).toHaveBeenCalledWith(12);
+
     expect(result[0]).toBeInstanceOf(Post);
   });
 
@@ -360,7 +355,6 @@ describe('BrandsService HTTP methods', () => {
     ['findBrandImages', '/images', Image],
     ['findBrandArticles', '/articles', Article],
   ] as const)('%s GETs %s scoped to the brand', async (method, path, Model) => {
-    const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: 'item_1', label: 'Item' }], {
@@ -374,7 +368,7 @@ describe('BrandsService HTTP methods', () => {
     expect(http.get).toHaveBeenCalledWith(expect.stringContaining(path), {
       params: { brand: brandId, page: 1 },
     });
-    expect(setCurrentPage).toHaveBeenCalledWith(1);
+
     expect(result[0]).toBeInstanceOf(Model);
   });
 

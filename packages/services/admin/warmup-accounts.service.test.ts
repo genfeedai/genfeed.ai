@@ -1,60 +1,22 @@
+import {
+  installMockHttp,
+  type MockHttpInstance,
+} from '@services/__mocks__/http.mock';
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mockGet = vi.fn();
-const mockPost = vi.fn();
-
-vi.mock('@services/core/json-api', () => ({
-  deserializeCollection: vi.fn(
-    (document: { data: unknown[] }) => document.data,
-  ),
-  deserializeResource: vi.fn((document: { data: unknown }) => {
-    const resource = document.data as
-      | { id?: string; attributes?: Record<string, unknown> }
-      | undefined;
-
-    return {
-      id: resource?.id,
-      ...(resource?.attributes ?? {}),
-    };
-  }),
-}));
-
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    apiEndpoint: 'https://api.genfeed.ai/v1',
-  },
-}));
-
-vi.mock('@services/core/interceptor.service', () => {
-  class MockHTTPBaseService {
-    protected instance = {
-      get: mockGet,
-      post: mockPost,
-    };
-
-    static getBaseServiceInstance<T>(
-      ServiceClass: new (...args: never[]) => T,
-      ...args: never[]
-    ): T {
-      return new ServiceClass(...args);
-    }
-  }
-
-  return { HTTPBaseService: MockHTTPBaseService };
-});
 
 describe('AdminWarmupAccountsService', () => {
   let service: AdminWarmupAccountsService;
+  let http: MockHttpInstance;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new AdminWarmupAccountsService('test-token');
+    http = installMockHttp(service);
   });
 
   it('deserializes warm-up account collections', async () => {
-    mockGet.mockResolvedValue({
+    http.get.mockResolvedValue({
       data: {
         data: [
           {
@@ -63,6 +25,7 @@ describe('AdminWarmupAccountsService', () => {
               status: 'INVITED',
             },
             id: 'warmup-1',
+            type: 'warmup-accounts',
           },
         ],
       },
@@ -70,17 +33,15 @@ describe('AdminWarmupAccountsService', () => {
 
     await expect(service.getWarmupAccounts()).resolves.toEqual([
       {
-        attributes: {
-          leadEmail: 'lead@example.com',
-          status: 'INVITED',
-        },
+        leadEmail: 'lead@example.com',
+        status: 'INVITED',
         id: 'warmup-1',
       },
     ]);
   });
 
-  it('forwards page and limit and records the page totals', async () => {
-    mockGet.mockResolvedValue({
+  it('forwards the requested page, limit and cancellation signal', async () => {
+    http.get.mockResolvedValue({
       data: {
         data: [],
         links: { pagination: { limit: 10, page: 3, pages: 5, total: 42 } },
@@ -88,19 +49,18 @@ describe('AdminWarmupAccountsService', () => {
     });
     const signal = new AbortController().signal;
 
-    await service.getWarmupAccounts({ limit: 10, page: 3 }, signal);
+    await expect(
+      service.getWarmupAccounts({ limit: 10, page: 3 }, signal),
+    ).resolves.toEqual([]);
 
-    expect(mockGet).toHaveBeenCalledWith('', {
+    expect(http.get).toHaveBeenCalledWith('', {
       params: { limit: 10, page: 3 },
       signal,
     });
-    expect(PagesService.getCurrentPage()).toBe(3);
-    expect(PagesService.getTotalPages()).toBe(5);
-    expect(PagesService.getTotalDocs()).toBe(42);
   });
 
   it('posts create requests and deserializes the created resource', async () => {
-    mockPost.mockResolvedValue({
+    http.post.mockResolvedValue({
       data: {
         data: {
           attributes: {
@@ -109,6 +69,7 @@ describe('AdminWarmupAccountsService', () => {
             status: 'INVITED',
           },
           id: 'warmup-2',
+          type: 'warmup-accounts',
         },
       },
     });
@@ -125,7 +86,7 @@ describe('AdminWarmupAccountsService', () => {
       organizationName: 'Founder Co',
       status: 'INVITED',
     });
-    expect(mockPost).toHaveBeenCalledWith('', {
+    expect(http.post).toHaveBeenCalledWith('', {
       brandName: 'Founder Brand',
       leadEmail: 'founder@example.com',
       organizationName: 'Founder Co',
@@ -134,7 +95,7 @@ describe('AdminWarmupAccountsService', () => {
 
   it('inspects, sends, resends, and revokes invitation lifecycle actions', async () => {
     const signal = new AbortController().signal;
-    mockGet.mockResolvedValue({
+    http.get.mockResolvedValue({
       data: {
         data: {
           attributes: {
@@ -142,10 +103,11 @@ describe('AdminWarmupAccountsService', () => {
             status: 'INVITED',
           },
           id: 'warmup-1',
+          type: 'warmup-accounts',
         },
       },
     });
-    mockPost.mockResolvedValue({
+    http.post.mockResolvedValue({
       data: {
         data: {
           attributes: {
@@ -153,6 +115,7 @@ describe('AdminWarmupAccountsService', () => {
             status: 'INVITED',
           },
           id: 'warmup-1',
+          type: 'warmup-accounts',
         },
       },
     });
@@ -164,28 +127,44 @@ describe('AdminWarmupAccountsService', () => {
       invitation: { id: 'invite-1', status: 'pending' },
       status: 'INVITED',
     });
-    expect(mockGet).toHaveBeenCalledWith('/warmup-1/invitation', { signal });
+    expect(http.get).toHaveBeenCalledWith('/warmup-1/invitation', { signal });
 
     await expect(
       service.sendInvitation('warmup-1', signal),
     ).resolves.toMatchObject({
       invitation: { status: 'delivered' },
     });
-    expect(mockPost).toHaveBeenCalledWith(
+    expect(http.post).toHaveBeenCalledWith(
       '/warmup-1/invitation/send',
       undefined,
       { signal },
     );
 
-    await service.resendInvitation('warmup-1', signal);
-    expect(mockPost).toHaveBeenCalledWith(
+    await expect(
+      service.resendInvitation('warmup-1', signal),
+    ).resolves.toMatchObject({ invitation: { status: 'delivered' } });
+    expect(http.post).toHaveBeenCalledWith(
       '/warmup-1/invitation/resend',
       undefined,
       { signal },
     );
 
-    await service.revokeInvitation('warmup-1', signal);
-    expect(mockPost).toHaveBeenCalledWith(
+    http.post.mockResolvedValueOnce({
+      data: {
+        data: {
+          id: 'warmup-1',
+          type: 'warmup-accounts',
+          attributes: {
+            status: 'INVITED',
+            invitation: { id: 'invite-1', status: 'revoked' },
+          },
+        },
+      },
+    });
+    await expect(
+      service.revokeInvitation('warmup-1', signal),
+    ).resolves.toMatchObject({ invitation: { status: 'revoked' } });
+    expect(http.post).toHaveBeenCalledWith(
       '/warmup-1/invitation/revoke',
       undefined,
       { signal },

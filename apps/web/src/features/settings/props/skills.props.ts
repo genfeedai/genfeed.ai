@@ -1,4 +1,8 @@
 import type {
+  IPageTotals,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
+import type {
   SkillVersionMetadataV1,
   SkillVersionReadV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
@@ -81,6 +85,7 @@ export type SkillsPageState = {
   importError: string | null;
   importResetKey: number;
   skills: Skill[];
+  pageTotals: IPageTotals;
   selectedSkillId: string;
   sourceFilter: SourceFilterValue;
   modalityFilter: ModalityFilterValue;
@@ -118,7 +123,7 @@ export type SkillsPageAction =
   | { type: 'HYDRATE_SKILL'; skill: Skill }
   | { type: 'FORK_CREATED'; sourceId: string }
   | { type: 'LOAD_START' }
-  | { type: 'LOAD_SUCCESS'; skills: Skill[] }
+  | { type: 'LOAD_SUCCESS'; page: IPaginatedResponse<Skill> }
   | { type: 'LOAD_ERROR'; message: string }
   | { type: 'SELECT_SKILL'; id: string; draft: SkillDraft }
   | { type: 'CLEAR_SELECTED_SKILL' }

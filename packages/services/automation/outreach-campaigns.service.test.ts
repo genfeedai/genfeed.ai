@@ -10,7 +10,7 @@ import {
   OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
-import { PagesService } from '@services/content/pages.service';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('OutreachCampaignsService', () => {
@@ -183,8 +183,6 @@ describe('OutreachCampaignsService', () => {
   });
 
   it('getTargets returns one page of campaign targets without changing other lists', async () => {
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
     const targets = [{ id: 'target_1' }];
     http.get.mockResolvedValue(
       axiosResponse({
@@ -211,8 +209,6 @@ describe('OutreachCampaignsService', () => {
       total: 52,
       totalPages: 4,
     });
-    expect(PagesService.getTotalPages()).toBe(20);
-    expect(PagesService.getTotalDocs()).toBe(200);
   });
 
   it('discoverTargets POSTs discovery options', async () => {

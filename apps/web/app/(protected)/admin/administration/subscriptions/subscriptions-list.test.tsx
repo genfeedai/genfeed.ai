@@ -5,7 +5,7 @@ import {
 } from '@app-tests/query-client.harness';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -338,7 +338,6 @@ describe('SubscriptionsList', () => {
     ).toHaveTextContent('42 organizations');
     firstVisit.unmount();
 
-    PagesService.setTotalDocs(200);
     mocks.getAdminBilling.mockReturnValue(new Promise(() => {}));
     render(<SubscriptionsList />, { wrapper: queryClientWrapper(client) });
 

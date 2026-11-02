@@ -1,4 +1,5 @@
 import type { SkillSurface } from '@genfeedai/contracts';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type {
   SkillVersionListQueryV1,
   SkillVersionMetadataV1,
@@ -403,12 +404,12 @@ export class SkillsService extends BaseService<
     );
   }
 
-  /** One server page of the catalog; records the totals for `<AutoPagination />`. */
+  /** One server page of the catalog with its pagination metadata. */
   async listSkillsPage(
     query: ListSkillsPageQuery,
     signal?: AbortSignal,
-  ): Promise<Skill[]> {
-    return this.findAll(
+  ): Promise<IPaginatedResponse<Skill>> {
+    return this.findAllPage(
       {
         limit: query.limit,
         page: query.page,

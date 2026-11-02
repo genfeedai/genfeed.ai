@@ -4,7 +4,6 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -131,7 +130,7 @@ export function useLibraryPicker(params: {
 
       try {
         const service = (await getIngredientsService()) as IngredientsService;
-        const items = await service.findAll(
+        const result = await service.findAllPage(
           {
             brand: brandId,
             lightweight: true,
@@ -150,8 +149,7 @@ export function useLibraryPicker(params: {
           return;
         }
 
-        const totalPages = PagesService.getTotalPages();
-        const total = PagesService.getTotalDocs();
+        const { items, total, totalPages } = result;
         setState((current) => {
           const nextItems = append
             ? Array.from(

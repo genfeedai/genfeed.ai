@@ -65,7 +65,11 @@ describe('SkillsService', () => {
 
   it('listSkillsPage requests one page with the catalog filters', async () => {
     http.get.mockResolvedValue(
-      axiosResponse(collectionDocument([{ id: 'skill_1', name: 'Hook' }])),
+      axiosResponse(
+        collectionDocument([{ id: 'skill_1', name: 'Hook' }], {
+          pagination: { limit: 15, page: 3, pages: 5, total: 61 },
+        }),
+      ),
     );
 
     const result = await service.listSkillsPage({
@@ -88,7 +92,8 @@ describe('SkillsService', () => {
       },
       signal: undefined,
     });
-    expect(result[0]).toBeInstanceOf(Skill);
+    expect(result.items[0]).toBeInstanceOf(Skill);
+    expect(result).toMatchObject({ page: 3, total: 61, totalPages: 5 });
   });
 
   it('getSkill GETs one skill', async () => {

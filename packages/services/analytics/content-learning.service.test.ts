@@ -20,7 +20,6 @@ vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.example.test' },
 }));
 
-import { PagesService } from '@services/content/pages.service';
 import { ContentLearningService } from './content-learning.service';
 
 describe('learning backend contract parity', () => {
@@ -84,7 +83,7 @@ describe('learning backend contract parity', () => {
       signal: controller.signal,
     });
   });
-  it('pages admin lists and records the totals', async () => {
+  it('forwards admin list pagination and cancellation', async () => {
     http.get.mockResolvedValue({
       data: {
         data: [],
@@ -103,7 +102,5 @@ describe('learning backend contract parity', () => {
       'https://api.example.test/admin/content-learning/runs',
       { params: { limit: 10, page: 2 }, signal: controller.signal },
     );
-    expect(PagesService.getTotalDocs()).toBe(33);
-    expect(PagesService.getTotalPages()).toBe(4);
   });
 });

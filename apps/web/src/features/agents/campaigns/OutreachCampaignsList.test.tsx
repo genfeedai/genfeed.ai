@@ -4,7 +4,7 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { PagesService } from '@services/content/pages.service';
+
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OutreachCampaignsList from '@/features/agents/campaigns/OutreachCampaignsList';
@@ -131,7 +131,6 @@ describe('OutreachCampaignsList', () => {
         totalPages: 3,
       }),
     );
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
 
     render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
 

@@ -19,6 +19,26 @@ const ELEMENT_COLLECTION_KEYS = [
 ] as const;
 
 describe('Playwright API mocks', () => {
+  it.each([null, 'org-1'])(
+    'returns paginated unit economics for %s',
+    (organizationId) => {
+      const url = new URL('https://api.genfeed.ai/v1/admin/unit-economics');
+      if (organizationId)
+        url.searchParams.set('organizationId', organizationId);
+
+      expect(buildUnhandledApiMockBody(url.toString())).toMatchObject({
+        data: {
+          attributes: {
+            organizationId,
+            pagination: { limit: 25, page: 1, pages: 0, total: 0 },
+            rows: [],
+          },
+          type: 'unit-economics-report',
+        },
+      });
+    },
+  );
+
   it.each([
     ['workflow execution', undefined],
     ['legacy execution', 'executions'],

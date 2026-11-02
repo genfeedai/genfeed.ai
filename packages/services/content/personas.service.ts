@@ -84,8 +84,8 @@ export class PersonasService extends BaseService<
   }
 
   /**
-   * With `page`, returns that single server page (and records the totals for
-   * `<AutoPagination />`). Without it, returns every character across all
+   * With `page`, returns the rows from that single server page. Without it,
+   * returns every character across all
    * pages so pickers never silently stop at the API default of 10.
    */
   async listCharacters(
