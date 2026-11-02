@@ -158,14 +158,14 @@ export default function ExecutionDetailPage({
         </div>
         <div className="mx-auto grid max-w-5xl gap-3 px-6 py-8">
           <SkeletonCard
-            label="Loading execution logs"
+            label={translate('loadingLogs')}
             showDescription={false}
             showImage={false}
           />
           {NODE_ROW_SKELETON_KEYS.map((key) => (
             <SkeletonCard
               key={key}
-              label="Loading node result"
+              label={translate('loadingNodeResult')}
               showActions={false}
               showDescription={false}
               showImage={false}
@@ -180,14 +180,14 @@ export default function ExecutionDetailPage({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
         <h2 className="mb-4 text-2xl font-semibold">
-          Execution Failed To Load
+          {translate('failedToLoad')}
         </h2>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
           href={href(APP_ROUTES.AUTOMATION.RUNS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
-          Back to History
+          {translate('backToHistory')}
         </Link>
       </div>
     );
@@ -196,15 +196,15 @@ export default function ExecutionDetailPage({
   if (!execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h2 className="mb-4 text-2xl font-semibold">Execution Not Found</h2>
+        <h2 className="mb-4 text-2xl font-semibold">{translate('notFound')}</h2>
         <p className="mb-6 text-muted-foreground">
-          The execution run you're looking for doesn't exist.
+          {translate('notFoundDescription')}
         </p>
         <Link
           href={href(APP_ROUTES.AUTOMATION.RUNS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
-          Back to History
+          {translate('backToHistory')}
         </Link>
       </div>
     );
@@ -250,10 +250,12 @@ export default function ExecutionDetailPage({
 
       {/* Node Results */}
       <main className="mx-auto max-w-5xl px-6 py-8">
-        <h2 className="mb-4 text-lg font-semibold">Node Execution Log</h2>
+        <h2 className="mb-4 text-lg font-semibold">
+          {translate('nodeExecutionLog')}
+        </h2>
 
         {execution.nodeResults.length === 0 ? (
-          <EmptyState title="No node results recorded" />
+          <EmptyState title={translate('noNodeResults')} />
         ) : (
           <div className="space-y-3">
             {execution.nodeResults.map((result) => (
@@ -274,7 +276,7 @@ export default function ExecutionDetailPage({
         {execution.error && (
           <div className="mt-6 border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
             <h3 className="mb-2 font-semibold text-red-800 dark:text-red-200">
-              Execution Error
+              {translate('errorTitle')}
             </h3>
             <Pre
               variant="ghost"
@@ -289,7 +291,7 @@ export default function ExecutionDetailPage({
         {/* Download Logs */}
         <div className="mt-8 flex justify-end">
           <Button variant={ButtonVariant.SECONDARY}>
-            Download Logs (JSON)
+            {translate('downloadLogsJson')}
           </Button>
         </div>
       </main>

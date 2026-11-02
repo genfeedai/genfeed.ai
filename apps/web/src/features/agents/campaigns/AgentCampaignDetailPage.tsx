@@ -205,14 +205,17 @@ export default function AgentCampaignDetailPage() {
 
   if (!isFetchReady || isPending) {
     return (
-      <Container label="Loading..." icon={LayoutDashboard}>
+      <Container label={translate('detail.loading')} icon={LayoutDashboard}>
         <div className="space-y-6">
           <SkeletonCard
-            label="Loading Program"
+            label={translate('detail.loadingProgram')}
             showDescription={false}
             showImage={false}
           />
-          <SkeletonCard label="Loading Program agents" showImage={false} />
+          <SkeletonCard
+            label={translate('detail.loadingAgents')}
+            showImage={false}
+          />
         </div>
       </Container>
     );
@@ -220,7 +223,7 @@ export default function AgentCampaignDetailPage() {
 
   if (!campaign) {
     return (
-      <Container label="Program Not Found" icon={LayoutDashboard}>
+      <Container label={translate('detail.notFound')} icon={LayoutDashboard}>
         <Button
           label={
             <>

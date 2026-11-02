@@ -3,12 +3,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ClipperNewPaneContent from './ClipperNewPaneContent';
 
-const mocks = vi.hoisted(() => ({
-  analyze: vi.fn(),
-  setGenerationMode: vi.fn(),
-  setMaxClips: vi.fn(),
-  setMinViralityScore: vi.fn(),
-  setYoutubeUrl: vi.fn(),
+// What the pane did to the Clipper form, kept as plain values the tests read
+// back: the clip settings it wrote and how many imports it started.
+const form = vi.hoisted(() => ({
+  imports: 0,
+  settings: {} as Record<string, number | string>,
 }));
 
 vi.mock('next-intl', async () => {
@@ -21,17 +20,25 @@ vi.mock('../useStudioClipperPage', () => ({
     draftSaveState: 'idle',
     error: null,
     generationMode: 'raw-cut',
-    handleAnalyze: mocks.analyze,
+    handleAnalyze: () => {
+      form.imports += 1;
+    },
     handleStartFromYoutube: vi.fn(),
     isSubmitting: false,
     maxClips: 10,
     minViralityScore: 50,
-    setGenerationMode: mocks.setGenerationMode,
-    setMaxClips: mocks.setMaxClips,
-    setMinViralityScore: mocks.setMinViralityScore,
+    setGenerationMode: (value: string) => {
+      form.settings.generationMode = value;
+    },
+    setMaxClips: (value: number) => {
+      form.settings.maxClips = value;
+    },
+    setMinViralityScore: (value: number) => {
+      form.settings.minViralityScore = value;
+    },
     setSourceFile: vi.fn(),
     setSourceKind: vi.fn(),
-    setYoutubeUrl: mocks.setYoutubeUrl,
+    setYoutubeUrl: () => undefined,
     sourceFile: null,
     sourceKind: 'youtube',
     uploadProgress: 0,
@@ -41,7 +48,8 @@ vi.mock('../useStudioClipperPage', () => ({
 
 describe('ClipperNewPane', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    form.imports = 0;
+    form.settings = {};
   });
 
   it('opens on the clip styles and the source bar without importing anything', () => {
@@ -54,7 +62,7 @@ describe('ClipperNewPane', () => {
       screen.getByRole('button', { name: 'Podcast highlights' }),
     ).toBeVisible();
     expect(screen.getByLabelText('YouTube URL')).toBeVisible();
-    expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(form.imports).toBe(0);
   });
 
   it('applies a style to the clip settings without starting an import', () => {
@@ -62,13 +70,15 @@ describe('ClipperNewPane', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Podcast highlights' }));
 
-    expect(mocks.setGenerationMode).toHaveBeenCalledWith('raw-cut');
-    expect(mocks.setMaxClips).toHaveBeenCalledWith(8);
-    expect(mocks.setMinViralityScore).toHaveBeenCalledWith(70);
+    expect(form.settings).toEqual({
+      generationMode: 'raw-cut',
+      maxClips: 8,
+      minViralityScore: 70,
+    });
     expect(screen.getByRole('status')).toHaveTextContent(
       'Podcast highlights preset applied: up to 8 clips scoring 70 or higher.',
     );
-    expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(form.imports).toBe(0);
   });
 
   it('imports the source from the send button', () => {
@@ -78,6 +88,6 @@ describe('ClipperNewPane', () => {
       screen.getByRole('button', { name: 'Import & transcribe' }),
     );
 
-    expect(mocks.analyze).toHaveBeenCalledTimes(1);
+    expect(form.imports).toBe(1);
   });
 });
