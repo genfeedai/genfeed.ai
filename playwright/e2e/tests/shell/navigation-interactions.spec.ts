@@ -161,12 +161,20 @@ test.describe('Shell — navigation interactions', () => {
     const highlight = sidebar.locator('[data-sidebar-active-highlight]');
     await expect(highlight).toHaveCount(1);
 
-    const target = sidebar
+    // Pin the target by href before clicking: a lazy "first link without the
+    // highlight" locator re-resolves to another row once the highlight moves.
+    const navLinks = sidebar
+      .getByTestId('sidebar-navigation-section')
       .locator('a[href]')
       .filter({
         hasNot: authenticatedPage.locator('[data-sidebar-active-highlight]'),
       })
-      .filter({ hasText: /\S/ })
+      .filter({ hasText: /\S/ });
+    const targetHref = await navLinks.first().getAttribute('href');
+    expect(targetHref).toBeTruthy();
+    const target = sidebar
+      .getByTestId('sidebar-navigation-section')
+      .locator(`a[href="${targetHref}"]`)
       .first();
     await target.click();
     await settle(authenticatedPage);
