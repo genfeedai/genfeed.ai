@@ -143,9 +143,13 @@ describe('AnalyticsBrandOverview', () => {
   it('shows no zero placeholders before the first fetch resolves', async () => {
     render(<AnalyticsBrandOverview brandId="brand-1" />);
 
-    // First paint is already the loading state: no "0" tiles that then flip to
-    // a skeleton and then to the data.
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
+    // First paint is already the loading state: every KPI tile is busy, so no
+    // "0" tiles flip to a skeleton and then to the data.
+    const tiles = screen.getAllByTestId('metric-card');
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles) {
+      expect(tile).toHaveAttribute('aria-busy', 'true');
+    }
 
     await waitFor(() => {
       expect(
