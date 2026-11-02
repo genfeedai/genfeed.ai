@@ -1127,6 +1127,30 @@ test('self-hosted release publish reuses the layers the verify build just tested
   }
 });
 
+test('release preflight is read-only and reuses the release evidence scripts', () => {
+  const preflight = readWorkflow('release-preflight.yml');
+
+  assert.match(
+    preflight,
+    /^permissions:\n {2}actions: read\n {2}contents: read$/m,
+  );
+  assert.doesNotMatch(
+    preflight,
+    /contents: write|issues: write|packages: write/u,
+  );
+  assert.doesNotMatch(preflight, /secrets\./u);
+  assert.doesNotMatch(
+    preflight,
+    /gh release|--method (?:POST|PUT|PATCH|DELETE)|git push/u,
+  );
+  assert.match(
+    preflight,
+    /run: node scripts\/ci\/browser-suite-evidence\.mjs$/m,
+  );
+  assert.match(preflight, /run: node scripts\/ci\/full-suite-evidence\.mjs$/m);
+  assert.match(preflight, /jq -r '\.version' package\.json/u);
+});
+
 test('release waits for exact-SHA Full Suite evidence in the existing validation step', () => {
   const workflow = readWorkflow('release.yml');
   const validateRelease = jobBlock(workflow, 'validate-release', 'release.yml');
