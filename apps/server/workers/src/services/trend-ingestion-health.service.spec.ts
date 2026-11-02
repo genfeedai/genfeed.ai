@@ -4,6 +4,10 @@ import {
   TrendIngestionHealthService,
 } from '@workers/services/trend-ingestion-health.service';
 
+type DispatchedAlert = {
+  messages: { message: { payload: { card: { description: string } } } }[];
+};
+
 const enrollment = new Date('2026-09-28T00:15:00.000Z');
 function setup() {
   const events = new Map<
@@ -518,13 +522,9 @@ describe('TrendIngestionHealthService', () => {
         await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
         const descriptions = recorder.dispatch.mock.calls
           .map(
-            ([call]: [
-              {
-                messages: {
-                  message: { payload: { card: { description: string } } };
-                }[];
-              },
-            ]) => call.messages[0].message.payload.card.description,
+            (args: unknown[]) =>
+              (args[0] as DispatchedAlert).messages[0].message.payload.card
+                .description,
           )
           .filter((text: string) =>
             text.includes('one connected tenant scope'),
