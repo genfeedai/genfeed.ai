@@ -319,6 +319,23 @@ describe('AgentThreadList', () => {
     expect(screen.queryByText('No threads')).toBeNull();
   });
 
+  it('shows the loading skeleton, never "No threads", while the first fetch is in flight', async () => {
+    const pending = createDeferred<never[]>();
+    const apiService = createApiService({
+      getThreads: vi.fn().mockReturnValue(pending.promise),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(
+      screen.getByRole('status', { name: 'Loading threads' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No threads')).toBeNull();
+
+    pending.resolve([]);
+    expect(await screen.findByText('No threads')).toBeInTheDocument();
+  });
+
   it('shows the true empty state after a successful empty fetch', async () => {
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([]),

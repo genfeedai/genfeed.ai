@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { EmptyState } from '@ui/primitives/empty-state';
-import Spinner from '@ui/primitives/spinner';
 import { MessageSquare, TriangleAlert } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -26,8 +26,8 @@ export function AgentThreadListEmptyState({
 }: AgentThreadListEmptyStateProps): ReactElement | null {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Spinner className="size-4 text-primary" />
+      <div role="status" aria-label="Loading threads">
+        <ListRowsSkeleton rows={6} />
       </div>
     );
   }

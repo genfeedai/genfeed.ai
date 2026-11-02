@@ -94,6 +94,42 @@ describe('useAgentThreadList', () => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
 
+  it('is loading, not empty, on the first render of a first visit', () => {
+    const firstRender: { isEmpty: boolean; isLoading: boolean }[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: null,
+        isActive: true,
+      });
+      firstRender.push({
+        isEmpty: state.shouldShowEmptyState,
+        isLoading: state.isLoading,
+      });
+      return state;
+    });
+
+    expect(firstRender[0]).toEqual({ isEmpty: false, isLoading: true });
+  });
+
+  it('paints the cached threads on a return visit without a loading state', () => {
+    useAgentChatStore.getState().setThreads([makeThread('t-1')]);
+    const firstRender: boolean[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: null,
+        isActive: true,
+      });
+      firstRender.push(state.isLoading);
+      return state;
+    });
+
+    expect(firstRender[0]).toBe(false);
+  });
+
   it('keeps the typed rename when the thread is deleted before PATCH completes', async () => {
     mockFetch.mockReset();
     const thread = makeThread('t-1');
