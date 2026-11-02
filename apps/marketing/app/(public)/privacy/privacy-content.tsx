@@ -56,6 +56,53 @@ const privacyPolicySections = [
   },
   {
     content: [
+      'When you connect Facebook or Instagram, Genfeed receives only the data the features you use need: the Facebook Pages you manage and the Instagram professional account linked to a Page; the profile details, posts, comments and performance insights of that account; and, for Instagram, the Instagram Direct conversations of that account, meaning the text of messages that people send to the account and the replies sent from it, together with the sender’s Instagram-scoped ID, username and display name.',
+      'We use this data to publish posts and reels you create or schedule, show your comments, Direct messages and analytics in Genfeed, and send the comment replies, private replies and Direct message replies that you write, approve or configure. When you ask Genfeed to draft a suggested reply, the text of that conversation is sent to the AI model provider to generate the draft. We read Direct messages only for Instagram accounts you connect, and we send messages only from those accounts.',
+      'Access tokens are encrypted at rest. We do not sell Meta platform data, use it for advertising, or use it to build profiles of the people who message your account. Genfeed staff may access this data when you ask us for support, to operate and troubleshoot the service, to investigate a security issue or abuse, or when the law requires it.',
+      'You can disconnect Facebook or Instagram in Genfeed at any time, or remove Genfeed from your Facebook account under Settings, Apps and Websites. Deletion instructions are in the section Deleting Data from Connected Platforms.',
+    ],
+    id: 'meta',
+    links: [
+      {
+        href: 'https://www.facebook.com/privacy/policy/',
+        label: 'Meta Privacy Policy',
+      },
+      {
+        href: 'https://www.facebook.com/settings?tab=applications',
+        label: 'Facebook Apps and Websites settings',
+      },
+    ],
+    shortLabel: 'Meta',
+    title: 'Facebook and Instagram Data',
+  },
+  {
+    content: [
+      'When you connect TikTok, Genfeed receives only the data the scopes you approve allow: your profile details (display name, avatar, bio, profile link and verification status), your account statistics (follower, following, like and video counts), and your public videos with their statistics.',
+      'We use this data to show your TikTok profile and analytics in Genfeed and to send videos you create to your account, either as a draft in your TikTok inbox or as a post. Before a post is sent, you choose its title, who can view it, whether comments, Duet and Stitch are allowed, and whether it promotes your own brand or is a paid partnership, and you confirm TikTok’s Music Usage Confirmation. Genfeed sends content to TikTok only after you confirm. We do not read or send TikTok direct messages.',
+      'Access tokens are encrypted at rest. We do not sell TikTok user data or use it for advertising. You can disconnect TikTok in Genfeed at any time, or remove Genfeed from the TikTok app under Settings and privacy, Security and permissions, Apps and services.',
+    ],
+    id: 'tiktok',
+    links: [
+      {
+        href: 'https://www.tiktok.com/legal/page/global/privacy-policy/en',
+        label: 'TikTok Privacy Policy',
+      },
+    ],
+    shortLabel: 'TikTok',
+    title: 'TikTok Data',
+  },
+  {
+    content: [
+      'To delete data Genfeed stored from a connected platform (Google and YouTube, Facebook and Instagram, or TikTok), do one of the following. In Genfeed, open Settings, disconnect the account, and delete the content you no longer want. Or email privacy@genfeed.ai from the address on your Genfeed account with the subject Data deletion request, and name the platform and the connected account.',
+      'Disconnecting an account stops Genfeed from accessing it. On a deletion request we also delete the messages, comments and profile data we stored from that account, and we confirm by email when it is done.',
+      'You can also remove Genfeed’s access on the platform itself: Facebook and Instagram under Settings, Apps and Websites; Google under Google Account permissions; TikTok under Apps and services. Removing access stops new data from being collected. It does not by itself delete data already stored, so email us if you also want that data deleted.',
+    ],
+    id: 'data-deletion',
+    shortLabel: 'Deletion',
+    title: 'Deleting Data from Connected Platforms',
+  },
+  {
+    content: [
       'The Genfeed Chrome extension adds a Genfeed button next to the reply box on X, LinkedIn, Reddit, Threads, Facebook, Instagram, TikTok and YouTube. It fills the reply box and you post it yourself. It reads a page only when you use a feature and does not record the sites you visit.',
       'When you generate a reply, proofread or rewrite a draft, make an image, video or GIF, or save a page as a source, the extension sends the text you are working on, the author and URL of the post or page, and your brand voice to the Genfeed API over HTTPS. On X and LinkedIn it also records the text, link, author handle and date of a post or reply you publish, so Genfeed can show analytics for it. If you turn on the optional local fallback, that text goes to the Genfeed bridge on your own computer instead.',
       'The extension keeps your session, settings, saved-source lists and unsent drafts in Chrome extension storage. Removing the extension or clearing its data deletes them. Crash reports go to Sentry without request bodies, cookies, user information or AI inputs and outputs.',
@@ -111,6 +158,7 @@ export default function PrivacyContent() {
                 {privacyPolicySections.map((section) => (
                   <div
                     key={section.title}
+                    id={'id' in section ? section.id : undefined}
                     className="bg-background p-6 sm:p-12 group hover:bg-foreground/5 transition-colors"
                   >
                     <h2 className="text-2xl font-semibold mb-6">
