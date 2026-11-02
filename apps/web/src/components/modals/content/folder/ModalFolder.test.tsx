@@ -4,6 +4,11 @@ import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModalFolder from '@/components/modals/content/folder/ModalFolder';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock dependencies
 const setValueMock = vi.hoisted(() => vi.fn());
 

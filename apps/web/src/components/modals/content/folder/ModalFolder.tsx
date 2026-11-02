@@ -18,6 +18,7 @@ import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useEffect, useMemo } from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
@@ -39,6 +40,8 @@ export default function ModalFolder({
   brandId: propBrandId,
   scope = PageScope.BRAND,
 }: ModalFolderProps) {
+  const t = useTranslations('ui.folderFields');
+  const createT = useTranslations('ui.createModal');
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
 
@@ -104,7 +107,7 @@ export default function ModalFolder({
   return (
     <Modal
       id={ModalEnum.FOLDER}
-      title="Create Folder"
+      title={createT('folder')}
       onClose={handleModalClose}
     >
       <Form ref={formRef} onSubmit={onSubmit}>
@@ -118,23 +121,23 @@ export default function ModalFolder({
           </Alert>
         )}
 
-        <FormControl label="Label">
+        <FormControl label={t('label')}>
           <Input
             type="text"
             name="label"
             control={form.control}
             onChange={updateModalFolder}
-            placeholder="Enter folder name"
+            placeholder={t('labelPlaceholder')}
             isRequired={true}
             isDisabled={isSubmitting}
           />
         </FormControl>
-        <FormControl label="Description">
+        <FormControl label={t('description')}>
           <Textarea
             name="description"
             control={form.control}
             onChange={updateModalFolder}
-            placeholder="Enter description (optional)"
+            placeholder={t('descriptionPlaceholder')}
             isDisabled={isSubmitting}
             onKeyDown={processKeyDownModalFolder}
             rows={3}
@@ -142,14 +145,14 @@ export default function ModalFolder({
         </FormControl>
 
         {brands.length > 0 && !isManagerApp && (
-          <FormControl label="Brand (Optional)">
+          <FormControl label={t('brand')}>
             <SelectField
               name="brandId"
               control={form.control}
               onChange={updateModalFolder}
               isDisabled={isSubmitting}
             >
-              <option value="">None</option>
+              <option value="">{t('brandNone')}</option>
               {brands.map((brand: IBrand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.label}
@@ -160,7 +163,7 @@ export default function ModalFolder({
         )}
         <ModalActions>
           <Button
-            label="Cancel"
+            label={createT('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={handleModalClose}
             isLoading={isSubmitting}
@@ -168,7 +171,7 @@ export default function ModalFolder({
 
           <Button
             type="submit"
-            label="Create"
+            label={createT('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}
