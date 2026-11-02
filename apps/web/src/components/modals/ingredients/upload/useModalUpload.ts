@@ -38,6 +38,7 @@ import {
 } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useAudioRecording } from '@/hooks/media/use-audio-recording/use-audio-recording';
+import { isSvgUpload, rasterizeSvgFile } from './svg-rasterize.util';
 import {
   getAcceptedTypes,
   getDimensionText,
@@ -431,7 +432,7 @@ export function useModalUpload({
       const completedUploads: (IIngredient | IAsset)[] = [];
 
       for (let i = 0; i < selectedFiles.length; i++) {
-        const selectedFile = selectedFiles[i];
+        let selectedFile = selectedFiles[i];
         const fileId = fileIds[i] || `${selectedFile.name}-${Date.now()}`;
 
         updateFileStatus(setFileStatuses, fileId, {
@@ -444,6 +445,10 @@ export function useModalUpload({
           : null;
 
         try {
+          if (isSvgUpload(selectedFile)) {
+            selectedFile = await rasterizeSvgFile(selectedFile);
+          }
+
           const handleProgress = (
             progress: number,
             loaded: number,
@@ -614,6 +619,7 @@ export function useModalUpload({
         ...(isLibraryImage && {
           'image/heic': ['.heic'],
           'image/heif': ['.heif'],
+          'image/svg+xml': ['.svg'],
         }),
       }),
       ...(isVideoLike && {
