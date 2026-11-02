@@ -11,6 +11,8 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import {
   LeaderboardOrder,
   LeaderboardSort,
+  OrganizationEmailClassFilter,
+  OrganizationUsageFilter,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import {
   BrandWithStatsEntity,
@@ -22,6 +24,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
@@ -36,6 +39,7 @@ import type {
   BrandDoc,
   DateRange,
   EngagementAggRow,
+  EntityCountRow,
   EntityRankRow,
   EntityStatsRow,
   OrganizationDoc,
@@ -63,13 +67,25 @@ const DEFAULT_BRAND_ANALYTICS: IEntityAnalyticsStats = {
 };
 
 /** The numeric stat keys a leaderboard can be ranked by */
-type SortableMetric = 'totalEngagement' | 'totalPosts' | 'totalViews';
+type SortableMetric =
+  | 'totalEngagement'
+  | 'totalGenerations'
+  | 'totalPosts'
+  | 'totalViews';
+
+/** Filters only organization lists take. */
+interface OrganizationListFilters {
+  emailClass?: OrganizationEmailClassFilter;
+  type?: OrganizationCategory;
+  usage?: OrganizationUsageFilter;
+}
 
 /** Map sort enum to field name */
 const SORT_FIELD_MAP: Record<LeaderboardSort, SortableMetric> = {
   [LeaderboardSort.VIEWS]: 'totalViews',
   [LeaderboardSort.POSTS]: 'totalPosts',
   [LeaderboardSort.ENGAGEMENT]: 'totalEngagement',
+  [LeaderboardSort.GENERATIONS]: 'totalGenerations',
 };
 
 @Injectable()
@@ -230,6 +246,7 @@ export class EntityLeaderboardService {
       case 'totalViews':
         return Prisma.sql`SUM("totalViews")`;
       case 'totalPosts':
+      case 'totalGenerations':
         return Prisma.sql`COUNT(*)`;
       default:
         return Prisma.sql`SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves")`;
@@ -245,6 +262,15 @@ export class EntityLeaderboardService {
     range: DateRange,
     organizationFilter: PrismaSql,
   ): PrismaSql {
+    // Lifetime on purpose: a lead qualifies on what it ever generated, not on
+    // whatever the date picker happens to cover.
+    if (SORT_FIELD_MAP[sort] === 'totalGenerations') {
+      return Prisma.sql`"ingredients"
+        WHERE "isDeleted" = false
+          AND "origin" = 'GENERATED'::"IngredientOrigin"
+          ${organizationFilter}`;
+    }
+
     if (SORT_FIELD_MAP[sort] === 'totalPosts') {
       return Prisma.sql`"posts"
         WHERE "isDeleted" = false
@@ -266,6 +292,72 @@ export class EntityLeaderboardService {
   }
 
   /**
+   * Free-mail domains the owners of live organizations actually sign up with.
+   * The maintained list holds ~30k domains; SQL is handed only the few hundred
+   * in play, so the statement stays small and the answer is never stale.
+   */
+  private async resolvePersonalOwnerDomains(): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ domain: string }[]>`
+      SELECT DISTINCT lower(split_part(u."email", '@', 2)) AS domain
+      FROM "organizations" o
+      JOIN "users" u ON u."id" = o."userId"
+      WHERE o."isDeleted" = false AND u."email" IS NOT NULL
+    `;
+    return rows
+      .map((row) => row.domain)
+      .filter((domain) => classifyEmail(`owner@${domain}`) === 'personal');
+  }
+
+  /**
+   * The organization-only filters, as `AND ...` fragments over `organizations e`.
+   * Shared by the ranking query and the total so both describe the same set.
+   */
+  private organizationListFilterSql(
+    filters: OrganizationListFilters,
+    personalDomains: string[],
+  ): PrismaSql {
+    // Declared at onboarding only: `category` always holds a default.
+    const typeFilter = filters.type
+      ? Prisma.sql`AND e."accountType" = ${filters.type}::"OrganizationCategory"`
+      : Prisma.empty;
+
+    const hasUsableEmail = Prisma.sql`u."email" IS NOT NULL
+      AND position('@' in u."email") > 1
+      AND split_part(u."email", '@', 2) LIKE '%.%'`;
+    const ownerDomain = Prisma.sql`lower(split_part(u."email", '@', 2))`;
+    let emailClassFilter = Prisma.empty;
+    if (filters.emailClass === OrganizationEmailClassFilter.COMPANY) {
+      emailClassFilter = Prisma.sql`AND EXISTS (
+        SELECT 1 FROM "users" u
+        WHERE u."id" = e."userId" AND ${hasUsableEmail}
+          AND ${ownerDomain} <> ALL(${personalDomains}::text[]))`;
+    } else if (filters.emailClass === OrganizationEmailClassFilter.PERSONAL) {
+      emailClassFilter = Prisma.sql`AND EXISTS (
+        SELECT 1 FROM "users" u
+        WHERE u."id" = e."userId" AND ${hasUsableEmail}
+          AND ${ownerDomain} = ANY(${personalDomains}::text[]))`;
+    }
+
+    const hasUsage = Prisma.sql`(
+      EXISTS (
+        SELECT 1 FROM "ingredients" i
+        WHERE i."organizationId" = e."id" AND i."isDeleted" = false
+          AND i."origin" = 'GENERATED'::"IngredientOrigin")
+      OR EXISTS (
+        SELECT 1 FROM "posts" p
+        WHERE p."organizationId" = e."id" AND p."isDeleted" = false
+          AND p."publishedAt" IS NOT NULL))`;
+    let usageFilter = Prisma.empty;
+    if (filters.usage === OrganizationUsageFilter.ACTIVE) {
+      usageFilter = Prisma.sql`AND ${hasUsage}`;
+    } else if (filters.usage === OrganizationUsageFilter.INACTIVE) {
+      usageFilter = Prisma.sql`AND NOT ${hasUsage}`;
+    }
+
+    return Prisma.sql`${typeFilter} ${emailClassFilter} ${usageFilter}`;
+  }
+
+  /**
    * Rank one window of entity ids in the database.
    *
    * Entities LEFT JOIN a per-entity metric aggregate so entities with no
@@ -284,8 +376,7 @@ export class EntityLeaderboardService {
       order?: LeaderboardOrder;
       organizationId?: string;
       search?: string;
-      type?: OrganizationCategory;
-    },
+    } & OrganizationListFilters,
   ): Promise<string[]> {
     const isOrganization = entityType === 'organization';
     const entityTable = Prisma.raw(
@@ -308,11 +399,13 @@ export class EntityLeaderboardService {
       isOrganization && filters.organizationId
         ? Prisma.sql`AND e."id" = ${filters.organizationId}`
         : Prisma.empty;
-    // The type an admin sees is the onboarding account type, else the category.
-    const typeFilter =
-      isOrganization && filters.type
-        ? Prisma.sql`AND COALESCE(e."accountType", e."category") = ${filters.type}::"OrganizationCategory"`
-        : Prisma.empty;
+    const personalDomains =
+      isOrganization && filters.emailClass
+        ? await this.resolvePersonalOwnerDomains()
+        : [];
+    const organizationFilters = isOrganization
+      ? this.organizationListFilterSql(filters, personalDomains)
+      : Prisma.empty;
     const direction = Prisma.raw(
       filters.order === LeaderboardOrder.ASC ? 'ASC' : 'DESC',
     );
@@ -338,7 +431,7 @@ export class EntityLeaderboardService {
         ${entityOrganizationFilter}
         ${brandFilter}
         ${organizationIdFilter}
-        ${typeFilter}
+        ${organizationFilters}
         ${searchFilter}
       ORDER BY COALESCE(m.metric, 0) ${direction}, e."createdAt" DESC, e."id" DESC
       LIMIT ${window.limit} OFFSET ${window.offset}
@@ -354,28 +447,22 @@ export class EntityLeaderboardService {
       brandId?: string;
       organizationId?: string;
       search?: string;
-      type?: OrganizationCategory;
-    },
+    } & OrganizationListFilters,
   ): Promise<number> {
     const label = filters.search
       ? { contains: filters.search, mode: 'insensitive' as const }
       : undefined;
 
     if (entityType === 'organization') {
+      if (filters.emailClass || filters.usage) {
+        return this.countOrganizationsInSql(filters);
+      }
       return this.prisma.organization.count({
         where: {
+          accountType: filters.type,
           id: filters.organizationId,
           isDeleted: false,
           label,
-          // Same rule as the ranking: account type, else category.
-          ...(filters.type
-            ? {
-                OR: [
-                  { accountType: filters.type },
-                  { accountType: null, category: filters.type },
-                ],
-              }
-            : {}),
         },
       });
     }
@@ -388,6 +475,37 @@ export class EntityLeaderboardService {
         organizationId: filters.organizationId,
       },
     });
+  }
+
+  /**
+   * The organization total for filters Prisma's `where` cannot express (owner
+   * email domain, lifetime usage). Same fragments as the ranking query.
+   */
+  private async countOrganizationsInSql(
+    filters: {
+      organizationId?: string;
+      search?: string;
+    } & OrganizationListFilters,
+  ): Promise<number> {
+    const personalDomains = filters.emailClass
+      ? await this.resolvePersonalOwnerDomains()
+      : [];
+    const organizationIdFilter = filters.organizationId
+      ? Prisma.sql`AND e."id" = ${filters.organizationId}`
+      : Prisma.empty;
+    const searchFilter = filters.search
+      ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
+      : Prisma.empty;
+
+    const rows = await this.prisma.$queryRaw<{ total: bigint | number }[]>`
+      SELECT COUNT(*) AS total
+      FROM "organizations" e
+      WHERE e."isDeleted" = false
+        ${organizationIdFilter}
+        ${this.organizationListFilterSql(filters, personalDomains)}
+        ${searchFilter}
+    `;
+    return Number(rows[0]?.total ?? 0);
   }
 
   /**
@@ -408,8 +526,7 @@ export class EntityLeaderboardService {
       includePlatforms?: boolean;
       order?: LeaderboardOrder;
       search?: string;
-      type?: OrganizationCategory;
-    } = {},
+    } & OrganizationListFilters = {},
   ): Promise<EntityStatsRow<TEntity>[]> {
     const includePlatforms = options.includePlatforms ?? false;
     const entityField: EntityField =
@@ -417,10 +534,12 @@ export class EntityLeaderboardService {
 
     const ids = await this.rankEntityIds(entityType, range, sort, window, {
       brandId: options.brandId,
+      emailClass: options.emailClass,
       order: options.order,
       organizationId: options.organizationId,
       search: options.search,
       type: options.type,
+      usage: options.usage,
     });
     if (ids.length === 0) {
       return [];
@@ -647,6 +766,86 @@ export class EntityLeaderboardService {
     );
   }
 
+  /** Lifetime generated assets per organization, for the given orgs. */
+  private async countLifetimeGenerations(
+    organizationIds: string[],
+  ): Promise<Map<string, number>> {
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.prisma.$queryRaw<EntityCountRow[]>`
+      SELECT "organizationId" AS entity_id, COUNT(*) AS total
+      FROM "ingredients"
+      WHERE "organizationId" = ANY(${organizationIds}::text[])
+        AND "isDeleted" = false
+        AND "origin" = 'GENERATED'::"IngredientOrigin"
+      GROUP BY "organizationId"
+    `;
+    return new Map(rows.map((row) => [row.entity_id, Number(row.total)]));
+  }
+
+  /** Lifetime published posts per organization, for the given orgs. */
+  private async countLifetimePosts(
+    organizationIds: string[],
+  ): Promise<Map<string, number>> {
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.prisma.$queryRaw<EntityCountRow[]>`
+      SELECT "organizationId" AS entity_id, COUNT(*) AS total
+      FROM "posts"
+      WHERE "organizationId" = ANY(${organizationIds}::text[])
+        AND "isDeleted" = false
+        AND "publishedAt" IS NOT NULL
+      GROUP BY "organizationId"
+    `;
+    return new Map(rows.map((row) => [row.entity_id, Number(row.total)]));
+  }
+
+  /**
+   * The logo of each organization's oldest brand, for organizations that have
+   * no logo asset of their own. One brand read and one batched logo read for
+   * the whole page.
+   */
+  private async resolveFirstBrandLogos(
+    organizationIds: string[],
+  ): Promise<Map<string, string>> {
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
+    const brands = await this.prisma.brand.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, organizationId: true },
+      where: { isDeleted: false, organizationId: { in: organizationIds } },
+    });
+    const brandIdsByOrganization = new Map<string, string[]>();
+    for (const brand of brands) {
+      const brandIds = brandIdsByOrganization.get(brand.organizationId) ?? [];
+      brandIds.push(brand.id);
+      brandIdsByOrganization.set(brand.organizationId, brandIds);
+    }
+    if (brandIdsByOrganization.size === 0) {
+      return new Map();
+    }
+
+    const logoByBrandId = await this.brandsService.resolveBrandLogoUrls(
+      brandIdsByOrganization,
+    );
+    const logoByOrganization = new Map<string, string>();
+    for (const [organizationId, brandIds] of brandIdsByOrganization) {
+      const logo = brandIds
+        .map((brandId) => logoByBrandId.get(brandId))
+        .find((url): url is string => Boolean(url));
+      if (logo) {
+        logoByOrganization.set(organizationId, logo);
+      }
+    }
+    return logoByOrganization;
+  }
+
   /**
    * The owning user of each organization (`organizations.userId`), one read for
    * the page. Display name falls back to email, then handle, so a row never
@@ -667,6 +866,7 @@ export class EntityLeaderboardService {
         firstName: true,
         handle: true,
         id: true,
+        lastActiveAt: true,
         lastName: true,
         name: true,
       },
@@ -684,6 +884,7 @@ export class EntityLeaderboardService {
             avatar: user.avatar ?? undefined,
             email: user.email ?? undefined,
             id: user.id,
+            lastActiveAt: user.lastActiveAt?.toISOString(),
             name:
               user.name?.trim() ||
               splitName ||
@@ -796,6 +997,7 @@ export class EntityLeaderboardService {
     organizationId?: string,
     type?: OrganizationCategory,
     order: LeaderboardOrder = LeaderboardOrder.DESC,
+    listFilters: Omit<OrganizationListFilters, 'type'> = {},
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     // The name search runs in the same query that ranks and pages, and in the
@@ -807,9 +1009,10 @@ export class EntityLeaderboardService {
         range,
         sort,
         { limit, offset: (page - 1) * limit },
-        { order, organizationId, search: needle, type },
+        { ...listFilters, order, organizationId, search: needle, type },
       ),
       this.countEntities('organization', {
+        ...listFilters,
         organizationId,
         search: needle,
         type,
@@ -817,15 +1020,25 @@ export class EntityLeaderboardService {
     ]);
 
     const organizationIds = rows.map(({ entity }) => entity.id);
-    const [brandCountMap, memberCountMap, logoUrlMap, ownerMap] =
-      await Promise.all([
-        this.countBrandsByOrganization(organizationIds),
-        this.countMembersByOrganization(organizationIds),
-        this.organizationLogoService.resolveLogoUrls(organizationIds),
-        this.resolveOwnersByUserId(
-          rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
-        ),
-      ]);
+    const [
+      brandCountMap,
+      memberCountMap,
+      logoUrlMap,
+      ownerMap,
+      generationCountMap,
+      lifetimePostMap,
+      brandLogoMap,
+    ] = await Promise.all([
+      this.countBrandsByOrganization(organizationIds),
+      this.countMembersByOrganization(organizationIds),
+      this.organizationLogoService.resolveLogoUrls(organizationIds),
+      this.resolveOwnersByUserId(
+        rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
+      ),
+      this.countLifetimeGenerations(organizationIds),
+      this.countLifetimePosts(organizationIds),
+      this.resolveFirstBrandLogos(organizationIds),
+    ]);
 
     const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
@@ -833,19 +1046,30 @@ export class EntityLeaderboardService {
           avgEngagementRate: stats.avgEngagementRate,
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
-          // The organization's own logo asset, then the auth provider's.
+          // The organization's own logo asset, then the auth provider's, then
+          // its first brand's: signup scraping saves the company logo on the
+          // brand, so most organizations have no logo of their own.
+          lastActiveAt: entity.userId
+            ? ownerMap.get(entity.userId)?.lastActiveAt
+            : undefined,
+          lifetimePosts: lifetimePostMap.get(entity.id) ?? 0,
           logo:
             logoUrlMap.get(entity.id) ??
             entity.authProviderLogoUrl ??
+            brandLogoMap.get(entity.id) ??
             undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
+          ownerEmailClass: classifyEmail(
+            entity.userId ? ownerMap.get(entity.userId)?.email : undefined,
+          ),
           slug: entity.slug,
-          // Onboarding writes `accountType`; `category` always has a value.
-          type: (entity.accountType ?? entity.category ?? undefined) as
+          // Only what onboarding recorded: `category` always has a default.
+          type: (entity.accountType ?? undefined) as
             | OrganizationCategory
             | undefined,
           createdAt: entity.createdAt?.toISOString(),
+          totalGenerations: generationCountMap.get(entity.id) ?? 0,
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
           totalMembers: memberCountMap.get(entity.id) || 0,

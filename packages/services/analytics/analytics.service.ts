@@ -75,9 +75,15 @@ export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
   sort?:
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.VIEWS
-    | AnalyticsMetric.POSTS;
-  /** Organizations only: keep one type (account type, else category). */
+    | AnalyticsMetric.POSTS
+    /** Lifetime generated assets; ignores the date range. */
+    | 'generations';
+  /** Organizations only: keep one type, as declared at onboarding. */
   type?: OrganizationCategory;
+  /** Organizations only: keep owners who signed up with a work or a free address. */
+  emailClass?: 'company' | 'personal';
+  /** Organizations only: keep those that have (or never) generated or published. */
+  usage?: 'active' | 'inactive';
 }
 
 // Chart Data Types
