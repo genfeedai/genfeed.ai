@@ -2,6 +2,7 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
@@ -390,16 +391,13 @@ test.describe('Clip Factory', () => {
     await mockDraftProject(authenticatedPage);
     await authenticatedPage.goto(`${CLIPPER_URL}/${MOCK_PROJECT_ID}`);
 
-    const agent = authenticatedPage.getByTestId('agent-output-agent-pane');
-    const output = authenticatedPage.getByTestId('agent-output-output-pane');
-    await expect(agent).toBeVisible();
-    await expect(output).toBeVisible();
-    await expect(output.getByLabel(/youtube url/i)).toBeVisible();
-
-    const agentBox = await agent.boundingBox();
-    const outputBox = await output.boundingBox();
-    expect(agentBox?.x).toBeLessThan(outputBox?.x ?? 0);
-    await expect(authenticatedPage.getByTestId('agent-dock')).toHaveCount(0);
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await expectOpenProjectLayout(authenticatedPage);
+    await expect(
+      authenticatedPage
+        .getByTestId('agent-output-output-pane')
+        .getByLabel(/youtube url/i),
+    ).toBeVisible();
   });
 
   test('restores a pasted YouTube URL after reload', async ({
