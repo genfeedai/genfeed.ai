@@ -201,7 +201,7 @@ describe('IngredientDetailVideo', () => {
     const makeClips = screen.getByRole('link', { name: /Make clips/ });
     expect(makeClips).toHaveAttribute(
       'href',
-      '/acme/brand-slug/clipper/new?video=video-1',
+      '/acme/brand-slug/clipper?video=video-1',
     );
 
     const editLink = screen.getByRole('link', { name: /Edit in Studio/ });

@@ -357,7 +357,6 @@ export const APP_ROUTES = {
    */
   STUDIO: {
     CLIPPER: '/clipper',
-    CLIPPER_NEW: '/clipper/new',
     EDITOR: '/editor',
     MOTION: '/motion',
     /**
