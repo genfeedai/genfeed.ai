@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   getEditorService: vi.fn(),
   loggerError: vi.fn(),
   replace: vi.fn(),
-  searchParamsGetAll: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -35,47 +34,24 @@ vi.mock('@services/editor/editor-projects.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
   useRouter: () => ({
     replace: mocks.replace,
   }),
-  useSearchParams: () => ({
-    getAll: mocks.searchParamsGetAll,
-  }),
 }));
 
-const { default: NewEditorProjectPage } = await import(
-  './new-editor-project-page'
-);
+const { default: EditorVideoImport } = await import('./EditorVideoImport');
 
-describe('NewEditorProjectPage', () => {
+describe('EditorVideoImport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createProject.mockResolvedValue({ id: 'project-1' });
     mocks.getEditorService.mockResolvedValue({
       create: mocks.createProject,
     });
-    mocks.searchParamsGetAll.mockReturnValue([]);
   });
 
-  it('creates a project and redirects through the current org URL scope', async () => {
-    render(<NewEditorProjectPage />);
-
-    await waitFor(() => {
-      expect(mocks.createProject).toHaveBeenCalledWith({
-        name: 'Untitled Project',
-        sourceVideoIds: [],
-      });
-    });
-    expect(mocks.replace).toHaveBeenCalledWith('/acme/~/editor/project-1');
-  });
-
-  it('seeds every ?video= in URL order', async () => {
-    mocks.searchParamsGetAll.mockImplementation((key: string) =>
-      key === 'video' ? ['shot-2', 'shot-1', 'shot-3'] : [],
-    );
-
-    render(<NewEditorProjectPage />);
+  it('seeds a project with every video in URL order and opens it in the current org scope', async () => {
+    render(<EditorVideoImport videoIds={['shot-2', 'shot-1', 'shot-3']} />);
 
     await waitFor(() => {
       expect(mocks.createProject).toHaveBeenCalledWith({
@@ -83,13 +59,13 @@ describe('NewEditorProjectPage', () => {
         sourceVideoIds: ['shot-2', 'shot-1', 'shot-3'],
       });
     });
+    expect(mocks.replace).toHaveBeenCalledWith('/acme/~/editor/project-1');
   });
 
-  it('returns to the Editor list when the seeded create fails', async () => {
-    mocks.searchParamsGetAll.mockReturnValue(['gone']);
+  it('returns to the Editor workspace when the seeded create fails', async () => {
     mocks.createProject.mockRejectedValue(new Error('Source video not found'));
 
-    render(<NewEditorProjectPage />);
+    render(<EditorVideoImport videoIds={['gone']} />);
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/acme/~/editor');

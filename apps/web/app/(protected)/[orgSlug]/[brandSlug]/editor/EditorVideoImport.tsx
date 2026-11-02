@@ -6,15 +6,24 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Spinner from '@ui/primitives/spinner';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
-function NewEditorProjectPageContent() {
+interface EditorVideoImportProps {
+  /** Library video ids, in timeline order: one clip per video, back to back. */
+  videoIds: readonly string[];
+}
+
+/**
+ * Videos opened in the Editor (`/editor?video=<id>`, repeated): create a
+ * project seeded with them and open it. Returns to the workspace if it fails.
+ */
+export default function EditorVideoImport({
+  videoIds,
+}: EditorVideoImportProps) {
   const { replace } = useRouter();
   const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
-  // `?video=` repeats in timeline order: one clip per video, back to back.
-  const videoIdsKey = searchParams.getAll('video').filter(Boolean).join(',');
+  const videoIdsKey = videoIds.filter(Boolean).join(',');
   const creating = useRef(false);
 
   const getEditorService = useAuthedService((token: string) =>
@@ -40,10 +49,9 @@ function NewEditorProjectPageContent() {
           return;
         }
 
-        const sourceVideoIds = videoIdsKey ? videoIdsKey.split(',') : [];
         const project = await service.create({
-          name: sourceVideoIds.length > 0 ? 'Video Edit' : 'Untitled Project',
-          sourceVideoIds,
+          name: 'Video Edit',
+          sourceVideoIds: videoIdsKey.split(','),
         });
         if (controller.signal.aborted) {
           return;
@@ -70,13 +78,5 @@ function NewEditorProjectPageContent() {
     <div className="flex h-screen items-center justify-center">
       <Spinner className="size-12 text-primary" />
     </div>
-  );
-}
-
-export default function NewEditorProjectPage() {
-  return (
-    <Suspense fallback={null}>
-      <NewEditorProjectPageContent />
-    </Suspense>
   );
 }

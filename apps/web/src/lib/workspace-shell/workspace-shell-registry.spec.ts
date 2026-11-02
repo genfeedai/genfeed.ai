@@ -295,7 +295,7 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/editor'),
     ).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor/new'),
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor/project-1'),
     ).toBeNull();
     expect(resolveWorkspaceShellRoute('/acme/~/studio/editor')).toBeNull();
   });

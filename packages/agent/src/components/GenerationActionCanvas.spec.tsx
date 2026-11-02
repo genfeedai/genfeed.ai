@@ -74,7 +74,7 @@ describe('GenerationActionCanvas', () => {
     expect(editorLinks).toHaveLength(1);
     expect(editorLinks[0]).toHaveAttribute(
       'href',
-      '/default/default/editor/new?video=video-1',
+      '/default/default/editor?video=video-1',
     );
   });
 
