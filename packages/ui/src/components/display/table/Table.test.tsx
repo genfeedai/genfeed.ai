@@ -1,17 +1,31 @@
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
+  useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Table from '@ui/display/table/Table';
+import { Button } from '@ui/primitives/button';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 vi.mock('next/dynamic', async () => {
   const { Checkbox } = await import('@ui/primitives/checkbox');
   return { default: () => Checkbox };
 });
+
+function SidebarProbe() {
+  const contextSidebar = useContextSidebar();
+  return (
+    <div>
+      <p data-testid="probe">
+        {`${contextSidebar?.isOpen ? 'open' : 'closed'}:${contextSidebar?.selection?.title ?? 'nothing selected'}`}
+      </p>
+      <Button label="Close panel" onClick={() => contextSidebar?.close()} />
+    </div>
+  );
+}
 
 describe('Table', () => {
   it('should render without crashing', () => {
@@ -1022,6 +1036,64 @@ describe('Table', () => {
       );
 
       expect(screen.queryByRole('table', { name: 'Items' })).toBeNull();
+    });
+
+    describe('closing the sidebar', () => {
+      function renderProbedTable() {
+        return render(
+          <ContextSidebarProvider>
+            <SidebarProbe />
+            <ContextSidebarOutlet testId="rail" />
+            <Table
+              columns={[{ header: 'Name', key: 'name' }]}
+              getRowKey={(item) => item.id}
+              items={rows}
+              rowSidebar={{
+                getId: (item) => item.id,
+                getTitle: (item) => item.name,
+                kind: 'asset',
+                render: (item) => <p>{`Detail of ${item.name}`}</p>,
+              }}
+            />
+          </ContextSidebarProvider>,
+        );
+      }
+
+      it('keeps the row selected so the topbar toggle can reopen the panel', () => {
+        renderProbedTable();
+        fireEvent.click(screen.getByText('First item'));
+        expect(screen.getByTestId('probe')).toHaveTextContent(
+          'open:First item',
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
+
+        expect(screen.getByTestId('probe')).toHaveTextContent(
+          'closed:First item',
+        );
+      });
+
+      it('reopens a closed panel when the same row is picked again', () => {
+        renderProbedTable();
+        fireEvent.click(screen.getByText('First item'));
+        fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
+
+        fireEvent.click(screen.getByText('First item'));
+
+        expect(screen.getByTestId('probe')).toHaveTextContent(
+          'open:First item',
+        );
+      });
+
+      it('tints the selected row only while its panel is open', () => {
+        renderProbedTable();
+        fireEvent.click(screen.getByText('First item'));
+        expect(rowOf('First item')).toHaveClass('bg-accent');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
+
+        expect(rowOf('First item')).not.toHaveClass('bg-accent');
+      });
     });
 
     it('keeps the name a link while the rest of the row opens the sidebar', () => {

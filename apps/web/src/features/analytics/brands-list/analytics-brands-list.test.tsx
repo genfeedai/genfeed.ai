@@ -62,6 +62,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,

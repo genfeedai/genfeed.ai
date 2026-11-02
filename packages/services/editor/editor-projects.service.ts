@@ -6,6 +6,7 @@ import type {
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
 import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -159,6 +160,7 @@ export class EditorProjectsService extends HTTPBaseService {
     query: { limit?: number; page?: number; search?: string } = {},
     signal?: AbortSignal,
   ): Promise<IEditorProject[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance
       .get<JsonApiResponseDocument>('', {
         params: {
@@ -170,7 +172,7 @@ export class EditorProjectsService extends HTTPBaseService {
         signal,
       })
       .then((res) => res.data);
-    recordPageTotals(response, query);
+    recordPageTotals(response, query, requestId);
 
     return this.mapMany(response);
   }

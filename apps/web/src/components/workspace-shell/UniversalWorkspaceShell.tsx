@@ -1193,14 +1193,6 @@ function UniversalWorkspaceShellContent({
       >
         <WorkspaceAgentContext
           contextSidebar={contextSidebar}
-          pageLabel={effectiveShellContextLabel}
-          referenceCount={
-            (
-              surfaceReferences ??
-              resolvedWorkspaceSurfaceAdapter?.artifactReferences
-            )?.length ?? 0
-          }
-          scopeLabel={conversationScope.contextLabel}
           target={isCompactViewport ? 'mobile' : 'desktop'}
         />
       </div>
@@ -1231,9 +1223,6 @@ function UniversalWorkspaceShellContent({
     },
     [orgHref, push],
   );
-  const agentOutputReferenceCount =
-    (surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences)
-      ?.length ?? 0;
   const agentOutputHost = useMemo<AgentOutputHostValue | null>(() => {
     if (!isAgentOutputSurface) {
       return null;
@@ -1242,14 +1231,7 @@ function UniversalWorkspaceShellContent({
     return {
       agent: <ConversationDockPanel apiService={agentApiService} />,
       agentTitle: activeThread?.title?.trim() || undefined,
-      contextPanel: (
-        <WorkspaceAgentContext
-          contextSidebar={contextSidebar}
-          pageLabel={effectiveShellContextLabel}
-          referenceCount={agentOutputReferenceCount}
-          scopeLabel={conversationScope.contextLabel}
-        />
-      ),
+      contextPanel: <WorkspaceAgentContext contextSidebar={contextSidebar} />,
       isContextOpen: isOutputContextOpen,
       onCloseContext: () => setIsOutputContextOpen(false),
       onNewThread: dockThreads.startThread,
@@ -1267,12 +1249,9 @@ function UniversalWorkspaceShellContent({
   }, [
     activeThread?.title,
     agentApiService,
-    agentOutputReferenceCount,
     contextSidebar,
-    conversationScope.contextLabel,
     dockThreads.isThreadListLoading,
     dockThreads.startThread,
-    effectiveShellContextLabel,
     handleOpenFullConversation,
     isAgentOutputSurface,
     isOutputContextOpen,
