@@ -34,7 +34,7 @@ import AdminOrgBrandUrlFilter, {
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { LazyModalFontFamily } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
@@ -267,7 +267,10 @@ function FontFamiliesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalFontFamily onConfirm={() => findAllFontFamilies()} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.FONT_FAMILY}
+          onConfirm={() => findAllFontFamilies()}
+        />
       )}
 
       <div className="mt-4">
