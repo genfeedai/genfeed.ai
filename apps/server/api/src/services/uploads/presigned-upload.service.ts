@@ -126,7 +126,10 @@ export class PresignedUploadService {
       );
     }
 
+    // The allowlist-checked type is the ingredient's media type; consumers such
+    // as the clip source check read it instead of re-deriving it from the key.
     await this.ingredientsService.patch(ingredientId, {
+      mimeType: contentType,
       s3Key: presigned.s3Key,
     });
 

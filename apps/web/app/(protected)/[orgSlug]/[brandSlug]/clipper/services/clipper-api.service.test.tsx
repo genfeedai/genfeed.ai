@@ -252,6 +252,39 @@ describe('ClipperApiService', () => {
     ).rejects.toThrow('Clip sources must be at least 15 seconds long.');
   });
 
+  it.each([
+    [
+      'a JSON:API detail',
+      {
+        errors: [
+          {
+            detail:
+              'The uploaded clip source is not supported audio or video media.',
+            title: 'Bad Request',
+          },
+        ],
+      },
+      'The uploaded clip source is not supported audio or video media.',
+    ],
+    [
+      'a JSON:API title when there is no detail',
+      { errors: [{ title: 'Upload could not be processed' }] },
+      'Upload could not be processed',
+    ],
+    ['an unreadable body', null, 'Request failed with status 422'],
+  ])('surfaces %s from a refused request', async (_name, body, expected) => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(body === null ? 'not json' : JSON.stringify(body), {
+        status: 422,
+      }),
+    );
+    const service = new ClipperApiService(vi.fn().mockResolvedValue('token-1'));
+
+    await expect(
+      service.finalizeUpload('project-1', 'ingredient-1'),
+    ).rejects.toThrow(expected);
+  });
+
   it('starts the one-click YouTube clip factory path', async () => {
     const getToken = vi.fn().mockResolvedValue('token-1');
     const service = new ClipperApiService(getToken);

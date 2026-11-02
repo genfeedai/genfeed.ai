@@ -10,7 +10,12 @@ import type { IngredientsService } from '@api/collections/ingredients/services/i
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
 import type { HttpService } from '@nestjs/axios';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { of, throwError } from 'rxjs';
 
 describe('ClipperProjectIngestionService', () => {
@@ -42,6 +47,7 @@ describe('ClipperProjectIngestionService', () => {
     patch: ReturnType<typeof vi.fn>;
     patchDraft: ReturnType<typeof vi.fn>;
     releaseDraft: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
   };
   let clipperFactoryWorkflowQueue: {
     enqueue: ReturnType<typeof vi.fn>;
@@ -84,6 +90,7 @@ describe('ClipperProjectIngestionService', () => {
         id: 'draft-1',
       } as ClipperProjectDocument),
       releaseDraft: vi.fn().mockResolvedValue(true),
+      remove: vi.fn().mockResolvedValue(null),
     };
     clipperFactoryWorkflowQueue = {
       enqueue: vi.fn().mockResolvedValue('clipper-factory-project-1'),
@@ -768,6 +775,169 @@ describe('ClipperProjectIngestionService', () => {
       service.finalizeUpload(currentUser as never, 'project-1', 'ingredient-1'),
     ).rejects.toThrow('uploaded clip source duration is unavailable');
     expect(clipperAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
+  });
+
+  describe('rejected uploads', () => {
+    const preparedUploadSource = {
+      contentType: 'video/mp4',
+      filename: 'qa-clip-45s.mp4',
+      flow: 'review' as const,
+      ingredientId: 'ingredient-1',
+      kind: 'upload' as const,
+      maxRetries: 3,
+      retryCount: 0,
+      schemaVersion: 1 as const,
+      sizeBytes: 16_300_000,
+      status: 'uploading' as const,
+    };
+
+    function projectWithStatus(status: 'draft' | 'pending') {
+      return {
+        id: 'project-1',
+        organizationId: 'org-1',
+        settings: { flow: 'review' },
+        source: preparedUploadSource,
+        sourceVideoUrl: 'https://cdn.test/videos/ingredient-1',
+        status,
+      } as unknown as ClipperProjectDocument;
+    }
+
+    it('accepts a valid MP4 whose ingredient carries the prepared video type', async () => {
+      clipperProjectsService.findOne.mockResolvedValue(
+        projectWithStatus('pending'),
+      );
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: { duration: 45, size: 16_300_000 },
+        mimeType: 'video/mp4',
+        status: 'UPLOADED',
+      });
+
+      await expect(
+        service.finalizeUpload(
+          currentUser as never,
+          'project-1',
+          'ingredient-1',
+        ),
+      ).resolves.toMatchObject({ status: 'analyzing' });
+      expect(clipperProjectsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('removes the pending project when the stored source is not audio or video', async () => {
+      clipperProjectsService.findOne.mockResolvedValue(
+        projectWithStatus('pending'),
+      );
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: { duration: 45, size: 16_300_000 },
+        mimeType: undefined,
+        status: 'UPLOADED',
+      });
+
+      await expect(
+        service.finalizeUpload(
+          currentUser as never,
+          'project-1',
+          'ingredient-1',
+        ),
+      ).rejects.toThrow('not supported audio or video media');
+      expect(clipperProjectsService.remove).toHaveBeenCalledWith('project-1');
+    });
+
+    it.each([HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.PAYLOAD_TOO_LARGE])(
+      'removes the pending project when the file is refused with %i',
+      async (status) => {
+        clipperProjectsService.findOne.mockResolvedValue(
+          projectWithStatus('pending'),
+        );
+        ingredientsService.findOne.mockResolvedValue({
+          id: 'ingredient-1',
+          metadata: {},
+          status: 'PROCESSING',
+        });
+        presignedUploadService.confirmUpload.mockRejectedValue(
+          new HttpException('refused', status),
+        );
+
+        await expect(
+          service.finalizeUpload(
+            currentUser as never,
+            'project-1',
+            'ingredient-1',
+          ),
+        ).rejects.toMatchObject({ status });
+        expect(clipperProjectsService.remove).toHaveBeenCalledWith('project-1');
+      },
+    );
+
+    it('keeps a draft project when its upload is refused', async () => {
+      clipperProjectsService.findOne.mockResolvedValue(
+        projectWithStatus('draft'),
+      );
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: {},
+        status: 'PROCESSING',
+      });
+      presignedUploadService.confirmUpload.mockRejectedValue(
+        new HttpException('refused', HttpStatus.UNPROCESSABLE_ENTITY),
+      );
+
+      await expect(
+        service.finalizeUpload(
+          currentUser as never,
+          'project-1',
+          'ingredient-1',
+        ),
+      ).rejects.toMatchObject({ status: 422 });
+      expect(clipperProjectsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('keeps the project when the upload is not found, since a concurrent finalize may own it', async () => {
+      clipperProjectsService.findOne.mockResolvedValue(
+        projectWithStatus('pending'),
+      );
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: {},
+        status: 'PROCESSING',
+      });
+      presignedUploadService.confirmUpload.mockRejectedValue(
+        new HttpException('missing', HttpStatus.NOT_FOUND),
+      );
+
+      await expect(
+        service.finalizeUpload(
+          currentUser as never,
+          'project-1',
+          'ingredient-1',
+        ),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(clipperProjectsService.remove).not.toHaveBeenCalled();
+    });
+
+    it('reports the original rejection when the cleanup itself fails', async () => {
+      clipperProjectsService.findOne.mockResolvedValue(
+        projectWithStatus('pending'),
+      );
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: {},
+        status: 'PROCESSING',
+      });
+      presignedUploadService.confirmUpload.mockRejectedValue(
+        new HttpException('refused', HttpStatus.UNPROCESSABLE_ENTITY),
+      );
+      clipperProjectsService.remove.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.finalizeUpload(
+          currentUser as never,
+          'project-1',
+          'ingredient-1',
+        ),
+      ).rejects.toMatchObject({ status: 422 });
+    });
   });
 
   it('validates a managed upload against its selected project reference', async () => {

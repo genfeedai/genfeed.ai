@@ -14,6 +14,10 @@ const mockGetToken = vi.fn();
 const mockPush = vi.fn();
 const mockSaveDraft = vi.fn();
 const mockRetrySource = vi.fn();
+const mockPrepareUpload = vi.fn();
+const mockUploadSource = vi.fn();
+const mockFinalizeUpload = vi.fn();
+const mockUpdateProject = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: { id: 'brand-1' }, settings: null }),
@@ -53,6 +57,10 @@ vi.mock('./services/clipper-api.service', () => ({
     getProject = mockGetProject;
     saveDraft = mockSaveDraft;
     retrySource = mockRetrySource;
+    prepareUpload = mockPrepareUpload;
+    uploadSource = mockUploadSource;
+    finalizeUpload = mockFinalizeUpload;
+    updateProject = mockUpdateProject;
   },
 }));
 
@@ -181,6 +189,64 @@ describe('review route transition', () => {
       sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
       transcriptText: 'Persisted source transcript.',
     });
+  });
+});
+
+describe('uploaded source', () => {
+  async function startUpload() {
+    const { result } = renderHook(() => useStudioClipperPage());
+
+    act(() => {
+      result.current.setSourceKind('upload');
+      result.current.setSourceFile(
+        new File(['clip'], 'qa-clip-45s.mp4', { type: 'video/mp4' }),
+      );
+    });
+    await act(async () => {
+      await result.current.handleAnalyze();
+    });
+    return result;
+  }
+
+  beforeEach(() => {
+    mockPrepareUpload.mockResolvedValue({
+      expiresIn: 3600,
+      ingredientId: 'ingredient-1',
+      projectId: 'pending-project-1',
+      publicUrl: 'https://cdn.test/ingredient-1',
+      uploadUrl: 'https://uploads.test/ingredient-1',
+    });
+    mockUpdateProject.mockResolvedValue(undefined);
+  });
+
+  it('removes the prepared project and shows the reason when the transfer fails', async () => {
+    mockUploadSource.mockRejectedValue(
+      new Error('Source upload failed with status 403'),
+    );
+
+    const result = await startUpload();
+
+    expect(mockUpdateProject).toHaveBeenCalledWith('pending-project-1', {
+      isDeleted: true,
+    });
+    expect(mockFinalizeUpload).not.toHaveBeenCalled();
+    expect(result.current.error).toBe('Source upload failed with status 403');
+  });
+
+  it('shows the server reason and leaves cleanup to the server when finalize refuses the file', async () => {
+    mockUploadSource.mockResolvedValue(undefined);
+    mockFinalizeUpload.mockRejectedValue(
+      new Error(
+        'The uploaded clip source is not supported audio or video media.',
+      ),
+    );
+
+    const result = await startUpload();
+
+    expect(result.current.error).toBe(
+      'The uploaded clip source is not supported audio or video media.',
+    );
+    expect(mockUpdateProject).not.toHaveBeenCalled();
   });
 });
 

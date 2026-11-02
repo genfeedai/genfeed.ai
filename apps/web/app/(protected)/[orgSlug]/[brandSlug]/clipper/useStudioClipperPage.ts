@@ -587,11 +587,22 @@ export function useStudioClipperPage(options?: { projectId?: string }) {
         sizeBytes: sourceFile.size,
       });
 
-      await clipsService.uploadSource(
-        prepared.uploadUrl,
-        sourceFile,
-        setUploadProgress,
-      );
+      try {
+        await clipsService.uploadSource(
+          prepared.uploadUrl,
+          sourceFile,
+          setUploadProgress,
+        );
+      } catch (uploadError: unknown) {
+        // Nothing reached storage, so the project prepared for it would sit as
+        // pending forever. A draft stays: the form can retry against it.
+        if (prepared.projectId !== draftProjectId) {
+          await clipsService
+            .updateProject(prepared.projectId, { isDeleted: true })
+            .catch(() => undefined);
+        }
+        throw uploadError;
+      }
       const started = await clipsService.finalizeUpload(
         prepared.projectId,
         prepared.ingredientId,

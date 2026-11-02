@@ -21,6 +21,10 @@ import {
   hashSource as hashClipperSource,
   withClipperSourceJobId,
 } from '@api/collections/clipper-projects/services/clipper-source-contract.util';
+import {
+  isRejectedUpload,
+  readAcceptedUploadedSource,
+} from '@api/collections/clipper-projects/services/clipper-upload-source.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   normalizeYoutubeUrl,
@@ -29,7 +33,6 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { CLIPPER_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type { AgentClipperRunIdentity } from '@genfeedai/contracts/interfaces';
 import {
   CLIPPER_SOURCE_SCHEMA_VERSION,
@@ -472,11 +475,20 @@ export class ClipperProjectIngestionService {
     }
 
     if (String(ingredient.status) === IngredientStatus.PROCESSING) {
-      await this.presignedUploadService.confirmUpload(
-        user,
-        source.ingredientId,
-        { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
-      );
+      try {
+        await this.presignedUploadService.confirmUpload(
+          user,
+          source.ingredientId,
+          { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
+        );
+      } catch (error: unknown) {
+        // The file itself was rejected (unreadable media, too large); nothing
+        // can finalize this project, so it must not linger as pending.
+        if (isRejectedUpload(error)) {
+          await this.discardRejectedUpload(project);
+        }
+        throw error;
+      }
       ingredient = await this.ingredientsService.findOne(
         {
           id: source.ingredientId,
@@ -495,37 +507,14 @@ export class ClipperProjectIngestionService {
       throw new BadRequestException('The clip source upload is not ready.');
     }
 
-    const durationSeconds = ingredient.metadata?.duration;
-    const sizeBytes = ingredient.metadata?.size;
-    if (
-      typeof sizeBytes !== 'number' ||
-      !Number.isFinite(sizeBytes) ||
-      sizeBytes <= 0
-    ) {
-      throw new BadRequestException(
-        'The uploaded clip source size is unavailable.',
-      );
+    let accepted: { durationSeconds: number; sizeBytes: number };
+    try {
+      accepted = readAcceptedUploadedSource(ingredient);
+    } catch (error: unknown) {
+      await this.discardRejectedUpload(project);
+      throw error;
     }
-    if (
-      typeof durationSeconds !== 'number' ||
-      !Number.isFinite(durationSeconds) ||
-      durationSeconds <= 0
-    ) {
-      throw new BadRequestException(
-        'The uploaded clip source duration is unavailable.',
-      );
-    }
-    if (sizeBytes > MAX_CLIP_SOURCE_SIZE_BYTES) {
-      throw new BadRequestException('Clip sources may be up to 10 GB.');
-    }
-    if (!/^(audio|video)\//.test(String(ingredient.mimeType))) {
-      throw new BadRequestException(
-        'The uploaded clip source is not supported audio or video media.',
-      );
-    }
-    if (durationSeconds > CLIPPER_SOURCE_MAX_DURATION_SECONDS) {
-      throw new BadRequestException('Clip sources may be up to 6 hours long.');
-    }
+    const { durationSeconds, sizeBytes } = accepted;
 
     const flow = project.settings?.flow ?? source.flow;
     const expectedJobId = `${flow === 'review' ? 'clipper-analysis' : 'clipper-factory'}-${projectId}`;
@@ -912,6 +901,24 @@ export class ClipperProjectIngestionService {
         );
       }
       throw error;
+    }
+  }
+
+  /**
+   * Removes the project that `prepareUpload` created for a source that can
+   * never be finalized, so the failed upload leaves no pending project behind.
+   * A draft stays a draft so the form can prepare another upload.
+   */
+  private async discardRejectedUpload(
+    project: ClipperProjectDocument,
+  ): Promise<void> {
+    if (project.status !== 'pending') {
+      return;
+    }
+    try {
+      await this.clipperProjectsService.remove(String(project.id));
+    } catch {
+      // The upload error is what the caller needs; a failed cleanup must not mask it.
     }
   }
 

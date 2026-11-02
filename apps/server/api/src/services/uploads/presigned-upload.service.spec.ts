@@ -172,6 +172,7 @@ describe('PresignedUploadService', () => {
       const result = await service.getPresignedUploadUrl(mockUser, body);
 
       expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        mimeType: 'image/jpeg',
         s3Key: `ingredients/images/${mockIngredientId}`,
       });
 
@@ -243,7 +244,7 @@ describe('PresignedUploadService', () => {
         expect(returned).toBe(false);
         expect(ingredientsService.patch).toHaveBeenCalledWith(
           mockIngredientId,
-          { s3Key },
+          { mimeType: 'image/jpeg', s3Key },
         );
         finishPersistence?.();
         await expect(grant).resolves.toEqual(
@@ -320,6 +321,10 @@ describe('PresignedUploadService', () => {
       const result = await service.getPresignedUploadUrl(mockUser, body);
 
       expect(result.s3Key).toBe(`ingredients/videos/${mockIngredientId}`);
+      expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        mimeType: 'video/mp4',
+        s3Key: `ingredients/videos/${mockIngredientId}`,
+      });
       expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
         expect.stringMatching(/^[0-9a-f-]{36}$/),
         'videos',
