@@ -8,12 +8,11 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
-import { useQuery } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -25,7 +24,7 @@ import { Progress } from '@ui/primitives/progress';
 import { Copy, CreditCard, Pencil, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalSubscription } from '@/features/admin/lazy/lazy-modal.admin';
@@ -33,6 +32,7 @@ import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import CreditHoldsPanel from './credit-holds-panel';
 
 const EMPTY_CELL = '-';
+const EMPTY_BILLING: IOrganizationBilling[] = [];
 
 // Plan, status, balance and usage are assembled from other tables after the
 // page is read, so only the organization's own columns can order the list.
@@ -72,10 +72,6 @@ export default function SubscriptionsList() {
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const subscriptionT = useTranslations('ui.rowSidebar.subscription');
-  const getSubscriptionsService = useAuthedService((token: string) =>
-    SubscriptionsService.getInstance(token),
-  );
-
   const clipboardService = ClipboardService.getInstance();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const { search, setSearch } = useAdminSearchParam();
@@ -87,32 +83,35 @@ export default function SubscriptionsList() {
   const [holdsOrganization, setHoldsOrganization] =
     useState<IOrganizationBilling>();
 
+  // Cached per page, search and sort; the footer shows the cached page's own
+  // totals.
   const {
     data: billing,
     isLoading,
     isFetching,
-    error: billingError,
     refetch,
-  } = useQuery({
-    queryKey: ['admin-subscriptions', currentPage, search, sort],
-    queryFn: async () => {
-      const service = await getSubscriptionsService();
-      return service.getAdminBilling({
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      });
+  } = usePagedAuthedQuery({
+    queryFn: async (service, signal) => {
+      try {
+        const response = await service.getAdminBilling({
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          ...(search ? { search } : {}),
+          ...(sort ? { sort } : {}),
+        });
+        return response.data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /subscriptions/admin/billing failed', error);
+        }
+        throw error;
+      }
     },
+    queryKey: ['admin', 'subscriptions', { page: currentPage, search, sort }],
+    service: (token: string) => SubscriptionsService.getInstance(token),
   });
 
   const isRefreshing = isFetching && !isLoading;
-
-  useEffect(() => {
-    if (billingError) {
-      logger.error('GET /subscriptions/admin/billing failed', billingError);
-    }
-  }, [billingError]);
 
   const refresh = () => {
     refetch();
@@ -302,7 +301,7 @@ export default function SubscriptionsList() {
       isRefreshing={isRefreshing}
     >
       <AppTable<IOrganizationBilling>
-        items={billing?.data ?? []}
+        items={billing?.items ?? EMPTY_BILLING}
         isLoading={isLoading}
         columns={columns}
         actions={actions}
@@ -319,7 +318,11 @@ export default function SubscriptionsList() {
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={t('subscriptionsTotalLabel')} />
+        <AutoPagination
+          showTotal
+          totalLabel={t('subscriptionsTotalLabel')}
+          totals={billing?.totals}
+        />
       </div>
 
       {holdsOrganization && (
