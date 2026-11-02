@@ -23,7 +23,7 @@ function evidence() {
     renders: {
       StudioPlaygroundWorkspace: 4,
       StudioPlaygroundComposer: 3,
-      StudioPlaygroundGenerationList: 3,
+      StudioPlaygroundResults: 3,
     },
     blockedRequests: [],
     generationRequests: 1,
@@ -73,11 +73,11 @@ test('rejects incomparable environments, extra generation requests and blocked t
 
 test('rejects an incomplete or empty baseline instead of reporting parity', () => {
   const before = evidence();
-  before.renders.StudioPlaygroundGenerationList = 0;
+  before.renders.StudioPlaygroundResults = 0;
   before.sourceHead = '';
   assert.deepEqual(compareEvidence(before, evidence()), [
     'before: source head missing',
-    'StudioPlaygroundGenerationList render counter missing or empty',
+    'StudioPlaygroundResults render counter missing or empty',
   ]);
 });
 
@@ -99,7 +99,7 @@ test('counts only committed renders of the observed components and supports rese
           flags: 0,
           child: null,
           sibling: {
-            type: { name: 'StudioPlaygroundGenerationList' },
+            type: { name: 'StudioPlaygroundResults' },
             flags: 1,
             child: null,
             sibling: null,
@@ -117,7 +117,7 @@ test('counts only committed renders of the observed components and supports rese
       renders: {
         StudioPlaygroundWorkspace: 1,
         StudioPlaygroundComposer: 0,
-        StudioPlaygroundGenerationList: 1,
+        StudioPlaygroundResults: 1,
       },
       errors: [],
       rendererCount: 1,

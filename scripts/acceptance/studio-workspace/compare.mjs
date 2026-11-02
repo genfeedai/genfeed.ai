@@ -5,7 +5,7 @@ import { basename, resolve } from 'node:path';
 export const observedComponents = [
   'StudioPlaygroundWorkspace',
   'StudioPlaygroundComposer',
-  'StudioPlaygroundGenerationList',
+  'StudioPlaygroundResults',
 ];
 export const captureStates = ['idle', 'pending', 'complete'];
 

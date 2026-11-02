@@ -1,3 +1,4 @@
+import { selectView } from '@app-tests/view-menu.helpers';
 import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
 import {
   IngredientCategory,
@@ -433,7 +434,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@/features/studio/playground/components/StudioPlaygroundGenerationList',
+  '@/features/studio/playground/components/StudioPlaygroundResults',
   () => ({
     default: (props: unknown) => {
       mocks.results(props);
@@ -1650,8 +1651,54 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).toBeVisible();
     expect(screen.getByTestId('studio-playground-empty-state')).toBeVisible();
     expect(mocks.composer).toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'viewList' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'viewGrid' })).toBeNull();
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'grid' }),
+    );
+  });
+
+  it('toggles the results into a list', async () => {
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          createdAt: 1,
+          id: 'grid-1',
+          prompt: 'A still',
+          status: 'GENERATED',
+          type: 'image',
+        },
+      ],
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    await selectView(userEvent.setup(), 'viewList');
+
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'list' }),
+    );
+  });
+
+  it('opens a card on its own URL', () => {
+    const job = {
+      createdAt: 1,
+      id: 'card-1',
+      prompt: 'A still',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />);
+
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+
+    expect(mocks.push).toHaveBeenLastCalledWith(
+      '/acme/moonrise/playground/card-1',
+    );
   });
 
   it('puts the prompt in the agent column and the list in the output column', () => {

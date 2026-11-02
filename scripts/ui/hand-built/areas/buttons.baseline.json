@@ -496,6 +496,9 @@
     "apps/web/src/features/studio/playground/components/StudioIdentityVoiceRow.tsx": {
       "button-restyle": 1
     },
+    "apps/web/src/features/studio/playground/components/StudioPlaygroundCard.tsx": {
+      "button-restyle": 5
+    },
     "apps/web/src/features/studio/playground/components/StudioPlaygroundFailureNotice.tsx": {
       "button-restyle": 1
     },

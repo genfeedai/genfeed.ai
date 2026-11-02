@@ -16,6 +16,7 @@ import {
   RouterPriority,
   SkillSurface,
   UploadStatus,
+  ViewType,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -74,13 +75,16 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Label } from '@ui/primitives/label';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { RotateCcw } from 'lucide-react';
+import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
+import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -102,9 +106,9 @@ import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-
 import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';
 import StudioPlaygroundEmptyState from '@/features/studio/playground/components/StudioPlaygroundEmptyState';
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
-import StudioPlaygroundGenerationList from '@/features/studio/playground/components/StudioPlaygroundGenerationList';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundJobStatus from '@/features/studio/playground/components/StudioPlaygroundJobStatus';
+import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
 import { useCrunGenerationQuote } from '@/features/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
@@ -368,6 +372,9 @@ export default function StudioPlaygroundWorkspace({
   const [search, setSearch] = useState('');
   const [resultType, setResultType] = useState<StudioPlaygroundFilter>('all');
   const [resultSort, setResultSort] = useState<'newest' | 'oldest'>('newest');
+  const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
+    ViewType.GRID,
+  );
   // The open generation lives in the URL: `/playground/[jobId]`.
   const selectedJobId = jobId ?? null;
   const isOpenGeneration = selectedJobId !== null;
@@ -954,7 +961,7 @@ export default function StudioPlaygroundWorkspace({
     });
     return resultSort === 'oldest' ? [...filtered].reverse() : filtered;
   }, [galleryJobs, resultSort, resultType, search]);
-  const { recoverPreview, recoveredJobs } =
+  const { previewRevisions, recoverPreview, recoveredJobs } =
     useStudioPlaygroundPreviewRecovery(visibleJobs);
   useStudioPendingPreviews({
     getIngredientsService,
@@ -2859,6 +2866,34 @@ export default function StudioPlaygroundWorkspace({
       refresh={
         <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
       }
+      right={
+        isOpenGeneration ? undefined : (
+          <SubbarControls
+            views={
+              <ViewMenu
+                activeView={resultsView}
+                onChange={(view) => {
+                  if (view === ViewType.GRID || view === ViewType.LIST) {
+                    setResultsView(view);
+                  }
+                }}
+                options={[
+                  {
+                    icon: <Rows3 className={SHELL_ICON_CLASS} />,
+                    label: translate('viewList'),
+                    type: ViewType.LIST,
+                  },
+                  {
+                    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
+                    label: translate('viewGrid'),
+                    type: ViewType.GRID,
+                  },
+                ]}
+              />
+            }
+          />
+        )
+      }
       titleVisibility="sr-only"
     >
       <div className="flex flex-col gap-4">
@@ -2943,14 +2978,20 @@ export default function StudioPlaygroundWorkspace({
               </p>
             ) : null}
             {!galleryError || visibleJobs.length > 0 ? (
-              <StudioPlaygroundGenerationList
+              <StudioPlaygroundResults
                 assetActions={{
                   ...assetActions,
                   onCancelGeneration: cancelJob,
                 }}
                 isLoading={isLoadingGallery}
+                isUseAsReferenceEnabled={canUseGeneratedReference}
                 jobs={recoveredJobs}
                 onReprompt={handleVaryRecipe}
+                onSelect={handleSelectJob}
+                onUseAsReference={handleUseGeneratedReference}
+                previewRevisions={previewRevisions}
+                selectedJobId={selectedJobId}
+                view={resultsView}
               />
             ) : null}
           </>

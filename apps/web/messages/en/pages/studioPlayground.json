@@ -249,6 +249,8 @@
     "video": "Video"
   },
   "movedToTrash": "Moved to Trash",
+  "previewUnavailable": "Preview unavailable",
+  "previewUnavailableDescription": "The asset is saved, but this preview could not be loaded. Open it to retry the preview.",
   "prompt": "Prompt",
   "remove": "Remove",
   "removeDialogTitle": "Remove Generation",
@@ -257,6 +259,7 @@
   "removeLocalMessage": "Remove this failed generation from the current session?",
   "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
   "reprompt": "Reprompt",
+  "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
   "referencePreviewMissing": "This asset has no usable preview yet.",
   "referenceUnsupported": "The selected model cannot use that asset as a reference.",
   "useAsReference": "Use as reference",
@@ -268,6 +271,7 @@
     "square": "square"
   },
   "resizeStarted": "Resizing to {format}. The result appears here when it is ready.",
+  "runOutputs": "{count} outputs",
   "savedLooks": {
     "description": "Shared with everyone working in this brand.",
     "empty": "No saved Looks yet.",
@@ -282,7 +286,10 @@
   "startFrameRequired": "Start Frame required",
   "videoReference": "Video Reference",
   "title": "Playground",
+  "viewGrid": "Grid",
+  "viewList": "List",
   "makeClips": "Make clips",
+  "videoBadge": "Video",
   "crun": {
     "outputFormat": "Output format",
     "quoteLoading": "Checking image price…",
@@ -354,6 +361,5 @@
   "audioReferenceUnsupported": "Choose an audio-reference model, attach at most three audio clips, and include an image or video.",
   "referenceMentionNotice": "Attached but not mentioned: {tokens}. They will still be included.",
   "new": "New",
-  "generations": "Generations",
-  "rowActions": "Actions for {name}"
+  "generations": "Generations"
 }
