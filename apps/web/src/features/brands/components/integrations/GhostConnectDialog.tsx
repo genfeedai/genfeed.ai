@@ -65,7 +65,9 @@ export default function GhostConnectDialog({
       await new ServicesService('ghost', token).postConnectWithApiKey({
         apiKey: apiKey.trim(),
         brandId,
-        ghostUrl: ghostUrl.trim(),
+        // The site URL is the account's identity: drop trailing slashes so
+        // a reconnect typed with one still matches the stored account.
+        ghostUrl: ghostUrl.trim().replace(/\/+$/, ''),
       });
       NotificationsService.getInstance().success(
         translate('ghostConnect.connected'),

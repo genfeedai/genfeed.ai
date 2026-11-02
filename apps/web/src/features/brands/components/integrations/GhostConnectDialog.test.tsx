@@ -96,9 +96,9 @@ describe('GhostConnectDialog', () => {
     );
   });
 
-  it('sends the trimmed URL, key and brand, closes, and reloads the accounts', async () => {
+  it('sends the trimmed URL without a trailing slash, the key and the brand, closes, and reloads the accounts', async () => {
     render(<Harness />);
-    fillForm('  https://example-blog.com  ', ' abc123:def456 ');
+    fillForm('  https://example-blog.com/  ', ' abc123:def456 ');
 
     fireEvent.click(screen.getByRole('button', { name: 'Connect Ghost' }));
 
