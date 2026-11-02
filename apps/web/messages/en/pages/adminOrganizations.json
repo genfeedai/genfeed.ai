@@ -54,5 +54,24 @@
     "BUSINESS": "Business",
     "AGENCY": "Agency",
     "EXPERT": "Expert"
-  }
+  },
+  "statusColumn": "Status",
+  "statusFilterLabel": "Status",
+  "allStatuses": "Any status",
+  "statuses": {
+    "onboarding": "Onboarding",
+    "free": "Free",
+    "trial": "Trial",
+    "subscribed": "Subscribed",
+    "past_due": "Past due",
+    "cancelled": "Cancelled"
+  },
+  "sourceFilterLabel": "Source",
+  "allSources": "Any source",
+  "sources": {
+    "concierge": "Concierge",
+    "self_serve": "Self-serve"
+  },
+  "planLabel": "Plan",
+  "openOwner": "Open owner"
 }

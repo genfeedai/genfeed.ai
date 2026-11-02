@@ -101,6 +101,7 @@ test.describe('Admin Organization', () => {
                   growth: 0,
                   id: 'org-e2e-1',
                   name: 'Acme Inc',
+                  status: 'free',
                   owner: {
                     email: 'ada@example.com',
                     id: 'user-e2e-1',
@@ -143,6 +144,7 @@ test.describe('Admin Organization', () => {
       avgEngagementRate: 0,
       growth: 0,
       ownerEmailClass: 'unknown',
+      status: 'free',
       totalBrands: 1,
       totalEngagement: 0,
       totalGenerations: 0,
@@ -229,6 +231,130 @@ test.describe('Admin Organization', () => {
       main.getByRole('row', { name: /Gateway Ventures/ }),
     ).toBeVisible();
     await expect(main.getByRole('row', { name: /Personal/ })).toHaveCount(0);
+  });
+
+  test('organizations list shows the lifecycle status, filters by it and opens the concierge handoff in the sidebar', async ({
+    adminPage,
+  }) => {
+    const requested: Array<{ source: string | null; status: string | null }> =
+      [];
+    const organization = (
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      avgEngagementRate: 0,
+      growth: 0,
+      lifetimePosts: 0,
+      ownerEmailClass: 'company',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+      ...overrides,
+    });
+    await adminPage.route('**/analytics/organizations**', (route) => {
+      const params = new URL(route.request().url()).searchParams;
+      requested.push({
+        source: params.get('source'),
+        status: params.get('status'),
+      });
+      const organizations = [
+        organization({
+          concierge: { id: 'warmup-e2e-1', status: 'INVITED' },
+          id: 'org-e2e-concierge',
+          name: 'Vitae',
+          owner: { email: 'poya@vitae.ai', id: 'user-e2e-3', name: 'Poya' },
+          status: 'onboarding',
+        }),
+        organization({
+          id: 'org-e2e-paid',
+          name: 'Acme Inc',
+          plan: 'SCALE',
+          status: 'subscribed',
+        }),
+      ];
+      const visible =
+        params.get('status') === 'onboarding'
+          ? organizations.slice(0, 1)
+          : organizations;
+      return route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: visible,
+              pagination: {
+                limit: 10,
+                page: 1,
+                total: visible.length,
+                totalPages: 1,
+              },
+              totals: {
+                growth: 0,
+                totalEngagement: 0,
+                totalPosts: 0,
+                totalViews: 0,
+              },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      });
+    });
+    await adminPage.route('**/admin/warmup-accounts/warmup-e2e-1**', (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              auditEvents: [],
+              diagnostics: { steps: [] },
+              leadEmail: 'poya@vitae.ai',
+              readiness: { availableCredits: 500, blockers: [], ready: true },
+              status: 'PROVISIONED',
+            },
+            id: 'warmup-e2e-1',
+            type: 'warmup-account',
+          },
+        },
+      }),
+    );
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const main = adminPage.getByRole('main');
+    const conciergeRow = main.getByRole('row', { name: /Vitae/ });
+    await expect(conciergeRow.getByText('Onboarding')).toBeVisible();
+    await expect(conciergeRow.getByText('Invited')).toBeVisible();
+    await expect(
+      main.getByRole('row', { name: /Acme Inc/ }).getByText('Subscribed'),
+    ).toBeVisible();
+
+    // The concierge page is gone: concierge is a filter and a sidebar now.
+    await adminPage
+      .getByRole('button', { exact: true, name: 'Filters' })
+      .click();
+    await adminPage.getByRole('menuitem', { name: /^Status/ }).click();
+    const filtered = adminPage.waitForRequest((request) =>
+      request.url().includes('status=onboarding'),
+    );
+    await adminPage.getByRole('menuitemradio', { name: 'Onboarding' }).click();
+    await filtered;
+    expect(requested.some(({ status }) => status === 'onboarding')).toBe(true);
+    await adminPage.keyboard.press('Escape');
+    await expect(main.getByRole('row', { name: /Acme Inc/ })).toHaveCount(0);
+
+    await conciergeRow.getByText('Work email').click();
+    const sidebar = adminPage.getByTestId('context-sidebar');
+    await expect(
+      sidebar.getByRole('heading', { name: 'Concierge handoff' }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole('button', { name: 'Send invitation' }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole('link', { name: 'Open owner' }),
+    ).toHaveAttribute('href', /\/admin\/administration\/users\/user-e2e-3$/);
   });
 
   test('flags releases card points to per-organization release access', async ({
