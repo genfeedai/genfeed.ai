@@ -18,7 +18,7 @@ export default function MetricItem({
       <p className="text-sm font-semibold tabular-nums text-foreground">
         {value}
       </p>
-      <p className="mt-1 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="mt-1 text-xs font-medium text-muted-foreground">
         {analyticsMetric ? (
           <AnalyticsMetricLabel metric={analyticsMetric}>
             {label}

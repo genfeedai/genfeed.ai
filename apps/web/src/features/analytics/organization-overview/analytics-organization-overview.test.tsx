@@ -264,13 +264,13 @@ describe('AnalyticsOrganizationOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the view growth accent when growth is known', () => {
+  it('renders the view growth as a trend when growth is known', () => {
     render(<AnalyticsOrganizationOverview />);
 
-    expect(screen.getByText('+12.0% from last period')).toBeInTheDocument();
+    expect(screen.getByText('+12%')).toBeInTheDocument();
   });
 
-  it('falls back to a neutral accent when growth is unknown', () => {
+  it('shows no trend when growth is unknown', () => {
     analyticsResult = {
       analytics: { ...analyticsFixture, viewsGrowth: null } as IAnalytics,
       isLoading: false,
@@ -278,7 +278,8 @@ describe('AnalyticsOrganizationOverview', () => {
 
     render(<AnalyticsOrganizationOverview />);
 
-    expect(screen.getByText('Total views')).toBeInTheDocument();
+    expect(screen.getByText('Total Views')).toBeInTheDocument();
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
   it('offers a first-brand next step when the organization has no activity', () => {

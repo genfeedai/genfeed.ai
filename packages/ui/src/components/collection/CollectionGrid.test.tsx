@@ -19,7 +19,7 @@ describe('CollectionGrid', () => {
       '@[40rem]:grid-cols-2',
       '@[60rem]:grid-cols-3',
       '@[80rem]:grid-cols-4',
-      'gap-4',
+      'gap-5',
     );
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
   });

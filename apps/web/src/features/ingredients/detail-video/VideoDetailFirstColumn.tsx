@@ -198,9 +198,7 @@ export default function VideoDetailFirstColumn({
           the shell. */}
       <div className="flex flex-wrap gap-2">
         <Link
-          href={href(
-            `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${currentVideo.id}`,
-          )}
+          href={href(`${APP_ROUTES.STUDIO.EDITOR}?video=${currentVideo.id}`)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
         >
           <Film className="size-4" />

@@ -1,6 +1,6 @@
 import { AgentChatMessageFooter } from '@genfeedai/agent/components/AgentChatMessageFooter';
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
-import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
+import { LazySafeMarkdown } from '@genfeedai/agent/components/LazySafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS } from '@genfeedai/agent/constants/agent-message-collapse.constant';
 import {
@@ -270,7 +270,7 @@ function AgentChatMessageInner({
                     USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS,
                 )}
               >
-                <SafeMarkdown
+                <LazySafeMarkdown
                   content={message.content}
                   enhanceStructure={!isUser}
                   className={cn(

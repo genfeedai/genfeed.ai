@@ -30,16 +30,8 @@ export default function KnowledgeStateBadge({
     return <Badge variant="outline">{translate('none')}</Badge>;
   }
   return (
-    <span className="inline-flex items-center gap-2">
-      <Badge variant={VARIANT_BY_STATE[version.processingState]}>
-        {translate(LABEL_KEY_BY_STATE[version.processingState])}
-      </Badge>
-      {version.processingState === KnowledgeProcessingState.FAILED &&
-      version.processingError ? (
-        <span className="text-xs text-destructive">
-          {version.processingError}
-        </span>
-      ) : null}
-    </span>
+    <Badge variant={VARIANT_BY_STATE[version.processingState]}>
+      {translate(LABEL_KEY_BY_STATE[version.processingState])}
+    </Badge>
   );
 }

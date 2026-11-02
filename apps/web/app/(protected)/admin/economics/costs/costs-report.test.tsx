@@ -7,7 +7,22 @@ import EconomicsCostsReport from './costs-report';
 const report: IEconomicsCostReport = {
   daily: [{ date: '2026-09-02', llmCostUsd: 1.5, mediaCostUsd: 0.5 }],
   from: '2026-09-01',
-  mediaCategories: [{ category: 'IMAGE', costUsd: 0.5, generations: 1 }],
+  mediaCategories: [
+    {
+      category: 'IMAGE',
+      costPerGenerationUsd: 0.25,
+      costUsd: 0.5,
+      generations: 3,
+      pricedGenerations: 2,
+    },
+    {
+      category: 'VIDEO',
+      costPerGenerationUsd: null,
+      costUsd: 0,
+      generations: 1,
+      pricedGenerations: 0,
+    },
+  ],
   models: [
     {
       averageCostUsd: 0.3,
@@ -37,10 +52,12 @@ const report: IEconomicsCostReport = {
   to: '2026-09-30',
   totals: {
     byokCalls: 3,
+    costPerGenerationUsd: 0.25,
     llmCalls: 5,
     llmCostUsd: 1.5,
     mediaCostUsd: 0.5,
-    mediaGenerations: 1,
+    mediaGenerations: 4,
+    mediaPricedGenerations: 2,
     providerCostUsd: 2,
     unpricedCalls: 2,
   },
@@ -89,14 +106,25 @@ describe('EconomicsCostsReport', () => {
     expect(screen.getByText('IMAGE')).toBeInTheDocument();
   });
 
-  it('counts unpriced calls on a card that explains BYOK is free by design', () => {
+  it('shows cost per generation as a tile and per media type, with a dash when nothing was priced', () => {
+    render(<EconomicsCostsReport />);
+
+    const tile = screen
+      .getByText('Cost per generation', { selector: 'p' })
+      .closest('[data-testid="metric-card"]') as HTMLElement;
+    expect(within(tile).getByText('$0.25')).toBeInTheDocument();
+
+    const imageRow = screen.getByText('IMAGE').closest('tr') as HTMLElement;
+    expect(within(imageRow).getByText('$0.25')).toBeInTheDocument();
+    const videoRow = screen.getByText('VIDEO').closest('tr') as HTMLElement;
+    expect(within(videoRow).getByText('-')).toBeInTheDocument();
+  });
+
+  it('counts unpriced calls on a tile that holds only a value and a label', () => {
     render(<EconomicsCostsReport />);
 
     expect(screen.getByText('Unpriced calls')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Recorded at $0 without BYOK; 3 BYOK calls are free by design',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/BYOK calls are free/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recorded at \$0/)).not.toBeInTheDocument();
   });
 });

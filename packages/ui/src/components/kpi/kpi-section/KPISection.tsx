@@ -53,7 +53,6 @@ export default function KPISection({
           analyticsMetric={item.analyticsMetric}
           analyticsMetricVariant={item.analyticsMetricVariant}
           className={item.className}
-          description={item.description}
           icon={item.icon}
           isLoading={isLoading}
           label={item.label}

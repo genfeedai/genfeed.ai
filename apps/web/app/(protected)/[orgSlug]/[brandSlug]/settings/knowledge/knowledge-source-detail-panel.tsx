@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import type { KnowledgeSourceDetailPanelProps } from '@props/content/knowledge-library.props';
+import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -22,22 +23,14 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { PURPOSE_OPTIONS } from './knowledge-add-source-sheet';
+import {
+  classifyFailure,
+  getSourceLink,
+  getSourceText,
+} from './knowledge-source-display';
 import KnowledgeStateBadge from './knowledge-state-badge';
 
 const PREVIEW_LENGTH = 1200;
-
-function readText(payload: Record<string, unknown> | null): string | null {
-  const text = payload?.text;
-  return typeof text === 'string' && text.trim() ? text : null;
-}
-
-function readUrl(
-  payload: Record<string, unknown> | null,
-  provenance: Record<string, unknown> | null,
-): string | null {
-  const candidate = payload?.referenceUrl ?? provenance?.url;
-  return typeof candidate === 'string' && candidate ? candidate : null;
-}
 
 /**
  * The selected Knowledge source, rendered into the shell's context sidebar.
@@ -60,9 +53,13 @@ export default function KnowledgeSourceDetailPanel({
     return null;
   }
   const { source, spaceIds, version } = row;
-  const text = version ? readText(version.payload) : null;
-  const url = version ? readUrl(version.payload, version.provenance) : null;
+  const text = getSourceText(row);
+  const link = getSourceLink(row);
   const isFailed = version?.processingState === KnowledgeProcessingState.FAILED;
+  const failureDetail =
+    (isFailed ? version?.processingError : null) ??
+    source.lastSyncError ??
+    null;
   const canRefresh =
     source.kind === KnowledgeSourceKind.URL ||
     source.kind === KnowledgeSourceKind.RSS;
@@ -106,7 +103,6 @@ export default function KnowledgeSourceDetailPanel({
           {source.syncState ? (
             <p className="text-xs text-muted-foreground">
               {translate('sync', { state: source.syncState.toLowerCase() })}
-              {source.lastSyncError ? ` · ${source.lastSyncError}` : ''}
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
@@ -118,14 +114,33 @@ export default function KnowledgeSourceDetailPanel({
               {translate('transcript', { state: version.transcriptState })}
             </p>
           ) : null}
-          {url ? (
+          {failureDetail || isFailed ? (
+            <Alert variant="destructive">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">
+                  {translate(`failure.${classifyFailure(failureDetail)}`)}
+                </p>
+                {failureDetail ? (
+                  <>
+                    <p className="text-xs opacity-80">
+                      {translate('failure.detail')}
+                    </p>
+                    <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">
+                      {failureDetail}
+                    </pre>
+                  </>
+                ) : null}
+              </div>
+            </Alert>
+          ) : null}
+          {link ? (
             <a
               className="truncate text-sm text-primary underline"
-              href={url}
+              href={link.href}
               rel="noreferrer"
               target="_blank"
             >
-              {url}
+              {link.label}
             </a>
           ) : null}
           {text ? (

@@ -18,7 +18,6 @@
       "label": "Credits used"
     },
     "generations": {
-      "description": "{llm} text · {media} media",
       "label": "Generations"
     },
     "activeDays": {

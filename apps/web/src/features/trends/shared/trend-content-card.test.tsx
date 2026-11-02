@@ -428,7 +428,7 @@ describe('TrendContentCard', () => {
     const card = container.firstElementChild as HTMLElement;
 
     expect(card).toHaveClass('rounded-card', 'shadow-border');
-    expect(card.className).not.toMatch(/gen-glass|gen-hover-lift|rounded-lg/);
+    expect(card.className).not.toMatch(/gen-glass|rounded-lg/);
   });
 
   it.each(['instagram', 'youtube'] as const)(
