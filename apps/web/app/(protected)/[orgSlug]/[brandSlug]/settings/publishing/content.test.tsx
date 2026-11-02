@@ -468,9 +468,7 @@ describe('BrandSettingsPublishingPage', () => {
       hasBrandId: true,
       isLoading: false,
     };
-    rerender(<BrandSettingsPublishingPage />, {
-      wrapper: queryClientWrapper(),
-    });
+    rerender(<BrandSettingsPublishingPage />);
     expect(screen.getByText('Brand not found.')).toBeVisible();
 
     mocks.brandDetail = {
@@ -479,9 +477,7 @@ describe('BrandSettingsPublishingPage', () => {
       brandId: 'brand-1',
     };
     mocks.updateAgentConfig.mockRejectedValueOnce(new Error('save failed'));
-    rerender(<BrandSettingsPublishingPage />, {
-      wrapper: queryClientWrapper(),
-    });
+    rerender(<BrandSettingsPublishingPage />);
 
     fireEvent.click(screen.getByText('Save defaults'));
     await waitFor(() => {
