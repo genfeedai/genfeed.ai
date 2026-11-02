@@ -1,5 +1,7 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
+import { Cog } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
@@ -8,8 +10,6 @@ import AdminOrgBrandUrlFilter, {
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import LearningReportPanel from '@/features/admin/learning/learning-report-panel';
 import { useLearningReport } from '@/features/admin/learning/use-learning-report';
-import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
-import { Cog } from 'lucide-react';
 
 /**
  * Which prompt slots go with better or worse measured outcomes, for one
@@ -38,7 +38,13 @@ export default function LearningPage() {
     const params = new URLSearchParams(searchParamsString);
     params.set('organization', currentOrganizationId);
     replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [currentOrganizationId, organization, pathname, replace, searchParamsString]);
+  }, [
+    currentOrganizationId,
+    organization,
+    pathname,
+    replace,
+    searchParamsString,
+  ]);
 
   const { data, isError, isFetching, isLoading, refetch } = useLearningReport({
     brandId: brand,

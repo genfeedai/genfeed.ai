@@ -128,9 +128,7 @@ function ReportView({ report }: { report: LearningPromptSlotOutcomeReport }) {
   return (
     <div className="space-y-6">
       <div className="space-y-1 text-sm text-muted-foreground">
-        <p>
-          {translate('summary', { count: report.postCount })}
-        </p>
+        <p>{translate('summary', { count: report.postCount })}</p>
         <p>{translate('skipped', report.skipped)}</p>
         {report.isTruncated && <p>{translate('truncated')}</p>}
       </div>

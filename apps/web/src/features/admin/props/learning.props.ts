@@ -1,6 +1,4 @@
-import type {
-  LearningPromptSlotOutcomeReport,
-} from '@genfeedai/contracts/interfaces';
+import type { LearningPromptSlotOutcomeReport } from '@genfeedai/contracts/interfaces';
 
 export interface UseLearningReportOptions {
   /** The brand to narrow to; empty reads the whole organization. */
