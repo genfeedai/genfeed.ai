@@ -15,6 +15,8 @@ const BLUR_PLACEHOLDER =
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 // The image moves inside the clipped frame (the Button is `overflow-hidden`),
 // so the card itself stays put. Scale covers the corners a 1.5deg tilt opens.
+// The product motion policy collapses every transition to ~0ms, so this image
+// opts in with `data-motion="allow"` (Vincent asked for the hover motion).
 const MASONRY_IMAGE_HOVER_CLASS =
   'motion-safe:group-hover/tile:scale-[1.08] motion-safe:group-hover/tile:-rotate-[1.5deg]';
 
@@ -105,6 +107,7 @@ export default function MasonryImageMediaArea({
         )}
 
         <Image
+          data-motion="allow"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           onLoad={handleImageLoad}
           onError={handleImageError}

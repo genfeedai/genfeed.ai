@@ -302,6 +302,7 @@ describe('MasonryImage', () => {
     const image = screen.getByRole('img');
     fireEvent.load(image);
 
+    expect(image).toHaveAttribute('data-motion', 'allow');
     expect(image).toHaveClass(
       'motion-safe:group-hover/tile:scale-[1.08]',
       'motion-safe:group-hover/tile:-rotate-[1.5deg]',
