@@ -28,11 +28,6 @@ const PAGE_MENU_HOOK_FILES = [
   'packages/ui/src/primitives/animated-icons/use-hover-animated-icon.test.tsx',
 ];
 
-// Page-menu primitives outside the icon library that drive motion directly.
-const PAGE_MENU_MOTION_FILES = new Set([
-  'packages/ui/src/primitives/sidebar-active-highlight.tsx',
-]);
-
 function collectSourceFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((entry) => {
     if (SKIP_DIRECTORIES.has(entry)) {
@@ -53,16 +48,13 @@ function repoPath(absolutePath: string): string {
 }
 
 function isAnimatedIconLibrary(path: string): boolean {
-  return (
-    path.startsWith('packages/ui/src/primitives/animated-icons/') ||
-    PAGE_MENU_MOTION_FILES.has(path)
-  );
+  return path.startsWith('packages/ui/src/primitives/animated-icons/');
 }
 
 const SOURCE_FILES = SCAN_ROOTS.flatMap((root) => collectSourceFiles(root));
 
 describe('motion/react page-menu contract', () => {
-  it('imports motion/react only from the page-menu icon library and sidebar highlight', () => {
+  it('imports motion/react only from the page-menu icon library', () => {
     const leaks = SOURCE_FILES.filter((file) => {
       const path = repoPath(file);
       return (

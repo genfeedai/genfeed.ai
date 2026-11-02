@@ -6,7 +6,7 @@ import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
+import { SidebarActiveHighlight } from '@ui/primitives/animated-icons/sidebar-active-highlight';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link, { useLinkStatus } from 'next/link';
 import type { ReactElement } from 'react';
