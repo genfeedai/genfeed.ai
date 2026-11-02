@@ -28,26 +28,11 @@ import {
   Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { EDITOR_FORMAT_OPTIONS } from '@/features/studio/editor/editor-formats';
 import type { EditorToolbarProps } from '@/features/studio/props/editor-toolbar.props';
 
 import EditorSaveIndicator from './EditorSaveIndicator';
 import { formatPlaybackFrameTime } from './editor-time-format.util';
-
-const FORMAT_OPTIONS = [
-  {
-    height: 1080,
-    label: '16:9',
-    value: IngredientFormat.LANDSCAPE,
-    width: 1920,
-  },
-  {
-    height: 1920,
-    label: '9:16',
-    value: IngredientFormat.PORTRAIT,
-    width: 1080,
-  },
-  { height: 1080, label: '1:1', value: IngredientFormat.SQUARE, width: 1080 },
-];
 
 function EditorToolbar({
   projectName,
@@ -224,7 +209,7 @@ function EditorToolbar({
             <SelectValue placeholder="Format" />
           </SelectTrigger>
           <SelectContent>
-            {FORMAT_OPTIONS.map((option) => (
+            {EDITOR_FORMAT_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

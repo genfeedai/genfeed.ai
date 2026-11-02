@@ -595,7 +595,7 @@ function MotionWorkspace() {
                             <Link
                               className="ml-4 text-sm underline"
                               href={href(
-                                `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(media.ingredientId)}`,
+                                `${APP_ROUTES.STUDIO.EDITOR}?video=${encodeURIComponent(media.ingredientId)}`,
                               )}
                             >
                               {t('openEditor')}

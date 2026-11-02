@@ -232,7 +232,7 @@ describe('StoryboardRunPage', () => {
     const href = screen
       .getByRole('link', { name: 'Open in Editor' })
       .getAttribute('href');
-    expect(href?.startsWith('/acme/northstar/editor/new?')).toBe(true);
+    expect(href?.startsWith('/acme/northstar/editor?')).toBe(true);
     expect(
       new URL(href ?? '', 'https://example.test').searchParams.getAll('video'),
     ).toEqual(['clip-b', 'clip-a']);

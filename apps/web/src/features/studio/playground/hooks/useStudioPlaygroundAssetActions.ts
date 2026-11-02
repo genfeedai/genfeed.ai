@@ -226,7 +226,7 @@ export function useStudioPlaygroundAssetActions({
   const onOpenInEditor = useCallback(
     (ingredient: IIngredient) => {
       router.push(
-        href(`${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${ingredient.id}`),
+        href(`${APP_ROUTES.STUDIO.EDITOR}?video=${ingredient.id}`),
       );
     },
     [href, router],

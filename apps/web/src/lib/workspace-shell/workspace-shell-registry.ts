@@ -768,7 +768,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/editor',
       '/:orgSlug/~/editor/projects',
-      '/:orgSlug/~/editor/new',
       '/:orgSlug/~/editor/:id',
     ],
     {
@@ -902,7 +901,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/editor',
-      '/:orgSlug/:brandSlug/editor/new',
       '/:orgSlug/:brandSlug/editor/:id',
     ],
     {
