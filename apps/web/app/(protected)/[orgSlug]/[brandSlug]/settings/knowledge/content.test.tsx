@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsKnowledgePage from './content';
+
+const brand = vi.hoisted(() => ({
+  brandId: 'brand-1' as string | undefined,
+  isReady: true,
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -10,25 +15,16 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    brandId: 'brand-1',
-    isReady: true,
+    brandId: brand.brandId,
+    isReady: brand.isReady,
     selectedBrand: { website: 'https://example.com' },
   }),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    label,
-    right,
-  }: {
-    children: ReactNode;
-    label?: string;
-    right?: ReactNode;
-  }) => (
+  default: ({ children, label }: { children: ReactNode; label?: string }) => (
     <main>
       {label ? <h1>{label}</h1> : null}
-      {right}
       {children}
     </main>
   ),
@@ -39,22 +35,35 @@ vi.mock('@ui/loading/default/Loading', () => ({
 }));
 
 vi.mock('./knowledge-sources-list', () => ({
-  default: () => <div data-testid="knowledge-sources-list" />,
+  default: ({ website }: { website?: string }) => (
+    <div data-testid="knowledge-sources-list">{website}</div>
+  ),
 }));
 
 describe('BrandSettingsKnowledgePage', () => {
-  it('renders knowledge sources inside brand settings chrome', () => {
+  beforeEach(() => {
+    brand.brandId = 'brand-1';
+    brand.isReady = true;
+  });
+
+  it('renders the sources list with the brand website', () => {
+    render(<BrandSettingsKnowledgePage />);
+
+    expect(screen.getByTestId('knowledge-sources-list')).toHaveTextContent(
+      'https://example.com',
+    );
+  });
+
+  it('keeps the page chrome and shows loading until the brand resolves', () => {
+    brand.isReady = false;
     render(<BrandSettingsKnowledgePage />);
 
     expect(
       screen.getByRole('heading', { name: 'Knowledge' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Seed from Brand Kit' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Add source' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('knowledge-sources-list')).toBeInTheDocument();
+      screen.queryByTestId('knowledge-sources-list'),
+    ).not.toBeInTheDocument();
   });
 });

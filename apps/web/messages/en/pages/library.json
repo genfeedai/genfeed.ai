@@ -203,14 +203,20 @@
       "notChecked": "Not checked",
       "transcript": "Transcript {state}",
       "refreshEnabled": "Scheduled refresh",
-      "refreshNow": "Check now"
+      "refreshNow": "Check now",
+      "failure": {
+        "detail": "Technical detail",
+        "unreachable": "The address could not be reached.",
+        "noText": "No text could be read from this document.",
+        "serviceUnavailable": "A processing service was unavailable. Retry in a few minutes.",
+        "invalidResult": "Extraction returned an unexpected result.",
+        "unknown": "Ingestion failed."
+      }
     },
     "list": {
       "source": "Source",
       "purpose": "Purpose",
-      "state": "State",
       "captured": "Captured",
-      "spaces": "Spaces",
       "allSources": "All sources",
       "inbox": "Inbox",
       "retry": "Retry",
@@ -228,7 +234,12 @@
       "addError": "Failed to add source",
       "refreshSuccess": "Refresh queued",
       "refreshUnavailable": "Could not refresh “{title}”. Check the source URL and availability, then try again.",
-      "refreshError": "Failed to refresh source"
+      "refreshError": "Failed to refresh source",
+      "status": "Status",
+      "search": "Search sources",
+      "openLink": "Open {title}",
+      "noMatches": "No sources match these filters",
+      "all": "All"
     },
     "reference": {
       "title": "Knowledge",
@@ -242,6 +253,20 @@
       "loading": "Loading…",
       "empty": "No ready sources yet. Add some in Library › Knowledge.",
       "budget": "Up to {passages} passages · ~{tokens} tokens"
+    },
+    "kind": {
+      "audio": "Audio",
+      "document": "Document",
+      "file": "File",
+      "rss": "Feed",
+      "text": "Text",
+      "url": "Web page",
+      "video": "Video"
+    },
+    "filters": {
+      "space": "Space",
+      "status": "Status",
+      "type": "Type"
     }
   },
   "imported": {
