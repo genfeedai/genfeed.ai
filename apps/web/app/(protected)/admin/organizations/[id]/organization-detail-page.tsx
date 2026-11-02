@@ -19,6 +19,8 @@ import DateRangePicker from '@ui/primitives/date-range-picker';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
+import LearningReportPanel from '@/features/admin/learning/learning-report-panel';
+import { useLearningReport } from '@/features/admin/learning/use-learning-report';
 import AnalyticsOrganizationOverview from '@/features/analytics/organization-overview/analytics-organization-overview';
 import { readRouteParam } from '@/lib/route-params';
 
@@ -39,6 +41,12 @@ function OrganizationDetailPageContent({
     toolbarNode,
     triggerRefresh,
   } = useAnalyticsContext();
+
+  const isLearningTab = activeTab === 'learning';
+  const learning = useLearningReport({
+    isEnabled: isLearningTab,
+    organizationId: organizationId ?? '',
+  });
 
   // Every branch declares the same chrome mode so the topbar never flips
   // between the missing-id and loaded states.
@@ -64,15 +72,31 @@ function OrganizationDetailPageContent({
             label: translate('analyticsTab'),
           },
           {
+            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/learning`,
+            label: translate('learningTab'),
+          },
+          {
             href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
             label: translate('settingsTab'),
           },
         ],
       }}
-      onRefresh={isSettingsTab ? () => refresh() : triggerRefresh}
-      isRefreshing={isSettingsTab ? isRefreshing : isAnalyticsRefreshing}
+      onRefresh={
+        isSettingsTab
+          ? () => refresh()
+          : isLearningTab
+            ? () => void learning.refetch()
+            : triggerRefresh
+      }
+      isRefreshing={
+        isSettingsTab
+          ? isRefreshing
+          : isLearningTab
+            ? learning.isFetching
+            : isAnalyticsRefreshing
+      }
       filters={
-        isSettingsTab ? undefined : (
+        isSettingsTab || isLearningTab ? undefined : (
           <>
             {toolbarNode}
             <DateRangePicker
@@ -123,6 +147,14 @@ function OrganizationDetailPageContent({
               />
             </>
           )
+        ) : isLearningTab ? (
+          <LearningReportPanel
+            hasOrganization
+            isError={learning.isError}
+            isLoading={learning.isLoading}
+            onRetry={() => void learning.refetch()}
+            report={learning.data}
+          />
         ) : (
           <AnalyticsOrganizationOverview
             organizationId={organizationId}
@@ -135,8 +167,9 @@ function OrganizationDetailPageContent({
 }
 
 /**
- * One organization: its analytics at `/admin/organizations/:id` and its
- * settings (release preview, released apps, per-organization settings) at
+ * One organization: its analytics at `/admin/organizations/:id`, its prompt
+ * slot learning report at `/admin/organizations/:id/learning` and its settings
+ * (release preview, released apps, per-organization settings) at
  * `/admin/organizations/:id/settings`, as route tabs.
  */
 export default function OrganizationDetailPage({

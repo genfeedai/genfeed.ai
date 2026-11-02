@@ -2,6 +2,7 @@
   "title": "Organizations",
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
+  "learningTab": "Learning",
   "settingsTab": "Settings",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
   "settingsLoadError": "Failed to load organization settings. Please try again.",

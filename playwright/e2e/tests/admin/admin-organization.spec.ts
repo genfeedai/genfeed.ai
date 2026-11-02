@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -165,5 +166,67 @@ test.describe('Admin Organization', () => {
     );
     await refreshButton.click();
     await refreshRequest;
+  });
+  test('organization Learning tab shows the prompt slot report for that organization', async ({
+    adminPage,
+  }) => {
+    let requestedOrganization: string | null = null;
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern(
+        'admin/content-learning/prompt-slots(?:\\?.*)?$',
+      ),
+      (route) => {
+        requestedOrganization = new URL(route.request().url()).searchParams.get(
+          'organizationId',
+        );
+        return route.fulfill({
+          json: {
+            data: {
+              groups: [
+                {
+                  category: 'IMAGE',
+                  comparison: {
+                    alpha: 0.05,
+                    comparisonCount: 1,
+                    comparisons: [
+                      {
+                        difference: 0.7,
+                        filled: { count: 25, mean: 0.5 },
+                        lower: 0.4,
+                        rest: { count: 25, mean: -0.2 },
+                        slot: 'lighting',
+                        upper: 1,
+                        value: null,
+                        verdict: 'better',
+                      },
+                    ],
+                    excludedCount: 0,
+                    observationCount: 50,
+                  },
+                  objective: 'engagement',
+                  postCount: 50,
+                },
+              ],
+              isPooled: false,
+              isTruncated: false,
+              organizationIds: ['org-learning-1'],
+              postCount: 50,
+              skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+            },
+          },
+        });
+      },
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/org-learning-1/learning`,
+    );
+
+    await expect(
+      adminPage.getByRole('main').getByRole('cell', { name: 'lighting' }),
+    ).toBeVisible();
+    await expect(adminPage.getByText('50 posts read.')).toBeVisible();
+    expect(requestedOrganization).toBe('org-learning-1');
   });
 });
