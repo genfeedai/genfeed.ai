@@ -193,7 +193,7 @@ describe('useBrandDetail', () => {
     expect(result.current.brand?.id).toBe('brand-1');
 
     await act(async () => {
-      finishRefetch({ id: 'brand-1', links: [] } as IBrand);
+      finishRefetch({ id: 'brand-1', links: [] } as unknown as IBrand);
     });
     expect(result.current.isLoading).toBe(false);
   });
@@ -223,7 +223,11 @@ describe('useBrandDetail', () => {
     });
 
     await act(async () => {
-      finishFirst({ id: 'brand-1', label: 'Stale', links: [] } as IBrand);
+      finishFirst({
+        id: 'brand-1',
+        label: 'Stale',
+        links: [],
+      } as unknown as IBrand);
     });
     expect(result.current.brand?.label).toBeUndefined();
   });
