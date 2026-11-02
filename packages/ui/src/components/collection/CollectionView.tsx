@@ -14,7 +14,7 @@ import { Fragment } from 'react';
  */
 export default function CollectionView<TItem>({
   items,
-  view,
+  view = ViewType.LIST,
   getItemKey,
   renderListItem,
   renderGridItem,
@@ -27,7 +27,8 @@ export default function CollectionView<TItem>({
   'data-testid': dataTestId,
 }: CollectionViewProps<TItem>) {
   const translate = useTranslations('ui.collection');
-  const isList = view === ViewType.LIST;
+  const renderGrid = view === ViewType.GRID ? renderGridItem : undefined;
+  const isList = renderGrid === undefined;
 
   if (isLoading) {
     return isList ? (
@@ -77,9 +78,7 @@ export default function CollectionView<TItem>({
       maxColumns={maxColumns}
     >
       {items.map((item, index) => (
-        <Fragment key={getItemKey(item)}>
-          {renderGridItem(item, index)}
-        </Fragment>
+        <Fragment key={getItemKey(item)}>{renderGrid(item, index)}</Fragment>
       ))}
     </CollectionGrid>
   );

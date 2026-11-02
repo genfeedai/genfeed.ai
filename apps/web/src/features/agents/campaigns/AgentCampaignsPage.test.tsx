@@ -1,8 +1,6 @@
-import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentCampaignsPage from '@/features/agents/campaigns/AgentCampaignsPage';
@@ -163,7 +161,6 @@ function getRowLabels(section: HTMLElement): string[] {
 describe('AgentCampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.localStorage.clear();
     mockNavigation.searchParams = new URLSearchParams();
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
@@ -228,7 +225,7 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByTestId('campaign-all')).toBeInTheDocument();
   });
 
-  it('shows All as a list by default and switches to a grid', async () => {
+  it('shows All as a list with no view switch', () => {
     render(<AgentCampaignsPage />);
 
     const all = screen.getByTestId('campaign-all');
@@ -238,23 +235,7 @@ describe('AgentCampaignsPage', () => {
       'Autumn Pause',
       'Winter Spend',
     ]);
-    expect(within(all).queryAllByTestId('campaign-card')).toHaveLength(0);
-    expect(viewMenuTrigger('List')).toBeInTheDocument();
-
-    await selectView(userEvent.setup(), 'Grid');
-
-    expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
-    expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
-    // Program cards cap at three container-query columns.
-    const grid = within(all).getByTestId('campaign-collection')
-      .firstElementChild as HTMLElement;
-    expect(grid.className).toContain('@[60rem]:grid-cols-3');
-    expect(grid.className).not.toContain('grid-cols-4');
-    expect(
-      window.localStorage.getItem(
-        'genfeed:collection-view:automation.campaigns',
-      ),
-    ).toBe('grid');
+    expect(screen.queryByRole('button', { name: /^(List|Grid)$/ })).toBeNull();
   });
 
   it('shows one fact line with credits, agents and no empty placeholders', () => {
@@ -275,37 +256,16 @@ describe('AgentCampaignsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders exactly one visible action per row and per card', async () => {
+  it('renders exactly one visible action per row', () => {
     render(<AgentCampaignsPage />);
 
     for (const row of screen.getAllByTestId('campaign-row')) {
       expect(within(row).getAllByRole('link')).toHaveLength(1);
       expect(within(row).queryAllByRole('button')).toHaveLength(0);
     }
-
-    const all = screen.getByTestId('campaign-all');
-    await selectView(userEvent.setup(), 'Grid');
-
-    for (const card of within(all).getAllByTestId('campaign-card')) {
-      expect(within(card).getAllByRole('link')).toHaveLength(1);
-      expect(within(card).queryAllByRole('button')).toHaveLength(0);
-    }
     expect(
-      within(all).getByRole('link', { name: 'Open Spring Launch' }),
+      screen.getByRole('link', { name: 'Open Spring Launch' }),
     ).toHaveAttribute('href', '/acme/demo/automation/campaigns/campaign-1');
-  });
-
-  it('keeps program cards free of nested filled boxes', async () => {
-    render(<AgentCampaignsPage />);
-
-    const all = screen.getByTestId('campaign-all');
-    await selectView(userEvent.setup(), 'Grid');
-
-    const card = within(all).getAllByTestId('campaign-card')[0];
-    expect(card).toHaveTextContent('Launch sequence');
-    expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
-    expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
-    expect(card.querySelector('[class~="rounded"]')).toBeNull();
   });
 
   it('shows relative run times from the message catalog', () => {
@@ -413,42 +373,6 @@ describe('AgentCampaignsPage', () => {
       'Winter Spend',
     ]);
     expect(screen.getByTestId('campaign-needs-you')).toBeInTheDocument();
-  });
-
-  it('restores the saved grid view after a remount', async () => {
-    const { unmount } = render(<AgentCampaignsPage />);
-    await selectView(userEvent.setup(), 'Grid');
-    unmount();
-
-    render(<AgentCampaignsPage />);
-
-    const all = screen.getByTestId('campaign-all');
-    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
-    expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
-    expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
-  });
-
-  it('shows a grid skeleton while loading with the grid view saved', () => {
-    window.localStorage.setItem(
-      'genfeed:collection-view:automation.campaigns',
-      'grid',
-    );
-    mockUseAgentCampaigns.mockReturnValue({
-      campaigns: [],
-      error: null,
-      isLoading: true,
-      refresh: vi.fn(),
-    });
-
-    render(<AgentCampaignsPage />);
-
-    const all = screen.getByTestId('campaign-all');
-    expect(all).toHaveAttribute('aria-busy', 'true');
-    expect(within(all).getAllByTestId('skeleton-card').length).toBeGreaterThan(
-      0,
-    );
-    expect(within(all).queryByTestId('list-rows-skeleton')).toBeNull();
-    expect(screen.queryByText('No programs yet')).toBeNull();
   });
 
   it('shows empty state when no campaigns', () => {

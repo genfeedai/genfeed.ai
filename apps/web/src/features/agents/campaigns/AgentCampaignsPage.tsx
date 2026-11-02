@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -8,12 +8,10 @@ import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
-import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -40,9 +38,6 @@ import type {
   AgentCampaignProgressProps,
   AgentCampaignRelativeTimeTranslate,
 } from '@/features/agents/props/agent-campaigns-page.props';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
-
-const CAMPAIGNS_COLLECTION_SURFACE = 'automation.campaigns';
 
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '—';
@@ -276,43 +271,8 @@ function CampaignRow({ campaign, isNeedsYou = false }: AgentCampaignItemProps) {
   );
 }
 
-function CampaignCard({ campaign }: AgentCampaignItemProps) {
-  const facts = useCampaignFacts(campaign);
-
-  return (
-    <Card data-testid="campaign-card">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <CampaignStatusBadge campaign={campaign} />
-          <p className="truncate text-sm font-semibold text-foreground">
-            {campaign.label}
-          </p>
-        </div>
-        <CampaignActions campaign={campaign} />
-      </div>
-
-      {campaign.brief ? (
-        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-          {campaign.brief}
-        </p>
-      ) : null}
-
-      <CampaignProgress
-        allocated={campaign.creditsAllocated}
-        used={campaign.creditsUsed}
-      />
-
-      <p className="truncate text-xs text-muted-foreground">{facts}</p>
-    </Card>
-  );
-}
-
 function renderCampaignRow(campaign: AgentCampaign) {
   return <CampaignRow campaign={campaign} />;
-}
-
-function renderCampaignCard(campaign: AgentCampaign) {
-  return <CampaignCard campaign={campaign} />;
 }
 
 function getCampaignKey(campaign: AgentCampaign): string {
@@ -340,10 +300,6 @@ export default function AgentCampaignsPage() {
     await Promise.all([refreshPage(), refreshAll()]);
   }, [refreshAll, refreshPage]);
   const { href } = useOrgUrl();
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: CAMPAIGNS_COLLECTION_SURFACE,
-  });
 
   const needsYouCampaigns = useMemo(
     () => campaigns.filter(isCampaignNeedingAttention),
@@ -363,9 +319,6 @@ export default function AgentCampaignsPage() {
       right={
         isEmpty ? undefined : (
           <div className="flex items-center gap-2">
-            {hasLoadError ? null : (
-              <CollectionViewToggle onViewChange={setView} view={view} />
-            )}
             <Button
               asChild
               variant={ButtonVariant.DEFAULT}
@@ -445,10 +398,7 @@ export default function AgentCampaignsPage() {
               getItemKey={getCampaignKey}
               isLoading={isLoading}
               items={pagedCampaigns}
-              maxColumns={3}
-              renderGridItem={renderCampaignCard}
               renderListItem={renderCampaignRow}
-              view={view}
             />
           </CollectionSection>
           <AutoPagination showTotal totalLabel="programs" />

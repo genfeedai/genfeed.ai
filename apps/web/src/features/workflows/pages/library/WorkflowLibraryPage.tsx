@@ -1,12 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import PaginationStepper from '@ui/navigation/pagination/PaginationStepper';
@@ -31,17 +30,14 @@ import {
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { useIsDesktopClient } from '@/hooks/ui/use-is-desktop-client/use-is-desktop-client';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import EmptyWorkflowState from './EmptyWorkflowState';
 import { useWorkflowLibraryHighlights } from './useWorkflowLibraryHighlights';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
-import WorkflowLibraryCard from './WorkflowLibraryCard';
 import WorkflowLibraryRow from './WorkflowLibraryRow';
 import {
   isRecentSectionVisible,
   selectRecentWorkflows,
-  WORKFLOW_LIBRARY_SURFACE,
 } from './workflow-library-sections';
 
 /**
@@ -82,10 +78,6 @@ export default function WorkflowLibraryPage() {
     onWorkflowRemoved: highlights.removeWorkflow,
   });
   const isDesktopShell = useIsDesktopClient();
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: WORKFLOW_LIBRARY_SURFACE,
-  });
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);
@@ -228,9 +220,6 @@ export default function WorkflowLibraryPage() {
           <Spinner className="size-4 shrink-0 text-foreground/60" />
         ) : null}
         {isEmpty ? null : (
-          <CollectionViewToggle onViewChange={setView} view={view} />
-        )}
-        {isEmpty ? null : (
           <Button
             asChild
             size={ButtonSize.SM}
@@ -330,7 +319,6 @@ export default function WorkflowLibraryPage() {
               getItemKey={(workflow) => workflow.id}
               isLoading={state.isLoading}
               skeletonCount={3}
-              view={ViewType.LIST}
               renderListItem={(workflow) => (
                 <WorkflowLibraryRow
                   {...getItemProps(workflow, id === 'most-used')}
@@ -339,11 +327,6 @@ export default function WorkflowLibraryPage() {
                       ? Number(workflow.executionCount)
                       : undefined
                   }
-                />
-              )}
-              renderGridItem={(workflow) => (
-                <WorkflowLibraryCard
-                  {...getItemProps(workflow, id === 'most-used')}
                 />
               )}
             />
@@ -379,13 +362,9 @@ export default function WorkflowLibraryPage() {
             getItemKey={(workflow) => workflow.id}
             isLoading={isInitialLoading}
             items={workflows}
-            renderGridItem={(workflow) => (
-              <WorkflowLibraryCard {...getItemProps(workflow)} />
-            )}
             renderListItem={(workflow) => (
               <WorkflowLibraryRow {...getItemProps(workflow)} />
             )}
-            view={view}
           />
         </CollectionSection>
 

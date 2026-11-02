@@ -1,4 +1,3 @@
-import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -237,8 +236,6 @@ const DAILY_DIGEST_ENTRY = {
   label: 'Daily digest',
 };
 
-const VIEW_STORAGE_KEY = 'genfeed:collection-view:automation.templates';
-
 /** Every `category` the API's workflow templates ship. */
 const CATALOG_CATEGORIES = [
   'ads',
@@ -316,7 +313,6 @@ describe('WorkflowTemplatesPage', () => {
       },
     );
     vi.clearAllMocks();
-    window.localStorage.clear();
     window.sessionStorage.clear();
     mocks.routed = {
       isRouteConfirmed: true,
@@ -443,39 +439,6 @@ describe('WorkflowTemplatesPage', () => {
         name: 'Graph only workflow diagram',
       }),
     ).toBeInTheDocument();
-  });
-
-  it('previews a catalog template by its example output in the grid (#5498)', async () => {
-    const user = userEvent.setup();
-    mocks.listTemplates.mockResolvedValue([
-      {
-        ...POST_HARD_CUT_TEMPLATE,
-        exampleOutput: {
-          mediaType: MediaType.IMAGE,
-          url: 'https://cdn.example.com/examples/social-blast.png',
-        },
-      },
-    ]);
-    await renderLoadedPage();
-
-    await selectView(user, 'Grid');
-
-    const exampleCard = within(allSection())
-      .getAllByTestId('workflow-template-card')
-      .find((card) => within(card).queryByText('Social blast'));
-    expect(
-      within(exampleCard as HTMLElement).getByRole('img', {
-        name: 'Example output from Social blast',
-      }),
-    ).toHaveAttribute(
-      'src',
-      'https://cdn.example.com/examples/social-blast.png',
-    );
-    expect(
-      within(exampleCard as HTMLElement).queryByRole('img', {
-        name: 'Social blast workflow diagram',
-      }),
-    ).not.toBeInTheDocument();
   });
 
   it('shows Featured in pin order', async () => {
@@ -702,8 +665,7 @@ describe('WorkflowTemplatesPage', () => {
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
   });
 
-  it('defaults All to a list and persists the grid toggle', async () => {
-    const user = userEvent.setup();
+  it('lists All as rows with no view switch', async () => {
     await renderLoadedPage();
 
     const all = allSection();
@@ -711,29 +673,7 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       within(all).queryByTestId('workflow-template-card'),
     ).not.toBeInTheDocument();
-    expect(viewMenuTrigger('List')).toBeInTheDocument();
-
-    await selectView(user, 'Grid');
-
-    expect(within(all).getAllByTestId('workflow-template-card')).toHaveLength(
-      2,
-    );
-    expect(
-      within(all).queryByTestId('workflow-template-row'),
-    ).not.toBeInTheDocument();
-    expect(
-      within(all).getByRole('img', { name: 'Social blast workflow diagram' }),
-    ).toBeInTheDocument();
-    expect(window.localStorage.getItem(VIEW_STORAGE_KEY)).toBe('grid');
-    const allGrid = within(all).getByTestId('templates-all-collection')
-      .firstElementChild as HTMLElement;
-    expect(allGrid).toHaveClass('@[60rem]:grid-cols-3');
-    expect(allGrid).not.toHaveClass('@[80rem]:grid-cols-4');
-    expect(
-      document.querySelector(
-        '[class*="md:grid-cols"], [class*="xl:grid-cols"], [class*="gap-6"]',
-      ),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(List|Grid)$/ })).toBeNull();
   });
 
   it('filters All from a type tile, marks it pressed and clears from the Filters menu', async () => {
@@ -813,16 +753,6 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(featuredCards).toHaveLength(1);
     for (const card of featuredCards) {
-      expect(visibleActions(card)).toEqual(['Use template', 'More actions']);
-    }
-
-    await selectView(user, 'Grid');
-
-    const gridCards = within(allSection()).getAllByTestId(
-      'workflow-template-card',
-    );
-    expect(gridCards).toHaveLength(2);
-    for (const card of gridCards) {
       expect(visibleActions(card)).toEqual(['Use template', 'More actions']);
     }
 

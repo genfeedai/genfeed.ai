@@ -10,7 +10,6 @@ import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection'
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -48,8 +47,6 @@ function WorkflowTemplatesPageContent() {
     href,
     detailsItem,
     setDetailsItem,
-    view,
-    setView,
     loadSources,
     templateId,
     retryBootstrap,
@@ -217,7 +214,6 @@ function WorkflowTemplatesPageContent() {
         />
       </SearchField>
     ),
-    right: <CollectionViewToggle onViewChange={setView} view={view} />,
     titleVisibility: 'sr-only' as const,
   };
 
@@ -324,11 +320,8 @@ function WorkflowTemplatesPageContent() {
           ) : null}
           <CollectionView
             items={visibleItems}
-            view={view}
             getItemKey={(item) => item.id}
             renderListItem={renderTemplateRow}
-            renderGridItem={renderTemplateCard}
-            maxColumns={3}
             isLoading={isAllLoading}
             emptyState={
               <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
