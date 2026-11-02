@@ -2,8 +2,14 @@ name: Deploy hosted SaaS Vercel frontends (reusable)
 
 # Canonical production deploy path for Vercel-hosted frontends.
 # Vercel Git auto-deploy is disabled in each app's vercel.json; production
-# frontends deploy only through this workflow, after the public hosted-SaaS
-# engine has migrated, boot-smoked, and rolled the API/services.
+# frontends deploy only through this workflow.
+#
+# This workflow only STAGES the frontends: it builds and uploads a production
+# deployment with `--skip-domain`, so no production domain points at it and
+# users see nothing. It runs alongside the API/services rollout.
+# _deploy-hosted-saas-vercel-promote.yml switches the staged deployments live
+# once the public hosted-SaaS engine has migrated, boot-smoked, and rolled the
+# API/services. A failed API rollout therefore never exposes a new frontend.
 #
 on:
   workflow_call:
@@ -189,11 +195,13 @@ jobs:
             fi
           done
 
+      # --skip-domain: a production deployment that no domain points at yet.
+      # The promote workflow aliases it after the API is live.
       - name: Deploy ${{ matrix.label }}
         if: ${{ env.VERCEL_PROJECT_ID != '' }}
         id: deploy
         run: |
-          url="$(vercel deploy --prebuilt --prod --archive=tgz --token="${VERCEL_TOKEN}")"
+          url="$(vercel deploy --prebuilt --prod --skip-domain --archive=tgz --token="${VERCEL_TOKEN}")"
           echo "${url}"
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
@@ -202,22 +210,23 @@ jobs:
         env:
           LABEL: ${{ matrix.label }}
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
-        run: echo "${LABEL} -> ${DEPLOY_URL}"
+        run: echo "${LABEL} -> ${DEPLOY_URL} (staged, not live)"
 
-      - name: Verify the service worker is served
-        if: ${{ matrix.label == 'app' && env.VERCEL_PROJECT_ID != '' }}
+      # An optional frontend with no project writes an empty file so the
+      # promote workflow can tell "skipped" from "missing".
+      - name: Record staged deployment
+        env:
+          LABEL: ${{ matrix.label }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         run: |
           set -euo pipefail
-          url="https://app.${DOMAIN}/serwist/sw.js"
-          for attempt in 1 2 3 4 5 6; do
-            headers="$(curl -sS -o /dev/null -D - --max-time 20 "${url}" || true)"
-            status="$(printf '%s' "${headers}" | awk 'toupper($1) ~ /^HTTP/ {code=$2} END {print code}')"
-            if [ "${status}" = "200" ] && printf '%s' "${headers}" | grep -qi '^content-type: *\(application\|text\)/javascript'; then
-              echo "${url} -> 200 JavaScript"
-              exit 0
-            fi
-            echo "attempt ${attempt}: ${url} -> ${status:-no response}"
-            sleep 10
-          done
-          echo "::error::${url} did not return 200 JavaScript after deploy."
-          exit 1
+          mkdir -p "${RUNNER_TEMP}/staged"
+          printf '%s' "${DEPLOY_URL}" > "${RUNNER_TEMP}/staged/${LABEL}.url"
+
+      - name: Upload staged deployment
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vercel-staged-${{ matrix.label }}
+          path: ${{ runner.temp }}/staged/${{ matrix.label }}.url
+          retention-days: 3
+          if-no-files-found: error
