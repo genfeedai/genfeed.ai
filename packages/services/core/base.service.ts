@@ -2,7 +2,6 @@ import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { IHttpError } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -286,21 +285,7 @@ export abstract class BaseService<
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
   ): Promise<T[]> {
-    const requestId = PagesService.beginRequest();
-    return this.findAllPage(query, signal).then((result) => {
-      if ((query as { page?: number }).page) {
-        PagesService.recordTotals(
-          {
-            page: result.page,
-            pages: result.totalPages,
-            total: result.total,
-          },
-          requestId,
-        );
-      }
-
-      return result.items;
-    });
+    return this.findAllPage(query, signal).then((result) => result.items);
   }
 
   /**

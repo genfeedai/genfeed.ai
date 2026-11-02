@@ -3,7 +3,6 @@ import type {
   IWarmupAccountCreateRequest,
   IWarmupPrepareRequest,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -11,7 +10,6 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
 
 export class AdminWarmupAccountsService extends HTTPBaseService {
   constructor(token: string) {
@@ -61,12 +59,11 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
     query?: { limit?: number; page?: number; search?: string },
     signal?: AbortSignal,
   ): Promise<IWarmupAccount[]> {
-    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: query,
       signal,
     });
-    recordPageTotals(response.data, query, requestId);
+
     return deserializeCollection<IWarmupAccount>(response.data);
   }
 

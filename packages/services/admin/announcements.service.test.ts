@@ -1,114 +1,78 @@
+import {
+  axiosResponse,
+  collectionDocument,
+  installMockHttp,
+  type MockHttpInstance,
+  resourceDocument,
+} from '@services/__mocks__/http.mock';
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
-import { PagesService } from '@services/content/pages.service';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mockGet = vi.fn();
-const mockPost = vi.fn();
-
-vi.mock('@services/core/json-api', () => ({
-  deserializeCollection: vi.fn(
-    (document: { data: unknown[] }) => document.data,
-  ),
-  deserializeResource: vi.fn((document: { data: unknown }) => {
-    const resource = document.data as
-      | { id?: string; attributes?: Record<string, unknown> }
-      | undefined;
-
-    return {
-      id: resource?.id,
-      ...(resource?.attributes ?? {}),
-    };
-  }),
-}));
-
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    apiEndpoint: 'https://api.genfeed.ai/v1',
-  },
-}));
-
-vi.mock('@services/core/interceptor.service', () => {
-  class MockHTTPBaseService {
-    protected instance = {
-      get: mockGet,
-      post: mockPost,
-    };
-
-    static getBaseServiceInstance<T>(
-      ServiceClass: new (...args: any[]) => T,
-      ...args: any[]
-    ): T {
-      return new ServiceClass(...args);
-    }
-  }
-
-  return { HTTPBaseService: MockHTTPBaseService };
-});
 
 describe('AdminAnnouncementsService', () => {
   let service: AdminAnnouncementsService;
-
+  let http: MockHttpInstance;
   beforeEach(() => {
     vi.clearAllMocks();
     service = new AdminAnnouncementsService('test-token');
+    http = installMockHttp(service);
   });
-
-  it('deserializes announcement history collections', async () => {
-    mockGet.mockResolvedValue({
-      data: {
-        data: [
+  it('deserializes announcement history collections with fallback metadata', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([
           {
-            attributes: { body: 'Release note', createdAt: '2026-03-09' },
             id: 'announcement-1',
+            body: 'Release note',
+            createdAt: '2026-03-09',
           },
-        ],
-      },
+        ]),
+      ),
+    );
+    await expect(service.getAnnouncements()).resolves.toMatchObject({
+      items: [
+        { id: 'announcement-1', body: 'Release note', createdAt: '2026-03-09' },
+      ],
+      total: 1,
+      totalPages: 1,
     });
-
-    await expect(service.getAnnouncements()).resolves.toEqual([
-      {
-        attributes: { body: 'Release note', createdAt: '2026-03-09' },
-        id: 'announcement-1',
-      },
-    ]);
   });
-
-  it('forwards page and limit and records the page totals', async () => {
-    mockGet.mockResolvedValue({
-      data: {
-        data: [],
-        links: { pagination: { limit: 10, page: 3, pages: 5, total: 42 } },
-      },
-    });
+  it('returns its page metadata and forwards cancellation', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([], {
+          pagination: { limit: 10, page: 3, pages: 5, total: 42 },
+        }),
+      ),
+    );
     const signal = new AbortController().signal;
-
-    await service.getAnnouncements({ limit: 10, page: 3 }, signal);
-
-    expect(mockGet).toHaveBeenCalledWith('', {
+    const result = await service.getAnnouncements(
+      { limit: 10, page: 3 },
+      signal,
+    );
+    expect(http.get).toHaveBeenCalledWith('', {
       params: { limit: 10, page: 3 },
       signal,
     });
-    expect(PagesService.getCurrentPage()).toBe(3);
-    expect(PagesService.getTotalPages()).toBe(5);
-    expect(PagesService.getTotalDocs()).toBe(42);
-  });
-
-  it('deserializes announcement broadcasts as resources', async () => {
-    mockPost.mockResolvedValue({
-      data: {
-        data: {
-          attributes: { body: 'New launch', createdAt: '2026-03-09' },
-          id: 'announcement-2',
-        },
-      },
+    expect(result).toMatchObject({
+      items: [],
+      page: 3,
+      total: 42,
+      totalPages: 5,
     });
-
+  });
+  it('deserializes announcement broadcasts as resources', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { body: 'New launch', createdAt: '2026-03-09' },
+          { id: 'announcement-2' },
+        ),
+      ),
+    );
     await expect(
-      service.broadcast({
-        body: 'New launch',
-        channels: { discord: true },
-      }),
-    ).resolves.toEqual({
+      service.broadcast({ body: 'New launch', channels: { discord: true } }),
+    ).resolves.toMatchObject({
       body: 'New launch',
       createdAt: '2026-03-09',
       id: 'announcement-2',

@@ -1,4 +1,3 @@
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockGet } = vi.hoisted(() => ({ mockGet: vi.fn() }));
@@ -25,9 +24,6 @@ import { ContentPlansService } from '@services/content/content-plans.service';
 describe('ContentPlansService.list', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    PagesService.setCurrentPage(1);
-    PagesService.setTotalPages(1);
-    PagesService.setTotalDocs(0);
   });
 
   it('returns one server page with its pagination totals', async () => {
@@ -55,8 +51,5 @@ describe('ContentPlansService.list', () => {
       total: 50,
       items: [],
     });
-    expect(PagesService.getCurrentPage()).toBe(1);
-    expect(PagesService.getTotalPages()).toBe(1);
-    expect(PagesService.getTotalDocs()).toBe(0);
   });
 });

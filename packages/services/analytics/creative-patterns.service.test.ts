@@ -1,4 +1,3 @@
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreativePatternsService } from './creative-patterns.service';
 
@@ -42,9 +41,6 @@ describe('CreativePatternsService', () => {
   beforeEach(() => {
     getMock.mockReset();
     getMock.mockResolvedValue({ data: collectionDocument });
-    PagesService.setCurrentPage(1);
-    PagesService.setTotalPages(1);
-    PagesService.setTotalDocs(0);
   });
 
   it('reads a JSON:API page from the Nest collection, not a Next /api route', async () => {
@@ -86,9 +82,6 @@ describe('CreativePatternsService', () => {
     const service = CreativePatternsService.getInstance('token-1');
 
     await service.findAll();
-
-    expect(PagesService.getTotalPages()).toBe(1);
-    expect(PagesService.getTotalDocs()).toBe(0);
   });
 
   it('forwards the abort signal', async () => {

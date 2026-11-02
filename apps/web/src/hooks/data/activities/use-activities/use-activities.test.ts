@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { PageScope } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
@@ -102,14 +103,26 @@ describe('useActivities', () => {
     mockPatch.mockResolvedValue(undefined);
     mockGetActivitiesService.mockResolvedValue({
       bulkPatch: mockBulkPatch,
-      findAll: vi.fn().mockResolvedValue(activities),
+      findAllPage: vi
+        .fn()
+        .mockResolvedValue(
+          paginatedResponse(activities, { totalDocs: 61, totalPages: 5 }),
+        ),
       patch: mockPatch,
     });
     mockGetBrandsService.mockResolvedValue({
-      findBrandActivities: vi.fn().mockResolvedValue(activities),
+      findBrandActivities: vi
+        .fn()
+        .mockResolvedValue(
+          paginatedResponse(activities, { totalDocs: 61, totalPages: 5 }),
+        ),
     });
     mockGetOrganizationsService.mockResolvedValue({
-      findOrganizationActivities: vi.fn().mockResolvedValue(activities),
+      findOrganizationActivities: vi
+        .fn()
+        .mockResolvedValue(
+          paginatedResponse(activities, { totalDocs: 61, totalPages: 5 }),
+        ),
     });
     mockRefresh.mockResolvedValue(undefined);
     mockUseFilteredData.mockImplementation(
@@ -140,6 +153,7 @@ describe('useActivities', () => {
 
     expect(result.current.activities).toEqual(activities);
     expect(result.current.activityStats.total).toBe(2);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(result.current.activityStats.todayCount).toBe(1);
     expect(result.current.activityStats.statusCounts).toEqual({
       created: 1,
@@ -148,7 +162,11 @@ describe('useActivities', () => {
   });
 
   it('reads the organization list once when the super-admin flag hydrates', async () => {
-    const findOrganizationActivities = vi.fn().mockResolvedValue(activities);
+    const findOrganizationActivities = vi
+      .fn()
+      .mockResolvedValue(
+        paginatedResponse(activities, { totalDocs: 61, totalPages: 5 }),
+      );
     mockGetOrganizationsService.mockResolvedValue({
       findOrganizationActivities,
     });
@@ -254,6 +272,7 @@ describe('useActivities', () => {
 
     // When auth is not ready the query is disabled — activities should be empty
     expect(result.current.activities).toEqual([]);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 0, totalPages: 1 });
     expect(result.current.isLoading).toBe(false);
   });
 

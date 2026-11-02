@@ -17,7 +17,6 @@ import type {
   IWinnerPost,
   IXGrowthReport,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -243,17 +242,7 @@ export class AnalyticsService extends HTTPBaseService {
   ): Promise<IAccountAnalyticsList> {
     return await this.instance
       .get<JsonApiResponseDocument>('accounts', { params: query })
-      .then((res) => deserializeResource<IAccountAnalyticsList>(res.data))
-      .then((response) => {
-        // Feeds AutoPagination, which reads the totals from PagesService.
-        if (query?.page && typeof response?.totalPages === 'number') {
-          PagesService.setCurrentPage(response.page);
-          PagesService.setTotalPages(response.totalPages);
-          PagesService.setTotalDocs(response.total);
-        }
-
-        return response;
-      });
+      .then((res) => deserializeResource<IAccountAnalyticsList>(res.data));
   }
 
   public async getTopAccounts(query?: IQueryParams): Promise<unknown> {

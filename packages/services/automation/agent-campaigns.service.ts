@@ -69,8 +69,8 @@ export class AgentCampaignsService extends BaseService<
   }
 
   /**
-   * With `page`, returns that single server page (and records the totals for
-   * `<AutoPagination />`). Without it, returns every campaign across all pages.
+   * With `page`, returns the rows from that single server page. Without it,
+   * returns every campaign across all pages.
    */
   async list(params?: {
     brandId?: string;

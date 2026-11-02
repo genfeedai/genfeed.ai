@@ -6,6 +6,7 @@ import type {
   IBrand,
   ICreditsBreakdown,
   IOrganizationSetting,
+  IPageTotals,
   ISubscription,
   SubscriptionChangePreview,
 } from '../index';
@@ -139,6 +140,7 @@ export interface ActivitiesOptions {
 
 export interface ActivitiesReturn {
   activities: IActivity[];
+  pageTotals: IPageTotals;
   error: Error | null;
   isError: boolean;
   isLoading: boolean;

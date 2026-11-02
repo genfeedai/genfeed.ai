@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { ModalEnum } from '@genfeedai/contracts';
 import {
   closeModal,
@@ -32,6 +33,20 @@ const sidebar = vi.hoisted(() => ({ onClose: null as (() => void) | null }));
 
 // The sidebar's own portal is covered by skill-detail-panel.test.tsx; here the
 // panel renders in place and `closeSidebar` stands in for its close control.
+vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
+}));
+
 vi.mock('@contexts/ui/context-sidebar-context', async (importOriginal) => ({
   ...(await importOriginal<
     typeof import('@contexts/ui/context-sidebar-context')
@@ -224,45 +239,50 @@ describe('BrandSettingsSkillsPage', () => {
     getTokenMock.mockResolvedValue('authProvider-token');
     resolveAuthTokenMock.mockResolvedValue('api-token');
     listSkillsMock.mockResolvedValue([]);
-    listSkillsPageMock.mockResolvedValue([
-      {
-        channels: ['youtube', 'linkedin'],
-        defaultInstructions: 'Base instructions',
-        description: 'Sets up long-form creator scripts.',
-        canEdit: false,
-        canFork: true,
-        id: 'skill-1',
-        isBuiltIn: true,
-        isEnabled: true,
-        modalities: ['text'],
-        name: 'YouTube Script Setup',
-        organization: null,
-        requiredProviders: ['openai'],
-        slug: 'youtube-script-setup',
-        source: 'built_in',
-        status: 'published',
-        workflowStage: 'creation',
-      },
-      {
-        baseSkill: 'skill-1',
-        channels: ['youtube'],
-        defaultInstructions: 'Variant instructions',
-        description: 'Brand-tuned variant.',
-        canEdit: true,
-        canFork: true,
-        id: 'variant-1',
-        isBuiltIn: false,
-        isEnabled: true,
-        modalities: ['text'],
-        name: 'YouTube Script Setup Custom',
-        organization: 'org-1',
-        requiredProviders: ['openai'],
-        slug: 'youtube-script-setup-custom',
-        source: 'custom',
-        status: 'draft',
-        workflowStage: 'creation',
-      },
-    ]);
+    listSkillsPageMock.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            channels: ['youtube', 'linkedin'],
+            defaultInstructions: 'Base instructions',
+            description: 'Sets up long-form creator scripts.',
+            canEdit: false,
+            canFork: true,
+            id: 'skill-1',
+            isBuiltIn: true,
+            isEnabled: true,
+            modalities: ['text'],
+            name: 'YouTube Script Setup',
+            organization: null,
+            requiredProviders: ['openai'],
+            slug: 'youtube-script-setup',
+            source: 'built_in',
+            status: 'published',
+            workflowStage: 'creation',
+          },
+          {
+            baseSkill: 'skill-1',
+            channels: ['youtube'],
+            defaultInstructions: 'Variant instructions',
+            description: 'Brand-tuned variant.',
+            canEdit: true,
+            canFork: true,
+            id: 'variant-1',
+            isBuiltIn: false,
+            isEnabled: true,
+            modalities: ['text'],
+            name: 'YouTube Script Setup Custom',
+            organization: 'org-1',
+            requiredProviders: ['openai'],
+            slug: 'youtube-script-setup-custom',
+            source: 'custom',
+            status: 'draft',
+            workflowStage: 'creation',
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     forkSkillMock.mockResolvedValue({ id: 'fork-1' });
     Object.assign(authIdentityMock, {
       userId: 'user-1',
@@ -280,6 +300,12 @@ describe('BrandSettingsSkillsPage', () => {
     });
 
     expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
     expect(screen.getByText(/built in/i)).toBeInTheDocument();
     expect(
       screen.getByRole('switch', { name: 'Enable YouTube Script Setup' }),
@@ -405,7 +431,9 @@ describe('BrandSettingsSkillsPage', () => {
       workflowStage: 'creation',
       slug: 'personal',
     };
-    listSkillsPageMock.mockResolvedValue([personal]);
+    listSkillsPageMock.mockResolvedValue(
+      paginatedResponse([personal], { totalDocs: 61, totalPages: 5 }),
+    );
     getSkillMock.mockResolvedValue({ ...personal, name: ' Personal ' });
     let resolveSave: ((value: unknown) => void) | undefined;
     updateSkillMock.mockReturnValue(
@@ -523,7 +551,9 @@ describe('BrandSettingsSkillsPage', () => {
         source: 'custom',
       };
       const second = { ...first, id: 'second', name: 'Second', slug: 'second' };
-      listSkillsPageMock.mockResolvedValue([first, second]);
+      listSkillsPageMock.mockResolvedValue(
+        paginatedResponse([first, second], { totalDocs: 61, totalPages: 5 }),
+      );
       render(<BrandSettingsSkillsPage />);
       fireEvent.click(await screen.findByText('First'));
       if (operation === 'save')
@@ -571,7 +601,9 @@ describe('BrandSettingsSkillsPage', () => {
       slug: 'exportable',
       source: 'custom',
     };
-    listSkillsPageMock.mockResolvedValue([editable]);
+    listSkillsPageMock.mockResolvedValue(
+      paginatedResponse([editable], { totalDocs: 61, totalPages: 5 }),
+    );
     let resolveExport: ((value: unknown) => void) | undefined;
     exportSkillMock.mockReturnValue(
       new Promise((resolve) => {
@@ -598,20 +630,25 @@ describe('BrandSettingsSkillsPage', () => {
   it.each([false, undefined])(
     'fails closed for organization edit capability %s',
     async (canEdit) => {
-      listSkillsPageMock.mockResolvedValue([
-        {
-          id: 'denied',
-          name: 'Denied',
-          description: 'Definition',
-          organization: 'org-1',
-          canEdit,
-          channels: [],
-          modalities: ['text'],
-          workflowStage: 'creation',
-          slug: 'denied',
-          source: 'custom',
-        },
-      ]);
+      listSkillsPageMock.mockResolvedValue(
+        paginatedResponse(
+          [
+            {
+              id: 'denied',
+              name: 'Denied',
+              description: 'Definition',
+              organization: 'org-1',
+              canEdit,
+              channels: [],
+              modalities: ['text'],
+              workflowStage: 'creation',
+              slug: 'denied',
+              source: 'custom',
+            },
+          ],
+          { totalDocs: 61, totalPages: 5 },
+        ),
+      );
       render(<BrandSettingsSkillsPage />);
       fireEvent.click(await screen.findByText('Denied'));
       expect(screen.getByRole('textbox', { name: 'Name' })).toBeDisabled();
@@ -638,7 +675,9 @@ describe('BrandSettingsSkillsPage', () => {
         slug: 'editable',
         source: 'custom',
       };
-      listSkillsPageMock.mockResolvedValue([editable]);
+      listSkillsPageMock.mockResolvedValue(
+        paginatedResponse([editable], { totalDocs: 61, totalPages: 5 }),
+      );
       let resolveMutation: ((value: unknown) => void) | undefined;
       const pending = new Promise((resolve) => {
         resolveMutation = resolve;
@@ -661,7 +700,9 @@ describe('BrandSettingsSkillsPage', () => {
           operation === 'save' ? updateSkillMock : forkSkillMock,
         ).toHaveBeenCalledTimes(1),
       );
-      listSkillsPageMock.mockResolvedValue([]);
+      listSkillsPageMock.mockResolvedValue(
+        paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+      );
       Object.assign(routeParamsMock, {
         brandSlug: 'beta-brand',
         orgSlug: 'beta-org',
@@ -696,21 +737,25 @@ describe('BrandSettingsSkillsPage', () => {
     const { rerender } = render(<BrandSettingsSkillsPage />);
     await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(1));
     authIdentityMock.sessionId = 'replacement-session';
-    listSkillsPageMock.mockResolvedValue([]);
+    listSkillsPageMock.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     rerender(<BrandSettingsSkillsPage />);
     await waitFor(() => expect(listSkillsPageMock).toHaveBeenCalledTimes(2));
     await act(async () => {
-      resolveCatalog?.([
-        {
-          id: 'private-old',
-          name: 'Old private catalog',
-          channels: [],
-          modalities: [],
-          description: '',
-          source: 'custom',
-          workflowStage: 'creation',
-        },
-      ]);
+      resolveCatalog?.(
+        paginatedResponse([
+          {
+            id: 'private-old',
+            name: 'Old private catalog',
+            channels: [],
+            modalities: [],
+            description: '',
+            source: 'custom',
+            workflowStage: 'creation',
+          },
+        ]),
+      );
     });
     expect(screen.queryByText('Old private catalog')).not.toBeInTheDocument();
   });
@@ -1186,14 +1231,19 @@ describe('BrandSettingsSkillsPage', () => {
     };
   }
   async function openVersionSkill() {
-    listSkillsPageMock.mockResolvedValue([
-      importedFixture(),
-      importedFixture({
-        id: 'import-2',
-        name: 'Second imported personal skill',
-        slug: 'second-upload',
-      }),
-    ]);
+    listSkillsPageMock.mockResolvedValue(
+      paginatedResponse(
+        [
+          importedFixture(),
+          importedFixture({
+            id: 'import-2',
+            name: 'Second imported personal skill',
+            slug: 'second-upload',
+          }),
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     const view = render(<BrandSettingsSkillsPage />);
     fireEvent.click(await screen.findByText('Imported personal skill'));
     return view;

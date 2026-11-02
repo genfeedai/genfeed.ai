@@ -264,8 +264,8 @@ export class AgentStrategiesService extends BaseService<
   }
 
   /**
-   * With `page`, returns that single server page (and records the totals for
-   * `<AutoPagination />`). Without it, returns every strategy across all pages
+   * With `page`, returns the rows from that single server page. Without it,
+   * returns every strategy across all pages
    * so pickers and dashboards never silently stop at the API default of 10.
    */
   async list(params?: {

@@ -1,46 +1,11 @@
 'use client';
 
 import type { AutoPaginationProps } from '@genfeedai/props/ui/navigation/pagination.props';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 
-/**
- * Automatic pagination component that reads from URL and PagesService
- *
- * Replaces the repetitive pattern of:
- * ```tsx
- * <Pagination
- *   currentPage={PagesService.getCurrentPage()}
- *   totalPages={PagesService.getTotalPages()}
- * />
- * ```
- *
- * With just:
- * ```tsx
- * <AutoPagination showTotal />
- * ```
- *
- * Features:
- * - Automatically reads `page` from URL search params
- * - Automatically reads `totalPages` from PagesService (set by BaseService.findAll)
- * - Optionally displays total count
- * - Uses URL-based navigation (works with browser back/forward)
- * - Preserves all existing query parameters when changing pages
- *
- * @example
- * ```tsx
- * // Basic usage
- * <AutoPagination />
- *
- * // With total count display
- * <AutoPagination showTotal />
- *
- * // With custom label
- * <AutoPagination showTotal totalLabel="posts" />
- * ```
- */
+/** URL-driven page navigation using the displayed list's own response totals. */
 function AutoPaginationContent({
   showTotal = true,
   totalLabel = 'results',
@@ -54,10 +19,7 @@ function AutoPaginationContent({
   // Read from URL (defaults to page 1)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  // The rows' own cached totals when given; otherwise the last list request's
-  // (set by BaseService.findAll).
-  const totalPages = totals?.totalPages ?? PagesService.getTotalPages();
-  const totalDocs = totals?.totalDocs ?? PagesService.getTotalDocs();
+  const { totalDocs, totalPages } = totals;
 
   // Handle page change while preserving all query parameters
   const handlePageChange = useCallback(

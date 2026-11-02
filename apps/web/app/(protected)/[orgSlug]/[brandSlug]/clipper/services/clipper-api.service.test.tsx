@@ -1,5 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
-import { PagesService } from '@services/content/pages.service';
+
 import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
@@ -61,7 +62,7 @@ describe('ClipperApiService', () => {
     });
   });
 
-  it('requests a brand-scoped server page and records the pagination totals', async () => {
+  it('returns pagination with its brand-scoped project page', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -73,7 +74,12 @@ describe('ClipperApiService', () => {
     );
 
     const service = new ClipperApiService(vi.fn().mockResolvedValue('token'));
-    await service.listProjects({ brandId: 'brand-1', limit: 15, page: 2 });
+
+    const result = await service.listProjects({
+      brandId: 'brand-1',
+      limit: 15,
+      page: 2,
+    });
 
     const url = new URL(fetchMock.mock.calls[0]?.[0] as string);
     expect(url.pathname).toBe('/v1/clipper-projects');
@@ -83,9 +89,12 @@ describe('ClipperApiService', () => {
       page: '2',
       sort: '-createdAt',
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(5);
-    expect(PagesService.getTotalDocs()).toBe(70);
+    expect(result).toMatchObject({
+      items: [],
+      page: 2,
+      totalPages: 5,
+      total: 70,
+    });
   });
 
   it('lists clip projects from the collection endpoint', async () => {
@@ -112,23 +121,26 @@ describe('ClipperApiService', () => {
     const service = new ClipperApiService(
       vi.fn().mockResolvedValue('token-list'),
     );
-    await expect(service.listProjects()).resolves.toEqual([
-      {
-        brandId: undefined,
-        createdAt: undefined,
-        updatedAt: undefined,
-        failedClipCount: 0,
-        id: 'project-1',
-        isDraft: false,
-        mode: 'raw-cut',
-        name: 'Podcast ep 12',
-        pendingClipCount: 0,
-        progress: 0,
-        readyClipCount: 4,
-        sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
-        status: 'completed',
-      },
-    ]);
+    await expect(service.listProjects()).resolves.toEqual({
+      ...paginatedResponse([
+        {
+          brandId: undefined,
+          createdAt: undefined,
+          updatedAt: undefined,
+          failedClipCount: 0,
+          id: 'project-1',
+          isDraft: false,
+          mode: 'raw-cut',
+          name: 'Podcast ep 12',
+          pendingClipCount: 0,
+          progress: 0,
+          readyClipCount: 4,
+          sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          status: 'completed',
+        },
+      ]),
+      pageSize: 1,
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/v1/clipper-projects?sort=-createdAt',

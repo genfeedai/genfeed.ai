@@ -5,7 +5,7 @@ import {
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import { PageScope } from '@genfeedai/contracts';
-import { PagesService } from '@services/content/pages.service';
+
 import {
   act,
   fireEvent,
@@ -427,7 +427,6 @@ describe('LightingsList', () => {
     ).toBeInTheDocument();
     firstVisit.unmount();
 
-    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
     mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 

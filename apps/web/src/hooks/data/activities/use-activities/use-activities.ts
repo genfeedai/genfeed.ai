@@ -1,5 +1,6 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { PageScope } from '@genfeedai/contracts';
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import type {
   ActivitiesOptions,
@@ -136,7 +137,7 @@ export function useActivities({
     ],
     queryFn: async () => {
       if (!autoLoad || !hasAuthenticatedSession) {
-        return EMPTY_ACTIVITIES;
+        return null;
       }
 
       const paginationParams = {
@@ -161,10 +162,10 @@ export function useActivities({
         }
         case 'all': {
           const service = await getActivitiesService();
-          return service.findAll(paginationParams);
+          return service.findAllPage(paginationParams);
         }
         case 'none':
-          return EMPTY_ACTIVITIES;
+          return null;
       }
     },
     enabled:
@@ -180,7 +181,7 @@ export function useActivities({
 
   const isRefreshing = isFetching && !isLoading;
 
-  const activities = activitiesData ?? EMPTY_ACTIVITIES;
+  const activities = activitiesData?.items ?? EMPTY_ACTIVITIES;
 
   const filteredActivities = useFilteredData({
     data: activities,
@@ -297,6 +298,12 @@ export function useActivities({
 
   return {
     activities,
+    pageTotals: activitiesData
+      ? {
+          totalDocs: activitiesData.total,
+          totalPages: activitiesData.totalPages,
+        }
+      : EMPTY_PAGE_TOTALS,
     activityStats,
     clearCompletedActivities,
     error,

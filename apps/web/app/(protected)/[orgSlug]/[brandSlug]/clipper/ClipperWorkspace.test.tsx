@@ -19,7 +19,17 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
 }));
 
 vi.mock(
@@ -111,6 +121,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('lists the projects with the search in the topbar and no New project action', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [
@@ -137,6 +148,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('tells the agent which projects are on screen once the list has loaded', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [
@@ -163,6 +175,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('tells the agent nothing while the project list is still loading', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: true,
       projects: [],
@@ -175,6 +188,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('tells the agent which project is open', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],
@@ -204,6 +218,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('tells the creator to import a source on the left when there are no projects', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],
@@ -221,6 +236,7 @@ describe('ClipperWorkspace chrome stability', () => {
   it('turns a Library video into a project instead of showing the list', () => {
     mocks.searchParams = new URLSearchParams('video=video-1');
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],
@@ -234,6 +250,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('renders the actual downloading phase without an unsupported completion estimate', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],
@@ -264,6 +281,7 @@ describe('ClipperWorkspace chrome stability', () => {
     'offers source retry from a failed review at attempt %s',
     (retryCount) => {
       mocks.useStudioClipperProjects.mockReturnValue({
+        pageTotals: { totalDocs: 61, totalPages: 5 },
         error: null,
         isLoading: false,
         projects: [],
@@ -319,6 +337,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
   it('renders the restored setup form for a draft project', () => {
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],
@@ -357,6 +376,7 @@ describe('ClipperWorkspace chrome stability', () => {
   it('pages the project list', () => {
     mocks.searchParams = new URLSearchParams('page=2');
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [
@@ -378,11 +398,18 @@ describe('ClipperWorkspace chrome stability', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
   });
 
   it('puts the search in the topbar, keeps it on a miss, and searches by the q param', () => {
     mocks.searchParams = new URLSearchParams('page=2');
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [
@@ -413,6 +440,7 @@ describe('ClipperWorkspace chrome stability', () => {
 
     mocks.searchParams = new URLSearchParams('q=launch');
     mocks.useStudioClipperProjects.mockReturnValue({
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       error: null,
       isLoading: false,
       projects: [],

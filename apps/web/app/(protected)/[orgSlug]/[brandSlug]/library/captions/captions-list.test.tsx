@@ -1,7 +1,7 @@
 import { paginatedResponse } from '@app-tests/paginated-response';
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { Caption } from '@models/content/caption.model';
-import { PagesService } from '@services/content/pages.service';
+
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CaptionsList from './captions-list';
@@ -136,14 +136,13 @@ describe('CaptionsList', () => {
       consoleErrorSpy.mockRestore();
     }
   });
-  it('renders its server totals even when another list overwrites the legacy totals', async () => {
+  it('renders the totals from the same response as its captions', async () => {
     findAllPageMock.mockResolvedValue(
       paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
     );
     const { rerender } = render(<CaptionsList />);
     expect(await screen.findByText('61 captions')).toBeVisible();
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
+
     rerender(<CaptionsList />);
     expect(screen.getByText('61 captions')).toBeVisible();
     expect(screen.queryByText('200 captions')).not.toBeInTheDocument();
@@ -156,8 +155,7 @@ describe('CaptionsList', () => {
         resolvePage = resolve;
       }),
     );
-    PagesService.setTotalDocs(200);
-    PagesService.setTotalPages(20);
+
     render(<CaptionsList />);
     expect(screen.getByText('0 captions')).toBeVisible();
     await act(async () => {

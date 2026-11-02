@@ -1,4 +1,3 @@
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/environment.service', () => ({
@@ -21,9 +20,6 @@ describe('WorkflowExecutionsService.list', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', fetchMock);
-    PagesService.setCurrentPage(1);
-    PagesService.setTotalPages(1);
-    PagesService.setTotalDocs(0);
   });
 
   it('sends the page and limit and returns pagination with the rows', async () => {
@@ -59,12 +55,9 @@ describe('WorkflowExecutionsService.list', () => {
       total: 84,
       totalPages: 6,
     });
-    expect(PagesService.getCurrentPage()).toBe(1);
-    expect(PagesService.getTotalPages()).toBe(1);
-    expect(PagesService.getTotalDocs()).toBe(0);
   });
 
-  it('leaves the shared page totals alone when no page is requested', async () => {
+  it('returns server totals when no explicit page is requested', async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -82,7 +75,5 @@ describe('WorkflowExecutionsService.list', () => {
     });
 
     expect(result).toMatchObject({ items: [], total: 170, totalPages: 9 });
-    expect(PagesService.getTotalPages()).toBe(1);
-    expect(PagesService.getTotalDocs()).toBe(0);
   });
 });

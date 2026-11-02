@@ -3,10 +3,10 @@ import type {
   ICreateEditorProjectDto,
   IEditorProject,
   IEditorProjectSettings,
+  IPaginatedResponse,
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
 import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -15,7 +15,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 const DEFAULT_FPS = 30;
 
@@ -153,14 +153,19 @@ export class EditorProjectsService extends HTTPBaseService {
 
   /**
    * Find one server page of the current user's projects, newest first.
-   * Pass `page` to publish the totals for `<AutoPagination />`; without a
-   * `limit` the API returns its default page size.
+   * Without a limit the API returns its default page size.
    */
   async findAll(
     query: { limit?: number; page?: number; search?: string } = {},
     signal?: AbortSignal,
   ): Promise<IEditorProject[]> {
-    const requestId = PagesService.beginRequest();
+    return (await this.findAllPage(query, signal)).items;
+  }
+
+  async findAllPage(
+    query: { limit?: number; page?: number; search?: string } = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<IEditorProject>> {
     const response = await this.instance
       .get<JsonApiResponseDocument>('', {
         params: {
@@ -172,9 +177,8 @@ export class EditorProjectsService extends HTTPBaseService {
         signal,
       })
       .then((res) => res.data);
-    recordPageTotals(response, query, requestId);
 
-    return this.mapMany(response);
+    return toPaginatedResponse(this.mapMany(response), response);
   }
 
   /**
