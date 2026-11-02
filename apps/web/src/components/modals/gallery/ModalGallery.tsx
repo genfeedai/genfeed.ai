@@ -8,7 +8,6 @@ import {
 import type { IImage } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryProps } from '@genfeedai/props/modals/modal.props';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import Modal from '@ui/modals/modal/Modal';
 import { useModalGallery } from '@/components/modals/gallery/hooks/useModalGallery';
 import ModalGalleryContent from '@/components/modals/gallery/ModalGalleryContent';
@@ -74,16 +73,16 @@ export default function ModalGallery({
     setSelectedItemsData,
     setActiveTab,
     setFilterReferenceId,
-    findAllItems,
-    findAllUploads,
-    findAllCreations,
+    loadPage,
+    currentPage,
+    totalPages,
     handleItemSelect,
     notifySelectionLimit,
     selectionLimit,
     tabs,
   } = useModalGallery({
     category,
-    format: format as IngredientFormat,
+    format,
     isFormatFilterEnabled,
     isOpen,
     maxSelectableItems,
@@ -162,8 +161,6 @@ export default function ModalGallery({
 
   const handleClearFilter = () => {
     setFilterReferenceId('');
-    PagesService.setCurrentPage(1);
-    findAllItems();
   };
 
   function getDefaultTitle(): string {
@@ -242,16 +239,9 @@ export default function ModalGallery({
           onSelectAccountReference={onSelectAccountReference}
           onClose={handleClose}
           onConfirm={handleConfirm}
-          onPageChange={(page) => {
-            PagesService.setCurrentPage(page);
-            if (activeTab === 'uploads') {
-              findAllUploads(page);
-            } else if (activeTab === 'creations') {
-              findAllCreations(page);
-            } else {
-              findAllItems(page);
-            }
-          }}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={loadPage}
         />
       </div>
     </Modal>

@@ -1,4 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import { PagesService } from '@genfeedai/services/content/pages.service';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -22,13 +23,6 @@ vi.mock('@ui/navigation/pagination/Pagination', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/services/content/pages.service', () => ({
-  PagesService: {
-    getCurrentPage: () => 1,
-    getTotalPages: () => 5,
-  },
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://test.com/ingredients',
@@ -37,6 +31,8 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
 
 describe('ModalGalleryFooter', () => {
   const defaultProps = {
+    currentPage: 1,
+    totalPages: 5,
     activeTab: 'media' as const,
     category: IngredientCategory.IMAGE,
     isLoading: false,
@@ -51,6 +47,19 @@ describe('ModalGalleryFooter', () => {
     selectedItems: [],
     selectedItemsData: [],
   };
+
+  it('renders each gallery page independently of global pagination', () => {
+    PagesService.recordTotals({ page: 9, pages: 50, total: 600 });
+    render(
+      <>
+        <ModalGalleryFooter {...defaultProps} currentPage={2} totalPages={3} />
+        <ModalGalleryFooter {...defaultProps} currentPage={4} totalPages={7} />
+      </>,
+    );
+    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
+    expect(screen.getByText('Page 4 of 7')).toBeInTheDocument();
+    expect(screen.queryByText('Page 9 of 50')).not.toBeInTheDocument();
+  });
 
   it('renders pagination when not loading', () => {
     render(<ModalGalleryFooter {...defaultProps} />);
