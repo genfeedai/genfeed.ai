@@ -97,14 +97,8 @@ export class FalModelContractSyncService {
         )
       : ({ status: 'not-rate-sheet' } as const);
     if (sheet.status === 'unverifiable') {
-      // Fal's API cannot state these reviewed rates; they stay as reviewed,
-      // like a provider with no machine-readable prices. Record that the
-      // refresh reached the model so the admin page does not call a rate
-      // nothing can refresh "stale" (the verification timestamp stays put).
-      await prisma.model.update({
-        data: { providerSyncFailureCode: FAL_RATE_UNVERIFIABLE_CODE },
-        where: { id: model.id },
-      });
+      // Fal's API cannot state these reviewed rates; they stay as reviewed.
+      await this.markRatesUnverifiable(model.id);
       return {
         drifted: false,
         quarantined: candidate.mappingStatus === 'quarantined',
@@ -212,6 +206,18 @@ export class FalModelContractSyncService {
       where: { id: model.id },
     });
     return { drifted: false, quarantined, version: contract.version };
+  }
+
+  /**
+   * The refresh reached the model but fal cannot confirm its reviewed rate.
+   * Recording why keeps the admin page from calling it stale: the
+   * verification timestamp stays put and no later run would move it.
+   */
+  private async markRatesUnverifiable(modelId: string): Promise<void> {
+    await this.modelsService.prisma.model.update({
+      data: { providerSyncFailureCode: FAL_RATE_UNVERIFIABLE_CODE },
+      where: { id: modelId },
+    });
   }
 
   /** The reviewed rates were confirmed by this refresh. */
