@@ -1,4 +1,5 @@
 import type {
+  IOnboardingCampaignImage,
   IOnboardingDraftContext,
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
@@ -26,7 +27,7 @@ export type FirstDraftsError =
 
 export interface FirstDraftsState {
   canRetry: boolean;
-  /** A missing image or video can be generated again for this run. */
+  /** A missing campaign image can be generated again for this run. */
   canRetryMedia: boolean;
   error: FirstDraftsError | null;
   isContinuing: boolean;
@@ -70,15 +71,16 @@ export interface FirstDraftsContextFormProps {
 
 export interface FirstDraftCardProps {
   draft: IOnboardingFirstDraft;
-  imageUrl: string | null;
-  videoUrl?: string | null;
-  videoStatus?: string;
+  /** This platform's own images, in slide order. Empty for runs saved before campaign images. */
+  images: readonly IOnboardingCampaignImage[];
+  /** The master campaign image, shown when the platform has no image of its own. */
+  masterUrl: string | null;
   brandName?: string;
   avatarUrl?: string;
   isSaving?: boolean;
-  /** Set while the missing media is being generated again. */
+  /** Set while the missing images are being generated. */
   isMediaGenerating?: boolean;
-  /** Offered only when the draft's media is missing and a retry is left. */
+  /** Offered only when the draft's images are missing and a retry is left. */
   onRetryMedia?: () => void;
   onVerdict: (
     draft: IOnboardingFirstDraft,

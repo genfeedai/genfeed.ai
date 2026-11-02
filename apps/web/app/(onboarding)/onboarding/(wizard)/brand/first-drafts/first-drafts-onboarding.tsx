@@ -7,7 +7,6 @@ import {
   ONBOARDING_DRAFT_PLATFORMS,
 } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -194,8 +193,40 @@ export default function FirstDraftsOnboarding() {
             ) : state.phase === 'schedule' && result ? (
               <ScheduleStep brandId={brandId} />
             ) : state.phase === 'review' && result ? (
-              <div className="mx-auto max-w-5xl">
-                <OrderedMasonry minColumnWidth={420} maxColumns={2} gap={24}>
+              <div className="mx-auto flex max-w-5xl flex-col gap-6">
+                <div className="grid items-center gap-6 rounded-lg border border-border bg-card p-4 md:grid-cols-[minmax(0,280px)_1fr]">
+                  {result.imageUrl ? (
+                    <Image
+                      src={result.imageUrl}
+                      alt={t('masterAlt', {
+                        brand:
+                          state.scan?.summary?.name ||
+                          selectedBrand?.label ||
+                          t('brandFallback'),
+                      })}
+                      width={560}
+                      height={560}
+                      unoptimized
+                      className="aspect-square w-full rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted">
+                      {state.isGenerating ? <Spinner /> : null}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-sm font-medium">
+                      {t('review.masterTitle')}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {t('review.masterDescription')}
+                    </p>
+                  </div>
+                </div>
+                <h2 className="text-sm font-medium">
+                  {t('review.derivedTitle')}
+                </h2>
+                <div className="-mx-1 flex snap-x gap-6 overflow-x-auto px-1 pb-2">
                   {result.drafts
                     .toSorted(
                       (left, right) =>
@@ -203,28 +234,37 @@ export default function FirstDraftsOnboarding() {
                         GALLERY_ORDER.indexOf(right.platform),
                     )
                     .map((draft) => (
-                      <DraftCard
+                      <div
                         key={draft.postId}
-                        draft={draft}
-                        imageUrl={result.imageUrl}
-                        videoUrl={result.videoUrl}
-                        videoStatus={result.videoStatus}
-                        brandName={
-                          state.scan?.summary?.name || selectedBrand?.label
-                        }
-                        avatarUrl={
-                          state.scan?.summary?.logoUrl || selectedBrand?.logoUrl
-                        }
-                        isSaving={state.savingPostIds.includes(draft.postId)}
-                        isMediaGenerating={state.isGenerating}
-                        onRetryMedia={
-                          state.canRetryMedia ? state.onRetryMedia : undefined
-                        }
-                        onVerdict={state.onVerdict}
-                        verdict={state.verdicts[draft.postId]}
-                      />
+                        className="w-[320px] shrink-0 snap-start"
+                      >
+                        <DraftCard
+                          draft={draft}
+                          images={(result.campaignImages ?? []).filter(
+                            (image) => image.platform === draft.platform,
+                          )}
+                          masterUrl={result.imageUrl}
+                          brandName={
+                            state.scan?.summary?.name || selectedBrand?.label
+                          }
+                          avatarUrl={
+                            state.scan?.summary?.logoUrl ||
+                            selectedBrand?.logoUrl
+                          }
+                          isSaving={state.savingPostIds.includes(draft.postId)}
+                          isMediaGenerating={state.isGenerating}
+                          onRetryMedia={
+                            state.canRetryMedia ? state.onRetryMedia : undefined
+                          }
+                          onVerdict={state.onVerdict}
+                          verdict={state.verdicts[draft.postId]}
+                        />
+                      </div>
                     ))}
-                </OrderedMasonry>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t('review.videoWithCredits')}
+                </p>
                 {!state.isGenerating &&
                   !result.imageUrl &&
                   result.drafts.length > 0 && (
