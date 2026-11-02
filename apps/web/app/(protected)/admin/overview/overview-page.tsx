@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -50,6 +50,11 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
   return (
     <WorkspaceSurface
       title="Top Organizations"
+      actions={
+        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.SECONDARY}>
+          <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>View All Entities</Link>
+        </Button>
+      }
       tone="muted"
       className="h-full"
       data-testid="admin-overview-leaderboard"
@@ -115,11 +120,6 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
           ))
         )}
       </div>
-
-      {/* View All Entities CTA button */}
-      <Button asChild variant={ButtonVariant.SECONDARY} className="w-full">
-        <Link href={APP_ROUTES.ADMIN.ORGANIZATIONS}>View All Entities</Link>
-      </Button>
     </WorkspaceSurface>
   );
 }

@@ -1,54 +1,46 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardGap,
-  CardPadding,
-} from '@genfeedai/contracts';
+import { CardGap, CardPadding } from '@genfeedai/contracts';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import Container from '@ui/layout/container/Container';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import Link from 'next/link';
 import type { OverviewContentProps } from '@/props/layout/overview.props';
 
 const EMPTY_ARRAY: never[] = [];
 
-/** One quick-action tile: icon, title, what it opens, and the way in. */
+/** One quick-action tile: icon, title and what it opens. The whole tile is the way in. */
 export function OverviewActionCard({ card }: { card: OverviewCard }) {
-  return (
+  const tile = (
     <Card
-      actions={
-        card.onClick ? (
-          <Button
-            onClick={card.onClick}
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
-            label={card.cta}
-          />
-        ) : (
-          <PrimitiveButton
-            asChild
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
-          >
-            <Link href={card.href || '#'}>{card.cta}</Link>
-          </PrimitiveButton>
-        )
-      }
-      bodyClassName="h-full justify-between"
+      bodyClassName="h-full"
       className="h-full"
       description={card.description}
       gap={CardGap.LG}
       icon={card.icon}
       iconWrapperClassName={cn('p-2', card.color)}
+      isInteractive={Boolean(card.href) && !card.onClick}
       label={card.label}
+      onClick={card.onClick}
       padding={CardPadding.LG}
     />
+  );
+
+  if (card.onClick) {
+    return tile;
+  }
+
+  return (
+    <Link
+      aria-label={card.cta}
+      className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      href={card.href || '#'}
+    >
+      {tile}
+    </Link>
   );
 }
 

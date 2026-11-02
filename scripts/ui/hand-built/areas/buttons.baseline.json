@@ -195,9 +195,6 @@
     "apps/web/app/(protected)/admin/administration/users/user-details.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/admin/overview/overview-page.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/routed-organization-boundary.tsx": {
       "button-restyle": 1
     },

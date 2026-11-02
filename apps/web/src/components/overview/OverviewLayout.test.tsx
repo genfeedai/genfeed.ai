@@ -38,6 +38,15 @@ describe('OverviewLayout', () => {
     expect(screen.getByRole('link', { name: 'Go' })).toBeInTheDocument();
   });
 
+  it('makes the whole card the link, with no footer button inside it', () => {
+    render(<OverviewLayout label="Overview" cards={cards} />);
+
+    const link = screen.getByRole('link', { name: 'Go' });
+    expect(link).toHaveTextContent('Create');
+    expect(link).toHaveTextContent('Start something new');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('should handle user interactions correctly', () => {
     const { container } = render(
       <OverviewLayout label="Overview" cards={cards} />,
