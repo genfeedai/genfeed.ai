@@ -159,6 +159,16 @@ describe('AnalyticsBrandsList', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows no zero totals before the first response', async () => {
+    render(<AnalyticsBrandsList />);
+
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme')).toBeInTheDocument();
+    });
+  });
+
   it('shows period totals for the whole list above the table', async () => {
     render(<AnalyticsBrandsList />);
 

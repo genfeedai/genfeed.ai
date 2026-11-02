@@ -75,7 +75,8 @@ export default function AnalyticsBrandsList({
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
   const [totals, setTotals] = useState<IEntityStatsTotals | null>(null);
   const [totalBrands, setTotalBrands] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  // Starts loading so the first paint is a skeleton, not an empty table and zeros.
+  const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const searchTerm = filters.query ?? '';
   // The API searches, so a keystroke must not cost a request.
