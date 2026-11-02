@@ -802,7 +802,7 @@ async function renderLoaded(options?: Parameters<typeof render>[1]) {
 }
 
 function notifications() {
-  return within(screen.getByRole('list', { name: 'Notifications' }));
+  return within(screen.getByLabelText('Notifications'));
 }
 
 describe('StudioPlaygroundWorkspace', () => {
