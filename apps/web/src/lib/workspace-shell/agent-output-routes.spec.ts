@@ -52,6 +52,12 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/turbo/project-1/extra')).toBe(false);
   });
 
+  it('matches the motion workspace and nothing under it', () => {
+    expect(isAgentOutputRoute('/motion')).toBe(true);
+    expect(isAgentOutputRoute('/motion/')).toBe(true);
+    expect(isAgentOutputRoute('/motion/project-1')).toBe(false);
+  });
+
   it('matches the clipper workspace and a clipper project', () => {
     expect(isAgentOutputRoute('/clipper')).toBe(true);
     expect(isAgentOutputRoute('/clipper/')).toBe(true);

@@ -22,6 +22,9 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // The workflow editor, new or saved; `/automation/workflows/templates` is
   // the template gallery and stays on the dock.
   new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
+  // Motion: `/motion` is the prompt that starts a visual beside the project
+  // list; an open project (`?project=`) keeps the same layout.
+  new RegExp(`^${APP_ROUTES.STUDIO.MOTION}/?$`),
   // Clipper: `/clipper` is the prompt that imports a source beside the project
   // list, and a project opens in the same layout.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}(?:/[^/]+)?/?$`),

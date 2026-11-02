@@ -1,6 +1,5 @@
 {
   "title": "Motion",
-  "newProject": "New project",
   "projects": "Visual projects",
   "loading": "Loading…",
   "moreProjects": "More projects",
@@ -65,22 +64,8 @@
   "exportOutputs": "Separate export settings",
   "inheritedOutputs": "Prompt, source and props revisions keep these outputs:",
   "rendererProvenance": "· {model} · Remotion {version}",
-  "onboarding": {
-    "title": "Describe it, preview it, export it",
-    "description": "Motion turns a prompt into an animated video or still frames you can drop into your Library. Pick a preset to fill in the form, then edit it your way.",
-    "presetsTitle": "Start with a preset",
-    "presetsDescription": "A preset only fills in the form. You review a credit quote and confirm it before anything is rendered."
-  },
   "presets": {
-    "listAria": "Motion presets",
-    "use": "Use this preset",
-    "applied": "Applied",
-    "useAria": "Fill the form with the {title} preset",
     "appliedStatus": "Preset applied. Review the prompt below, then get a quote.",
-    "seconds": "{seconds}s",
-    "shelfTitle": "Start from a preset",
-    "seeAll": "See all presets",
-    "showFewer": "Show fewer",
     "items": {
       "kineticQuote": {
         "title": "Kinetic quote card",
@@ -107,5 +92,9 @@
         "description": "Five bars that grow in sequence, with the leader highlighted."
       }
     }
-  }
+  },
+  "heroTitle": "What should Motion make?",
+  "heroDescription": "Motion turns a prompt into an animated video or still frames you can drop into your Library. Pick a preset to fill in the form, then edit it your way.",
+  "emptyTitle": "No visual projects yet",
+  "emptyDescription": "Describe one on the left and it shows up here."
 }

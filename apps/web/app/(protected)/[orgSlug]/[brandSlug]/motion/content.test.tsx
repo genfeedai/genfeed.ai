@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
     moduleOverrides: { motion: true, editor: true },
   } as Record<string, unknown>,
   projectData: undefined as Record<string, unknown> | undefined,
+  projectPages: [] as { projects: { id: string; label: string }[] }[],
   source: vi.fn(),
   cancel: vi.fn(),
 }));
@@ -61,6 +62,21 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+// Without the shell's host only the output renders; show both panes.
+vi.mock('@ui/layout/agent-output-layout/AgentOutputShell', () => ({
+  default: ({
+    agent,
+    children,
+  }: {
+    agent?: ReactNode;
+    children: ReactNode;
+  }) => (
+    <div>
+      {agent}
+      {children}
+    </div>
+  ),
+}));
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
@@ -146,7 +162,7 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
     catalog: {
       data: mocks.catalog,
     },
-    projects: { data: { pages: [] } },
+    projects: { data: { pages: mocks.projectPages } },
     project: { data: mocks.projectData, refetch: mocks.refetchProject },
     source: mocks.source,
     cancel: mocks.cancel,
@@ -189,9 +205,48 @@ beforeEach(() => {
     moduleOverrides: { motion: true, editor: true },
   };
   mocks.projectData = undefined;
+  mocks.projectPages = [];
   mocks.source.mockResolvedValue('retained source');
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
+});
+describe('Motion workspace', () => {
+  it('fills the compose form from a starter card without quoting anything', () => {
+    render(<MotionContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'kineticQuote.title' }));
+
+    expect(screen.getByLabelText('label')).toHaveValue(
+      'presets.items.kineticQuote.title',
+    );
+    expect(screen.getByLabelText('prompt')).toHaveValue(
+      'A vertical kinetic typography animation. A short, punchy quote appears word by word on a bold solid background, and the key word scales up and changes color as it lands. Use smooth ease-in-out motion, generous safe margins and a clean sans-serif typeface. End on a quiet hold of the full quote.',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'presets.appliedStatus',
+    );
+    expect(mocks.quote).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it('lists the projects as rows that open them', () => {
+    mocks.projectPages = [
+      { projects: [{ id: 'project-1', label: 'Launch teaser' }] },
+    ];
+
+    render(<MotionContent />);
+
+    expect(screen.getByRole('link', { name: /Launch teaser/ })).toHaveAttribute(
+      'href',
+      '/motion?project=project-1',
+    );
+  });
+
+  it('says there are no projects yet when the list is empty', () => {
+    render(<MotionContent />);
+
+    expect(screen.getByText('emptyTitle')).toBeInTheDocument();
+  });
 });
 describe('Motion quote review', () => {
   it('hides creation and quote controls under disabled cloud defaults', () => {
@@ -462,6 +517,6 @@ describe('Motion quote review', () => {
   it('renders when the catalog payload omits models', () => {
     Reflect.deleteProperty(mocks.catalog, 'models');
     expect(() => render(<MotionContent />)).not.toThrow();
-    expect(screen.getByRole('complementary')).toBeVisible();
+    expect(screen.getByLabelText('prompt')).toBeVisible();
   });
 });

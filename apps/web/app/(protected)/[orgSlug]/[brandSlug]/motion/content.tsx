@@ -16,10 +16,15 @@ import type {
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
+import CollectionList from '@ui/collection/CollectionList';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
+import { EmptyState } from '@ui/primitives/empty-state';
 import { Input } from '@ui/primitives/input';
 import {
   Popover,
@@ -49,7 +54,7 @@ import { useVisualProjects } from '@/hooks/data/content/use-visual-projects';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 import MotionAdvancedSettings from './components/MotionAdvancedSettings';
-import MotionPresetPanel from './components/MotionPresetPanel';
+import MotionPromptCards from './components/MotionPromptCards';
 import MotionQuoteReview from './components/MotionQuoteReview';
 
 export default function MotionContent() {
@@ -121,7 +126,6 @@ function MotionWorkspace() {
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [appliedPresetId, setAppliedPresetId] = useState<MotionPresetId>();
-  const composeRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (isModuleWorkEnabled) return;
     quoteEpoch.current++;
@@ -164,10 +168,6 @@ function MotionWorkspace() {
     setFormats(['mp4']);
     setFrames('0');
     setAppliedPresetId(preset.id);
-    composeRef.current?.scrollIntoView?.({
-      behavior: 'smooth',
-      block: 'start',
-    });
   }
   function outputs(): IVisualCodeOutputRequest[] {
     const result: IVisualCodeOutputRequest[] = [];
@@ -424,435 +424,460 @@ function MotionWorkspace() {
         )}
       </div>
     ) : undefined;
-  return (
-    <Container label={t('title')} titleVisibility="sr-only">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          {isModuleWorkEnabled && (
-            <Button asChild variant={ButtonVariant.SECONDARY}>
-              <Link href={href(APP_ROUTES.STUDIO.MOTION)}>
-                {t('newProject')}
-              </Link>
-            </Button>
+  const projectItems =
+    api.projects.data?.pages.flatMap((page) => page.projects) ?? [];
+  const historyPane = project ? (
+    <section aria-label={t('history')} className="space-y-3 px-3 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="gen-heading-sm">{project.label}</h2>
+        <span role="status" aria-live="polite" className="text-sm">
+          {current?.status} · {current?.progress ?? 0}%
+        </span>
+      </div>
+      <SegmentedControl
+        appearance="chip"
+        ariaLabel={t('history')}
+        onValueChange={(revisionId) => {
+          const item = revisions.find((entry) => entry.id === revisionId);
+          if (item) {
+            setSelectedRevision(item.number);
+            setSource(null);
+            invalidateQuote();
+          }
+        }}
+        options={revisions.map((item) => ({
+          label: `${t('revision', { number: item.number })} · ${item.status}`,
+          value: item.id,
+        }))}
+        value={revision?.id}
+      />
+      {(historyCursor === undefined
+        ? project.nextRevisionCursor
+        : historyCursor) != null && (
+        <Button
+          variant={ButtonVariant.GHOST}
+          disabled={isBusy}
+          onClick={() =>
+            void run(async () => {
+              const cursor =
+                historyCursor === undefined
+                  ? project.nextRevisionCursor
+                  : historyCursor;
+              if (cursor === null || cursor === undefined) return;
+              const page = await api.history(cursor);
+              setOlder((prior) => [...prior, ...page.revisions]);
+              setHistoryCursor(page.nextRevisionCursor);
+            })
+          }
+        >
+          {t('olderRevisions')}
+        </Button>
+      )}
+    </section>
+  ) : null;
+  const composerBar = (
+    <div className="mt-auto shrink-0 px-3 pb-3">
+      <PromptBarContainer
+        className="mx-auto w-full max-w-2xl"
+        layoutMode="inflow"
+        maxWidth="full"
+      >
+        <PromptBarComposer
+          aria-label={t('compose')}
+          banner={composerBanner}
+          beforeBody={
+            <div className="grid gap-2 px-3.5 pt-3">
+              <p className="gen-label">
+                {project ? t('revise') : t('compose')}
+              </p>
+              {!project && (
+                <Input
+                  aria-label={t('label')}
+                  className="h-7 border-0 bg-transparent px-0 shadow-none"
+                  maxLength={120}
+                  onChange={(event) => updateLabel(event.target.value)}
+                  placeholder={t('label')}
+                  value={label}
+                />
+              )}
+            </div>
+          }
+          data-testid="motion-prompt-bar"
+          density="compact"
+          role="group"
+        >
+          {mode === 'prompt' ? (
+            <PromptEditor
+              ariaLabel={t('prompt')}
+              className="min-h-12"
+              onSubmit={submitFromEditor}
+              onValueChange={updateText}
+              placeholder={t('prompt')}
+              value={text}
+            />
+          ) : (
+            <Textarea
+              aria-label={mode === 'props' ? t('props') : t('source')}
+              className="border-0 bg-transparent px-0 font-mono text-xs shadow-none"
+              onChange={(event) => updateText(event.target.value)}
+              rows={mode === 'sourceCode' ? 12 : 6}
+              value={text}
+            />
           )}
-          <nav aria-label={t('projects')} className="flex flex-col gap-2">
-            {api.projects.data?.pages
-              .flatMap((page) => page.projects)
-              .map((item) => (
-                <Link
-                  key={item.id}
-                  aria-current={item.id === projectId ? 'page' : undefined}
-                  className="rounded-lg border border-border p-3 text-sm hover:bg-muted"
-                  href={`${href(APP_ROUTES.STUDIO.MOTION)}?project=${encodeURIComponent(item.id)}`}
+          {mode === 'sourceCode' && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {t('sourceHint')}
+            </p>
+          )}
+          {!project && selectedModel?.inspectionCapability === 'unknown' && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {t('unverifiedVision')}
+            </p>
+          )}
+          <PromptBarToolbar
+            leading={
+              <>
+                <PromptBarCompactSelect
+                  ariaLabel={t('inputMode')}
+                  onChange={updateMode}
+                  options={modeOptions}
+                  value={mode}
+                />
+                {!project && (
+                  <PromptBarCompactSelect
+                    ariaLabel={t('model')}
+                    onChange={updateModel}
+                    options={modelOptions}
+                    value={modelKey}
+                  />
+                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      ariaLabel={t('settings')}
+                      icon={<SlidersHorizontal className="size-4" />}
+                      size={ButtonSize.ICON}
+                      tooltip={t('settings')}
+                      tooltipPosition="top"
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="max-h-[min(560px,var(--radix-popover-content-available-height,70vh))] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto"
+                    collisionPadding={16}
+                    side="top"
+                    sideOffset={8}
+                  >
+                    <MotionAdvancedSettings
+                      assetIds={assetIds}
+                      formats={formats}
+                      frames={frames}
+                      inheritedOutputs={inheritedOutputs}
+                      isProject={Boolean(project)}
+                      libraryAssets={libraryAssets}
+                      onAssetToggle={toggleAsset}
+                      onFormatToggle={toggleFormat}
+                      onFramesChange={updateFrames}
+                      onPropsTextChange={updatePropsText}
+                      onSettingChange={updateSetting}
+                      propsText={propsText}
+                      settings={settings}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </>
+            }
+            trailing={
+              <>
+                {revision?.hasSource && (
+                  <Button
+                    isDisabled={isQuoteBlocked}
+                    label={t('quoteExport')}
+                    onClick={() => void requestQuote('export')}
+                    size={ButtonSize.SM}
+                    textTransform="none"
+                    variant={ButtonVariant.GHOST}
+                  />
+                )}
+                {revision?.hasSource &&
+                  ['failed', 'cancelled'].includes(revision.status) && (
+                    <Button
+                      isDisabled={isQuoteBlocked}
+                      label={t('quoteRetry')}
+                      onClick={() => void requestQuote('retry')}
+                      size={ButtonSize.SM}
+                      textTransform="none"
+                      variant={ButtonVariant.GHOST}
+                    />
+                  )}
+                <PromptBarSendButton
+                  ariaLabel={t('getQuote')}
+                  isDisabled={isQuoteBlocked}
+                  isLoading={isBusy}
+                  onClick={submitFromEditor}
+                  tooltip={t('getQuote')}
+                />
+              </>
+            }
+          />
+        </PromptBarComposer>
+      </PromptBarContainer>
+    </div>
+  );
+  const composerPane = (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {projectId || project ? (
+        <>
+          <div className="min-h-0 flex-1 overflow-y-auto">{historyPane}</div>
+          <OrganizationModulePreferenceGate moduleId="motion">
+            {composerBar}
+          </OrganizationModulePreferenceGate>
+        </>
+      ) : (
+        <OrganizationModulePreferenceGate moduleId="motion">
+          <PromptEmptyState
+            description={t('heroDescription')}
+            title={t('heroTitle')}
+          >
+            <div className="flex flex-col gap-4">
+              <MotionPromptCards isDisabled={isBusy} onApply={applyPreset} />
+              {appliedPresetId ? (
+                <p
+                  className="text-center text-sm text-muted-foreground"
+                  role="status"
                 >
-                  {item.label}
-                </Link>
-              ))}
-            {api.projects.isLoading && <p role="status">{t('loading')}</p>}
-            {api.projects.hasNextPage && (
-              <Button
-                variant={ButtonVariant.GHOST}
-                onClick={() => void api.projects.fetchNextPage()}
+                  {t('presets.appliedStatus')}
+                </p>
+              ) : null}
+            </div>
+          </PromptEmptyState>
+          {composerBar}
+        </OrganizationModulePreferenceGate>
+      )}
+    </div>
+  );
+  const revisionPane =
+    project && revision ? (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          {t('cost', {
+            consumed: revision.consumedCredits,
+            maximum: revision.maximumCredits,
+          })}{' '}
+          {t('rendererProvenance', {
+            model: revision.modelKey ?? '—',
+            version: revision.rendererVersion,
+          })}
+        </p>
+        {Array.from(new Set(revision.diagnostics ?? [])).map((message) => (
+          <p key={message} className="text-sm text-muted-foreground">
+            {message}
+          </p>
+        ))}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(revision.previews ?? []).map((media, index) => (
+            <Image
+              key={media.url}
+              unoptimized
+              src={media.url}
+              width={media.width}
+              height={media.height}
+              alt={t('preview', { number: index + 1 })}
+              className="h-auto w-full rounded-lg border border-border"
+            />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {revision.outputs.map((media, index) => (
+            <div key={media.ingredientId ?? media.url} className="space-y-2">
+              {media.format === 'mp4' ? (
+                <VideoPlayer
+                  config={{
+                    controls: true,
+                    muted: false,
+                    loop: false,
+                    playsInline: true,
+                    preload: 'metadata',
+                  }}
+                  src={media.url}
+                  className="max-h-96 w-full rounded-lg"
+                  ariaLabel={t('videoOutput')}
+                />
+              ) : (
+                <Image
+                  unoptimized
+                  src={media.url}
+                  width={media.width}
+                  height={media.height}
+                  alt={t('output', { number: index + 1 })}
+                  className="h-auto max-h-96 w-auto rounded-lg"
+                />
+              )}
+              <Link
+                className="text-sm underline"
+                href={href(
+                  `/library?ingredient=${encodeURIComponent(media.ingredientId ?? '')}`,
+                )}
               >
-                {t('moreProjects')}
+                {t('openLibrary')}
+              </Link>
+              <a className="ml-4 text-sm underline" href={media.url} download>
+                {t('download')}
+              </a>
+              {modulePreferences?.editor === true &&
+                media.format === 'mp4' &&
+                media.ingredientId && (
+                  <Link
+                    className="ml-4 text-sm underline"
+                    href={href(
+                      `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(media.ingredientId)}`,
+                    )}
+                  >
+                    {t('openEditor')}
+                  </Link>
+                )}
+            </div>
+          ))}
+        </div>
+        {revision.hasSource && (
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={isBusy}
+            onClick={() =>
+              void run(async () => setSource(await api.source(revision.number)))
+            }
+          >
+            {t('viewSource')}
+          </Button>
+        )}
+        {isModuleWorkEnabled && (
+          <div className="flex gap-2">
+            {revision.hasSource && (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                disabled={isBusy}
+                onClick={() =>
+                  void run(async () => {
+                    const value = await api.source(revision.number);
+                    if (!isMounted.current) return;
+                    invalidateQuote();
+                    setMode('sourceCode');
+                    setText(value);
+                  })
+                }
+              >
+                {t('loadSource')}
               </Button>
             )}
-          </nav>
-        </aside>
-        <main className="min-w-0 space-y-6">
-          {isModuleWorkEnabled ? null : noticeContent}
-          {project && (
-            <section className="space-y-3" aria-label={t('history')}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="gen-heading-sm">{project.label}</h2>
-                <span role="status" aria-live="polite" className="text-sm">
-                  {current?.status} · {current?.progress ?? 0}%
-                </span>
-              </div>
-              <SegmentedControl
-                appearance="chip"
-                ariaLabel={t('history')}
-                onValueChange={(revisionId) => {
-                  const item = revisions.find(
-                    (entry) => entry.id === revisionId,
-                  );
-                  if (item) {
-                    setSelectedRevision(item.number);
-                    setSource(null);
-                    invalidateQuote();
-                  }
-                }}
-                options={revisions.map((item) => ({
-                  label: `${t('revision', { number: item.number })} · ${item.status}`,
-                  value: item.id,
-                }))}
-                value={revision?.id}
-              />
-              {(historyCursor === undefined
-                ? project.nextRevisionCursor
-                : historyCursor) != null && (
-                <Button
-                  variant={ButtonVariant.GHOST}
-                  disabled={isBusy}
-                  onClick={() =>
-                    void run(async () => {
-                      const cursor =
-                        historyCursor === undefined
-                          ? project.nextRevisionCursor
-                          : historyCursor;
-                      if (cursor === null || cursor === undefined) return;
-                      const page = await api.history(cursor);
-                      setOlder((prior) => [...prior, ...page.revisions]);
-                      setHistoryCursor(page.nextRevisionCursor);
-                    })
-                  }
-                >
-                  {t('olderRevisions')}
-                </Button>
-              )}
-              {revision && (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    {t('cost', {
-                      consumed: revision.consumedCredits,
-                      maximum: revision.maximumCredits,
-                    })}{' '}
-                    {t('rendererProvenance', {
-                      model: revision.modelKey ?? '—',
-                      version: revision.rendererVersion,
-                    })}
-                  </p>
-                  {Array.from(new Set(revision.diagnostics ?? [])).map(
-                    (message) => (
-                      <p
-                        key={message}
-                        className="text-sm text-muted-foreground"
-                      >
-                        {message}
-                      </p>
-                    ),
-                  )}
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {(revision.previews ?? []).map((media, index) => (
-                      <Image
-                        key={media.url}
-                        unoptimized
-                        src={media.url}
-                        width={media.width}
-                        height={media.height}
-                        alt={t('preview', { number: index + 1 })}
-                        className="h-auto w-full rounded-lg border border-border"
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-3">
-                    {revision.outputs.map((media, index) => (
-                      <div
-                        key={media.ingredientId ?? media.url}
-                        className="space-y-2"
-                      >
-                        {media.format === 'mp4' ? (
-                          <VideoPlayer
-                            config={{
-                              controls: true,
-                              muted: false,
-                              loop: false,
-                              playsInline: true,
-                              preload: 'metadata',
-                            }}
-                            src={media.url}
-                            className="max-h-96 w-full rounded-lg"
-                            ariaLabel={t('videoOutput')}
-                          />
-                        ) : (
-                          <Image
-                            unoptimized
-                            src={media.url}
-                            width={media.width}
-                            height={media.height}
-                            alt={t('output', { number: index + 1 })}
-                            className="h-auto max-h-96 w-auto rounded-lg"
-                          />
-                        )}
-                        <Link
-                          className="text-sm underline"
-                          href={href(
-                            `/library?ingredient=${encodeURIComponent(media.ingredientId ?? '')}`,
-                          )}
-                        >
-                          {t('openLibrary')}
-                        </Link>
-                        <a
-                          className="ml-4 text-sm underline"
-                          href={media.url}
-                          download
-                        >
-                          {t('download')}
-                        </a>
-                        {modulePreferences?.editor === true &&
-                          media.format === 'mp4' &&
-                          media.ingredientId && (
-                            <Link
-                              className="ml-4 text-sm underline"
-                              href={href(
-                                `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(media.ingredientId)}`,
-                              )}
-                            >
-                              {t('openEditor')}
-                            </Link>
-                          )}
-                      </div>
-                    ))}
-                  </div>
-                  {revision.hasSource && (
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      disabled={isBusy}
-                      onClick={() =>
-                        void run(async () =>
-                          setSource(await api.source(revision.number)),
-                        )
-                      }
-                    >
-                      {t('viewSource')}
-                    </Button>
-                  )}
-                  {isModuleWorkEnabled && (
-                    <div className="flex gap-2">
-                      {revision.hasSource && (
-                        <Button
-                          variant={ButtonVariant.SECONDARY}
-                          disabled={isBusy}
-                          onClick={() =>
-                            void run(async () => {
-                              const value = await api.source(revision.number);
-                              if (!isMounted.current) return;
-                              invalidateQuote();
-                              setMode('sourceCode');
-                              setText(value);
-                            })
-                          }
-                        >
-                          {t('loadSource')}
-                        </Button>
-                      )}
-                      <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => {
-                          invalidateQuote();
-                          setMode('props');
-                          setText(JSON.stringify(revision.props, null, 2));
-                        }}
-                      >
-                        {t('loadProps')}
-                      </Button>
-                    </div>
-                  )}
-                  {source !== null && (
-                    <div className="space-y-2">
-                      <Textarea
-                        isReadOnly
-                        aria-label={t('retainedSource')}
-                        value={source}
-                        rows={14}
-                        className="font-mono text-xs"
-                      />
-                      <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() => {
-                          const url = URL.createObjectURL(
-                            new Blob([source], { type: 'text/plain' }),
-                          );
-                          const anchor = document.createElement('a');
-                          anchor.href = url;
-                          anchor.download = `visual-revision-${revision.number}.tsx`;
-                          anchor.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        {t('downloadSource')}
-                      </Button>
-                    </div>
-                  )}
-                  {isActive && (
-                    <Button
-                      disabled={isBusy}
-                      variant={ButtonVariant.SECONDARY}
-                      onClick={() => void run(api.cancel)}
-                    >
-                      {t('cancel')}
-                    </Button>
-                  )}
-                </>
-              )}
-            </section>
-          )}
-          <OrganizationModulePreferenceGate moduleId="motion">
-            {!projectId && !project && (
-              <MotionPresetPanel
-                appliedPresetId={appliedPresetId}
-                isFirstRun={
-                  !api.projects.isLoading &&
-                  !api.projects.data?.pages.some(
-                    (page) => page.projects.length > 0,
-                  )
-                }
-                onApply={applyPreset}
-              />
-            )}
-            <PromptBarContainer
-              containerRef={(node) => {
-                composeRef.current = node;
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                invalidateQuote();
+                setMode('props');
+                setText(JSON.stringify(revision.props, null, 2));
               }}
-              layoutMode="inflow"
-              maxWidth="full"
             >
-              <PromptBarComposer
-                aria-label={t('compose')}
-                banner={composerBanner}
-                beforeBody={
-                  <div className="grid gap-2 px-3.5 pt-3">
-                    <p className="gen-label">
-                      {project ? t('revise') : t('compose')}
-                    </p>
-                    {!project && (
-                      <Input
-                        aria-label={t('label')}
-                        className="h-7 border-0 bg-transparent px-0 shadow-none"
-                        maxLength={120}
-                        onChange={(event) => updateLabel(event.target.value)}
-                        placeholder={t('label')}
-                        value={label}
-                      />
-                    )}
-                  </div>
-                }
-                data-testid="motion-prompt-bar"
-                density="compact"
-                role="group"
-              >
-                {mode === 'prompt' ? (
-                  <PromptEditor
-                    ariaLabel={t('prompt')}
-                    className="min-h-12"
-                    onSubmit={submitFromEditor}
-                    onValueChange={updateText}
-                    placeholder={t('prompt')}
-                    value={text}
-                  />
-                ) : (
-                  <Textarea
-                    aria-label={mode === 'props' ? t('props') : t('source')}
-                    className="border-0 bg-transparent px-0 font-mono text-xs shadow-none"
-                    onChange={(event) => updateText(event.target.value)}
-                    rows={mode === 'sourceCode' ? 12 : 6}
-                    value={text}
-                  />
-                )}
-                {mode === 'sourceCode' && (
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    {t('sourceHint')}
-                  </p>
-                )}
-                {!project &&
-                  selectedModel?.inspectionCapability === 'unknown' && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      {t('unverifiedVision')}
-                    </p>
-                  )}
-                <PromptBarToolbar
-                  leading={
-                    <>
-                      <PromptBarCompactSelect
-                        ariaLabel={t('inputMode')}
-                        onChange={updateMode}
-                        options={modeOptions}
-                        value={mode}
-                      />
-                      {!project && (
-                        <PromptBarCompactSelect
-                          ariaLabel={t('model')}
-                          onChange={updateModel}
-                          options={modelOptions}
-                          value={modelKey}
-                        />
-                      )}
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            ariaLabel={t('settings')}
-                            icon={<SlidersHorizontal className="size-4" />}
-                            size={ButtonSize.ICON}
-                            tooltip={t('settings')}
-                            tooltipPosition="top"
-                            variant={ButtonVariant.GHOST}
-                            withWrapper={false}
-                          />
-                        </PopoverTrigger>
-                        <PopoverContent
-                          align="start"
-                          className="max-h-[min(560px,var(--radix-popover-content-available-height,70vh))] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto"
-                          collisionPadding={16}
-                          side="top"
-                          sideOffset={8}
-                        >
-                          <MotionAdvancedSettings
-                            assetIds={assetIds}
-                            formats={formats}
-                            frames={frames}
-                            inheritedOutputs={inheritedOutputs}
-                            isProject={Boolean(project)}
-                            libraryAssets={libraryAssets}
-                            onAssetToggle={toggleAsset}
-                            onFormatToggle={toggleFormat}
-                            onFramesChange={updateFrames}
-                            onPropsTextChange={updatePropsText}
-                            onSettingChange={updateSetting}
-                            propsText={propsText}
-                            settings={settings}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </>
-                  }
-                  trailing={
-                    <>
-                      {revision?.hasSource && (
-                        <Button
-                          isDisabled={isQuoteBlocked}
-                          label={t('quoteExport')}
-                          onClick={() => void requestQuote('export')}
-                          size={ButtonSize.SM}
-                          textTransform="none"
-                          variant={ButtonVariant.GHOST}
-                        />
-                      )}
-                      {revision?.hasSource &&
-                        ['failed', 'cancelled'].includes(revision.status) && (
-                          <Button
-                            isDisabled={isQuoteBlocked}
-                            label={t('quoteRetry')}
-                            onClick={() => void requestQuote('retry')}
-                            size={ButtonSize.SM}
-                            textTransform="none"
-                            variant={ButtonVariant.GHOST}
-                          />
-                        )}
-                      <PromptBarSendButton
-                        ariaLabel={t('getQuote')}
-                        isDisabled={isQuoteBlocked}
-                        isLoading={isBusy}
-                        onClick={submitFromEditor}
-                        tooltip={t('getQuote')}
-                      />
-                    </>
-                  }
-                />
-              </PromptBarComposer>
-            </PromptBarContainer>
-          </OrganizationModulePreferenceGate>
-        </main>
+              {t('loadProps')}
+            </Button>
+          </div>
+        )}
+        {source !== null && (
+          <div className="space-y-2">
+            <Textarea
+              isReadOnly
+              aria-label={t('retainedSource')}
+              value={source}
+              rows={14}
+              className="font-mono text-xs"
+            />
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                const url = URL.createObjectURL(
+                  new Blob([source], { type: 'text/plain' }),
+                );
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = `visual-revision-${revision.number}.tsx`;
+                anchor.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              {t('downloadSource')}
+            </Button>
+          </div>
+        )}
+        {isActive && (
+          <Button
+            disabled={isBusy}
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => void run(api.cancel)}
+          >
+            {t('cancel')}
+          </Button>
+        )}
       </div>
-    </Container>
+    ) : null;
+  const projectsPane = (
+    <div className="flex flex-col gap-4">
+      {projectItems.length > 0 ? (
+        <CollectionList>
+          {projectItems.map((item) => (
+            <ListRow
+              density="compact"
+              href={`${href(APP_ROUTES.STUDIO.MOTION)}?project=${encodeURIComponent(item.id)}`}
+              key={item.id}
+              title={item.label}
+            />
+          ))}
+        </CollectionList>
+      ) : null}
+      {api.projects.isLoading ? <p role="status">{t('loading')}</p> : null}
+      {!api.projects.isLoading && projectItems.length === 0 ? (
+        <EmptyState
+          description={t('emptyDescription')}
+          title={t('emptyTitle')}
+        />
+      ) : null}
+      {api.projects.hasNextPage ? (
+        <Button
+          variant={ButtonVariant.GHOST}
+          onClick={() => void api.projects.fetchNextPage()}
+        >
+          {t('moreProjects')}
+        </Button>
+      ) : null}
+    </div>
+  );
+  return (
+    <AgentOutputShell
+      agent={composerPane}
+      agentTitle={project ? t('revise') : t('compose')}
+      outputLabel={project ? t('history') : t('projects')}
+    >
+      <Container
+        label={t('title')}
+        moduleChrome
+        right={
+          projectId ? (
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href={href(APP_ROUTES.STUDIO.MOTION)}>{t('projects')}</Link>
+            </Button>
+          ) : undefined
+        }
+        titleVisibility="sr-only"
+      >
+        <div className="flex w-full min-w-0 flex-col gap-6">
+          {isModuleWorkEnabled ? null : noticeContent}
+          {projectId || project ? revisionPane : projectsPane}
+        </div>
+      </Container>
+    </AgentOutputShell>
   );
 }

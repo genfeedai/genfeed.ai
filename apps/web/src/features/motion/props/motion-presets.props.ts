@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react';
-import type { StudioPresetLayout } from '@/props/studio/studio-presets.props';
 
 export type MotionPresetId =
   | 'kineticQuote'
@@ -21,22 +20,7 @@ export interface MotionPreset {
   width: number;
 }
 
-export interface MotionPresetGridProps {
-  appliedPresetId?: MotionPresetId;
-  layout?: StudioPresetLayout;
-  onApply: (preset: MotionPreset) => void;
-  presets: readonly MotionPreset[];
-}
-
-export interface MotionFramePreviewProps {
-  durationFrames: number;
-  height: number;
-  width: number;
-}
-
-export interface MotionPresetPanelProps {
-  appliedPresetId?: MotionPresetId;
-  /** True before the creator has any Motion project: show the full intro. */
-  isFirstRun: boolean;
+export interface MotionPromptCardsProps {
+  isDisabled?: boolean;
   onApply: (preset: MotionPreset) => void;
 }
