@@ -52,6 +52,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/turbo/project-1/extra')).toBe(false);
   });
 
+  it('matches the Playground workspace and an open generation', () => {
+    expect(isAgentOutputRoute('/playground')).toBe(true);
+    expect(isAgentOutputRoute('/playground/')).toBe(true);
+    expect(isAgentOutputRoute('/playground/job-1')).toBe(true);
+    expect(isAgentOutputRoute('/playground/job-1/extra')).toBe(false);
+  });
+
   it('matches the Motion workspace and an open Motion project', () => {
     expect(isAgentOutputRoute('/motion')).toBe(true);
     expect(isAgentOutputRoute('/motion/')).toBe(true);
