@@ -71,7 +71,6 @@ export default function BrandRuleProposals({
         const service = await getServiceRef.current();
         const next = await service.proposeRules(
           {
-            brandId,
             ...(hasEdit ? { edited, original: original ?? undefined } : {}),
             ...(hasReason ? { reason } : {}),
           },

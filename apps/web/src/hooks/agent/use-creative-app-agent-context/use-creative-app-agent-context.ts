@@ -22,18 +22,18 @@ export function useCreativeAppAgentContext(
     if (!creativeApp) {
       return;
     }
-
-    const openApp = creativeApp;
+    // A const keeps the non-null narrowing inside the closures below.
+    const context = creativeApp;
 
     function apply(): void {
       const current = useAgentChatStore.getState().pageContext;
-      if (current?.route === pathname && current.creativeApp === openApp) {
+      if (current?.route === pathname && current.creativeApp === context) {
         return;
       }
       setPageContext({
         suggestedActions: [],
         ...(current?.route === pathname ? current : {}),
-        creativeApp: openApp,
+        creativeApp: context,
         route: pathname,
       });
     }
