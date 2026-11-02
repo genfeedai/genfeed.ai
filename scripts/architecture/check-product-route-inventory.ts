@@ -79,7 +79,6 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library/shelf/:shelf',
   '/:orgSlug/~/editor',
   '/:orgSlug/~/editor/projects',
-  '/:orgSlug/~/editor/new',
   '/:orgSlug/~/editor/:id',
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',

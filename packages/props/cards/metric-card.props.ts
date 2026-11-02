@@ -10,7 +10,7 @@ export type MetricCardAlign = 'start' | 'center';
 
 /**
  * How the metric paints:
- * - `tile` — framed Card (value → label → description). Default for grids.
+ * - `tile` — framed Card (value → label). Default for grids.
  * - `inset` — the same tile as a borderless recessed panel, for metrics that
  *   sit inside another card.
  * - `inline` — frameless value/label pair for {@link MetricSummary} strips.
@@ -46,13 +46,11 @@ export type MetricCardProps = {
   appearance?: MetricCardAppearance;
   /** Optional class on the outer frame */
   className?: string;
-  /** Secondary line under the value (not a trend) */
-  description?: ReactNode;
   /** Optional icon chip, top right of the tile */
   icon?: IconComponent;
   /** Show one skeleton inside the tile while its data is loading. */
   isLoading?: boolean;
-  /** Uppercase metric label under the value — same type scale on every size */
+  /** Metric label under the value — same type scale on every size */
   label: string;
   /**
    * Compact (nested in surfaces), default, or hero dashboard row.

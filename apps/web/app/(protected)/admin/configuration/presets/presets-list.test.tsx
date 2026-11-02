@@ -213,22 +213,10 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalPreset: ({
-    item,
-    onClose,
-    onConfirm,
-  }: {
-    item?: { label?: string } | null;
-    onClose: () => void;
-    onConfirm: () => void;
-  }) => (
+  LazyModalPreset: ({ onConfirm }: { onConfirm: () => void }) => (
     <div data-testid="preset-modal">
-      Modal item: {item?.label ?? 'none'}
       <button type="button" onClick={onConfirm}>
         Confirm Preset Modal
-      </button>
-      <button type="button" onClick={onClose}>
-        Close Preset Modal
       </button>
     </div>
   ),
@@ -504,19 +492,18 @@ describe('PresetsList', () => {
     });
   });
 
-  it('opens edit and delete flows with the clicked preset', async () => {
+  it('has no Edit action: presets are edited in the context sidebar', async () => {
+    renderList({ scope: PageScope.SUPERADMIN });
+
+    expect(await screen.findByText('Launch Video')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit / })).toBeNull();
+  });
+
+  it('opens the delete flow with the clicked preset', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Edit Image Preset' }),
-    );
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('preset-modal')).toHaveTextContent(
-      'Image Preset',
-    );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Delete Image Preset' }),
+      await screen.findByRole('button', { name: 'Delete Image Preset' }),
     );
     expect(mocks.openConfirm).toHaveBeenCalledWith(
       expect.objectContaining({

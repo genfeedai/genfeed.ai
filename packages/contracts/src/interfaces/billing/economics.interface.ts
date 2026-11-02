@@ -128,10 +128,28 @@ export type EconomicsCostKind = 'llm' | 'media';
 
 export interface IEconomicsCostTotals {
   byokCalls: number;
+  /**
+   * Generation cost divided by the generations we paid a known price for
+   * (not BYOK, not recorded at $0). Null when there are none, so unpriced and
+   * BYOK rows never pull the average toward zero.
+   */
+  costPerGenerationUsd: number | null;
+  /** Retail value of the credits spent on generation operations (1 credit = $0.01). */
+  generationCreditValueUsd: number;
   llmCalls: number;
   llmCostUsd: number;
+  /**
+   * Generation credit value minus generation provider cost, per charged
+   * generation. Negative when prices do not cover cost. Null without charged
+   * generations. Unpriced rows carry credits but no cost, so they overstate it.
+   */
+  marginPerGenerationUsd: number | null;
+  /** Generations that spent credits: not BYOK. */
+  mediaChargedGenerations: number;
   mediaCostUsd: number;
   mediaGenerations: number;
+  /** Generations with a known provider price: not BYOK, not recorded at $0. */
+  mediaPricedGenerations: number;
   providerCostUsd: number;
   /** Non-BYOK calls the ledger recorded at $0: the price was unknown. */
   unpricedCalls: number;
@@ -161,8 +179,12 @@ export interface IEconomicsCostModelRow {
 export interface IEconomicsCostCategoryRow {
   /** Ingredient category of the generation, e.g. `IMAGE`. */
   category: string;
+  /** Cost over priced generations; null when none were priced. */
+  costPerGenerationUsd: number | null;
   costUsd: number;
   generations: number;
+  /** Generations with a known provider price: not BYOK, not recorded at $0. */
+  pricedGenerations: number;
 }
 
 export interface IEconomicsCostReport {

@@ -1,5 +1,6 @@
 import { EconomicsService } from '@api/endpoints/admin/economics/economics.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 describe('EconomicsService', () => {
@@ -240,9 +241,27 @@ describe('EconomicsService', () => {
     const { service } = createService({
       flags: [{ byokCalls: 3n, unpricedCalls: 2n }],
       llmByDay: [{ calls: 5n, costMicros: 1_500_000n, day: '2026-09-02' }],
-      mediaByDay: [{ calls: 1n, costMicros: 500_000n, day: '2026-09-03' }],
+      mediaByDay: [{ calls: 4n, costMicros: 500_000n, day: '2026-09-03' }],
       mediaCategories: [
-        { category: 'IMAGE', costMicros: 500_000n, generations: 1n },
+        {
+          category: 'IMAGE',
+          chargedGenerations: 2n,
+          costMicros: 500_000n,
+          generations: 3n,
+          pricedGenerations: 2n,
+        },
+        {
+          category: 'VIDEO',
+          chargedGenerations: 1n,
+          costMicros: 0n,
+          generations: 1n,
+          pricedGenerations: 0n,
+        },
+      ],
+      creditsBySource: [
+        { credits: 60, source: ActivitySource.IMAGE_GENERATION },
+        { credits: 90, source: ActivitySource.VIDEO_GENERATION },
+        { credits: 50, source: ActivitySource.AGENT_CHAT },
       ],
       models: [
         {
@@ -274,10 +293,15 @@ describe('EconomicsService', () => {
 
     expect(report.totals).toEqual({
       byokCalls: 3,
+      costPerGenerationUsd: 0.25,
+      generationCreditValueUsd: 1.5,
       llmCalls: 5,
       llmCostUsd: 1.5,
+      marginPerGenerationUsd: 0.333333,
+      mediaChargedGenerations: 3,
       mediaCostUsd: 0.5,
-      mediaGenerations: 1,
+      mediaGenerations: 4,
+      mediaPricedGenerations: 2,
       providerCostUsd: 2,
       unpricedCalls: 2,
     });
@@ -294,7 +318,20 @@ describe('EconomicsService', () => {
     });
     expect(report.models[1]?.unpricedCalls).toBe(2);
     expect(report.mediaCategories).toEqual([
-      { category: 'IMAGE', costUsd: 0.5, generations: 1 },
+      {
+        category: 'IMAGE',
+        costPerGenerationUsd: 0.25,
+        costUsd: 0.5,
+        generations: 3,
+        pricedGenerations: 2,
+      },
+      {
+        category: 'VIDEO',
+        costPerGenerationUsd: null,
+        costUsd: 0,
+        generations: 1,
+        pricedGenerations: 0,
+      },
     ]);
   });
 

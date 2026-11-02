@@ -18,17 +18,6 @@ function formatMetric(metric: ICampaignMetricAvailability): string {
   return metric.value.toLocaleString('en-US');
 }
 
-function metricDescription(
-  metric: ICampaignMetricAvailability,
-  unavailableLabel: string,
-  coverageLabel: (available: number, total: number) => string,
-): string {
-  if (metric.availablePostCount === 0) {
-    return unavailableLabel;
-  }
-  return coverageLabel(metric.availablePostCount, metric.totalPostCount);
-}
-
 export default function CampaignDetailPerformance({
   campaignId,
 }: {
@@ -52,46 +41,22 @@ export default function CampaignDetailPerformance({
     return <LoadingState isFullSize />;
   }
 
-  const coverage = (available: number, total: number) =>
-    translate('performanceCoverage', { available, total });
-  const unavailable = translate('performanceUnavailable');
-
   return (
     <div className="grid gap-6 p-5 sm:p-6">
       <MetricCardGrid columns={4}>
         <MetricCard
-          description={metricDescription(
-            performance.organic.views,
-            unavailable,
-            coverage,
-          )}
           label={translate('performanceViews')}
           value={formatMetric(performance.organic.views)}
         />
         <MetricCard
-          description={metricDescription(
-            performance.organic.engagements,
-            unavailable,
-            coverage,
-          )}
           label={translate('performanceEngagements')}
           value={formatMetric(performance.organic.engagements)}
         />
         <MetricCard
-          description={metricDescription(
-            performance.organic.clicks,
-            unavailable,
-            coverage,
-          )}
           label={translate('performanceClicks')}
           value={formatMetric(performance.organic.clicks)}
         />
         <MetricCard
-          description={metricDescription(
-            performance.organic.conversions,
-            unavailable,
-            coverage,
-          )}
           label={translate('performanceConversions')}
           value={formatMetric(performance.organic.conversions)}
         />

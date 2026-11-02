@@ -227,14 +227,14 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings/usage': 'Usage',
   // Studio tools are apps (#5502): the app is the root, its home the leaf.
   '/:orgSlug/:brandSlug/playground': 'Canvas',
+  '/:orgSlug/:brandSlug/playground/:jobId': 'Generation',
   '/:orgSlug/:brandSlug/storyboard': 'Runs',
-  '/:orgSlug/:brandSlug/motion': 'Compositions',
+  '/:orgSlug/:brandSlug/motion': 'Projects',
   '/:orgSlug/:brandSlug/clipper': 'Projects',
   '/:orgSlug/:brandSlug/turbo': 'Projects',
-  '/:orgSlug/:brandSlug/clipper/new': 'New project',
-  '/:orgSlug/:brandSlug/storyboard/new': 'New storyboard',
   '/:orgSlug/:brandSlug/storyboard/:runId': 'Run',
   '/:orgSlug/:brandSlug/clipper/:projectId': 'Project',
+  '/:orgSlug/:brandSlug/motion/:projectId': 'Project',
   '/:orgSlug/:brandSlug/editor': 'Projects',
   '/:orgSlug/:brandSlug/editor/:id': 'Project',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
@@ -769,7 +769,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/editor',
       '/:orgSlug/~/editor/projects',
-      '/:orgSlug/~/editor/new',
       '/:orgSlug/~/editor/:id',
     ],
     {
@@ -881,12 +880,12 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/turbo',
       '/:orgSlug/:brandSlug/turbo/:projectId',
       '/:orgSlug/:brandSlug/clipper',
-      '/:orgSlug/:brandSlug/clipper/new',
       '/:orgSlug/:brandSlug/clipper/:projectId',
       '/:orgSlug/:brandSlug/playground',
+      '/:orgSlug/:brandSlug/playground/:jobId',
       '/:orgSlug/:brandSlug/motion',
+      '/:orgSlug/:brandSlug/motion/:projectId',
       '/:orgSlug/:brandSlug/storyboard',
-      '/:orgSlug/:brandSlug/storyboard/new',
       '/:orgSlug/:brandSlug/storyboard/:runId',
     ],
     {
@@ -901,11 +900,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/editor',
-      '/:orgSlug/:brandSlug/editor/new',
-      '/:orgSlug/:brandSlug/editor/:id',
-    ],
+    ['/:orgSlug/:brandSlug/editor', '/:orgSlug/:brandSlug/editor/:id'],
     {
       fallback: '/:orgSlug/:brandSlug/editor',
       mode: 'canvas',

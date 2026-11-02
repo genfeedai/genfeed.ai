@@ -357,9 +357,7 @@ export const APP_ROUTES = {
    */
   STUDIO: {
     CLIPPER: '/clipper',
-    CLIPPER_NEW: '/clipper/new',
     EDITOR: '/editor',
-    EDITOR_NEW: '/editor/new',
     MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt
@@ -367,7 +365,6 @@ export const APP_ROUTES = {
      */
     PLAYGROUND: '/playground',
     STORYBOARD: '/storyboard',
-    STORYBOARD_NEW: '/storyboard/new',
     TURBO: '/turbo',
   },
   WORKSPACE: {

@@ -59,7 +59,7 @@ function libraryHref(type: 'image' | 'video', id: string): string {
  * `?video=`; no Editor route consumes an image, so images get no Editor link.
  */
 function editorHref(id: string): string {
-  return `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(id)}`;
+  return `${APP_ROUTES.STUDIO.EDITOR}?video=${encodeURIComponent(id)}`;
 }
 
 export function GenerationActionCanvas({

@@ -46,11 +46,8 @@ describe('extractStoryboardRunId', () => {
     );
   });
 
-  it('ignores the storyboard list and create routes', () => {
+  it('ignores the storyboard workspace', () => {
     expect(extractStoryboardRunId('/default/default/storyboard')).toBeNull();
-    expect(
-      extractStoryboardRunId('/default/default/storyboard/new'),
-    ).toBeNull();
     expect(extractStoryboardRunId('/default/default/agent/run-1')).toBeNull();
     expect(extractStoryboardRunId(null)).toBeNull();
   });

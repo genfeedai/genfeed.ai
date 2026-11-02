@@ -7,7 +7,6 @@ const CLIPPER_CHROME_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperModeSelector.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperInputForm.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProgressView.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/clipper/components/ClipperProjectCard.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/clipper/page.tsx',
 ] as const;
 

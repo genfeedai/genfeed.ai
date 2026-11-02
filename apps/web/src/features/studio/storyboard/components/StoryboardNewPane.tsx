@@ -1,0 +1,616 @@
+'use client';
+
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import {
+  useGalleryModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
+import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
+import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
+import { Button } from '@ui/primitives/button';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import { Palette, Paperclip } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import type {
+  StoryboardPitch,
+  StoryboardPreset,
+} from '@/features/studio/props/storyboard-presets.props';
+import { resolveAgentPromptAuthor } from '@/features/studio/shared/utils/agent-prompt-author';
+import StoryboardAgentBriefs from '@/features/studio/storyboard/components/StoryboardAgentBriefs';
+import StoryboardPitchCards from '@/features/studio/storyboard/components/StoryboardPitchCards';
+import StoryboardPresetCards from '@/features/studio/storyboard/components/StoryboardPresetCards';
+import StoryboardReferencesPanel from '@/features/studio/storyboard/components/StoryboardReferencesPanel';
+import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
+import { useCreateStoryboard } from '@/features/studio/storyboard/hooks/use-create-storyboard';
+import { buildStoryboardAgentBrief } from '@/features/studio/storyboard/utils/storyboard-agent-brief';
+import { JUST_CREATED_PARAM } from '@/features/studio/storyboard/utils/storyboard-navigation';
+import { storyboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-plan';
+
+const VIDEO_FORMATS = ['9:16', '16:9', '1:1'] as const;
+/** Slides are posted as photos, so the portrait feed format is offered too. */
+const SLIDESHOW_FORMATS = ['4:5', '1:1', '9:16'] as const;
+type StoryboardFormat = (typeof VIDEO_FORMATS)[number] | '4:5';
+function formatOptions(values: readonly StoryboardFormat[]) {
+  return values.map((value) => ({ label: value, value }));
+}
+function isFormatIn(
+  values: readonly StoryboardFormat[],
+  value: string,
+): value is StoryboardFormat {
+  return values.some((candidate) => candidate === value);
+}
+const RUNTIME_BUDGET_SECONDS = [15, 30, 45, 60];
+const MAX_BRIEF_LENGTH = 2000;
+/** A long-form brief is a voice-note transcript or an idea dump. */
+const MAX_LONG_FORM_BRIEF_LENGTH = STORYBOARD_LONG_BRIEF_MAX_CHARACTERS;
+// The counter only appears once the brief is close to the limit.
+const COUNTER_THRESHOLD = 0.8;
+
+/**
+ * The left side of the Storyboard workspace while no run is open: a centered
+ * prompt with starter cards and the prompt bar. Selection/upload saves media
+ * only; creating a draft never dispatches paid work.
+ */
+export default function StoryboardNewPane() {
+  const translate = useTranslations('pages.studioStoryboard.create');
+  const brandId = useBrandId();
+  const { openGallery } = useGalleryModal();
+  const { openUpload } = useUploadModal();
+  const { href } = useOrgUrl();
+  const router = useRouter();
+  const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
+  const [mode, setMode] = useState<
+    'brief' | 'longForm' | 'slideshow' | 'video'
+  >('brief');
+  const isLongForm = mode === 'longForm';
+  const isSlideshow = mode === 'slideshow';
+  const pitchKind = isSlideshow ? 'slideshow' : 'longForm';
+  const formats = isSlideshow ? SLIDESHOW_FORMATS : VIDEO_FORMATS;
+  const maxBriefLength = isLongForm
+    ? MAX_LONG_FORM_BRIEF_LENGTH
+    : MAX_BRIEF_LENGTH;
+  const [brief, setBrief] = useState('');
+  // The agent brief the composer was last filled from, for provenance.
+  const [agentBrief, setAgentBrief] = useState<string | null>(null);
+  const [format, setFormat] = useState<StoryboardFormat>('9:16');
+  const [budget, setBudget] = useState('30');
+  const [seed, setSeed] = useState<{
+    brandId: string;
+    id: string;
+    title: string;
+    url?: string;
+  }>();
+  const image = seed?.brandId === brandId ? seed : undefined;
+  const [styleReferences, setStyleReferences] = useState<
+    NonNullable<typeof seed>[]
+  >([]);
+  const styles = styleReferences.filter(
+    (reference) => reference.brandId === brandId,
+  );
+  const translateWorkspace = useTranslations(
+    'pages.studioStoryboard.workspace',
+  );
+  const translatePlan = useTranslations('pages.studioStoryboard.plan');
+  const translateAgentBriefs = useTranslations(
+    'pages.studioStoryboard.agentBriefs',
+  );
+  const [selected, setSelected] = useState<{
+    brandId: string;
+    id: string;
+    title: string;
+    url?: string;
+  }>();
+  const validBudget =
+    Number.isFinite(Number(budget)) &&
+    Number(budget) > 0 &&
+    Number(budget) <= 60;
+  // Presets may carry a runtime outside the quick picks; keep it selectable.
+  const budgetSeconds = Number(budget);
+  const budgetOptions = [
+    ...new Set([
+      ...RUNTIME_BUDGET_SECONDS,
+      ...(validBudget ? [budgetSeconds] : []),
+    ]),
+  ]
+    .sort((a, b) => a - b)
+    .map((seconds) => ({
+      label: `${seconds}${translate('secondsUnit')}`,
+      value: String(seconds),
+    }));
+  const saveLabel = isCreating
+    ? translate('saving')
+    : error
+      ? translate('retrySaving')
+      : translate('save');
+  const video = selected?.brandId === brandId ? selected : undefined;
+  const valid =
+    mode === 'brief'
+      ? (brief.trim().length > 0 || Boolean(image)) &&
+        brief.trim().length <= MAX_BRIEF_LENGTH &&
+        validBudget
+      : isLongForm
+        ? brief.trim().length > 0 &&
+          brief.trim().length <= MAX_LONG_FORM_BRIEF_LENGTH
+        : isSlideshow
+          ? brief.trim().length > 0 && brief.trim().length <= MAX_BRIEF_LENGTH
+          : Boolean(video);
+  function chooseStartingImage() {
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      format,
+      maxSelectableItems: 1,
+      title: translate('startingImage'),
+      onSelect: (items) => {
+        const item = items.find(
+          (candidate) => candidate.brandId === brandId && !candidate.isDeleted,
+        );
+        if (item && brandId)
+          setSeed({
+            brandId,
+            id: item.id,
+            url: item.cdnUrl ?? undefined,
+            title: storyboardAssetLabel(item, translate('startingImage')),
+          });
+      },
+    });
+  }
+  function chooseStyleReferences() {
+    openGallery({
+      category: IngredientCategory.IMAGE,
+      format,
+      maxSelectableItems: 20 - styles.length,
+      title: translateWorkspace('styles'),
+      onSelect: (items) => {
+        const selected = items.filter(
+          (item) => item.brandId === brandId && !item.isDeleted,
+        );
+        if (!brandId) return;
+        setStyleReferences((current) =>
+          [
+            ...new Map(
+              [
+                ...current.filter((item) => item.brandId === brandId),
+                ...selected.map((item) => ({
+                  brandId,
+                  id: item.id,
+                  title: storyboardAssetLabel(
+                    item,
+                    translateWorkspace('styles'),
+                  ),
+                  url: item.cdnUrl ?? undefined,
+                })),
+              ].map((item) => [item.id, item]),
+            ).values(),
+          ].slice(0, 20),
+        );
+      },
+    });
+  }
+  function applyPreset(preset: StoryboardPreset) {
+    setBrief(preset.brief);
+    setAgentBrief(null);
+    setFormat(preset.format);
+    setBudget(String(preset.runtimeBudgetSeconds));
+  }
+  function applyPitch(pitch: StoryboardPitch) {
+    setBrief(pitch.brief);
+    setAgentBrief(null);
+  }
+  function applyAgentBrief(proposal: StudioStoryboardProposal) {
+    const draft = buildStoryboardAgentBrief(
+      proposal,
+      {
+        shotLine: (shot) => translateAgentBriefs('shotLine', shot),
+        shotsHeading: translateAgentBriefs('shotsHeading'),
+      },
+      MAX_BRIEF_LENGTH,
+    );
+    setBrief(draft.brief);
+    setAgentBrief(draft.brief);
+    setBudget(String(draft.runtimeBudgetSeconds));
+  }
+  async function submit() {
+    if (!valid || isCreating) return;
+    const author = resolveAgentPromptAuthor(agentBrief, brief);
+    const input = isSlideshow
+      ? {
+          source: {
+            kind: 'brief' as const,
+            brief: brief.trim(),
+            length: 'slideshow' as const,
+          },
+          planSettings: {
+            kind: 'slideshow' as const,
+            format,
+            videoModelKey: null,
+            runtimeBudgetSeconds: null,
+            styleReferenceAssetIds: styles.map((reference) => reference.id),
+            cast: [],
+          },
+        }
+      : isLongForm
+        ? {
+            source: {
+              kind: 'brief' as const,
+              brief: brief.trim(),
+              length: 'long_form' as const,
+            },
+            planSettings: {
+              format,
+              videoModelKey: null,
+              runtimeBudgetSeconds: null,
+              styleReferenceAssetIds: styles.map((reference) => reference.id),
+              cast: [],
+            },
+          }
+        : mode === 'brief'
+          ? {
+              source: {
+                kind: 'brief' as const,
+                brief: brief.trim(),
+                ...(image ? { seedImageAssetId: image.id } : {}),
+                ...(author ? { author } : {}),
+              },
+              planSettings: {
+                format,
+                videoModelKey: null,
+                runtimeBudgetSeconds: Number(budget),
+                styleReferenceAssetIds: styles.map((reference) => reference.id),
+                cast: [],
+              },
+            }
+          : {
+              source: {
+                kind: 'uploaded_video' as const,
+                assetId: video?.id ?? '',
+              },
+            };
+    try {
+      const id = await create(input);
+      if (!isCurrentResult(id)) return;
+      const destination = href(
+        `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(id)}`,
+      );
+      // A written brief is drafted into shots on arrival; a video is analysed instead.
+      router.push(
+        input.source.kind === 'brief'
+          ? `${destination}?${JUST_CREATED_PARAM}=1`
+          : destination,
+      );
+    } catch {
+      /* The hook keeps the source and exposes the retryable error. */
+    }
+  }
+  function selectMode(next: string) {
+    if (next === 'brief') {
+      setMode('brief');
+      if (!isFormatIn(VIDEO_FORMATS, format)) setFormat('9:16');
+    } else if (next === 'longForm') {
+      setMode('longForm');
+      setFormat('16:9');
+    } else if (next === 'slideshow') {
+      setMode('slideshow');
+      setFormat('4:5');
+    } else if (next === 'video') {
+      setMode('video');
+    }
+  }
+  const modeSelect = (
+    <PromptBarCompactSelect
+      ariaLabel={translate('sourceAria')}
+      isDisabled={isCreating}
+      options={[
+        { label: translate('fromBrief'), value: 'brief' },
+        { label: translate('longFormTitle'), value: 'longForm' },
+        { label: translate('slideshowTitle'), value: 'slideshow' },
+        { label: translate('remixTitle'), value: 'video' },
+      ]}
+      value={mode}
+      onChange={selectMode}
+    />
+  );
+  const composer = (
+    <PromptBarContainer
+      className="mx-auto w-full max-w-2xl"
+      layoutMode="inflow"
+      maxWidth="full"
+      zIndex={60}
+    >
+      <PromptBarComposer
+        data-testid="storyboard-composer"
+        density="compact"
+        banner={
+          error ? (
+            <p role="alert" className="p-3 text-sm text-destructive">
+              {error}
+            </p>
+          ) : undefined
+        }
+      >
+        {mode !== 'video' ? (
+          <PromptEditor
+            ariaLabel={translate('brief')}
+            value={brief}
+            isDisabled={isCreating}
+            placeholder={translate(
+              isLongForm
+                ? 'longFormPlaceholder'
+                : isSlideshow
+                  ? 'slideshowPlaceholder'
+                  : 'briefPlaceholder',
+            )}
+            onValueChange={setBrief}
+            onSubmit={() => void submit()}
+            className="min-h-16"
+          />
+        ) : null}
+        <PromptBarToolbar
+          leading={
+            <>
+              {modeSelect}
+              {mode !== 'video' ? (
+                <>
+                  <PromptBarCompactSelect
+                    ariaLabel={translate('formatAria')}
+                    isDisabled={isCreating}
+                    options={formatOptions(formats)}
+                    value={format}
+                    onChange={(value) => {
+                      if (isFormatIn(formats, value)) setFormat(value);
+                    }}
+                  />
+                  {isLongForm || isSlideshow ? null : (
+                    <PromptBarCompactSelect
+                      ariaLabel={translate('runtimeBudget')}
+                      isDisabled={isCreating}
+                      options={budgetOptions}
+                      value={budget}
+                      onChange={setBudget}
+                    />
+                  )}
+                </>
+              ) : null}
+            </>
+          }
+          reference={
+            mode === 'brief' || isSlideshow ? (
+              <>
+                {mode === 'brief' ? (
+                  <Button
+                    ariaLabel={translate('chooseStartingImage')}
+                    icon={<Paperclip className="size-3.5" />}
+                    isDisabled={isCreating}
+                    onClick={chooseStartingImage}
+                    size={ButtonSize.ICON}
+                    tooltip={translate('chooseStartingImage')}
+                    tooltipPosition="top"
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  />
+                ) : null}
+                <Button
+                  ariaLabel={translatePlan('addStyleReferences')}
+                  icon={<Palette className="size-3.5" />}
+                  isDisabled={isCreating || styles.length >= 20}
+                  onClick={chooseStyleReferences}
+                  size={ButtonSize.ICON}
+                  tooltip={translatePlan('addStyleReferences')}
+                  tooltipPosition="top"
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              </>
+            ) : null
+          }
+          trailing={
+            <PromptBarSendButton
+              ariaLabel={saveLabel}
+              isDisabled={isCreating || !valid}
+              isLoading={isCreating}
+              onClick={() => void submit()}
+              tooltip={saveLabel}
+            />
+          }
+        />
+        {mode !== 'video' &&
+        brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
+          <p
+            className={
+              brief.length > maxBriefLength
+                ? 'mt-2 text-xs text-destructive'
+                : 'mt-2 text-xs text-muted-foreground'
+            }
+          >
+            {translate('characterCount', { count: brief.length })}
+          </p>
+        ) : null}
+      </PromptBarComposer>
+    </PromptBarContainer>
+  );
+  const modeHint = isSlideshow
+    ? translate('slideshowHint')
+    : isLongForm
+      ? translate('longFormHint')
+      : translate('heroDescription');
+  const guidance =
+    mode === 'video' ? (
+      <p role="status" className="text-sm">
+        {video?.title || translate('chooseOwnedVideo')}
+      </p>
+    ) : isLongForm || isSlideshow ? (
+      <>
+        <StoryboardPitchCards
+          isDisabled={isCreating}
+          kind={pitchKind}
+          onSelect={applyPitch}
+        />
+      </>
+    ) : (
+      <>
+        <StoryboardAgentBriefs
+          brandId={brandId || undefined}
+          isDisabled={isCreating}
+          onSelect={applyAgentBrief}
+        />
+        <StoryboardPresetCards
+          activePresetId={
+            STORYBOARD_PRESETS.find((preset) => preset.brief === brief)?.id
+          }
+          isDisabled={isCreating}
+          onSelect={applyPreset}
+        />
+      </>
+    );
+  const referenceItems = [
+    ...(mode === 'brief' && image
+      ? [
+          {
+            id: `seed:${image.id}`,
+            title: image.title,
+            kind: 'image' as const,
+            url: image.url,
+            group: translate('startingImage'),
+            onRemove: () => setSeed(undefined),
+          },
+        ]
+      : []),
+    ...(mode !== 'video'
+      ? styles.map((reference) => ({
+          id: `style:${reference.id}`,
+          title: reference.title,
+          kind: 'image' as const,
+          url: reference.url,
+          group: translateWorkspace('styles'),
+          onRemove: () =>
+            setStyleReferences((current) =>
+              current.filter(
+                (item) => item.id !== reference.id || item.brandId !== brandId,
+              ),
+            ),
+        }))
+      : []),
+    ...(mode === 'video' && video
+      ? [
+          {
+            id: `video:${video.id}`,
+            title: video.title,
+            kind: 'video' as const,
+            url: video.url,
+            group: translate('uploadedVideo'),
+            onRemove: () => setSelected(undefined),
+          },
+        ]
+      : []),
+  ];
+  // A remix needs its video picked here; other modes show what was attached.
+  const referencesPanel =
+    mode === 'video' || referenceItems.length > 0 ? (
+      <StoryboardReferencesPanel
+        references={referenceItems}
+        actions={
+          mode === 'video' ? (
+            <>
+              <Button
+                label={translate('chooseFromLibrary')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() =>
+                  openGallery({
+                    category: IngredientCategory.VIDEO,
+                    maxSelectableItems: 1,
+                    title: translate('remixTitle'),
+                    onSelect: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          candidate.brandId === brandId && !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
+              />
+              <Button
+                label={translate('uploadVideo')}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() =>
+                  openUpload({
+                    category: IngredientCategory.VIDEO,
+                    isMultiple: false,
+                    maxFiles: 1,
+                    onComplete: (items) => {
+                      const item = items.find(
+                        (candidate) =>
+                          'brandId' in candidate &&
+                          candidate.brandId === brandId &&
+                          !candidate.isDeleted,
+                      );
+                      if (item && brandId && 'brandId' in item)
+                        setSelected({
+                          brandId,
+                          id: item.id,
+                          url: item.cdnUrl ?? undefined,
+                          title: storyboardAssetLabel(
+                            item,
+                            translate('uploadedVideo'),
+                          ),
+                        });
+                    },
+                  })
+                }
+              />
+              {video ? (
+                <Button
+                  label={translate('clearVideo')}
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isCreating}
+                  onClick={() => setSelected(undefined)}
+                />
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
+    ) : null;
+  return (
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      data-testid="storyboard-agent"
+    >
+      <PromptEmptyState
+        description={mode === 'video' ? undefined : modeHint}
+        title={translate('heroTitle')}
+      >
+        <div className="flex flex-col gap-4">
+          {guidance}
+          {referencesPanel}
+        </div>
+      </PromptEmptyState>
+      <div className="mt-auto shrink-0 px-3 pb-3">{composer}</div>
+    </div>
+  );
+}

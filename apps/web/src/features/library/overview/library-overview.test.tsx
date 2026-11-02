@@ -123,4 +123,34 @@ describe('LibraryOverview (#5502)', () => {
       screen.getByText('Library counts could not be loaded.'),
     ).toBeInTheDocument();
   });
+
+  it('describes every quick action, including Recent and References', () => {
+    mockSummary(summary());
+
+    render(<LibraryOverview scope={PageScope.BRAND} />);
+
+    expect(
+      screen.getByText('Everything added or generated lately, newest first.'),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Faces and looks you reuse so new work stays on brand.'),
+    ).toBeVisible();
+  });
+
+  it('shows storage as unmeasured, not 0 B, when assets exist without recorded sizes', () => {
+    mockSummary(summary({ storageBytes: 0 }));
+
+    render(<LibraryOverview scope={PageScope.BRAND} />);
+
+    expect(screen.queryByText('0 B')).not.toBeInTheDocument();
+    expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  it('shows 0 B storage for an empty library', () => {
+    mockSummary(summary({ storageBytes: 0, total: 0 }));
+
+    render(<LibraryOverview scope={PageScope.BRAND} />);
+
+    expect(screen.getByText('0 B')).toBeInTheDocument();
+  });
 });

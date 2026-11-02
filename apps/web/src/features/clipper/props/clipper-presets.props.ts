@@ -1,6 +1,5 @@
 import type { ClipperResultMode } from '@genfeedai/contracts/interfaces';
 import type { LucideIcon } from 'lucide-react';
-import type { StudioPresetLayout } from '@/props/studio/studio-presets.props';
 
 export type ClipperPresetId =
   | 'podcastHighlights'
@@ -21,11 +20,8 @@ export interface ClipperPreset {
   mode: ClipperResultMode;
 }
 
-export interface ClipperPresetGridProps {
-  layout?: StudioPresetLayout;
-  presets: readonly ClipperPreset[];
-}
-
-export interface ClipperSourceBarProps {
-  clipCount: number;
+export interface ClipperPromptCardsProps {
+  isDisabled?: boolean;
+  /** Called with the chosen starter. */
+  onSelect: (preset: ClipperPreset) => void;
 }

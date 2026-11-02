@@ -70,13 +70,8 @@ describe('EconomicsOverviewReport', () => {
 
     expect(screen.getByText('Revenue')).toBeInTheDocument();
     expect(screen.getAllByText('$20.00').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Gross margin')).toBeInTheDocument();
-    expect(screen.getByText('80.0% of revenue')).toBeInTheDocument();
-    expect(screen.getByText('Pricing margin')).toBeInTheDocument();
-    expect(screen.getByText('80.0% of credit value')).toBeInTheDocument();
-    expect(
-      screen.getByText('LLM $1.25 · generation $2.75'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Gross margin · 80.0%')).toBeInTheDocument();
+    expect(screen.getByText('Pricing margin · 80.0%')).toBeInTheDocument();
     expect(screen.getByText('+100%')).toBeInTheDocument();
     expect(screen.getByText('vs $10.00')).toBeInTheDocument();
   });

@@ -659,7 +659,7 @@ test('creates an unpaid brief draft and saves added shots through the real route
       json: { data: { id, type: 'content-run', attributes } },
     });
   });
-  await page.goto(`${base}/new`);
+  await page.goto(base);
   await page.getByLabel('Brief', { exact: true }).fill('A new coffee story');
   // Runtime budget is a quick-pick select (15/30/45/60s), not a number input.
   await page

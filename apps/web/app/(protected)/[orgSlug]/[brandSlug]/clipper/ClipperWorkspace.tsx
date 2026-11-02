@@ -11,34 +11,30 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { OptionTile, OptionTileGroup } from '@ui/primitives/option-tile';
 import Spinner from '@ui/primitives/spinner';
-import { Plus, Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
-import SearchField from '@/components/content/search-field/SearchField';
 import type {
   ClipperWorkspaceProps,
   ProviderOption,
 } from '@/props/studio/clipper.props';
+import ClipperIngredientImport from './ClipperIngredientImport';
 import ClipperInputForm from './components/ClipperInputForm';
 import ClipperModeSelector from './components/ClipperModeSelector';
-import ClipperOnboarding from './components/ClipperOnboarding';
-import ClipperPresetShelf from './components/ClipperPresetShelf';
+import ClipperNewPane from './components/ClipperNewPane';
 import ClipperProgressView from './components/ClipperProgressView';
-import ClipperProjectList from './components/ClipperProjectList';
+import ClipperProjectsPane from './components/ClipperProjectsPane';
 import ClipperReferenceFrameSelector from './components/ClipperReferenceFrameSelector';
 import ClipperSourcePreview from './components/ClipperSourcePreview';
 import HighlightReviewCard from './components/HighlightReviewCard';
 import { useStudioClipperPage } from './useStudioClipperPage';
-import { useStudioClipperProjects } from './useStudioClipperProjects';
 
 const PROVIDER_OPTIONS: ProviderOption[] = [
   {
@@ -61,113 +57,63 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
   },
 ];
 
+/**
+ * Clipper with no project open is one workspace: the prompt that imports a
+ * source on the left, the brand's projects on the right. A project keeps the
+ * agent on the left and shows the source, clips and transcript on the right.
+ * A Library video (`?video=<id>`) becomes a project and opens.
+ */
 export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
+  const videoId = useSearchParams().get('video');
+
+  if (projectId) return <ClipperProjectWorkspace projectId={projectId} />;
+  if (videoId) return <ClipperIngredientImport videoId={videoId} />;
+  return <ClipperHome />;
+}
+
+function ClipperHome() {
+  const t = useTranslations('pages.studioClipper');
+
+  return (
+    <AgentOutputShell
+      agent={<ClipperNewPane />}
+      agentTitle={t('newProject')}
+      outputLabel={t('allProjects')}
+    >
+      <ClipperProjectsPane />
+    </AgentOutputShell>
+  );
+}
+
+function ClipperProjectWorkspace({ projectId }: { projectId: string }) {
   const t = useTranslations('pages.studioClipper');
   const { href } = useOrgUrl();
-  const {
-    error: listError,
-    renameProject,
-    deleteProject,
-    isLoading: isListLoading,
-    projects,
-  } = useStudioClipperProjects({ isEnabled: !projectId });
   const clipperPage = useStudioClipperPage({ projectId });
-  const searchParams = useSearchParams();
-  const { search, setSearch } = useAdminSearchParam();
-  const isSearching = search !== '';
-  const isFirstPage = (Number(searchParams.get('page')) || 1) === 1;
 
-  const hasProjects = projects.length > 0;
-  // A search that matches nothing keeps the toolbar, so it can be changed.
-  const hasToolbar = hasProjects || isSearching;
-  const listHref = href(APP_ROUTES.STUDIO.CLIPPER);
-  const newProjectHref = href(APP_ROUTES.STUDIO.CLIPPER_NEW);
-  const topbarActions = projectId ? (
-    <Button
-      asChild
-      size={ButtonSize.SM}
-      variant={ButtonVariant.SECONDARY}
-      label={t('allProjects')}
-    >
-      <Link href={listHref}>{t('allProjects')}</Link>
-    </Button>
-  ) : hasToolbar ? (
-    <div className="flex items-center gap-2">
-      <Button
-        asChild
-        size={ButtonSize.SM}
-        variant={ButtonVariant.DEFAULT}
-        label={t('newProject')}
+  return (
+    <AgentOutputShell>
+      <Container
+        label="Clipper"
+        right={
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            label={t('allProjects')}
+          >
+            <Link href={href(APP_ROUTES.STUDIO.CLIPPER)}>
+              {t('allProjects')}
+            </Link>
+          </Button>
+        }
+        titleVisibility="sr-only"
       >
-        <Link href={newProjectHref}>
-          <Plus className="size-3.5" />
-          {t('newProject')}
-        </Link>
-      </Button>
-    </div>
-  ) : undefined;
-
-  const workspace = (
-    <Container
-      label="Clipper"
-      leading={
-        !projectId && hasToolbar ? (
-          <SearchField
-            ariaLabel={t('search')}
-            onSearch={setSearch}
-            placeholder={t('search')}
-            value={search}
-          />
-        ) : undefined
-      }
-      right={topbarActions}
-      titleVisibility="sr-only"
-    >
-      <div className="flex w-full flex-col gap-4">
-        <p className="text-sm text-muted-foreground">{t('description')}</p>
-
-        {projectId ? (
+        <div className="flex w-full flex-col gap-4">
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
           <ClipperProjectDetail {...clipperPage} />
-        ) : (
-          <>
-            {listError ? (
-              <Alert variant="destructive">{listError}</Alert>
-            ) : null}
-            {!isListLoading && !hasProjects && !listError && !isSearching ? (
-              <ClipperOnboarding />
-            ) : (
-              <>
-                {hasToolbar ? <ClipperPresetShelf /> : null}
-                {isSearching && !isListLoading && !hasProjects && !listError ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t('emptySearch')}
-                  </p>
-                ) : (
-                  <ClipperProjectList
-                    isLoading={isListLoading}
-                    isRecentVisible={isFirstPage}
-                    projects={projects}
-                    onRename={renameProject}
-                    onDelete={deleteProject}
-                  />
-                )}
-                {hasProjects && !isListLoading ? (
-                  <AutoPagination showTotal totalLabel="projects" />
-                ) : null}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </Container>
-  );
-
-  // A project opens with the agent on the left and the source, clips and
-  // transcript on the right. The list stays a full-width page.
-  return projectId ? (
-    <AgentOutputShell>{workspace}</AgentOutputShell>
-  ) : (
-    workspace
+        </div>
+      </Container>
+    </AgentOutputShell>
   );
 }
 

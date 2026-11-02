@@ -118,11 +118,6 @@ export default function StreaksPage() {
             value={streakFreezes}
           />
           <MetricCard
-            description={
-              nextMilestone
-                ? `${nextMilestone.remaining} day${nextMilestone.remaining === 1 ? '' : 's'} remaining`
-                : 'All milestone tiers reached'
-            }
             isLoading={isLoading}
             label="Next milestone"
             size="md"

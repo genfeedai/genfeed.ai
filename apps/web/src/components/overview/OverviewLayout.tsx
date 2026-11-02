@@ -1,128 +1,65 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardGap,
-  CardPadding,
-} from '@genfeedai/contracts';
+import { CardGap, CardPadding } from '@genfeedai/contracts';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import CardIcon from '@ui/card/icon/CardIcon';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import Container from '@ui/layout/container/Container';
-import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
-import { ArrowUpRight } from 'lucide-react';
+import { BLOCK_STACK_CLASS } from '@ui/styles/block-spacing';
 import Link from 'next/link';
 import type { OverviewContentProps } from '@/props/layout/overview.props';
 
 const EMPTY_ARRAY: never[] = [];
 
+/** One quick-action tile: icon, title and what it opens. The whole tile is the way in. */
+export function OverviewActionCard({ card }: { card: OverviewCard }) {
+  const tile = (
+    <Card
+      bodyClassName="h-full"
+      className="h-full"
+      description={card.description}
+      gap={CardGap.LG}
+      icon={card.icon}
+      iconWrapperClassName={cn('p-2', card.color)}
+      isInteractive={Boolean(card.href) && !card.onClick}
+      label={card.label}
+      onClick={card.onClick}
+      padding={CardPadding.LG}
+    />
+  );
+
+  if (card.onClick) {
+    return tile;
+  }
+
+  return (
+    <Link
+      aria-label={card.cta}
+      className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      href={card.href || '#'}
+    >
+      {tile}
+    </Link>
+  );
+}
+
 export function OverviewContent({
   cards = EMPTY_ARRAY,
   actionsTitle = 'Quick Actions',
-  actionsLayout = 'cards',
   header,
   children,
 }: OverviewContentProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col',
-        actionsLayout === 'compact' ? '@container gap-6' : 'gap-10',
-      )}
-    >
-      {actionsLayout === 'compact' && cards.length > 0 ? (
-        <nav
-          aria-label={actionsTitle}
-          className="flex flex-wrap gap-2 border-b border-border pb-4"
-        >
-          {cards.map((card) =>
-            card.onClick ? (
-              <Button
-                key={card.id}
-                onClick={card.onClick}
-                variant={ButtonVariant.UNSTYLED}
-                textTransform="none"
-                withWrapper={false}
-                className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <card.icon className="size-4 shrink-0" />
-                {card.cta}
-                <ArrowUpRight aria-hidden className="size-3.5" />
-              </Button>
-            ) : (
-              <Link
-                key={card.id}
-                href={card.href || '#'}
-                className="inline-flex h-8 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <card.icon className="size-4 shrink-0" />
-                {card.cta}
-                <ArrowUpRight aria-hidden className="size-3.5" />
-              </Link>
-            ),
-          )}
-        </nav>
-      ) : null}
+    <div className={BLOCK_STACK_CLASS}>
       {header ? <div>{header}</div> : null}
 
-      {actionsLayout === 'cards' && cards.length > 0 ? (
+      {cards.length > 0 ? (
         <section>
           <h2 className="sr-only">{actionsTitle}</h2>
           <CollectionGrid data-testid="overview-quick-actions" maxColumns={4}>
             {cards.map((card) => (
-              <Card
-                key={card.id}
-                className="h-full"
-                padding={CardPadding.LG}
-                gap={CardGap.LG}
-                bodyClassName="h-full justify-between"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                        {card.label}
-                      </p>
-                      {card.description ? (
-                        <p className="max-w-[16rem] text-sm leading-6 text-muted-foreground">
-                          {card.description}
-                        </p>
-                      ) : null}
-                    </div>
-                    <CardIcon
-                      icon={card.icon}
-                      className={cn(
-                        'gen-shell-surface flex size-11 items-center justify-center rounded-md border-border',
-                        card.color,
-                      )}
-                      iconClassName="size-5"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-auto border-t border-border pt-4">
-                  {card.onClick ? (
-                    <Button
-                      onClick={card.onClick}
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.SM}
-                      className="w-full justify-center tracking-[0.08em]"
-                      label={card.cta}
-                    />
-                  ) : (
-                    <PrimitiveButton
-                      asChild
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.SM}
-                      className="w-full justify-center text-xs tracking-[0.08em]"
-                    >
-                      <Link href={card.href || '#'}>{card.cta}</Link>
-                    </PrimitiveButton>
-                  )}
-                </div>
-              </Card>
+              <OverviewActionCard card={card} key={card.id} />
             ))}
           </CollectionGrid>
         </section>

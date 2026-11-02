@@ -32,7 +32,6 @@ function TagsListContent(props: TagsListProps) {
     isRefreshing,
     onSortChange,
     openDeleteConfirm,
-    organizationId,
     refresh,
     saveTag,
     scope,
@@ -258,7 +257,6 @@ function TagsListContent(props: TagsListProps) {
 
       <TagsListModals
         scope={scope}
-        organizationId={organizationId}
         onConfirm={() => {
           refresh();
         }}

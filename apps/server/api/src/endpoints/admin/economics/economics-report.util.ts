@@ -71,6 +71,11 @@ export function microsToUsd(micros: number): number {
   return Number((micros / MICROS_PER_USD).toFixed(6));
 }
 
+/** Amount per unit (negative allowed), or null when there are no units. */
+export function perUnitUsd(costUsd: number, units: number): number | null {
+  return units > 0 ? Number((costUsd / units).toFixed(6)) : null;
+}
+
 export function minorToUsd(minor: number): number {
   return Number((minor / MINOR_UNITS_PER_USD).toFixed(2));
 }
@@ -212,6 +217,26 @@ export const ECONOMICS_OPERATIONS: readonly EconomicsOperation[] = [
   'avatar',
   'other',
 ];
+
+const GENERATION_OPERATIONS: ReadonlySet<EconomicsOperation> = new Set([
+  'avatar',
+  'image',
+  'music',
+  'video',
+  'voice',
+]);
+
+/** Retail value of the credits spent on generation operations (not chat). */
+export function generationCreditValueUsd(
+  creditsBySource: ReadonlyArray<{ credits: number; source: string | null }>,
+): number {
+  const credits = creditsBySource
+    .filter((row) =>
+      GENERATION_OPERATIONS.has(operationForCreditSource(row.source)),
+    )
+    .reduce((sum, row) => sum + row.credits, 0);
+  return creditsToUsd(credits);
+}
 
 export function operationForCreditSource(
   source: string | null,

@@ -18,7 +18,6 @@ export interface TagCellProps {
 
 export interface TagsListModalsProps {
   scope: ContentScope;
-  organizationId: string | undefined;
   onConfirm: () => void;
 }
 

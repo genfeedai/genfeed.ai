@@ -38,6 +38,5 @@
   "flagMaxedOut": "Maxed out",
   "flagUnderUsing": "Under-using",
   "copyCustomerId": "Copy Customer ID",
-  "openStripe": "Stripe",
-  "editSubscription": "Edit"
+  "openStripe": "Stripe"
 }

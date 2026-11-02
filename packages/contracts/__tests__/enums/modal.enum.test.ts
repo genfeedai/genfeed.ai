@@ -56,7 +56,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.SCRIPT).toBe('modal-script');
       expect(ModalEnum.SOUND).toBe('modal-sound');
       expect(ModalEnum.STYLE).toBe('modal-style');
-      expect(ModalEnum.SUBSCRIPTION).toBe('modal-subscription');
       expect(ModalEnum.TAG).toBe('modal-tag');
       expect(ModalEnum.TEXT_OVERLAY).toBe('modal-text-overlay');
       expect(ModalEnum.TRAINING).toBe('modal-training');

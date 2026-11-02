@@ -192,9 +192,6 @@
     "apps/web/app/(protected)/admin/administration/users/user-details.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/app/(protected)/admin/overview/overview-page.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/app/(protected)/routed-organization-boundary.tsx": {
       "button-restyle": 1
     },
@@ -302,10 +299,6 @@
       "button-restyle": 1
     },
     "apps/web/src/components/models/ModelBrowserModal.tsx": {
-      "unstyled-look": 1
-    },
-    "apps/web/src/components/overview/OverviewLayout.tsx": {
-      "button-restyle": 2,
       "unstyled-look": 1
     },
     "apps/web/src/components/prompt-bars/components/blacklist-selector/PromptBarBlacklistSelector.tsx": {

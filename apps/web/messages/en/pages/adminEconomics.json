@@ -17,17 +17,11 @@
     },
     "kpis": {
       "revenue": "Revenue",
-      "revenueDescription": "{events} Stripe payments from {organizations} organizations",
       "providerCost": "Provider cost",
-      "providerCostDescription": "LLM {llm} · generation {media}",
-      "grossMargin": "Gross margin",
-      "grossMarginDescription": "{percent} of revenue",
+      "grossMargin": "Gross margin · {percent}",
       "creditValue": "Credit value consumed",
-      "creditValueDescription": "{credits} credits across {organizations} organizations",
-      "pricingMargin": "Pricing margin",
-      "pricingMarginDescription": "{percent} of credit value",
+      "pricingMargin": "Pricing margin · {percent}",
       "calls": "Provider calls",
-      "callsDescription": "{llm} LLM · {media} generations",
       "previous": "vs {value}"
     },
     "definitions": "Gross margin is Stripe revenue minus provider cost. Pricing margin is the retail value of the credits consumed (1 credit = $0.01) minus provider cost, so it shows whether prices cover cost even when nobody paid cash."
@@ -78,11 +72,10 @@
     "kpis": {
       "providerCost": "Provider cost",
       "llm": "LLM cost",
-      "llmDescription": "{calls} completions",
       "media": "Generation cost",
-      "mediaDescription": "{calls} generations",
       "unpriced": "Unpriced calls",
-      "unpricedDescription": "Recorded at $0 without BYOK; {byok} BYOK calls are free by design"
+      "costPerGeneration": "Cost per generation",
+      "marginPerGeneration": "Margin per generation"
     },
     "models": "Models by cost",
     "categories": "Generation cost by category",
@@ -96,6 +89,7 @@
       "calls": "Calls",
       "category": "Category",
       "cost": "Cost",
+      "costPerGeneration": "Cost per generation",
       "generations": "Generations",
       "kind": "Kind",
       "model": "Model",

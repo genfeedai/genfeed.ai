@@ -44,6 +44,7 @@ const projects: ClipperProjectSummary[] = Array.from(
 
 describe('ClipperProjectList', () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     vi.stubGlobal(
       'ResizeObserver',
@@ -57,24 +58,14 @@ describe('ClipperProjectList', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
-  it('lists All as rows and orders three recent cards', () => {
+  it('lists every project as a row that opens it', () => {
     render(<ClipperProjectList projects={projects} isLoading={false} />);
-    const recent = screen.getByTestId('clipper-projects-recent');
-    expect(within(recent).queryByText('Project 0')).toBeNull();
-    expect(recent.textContent?.indexOf('Project 5')).toBeLessThan(
-      recent.textContent?.indexOf('Project 4') ?? 0,
-    );
-    expect(within(recent).getAllByTestId('clipper-project-card')).toHaveLength(
-      3,
-    );
-    expect(
-      within(recent).getByRole('img', { name: 'Project 5' }),
-    ).toHaveAttribute(
-      'src',
-      'https://img.youtube.com/vi/zjXzkB8z5xg/hqdefault.jpg',
-    );
-    expect(within(recent).queryByText('Project 2')).toBeNull();
-    expect(screen.getAllByTestId('clipper-project-card')).toHaveLength(3);
+
+    const rows = screen.getAllByRole('link', { name: 'Open' });
+    expect(rows).toHaveLength(6);
+    expect(rows[0]).toHaveAttribute('href', '/acme/brand/clipper/project-0');
+    expect(screen.getByText('Project 5')).toBeVisible();
+    expect(screen.getAllByText('2 clips')).toHaveLength(6);
   });
   it('keeps rename/delete in overflow and retains the list after mutation failure', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);
@@ -88,7 +79,7 @@ describe('ClipperProjectList', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-    const all = within(screen.getByTestId('clipper-projects-all'));
+    const all = within(screen.getByTestId('clipper-project-list'));
     fireEvent.pointerDown(
       all.getByRole('button', { name: 'Actions for Project 0' }),
     );
@@ -116,12 +107,11 @@ describe('ClipperProjectList', () => {
     expect(all.getByText('Project 0')).toBeVisible();
     expect(all.getAllByRole('link', { name: 'Open' })).toHaveLength(6);
   });
-  it('hides empty sections and shows a list skeleton while loading', () => {
+  it('shows a loading list while the projects load', () => {
     const { rerender } = render(
       <ClipperProjectList projects={[]} isLoading={false} />,
     );
-    expect(screen.queryByTestId('clipper-projects-recent')).toBeNull();
-    expect(screen.queryByTestId('clipper-projects-all')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
     rerender(<ClipperProjectList projects={[]} isLoading />);
     expect(screen.getByTestId('clipper-project-list-loading')).toBeVisible();
   });

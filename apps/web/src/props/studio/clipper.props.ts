@@ -13,7 +13,6 @@ import type {
   IBrand,
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
-import type { ReactNode } from 'react';
 import type { ClipperApiClient } from '@/props/studio/clipper-api.props';
 
 export type AvatarProvider = 'argil' | 'genfeedai' | 'heygen';
@@ -157,17 +156,9 @@ export interface ClipperInputFormProps {
 
 export interface ClipperProjectListProps {
   isLoading: boolean;
-  /** Hide the "Recent" carousel, e.g. on server pages after the first. */
-  isRecentVisible?: boolean;
   projects: ClipperProjectSummary[];
   onRename?: (id: string, name: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
-}
-
-export interface ClipperProjectCardProps {
-  actions?: ReactNode;
-  href: string;
-  project: ClipperProjectSummary;
 }
 
 export interface ClipperWorkspaceProps {

@@ -1,13 +1,11 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   formatCreditBalanceExact,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';
@@ -21,13 +19,12 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Progress } from '@ui/primitives/progress';
-import { Copy, CreditCard, Pencil, ShieldAlert } from 'lucide-react';
+import { Copy, CreditCard, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { LazyModalSubscription } from '@/features/admin/lazy/lazy-modal.admin';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import CreditHoldsPanel from './credit-holds-panel';
 
@@ -79,7 +76,6 @@ export default function SubscriptionsList() {
     allowedKeys: SUBSCRIPTION_SORT_KEYS,
   });
 
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [holdsOrganization, setHoldsOrganization] =
     useState<IOrganizationBilling>();
 
@@ -115,11 +111,6 @@ export default function SubscriptionsList() {
 
   const refresh = () => {
     refetch();
-  };
-
-  const openSubscriptionModal = (organizationId: string) => {
-    setSelectedOrgId(organizationId);
-    openModal(ModalEnum.SUBSCRIPTION);
   };
 
   const handleCopy = async (customerId: string) =>
@@ -233,12 +224,6 @@ export default function SubscriptionsList() {
       onClick: (row: IOrganizationBilling) => setHoldsOrganization(row),
       tooltip: t('reviewHolds'),
     },
-    {
-      icon: <Pencil />,
-      onClick: (row: IOrganizationBilling) =>
-        openSubscriptionModal(row.organizationId),
-      tooltip: t('editSubscription'),
-    },
   ];
 
   const rowSidebar = createSummaryRowSidebar<IOrganizationBilling>({
@@ -331,11 +316,6 @@ export default function SubscriptionsList() {
           organizationName={holdsOrganization.organizationName}
         />
       )}
-
-      <LazyModalSubscription
-        organizationId={selectedOrgId}
-        onConfirm={() => refresh()}
-      />
     </AdminPageShell>
   );
 }

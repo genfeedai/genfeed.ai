@@ -234,7 +234,6 @@ export default function LibrarySidebarNav() {
         brandId={
           folderScope === PageScope.BRAND ? (brandId ?? undefined) : undefined
         }
-        item={null}
         onConfirm={(shouldRefreshAssets) => {
           void refetchFolders();
           if (shouldRefreshAssets) {

@@ -4,8 +4,10 @@ import {
   buildOperationCoverage,
   EMPTY_ECONOMICS_DAILY_AGGREGATE,
   enumerateWindowDays,
+  generationCreditValueUsd,
   operationForCreditSource,
   operationForMediaCategory,
+  perUnitUsd,
   resolveEconomicsWindow,
 } from '@api/endpoints/admin/economics/economics-report.util';
 import { ActivitySource } from '@genfeedai/contracts';
@@ -184,5 +186,30 @@ describe('operation coverage', () => {
       'avatar',
       'other',
     ]);
+  });
+});
+
+describe('amount per unit', () => {
+  it.each([
+    [0.5, 2, 0.25],
+    [1, 3, 0.333333],
+    [0, 4, 0],
+    [2, 0, null],
+  ])('divides %s over %s units into %s', (costUsd, units, expected) => {
+    expect(perUnitUsd(costUsd, units)).toBe(expected);
+  });
+});
+
+describe('generation credit value', () => {
+  it('counts credits spent on generation operations and leaves chat and other out', () => {
+    expect(
+      generationCreditValueUsd([
+        { credits: 60, source: ActivitySource.IMAGE_GENERATION },
+        { credits: 40, source: ActivitySource.VIDEO_UPSCALE },
+        { credits: 25, source: ActivitySource.VOICE_GENERATION },
+        { credits: 500, source: ActivitySource.AGENT_CHAT },
+        { credits: 7, source: null },
+      ]),
+    ).toBe(1.25);
   });
 });

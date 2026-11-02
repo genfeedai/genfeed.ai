@@ -3,6 +3,7 @@
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import type { KnowledgeSource } from '@genfeedai/client/models';
 import {
+  ButtonSize,
   ButtonVariant,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
@@ -24,21 +25,36 @@ import { KnowledgeSpacesService } from '@services/content/knowledge-spaces.servi
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { isServiceOperationError } from '@services/core/operation-error';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
+import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { SegmentedControl } from '@ui/primitives/segmented-control';
-import { RotateCcw } from 'lucide-react';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
+import { Globe, Plus, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
+import SearchField from '@/components/content/search-field/SearchField';
 import { useKnowledgeLibrary } from '@/features/library/knowledge/hooks/use-knowledge-library';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
+import {
+  filterKnowledgeRows,
+  getSourceLink,
+  getSourceSnippet,
+  KIND_DISPLAY,
+} from './knowledge-source-display';
 import KnowledgeStateBadge from './knowledge-state-badge';
+import { useKnowledgeFilters } from './use-knowledge-filters';
 
-const ALL_SPACES = 'all';
+const ALL = 'all';
 
 const PURPOSE_KEY: Record<string, string> = {
   BRAND_TRUTH: 'brandTruth',
@@ -48,15 +64,23 @@ const PURPOSE_KEY: Record<string, string> = {
 
 export default function KnowledgeSourcesList({
   brandId,
-  isAddOpen,
-  onAddClose,
-  onSeedHandled,
-  seedRequestId,
   website,
 }: KnowledgeSourcesListProps) {
   const translate = useTranslations('pages.library.knowledge.list');
   const translatePurpose = useTranslations('pages.library.knowledge.purpose');
-  const translateSeed = useTranslations('pages.library.knowledge');
+  const translatePage = useTranslations('pages.library.knowledge');
+  const translateFilters = useTranslations('pages.library.knowledge.filters');
+  const translateKind = useTranslations('pages.library.knowledge.kind');
+  const translateState = useTranslations('pages.library.knowledge.state');
+  const {
+    clearFilters,
+    filters,
+    hasActiveFilters,
+    setSearch,
+    setSpace,
+    setStatus,
+    setType,
+  } = useKnowledgeFilters();
   const notifications = NotificationsService.getInstance();
   const revealDetails = useContextSidebar()?.reveal;
   const searchParams = useSearchParams();
@@ -151,21 +175,26 @@ export default function KnowledgeSourcesList({
     () => isMountedRef.current && actionScopeRef.current === actionScope,
     [actionScope],
   );
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [handledSeedId, setHandledSeedId] = useState(0);
   const refreshRef = useRef(refresh);
   refreshRef.current = refresh;
   useEffect(() => {
     if (actionScopeRef.current === actionScope) setIsSubmitting(false);
   }, [actionScope]);
 
+  // A space that is not in this brand's list reads as no space filter, the
+  // same as the Space facet shows it.
+  const activeSpaceId = spaces.some((space) => space.id === filters.spaceId)
+    ? (filters.spaceId ?? ALL)
+    : ALL;
   const visibleRows = useMemo(
     () =>
-      selectedSpaceId
-        ? rows.filter((row) => row.spaceIds.includes(selectedSpaceId))
-        : rows,
-    [rows, selectedSpaceId],
+      filterKnowledgeRows(rows, {
+        ...filters,
+        spaceId: activeSpaceId === ALL ? null : activeSpaceId,
+      }),
+    [activeSpaceId, filters, rows],
   );
   // A source already in the list shows at once while its detail reloads, so
   // the context sidebar stays open and only the data swaps; actions stay
@@ -207,7 +236,7 @@ export default function KnowledgeSourcesList({
         await service.capture(request, brandId);
         if (!isCurrentScope()) return;
         notifications.success(translate('addSuccess'));
-        onAddClose();
+        setIsAddOpen(false);
         await refreshRef.current();
       } catch (captureError) {
         if (!isCurrentScope()) return;
@@ -217,14 +246,7 @@ export default function KnowledgeSourcesList({
         if (isCurrentScope()) setIsSubmitting(false);
       }
     },
-    [
-      isCurrentScope,
-      brandId,
-      getSourcesService,
-      notifications,
-      onAddClose,
-      translate,
-    ],
+    [isCurrentScope, brandId, getSourcesService, notifications, translate],
   );
 
   const retry = useCallback(
@@ -453,16 +475,10 @@ export default function KnowledgeSourcesList({
     ],
   );
 
-  // Brand Kit seed: capture the brand website as Brand Truth exactly once per
-  // request id, so a re-render never double-captures.
-  useEffect(() => {
-    if (seedRequestId === 0 || seedRequestId === handledSeedId) {
-      return;
-    }
-    setHandledSeedId(seedRequestId);
+  // Brand Kit seed: capture the brand website as Brand Truth.
+  const seedFromBrandKit = useCallback(() => {
     if (!website) {
-      notifications.error(translateSeed('seedNeedsWebsite'));
-      onSeedHandled();
+      notifications.error(translatePage('seedNeedsWebsite'));
       return;
     }
     let hostname = website;
@@ -477,23 +493,49 @@ export default function KnowledgeSourcesList({
       referenceUrl: website,
       scope: KnowledgeMemoryScope.BRAND,
       title: hostname,
-    }).finally(onSeedHandled);
-  }, [
-    capture,
-    handledSeedId,
-    notifications,
-    onSeedHandled,
-    seedRequestId,
-    translateSeed,
-    website,
-  ]);
+    });
+  }, [capture, notifications, translatePage, website]);
 
   const columns: TableColumn<KnowledgeSourceRow>[] = [
     {
       header: translate('source'),
       key: 'title',
-      render: (row) => row.source.title,
-      subtext: (row) => row.source.kind,
+      render: (row) => {
+        const link = getSourceLink(row);
+        const snippet = link ? null : getSourceSnippet(row);
+        const { icon: KindIcon, labelKey } = KIND_DISPLAY[row.source.kind];
+        return (
+          <div className="flex min-w-0 max-w-[12rem] items-start gap-3 2xl:max-w-md">
+            <KindIcon
+              aria-label={translateKind(labelKey)}
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+              role="img"
+            />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate font-medium">{row.source.title}</span>
+              {link ? (
+                <a
+                  aria-label={translate('openLink', {
+                    title: row.source.title,
+                  })}
+                  className="truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  href={link.href}
+                  onClick={(event) => event.stopPropagation()}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {link.label}
+                </a>
+              ) : snippet ? (
+                <span className="truncate text-xs text-muted-foreground">
+                  {snippet}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        );
+      },
+      sortValue: (row) => row.source.title,
     },
     {
       header: translate('purpose'),
@@ -504,106 +546,198 @@ export default function KnowledgeSourcesList({
           : row.source.purpose,
     },
     {
-      header: translate('state'),
+      header: translate('status'),
       key: 'state',
       render: (row) => <KnowledgeStateBadge version={row.version} />,
+      sortValue: (row) => row.version?.processingState,
     },
     {
       header: translate('captured'),
       key: 'observedAt',
       render: (row) => <TableDateCell value={row.version?.observedAt} />,
+      sortValue: (row) => row.version?.observedAt,
     },
   ];
 
+  const spaceOptions = [
+    { label: translate('allSources'), value: ALL },
+    ...spaces.map((space) => ({
+      label: space.isInbox ? translate('inbox') : space.title,
+      // A space the user named is shown as written.
+      isLiteral: !space.isInbox,
+      value: space.id,
+    })),
+  ];
   return (
-    <div className="space-y-4">
-      {spaces.length > 0 ? (
-        <SegmentedControl
-          appearance="chip"
-          ariaLabel={translate('spaces')}
-          onValueChange={(spaceId) =>
-            setSelectedSpaceId(spaceId === ALL_SPACES ? null : spaceId)
-          }
-          options={[
-            { label: translate('allSources'), value: ALL_SPACES },
-            ...spaces.map((space) => ({
-              label: space.isInbox ? translate('inbox') : space.title,
-              value: space.id,
-            })),
-          ]}
-          value={selectedSpaceId ?? ALL_SPACES}
-        />
-      ) : null}
-
-      {(selectionError || isInvalidSelection) && !isLoading ? (
-        <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{translate('loadError')}</span>
-            <Button
-              label={translate('retry')}
-              onClick={() => {
-                void refresh();
-              }}
-              variant={ButtonVariant.SECONDARY}
-            />
-          </div>
-        </Alert>
-      ) : null}
-
-      {error && !isLoading ? (
-        <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{error}</span>
-            <Button
-              label={translate('retry')}
-              onClick={() => {
-                void refresh();
-              }}
-              variant={ButtonVariant.SECONDARY}
-            />
-          </div>
-        </Alert>
-      ) : (
-        <AppTable<KnowledgeSourceRow>
-          actions={[
-            {
-              icon: <RotateCcw className="size-4" />,
-              isVisible: (row) =>
-                row.version?.processingState ===
-                KnowledgeProcessingState.FAILED,
-              onClick: (row) => {
-                void retry(row.source);
+    <Container
+      label={translatePage('title')}
+      leading={
+        <SearchField
+          ariaLabel={translate('search')}
+          onSearch={setSearch}
+          placeholder={translate('search')}
+          value={filters.search}
+        >
+          <FilterMenu
+            facets={[
+              {
+                defaultValue: ALL,
+                key: 'space',
+                label: translateFilters('space'),
+                onChange: setSpace,
+                options: spaceOptions,
+                selection: 'single',
+                value: activeSpaceId,
               },
-              tooltip: translate('retryIngestion'),
-            },
-          ]}
-          columns={columns}
-          emptyLabel={translate('emptyTitle')}
-          getRowKey={(row) => row.source.id}
-          isLoading={isLoading && visibleRows.length === 0}
-          items={visibleRows}
-          onRowClick={(row) => selectSource(row.source.id)}
+              {
+                defaultValue: ALL,
+                key: 'status',
+                label: translateFilters('status'),
+                onChange: setStatus,
+                options: [
+                  { label: translate('all'), value: ALL },
+                  ...Object.values(KnowledgeProcessingState).map((state) => ({
+                    label: translateState(state.toLowerCase()),
+                    value: state.toLowerCase(),
+                  })),
+                ],
+                selection: 'single',
+                value: filters.status ?? ALL,
+              },
+              {
+                defaultValue: ALL,
+                key: 'type',
+                label: translateFilters('type'),
+                onChange: setType,
+                options: [
+                  { label: translate('all'), value: ALL },
+                  ...Object.values(KnowledgeSourceKind).map((kind) => ({
+                    label: translateKind(KIND_DISPLAY[kind].labelKey),
+                    value: kind.toLowerCase(),
+                  })),
+                ],
+                selection: 'single',
+                value: filters.type ?? ALL,
+              },
+            ]}
+            isAttached
+            onClear={clearFilters}
+          />
+        </SearchField>
+      }
+      moduleChrome
+      refresh={
+        <ButtonRefresh
+          isRefreshing={isLoading}
+          onClick={() => {
+            void refresh();
+          }}
         />
-      )}
+      }
+      iconActions={
+        <Button
+          ariaLabel={translatePage('seedFromBrandKit')}
+          className={SHELL_ICON_BUTTON_CLASS}
+          icon={<Globe className={SHELL_ICON_CLASS} />}
+          isDisabled={isSubmitting}
+          onClick={seedFromBrandKit}
+          size={ButtonSize.ICON}
+          tooltip={translatePage('seedFromBrandKit')}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+      }
+      right={
+        <SubbarControls
+          primaryAction={
+            <Button
+              icon={<Plus className="size-4" />}
+              label={translatePage('addSource')}
+              onClick={() => setIsAddOpen(true)}
+              size={ButtonSize.SM}
+            />
+          }
+        />
+      }
+    >
+      <div className="space-y-4">
+        {(selectionError || isInvalidSelection) && !isLoading ? (
+          <Alert variant="destructive">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>{translate('loadError')}</span>
+              <Button
+                label={translate('retry')}
+                onClick={() => {
+                  void refresh();
+                }}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        ) : null}
 
-      <KnowledgeAddSourceSheet
-        isOpen={isAddOpen}
-        isSubmitting={isSubmitting}
-        onClose={onAddClose}
-        onSubmit={capture}
-      />
-      <KnowledgeSourceDetailPanel
-        brandId={brandId}
-        onArchive={archive}
-        onClose={() => changeSelection(null)}
-        onMoveToSpace={moveToSpace}
-        onRefresh={refreshNow}
-        onRetry={retry}
-        onUpdateRefreshPolicy={updateRefreshPolicy}
-        onUpdate={update}
-        row={selectedRow}
-        spaces={spaces}
-      />
-    </div>
+        {error && !isLoading ? (
+          <Alert variant="destructive">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>{error}</span>
+              <Button
+                label={translate('retry')}
+                onClick={() => {
+                  void refresh();
+                }}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        ) : (
+          <AppTable<KnowledgeSourceRow>
+            actions={[
+              {
+                icon: <RotateCcw className="size-4" />,
+                isVisible: (row) =>
+                  row.version?.processingState ===
+                  KnowledgeProcessingState.FAILED,
+                onClick: (row) => {
+                  void retry(row.source);
+                },
+                tooltip: translate('retryIngestion'),
+              },
+            ]}
+            ariaLabel={translatePage('title')}
+            columns={columns}
+            emptyLabel={
+              hasActiveFilters && rows.length > 0
+                ? translate('noMatches')
+                : translate('emptyTitle')
+            }
+            getItemId={(row) => row.source.id}
+            getRowKey={(row) => row.source.id}
+            isLoading={isLoading && visibleRows.length === 0}
+            items={visibleRows}
+            onRowClick={(row) => selectSource(row.source.id)}
+            selectedIds={selectedSourceId ? [selectedSourceId] : []}
+          />
+        )}
+
+        <KnowledgeAddSourceSheet
+          isOpen={isAddOpen}
+          isSubmitting={isSubmitting}
+          onClose={() => setIsAddOpen(false)}
+          onSubmit={capture}
+        />
+        <KnowledgeSourceDetailPanel
+          brandId={brandId}
+          onArchive={archive}
+          onClose={() => changeSelection(null)}
+          onMoveToSpace={moveToSpace}
+          onRefresh={refreshNow}
+          onRetry={retry}
+          onUpdateRefreshPolicy={updateRefreshPolicy}
+          onUpdate={update}
+          row={selectedRow}
+          spaces={spaces}
+        />
+      </div>
+    </Container>
   );
 }
