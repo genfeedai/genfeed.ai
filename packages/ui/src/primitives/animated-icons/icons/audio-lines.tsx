@@ -1,9 +1,10 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import { motion, useAnimation } from 'motion/react';
+import { useAnimatedIconControls } from '@ui/primitives/animated-icons/use-animated-icon-controls';
+import { motion } from 'motion/react';
 import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { forwardRef } from 'react';
 
 export interface AudioLinesIconHandle {
   startAnimation: () => void;
@@ -16,39 +17,8 @@ interface AudioLinesIconProps extends HTMLAttributes<HTMLDivElement> {
 
 const AudioLinesIcon = forwardRef<AudioLinesIconHandle, AudioLinesIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
-
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
-
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
-
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+    const { controls, handleMouseEnter, handleMouseLeave } =
+      useAnimatedIconControls(ref, { onMouseEnter, onMouseLeave });
 
     return (
       <div
