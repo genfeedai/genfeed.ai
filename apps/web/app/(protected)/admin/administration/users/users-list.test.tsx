@@ -1,3 +1,5 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -8,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import UsersList from './users-list';
 
 const mocks = vi.hoisted(() => ({
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   copyToClipboard: vi.fn(),
   impersonateUser: vi.fn(),
   loggerError: vi.fn(),
@@ -26,7 +28,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} rows / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('next-intl', async () => {
@@ -80,7 +86,7 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('@services/organization/users.service', () => ({
   UsersService: {
     getInstance: () => ({
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -216,7 +222,7 @@ describe('UsersList', () => {
   const locationAssign = vi.fn();
 
   beforeEach(() => {
-    mocks.findAll.mockReset();
+    mocks.findAllPage.mockReset();
     mocks.copyToClipboard.mockReset();
     mocks.impersonateUser.mockReset();
     mocks.loggerError.mockReset();
@@ -227,7 +233,7 @@ describe('UsersList', () => {
     mocks.query.value = 'page=2';
     locationAssign.mockReset();
     mocks.useQuery.mockReturnValue({
-      data: [regularUser, superAdminUser],
+      data: paginatedResponse([regularUser, superAdminUser]),
       error: null,
       isFetching: false,
       isLoading: false,
@@ -249,13 +255,16 @@ describe('UsersList', () => {
   });
 
   it('asks the API for the page in the URL and shows the pager', async () => {
-    mocks.findAll.mockResolvedValue([regularUser]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([regularUser]));
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
     expect(options.queryKey).toEqual(['admin-users', 2, '', undefined]);
-    await options.queryFn();
-    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
+    await options.queryFn({ signal: new AbortController().signal });
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
+      { limit: 15, page: 2 },
+      expect.any(AbortSignal),
+    );
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
@@ -263,17 +272,20 @@ describe('UsersList', () => {
 
   it('sends the q search to the API and keeps it in the query key', async () => {
     mocks.query.value = 'page=2&q=jane';
-    mocks.findAll.mockResolvedValue([regularUser]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([regularUser]));
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
     expect(options.queryKey).toEqual(['admin-users', 2, 'jane', undefined]);
-    await options.queryFn();
-    expect(mocks.findAll).toHaveBeenCalledWith({
-      limit: 15,
-      page: 2,
-      search: 'jane',
-    });
+    await options.queryFn({ signal: new AbortController().signal });
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
+      {
+        limit: 15,
+        page: 2,
+        search: 'jane',
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it.each([
@@ -283,26 +295,34 @@ describe('UsersList', () => {
     ['createdAt', 'createdAt: 1'],
   ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
     mocks.query.value = `page=2&sort=${urlSort}`;
-    mocks.findAll.mockResolvedValue([regularUser]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([regularUser]));
     render(<UsersList />);
 
     const options = mocks.useQuery.mock.calls[0]?.[0];
     expect(options.queryKey).toEqual(['admin-users', 2, '', apiSort]);
-    await options.queryFn();
-    expect(mocks.findAll).toHaveBeenCalledWith({
-      limit: 15,
-      page: 2,
-      sort: apiSort,
-    });
+    await options.queryFn({ signal: new AbortController().signal });
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
+      {
+        limit: 15,
+        page: 2,
+        sort: apiSort,
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it('ignores a sort column the API cannot order by', async () => {
     mocks.query.value = 'page=2&sort=-platformRole';
-    mocks.findAll.mockResolvedValue([regularUser]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([regularUser]));
     render(<UsersList />);
 
-    await mocks.useQuery.mock.calls[0]?.[0].queryFn();
-    expect(mocks.findAll).toHaveBeenCalledWith({ limit: 15, page: 2 });
+    await mocks.useQuery.mock.calls[0]?.[0].queryFn({
+      signal: new AbortController().signal,
+    });
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
+      { limit: 15, page: 2 },
+      expect.any(AbortSignal),
+    );
   });
 
   it('offers Impersonate only for non-superadmin users', () => {
@@ -321,7 +341,7 @@ describe('UsersList', () => {
 
   it('shows Better Auth names plus valid joined and last-connected dates', () => {
     mocks.useQuery.mockReturnValue({
-      data: [betterAuthUser],
+      data: paginatedResponse([betterAuthUser]),
       error: null,
       isFetching: false,
       isLoading: false,
@@ -344,7 +364,9 @@ describe('UsersList', () => {
 
   it('shows a dash, not a placeholder sentence, for missing values', () => {
     mocks.useQuery.mockReturnValue({
-      data: [{ ...betterAuthUser, lastActiveAt: null, name: null }],
+      data: paginatedResponse([
+        { ...betterAuthUser, lastActiveAt: null, name: null },
+      ]),
       error: null,
       isFetching: false,
       isLoading: false,
@@ -440,5 +462,32 @@ describe('UsersList', () => {
       );
     });
     expect(locationAssign).not.toHaveBeenCalled();
+  });
+  it('renders the response totals independently of the number of visible rows', () => {
+    mocks.useQuery.mockReturnValue({
+      data: paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
+    render(<UsersList />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 rows / 5 pages');
+  });
+
+  it('starts with empty totals before its first response arrives', () => {
+    mocks.useQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isFetching: true,
+      isLoading: true,
+      refetch: mocks.refetch,
+    });
+    render(<UsersList />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('0 rows / 1 pages');
   });
 });

@@ -3,9 +3,9 @@ import type {
   IAgentMemoryEntry,
   IAgentMemoryRevision,
   ICorrectAgentMemoryInput,
+  IPagedItems,
 } from '@genfeedai/contracts/interfaces';
 import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -67,23 +67,20 @@ export class AgentMemoriesService extends HTTPBaseService {
 
   /**
    * One server page of brand and org-wide memories, newest first. The API
-   * answers with a page envelope; its totals are published for
-   * `<AutoPagination />`.
+   * answers with a page envelope; its totals stay with the memory rows.
    */
   async listOrganization(
     query: { limit?: number; page?: number; sort?: string } = {},
     signal?: AbortSignal,
-  ): Promise<OrgMemoryEntry[]> {
+  ): Promise<IPagedItems<OrgMemoryEntry>> {
     const { data } = await this.instance.get<OrgMemoryPage>('/organization', {
       params: query,
       signal,
     });
-    if (query.page) {
-      PagesService.setCurrentPage(data.page);
-      PagesService.setTotalPages(data.totalPages);
-      PagesService.setTotalDocs(data.totalDocs);
-    }
-    return data.docs;
+    return {
+      items: data.docs,
+      totals: { totalDocs: data.totalDocs, totalPages: data.totalPages },
+    };
   }
 
   /**

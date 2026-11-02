@@ -27,6 +27,7 @@ function TagsListContent(props: TagsListProps) {
   const {
     canEditTag,
     filteredAndSortedTags,
+    pageTotals,
     handleToggleActive,
     isLoading,
     isRefreshing,
@@ -252,7 +253,7 @@ function TagsListContent(props: TagsListProps) {
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="tags" />
+        <AutoPagination showTotal totalLabel="tags" totals={pageTotals} />
       </div>
 
       <TagsListModals

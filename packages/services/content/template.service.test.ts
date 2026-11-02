@@ -55,7 +55,7 @@ describe('TemplateService', () => {
         },
         signal: undefined,
       });
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
     });
 
     it('sends no params without a filter', async () => {

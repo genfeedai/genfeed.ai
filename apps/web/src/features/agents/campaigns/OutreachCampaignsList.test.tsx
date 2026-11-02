@@ -1,8 +1,10 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { PagesService } from '@services/content/pages.service';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OutreachCampaignsList from '@/features/agents/campaigns/OutreachCampaignsList';
@@ -26,10 +28,6 @@ vi.mock('./OutreachCampaignsTable', () => ({
       ))}
     </ul>
   ),
-}));
-
-vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -97,7 +95,7 @@ describe('OutreachCampaignsList', () => {
     vi.clearAllMocks();
     mocks.page = null;
     mocks.findAllByOrganization.mockResolvedValue([]);
-    mocks.findPageByOrganization.mockResolvedValue([]);
+    mocks.findPageByOrganization.mockResolvedValue(paginatedResponse([]));
   });
 
   it('should render without crashing', () => {
@@ -127,7 +125,13 @@ describe('OutreachCampaignsList', () => {
       totalTargets: 10,
     }));
     mocks.findAllByOrganization.mockResolvedValue(everyCampaign);
-    mocks.findPageByOrganization.mockResolvedValue(everyCampaign.slice(15));
+    mocks.findPageByOrganization.mockResolvedValue(
+      paginatedResponse(everyCampaign.slice(15), {
+        totalDocs: 40,
+        totalPages: 3,
+      }),
+    );
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
 
     render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
 
@@ -138,6 +142,8 @@ describe('OutreachCampaignsList', () => {
       { brandId: 'brand-123', limit: ITEMS_PER_PAGE, page: 2 },
       expect.any(AbortSignal),
     );
+    expect(screen.getByText('40 sequences')).toBeInTheDocument();
+    expect(screen.queryByText('200 sequences')).not.toBeInTheDocument();
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeInTheDocument();
@@ -168,7 +174,9 @@ describe('OutreachCampaignsList', () => {
       totalTargets: 10,
     };
     mocks.findAllByOrganization.mockResolvedValue([campaign]);
-    mocks.findPageByOrganization.mockResolvedValue([campaign]);
+    mocks.findPageByOrganization.mockResolvedValue(
+      paginatedResponse([campaign]),
+    );
     const client = createTestQueryClient();
     const firstVisit = render(<OutreachCampaignsList />, {
       wrapper: queryClientWrapper(client),

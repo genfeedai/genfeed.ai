@@ -197,7 +197,8 @@ describe('compareProductRouteInventories', () => {
 
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
-    // Canonical Following pages exist for both brand and organization scopes.
+    // Four creation routes moved into their app workspaces; Motion and
+    // Playground gained detail routes. The registry also drops /~/editor/new.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 26,
       issues: [],

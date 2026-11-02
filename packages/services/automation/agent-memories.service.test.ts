@@ -1,4 +1,3 @@
-import { PagesService } from '@services/content/pages.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentMemoriesService } from './agent-memories.service';
 
@@ -83,20 +82,29 @@ describe('AgentMemoriesService', () => {
 
     await expect(
       service.listOrganization({ limit: 15, page: 2 }, controller.signal),
-    ).resolves.toEqual([{ id: 'm1' }]);
+    ).resolves.toEqual({
+      items: [{ id: 'm1' }],
+      totals: { totalDocs: 31, totalPages: 3 },
+    });
     expect(getMock).toHaveBeenCalledWith('/organization', {
       params: { limit: 15, page: 2 },
       signal: controller.signal,
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(3);
-    expect(PagesService.getTotalDocs()).toBe(31);
 
-    await service.archive('m1');
+    expect(await service.archive('m1')).toEqual({
+      id: 'm1',
+      promotedSkillId: 's1',
+    });
     expect(postMock).toHaveBeenCalledWith('/m1/archive');
-    await service.promote('m1');
+    expect(await service.promote('m1')).toEqual({
+      id: 'm1',
+      promotedSkillId: 's1',
+    });
     expect(postMock).toHaveBeenCalledWith('/m1/promote');
-    await service.reject('m1');
+    expect(await service.reject('m1')).toEqual({
+      id: 'm1',
+      promotedSkillId: 's1',
+    });
     expect(postMock).toHaveBeenCalledWith('/m1/reject');
   });
 

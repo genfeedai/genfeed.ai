@@ -1,3 +1,5 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -14,7 +16,7 @@ import FoldersList from './folders-list';
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteFolder: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -60,7 +62,7 @@ vi.mock('@services/content/folders.service', () => ({
   FoldersService: {
     getInstance: () => ({
       delete: mocks.deleteFolder,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     }),
   },
@@ -84,7 +86,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: {
-    queryFn: () => Promise<unknown>;
+    queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
     queryKey: unknown[];
   }) => mocks.useQuery(options),
 }));
@@ -260,8 +262,11 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({ totalLabel, totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel}; {totals?.totalDocs} rows / {totals?.totalPages}{' '}
+      pages
+    </nav>
   ),
 }));
 
@@ -323,10 +328,12 @@ function mockFolders(
   ],
 ) {
   mocks.useQuery.mockImplementation(
-    (options: { queryFn: () => Promise<unknown> }) => {
-      void options.queryFn();
+    (options: {
+      queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+    }) => {
+      void options.queryFn({ signal: new AbortController().signal });
       return {
-        data,
+        data: paginatedResponse(data, { totalDocs: 61, totalPages: 5 }),
         error: null,
         isFetching: false,
         isLoading: false,
@@ -341,7 +348,7 @@ describe('FoldersList', () => {
     vi.clearAllMocks();
     mocks.urlSort = null;
     mocks.deleteFolder.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue([]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([]));
     mocks.patch.mockResolvedValue({});
     mocks.refetch.mockResolvedValue(undefined);
     mockFolders();
@@ -358,23 +365,25 @@ describe('FoldersList', () => {
     expect(screen.queryByRole('button', { name: 'Add Folder' })).toBeNull();
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
           organization: 'org-1',
           page: 2,
           sort: 'label: 1',
         }),
+        expect.any(AbortSignal),
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledWith(
+      expect(mocks.findAllPage).toHaveBeenCalledWith(
         expect.objectContaining({
           search: 'launch',
           sort: 'createdAt: -1',
         }),
+        expect.any(AbortSignal),
       );
     });
 
@@ -402,8 +411,9 @@ describe('FoldersList', () => {
       render(<FoldersList scope={PageScope.SUPERADMIN} />);
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ sort: apiSort }),
+          expect.any(AbortSignal),
         );
       });
     },
@@ -485,7 +495,7 @@ describe('FoldersList', () => {
 
   it('reports load failures and renders the loading and empty states', async () => {
     mocks.useQuery.mockReturnValue({
-      data: [],
+      data: paginatedResponse([]),
       error: new Error('load failed'),
       isFetching: false,
       isLoading: false,
@@ -506,7 +516,7 @@ describe('FoldersList', () => {
     expect(screen.getByText('No folders found')).toBeInTheDocument();
 
     mocks.useQuery.mockReturnValue({
-      data: [],
+      data: paginatedResponse([]),
       error: null,
       isFetching: false,
       isLoading: true,
@@ -514,5 +524,23 @@ describe('FoldersList', () => {
     });
     rerender(<FoldersList scope={PageScope.BRAND} />);
     expect(screen.getByText('Loading folders')).toBeInTheDocument();
+  });
+  it('renders server totals instead of the number of visible rows', () => {
+    render(<FoldersList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 rows / 5 pages');
+  });
+  it('renders empty totals before the response arrives', () => {
+    mocks.useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isFetching: true,
+      refetch: mocks.refetch,
+    });
+    render(<FoldersList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('0 rows / 1 pages');
   });
 });

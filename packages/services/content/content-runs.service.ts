@@ -74,7 +74,10 @@ import {
   type StoryboardStillQuote,
   storyboardStillQuoteSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
-import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
+import type {
+  ContentRunBrief,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunPublishContext,
@@ -86,7 +89,6 @@ import {
   deserializeLegacyStoryboardRunDocument,
   deserializeStoryboardRunDocument,
 } from '@services/content/content-run-document';
-import { PagesService } from '@services/content/pages.service';
 import { isExpectedStoryboardSaveConflict } from '@services/content/storyboard-save-conflict';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -95,7 +97,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import type { AxiosRequestConfig } from 'axios';
 
 export interface CreateResearchBriefRunInput {
@@ -513,8 +515,7 @@ export class ContentRunsService extends HTTPBaseService {
     brandId: string,
     filters: ListContentRunsFilters = {},
     signal?: AbortSignal,
-  ): Promise<ContentRunRecord[]> {
-    const requestId = PagesService.beginRequest();
+  ): Promise<IPaginatedResponse<ContentRunRecord>> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs`,
       {
@@ -528,9 +529,10 @@ export class ContentRunsService extends HTTPBaseService {
         signal,
       },
     );
-    recordPageTotals(response.data, filters, requestId);
-
-    return deserializeCollection<ContentRunRecord>(response.data);
+    return toPaginatedResponse(
+      deserializeCollection<ContentRunRecord>(response.data),
+      response.data,
+    );
   }
 
   async createResearchBriefRun(

@@ -159,9 +159,14 @@ function makeBilling(
 /** The billing read, recording its totals the way the service does. */
 function mockRows(rows: IOrganizationBilling[], totalDocs = rows.length) {
   mocks.getAdminBilling.mockImplementation(async () => {
-    PagesService.setTotalDocs(totalDocs);
-    PagesService.setTotalPages(1);
-    return { data: rows, limit: 15, page: 2, success: true, totalDocs };
+    return {
+      data: rows,
+      limit: 15,
+      page: 2,
+      success: true,
+      totalDocs,
+      totalPages: 1,
+    };
   });
 }
 

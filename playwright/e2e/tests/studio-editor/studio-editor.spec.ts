@@ -5,6 +5,7 @@ import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { StudioPage } from '../../pages/studio.page';
+import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
 import { brandPath } from '../../utils/app-chrome';
 import {
   assertRouteRenders,
@@ -172,6 +173,20 @@ test.describe('Studio Editor', () => {
       credits: 1000,
       plan: 'pro',
     });
+  });
+
+  test('opens a project with a narrow agent rail beside the timeline', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await mockEditorProjects(authenticatedPage, {
+      listedProjects: [projectDocument()],
+    });
+
+    await authenticatedPage.goto(PROJECT_ROUTE);
+
+    await expectProjectEditor(authenticatedPage);
+    await expectOpenProjectLayout(authenticatedPage, { mode: 'rail' });
   });
 
   /**

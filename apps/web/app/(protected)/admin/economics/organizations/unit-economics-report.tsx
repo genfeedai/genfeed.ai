@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES, EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -104,7 +104,18 @@ export default function UnitEconomicsReport() {
         onSortChange={onSortChange}
       />
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+        <AutoPagination
+          totals={
+            report
+              ? {
+                  totalDocs: report.pagination.total ?? report.rows.length,
+                  totalPages: report.pagination.pages,
+                }
+              : EMPTY_PAGE_TOTALS
+          }
+          showTotal
+          totalLabel={translate('totalLabel')}
+        />
       </div>
     </AdminPageShell>
   );

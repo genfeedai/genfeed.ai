@@ -1,7 +1,13 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PageScope, TrainingStatus } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { ITraining } from '@genfeedai/contracts/interfaces';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  IPaginatedResponse,
+  ITraining,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
@@ -19,6 +25,8 @@ import { useAdminOrgBrandParams } from '@/components/content/admin-filters/Admin
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+
+const EMPTY_TRAININGS: Training[] = [];
 
 const TRAINING_SORT_KEYS = ['label', 'status'] as const;
 
@@ -80,12 +88,12 @@ export function useTrainingsList({
   );
 
   const {
-    data: trainings = [] as Training[],
+    data: trainingsPage,
     isLoading,
     isFetching,
     refetch: refetchTrainings,
     error: fetchError,
-  } = useQuery<Training[]>({
+  } = useQuery<IPaginatedResponse<Training>>({
     enabled: !!isSignedIn,
     queryFn: async ({ signal }) => {
       const service = await getTrainingsService();
@@ -110,13 +118,14 @@ export function useTrainingsList({
         }
       }
 
-      const data = await service.findAll(query, signal);
+      const data = await service.findAllPage(query, signal);
       logger.info('GET /trainings success', data);
       return data;
     },
     queryKey: trainingsQueryKey,
   });
 
+  const trainings = trainingsPage?.items ?? EMPTY_TRAININGS;
   const isRefreshing = isFetching && !isLoading;
 
   useEffect(() => {
@@ -132,7 +141,11 @@ export function useTrainingsList({
 
   const setTrainings = useCallback(
     (updatedTrainings: Training[]) => {
-      queryClient.setQueryData(trainingsQueryKey, updatedTrainings);
+      queryClient.setQueryData<IPaginatedResponse<Training>>(
+        trainingsQueryKey,
+        (current) =>
+          current ? { ...current, items: updatedTrainings } : current,
+      );
     },
     [queryClient, trainingsQueryKey],
   );
@@ -271,6 +284,9 @@ export function useTrainingsList({
 
   return {
     trainings,
+    pageTotals: trainingsPage
+      ? { totalDocs: trainingsPage.total, totalPages: trainingsPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
     isLoading,
     isRefreshing,
     error,

@@ -1,17 +1,18 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
+  IPaginatedResponse,
   IReferralAdminReward,
   IReferralClaimResult,
   IReferralProgram,
 } from '@genfeedai/contracts/interfaces';
 import { ReferralProgram } from '@genfeedai/models/billing/referral-program.model';
-import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 export class ReferralsService extends BaseService<ReferralProgram> {
   constructor(token: string) {
@@ -42,17 +43,12 @@ export class ReferralsService extends BaseService<ReferralProgram> {
       limit: 15,
       page: 1,
     },
-  ): Promise<IReferralAdminReward[]> {
+  ): Promise<IPaginatedResponse<IReferralAdminReward>> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       'admin/rewards',
       { params: query },
     );
-    const pagination = response.data.links?.pagination;
-    if (pagination) {
-      PagesService.setCurrentPage(pagination.page ?? 1);
-      PagesService.setTotalPages(pagination.pages ?? 1);
-      PagesService.setTotalDocs(pagination.total ?? 0);
-    }
-    return deserializeCollection<IReferralAdminReward>(response.data);
+    const items = deserializeCollection<IReferralAdminReward>(response.data);
+    return toPaginatedResponse(items, response.data);
   }
 }

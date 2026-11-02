@@ -1,5 +1,6 @@
 'use client';
 
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import AppTable from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -115,6 +116,14 @@ export default function OrganizationSpendingPanel({
         />
         <div className="mt-4">
           <AutoPagination
+            totals={
+              report
+                ? {
+                    totalDocs: report.pagination.total ?? report.rows.length,
+                    totalPages: report.pagination.pages,
+                  }
+                : EMPTY_PAGE_TOTALS
+            }
             showTotal
             totalLabel={translate('spending.totalLabel')}
           />

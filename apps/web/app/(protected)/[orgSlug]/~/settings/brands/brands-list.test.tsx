@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
@@ -86,7 +87,7 @@ vi.mock('@tanstack/react-query', () => ({
           ],
         }
       : {
-          data: mockBrands,
+          data: paginatedResponse(mockBrands, { totalDocs: 61, totalPages: 5 }),
           isLoading: false,
           refetch: vi.fn(),
         },
@@ -210,23 +211,26 @@ describe('BrandsList', () => {
     const { useAuthedService } = await import(
       '@hooks/auth/use-authed-service/use-authed-service'
     );
-    const findAll = vi.fn().mockResolvedValue([]);
+    const findAllPage = vi.fn().mockResolvedValue(paginatedResponse([]));
     vi.mocked(useAuthedService).mockReturnValue((async () => ({
-      findAll,
+      findAllPage,
     })) as never);
     render(<BrandsList />);
 
     const [options] = vi.mocked(useQuery).mock.calls[0] as unknown as [
-      { queryFn: () => Promise<unknown> },
+      { queryFn: (context: { signal: AbortSignal }) => Promise<unknown> },
     ];
-    await options.queryFn();
+    await options.queryFn({ signal: new AbortController().signal });
 
     // `organization` is not a declared query field and is stripped by the API.
-    expect(findAll).toHaveBeenCalledWith({
-      limit: 20,
-      organizationId: 'org-123',
-      page: 1,
-    });
+    expect(findAllPage).toHaveBeenCalledWith(
+      {
+        limit: 20,
+        organizationId: 'org-123',
+        page: 1,
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it.each([
@@ -238,25 +242,31 @@ describe('BrandsList', () => {
     const { useAuthedService } = await import(
       '@hooks/auth/use-authed-service/use-authed-service'
     );
-    const findAll = vi.fn().mockResolvedValue([]);
+    const findAllPage = vi.fn().mockResolvedValue(paginatedResponse([]));
     vi.mocked(useAuthedService).mockReturnValue((async () => ({
-      findAll,
+      findAllPage,
     })) as never);
     searchState.query = `sort=${urlSort}`;
     render(<BrandsList />);
 
     const [options] = vi.mocked(useQuery).mock.calls[0] as unknown as [
-      { queryFn: () => Promise<unknown>; queryKey: unknown[] },
+      {
+        queryFn: (context: { signal: AbortSignal }) => Promise<unknown>;
+        queryKey: unknown[];
+      },
     ];
-    await options.queryFn();
+    await options.queryFn({ signal: new AbortController().signal });
 
     expect(options.queryKey).toEqual(['brands', 'org-123', 1, apiSort]);
-    expect(findAll).toHaveBeenCalledWith({
-      limit: 20,
-      organizationId: 'org-123',
-      page: 1,
-      sort: apiSort,
-    });
+    expect(findAllPage).toHaveBeenCalledWith(
+      {
+        limit: 20,
+        organizationId: 'org-123',
+        page: 1,
+        sort: apiSort,
+      },
+      expect.any(AbortSignal),
+    );
   });
 
   it('links the brand name to its settings page', () => {
@@ -325,5 +335,9 @@ describe('BrandsList', () => {
     render(<BrandsList />);
 
     expect((await screen.findAllByRole('checkbox')).length).toBeGreaterThan(0);
+  });
+  it('renders server totals instead of the number of visible rows', () => {
+    render(<BrandsList />);
+    expect(screen.getByText('61 brands')).toBeVisible();
   });
 });

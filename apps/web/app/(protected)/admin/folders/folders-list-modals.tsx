@@ -5,13 +5,14 @@ import type { FoldersListModalsProps } from '@/features/admin/props/folders.prop
 export default function FoldersListModals({
   onConfirm,
   scope,
+  totals,
 }: FoldersListModalsProps) {
   return (
     <>
       <LazyModalFolder onConfirm={onConfirm} scope={scope} />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="folders" />
+        <AutoPagination showTotal totalLabel="folders" totals={totals} />
       </div>
     </>
   );

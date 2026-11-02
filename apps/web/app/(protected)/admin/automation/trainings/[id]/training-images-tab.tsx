@@ -1,7 +1,12 @@
 'use client';
+
 import { useTraining } from '@contexts/content/training-context/training-context';
 import { PageScope, TrainingStatus } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Image } from '@models/ingredients/image.model';
@@ -15,6 +20,8 @@ import { Image as LucideImage } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
+
+const EMPTY_IMAGES: Image[] = [];
 
 export default function TrainingImagesTab({
   scope = PageScope.ORGANIZATION,
@@ -33,10 +40,10 @@ export default function TrainingImagesTab({
   const hasTrainingModel = Boolean(training?.model);
 
   const {
-    data: generatedAssets = [],
+    data: imagesPage,
     isLoading,
     error,
-  } = useQuery<Image[]>({
+  } = useQuery<IPaginatedResponse<Image>>({
     queryKey: [
       'training-images',
       training?.id,
@@ -61,6 +68,8 @@ export default function TrainingImagesTab({
     },
     enabled: hasTrainingModel,
   });
+
+  const generatedAssets = imagesPage?.items ?? EMPTY_IMAGES;
 
   useEffect(() => {
     if (error) {
@@ -108,7 +117,18 @@ export default function TrainingImagesTab({
     <>
       {content}
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="images" />
+        <AutoPagination
+          showTotal
+          totalLabel="images"
+          totals={
+            imagesPage
+              ? {
+                  totalDocs: imagesPage.total,
+                  totalPages: imagesPage.totalPages,
+                }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -21,7 +24,7 @@ vi.mock('next-intl', async () => {
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteMood: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getMoodsService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -64,7 +67,7 @@ vi.mock('@services/elements/moods.service', () => ({
   MoodsService: {
     getInstance: () => ({
       delete: mocks.deleteMood,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -131,7 +134,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalMood: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,
@@ -153,8 +156,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -191,7 +202,7 @@ function makeMood(overrides: Record<string, unknown> = {}) {
 function mockMoods(
   data = [makeMood(), makeMood({ id: 'mood-2', label: 'Urgent' })],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('MoodsList', () => {
@@ -201,9 +212,32 @@ describe('MoodsList', () => {
     mocks.deleteMood.mockResolvedValue({ ok: true });
     mocks.getMoodsService.mockResolvedValue({
       delete: mocks.deleteMood,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockMoods();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<MoodsList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: moods 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeMood()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<MoodsList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: moods 61');
+    });
+    expect(screen.queryByText('Pagination: moods 200')).not.toBeInTheDocument();
   });
 
   it('loads superadmin moods and reads the admin filters from the URL', async () => {
@@ -213,7 +247,7 @@ describe('MoodsList', () => {
     expect(await screen.findByText('Calm')).toBeInTheDocument();
     expect(screen.getByText('Urgent')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -233,7 +267,7 @@ describe('MoodsList', () => {
       render(<MoodsList scope={PageScope.SUPERADMIN} />);
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
         );
       });
@@ -245,9 +279,9 @@ describe('MoodsList', () => {
     render(<MoodsList scope={PageScope.SUPERADMIN} />);
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalled();
+      expect(mocks.findAllPage).toHaveBeenCalled();
     });
-    expect(mocks.findAll).not.toHaveBeenCalledWith(
+    expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
     );
   });
@@ -278,7 +312,7 @@ describe('MoodsList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <MoodsList
         scope={PageScope.SUPERADMIN}
@@ -303,7 +337,7 @@ describe('MoodsList', () => {
     vi.clearAllMocks();
     mocks.getMoodsService.mockResolvedValue({
       delete: mocks.deleteMood,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockMoods();
     mocks.deleteMood.mockRejectedValueOnce(new Error('delete failed'));

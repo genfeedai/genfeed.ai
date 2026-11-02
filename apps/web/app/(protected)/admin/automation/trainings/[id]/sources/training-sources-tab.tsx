@@ -1,6 +1,11 @@
 'use client';
+
 import { useTraining } from '@contexts/content/training-context/training-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
@@ -14,6 +19,8 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 
+const EMPTY_IMAGES: Image[] = [];
+
 export default function TrainingSourcesTab() {
   const { training } = useTraining();
   const searchParams = useSearchParams();
@@ -26,10 +33,10 @@ export default function TrainingSourcesTab() {
   );
 
   const {
-    data: sourceImages = [],
+    data: sourcesPage,
     isLoading,
     error,
-  } = useQuery<Image[]>({
+  } = useQuery<IPaginatedResponse<Image>>({
     queryKey: ['training-sources', training.id, currentPage],
     queryFn: async ({ signal }) => {
       const url = `GET /trainings/${training.id}/sources`;
@@ -44,6 +51,8 @@ export default function TrainingSourcesTab() {
     },
     enabled: Boolean(training.id),
   });
+
+  const sourceImages = sourcesPage?.items ?? EMPTY_IMAGES;
 
   useEffect(() => {
     if (error) {
@@ -70,7 +79,18 @@ export default function TrainingSourcesTab() {
     <>
       {content}
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="sources" />
+        <AutoPagination
+          showTotal
+          totalLabel="sources"
+          totals={
+            sourcesPage
+              ? {
+                  totalDocs: sourcesPage.total,
+                  totalPages: sourcesPage.totalPages,
+                }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

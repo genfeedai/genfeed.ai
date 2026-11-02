@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementLighting,
   IQueryParams,
@@ -30,7 +33,7 @@ import {
   useRef,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
-import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
+import { LazyElementCreateModal } from '@/components/lazy/modal/LazyModal';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
@@ -95,7 +98,7 @@ function LightingsListContent({
       }
 
       try {
-        const data = await service.findAll(query, signal);
+        const data = await service.findAllPage(query, signal);
         logger.info('GET /lightings success', data);
         return data;
       } catch (error) {
@@ -249,14 +252,17 @@ function LightingsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalLighting onConfirm={() => refreshLightings()} />
+        <LazyElementCreateModal
+          modalId={ModalEnum.LIGHTING}
+          onConfirm={() => refreshLightings()}
+        />
       )}
 
       <div className="mt-4">
         <AutoPagination
           showTotal
           totalLabel="lightings"
-          totals={lightingsQuery.data?.totals}
+          totals={lightingsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

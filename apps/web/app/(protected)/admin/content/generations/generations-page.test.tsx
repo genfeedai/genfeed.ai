@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -157,8 +158,8 @@ describe('admin Generations page', () => {
     mocks.searchParams = new URLSearchParams();
     mocks.organization = '';
     mocks.brand = '';
-    mocks.findAdminGenerationReviews.mockResolvedValue([]);
-    mocks.findAdminWithoutGeneration.mockResolvedValue([]);
+    mocks.findAdminGenerationReviews.mockResolvedValue(paginatedResponse([]));
+    mocks.findAdminWithoutGeneration.mockResolvedValue(paginatedResponse([]));
     mocks.findModels.mockResolvedValue([
       { key: 'google/nano-banana-2-lite', label: 'Nano Banana 2 Lite' },
     ]);
@@ -200,7 +201,9 @@ describe('admin Generations page', () => {
   });
 
   it('lists a generation as a row: status badge, model, owner, cost, prompt', async () => {
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([generation]),
+    );
     render(<GenerationsPage />, { wrapper: queryClientWrapper() });
 
     const row = await screen.findByRole('button', {
@@ -228,7 +231,9 @@ describe('admin Generations page', () => {
   }
 
   it('opens the detail in the right sidebar with the prompts, harness and a collapsed long compiled prompt', async () => {
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([generation]),
+    );
     renderWithSidebar();
     fireEvent.click(
       await screen.findByRole('button', { name: 'open ingredient-1' }),
@@ -246,13 +251,15 @@ describe('admin Generations page', () => {
   });
 
   it('shows why a failed generation failed inside the sidebar', async () => {
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([
-      {
-        ...generation,
-        generationError: 'provider timed out',
-        status: 'FAILED',
-      },
-    ]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([
+        {
+          ...generation,
+          generationError: 'provider timed out',
+          status: 'FAILED',
+        },
+      ]),
+    );
     renderWithSidebar();
     fireEvent.click(
       await screen.findByRole('button', { name: 'open ingredient-1' }),
@@ -289,15 +296,17 @@ describe('admin Generations page', () => {
 
   it('lists prompts that never produced a generation as placeholder rows', async () => {
     mocks.searchParams = new URLSearchParams('type=prompt');
-    mocks.findAdminWithoutGeneration.mockResolvedValueOnce([
-      {
-        id: 'prompt-1',
-        organization: { label: 'Acme' },
-        original: 'a lone prompt',
-        status: 'DRAFT',
-        user: { email: 'user@example.com' },
-      },
-    ]);
+    mocks.findAdminWithoutGeneration.mockResolvedValueOnce(
+      paginatedResponse([
+        {
+          id: 'prompt-1',
+          organization: { label: 'Acme' },
+          original: 'a lone prompt',
+          status: 'DRAFT',
+          user: { email: 'user@example.com' },
+        },
+      ]),
+    );
     render(<GenerationsPage />, { wrapper: queryClientWrapper() });
 
     const row = await screen.findByRole('button', { name: 'open prompt-1' });
@@ -330,7 +339,7 @@ describe('admin Generations page', () => {
 
   it('hides stale rows on failure and retries', async () => {
     mocks.findAdminGenerationReviews
-      .mockResolvedValueOnce([generation])
+      .mockResolvedValueOnce(paginatedResponse([generation]))
       .mockRejectedValueOnce(new Error('Request failed'));
     const view = render(<GenerationsPage />, {
       wrapper: queryClientWrapper(),
@@ -344,7 +353,9 @@ describe('admin Generations page', () => {
       screen.queryByRole('button', { name: 'open ingredient-1' }),
     ).not.toBeInTheDocument();
 
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([generation]),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'retry' }));
     expect(
       await screen.findByRole('button', { name: 'open ingredient-1' }),
@@ -352,7 +363,9 @@ describe('admin Generations page', () => {
   });
 
   it('downloads the displayed rows as CSV', async () => {
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([generation]),
+    );
     const createObjectURL = vi.fn(() => 'blob:csv');
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
     const click = vi
@@ -372,7 +385,9 @@ describe('admin Generations page', () => {
   });
 
   it('paints the cached generations on a return visit, with no skeleton', async () => {
-    mocks.findAdminGenerationReviews.mockResolvedValueOnce([generation]);
+    mocks.findAdminGenerationReviews.mockResolvedValueOnce(
+      paginatedResponse([generation]),
+    );
     const client = createTestQueryClient();
     const first = render(<GenerationsPage />, {
       wrapper: queryClientWrapper(client),

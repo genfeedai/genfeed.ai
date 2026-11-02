@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import {
   createTestQueryClient,
@@ -27,7 +28,7 @@ vi.mock('next-intl', async () => {
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteLens: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -81,7 +82,7 @@ vi.mock('@services/elements/lenses.service', () => ({
   LensesService: {
     getInstance: () => ({
       delete: mocks.deleteLens,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -157,7 +158,7 @@ vi.mock('@ui/display/table/Table', () => ({
 }));
 
 vi.mock('@/components/lazy/modal/LazyModal', () => ({
-  LazyModalLens: ({
+  LazyElementCreateModal: ({
     item,
     onClose,
     onConfirm,
@@ -238,7 +239,7 @@ describe('LensesList', () => {
     vi.clearAllMocks();
     mocks.urlSort = null;
     mocks.deleteLens.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue(LENSS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(LENSS));
   });
 
   it('renders superadmin lenses and reads the admin filters from the URL', async () => {
@@ -246,7 +247,7 @@ describe('LensesList', () => {
 
     expect((await screen.findAllByText('Wide Lens')).length).toBeGreaterThan(0);
     expect(screen.getByText('Macro Lens')).toBeInTheDocument();
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -267,7 +268,7 @@ describe('LensesList', () => {
       renderList({ scope: PageScope.SUPERADMIN });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
           expect.any(AbortSignal),
         );
@@ -280,9 +281,9 @@ describe('LensesList', () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalled();
+      expect(mocks.findAllPage).toHaveBeenCalled();
     });
-    expect(mocks.findAll).not.toHaveBeenCalledWith(
+    expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
       expect.any(AbortSignal),
     );
@@ -320,7 +321,9 @@ describe('LensesList', () => {
     await screen.findAllByText('Macro Lens');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
-    mocks.findAll.mockResolvedValue([makeLens({ label: 'Refreshed Lens' })]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makeLens({ label: 'Refreshed Lens' })]),
+    );
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -328,7 +331,7 @@ describe('LensesList', () => {
       (await screen.findAllByText('Refreshed Lens')).length,
     ).toBeGreaterThan(0);
 
-    mocks.findAll.mockResolvedValue(LENSS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(LENSS));
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -343,7 +346,7 @@ describe('LensesList', () => {
       }),
     );
 
-    mocks.findAll.mockResolvedValue([makeLens()]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([makeLens()]));
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
     });
@@ -357,7 +360,7 @@ describe('LensesList', () => {
 
   it('reports load and delete failures while notifying parent loading state', async () => {
     const onLoadingChange = vi.fn();
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
 
     renderList({ onLoadingChange, scope: PageScope.SUPERADMIN });
 
@@ -405,9 +408,8 @@ describe('LensesList', () => {
   });
 
   it('paints the cached lenses and their own footer total when coming back', async () => {
-    mocks.findAll.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 2, pages: 2, total: 14 });
-      return LENSS;
+    mocks.findAllPage.mockImplementation(async () => {
+      return paginatedResponse(LENSS, { totalDocs: 14, totalPages: 2 });
     });
     const client = createTestQueryClient();
     const firstVisit = renderList({ scope: PageScope.SUPERADMIN }, client);
@@ -417,7 +419,7 @@ describe('LensesList', () => {
     firstVisit.unmount();
 
     PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
     expect(screen.getAllByText('Wide Lens').length).toBeGreaterThan(0);

@@ -6601,43 +6601,11 @@
       "workspace": "web"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "5504d7a71dffb51c346c",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "c71c133957085f936c11",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 6,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "f126b9f734b20f9723d7",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
       "code": 2344,
       "count": 2,
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
       "fingerprint": "3fe29f8d24b07d75bacd",
       "message": "Type 'CalendarItemShape' does not satisfy the constraint 'CalendarItem'.   Property 'title' is missing in type 'CalendarItemShape' but required in type 'CalendarItem'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "c1dd8df54c085a94e694",
-      "message": "Argument of type 'ICalendarSlot[]' is not assignable to parameter of type 'never[]'.   Type 'ICalendarSlot' is not assignable to type 'never'.",
       "workspace": "web"
     },
     {
@@ -7654,14 +7622,6 @@
       "file": "apps/web/src/features/library-remix/use-library-remix-source.test.ts",
       "fingerprint": "33ad969ca356d1ce114a",
       "message": "Conversion of type '{ id: string; isDeleted: false; parent: string; parentModel: AssetParent; url: string; }' to type 'IAsset' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; isDeleted: false; parent: string; parentModel: AssetParent; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, createdAt, updatedAt",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/web/src/features/posts/[id]/ingredient-posts.test.tsx",
-      "fingerprint": "307db22c9a874bdc8b77",
-      "message": "Type '{ id: string; page: number; ingredient: Ingredient & { totalPosts?: number | undefined; totalViews?: number | undefined; }; posts: never[]; }' is not assignable to type 'IntrinsicAttributes & IngredientPostsProps'.   Property 'page' does not exist on type 'IntrinsicAttributes & IngredientPostsProps'.",
       "workspace": "web"
     },
     {

@@ -2,7 +2,15 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardRunPage from './StoryboardRunPage';
 
-const mocks = vi.hoisted(() => ({ neutral: vi.fn(), legacy: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  neutral: vi.fn(),
+  legacy: vi.fn(),
+  publishContext: vi.fn(),
+}));
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 vi.mock(
   '@/features/studio/storyboard/hooks/use-durable-storyboard-run',
   () => ({
@@ -29,6 +37,23 @@ describe('Storyboard detail transition', () => {
   beforeEach(() => {
     mocks.neutral.mockReset();
     mocks.legacy.mockReset();
+    mocks.publishContext.mockReset();
+  });
+  it('tells the agent which run is open once it has loaded', () => {
+    mocks.neutral.mockReturnValue({
+      run: { id: 'native', config: { revision: 1 } },
+    });
+    render(<StoryboardRunPage runId="native" />);
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'storyboard',
+      openProjectId: 'native',
+      projects: [{ id: 'native', title: 'runs.title' }],
+    });
+  });
+  it('tells the agent nothing while the run is still loading', () => {
+    mocks.neutral.mockReturnValue({ run: null });
+    render(<StoryboardRunPage runId="native" />);
+    expect(mocks.publishContext).toHaveBeenLastCalledWith(null);
   });
   it('opens native runs with the new editor', () => {
     mocks.neutral.mockReturnValue({

@@ -50,6 +50,7 @@ export default function ModelsList({
     isError,
     columns,
     models,
+    pageTotals,
     searchTerm,
     sortKey,
     sortDirection,
@@ -309,7 +310,7 @@ export default function ModelsList({
 
       {!isLoading && (
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="models" />
+          <AutoPagination showTotal totalLabel="models" totals={pageTotals} />
         </div>
       )}
     </>

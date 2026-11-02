@@ -2,9 +2,25 @@ import { TurboProjectKind } from '@genfeedai/contracts';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
+import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
 
 const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
+  test('opens a project with the agent on the left and the project on the right', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await mockTurboProject(page, TurboProjectKind.IDEAS);
+    await page.goto(`${base}/persisted-project`);
+
+    await expectOpenProjectLayout(page);
+    await expect(
+      page
+        .getByTestId('agent-output-output-pane')
+        .getByRole('link', { name: 'All projects' }),
+    ).toBeVisible();
+  });
+
   test('idea choices, generated ideas, quote, approval and per-target timing survive reloads', async ({
     authenticatedPage: page,
   }) => {

@@ -1,7 +1,10 @@
 'use client';
 
 import { ReferralRewardStatus } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IReferralAdminReward } from '@genfeedai/contracts/interfaces';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -249,7 +252,7 @@ export default function ReferralRewardsList() {
           <AutoPagination
             showTotal
             totalLabel="rewards"
-            totals={data?.totals}
+            totals={data?.totals ?? EMPTY_PAGE_TOTALS}
           />
         </div>
       )}

@@ -376,17 +376,7 @@ export class AnalyticsService extends HTTPBaseService {
   ): Promise<IPaginatedBrandsResponse> {
     return await this.instance
       .get<JsonApiResponseDocument>('brands', { params, signal })
-      .then((res) => deserializeResource<IPaginatedBrandsResponse>(res.data))
-      .then((response) => {
-        // Feeds AutoPagination, which reads the totals from PagesService.
-        if (params?.page && response.pagination) {
-          PagesService.setCurrentPage(response.pagination.page);
-          PagesService.setTotalPages(response.pagination.totalPages);
-          PagesService.setTotalDocs(response.pagination.total);
-        }
-
-        return response;
-      });
+      .then((res) => deserializeResource<IPaginatedBrandsResponse>(res.data));
   }
 
   /**

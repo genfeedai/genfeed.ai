@@ -9,6 +9,7 @@ import { ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  EMPTY_PAGE_TOTALS,
 } from '@genfeedai/contracts/constants';
 import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -113,16 +114,16 @@ function BrandsListContent() {
   );
 
   const {
-    data: brands,
+    data: brandsPage,
     isLoading,
     error: brandsError,
     isFetching: isRefreshing,
     refetch,
   } = useQuery({
     queryKey: ['brands', organizationId, currentPage, sort],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!organizationId) {
-        return [];
+        return null;
       }
 
       const query: IQueryParams = {
@@ -133,12 +134,14 @@ function BrandsListContent() {
       };
 
       const service = await getBrandsService();
-      const data = await service.findAll(query);
+      const data = await service.findAllPage(query, signal);
       logger.info('GET /brands success', data);
       return data;
     },
     enabled: !!organizationId,
   });
+
+  const brands = brandsPage?.items;
 
   const translate = useTranslations('common.settings.brandMove');
   const role = useUserRole();
@@ -385,7 +388,15 @@ function BrandsListContent() {
         selectedIds={selectedIds}
       />
 
-      <AutoPagination showTotal totalLabel="brands" />
+      <AutoPagination
+        showTotal
+        totalLabel="brands"
+        totals={
+          brandsPage
+            ? { totalDocs: brandsPage.total, totalPages: brandsPage.totalPages }
+            : EMPTY_PAGE_TOTALS
+        }
+      />
 
       {brandsToMove.length > 0 && organizationId ? (
         <BrandMoveDialog

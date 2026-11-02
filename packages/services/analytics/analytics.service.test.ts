@@ -269,9 +269,8 @@ describe('AnalyticsService', () => {
         ),
       );
 
-      const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
-      const setTotalPages = vi.spyOn(PagesService, 'setTotalPages');
-      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
+      PagesService.setTotalDocs(200);
+      PagesService.setTotalPages(20);
       const signal = new AbortController().signal;
 
       const result = await service.getBrandsWithStats({ page: 2 }, signal);
@@ -281,9 +280,9 @@ describe('AnalyticsService', () => {
         signal,
       });
       expect(result.pagination.page).toBe(2);
-      expect(setCurrentPage).toHaveBeenCalledWith(2);
-      expect(setTotalPages).toHaveBeenCalledWith(1);
-      expect(setTotalDocs).toHaveBeenCalledWith(0);
+      expect(result.pagination).toMatchObject({ total: 0, totalPages: 1 });
+      expect(PagesService.getTotalDocs()).toBe(200);
+      expect(PagesService.getTotalPages()).toBe(20);
     });
 
     it('getBusinessAnalytics GETs the business dashboard', async () => {
