@@ -1,12 +1,11 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementCameraMovement,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementCameraMovement } from '@models/elements/camera-movement.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -17,7 +16,7 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
@@ -27,6 +26,7 @@ import type {
   CameraMovementsAction,
   CameraMovementsState,
 } from '@/features/admin/props/camera-movements.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function cameraMovementsReducer(
@@ -38,8 +38,6 @@ function cameraMovementsReducer(
       return { ...state, isLoading: action.payload };
     case 'SET_CAMERA_MOVEMENTS':
       return { ...state, cameraMovements: action.payload };
-    case 'SET_SELECTED':
-      return { ...state, selectedCameraMovement: action.payload };
     case 'FETCH_START':
       return { ...state, isLoading: !action.payload.isRefresh };
     case 'FETCH_DONE':
@@ -81,11 +79,10 @@ function CameraMovementsListContent({
     () => ({
       cameraMovements: [],
       isLoading: true,
-      selectedCameraMovement: null,
     }),
   );
 
-  const { cameraMovements, isLoading, selectedCameraMovement } = state;
+  const { cameraMovements, isLoading } = state;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -129,15 +126,8 @@ function CameraMovementsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (movement: ElementCameraMovement) =>
-              openCameraMovementModal(ModalEnum.CAMERA_MOVEMENT, movement),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (movement: ElementCameraMovement) => {
-              dispatch({ type: 'SET_SELECTED', payload: movement });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -234,33 +224,31 @@ function CameraMovementsListContent({
     }
   }, [onRefresh, findAllCameraMovements]);
 
-  const openCameraMovementModal = (
-    modalId: ModalEnum,
-    movement?: IElementCameraMovement,
-  ) => {
-    dispatch({ type: 'SET_SELECTED', payload: movement || null });
-    openModal(modalId);
-  };
-
   const handleDelete = async (movement: IElementCameraMovement) => {
     try {
       const service = await getCameraMovementsService();
       await service.delete(movement.id);
       notificationsService.success('Camera movement deleted');
-      dispatch({ type: 'SET_SELECTED', payload: null });
       findAllCameraMovements(true);
     } catch (error) {
       logger.error('Failed to delete camera movement', error);
       notificationsService.error('Failed to delete camera movement');
-      dispatch({ type: 'SET_SELECTED', payload: null });
     }
   };
 
+  const saveCameraMovement = useInlineRecordSave<
+    Partial<IElementCameraMovement>
+  >({
+    errorMessage: 'Failed to update camera movement',
+    onSaved: () => findAllCameraMovements(true),
+    save: async (id, patch) =>
+      (await getCameraMovementsService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementCameraMovement>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) =>
-            openCameraMovementModal(ModalEnum.CAMERA_MOVEMENT, element)
+        ? (element, patch) => saveCameraMovement(element.id, patch)
         : undefined,
   });
 
@@ -281,12 +269,7 @@ function CameraMovementsListContent({
 
       {scope === PageScope.SUPERADMIN && (
         <LazyModalCameraMovement
-          item={selectedCameraMovement}
-          onClose={() => dispatch({ type: 'SET_SELECTED', payload: null })}
-          onConfirm={() => {
-            dispatch({ type: 'SET_SELECTED', payload: null });
-            findAllCameraMovements(true);
-          }}
+          onConfirm={() => findAllCameraMovements(true)}
         />
       )}
 

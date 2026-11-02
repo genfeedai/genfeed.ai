@@ -1,8 +1,23 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { IOnboardingFirstDraftsResult } from '@genfeedai/contracts/interfaces';
+import { ONBOARDING_CAMPAIGN_IMAGE_SLOTS } from '@genfeedai/contracts/constants';
+import type {
+  IOnboardingCampaignImage,
+  IOnboardingFirstDraftsResult,
+} from '@genfeedai/contracts/interfaces';
 import { OnboardingDraftRunsService } from './onboarding-draft-runs.service';
 
 const user = { id: 'user-1', organizationId: 'org-1' } as AuthenticatedUser;
+const campaignImage = (
+  overrides: Partial<IOnboardingCampaignImage> = {},
+): IOnboardingCampaignImage => ({
+  aspectRatio: '16:9',
+  id: 'twitter',
+  ingredientId: 'img-tw',
+  platform: 'twitter',
+  status: 'pending',
+  url: null,
+  ...overrides,
+});
 const result: IOnboardingFirstDraftsResult = {
   drafts: [
     {
@@ -29,7 +44,7 @@ describe('OnboardingDraftRunsService', () => {
     },
     brandedGenerationFeedback: { findMany: vi.fn() },
     brandedGenerationReceipt: { findMany: vi.fn() },
-    ingredient: { findFirst: vi.fn() },
+    ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
     post: { updateMany: vi.fn(), findMany: vi.fn() },
     postIngredient: { createMany: vi.fn() },
   };
@@ -45,6 +60,7 @@ describe('OnboardingDraftRunsService', () => {
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
     prisma.brandedGenerationReceipt.findMany.mockResolvedValue([]);
     prisma.ingredient.findFirst.mockResolvedValue(null);
+    prisma.ingredient.findMany.mockResolvedValue([]);
   });
 
   it('saves the successful response and replays it without calling generation', async () => {
@@ -164,34 +180,29 @@ describe('OnboardingDraftRunsService', () => {
     expect(new Set(ids).size).toBe(3);
   });
 
-  it('reconciles a pending video from its saved ingredient without generating', async () => {
+  it('reconciles a pending platform image from its saved ingredient without generating', async () => {
     prisma.contentRun.findFirst.mockResolvedValue({
       id: 'run-1',
       status: 'complete',
       updatedAt: new Date(),
       config: {
         surface: 'onboarding',
-        result: {
-          ...result,
-          videoIngredientId: 'video-1',
-          videoStatus: 'pending',
-        },
+        result: { ...result, campaignImages: [campaignImage()] },
       },
     });
-    prisma.ingredient.findFirst.mockResolvedValue({
-      status: 'GENERATED',
-      s3Key: 'video/saved.mp4',
-    });
+    prisma.ingredient.findMany.mockResolvedValue([
+      { id: 'img-tw', status: 'GENERATED', s3Key: 'image/saved.png' },
+    ]);
     const run = await service.latest(user, 'brand-1');
-    expect(run?.result?.videoUrl).toBe(
-      'https://cdn.example.com/video/saved.mp4',
+    expect(run?.result?.campaignImages?.[0].url).toBe(
+      'https://cdn.example.com/image/saved.png',
     );
-    expect(run?.result?.videoStatus).toBe('ready');
+    expect(run?.result?.campaignImages?.[0].status).toBe('ready');
     expect(run?.status).toBe('complete');
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 'video-1',
+          id: { in: ['img-tw'] },
           organizationId: 'org-1',
           brandId: 'brand-1',
           isDeleted: false,
@@ -201,7 +212,7 @@ describe('OnboardingDraftRunsService', () => {
   });
 
   it('attaches scoped media to draft posts for editing after onboarding', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+    prisma.ingredient.findMany.mockResolvedValue([{ id: 'image-1' }]);
     await service.execute(
       user,
       'brand-1',
@@ -235,7 +246,7 @@ describe('OnboardingDraftRunsService', () => {
     });
   });
   it('keeps processing and failed ingredients out of editable posts', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue(null);
+    prisma.ingredient.findMany.mockResolvedValue([]);
     await service.execute(
       user,
       'brand-1',
@@ -244,7 +255,7 @@ describe('OnboardingDraftRunsService', () => {
         .fn()
         .mockResolvedValue({ ...result, imageIngredientId: 'pending-image' }),
     );
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
@@ -255,7 +266,42 @@ describe('OnboardingDraftRunsService', () => {
     expect(prisma.postIngredient.createMany).not.toHaveBeenCalled();
   });
 
-  it('attaches a video that became ready after the original request returned', async () => {
+  it('attaches a platform image that became ready after the original request returned', async () => {
+    prisma.contentRun.findFirst.mockResolvedValue({
+      id: 'saved-run',
+      status: 'completed',
+      updatedAt: new Date(),
+      config: {
+        surface: 'onboarding',
+        result: { ...result, campaignImages: [campaignImage()] },
+      },
+    });
+    prisma.ingredient.findMany.mockResolvedValue([
+      { id: 'img-tw', status: 'GENERATED', s3Key: 'image/ready.png' },
+    ]);
+    const run = await service.latest(user, 'brand-1');
+    expect(run?.result?.campaignImages?.[0]).toMatchObject({
+      status: 'ready',
+      url: 'https://cdn.example.com/image/ready.png',
+    });
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { contentRunId: 'saved-run', category: 'IMAGE' },
+      }),
+    );
+    expect(prisma.postIngredient.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            ingredientId: 'img-tw',
+            organizationId: 'org-1',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('leaves a post without images until every image of its platform has finished', async () => {
     prisma.contentRun.findFirst.mockResolvedValue({
       id: 'saved-run',
       status: 'completed',
@@ -265,33 +311,32 @@ describe('OnboardingDraftRunsService', () => {
         result: {
           ...result,
           drafts: [{ ...result.drafts[0], platform: 'tiktok' }],
-          videoIngredientId: 'video-1',
-          videoStatus: 'pending',
+          campaignImages: [
+            campaignImage({
+              id: 'tiktok-1',
+              ingredientId: 'slide-1',
+              platform: 'tiktok',
+            }),
+            campaignImage({
+              id: 'tiktok-2',
+              ingredientId: 'slide-2',
+              platform: 'tiktok',
+            }),
+          ],
         },
       },
     });
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'video-1',
-      status: 'GENERATED',
-      s3Key: 'video/ready.mp4',
-    });
+    prisma.ingredient.findMany.mockResolvedValue([
+      { id: 'slide-1', status: 'GENERATED', s3Key: 'image/1.png' },
+      { id: 'slide-2', status: 'PROCESSING', s3Key: null },
+    ]);
     const run = await service.latest(user, 'brand-1');
-    expect(run?.result?.videoStatus).toBe('ready');
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { contentRunId: 'saved-run', category: 'VIDEO' },
-      }),
-    );
-    expect(prisma.postIngredient.createMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: [
-          expect.objectContaining({
-            ingredientId: 'video-1',
-            organizationId: 'org-1',
-          }),
-        ],
-      }),
-    );
+    expect(run?.result?.campaignImages?.map((image) => image.status)).toEqual([
+      'ready',
+      'pending',
+    ]);
+    expect(run?.status).toBe('running');
+    expect(prisma.postIngredient.createMany).not.toHaveBeenCalled();
   });
 
   it('does not restart an empty interrupted run because dispatch may have occurred before a checkpoint', async () => {
@@ -385,8 +430,8 @@ describe('OnboardingDraftRunsService', () => {
         service.retryMedia(user, 'brand-1', generate),
       ).resolves.toEqual(withImage);
       expect(generate).toHaveBeenCalledWith(
-        { image: true, video: false },
-        result,
+        { campaign: true, image: true },
+        { ...result, campaignImages: [] },
         expect.any(Function),
       );
       const writes = prisma.contentRun.updateMany.mock.calls.map(
@@ -433,11 +478,28 @@ describe('OnboardingDraftRunsService', () => {
     });
 
     it('returns the saved run untouched when no media is missing', async () => {
-      prisma.contentRun.findFirst.mockResolvedValue(row({ result: withImage }));
+      const campaignImages = ONBOARDING_CAMPAIGN_IMAGE_SLOTS.map((slot) =>
+        campaignImage({
+          aspectRatio: slot.aspectRatio,
+          id: slot.id,
+          ingredientId: `img-${slot.id}`,
+          platform: slot.platform,
+        }),
+      );
+      prisma.contentRun.findFirst.mockResolvedValue(
+        row({ result: { ...withImage, campaignImages } }),
+      );
       prisma.ingredient.findFirst.mockResolvedValue({
         status: 'GENERATED',
         s3Key: 'image/saved.png',
       });
+      prisma.ingredient.findMany.mockResolvedValue(
+        campaignImages.map((image) => ({
+          id: image.ingredientId,
+          status: 'GENERATED',
+          s3Key: `image/${image.id}.png`,
+        })),
+      );
       const generate = vi.fn();
       const returned = await service.retryMedia(user, 'brand-1', generate);
       expect(returned.imageUrl).toBe('https://cdn.example.com/image/saved.png');

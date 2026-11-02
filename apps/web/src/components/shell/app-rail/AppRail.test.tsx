@@ -533,6 +533,22 @@ describe('AppRail', () => {
       expect(link).not.toHaveAttribute('data-prefetch', 'false');
     }
   });
+  it('keeps destinations behind More prefetched, not only the rail links', async () => {
+    vi.useFakeTimers();
+    render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+
+    expect(
+      screen.queryByRole('link', { name: 'Playground' }),
+    ).not.toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(router.prefetch.mock.calls.map(([href]) => href)).toEqual(
+      expect.arrayContaining([
+        '/acme/my-brand/analytics/overview',
+        '/acme/my-brand/playground',
+      ]),
+    );
+  });
   it('renders only the core loop when nothing is pinned (#5502)', () => {
     render(<AppRail orgSlug="acme" />);
 
@@ -1453,7 +1469,7 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/editor/new"
+        currentPath="/acme/my-brand/editor"
         pinnedAppIds={LAUNCHER_APP_IDS}
       />,
     );

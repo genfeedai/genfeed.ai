@@ -122,4 +122,22 @@ describe('Switch', () => {
       ),
     ).toBe(true);
   });
+  it('shows a skeleton in place of the toggle while its value loads, keeping the label', () => {
+    render(
+      <Switch
+        aria-label="Workflow Emails"
+        description="Send an email when a workflow fails."
+        isLoading
+        label="Workflow Emails"
+      />,
+    );
+
+    expect(
+      screen.getByRole('status', { name: 'Workflow Emails' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Send an email when a workflow fails.'),
+    ).toBeInTheDocument();
+  });
 });

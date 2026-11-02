@@ -188,6 +188,52 @@ test('rail navigation paints without waiting for a server render', async ({
   expect(placeholderRequests).toEqual([]);
 });
 
+// Destinations behind the rail's More menu have no link on screen to prefetch
+// them, so the shell keeps every rail destination prefetched itself. Opening
+// the menu and clicking straight away must paint like a rail click.
+test('a More menu destination paints without waiting for a server render', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  const isPrefetched = trackPrefetches(page);
+  await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
+  await mockLibraryData(page);
+  await page.goto(
+    createBrandAppRoute('test-org', 'brand-1', APP_ROUTES.LIBRARY.ASSETS),
+  );
+  await expect(
+    page.getByRole('heading', { name: 'All assets', exact: true }),
+  ).toBeVisible();
+
+  const href = createBrandAppRoute(
+    'test-org',
+    'brand-1',
+    APP_ROUTES.STUDIO.PLAYGROUND,
+  );
+  await expect
+    .poll(() => isPrefetched(href), {
+      message: 'More menu destination is prefetched before the menu opens',
+      timeout: PREFETCH_TIMEOUT_MS,
+    })
+    .toBe(true);
+  await delayServerRenders(page);
+
+  await page.getByTestId('app-rail-more').click();
+  const target = page.getByTestId('app-rail-more-item-playground');
+  await expect(target).toHaveAttribute('href', href);
+  await recordNavigationTiming(page);
+
+  await target.click();
+  await page.waitForURL((url) => url.pathname === href);
+  await expect(page.locator('main').first()).toBeVisible();
+  const elapsedMs = await readClickToCommitMs(page);
+
+  testInfo.annotations.push({
+    description: `${elapsedMs}ms (server render delayed ${SERVER_LATENCY_MS}ms)`,
+    type: 'click-to-destination',
+  });
+  expect(elapsedMs).toBeLessThan(INSTANT_BUDGET_MS);
+});
+
 // Cached routes stay mounted while hidden, so shell overlays opened on one
 // route must not survive navigating away and back.
 test('an open shell popover closes on route change and stays closed on return', async ({

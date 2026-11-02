@@ -9,7 +9,7 @@ import type {
 } from '@/features/posts/props/publishing-layout-content.props';
 
 const INITIAL_STATE: PublishingLayoutState = {
-  exportNode: null,
+  overflowNode: null,
   filtersNode: null,
   isRefreshing: false,
   leadingNode: null,
@@ -31,8 +31,8 @@ function reducer(
       return { ...state, leadingNode: action.payload };
     case 'SET_FILTERS_NODE':
       return { ...state, filtersNode: action.payload };
-    case 'SET_EXPORT_NODE':
-      return { ...state, exportNode: action.payload };
+    case 'SET_OVERFLOW_NODE':
+      return { ...state, overflowNode: action.payload };
     case 'SET_VIEW_TOGGLE_NODE':
       return { ...state, viewToggleNode: action.payload };
     case 'SET_SCHEDULE_ACTIONS_NODE':
@@ -50,8 +50,8 @@ function reducer(
 export function usePostsLayoutSlots() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
-  const setExportNode = useCallback(
-    (node: ReactNode) => dispatch({ payload: node, type: 'SET_EXPORT_NODE' }),
+  const setOverflowNode = useCallback(
+    (node: ReactNode) => dispatch({ payload: node, type: 'SET_OVERFLOW_NODE' }),
     [],
   );
   const setFiltersNode = useCallback(
@@ -84,7 +84,7 @@ export function usePostsLayoutSlots() {
 
   const contextValue = useMemo(
     () => ({
-      setExportNode,
+      setOverflowNode,
       setFiltersNode,
       setIsRefreshing,
       setLeadingNode,
@@ -93,7 +93,7 @@ export function usePostsLayoutSlots() {
       setViewToggleNode,
     }),
     [
-      setExportNode,
+      setOverflowNode,
       setFiltersNode,
       setIsRefreshing,
       setLeadingNode,

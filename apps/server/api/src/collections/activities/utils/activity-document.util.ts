@@ -4,6 +4,7 @@ import {
   normalizeActionOrigin,
   withActionOriginMetadata,
 } from '@api/index';
+import { ActivityKey } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 
@@ -131,6 +132,15 @@ export function normalizeActivityDocument(
     typeof data.value === 'string'
   ) {
     normalized.value = data.value;
+  }
+  if (
+    (typeof normalized.value !== 'string' || normalized.value.length === 0) &&
+    normalized.key === ActivityKey.POST_LIFECYCLE_TRANSITION &&
+    typeof data.from === 'string' &&
+    typeof data.to === 'string'
+  ) {
+    // The lifecycle audit row records its states beside `value`, not in it.
+    normalized.value = JSON.stringify({ from: data.from, to: data.to });
   }
   if (
     (typeof normalized.source !== 'string' || normalized.source.length === 0) &&

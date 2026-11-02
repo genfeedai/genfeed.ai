@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
-    download,
+    overflow,
     dropdowns,
     filters,
     onRefresh,
@@ -28,7 +28,7 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
     title,
   }: {
     children: ReactNode;
-    download?: ReactNode;
+    overflow?: ReactNode;
     dropdowns?: ReactNode;
     filters?: ReactNode;
     onRefresh?: () => void;
@@ -40,10 +40,10 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
         <h1 className="sr-only">{title}</h1>
         {search}
         {filters}
+        {overflow}
         <button aria-label="Refresh" onClick={onRefresh} type="button">
           Refresh
         </button>
-        {download}
         {dropdowns}
       </div>
       <div data-testid="content">{children}</div>
@@ -184,7 +184,12 @@ describe('admin Generations page', () => {
     ).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(subbar.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
-    expect(subbar.getByRole('button', { name: 'download' })).toBeDisabled();
+    // Download is a secondary action, so it lives in the "..." menu.
+    await userEvent.click(subbar.getByRole('button', { name: 'moreActions' }));
+    expect(
+      await screen.findByRole('menuitem', { name: 'download' }),
+    ).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.keyboard('{Escape}');
     expect(subbar.getByTestId('org-filter')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('content')).queryByRole('heading', {
@@ -356,7 +361,10 @@ describe('admin Generations page', () => {
     render(<GenerationsPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('button', { name: 'open ingredient-1' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'download' }));
+    await userEvent.click(screen.getByRole('button', { name: 'moreActions' }));
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'download' }),
+    );
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();

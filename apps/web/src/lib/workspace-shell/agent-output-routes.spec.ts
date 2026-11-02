@@ -59,6 +59,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/playground/job-1/extra')).toBe(false);
   });
 
+  it('matches the Motion workspace and an open Motion project', () => {
+    expect(isAgentOutputRoute('/motion')).toBe(true);
+    expect(isAgentOutputRoute('/motion/')).toBe(true);
+    expect(isAgentOutputRoute('/motion/project-1')).toBe(true);
+    expect(isAgentOutputRoute('/motion/project-1/extra')).toBe(false);
+  });
+
   it('matches a clipper project and leaves the list and the create form', () => {
     expect(isAgentOutputRoute('/clipper/project-1')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1/')).toBe(true);
@@ -78,12 +85,12 @@ describe('isAgentOutputRoute', () => {
     );
   });
 
-  it('matches an editor project and leaves the list and the create form', () => {
+  it('matches the editor workspace and an open editor project', () => {
+    expect(isAgentOutputRoute('/editor')).toBe(true);
+    expect(isAgentOutputRoute('/editor/')).toBe(true);
     expect(isAgentOutputRoute('/editor/project-1')).toBe(true);
     expect(isAgentOutputRoute('/editor/project-1/')).toBe(true);
-    expect(isAgentOutputRoute('/editor')).toBe(false);
-    expect(isAgentOutputRoute('/editor/new')).toBe(false);
-    expect(isAgentOutputRoute('/editor/new/')).toBe(false);
+    expect(isAgentOutputRoute('/editor/project-1/extra')).toBe(false);
   });
 
   it('does not match other apps or nested paths', () => {

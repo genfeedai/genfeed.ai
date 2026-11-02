@@ -11,10 +11,9 @@ import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topb
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
  * - the right cluster has ONE fixed order, enforced here by slot so a page
- *   cannot get it wrong: Refresh (`refresh`), tabs (`tabs`), ghost
- *   actions (`iconActions`), controls, primary action
- *   last (`actions`). With `iconActionsPlacement="after-controls"` the ghost
- *   group moves to the end instead.
+ *   cannot get it wrong: the "..." menu (`overflow`), Refresh (`refresh`),
+ *   tabs (`tabs`), then the controls and the primary action last
+ *   (`actions`, which a page fills through `SubbarControls`).
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row (Refresh, ghost actions, controls),
@@ -28,8 +27,7 @@ export default function SectionTopbar({
   icon: Icon,
   actions,
   refresh,
-  iconActions,
-  iconActionsPlacement = 'before-controls',
+  overflow,
   leading,
   tabs,
   titleVisibility = 'auto',
@@ -45,28 +43,19 @@ export default function SectionTopbar({
         : !hasCanonicalBreadcrumb;
   const hasLeading = Boolean(leading);
   const hasTabs = Boolean(tabs);
-  const hasActions =
-    Boolean(actions) || Boolean(iconActions) || Boolean(refresh);
+  const hasActions = Boolean(actions) || Boolean(overflow) || Boolean(refresh);
   const isBarVisible =
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
 
-  // Refresh: always the first control of the right cluster.
+  // The "..." menu, then Refresh: always the first controls of the right
+  // cluster, in the same place on every page.
   const leadActionsNode = (
     <div
       className="flex shrink-0 items-center gap-1 empty:hidden"
       data-testid="section-topbar-icon-actions"
     >
+      {overflow}
       {refresh}
-    </div>
-  );
-
-  // Remaining ghost actions.
-  const ghostActionsNode = (
-    <div
-      className="flex shrink-0 items-center gap-1 empty:hidden"
-      data-testid="section-topbar-ghost-actions"
-    >
-      {iconActions}
     </div>
   );
 
@@ -133,13 +122,7 @@ export default function SectionTopbar({
                   {tabs}
                 </div>
               ) : null}
-              {iconActionsPlacement === 'before-controls'
-                ? ghostActionsNode
-                : null}
               {actions}
-              {iconActionsPlacement === 'after-controls'
-                ? ghostActionsNode
-                : null}
             </div>
           ) : null}
         </div>
@@ -185,13 +168,7 @@ export default function SectionTopbar({
             className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
             {leadActionsNode}
-            {iconActionsPlacement === 'before-controls'
-              ? ghostActionsNode
-              : null}
             {actions}
-            {iconActionsPlacement === 'after-controls'
-              ? ghostActionsNode
-              : null}
           </div>
         ) : null}
       </div>

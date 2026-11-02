@@ -1,10 +1,7 @@
 'use client';
 
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
-import {
-  formatCompactNumberIntl,
-  formatPercentage,
-} from '@helpers/formatting/format/format.helper';
+import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 
 type BrandKPISectionProps = {
@@ -31,23 +28,19 @@ export default function BrandKPISection({
           value: analytics?.totalPosts || 0,
         },
         {
-          description: analytics?.viewsGrowth
-            ? `${formatPercentage(analytics.viewsGrowth)} from last period`
-            : undefined,
           analyticsMetric: 'views' as const,
           label: 'Total Views',
+          trend: analytics?.viewsGrowth || undefined,
           value: analytics?.totalViews || 0,
         },
         {
-          description: analytics?.engagementGrowth
-            ? `${formatPercentage(analytics.engagementGrowth)} from last period`
-            : undefined,
           analyticsMetric: analytics?.totalEngagement
             ? ('engagement' as const)
             : analytics?.totalLikes
               ? ('likes' as const)
               : ('engagement' as const),
           label: 'Total Engagement',
+          trend: analytics?.engagementGrowth || undefined,
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {

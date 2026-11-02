@@ -65,7 +65,12 @@ const SCHEMA_DOCUMENT_NAME_OVERRIDES: Record<string, string> = {
  * matching regressions cannot silently reduce coverage to a smaller nonzero set.
  */
 export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
-  'activity:Activity': ['totalFailed', 'totalRequested', 'totalUpdated'],
+  'activity:Activity': [
+    'organizationLabel',
+    'totalFailed',
+    'totalRequested',
+    'totalUpdated',
+  ],
   'analytic:Analytic': [
     'activeBots',
     'activePlatforms',

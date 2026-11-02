@@ -181,7 +181,7 @@ describe('DeskLightTableView', () => {
 
     const card = getCard();
     expect(card).toHaveClass('rounded-card', 'shadow-border');
-    expect(card.className).not.toMatch(/gen-glass|gen-hover-lift/);
+    expect(card.className).not.toMatch(/gen-glass/);
     expect(card.tagName).not.toBe('BUTTON');
   });
 

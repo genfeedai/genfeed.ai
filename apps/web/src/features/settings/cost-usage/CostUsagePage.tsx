@@ -342,14 +342,6 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                 value={
                   summary?.total.generationCount.toLocaleString('en-US') ?? '—'
                 }
-                description={
-                  summary
-                    ? translate('metrics.generations.description', {
-                        llm: summary.total.llmCount,
-                        media: summary.total.mediaCount,
-                      })
-                    : undefined
-                }
                 isLoading={summaryQuery.isLoading}
               />
               <MetricCard

@@ -38,4 +38,14 @@ describe('Admin organizations routes', () => {
     expect(landing).toContain('/${organizationId}/settings`');
     expect(landing).not.toContain('tab=settings');
   });
+
+  it('serves the organization library at its own route as a tab beside analytics and settings', () => {
+    const library = read('[id]/library/page.tsx');
+    const detail = read('[id]/organization-detail-page.tsx');
+
+    expect(library).toContain('<OrganizationDetailPage activeTab="library" />');
+    expect(library).not.toMatch(/await\s+(params|searchParams)/);
+    expect(detail).toContain('/library`');
+    expect(detail).toContain('<OrganizationLibrary');
+  });
 });

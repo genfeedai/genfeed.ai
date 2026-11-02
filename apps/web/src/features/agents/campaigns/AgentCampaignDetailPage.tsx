@@ -275,11 +275,6 @@ export default function AgentCampaignDetailPage() {
     );
   }
 
-  const creditsPercent =
-    campaign.creditsAllocated > 0
-      ? Math.round((campaign.creditsUsed / campaign.creditsAllocated) * 100)
-      : 0;
-
   return (
     <Container
       label={campaign.label}
@@ -295,7 +290,6 @@ export default function AgentCampaignDetailPage() {
       <div className="space-y-6">
         <AgentCampaignDetailHeader
           campaign={campaign}
-          creditsPercent={creditsPercent}
           onBack={() => router.push(href(APP_ROUTES.AUTOMATION.CAMPAIGNS))}
           status={status}
         />

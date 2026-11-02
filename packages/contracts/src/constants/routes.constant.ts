@@ -31,7 +31,6 @@ export const APP_ROUTES = {
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       SYSTEM_EMAILS: '/admin/administration/system-emails',
       USERS: '/admin/administration/users',
-      CONCIERGE_ACCOUNTS: '/admin/administration/concierge-accounts',
     },
     AUTOMATION: {
       AGENTS: '/admin/automation/agents',
@@ -360,7 +359,6 @@ export const APP_ROUTES = {
     CLIPPER: '/clipper',
     CLIPPER_NEW: '/clipper/new',
     EDITOR: '/editor',
-    EDITOR_NEW: '/editor/new',
     MOTION: '/motion',
     /**
      * The single-asset playground: every generatable type behind one prompt

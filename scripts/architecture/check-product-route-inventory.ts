@@ -79,7 +79,6 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library/shelf/:shelf',
   '/:orgSlug/~/editor',
   '/:orgSlug/~/editor/projects',
-  '/:orgSlug/~/editor/new',
   '/:orgSlug/~/editor/:id',
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',
@@ -142,6 +141,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/onboarding/providers',
     '/onboarding/success',
     '/onboarding/summary',
+  ] as const),
+  ...classifyPublicRoutes('app', 'public-content', [
+    '/preview/:token',
   ] as const),
   // Runtime-owned shells rather than ordinary public destinations. The
   // service worker renders /~offline after failed navigation; Electron owns

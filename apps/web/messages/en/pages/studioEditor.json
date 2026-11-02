@@ -1,32 +1,50 @@
 {
   "allProjects": "All projects",
   "cancel": "Cancel",
+  "createFailed": "Could not create the project. Try again.",
+  "createProject": "Create project",
   "daysAgo": "{count}d ago",
   "delete": "Delete",
   "deleteFailed": "Failed to delete project",
-  "editor": "Editor",
-  "emptyDescription": "Start a new video editing project to arrange clips on a timeline, add audio tracks, and apply effects. Your generated videos from the Studio can be imported directly.",
+  "emptyDescription": "Name one on the left and it shows up here.",
   "emptySearch": "No projects match your search.",
-  "emptyTitle": "Create Your First Project",
+  "emptyTitle": "No projects yet",
+  "format": "Format",
+  "heroDescription": "Name a project and pick a canvas, then arrange clips, audio and effects on the timeline.",
+  "heroTitle": "What are we editing?",
   "hoursAgo": "{count}h ago",
   "inspector": "Inspector",
   "justNow": "Just now",
   "loadFailed": "Failed to load projects",
   "loadFailedTitle": "Projects could not be loaded.",
   "minutesAgo": "{count}m ago",
-  "newProject": "New Project",
-  "open": "Open",
-  "openProject": "Open {name}",
+  "namePlaceholder": "Name your project, or leave it empty to start untitled",
+  "nameTooLong": "Keep the name under {max} characters.",
+  "new": "New",
   "projectActions": "More actions for {name}",
   "projectName": "Project name",
-  "recent": "Recent",
+  "projects": "Projects",
   "rename": "Rename",
   "renameDescription": "Choose a new name for this project.",
   "renameFailed": "Failed to rename project",
   "renameTitle": "Rename project",
   "save": "Save",
   "search": "Search projects",
-  "startNewProject": "Start New Project",
+  "sourceVideos": "{count, plural, one {# video is ready to open on the timeline.} other {# videos are ready to open on the timeline, in order.}}",
+  "starters": {
+    "landscape": {
+      "title": "Landscape video",
+      "description": "16:9 for YouTube and the web"
+    },
+    "portrait": {
+      "title": "Vertical short",
+      "description": "9:16 for Reels, TikTok and Shorts"
+    },
+    "square": {
+      "title": "Square post",
+      "description": "1:1 for feeds"
+    }
+  },
   "toolbar": {
     "redo": "Redo",
     "redoTooltip": "Redo (Shift+Cmd/Ctrl+Z)",
@@ -37,6 +55,6 @@
     "undoTooltip": "Undo (Cmd/Ctrl+Z)",
     "unsaved": "Unsaved changes"
   },
-  "yourProjects": "Your Projects",
-  "yourProjectsCount": "Your Projects ({count})"
+  "untitled": "Untitled Project",
+  "videoEdit": "Video Edit"
 }

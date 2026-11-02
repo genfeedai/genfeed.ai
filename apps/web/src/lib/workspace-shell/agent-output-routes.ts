@@ -19,6 +19,9 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // Playground: `/playground` is the prompt that starts a generation beside
   // the generation list, `/playground/[jobId]` is one open generation.
   new RegExp(`^${APP_ROUTES.STUDIO.PLAYGROUND}(?:/[^/]+)?/?$`),
+  // Motion: `/motion` is the prompt that starts a project beside the project
+  // list, `/motion/[projectId]` is one open project.
+  new RegExp(`^${APP_ROUTES.STUDIO.MOTION}(?:/[^/]+)?/?$`),
   // A Storyboard run, and `/storyboard/new`, where the idea is pitched in the
   // same chat-left, result-right layout the run opens in.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}/[^/]+/?$`),
@@ -27,8 +30,9 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^${APP_ROUTES.AUTOMATION.WORKFLOWS}/(?!templates/?$)[^/]+/?$`),
   // A Clipper project; `/clipper/new` creates one.
   new RegExp(`^${APP_ROUTES.STUDIO.CLIPPER}/(?!new/?$)[^/]+/?$`),
-  // An Editor project; `/editor/new` creates one.
-  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}/(?!new/?$)[^/]+/?$`),
+  // Editor: `/editor` is the prompt that starts a project beside the project
+  // list, `/editor/[projectId]` is one open project.
+  new RegExp(`^${APP_ROUTES.STUDIO.EDITOR}(?:/[^/]+)?/?$`),
 ];
 
 export function isAgentOutputRoute(normalizedPathname: string): boolean {

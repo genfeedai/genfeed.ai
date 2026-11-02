@@ -31,18 +31,15 @@ vi.mock('@/components/overview/WorkspaceSurface', () => ({
   WorkspaceSurface: ({
     actions,
     children,
-    eyebrow,
     title,
     tone,
   }: {
     actions?: ReactNode;
     children: ReactNode;
-    eyebrow?: ReactNode;
     title?: ReactNode;
     tone?: string;
   }) => (
     <section data-testid="workspace-surface" data-tone={tone}>
-      {eyebrow ? <p>{eyebrow}</p> : null}
       {title ? <h2>{title}</h2> : null}
       {actions ? <div>{actions}</div> : null}
       {children}
@@ -106,7 +103,7 @@ const TRENDS: TrendItem[] = [
 ];
 
 describe('OverviewTrendsPanel', () => {
-  it('renders the eyebrow and title via WorkspaceSurface', () => {
+  it('renders the title via WorkspaceSurface', () => {
     render(
       <OverviewTrendsPanel
         isLoading={false}
@@ -115,7 +112,6 @@ describe('OverviewTrendsPanel', () => {
       />,
     );
 
-    expect(screen.getByText('Social Trends')).toBeInTheDocument();
     expect(screen.getByText('Research Trends')).toBeInTheDocument();
   });
 

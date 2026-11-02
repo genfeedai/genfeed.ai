@@ -30,11 +30,10 @@ import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@/features/library/browser/library-browser.config';
 import LibraryOverview from '@/features/library/overview/library-overview';
+import EditorWorkspace from '@/features/studio/editor/EditorWorkspace';
 import type { OrgRootAppPageProps } from '@/props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@/props/publishing/publishing-list-page.props';
 import { loadProtectedBootstrap } from '@/server/protected-bootstrap.server';
-import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
-import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import AssetDeepLink from '../../../[brandSlug]/library/assets/asset-deep-link';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryCreditNotice from '../../../[brandSlug]/library/library-credit-notice';
@@ -135,22 +134,18 @@ async function resolveLastUsedStudioBrandSlug(
 }
 
 async function renderStudioEditorSurface(section?: string) {
-  if (section === 'new') {
-    return <EditorNewPage />;
-  }
-
   // Reserved index segment: /~/editor/projects mirrors the Editor root
-  // (projects). Without this guard it would fall into the detail branch below
+  // (the workspace). Without this guard it would fall into the detail branch below
   // and request an editor project with id 'projects'.
   if (section === 'projects') {
-    return <EditorProjectsPage />;
+    return <EditorWorkspace />;
   }
 
   if (section) {
     return <EditorDetailSurface projectId={section} />;
   }
 
-  return <EditorProjectsPage />;
+  return <EditorWorkspace />;
 }
 
 async function renderOrgCampaignSurface({

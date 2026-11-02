@@ -102,7 +102,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
-    setExportNode: vi.fn(),
+    setOverflowNode: vi.fn(),
     setFiltersNode: setFiltersNodeMock,
     setLeadingNode: setLeadingNodeMock,
     setIsRefreshing: vi.fn(),

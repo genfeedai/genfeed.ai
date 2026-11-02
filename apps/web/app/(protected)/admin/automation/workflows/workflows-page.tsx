@@ -4,6 +4,7 @@ import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-moda
 import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IFeaturedWorkflowSummary } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
 import type {
@@ -16,6 +17,7 @@ import { AdminFeaturedWorkflowsService } from '@services/admin/featured-workflow
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
@@ -51,6 +53,13 @@ import {
   sortWorkflowRows,
   WORKFLOW_SORT_KEYS,
 } from './workflow-rows';
+
+const WORKFLOWS_KEY = ['admin', 'workflows'] as const;
+const FEATURED_WORKFLOWS_KEY = ['admin', 'featured-workflows'] as const;
+const WORKFLOW_CATALOG_KEY = ['admin', 'workflow-catalog'] as const;
+const EMPTY_WORKFLOWS: Workflow[] = [];
+const EMPTY_PINS: IFeaturedWorkflowSummary[] = [];
+const EMPTY_CATALOG: SystemWorkflowCatalogEntry[] = [];
 
 function getWorkflowStatusVariant(
   status: string,
@@ -104,7 +113,6 @@ export default function WorkflowsPage() {
   const getFeaturedWorkflowsService = useAuthedService((token: string) =>
     AdminFeaturedWorkflowsService.getInstance(token),
   );
-  const getCatalogService = useAuthedService(createWorkflowApiService);
   const notificationsService = NotificationsService.getInstance();
   const { replace } = useRouter();
   const pathname = usePathname();
@@ -116,15 +124,102 @@ export default function WorkflowsPage() {
     allowedKeys: WORKFLOW_SORT_KEYS,
   });
   const { openConfirmDelete } = useConfirmDeleteModal();
-
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [pins, setPins] = useState<IFeaturedWorkflowSummary[]>([]);
-  const [catalog, setCatalog] = useState<SystemWorkflowCatalogEntry[]>([]);
-  const [hasCatalogLoadFailed, setHasCatalogLoadFailed] = useState(false);
-  const [hasPinsLoadFailed, setHasPinsLoadFailed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [isSavingPins, setIsSavingPins] = useState(false);
+
+  // Each read is cached on its own: coming back to Workflows paints the rows,
+  // pins and catalog it already has while they refresh. A new search keeps the
+  // current rows on screen until its result lands.
+  const workflowsQuery = useAuthedQuery({
+    keepPreviousDataWithin: WORKFLOWS_KEY,
+    queryFn: async (service, signal) => {
+      try {
+        // One list means one page size: every workflow is fetched and the
+        // table pages through the merged rows.
+        return await service.findAllPages(
+          {
+            includeSystem: true,
+            ...(search ? { search } : {}),
+          },
+          signal,
+        );
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load workflows', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: [...WORKFLOWS_KEY, { search }],
+    service: (token: string) => WorkflowsService.getInstance(token),
+  });
+  const pinsQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
+      try {
+        return await service.list(signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load featured workflows', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: FEATURED_WORKFLOWS_KEY,
+    service: (token: string) =>
+      AdminFeaturedWorkflowsService.getInstance(token),
+  });
+  const catalogQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
+      try {
+        return await service.listSystemCatalog();
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('Failed to load system workflow catalog', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: WORKFLOW_CATALOG_KEY,
+    service: createWorkflowApiService,
+  });
+
+  const workflows = workflowsQuery.data ?? EMPTY_WORKFLOWS;
+  const pins = pinsQuery.data ?? EMPTY_PINS;
+  const catalog = catalogQuery.data ?? EMPTY_CATALOG;
+  const hasPinsLoadFailed = pinsQuery.isError;
+  const hasCatalogLoadFailed = catalogQuery.isError;
+  // The table waits for the catalog too, so template rows never pop in late.
+  const isLoading =
+    workflowsQuery.isPending || pinsQuery.isPending || catalogQuery.isPending;
+  const isRefreshing =
+    !isLoading &&
+    (workflowsQuery.isFetching ||
+      pinsQuery.isFetching ||
+      catalogQuery.isFetching);
+  const {
+    errorUpdatedAt: workflowsErrorUpdatedAt,
+    isError: hasWorkflowsLoadFailed,
+  } = workflowsQuery;
+  const { refetch: refetchWorkflows } = workflowsQuery;
+  const { refetch: refetchPins } = pinsQuery;
+  const { refetch: refetchCatalog } = catalogQuery;
+
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (hasWorkflowsLoadFailed) {
+      notificationsService.error(translate('errors.load'));
+    }
+  }, [
+    hasWorkflowsLoadFailed,
+    notificationsService,
+    translate,
+    workflowsErrorUpdatedAt,
+  ]);
+
+  const reloadAll = useCallback(async () => {
+    await Promise.all([refetchWorkflows(), refetchPins(), refetchCatalog()]);
+  }, [refetchCatalog, refetchPins, refetchWorkflows]);
 
   const pinnedIds = useMemo(() => new Set(pins.map((pin) => pin.id)), [pins]);
 
@@ -190,102 +285,6 @@ export default function WorkflowsPage() {
     [updateParams],
   );
 
-  const loadPins = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const service = await getFeaturedWorkflowsService();
-        const loaded = await service.list(signal);
-        if (!signal?.aborted) {
-          setPins(loaded);
-          setHasPinsLoadFailed(false);
-        }
-      } catch (error) {
-        if (signal?.aborted) {
-          return;
-        }
-        logger.error('Failed to load featured workflows', error);
-        setHasPinsLoadFailed(true);
-      }
-    },
-    [getFeaturedWorkflowsService],
-  );
-
-  const loadCatalog = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const service = await getCatalogService();
-        const loaded = await service.listSystemCatalog();
-        if (!signal?.aborted) {
-          setCatalog(loaded);
-          setHasCatalogLoadFailed(false);
-        }
-      } catch (error) {
-        if (signal?.aborted) {
-          return;
-        }
-        logger.error('Failed to load system workflow catalog', error);
-        setHasCatalogLoadFailed(true);
-      }
-    },
-    [getCatalogService],
-  );
-
-  const loadWorkflows = useCallback(
-    async (isRefresh: boolean, signal?: AbortSignal) => {
-      if (!isRefresh) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(isRefresh);
-
-      try {
-        const service = await getWorkflowsService();
-        // One list means one page size: every workflow is fetched and the
-        // table pages through the merged rows.
-        const [fetchedWorkflows] = await Promise.all([
-          service.findAllPages(
-            {
-              includeSystem: true,
-              ...(search ? { search } : {}),
-            },
-            signal,
-          ),
-          loadPins(signal),
-          loadCatalog(signal),
-        ]);
-        if (signal?.aborted) {
-          return;
-        }
-        setWorkflows(fetchedWorkflows);
-        logger.info('Loaded workflows', { count: fetchedWorkflows.length });
-      } catch (error) {
-        if (signal?.aborted) {
-          return;
-        }
-        logger.error('Failed to load workflows', error);
-        notificationsService.error(translate('errors.load'));
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    },
-    [
-      getWorkflowsService,
-      loadCatalog,
-      loadPins,
-      notificationsService,
-      search,
-      translate,
-    ],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadWorkflows(false, controller.signal);
-    return () => controller.abort();
-  }, [loadWorkflows]);
-
   /**
    * Runs one Featured write. The API answers with the pins as stored; on a
    * failure (a stale order, a workflow deleted meanwhile) the list reloads
@@ -301,17 +300,27 @@ export default function WorkflowsPage() {
       setIsSavingPins(true);
       try {
         const service = await getFeaturedWorkflowsService();
-        setPins(await write(service));
+        const stored = await write(service);
+        queryClient.setQueriesData<IFeaturedWorkflowSummary[]>(
+          { queryKey: FEATURED_WORKFLOWS_KEY },
+          stored,
+        );
         notificationsService.success(successMessage);
       } catch (error) {
         logger.error('Failed to update featured workflows', error);
         notificationsService.error(translate('errors.featured'));
-        await loadPins();
+        await refetchPins();
       } finally {
         setIsSavingPins(false);
       }
     },
-    [getFeaturedWorkflowsService, loadPins, notificationsService, translate],
+    [
+      getFeaturedWorkflowsService,
+      notificationsService,
+      queryClient,
+      refetchPins,
+      translate,
+    ],
   );
 
   const handleDelete = useCallback(
@@ -329,7 +338,7 @@ export default function WorkflowsPage() {
 
             notificationsService.success(translate('deleted'));
             // A deleted system copy turns its template back into "Not installed".
-            await loadWorkflows(true);
+            await reloadAll();
           } catch (error) {
             logger.error('Failed to delete workflow', error);
             notificationsService.error(translate('errors.delete'));
@@ -339,9 +348,9 @@ export default function WorkflowsPage() {
     },
     [
       getWorkflowsService,
-      loadWorkflows,
       notificationsService,
       openConfirmDelete,
+      reloadAll,
       translate,
     ],
   );
@@ -544,7 +553,7 @@ export default function WorkflowsPage() {
           />
         </SearchField>
       }
-      onRefresh={() => void loadWorkflows(true)}
+      onRefresh={() => void reloadAll()}
       isRefreshing={isRefreshing}
     >
       <div className="flex flex-col gap-8">
@@ -561,7 +570,7 @@ export default function WorkflowsPage() {
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
-                    onClick={() => void loadPins()}
+                    onClick={() => void refetchPins()}
                   >
                     {translate('actions.retry')}
                   </Button>
@@ -597,7 +606,7 @@ export default function WorkflowsPage() {
               <Button
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
-                onClick={() => void loadCatalog()}
+                onClick={() => void refetchCatalog()}
               >
                 {translate('actions.retry')}
               </Button>
@@ -611,6 +620,11 @@ export default function WorkflowsPage() {
           columns={workflowColumns}
           actions={workflowActions}
           isLoading={isLoading}
+          error={
+            hasWorkflowsLoadFailed
+              ? { onRetry: refetchWorkflows, title: translate('errors.load') }
+              : undefined
+          }
           onSortChange={onSortChange}
           sortDirection={sortDirection}
           sortKey={sortKey}
