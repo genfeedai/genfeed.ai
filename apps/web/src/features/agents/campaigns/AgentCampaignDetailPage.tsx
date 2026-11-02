@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -12,15 +12,14 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import Spinner from '@ui/primitives/spinner';
 import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -54,14 +53,7 @@ export default function AgentCampaignDetailPage() {
 
   const notificationsService = NotificationsService.getInstance();
 
-  const [campaign, setCampaign] = useState<AgentCampaign | null>(null);
-  const [status, setStatus] = useState<IAgentCampaignStatusResponse | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
-  const loadGenerationRef = useRef(0);
   // A ref (not the `isExecuting` state) guards re-entrancy: two rapid clicks
   // in the same tick both close over the same stale `isExecuting`, but a ref
   // read is synchronous and current, so the second call is blocked before
@@ -72,78 +64,49 @@ export default function AgentCampaignDetailPage() {
     AgentCampaignsService.getInstance(token),
   );
 
-  const loadCampaign = useCallback(
-    async (refresh = false) => {
-      if (!isFetchReady || !campaignId) {
-        return;
-      }
-
-      const generation = ++loadGenerationRef.current;
-      const isCurrentLoad = () => loadGenerationRef.current === generation;
-
-      if (!refresh) {
-        setIsLoading(true);
-        setCampaign(null);
-        setStatus(null);
-      }
-      setIsRefreshing(refresh);
-
+  // Cached per Program and brand scope: coming back to a Program paints it at
+  // once while it refreshes. A Program from another selected brand resolves to
+  // null (not found), and its status is never read.
+  const scopedBrandId = pageScope === 'brand' ? (brandId ?? null) : null;
+  const campaignQuery = useAuthedQuery({
+    enabled: isFetchReady && Boolean(campaignId),
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        if (!isCurrentLoad()) return;
-
-        const fetchedCampaign = await service.getById(campaignId);
-        if (!isCurrentLoad()) return;
-
-        if (
-          pageScope === 'brand' &&
-          brandId &&
-          fetchedCampaign.brandId !== brandId
-        ) {
-          setCampaign(null);
-          setStatus(null);
-          return;
+        const campaign = await service.getById(campaignId);
+        if (scopedBrandId && campaign.brandId !== scopedBrandId) {
+          return { campaign: null, status: null };
         }
-        setCampaign(fetchedCampaign);
 
         try {
-          const statusResponse = await service.getStatus(campaignId);
-          if (!isCurrentLoad()) return;
-          setStatus(statusResponse);
+          return { campaign, status: await service.getStatus(campaignId) };
         } catch (statusError) {
-          if (!isCurrentLoad()) return;
           logger.warn('Failed to load Program status', statusError);
+          return { campaign, status: null };
         }
       } catch (error) {
-        if (!isCurrentLoad()) return;
         logger.error('Failed to load Program', error);
-        notificationsService.error('Failed to load Program');
-      } finally {
-        if (isCurrentLoad()) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
+        throw error;
       }
     },
-    [
-      brandId,
-      campaignId,
-      getService,
-      isFetchReady,
-      notificationsService,
-      pageScope,
-    ],
-  );
+    queryKey: ['agent-campaign', campaignId, { brandId: scopedBrandId }],
+    service: (token: string) => AgentCampaignsService.getInstance(token),
+  });
+  const { errorUpdatedAt, isError, isPending, isRefetching, refetch } =
+    campaignQuery;
+  const campaign = campaignQuery.data?.campaign ?? null;
+  const status = campaignQuery.data?.status ?? null;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (isFetchReady && campaignId) {
-      loadCampaign();
+    if (isError) {
+      notificationsService.error('Failed to load Program');
     }
+  }, [errorUpdatedAt, isError, notificationsService]);
 
-    return () => {
-      loadGenerationRef.current += 1;
-    };
-  }, [campaignId, isFetchReady, loadCampaign]);
+  const loadCampaign = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   const handleExecute = useCallback(async () => {
     if (!campaignId || isExecutingRef.current) return;
@@ -154,7 +117,7 @@ export default function AgentCampaignDetailPage() {
       const service = await getService();
       await service.execute(campaignId);
       notificationsService.success('Program started');
-      loadCampaign(true);
+      loadCampaign();
     } catch (error) {
       logger.error('Failed to execute Program', error);
       notificationsService.error('Failed to start Program');
@@ -171,7 +134,7 @@ export default function AgentCampaignDetailPage() {
       const service = await getService();
       await service.pause(campaignId);
       notificationsService.success('Program paused');
-      loadCampaign(true);
+      loadCampaign();
     } catch (error) {
       logger.error('Failed to pause Program', error);
       notificationsService.error('Failed to pause Program');
@@ -185,7 +148,7 @@ export default function AgentCampaignDetailPage() {
       const service = await getService();
       await service.update(campaignId, { status: 'completed' });
       notificationsService.success('Program completed');
-      loadCampaign(true);
+      loadCampaign();
     } catch (error) {
       logger.error('Failed to complete Program', error);
       notificationsService.error('Failed to complete Program');
@@ -240,20 +203,16 @@ export default function AgentCampaignDetailPage() {
     ];
   }, [campaign, handleComplete, translate]);
 
-  const isChangingBrand =
-    pageScope === 'brand' &&
-    Boolean(brandId) &&
-    campaign !== null &&
-    campaign.brandId !== brandId;
-
-  if (!isFetchReady || isLoading || isChangingBrand) {
+  if (!isFetchReady || isPending) {
     return (
       <Container label="Loading..." icon={LayoutDashboard}>
-        <div className="flex items-center justify-center py-20">
-          <div className="flex items-center gap-2 text-foreground/50">
-            <Spinner aria-hidden="true" size={ComponentSize.SM} />
-            Loading…
-          </div>
+        <div className="space-y-6">
+          <SkeletonCard
+            label="Loading Program"
+            showDescription={false}
+            showImage={false}
+          />
+          <SkeletonCard label="Loading Program agents" showImage={false} />
         </div>
       </Container>
     );
@@ -280,10 +239,7 @@ export default function AgentCampaignDetailPage() {
       label={campaign.label}
       icon={LayoutDashboard}
       refresh={
-        <ButtonRefresh
-          onClick={() => loadCampaign(true)}
-          isRefreshing={isRefreshing}
-        />
+        <ButtonRefresh onClick={loadCampaign} isRefreshing={isRefetching} />
       }
       right={<CollectionItemActions overflow={overflow} primary={primary} />}
     >

@@ -3,12 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  TrendDetailData,
-  TrendDetailProps,
-} from '@props/trends/trends-page.props';
+import type { TrendDetailProps } from '@props/trends/trends-page.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TrendsService } from '@services/social/trends.service';
@@ -29,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import TrendDetailAnalysisCard from './trend-detail-analysis-card';
 import TrendDetailHeader from './trend-detail-header';
@@ -79,41 +76,33 @@ export default function TrendDetail({
   const metricCopy = (key: (typeof TREND_KPI_METRICS)[number]['key']) => ({
     label: translate(`metrics.${key}.label`),
   });
-  const getTrendsService = useAuthedService((token: string) =>
-    TrendsService.getInstance(token),
-  );
   const notificationsService = NotificationsService.getInstance();
 
-  const [data, setData] = useState<TrendDetailData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchTrendDetail = async () => {
-      setIsLoading(true);
-      setError(null);
-
+  // Cached per trend: coming back to a trend paints it at once while it
+  // refreshes.
+  const trendQuery = useAuthedQuery({
+    queryFn: async (service) => {
       try {
-        const service = await getTrendsService();
-        const detail = await service.getTrendById(trendId);
-        setData(detail);
+        return await service.getTrendById(trendId);
       } catch (err) {
-        if ((err as Error).name === 'AbortError') {
-          return;
-        }
         logger.error('Failed to fetch trend detail', err);
-        setError('Failed to load trend details');
-        notificationsService.error('Failed to load trend details');
-      } finally {
-        setIsLoading(false);
+        throw err;
       }
-    };
+    },
+    queryKey: ['trend-detail', trendId],
+    service: (token: string) => TrendsService.getInstance(token),
+  });
+  const { errorUpdatedAt, isError, isPending: isLoading } = trendQuery;
+  const data = trendQuery.data ?? null;
+  const error = isError ? 'Failed to load trend details' : null;
 
-    fetchTrendDetail();
-    return () => controller.abort();
-  }, [trendId, getTrendsService, notificationsService]);
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (isError) {
+      notificationsService.error('Failed to load trend details');
+    }
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   if (error) {
     return (
