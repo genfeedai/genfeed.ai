@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import { LayoutGroup, LazyMotion, m, MotionConfig } from 'motion/react';
+import { LayoutGroup, LazyMotion, MotionConfig, m } from 'motion/react';
 import { type ReactNode, useId } from 'react';
 
 /**
