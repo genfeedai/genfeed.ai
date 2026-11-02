@@ -17,8 +17,8 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { Button } from '@ui/primitives/button';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
@@ -44,9 +44,9 @@ import {
   createWorkflowApiService,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { useFeatureFlagContext } from '@/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@/hooks/feature-flags/use-feature-flag';
-import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-request';
 import TurboPromptCards from './TurboPromptCards';
 import { createTurboProjectsApi } from './turbo-projects-api';
@@ -122,9 +122,9 @@ export default function TurboNewPane() {
   const [error, setError] = useState<string | null>(null);
   const [isSubscriptionRequired, setIsSubscriptionRequired] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<CreativeAppProjectReference[] | null>(
-    null,
-  );
+  const [projects, setProjects] = useState<
+    CreativeAppProjectReference[] | null
+  >(null);
   const [projectChoice, setProjectChoice] = useState<string | null>(null);
   const admission = useRef({
     organizationId,
@@ -347,60 +347,60 @@ export default function TurboNewPane() {
           request={projectChoice}
         />
       ) : (
-      <PromptEmptyState
-        description={t(isIdeas ? 'ideasDescription' : 'workflowDescription')}
-        title={t('heroTitle')}
-      >
-        <div className="flex flex-col gap-4">
-          {isIdeas ? (
-            <TurboPromptCards
-              isDisabled={busy || !isIdeasEnabled}
-              onSelect={applyPreset}
-            />
-          ) : null}
-          {isIdeasEnabled ? null : (
-            <p className="text-center text-sm text-muted-foreground">
-              {t('ideasDisabled')}
-            </p>
-          )}
-          {workflowNotice && !isIdeas ? (
-            <p className="text-center text-sm text-muted-foreground">
-              {workflowNotice}{' '}
-              <Link
-                href={orgHref(workflowNoticeLink.href)}
-                className="underline underline-offset-4"
-              >
-                {t(workflowNoticeLink.label)}
-              </Link>
-            </p>
-          ) : null}
-          {!isIdeas && isWorkflowEnabled && loading ? (
-            <p className="text-center text-sm text-muted-foreground">
-              {t('loading')}
-            </p>
-          ) : null}
-          {hasNoWorkflows ? (
-            <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
-              <p>{t('noWorkflows')}</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button asChild variant={ButtonVariant.LINK}>
-                  <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}>
-                    {t('createWorkflow')}
-                  </Link>
-                </Button>
-                {isIdeasEnabled ? (
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => setKind(TurboProjectKind.IDEAS)}
-                  >
-                    {t('fromIdeas')}
+        <PromptEmptyState
+          description={t(isIdeas ? 'ideasDescription' : 'workflowDescription')}
+          title={t('heroTitle')}
+        >
+          <div className="flex flex-col gap-4">
+            {isIdeas ? (
+              <TurboPromptCards
+                isDisabled={busy || !isIdeasEnabled}
+                onSelect={applyPreset}
+              />
+            ) : null}
+            {isIdeasEnabled ? null : (
+              <p className="text-center text-sm text-muted-foreground">
+                {t('ideasDisabled')}
+              </p>
+            )}
+            {workflowNotice && !isIdeas ? (
+              <p className="text-center text-sm text-muted-foreground">
+                {workflowNotice}{' '}
+                <Link
+                  href={orgHref(workflowNoticeLink.href)}
+                  className="underline underline-offset-4"
+                >
+                  {t(workflowNoticeLink.label)}
+                </Link>
+              </p>
+            ) : null}
+            {!isIdeas && isWorkflowEnabled && loading ? (
+              <p className="text-center text-sm text-muted-foreground">
+                {t('loading')}
+              </p>
+            ) : null}
+            {hasNoWorkflows ? (
+              <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
+                <p>{t('noWorkflows')}</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button asChild variant={ButtonVariant.LINK}>
+                    <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}>
+                      {t('createWorkflow')}
+                    </Link>
                   </Button>
-                ) : null}
+                  {isIdeasEnabled ? (
+                    <Button
+                      variant={ButtonVariant.SECONDARY}
+                      onClick={() => setKind(TurboProjectKind.IDEAS)}
+                    >
+                      {t('fromIdeas')}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          ) : null}
-        </div>
-      </PromptEmptyState>
+            ) : null}
+          </div>
+        </PromptEmptyState>
       )}
       <div className="mt-auto shrink-0 px-3 pb-3">
         <PromptBarContainer

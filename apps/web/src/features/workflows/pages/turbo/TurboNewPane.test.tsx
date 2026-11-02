@@ -605,7 +605,9 @@ describe('TurboNewPane from a workflow', () => {
 
       typePrompt('revise the intro');
       fireEvent.click(sendButton());
-      fireEvent.click(await screen.findByRole('button', { name: 'Founder story' }));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Founder story' }),
+      );
 
       expect(mocks.seedComposer).toHaveBeenCalledWith('revise the intro');
       expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/project-2');
