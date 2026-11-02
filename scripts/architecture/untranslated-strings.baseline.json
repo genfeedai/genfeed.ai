@@ -282,7 +282,6 @@
     "apps/web/src/components/version/DeploymentVersionWatcher.tsx": 2,
     "apps/web/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 3,
     "apps/web/src/components/workspace-shell/use-conversation-scope-controls.tsx": 3,
-    "apps/web/src/features/activities/activities-list.tsx": 5,
     "apps/web/src/features/admin/modals/ModalRole.tsx": 10,
     "apps/web/src/features/admin/modals/ModalSubscription.tsx": 4,
     "apps/web/src/features/agents/campaigns/AgentCampaignContentQuota.tsx": 4,

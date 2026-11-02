@@ -95,7 +95,8 @@
       "skipped": "{operation, select, import {Skipped importing existing posts from {articleSubject}} other {Skipped {articleSubject}}}"
     },
     "post": {
-      "ready": "Content is ready for review"
+      "ready": "Content is ready for review",
+      "transition": "{fromState, select, none {Post state changed} other {Post moved from {fromState} to {toState}}}"
     },
     "agent": {
       "review_changed": "Agent review updated",
@@ -118,6 +119,12 @@
     },
     "approval": {
       "requested": "Tool approval needed"
+    },
+    "brand_os_export": {
+      "download": "Brand OS export downloaded",
+      "public_read": "Brand OS export opened from its public link",
+      "publish": "Brand OS export published",
+      "revoke": "Brand OS export revoked"
     },
     "view": "View"
   },
