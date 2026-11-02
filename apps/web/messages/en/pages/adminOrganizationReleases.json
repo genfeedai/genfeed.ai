@@ -1,10 +1,23 @@
 {
   "title": "Releases",
-  "previewLabel": "Release Preview (sees unreleased modules)",
-  "grantsTitle": "Release access",
-  "grantsHelp": "Open individual apps for this organization only. Everything not switched on here follows Admin → Flags.",
-  "visibilityHelp": "Show or hide an app for this organization's members. Hiding only removes the app from their Store and rail; API and MCP work keeps running.",
-  "grantsPreviewHelp": "Release preview is on, so this organization already sees every app. These switches take effect once preview is turned off.",
+  "previewLabel": "Release preview",
+  "appsTitle": "Apps",
+  "appColumn": "App",
+  "accessColumn": "Access",
+  "settingsTitle": "Settings",
+  "analyticsPagesGroup": "Analytics pages",
+  "releasedForEveryone": "Released for everyone",
+  "earlyAccess": "Early access",
+  "items": {
+    "campaigns": "Campaigns",
+    "analytics_brands": "Brands",
+    "analytics_streaks": "Streaks",
+    "analytics_insights": "Insights",
+    "analytics_hooks": "Hooks",
+    "analytics_outliers": "Outliers",
+    "analytics_breakouts": "Breakouts",
+    "analytics_performance_lab": "Performance lab"
+  },
   "settingsTable": {
     "column": {
       "setting": "Setting",

@@ -145,7 +145,7 @@
     "apps/web/app/(protected)/admin/library/voices/voices-library-page.tsx": 1,
     "apps/web/app/(protected)/admin/organizations/analytics-organizations-list.tsx": 11,
     "apps/web/app/(protected)/admin/organizations/components/edit-setting-modal.tsx": 3,
-    "apps/web/app/(protected)/admin/organizations/components/organization-settings-table.tsx": 31,
+    "apps/web/app/(protected)/admin/organizations/components/organization-settings-table.tsx": 30,
     "apps/web/app/(protected)/admin/overview/activity-chart.tsx": 5,
     "apps/web/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx": 37,
     "apps/web/app/(protected)/admin/overview/analytics/layout.tsx": 1,

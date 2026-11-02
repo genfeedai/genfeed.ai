@@ -8,14 +8,15 @@ import { Timeframe } from '@genfeedai/contracts';
 import { APP_ROUTES, isReleaseItemId } from '@genfeedai/contracts/constants';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import type { OrganizationDetailPageProps } from '@genfeedai/props/admin/organization-detail-page.props';
+import OrganizationAppAccess from '@protected/organizations/components/organization-app-access';
 import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
-import OrganizationReleaseGrants from '@protected/organizations/components/organization-release-grants';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
 import { useOrganizationProfile } from '@protected/organizations/hooks/use-organization-profile';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
 import DateRangePicker from '@ui/primitives/date-range-picker';
+import { Tabs } from '@ui/primitives/tabs';
 import { Building2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
@@ -56,19 +57,6 @@ function OrganizationDetailPageContent({
     <AdminPageShell
       title={translate('detailTitle')}
       icon={Building2}
-      tabs={{
-        fullWidth: false,
-        tabs: [
-          {
-            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}`,
-            label: translate('analyticsTab'),
-          },
-          {
-            href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
-            label: translate('settingsTab'),
-          },
-        ],
-      }}
       onRefresh={isSettingsTab ? () => refresh() : triggerRefresh}
       isRefreshing={isSettingsTab ? isRefreshing : isAnalyticsRefreshing}
       filters={
@@ -88,6 +76,22 @@ function OrganizationDetailPageContent({
           isLoading={isProfileLoading}
           profile={profile}
         />
+        <Tabs
+          ariaLabel={translate('detailTitle')}
+          fullWidth={false}
+          listClassName="self-start"
+          tabs={[
+            {
+              href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}`,
+              label: translate('analyticsTab'),
+              matchMode: 'exact',
+            },
+            {
+              href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
+              label: translate('settingsTab'),
+            },
+          ]}
+        />
         {isSettingsTab ? (
           error ? (
             <Alert variant="destructive">
@@ -96,7 +100,7 @@ function OrganizationDetailPageContent({
           ) : (
             <>
               {settings ? (
-                <OrganizationReleaseGrants
+                <OrganizationAppAccess
                   hasOrganizationBilling={
                     settings.hasOrganizationBilling !== false
                   }
@@ -107,12 +111,7 @@ function OrganizationDetailPageContent({
                   releasedItemIds={(settings.releasedItemIds ?? []).filter(
                     isReleaseItemId,
                   )}
-                  onModuleOverridesChange={(moduleOverrides) =>
-                    updateSettings({ moduleOverrides })
-                  }
-                  onReleasedItemIdsChange={(releasedItemIds) =>
-                    updateSettings({ releasedItemIds })
-                  }
+                  onChange={(change) => updateSettings(change)}
                 />
               ) : null}
               <OrganizationSettingsTable

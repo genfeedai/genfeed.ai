@@ -146,6 +146,40 @@ test.describe('Admin Organization', () => {
     await expect(organizationsListSurface(adminPage)).toBeVisible();
   });
 
+  test('organization settings lists every app with one switch and keeps the tabs in the page', async ({
+    adminPage,
+  }) => {
+    const settingsRoute = `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/settings`;
+    await assertRouteRenders(adminPage, settingsRoute);
+
+    const main = adminPage.getByRole('main');
+
+    // The Analytics / Settings tabs sit in the page, under the profile header.
+    await expect(
+      main
+        .getByRole('navigation', { name: 'Organization' })
+        .getByRole('link', { name: 'Settings' }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expect(
+      main
+        .getByRole('navigation', { name: 'Organization' })
+        .getByRole('link', { name: 'Analytics' }),
+    ).toBeVisible();
+
+    // One list, one switch per app, with readable names, not raw keys.
+    await expect(
+      main.getByRole('heading', { exact: true, name: 'Apps' }),
+    ).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Motion' })).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Campaigns' })).toBeVisible();
+    await expect(main.getByRole('switch', { name: 'Brands' })).toBeVisible();
+    await expect(main.getByText(/release analytics_/)).toHaveCount(0);
+    await expect(main.getByText(/^show /)).toHaveCount(0);
+
+    // One plain header per section: no eyebrow above "Apps" or "Settings".
+    await expect(main.getByText('Organization Controls')).toHaveCount(0);
+  });
+
   test('folders view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
 
