@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { VoiceProvider } from '@genfeedai/contracts';
 import {
   fireEvent,
@@ -33,6 +37,10 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/content/voices',
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -115,7 +123,7 @@ beforeEach(() => {
 describe('admin voice catalog table', () => {
   it('lists voices as table rows with a preview player and overflow actions', async () => {
     const user = userEvent.setup();
-    render(<VoicesLibraryPage />);
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
 
     const table = await screen.findByRole('table', { name: 'tableLabel' });
     expect(
@@ -159,7 +167,7 @@ describe('admin voice catalog table', () => {
 
   it('asks the server for the page in the URL', async () => {
     mocks.searchParams = new URLSearchParams('page=3&q=Ada&provider=heygen');
-    render(<VoicesLibraryPage />);
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
 
     await waitFor(() =>
       expect(mocks.service.findCatalog).toHaveBeenCalledWith(
@@ -177,7 +185,7 @@ describe('admin voice catalog table', () => {
     'asks the server to order the catalog by the %s URL sort',
     async (urlSort, apiSort) => {
       mocks.searchParams = new URLSearchParams({ sort: urlSort });
-      render(<VoicesLibraryPage />);
+      render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
 
       await waitFor(() =>
         expect(mocks.service.findCatalog).toHaveBeenCalledWith(
@@ -192,7 +200,7 @@ describe('admin voice catalog table', () => {
     'ignores the unsortable URL sort %j',
     async (urlSort) => {
       mocks.searchParams = new URLSearchParams({ sort: urlSort });
-      render(<VoicesLibraryPage />);
+      render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
 
       await waitFor(() =>
         expect(mocks.service.findCatalog).toHaveBeenCalledWith(
@@ -205,7 +213,7 @@ describe('admin voice catalog table', () => {
 
   it('writes search to the URL and resets to the first page', async () => {
     mocks.searchParams = new URLSearchParams('page=3');
-    render(<VoicesLibraryPage />);
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('table');
 
     fireEvent.change(screen.getByPlaceholderText('searchPlaceholder'), {
@@ -225,7 +233,7 @@ describe('admin voice catalog table', () => {
 
   it('syncs one provider from the toolbar dropdown', async () => {
     const user = userEvent.setup();
-    render(<VoicesLibraryPage />);
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
     await screen.findByRole('table');
 
     await user.click(screen.getByRole('button', { name: /syncProvider/ }));
@@ -243,9 +251,23 @@ describe('admin voice catalog table', () => {
     mocks.service.findCatalog
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce(page([]));
-    render(<VoicesLibraryPage />);
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper() });
     expect(await screen.findByText('loadError')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('empty')).toBeInTheDocument();
+  });
+
+  it('paints the cached voices on a return visit, with no skeleton', async () => {
+    const client = createTestQueryClient();
+    const first = render(<VoicesLibraryPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Voice 0')).toBeInTheDocument();
+    first.unmount();
+    mocks.service.findCatalog.mockReturnValue(new Promise(() => {}));
+
+    render(<VoicesLibraryPage />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Voice 0')).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
 import { ChevronRight, FileText } from 'lucide-react';
 
 import Link from 'next/link';
@@ -55,19 +56,20 @@ export default function DrillDownGroupRow({
   };
 
   const rowClasses = cn(
-    'flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150 group',
+    'group relative flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isActive
-      ? 'bg-foreground/5 text-foreground'
+      ? 'text-foreground'
       : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
   );
 
   const content = (
     <>
+      {isActive ? <SidebarActiveHighlight /> : null}
       {OutlineIcon && (
         <OutlineIcon
           className={cn(
-            'size-4 transition-colors duration-200',
+            'relative size-4 transition-colors duration-200',
             isActive
               ? 'text-primary'
               : 'text-foreground/80 group-hover:text-foreground',
@@ -76,13 +78,13 @@ export default function DrillDownGroupRow({
       )}
       <span
         className={cn(
-          'text-xs font-medium flex-1 text-left',
-          isActive ? 'text-foreground font-semibold' : 'text-foreground/90',
+          'relative flex-1 text-left text-xs font-medium',
+          isActive ? 'text-foreground' : 'text-foreground/90',
         )}
       >
         {group.group}
       </span>
-      <ChevronRight className="size-4 text-muted-foreground" />
+      <ChevronRight className="relative size-4 text-muted-foreground" />
     </>
   );
 

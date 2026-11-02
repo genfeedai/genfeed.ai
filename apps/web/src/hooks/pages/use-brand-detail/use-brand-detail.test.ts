@@ -164,6 +164,74 @@ describe('useBrandDetail', () => {
     expect(mockFindOne).toHaveBeenCalledWith('brand-1');
   });
 
+  it('keeps the loaded brand on screen when the auth identity changes and refetches', async () => {
+    const { result, rerender } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+    expect(result.current.isLoading).toBe(false);
+
+    // A new service function is what `useAuthedService` hands out once the
+    // session identity settles after an OAuth redirect; it re-runs the fetch.
+    let finishRefetch: (brand: IBrand) => void = () => {};
+    mockFindOne.mockImplementationOnce(
+      () =>
+        new Promise<IBrand>((resolve) => {
+          finishRefetch = resolve;
+        }),
+    );
+    (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
+      vi.fn().mockResolvedValue({ findOneBySlug: mockFindOne }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(mockFindOne).toHaveBeenCalledTimes(2);
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.brand?.id).toBe('brand-1');
+
+    await act(async () => {
+      finishRefetch({ id: 'brand-1', links: [] } as unknown as IBrand);
+    });
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('ignores a slower, older brand response once a newer fetch has answered', async () => {
+    let finishFirst: (brand: IBrand) => void = () => {};
+    mockFindOne.mockImplementationOnce(
+      () =>
+        new Promise<IBrand>((resolve) => {
+          finishFirst = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(mockFindOne).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.isLoading).toBe(true);
+
+    (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
+      vi.fn().mockResolvedValue({ findOneBySlug: mockFindOne }),
+    );
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.brand?.id).toBe('brand-1');
+    });
+
+    await act(async () => {
+      finishFirst({
+        id: 'brand-1',
+        label: 'Stale',
+        links: [],
+      } as unknown as IBrand);
+    });
+    expect(result.current.brand?.label).toBeUndefined();
+  });
+
   it('uses article-native public query params for latest articles', async () => {
     renderHook(() => useBrandDetail());
 

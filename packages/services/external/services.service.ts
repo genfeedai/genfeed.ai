@@ -41,6 +41,24 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
       );
   }
 
+  /**
+   * Connect a platform that authenticates with a site URL + API key (Ghost):
+   * the server verifies the key and stores the credential, no redirect.
+   */
+  public async postConnectWithApiKey(body: {
+    apiKey: string;
+    brandId: string;
+    ghostUrl: string;
+  }): Promise<ICredential> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`connect`, body)
+      .then((res) => res.data)
+      .then(
+        (res) =>
+          new Credential(this.extractResource<Partial<ICredential>>(res)),
+      );
+  }
+
   public async postVerify(body: unknown): Promise<ICredential> {
     return await this.instance
       .post<JsonApiResponseDocument>(`verify`, body)

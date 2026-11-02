@@ -6,7 +6,7 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import { hoverRevealClassName } from '@ui/styles/hover-reveal';
@@ -30,10 +30,9 @@ export default function BrandDetailOverview({
 
   return (
     <div className="flex items-start gap-6">
-      <Avatar
+      <BrandAvatar
         alt={`${brand.label} logo`}
         name={brand.label}
-        shape="square"
         size="3xl"
         src={brand.logoUrl}
       >
@@ -63,7 +62,7 @@ export default function BrandDetailOverview({
             />
           </div>
         </div>
-      </Avatar>
+      </BrandAvatar>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-4">

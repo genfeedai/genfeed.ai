@@ -217,14 +217,6 @@ export class ApifyService {
     return this.twitterService.searchTwitterTweets(query, options);
   }
 
-  getYouTubeTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    return this.youtubeService.getYouTubeTrends(options);
-  }
-
-  getYouTubeVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    return this.youtubeService.getYouTubeVideos(limit);
-  }
-
   getYouTubeVideoComments(
     videoUrl: string,
     options?: { limit?: number },

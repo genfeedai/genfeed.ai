@@ -2,7 +2,6 @@ import {
   type ElementBlacklistSchema,
   elementBlacklistSchema,
 } from '@genfeedai/client/schemas';
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
 import {
   hasFormErrors,
@@ -20,17 +19,16 @@ import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
 export default function ModalBlacklist({
-  item,
   onConfirm,
   onClose,
 }: ModalBlacklistProps) {
-  const { isSuperAdmin } = useAccessState();
-
+  const t = useTranslations('ui.createModal');
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     ElementBlacklist,
     ElementBlacklistSchema
@@ -44,7 +42,7 @@ export default function ModalBlacklist({
       label: '',
       sortOrder: 0,
     },
-    entity: item || null,
+    entity: null,
     modalId: ModalEnum.BLACKLIST,
     onClose,
     onConfirm,
@@ -72,10 +70,7 @@ export default function ModalBlacklist({
   };
 
   return (
-    <Modal
-      id={ModalEnum.BLACKLIST}
-      title={item ? 'Edit Blacklist' : 'Create Blacklist'}
-    >
+    <Modal id={ModalEnum.BLACKLIST} title={t('blacklist')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
           <Alert variant="destructive">
@@ -107,17 +102,11 @@ export default function ModalBlacklist({
             onChange={updateModalBlacklist}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
-            isDisabled={isSubmitting || (!!item && !isSuperAdmin)}
+            isDisabled={isSubmitting}
           />
 
           <p className="text-xs text-foreground/70 mt-1">
             Unique identifier (lowercase, alphanumeric with hyphens)
-            {item && !isSuperAdmin && (
-              <span className="text-warning">
-                {' '}
-                (Key editing requires superadmin privileges)
-              </span>
-            )}
           </p>
         </FormControl>
 
@@ -191,7 +180,7 @@ export default function ModalBlacklist({
 
           <Button
             type="submit"
-            label={item ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

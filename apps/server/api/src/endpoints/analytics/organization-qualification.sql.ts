@@ -12,11 +12,17 @@ import { Prisma } from '@genfeedai/prisma';
 
 /**
  * How the admin organizations list qualifies a lead: the owner's email class
- * and lifetime usage, as SQL over `organizations e`. Kept beside the
+ * and usage in the selected date range, as SQL over `organizations e`. Kept beside the
  * leaderboard service so the ranking query and the total share one definition.
  */
 
 export type PrismaSql = ReturnType<typeof Prisma.sql>;
+
+/** The date window every usage figure and filter of the list is scoped to. */
+export interface UsageWindow {
+  endDate: Date;
+  startDate: Date;
+}
 
 /** Filters only organization lists take. */
 export interface OrganizationListFilters {
@@ -56,6 +62,7 @@ export async function resolvePersonalOwnerDomains(
 export function organizationListFilterSql(
   filters: OrganizationListFilters,
   personalDomains: string[],
+  window: UsageWindow,
 ): PrismaSql {
   // Declared at onboarding only: `category` always holds a default.
   const typeFilter = filters.type
@@ -83,11 +90,15 @@ export function organizationListFilterSql(
     EXISTS (
       SELECT 1 FROM "ingredients" i
       WHERE i."organizationId" = e."id" AND i."isDeleted" = false
-        AND i."origin" = 'GENERATED'::"IngredientOrigin")
+        AND i."origin" = 'GENERATED'::"IngredientOrigin"
+        AND i."createdAt" >= ${window.startDate}
+        AND i."createdAt" <= ${window.endDate})
     OR EXISTS (
       SELECT 1 FROM "posts" p
       WHERE p."organizationId" = e."id" AND p."isDeleted" = false
-        AND p."publishedAt" IS NOT NULL))`;
+        AND p."publishedAt" IS NOT NULL
+        AND p."publishedAt" >= ${window.startDate}
+        AND p."publishedAt" <= ${window.endDate}))`;
   let usageFilter = Prisma.empty;
   if (filters.usage === OrganizationUsageFilter.ACTIVE) {
     usageFilter = Prisma.sql`AND ${hasUsage}`;
@@ -100,7 +111,7 @@ export function organizationListFilterSql(
 
 /**
  * The organization total for filters Prisma's `where` cannot express (owner
- * email domain, lifetime usage). Same fragments as the ranking query.
+ * email domain, usage in the date range). Same fragments as the ranking query.
  */
 export async function countOrganizationsInSql(
   prisma: PrismaService,
@@ -108,6 +119,7 @@ export async function countOrganizationsInSql(
     organizationId?: string;
     search?: string;
   } & OrganizationListFilters,
+  window: UsageWindow,
 ): Promise<number> {
   const personalDomains = filters.emailClass
     ? await resolvePersonalOwnerDomains(prisma)
@@ -124,16 +136,17 @@ export async function countOrganizationsInSql(
     FROM "organizations" e
     WHERE e."isDeleted" = false
       ${organizationIdFilter}
-      ${organizationListFilterSql(filters, personalDomains)}
+      ${organizationListFilterSql(filters, personalDomains, window)}
       ${searchFilter}
   `;
   return Number(rows[0]?.total ?? 0);
 }
 
-/** Lifetime generated assets per organization, for the given orgs. */
-export async function countLifetimeGenerations(
+/** Generated assets created in the date range, per organization. */
+export async function countGenerations(
   prisma: PrismaService,
   organizationIds: string[],
+  window: UsageWindow,
 ): Promise<Map<string, number>> {
   if (organizationIds.length === 0) {
     return new Map();
@@ -145,26 +158,8 @@ export async function countLifetimeGenerations(
     WHERE "organizationId" = ANY(${organizationIds}::text[])
       AND "isDeleted" = false
       AND "origin" = 'GENERATED'::"IngredientOrigin"
-    GROUP BY "organizationId"
-  `;
-  return new Map(rows.map((row) => [row.entity_id, Number(row.total)]));
-}
-
-/** Lifetime published posts per organization, for the given orgs. */
-export async function countLifetimePosts(
-  prisma: PrismaService,
-  organizationIds: string[],
-): Promise<Map<string, number>> {
-  if (organizationIds.length === 0) {
-    return new Map();
-  }
-
-  const rows = await prisma.$queryRaw<EntityCountRow[]>`
-    SELECT "organizationId" AS entity_id, COUNT(*) AS total
-    FROM "posts"
-    WHERE "organizationId" = ANY(${organizationIds}::text[])
-      AND "isDeleted" = false
-      AND "publishedAt" IS NOT NULL
+      AND "createdAt" >= ${window.startDate}
+      AND "createdAt" <= ${window.endDate}
     GROUP BY "organizationId"
   `;
   return new Map(rows.map((row) => [row.entity_id, Number(row.total)]));

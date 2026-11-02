@@ -28,7 +28,7 @@ import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsM
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
@@ -276,10 +276,9 @@ export default function AnalyticsBrandsList({
             key: 'name',
             render: (brand) => (
               <div className="flex items-center gap-3">
-                <Avatar
+                <BrandAvatar
                   alt={brand.name}
                   name={brand.name}
-                  shape="square"
                   size="lg"
                   src={brand.logo}
                 />

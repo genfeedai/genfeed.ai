@@ -2,6 +2,12 @@
   "title": "Organizations",
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
+  "learningTab": "Learning",
+  "libraryTab": "Library",
+  "libraryEmpty": "This organization has not generated any content yet",
+  "libraryLoadError": "Failed to load the organization library. Please try again.",
+  "libraryLoadMoreError": "Failed to load more of the library.",
+  "libraryRetry": "Retry",
   "settingsTab": "Settings",
   "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
@@ -34,15 +40,14 @@
   "typeColumn": "Type",
   "typeNotSet": "Not set",
   "generationsColumn": "Generations",
-  "generationsLabel": "Generations (lifetime)",
-  "lifetimePostsLabel": "Posts (lifetime)",
+  "generationsLabel": "Generations",
   "lastActiveLabel": "Owner last active",
   "neverActive": "Never",
   "usageFilterLabel": "Usage",
   "allUsage": "Any usage",
   "usage": {
     "active": "Generated or published",
-    "inactive": "Nothing yet"
+    "inactive": "No activity"
   },
   "types": {
     "CREATOR": "Creator",

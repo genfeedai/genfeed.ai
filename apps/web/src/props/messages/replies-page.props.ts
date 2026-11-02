@@ -18,3 +18,10 @@ export type InboxItem = {
 
 export type DraftState = Record<string, string>;
 export type IntentState = Record<string, ReplyIntent>;
+
+/** One cached read of a brand's unreplied-comments inbox on one platform. */
+export type RepliesInboxData = {
+  items: InboxItem[];
+  platformLabel: string;
+  username?: string;
+};

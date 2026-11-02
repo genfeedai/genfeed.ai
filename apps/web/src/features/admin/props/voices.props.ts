@@ -42,21 +42,3 @@ export interface VoicesSyncControlsProps {
   syncingProvider: VoiceProvider | null;
   onSync: (providers?: VoiceProvider[]) => void;
 }
-
-export interface VoicesLibraryState {
-  voices: ExternalVoice[];
-  isLoading: boolean;
-  isSyncingAll: boolean;
-  syncingProvider: VoiceProvider | null;
-  togglingKey: string | null;
-}
-
-export type VoicesLibraryAction =
-  | { type: 'LOAD_START' }
-  | { type: 'LOAD_SUCCESS'; voices: ExternalVoice[] }
-  | { type: 'LOAD_ERROR' }
-  | { type: 'SYNC_START'; provider: VoiceProvider | null }
-  | { type: 'SYNC_END' }
-  | { type: 'TOGGLE_START'; key: string }
-  | { type: 'TOGGLE_SUCCESS'; voice: ExternalVoice }
-  | { type: 'TOGGLE_END' };

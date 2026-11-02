@@ -20,8 +20,7 @@ import {
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
 import {
-  countLifetimeGenerations,
-  countLifetimePosts,
+  countGenerations,
   countOrganizationsInSql,
   type OrganizationListFilters,
   organizationListFilterSql,
@@ -270,12 +269,12 @@ export class EntityLeaderboardService {
     range: DateRange,
     organizationFilter: PrismaSql,
   ): PrismaSql {
-    // Lifetime on purpose: a lead qualifies on what it ever generated, not on
-    // whatever the date picker happens to cover.
     if (SORT_FIELD_MAP[sort] === 'totalGenerations') {
       return Prisma.sql`"ingredients"
         WHERE "isDeleted" = false
           AND "origin" = 'GENERATED'::"IngredientOrigin"
+          AND "createdAt" >= ${range.startDate}
+          AND "createdAt" <= ${range.endDate}
           ${organizationFilter}`;
     }
 
@@ -341,7 +340,7 @@ export class EntityLeaderboardService {
         ? await resolvePersonalOwnerDomains(this.prisma)
         : [];
     const organizationFilters = isOrganization
-      ? organizationListFilterSql(filters, personalDomains)
+      ? organizationListFilterSql(filters, personalDomains, range)
       : Prisma.empty;
     const direction = Prisma.raw(
       filters.order === LeaderboardOrder.ASC ? 'ASC' : 'DESC',
@@ -380,6 +379,7 @@ export class EntityLeaderboardService {
   /** Count live entities matching the same filters as `rankEntityIds`. */
   private async countEntities(
     entityType: EntityType,
+    range: DateRange,
     filters: {
       brandId?: string;
       organizationId?: string;
@@ -392,7 +392,7 @@ export class EntityLeaderboardService {
 
     if (entityType === 'organization') {
       if (filters.emailClass || filters.usage) {
-        return countOrganizationsInSql(this.prisma, filters);
+        return countOrganizationsInSql(this.prisma, filters, range);
       }
       return this.prisma.organization.count({
         where: {
@@ -824,7 +824,7 @@ export class EntityLeaderboardService {
         { limit, offset: (page - 1) * limit },
         { ...listFilters, order, organizationId, search: needle, type },
       ),
-      this.countEntities('organization', {
+      this.countEntities('organization', range, {
         ...listFilters,
         organizationId,
         search: needle,
@@ -839,7 +839,6 @@ export class EntityLeaderboardService {
       logoUrlMap,
       ownerMap,
       generationCountMap,
-      lifetimePostMap,
       brandLogoMap,
     ] = await Promise.all([
       this.countBrandsByOrganization(organizationIds),
@@ -849,8 +848,7 @@ export class EntityLeaderboardService {
         this.prisma,
         rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
       ),
-      countLifetimeGenerations(this.prisma, organizationIds),
-      countLifetimePosts(this.prisma, organizationIds),
+      countGenerations(this.prisma, organizationIds, range),
       resolveFirstBrandLogos(this.prisma, this.brandsService, organizationIds),
     ]);
 
@@ -866,7 +864,6 @@ export class EntityLeaderboardService {
           lastActiveAt: entity.userId
             ? ownerMap.get(entity.userId)?.lastActiveAt
             : undefined,
-          lifetimePosts: lifetimePostMap.get(entity.id) ?? 0,
           logo:
             logoUrlMap.get(entity.id) ??
             entity.authProviderLogoUrl ??
@@ -923,7 +920,11 @@ export class EntityLeaderboardService {
         { limit, offset: (page - 1) * limit },
         { brandId, includePlatforms: true, organizationId, search: needle },
       ),
-      this.countEntities('brand', { brandId, organizationId, search: needle }),
+      this.countEntities('brand', range, {
+        brandId,
+        organizationId,
+        search: needle,
+      }),
     ]);
 
     const [displayByBrandId, totals] = await Promise.all([

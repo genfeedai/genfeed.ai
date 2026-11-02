@@ -29,7 +29,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { Building2, Plus } from 'lucide-react';
@@ -110,10 +110,9 @@ function BrandCard({ brand, href }: OrgLandingBrandItemProps) {
     <Link className="block h-full" data-testid="org-brand-card" href={href}>
       <Card isInteractive className="h-full">
         <div className="flex items-center gap-3">
-          <Avatar
+          <BrandAvatar
             alt={brand.label}
             name={brand.label}
-            shape="square"
             size="lg"
             src={brand.logoUrl}
           />
@@ -136,10 +135,9 @@ function BrandRow({ brand, href }: OrgLandingBrandItemProps) {
       density="compact"
       href={href}
       leading={
-        <Avatar
+        <BrandAvatar
           alt={brand.label}
           name={brand.label}
-          shape="square"
           size="md"
           src={brand.logoUrl}
         />

@@ -532,6 +532,29 @@ export function getActivityCreditsChange(
       );
 }
 
+/**
+ * The credit movement as a bare signed number ("−4", "+20"), for places that
+ * name the column already and do not want the unit spelled out. Null when the
+ * event moves no credits.
+ */
+export function getActivityCreditsDelta(activity: IActivity): string | null {
+  const change = getActivityCreditsChange(activity);
+  if (!change) return null;
+  const { amount, creditCategory } = change.params;
+  switch (creditCategory) {
+    case 'byok_usage':
+      return null;
+    case 'reset':
+      return String(amount);
+    case 'add':
+    case 'refund':
+    case 'rollover':
+      return `+${amount}`;
+    default:
+      return `\u2212${amount}`;
+  }
+}
+
 export interface ActivityValueFields {
   /** Why it failed, when it did. */
   error?: string;

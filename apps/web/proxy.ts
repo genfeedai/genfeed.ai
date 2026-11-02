@@ -967,6 +967,8 @@ async function resolveCanonicalProtectedPath(
  * self-hosted branch, /login, /sign-up, password reset, and /logout are real
  * auth pages here. /oauth/* are integration callbacks and must never be gated.
  * /agent-auth/claim renders its own signed-out "Sign in to continue" step.
+ * /preview/:token is the claimable preview a lead opens before they have an
+ * account; the token in the link is its only credential.
  */
 function isBetterAuthPublicRoute(pathname: string): boolean {
   return (
@@ -980,6 +982,7 @@ function isBetterAuthPublicRoute(pathname: string): boolean {
     pathname.startsWith('/logout') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/oauth') ||
+    pathname.startsWith('/preview/') ||
     pathname === '/agent-auth/claim'
   );
 }

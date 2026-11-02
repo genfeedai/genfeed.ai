@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getActivityAssetId,
   getActivityCreditAmount,
+  getActivityCreditsDelta,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
@@ -296,5 +297,34 @@ describe('activity output and timing', () => {
     expect(getActivityValueFields({ value: 'plain text' })).toEqual({
       raw: 'plain text',
     });
+  });
+});
+
+describe('getActivityCreditsDelta', () => {
+  it('is the plain signed amount of a credit movement', () => {
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.CREDITS_REMOVE,
+        source: 'system',
+        value: JSON.stringify({ description: 'Image generation', value: 4 }),
+      } as IActivity),
+    ).toBe('\u22124');
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.CREDITS_ADD,
+        source: 'system',
+        value: '25',
+      } as IActivity),
+    ).toBe('+25');
+  });
+
+  it('has nothing for activities that move no credits', () => {
+    expect(
+      getActivityCreditsDelta({
+        key: ActivityKey.POST_PUBLISHED,
+        source: 'system',
+        value: 'Published',
+      } as IActivity),
+    ).toBeNull();
   });
 });

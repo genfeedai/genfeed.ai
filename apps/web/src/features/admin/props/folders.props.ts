@@ -1,4 +1,3 @@
-import type { IFolder } from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
@@ -6,13 +5,11 @@ import type {
 import type { ContentProps } from '@props/layout/content.props';
 
 export interface FoldersListModalsProps {
-  selectedFolder: IFolder | null;
   onConfirm: () => void;
   scope: ContentProps['scope'];
 }
 
 export interface FoldersListState {
-  selectedFolder: IFolder | null;
   adminOrg: string;
   adminBrand: string;
   query: IFilters;
@@ -20,7 +17,6 @@ export interface FoldersListState {
 }
 
 export type FoldersListAction =
-  | { type: 'SET_SELECTED_FOLDER'; payload: IFolder | null }
   | { type: 'SET_ADMIN_ORG'; payload: string }
   | { type: 'SET_ADMIN_BRAND'; payload: string }
   | { type: 'SET_ORG_AND_CLEAR_BRAND'; payload: string }

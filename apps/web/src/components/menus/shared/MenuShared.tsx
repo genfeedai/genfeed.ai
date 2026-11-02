@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SidebarHighlightGroup } from '@ui/primitives/sidebar-active-highlight';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -143,141 +144,143 @@ export default function MenuShared({
      width here — drag updates `--desktop-sidebar-width` without re-cloning
      this tree. `sidebarWidth` remains for mobile drawer / story hosts. */
   return (
-    <div
-      data-testid="sidebar-shell"
-      data-shell-current-app={currentApp ?? 'workspace'}
-      data-shell-section-label={sectionLabel ?? ''}
-      // Transparent: the host (desktop sidebar / mobile drawer) paints the
-      // shared chrome surface.
-      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-transparent"
-      style={
-        // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
-        sidebarWidth
-          ? { maxWidth: '100%', width: '100%' }
-          : { width: SIDEBAR_DEFAULT_WIDTH }
-      }
-    >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div
-          data-testid="sidebar-header-shell"
-          className={cn(
-            'flex h-12 flex-shrink-0 items-center gap-1.5 px-3',
-            // Desktop collapse and the brand switcher live in the topbar, so
-            // an empty header must not leave a gap above the menu.
-            !headerSlot && 'md:hidden',
-          )}
-        >
-          <div className="md:hidden">
-            <TopbarLogo logoHref={config.logoHref} size="compact" />
-          </div>
-          {headerSlot ? (
-            <div className="min-w-0 flex-1">{headerSlot}</div>
-          ) : (
-            <div className="flex-1" />
-          )}
-        </div>
-
-        {/* Body. The rail (DesktopSidebar) clips and fades this whole tree on
-            collapse, so nothing here animates on its own clock. */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {topSlotContent ? (
-            <div className="px-3 pt-2">{topSlotContent}</div>
-          ) : null}
-
-          {/* Primary actions */}
-          {showPrimaryItems ? (
-            <MenuSharedPrimaryAction
-              config={config}
-              primaryItems={primaryItems}
-              prefixHref={prefixHref}
-              isActiveItem={isActiveItem}
-              handleLinkClick={handleLinkClick}
-            />
-          ) : null}
-
-          {bodyContent ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {sectionLabel ? (
-                <div className="shrink-0 px-3">
-                  <CollapsibleGroup
-                    label={sectionLabel}
-                    isDrillDown={false}
-                    storageKey={`__${sectionLabel.toLowerCase()}__`}
-                  >
-                    {null}
-                  </CollapsibleGroup>
-                </div>
-              ) : null}
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {bodyContent}
-              </div>
+    <SidebarHighlightGroup>
+      <div
+        data-testid="sidebar-shell"
+        data-shell-current-app={currentApp ?? 'workspace'}
+        data-shell-section-label={sectionLabel ?? ''}
+        // Transparent: the host (desktop sidebar / mobile drawer) paints the
+        // shared chrome surface.
+        className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-transparent"
+        style={
+          // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
+          sidebarWidth
+            ? { maxWidth: '100%', width: '100%' }
+            : { width: SIDEBAR_DEFAULT_WIDTH }
+        }
+      >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div
+            data-testid="sidebar-header-shell"
+            className={cn(
+              'flex h-12 flex-shrink-0 items-center gap-1.5 px-3',
+              // Desktop collapse and the brand switcher live in the topbar, so
+              // an empty header must not leave a gap above the menu.
+              !headerSlot && 'md:hidden',
+            )}
+          >
+            <div className="md:hidden">
+              <TopbarLogo logoHref={config.logoHref} size="compact" />
             </div>
-          ) : nestedGroup && nestedGroupId ? (
-            <div
-              className="flex-1 overflow-hidden"
-              style={{
-                animation:
-                  'slideInFromRight 300ms cubic-bezier(0.32, 0.72, 0, 1)',
-              }}
-            >
-              {/* Hoisted to <head>: an in-place <style> breaks hydration (#6601). */}
-              <style
-                href="genfeed-menu-slide-in"
-                precedence="genfeed-component"
-              >{`
+            {headerSlot ? (
+              <div className="min-w-0 flex-1">{headerSlot}</div>
+            ) : (
+              <div className="flex-1" />
+            )}
+          </div>
+
+          {/* Body. The rail (DesktopSidebar) clips and fades this whole tree on
+            collapse, so nothing here animates on its own clock. */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {topSlotContent ? (
+              <div className="px-3 pt-2">{topSlotContent}</div>
+            ) : null}
+
+            {/* Primary actions */}
+            {showPrimaryItems ? (
+              <MenuSharedPrimaryAction
+                config={config}
+                primaryItems={primaryItems}
+                prefixHref={prefixHref}
+                isActiveItem={isActiveItem}
+                handleLinkClick={handleLinkClick}
+              />
+            ) : null}
+
+            {bodyContent ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {sectionLabel ? (
+                  <div className="shrink-0 px-3">
+                    <CollapsibleGroup
+                      label={sectionLabel}
+                      isDrillDown={false}
+                      storageKey={`__${sectionLabel.toLowerCase()}__`}
+                    >
+                      {null}
+                    </CollapsibleGroup>
+                  </div>
+                ) : null}
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  {bodyContent}
+                </div>
+              </div>
+            ) : nestedGroup && nestedGroupId ? (
+              <div
+                className="flex-1 overflow-hidden"
+                style={{
+                  animation:
+                    'slideInFromRight 300ms cubic-bezier(0.32, 0.72, 0, 1)',
+                }}
+              >
+                {/* Hoisted to <head>: an in-place <style> breaks hydration (#6601). */}
+                <style
+                  href="genfeed-menu-slide-in"
+                  precedence="genfeed-component"
+                >{`
             @keyframes slideInFromRight {
               from { opacity: 0; transform: translateX(8px); }
               to { opacity: 1; transform: translateX(0); }
             }
           `}</style>
-              <SidebarNested
-                groupLabel={nestedGroup.group}
-                backLabel="Workspace"
-                items={nestedGroup.items}
-                onBack={() => {
-                  exitNestedGroup();
-                  push(
-                    brandSlug
-                      ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
-                      : orgHref(APP_ROUTES.WORKSPACE.OVERVIEW),
-                  );
-                }}
-                onItemClick={handleLinkClick}
-              />
-            </div>
-          ) : (
-            <>
-              <div className="flex min-h-0 flex-1 flex-col">
-                <div
-                  data-testid="sidebar-navigation-section"
-                  className={cn(
-                    renderAfterNavigation
-                      ? 'shrink-0 px-3 pb-2'
-                      : 'flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-3 pb-2',
+                <SidebarNested
+                  groupLabel={nestedGroup.group}
+                  backLabel="Workspace"
+                  items={nestedGroup.items}
+                  onBack={() => {
+                    exitNestedGroup();
+                    push(
+                      brandSlug
+                        ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
+                        : orgHref(APP_ROUTES.WORKSPACE.OVERVIEW),
+                    );
+                  }}
+                  onItemClick={handleLinkClick}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex min-h-0 flex-1 flex-col">
+                  <div
+                    data-testid="sidebar-navigation-section"
+                    className={cn(
+                      renderAfterNavigation
+                        ? 'shrink-0 px-3 pb-2'
+                        : 'flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-3 pb-2',
+                    )}
+                  >
+                    {navigationContent}
+                    {secondaryNavigationContent}
+                  </div>
+
+                  {afterNavigationContent && (
+                    <MenuSharedConversations
+                      afterNavigationContent={afterNavigationContent}
+                      conversationActions={conversationActions}
+                      isConversationsCollapsed={isConversationsCollapsed}
+                      newAgentThreadHref={activeHref(APP_ROUTES.AGENT.NEW)}
+                      onCollapsedChange={setIsConversationsCollapsed}
+                    />
                   )}
-                >
-                  {navigationContent}
-                  {secondaryNavigationContent}
                 </div>
 
-                {afterNavigationContent && (
-                  <MenuSharedConversations
-                    afterNavigationContent={afterNavigationContent}
-                    conversationActions={conversationActions}
-                    isConversationsCollapsed={isConversationsCollapsed}
-                    newAgentThreadHref={activeHref(APP_ROUTES.AGENT.NEW)}
-                    onCollapsedChange={setIsConversationsCollapsed}
-                  />
+                {footerSlotContent && (
+                  <div className="px-3 pb-1">{footerSlotContent}</div>
                 )}
-              </div>
-
-              {footerSlotContent && (
-                <div className="px-3 pb-1">{footerSlotContent}</div>
-              )}
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </SidebarHighlightGroup>
   );
 }

@@ -10,11 +10,14 @@ import {
 } from '@genfeedai/contracts';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useQueryClient } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import Loading from '@ui/loading/default/Loading';
@@ -25,7 +28,7 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { MessageCircleReply } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
@@ -36,12 +39,20 @@ import type {
   DraftState,
   InboxItem,
   IntentState,
+  RepliesInboxData,
   ReplyIntent,
 } from '@/props/messages/replies-page.props';
 import { filterInboxItems } from './filter-inbox-items';
 import RepliesReplyComposer from './replies-reply-composer';
 import RepliesWarmupQueue from './replies-warmup-queue';
 import RepliesWarmupTargets from './replies-warmup-targets';
+
+const EMPTY_ITEMS: InboxItem[] = [];
+const INBOX_SKELETON_KEYS = [
+  'inbox-skeleton-1',
+  'inbox-skeleton-2',
+  'inbox-skeleton-3',
+] as const;
 
 function intentBadgeVariant(
   intent: ReplyIntent,
@@ -72,83 +83,81 @@ export default function RepliesPage() {
   );
   const connectPlatform = usePlatformOAuthConnect({ brandId: brand?.id });
   const [isConnecting, setIsConnecting] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
 
-  const [items, setItems] = useState<InboxItem[]>([]);
-  const [username, setUsername] = useState<string | undefined>();
   const [inboxPlatform, setInboxPlatform] = useState<
     Platform.TWITTER | Platform.YOUTUBE
   >(Platform.TWITTER);
-  const [platformLabel, setPlatformLabel] = useState('X');
-  const [isLoading, setIsLoading] = useState(true);
   const [isEnabling, setIsEnabling] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [drafts, setDrafts] = useState<DraftState>({});
   const [intents, setIntents] = useState<IntentState>({});
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [inboxError, setInboxError] = useState<string | null>(null);
+
+  const brandId = scopedBrandId;
+  const queryClient = useQueryClient();
+  const inboxKey = [
+    'replies',
+    'inbox',
+    brandId ?? null,
+    inboxPlatform,
+  ] as const;
+  // Cached: coming back to Replies paints the inbox it already has while it
+  // refreshes. Every inbox read bills the X API, so a return visit inside the
+  // stale window reads nothing.
+  const inboxQuery = useAuthedQuery<ReplyBotConfigsService, RepliesInboxData>({
+    enabled: Boolean(brandId),
+    queryFn: async (service, signal) => {
+      try {
+        const result = await service.getAuthorReplyInbox({
+          brandId: brandId as string,
+          hours: isYouTubePlatform(inboxPlatform) ? 48 : 24,
+          platform: inboxPlatform,
+        });
+        return {
+          items: (result.items ?? []) as InboxItem[],
+          platformLabel: formatPlatformLabel(result.platform) ?? 'X',
+          username: result.username,
+        };
+      } catch (error: unknown) {
+        if (!signal.aborted) {
+          logger.error('Replies inbox failed', error);
+        }
+        throw error;
+      }
+    },
+    queryKey: inboxKey,
+    service: (token: string) => ReplyBotConfigsService.getInstance(token),
+  });
+  const { error, errorUpdatedAt, isError, isFetching, isPending, refetch } =
+    inboxQuery;
+  const items = inboxQuery.data?.items ?? EMPTY_ITEMS;
+  const username = inboxQuery.data?.username;
+  const platformLabel =
+    inboxQuery.data?.platformLabel ?? formatPlatformLabel(inboxPlatform) ?? 'X';
+  // Pending, not just fetching: until the first read lands the inbox is a
+  // skeleton, never the "Inbox clear" card.
+  const isLoading = isPending && !isError;
+  const inboxError = isError
+    ? error instanceof Error
+      ? error.message
+      : 'Could not load replies inbox'
+    : null;
   const visibleItems = useMemo(
     () => filterInboxItems(items, search),
     [items, search],
   );
 
-  const brandId = scopedBrandId;
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (inboxError) {
+      toast.error(inboxError);
+    }
+  }, [errorUpdatedAt, inboxError]);
 
   const loadInbox = useCallback(async () => {
-    if (!brandId) {
-      return;
-    }
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setIsLoading(true);
-    setInboxError(null);
-    try {
-      const service = await getReplyBotService();
-      const result = await service.getAuthorReplyInbox({
-        brandId,
-        hours: isYouTubePlatform(inboxPlatform) ? 48 : 24,
-        platform: inboxPlatform,
-      });
-      if (controller.signal.aborted) {
-        return;
-      }
-      const nextItems = (result.items ?? []) as InboxItem[];
-      setItems(nextItems);
-      setUsername(result.username);
-      setPlatformLabel(formatPlatformLabel(result.platform) ?? 'X');
-      setIntents((prev) => {
-        const next = { ...prev };
-        for (const item of nextItems) {
-          if (!next[item.commentId]) {
-            next[item.commentId] = item.intent;
-          }
-        }
-        return next;
-      });
-    } catch (error: unknown) {
-      if (controller.signal.aborted) {
-        return;
-      }
-      const message =
-        error instanceof Error ? error.message : 'Could not load replies inbox';
-      logger.error('Replies inbox failed', error);
-      setItems([]);
-      setInboxError(message);
-      toast.error(message);
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, [brandId, getReplyBotService, inboxPlatform]);
-
-  useEffect(() => {
-    void loadInbox();
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, [loadInbox]);
+    await refetch();
+  }, [refetch]);
 
   async function handleEnableAuto() {
     if (!brandId) {
@@ -247,8 +256,17 @@ export default function RepliesPage() {
         throw new Error(result.error || 'Send failed');
       }
       toast.success('Reply sent');
-      setItems((prev) =>
-        prev.filter((row) => row.commentId !== item.commentId),
+      queryClient.setQueriesData<RepliesInboxData>(
+        { queryKey: inboxKey },
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.filter(
+                  (row) => row.commentId !== item.commentId,
+                ),
+              }
+            : current,
       );
       setDrafts((prev) => {
         const next = { ...prev };
@@ -312,7 +330,7 @@ export default function RepliesPage() {
       refresh={
         <ButtonRefresh
           onClick={() => void loadInbox()}
-          isRefreshing={isLoading}
+          isRefreshing={isFetching}
         />
       }
       leading={
@@ -335,8 +353,6 @@ export default function RepliesPage() {
                     platform === Platform.YOUTUBE
                   ) {
                     setInboxPlatform(platform);
-                    setItems([]);
-                    setInboxError(null);
                   }
                 },
                 options: [
@@ -356,8 +372,6 @@ export default function RepliesPage() {
             isAttached
             onClear={() => {
               setInboxPlatform(Platform.TWITTER);
-              setItems([]);
-              setInboxError(null);
             }}
           />
         </SearchField>
@@ -404,7 +418,15 @@ export default function RepliesPage() {
       ) : null}
 
       {isLoading ? (
-        <Loading />
+        <div aria-busy="true" className="flex flex-col gap-4">
+          {INBOX_SKELETON_KEYS.map((key) => (
+            <SkeletonCard
+              key={key}
+              label={translate('loadingReply')}
+              showImage={false}
+            />
+          ))}
+        </div>
       ) : search && items.length > 0 && visibleItems.length === 0 ? (
         <Card
           label={translate('emptySearchTitle')}

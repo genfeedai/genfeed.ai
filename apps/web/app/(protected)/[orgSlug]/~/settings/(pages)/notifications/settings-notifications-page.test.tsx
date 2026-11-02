@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,6 +45,11 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
     },
     mutateUser: mocks.mutateUser,
   })),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -89,13 +98,11 @@ describe('SettingsNotificationsPage', () => {
   });
 
   it('renders email notification preferences from the catalog', async () => {
-    render(<SettingsNotificationsPage />);
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('switch', { name: 'Agent Emails' }),
-      ).toBeEnabled(),
-    );
+    expect(
+      await screen.findByRole('switch', { name: 'Agent Emails' }),
+    ).toBeEnabled();
     expect(
       screen.getByText('Send an email when an agent run fails.'),
     ).toBeInTheDocument();
@@ -109,11 +116,58 @@ describe('SettingsNotificationsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows skeleton toggles, never "off", until the saved values load', () => {
+    mocks.findWorkflowEmailPreference.mockReturnValue(new Promise(() => {}));
+    mocks.findAgentEmailPreference.mockReturnValue(new Promise(() => {}));
+    mocks.findProductPreference.mockReturnValue(new Promise(() => {}));
+
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
+
+    expect(
+      screen.getByRole('status', { name: 'Workflow Emails' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Generation updates' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
+  });
+
+  it('shows the saved values at once when coming back while they revalidate', async () => {
+    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
+    const client = createTestQueryClient();
+    const firstVisit = render(<SettingsNotificationsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    const toggle = await screen.findByRole('switch', {
+      name: 'Workflow Emails',
+    });
+    await waitFor(() => expect(toggle).toBeChecked());
+    await screen.findByRole('switch', { name: 'Generation updates' });
+    firstVisit.unmount();
+
+    mocks.findWorkflowEmailPreference.mockReturnValue(new Promise(() => {}));
+    mocks.findAgentEmailPreference.mockReturnValue(new Promise(() => {}));
+    mocks.findProductPreference.mockReturnValue(new Promise(() => {}));
+    render(<SettingsNotificationsPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      screen.getByRole('switch', { name: 'Workflow Emails' }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('switch', { name: 'Generation updates' }),
+    ).toBeChecked();
+  });
+
   it('persists generation email preference through the durable topic API', async () => {
     const user = userEvent.setup();
-    render(<SettingsNotificationsPage />);
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
 
-    const toggle = screen.getByRole('switch', { name: 'Generation updates' });
+    const toggle = await screen.findByRole('switch', {
+      name: 'Generation updates',
+    });
     await waitFor(() => expect(toggle).toBeChecked());
     await user.click(toggle);
 
@@ -128,7 +182,7 @@ describe('SettingsNotificationsPage', () => {
   it('loads and persists the durable workflow email preference', async () => {
     const user = userEvent.setup();
     mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
-    render(<SettingsNotificationsPage />);
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
 
     const toggle = await screen.findByRole('switch', {
       name: 'Workflow Emails',
@@ -147,7 +201,10 @@ describe('SettingsNotificationsPage', () => {
   });
 
   it('aborts the workflow preference load when the page unmounts', async () => {
-    const { unmount } = render(<SettingsNotificationsPage />);
+    mocks.findWorkflowEmailPreference.mockReturnValue(new Promise(() => {}));
+    const { unmount } = render(<SettingsNotificationsPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => {
       expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledWith(
@@ -167,7 +224,7 @@ describe('SettingsNotificationsPage', () => {
     mocks.findWorkflowEmailPreference.mockRejectedValueOnce(
       new Error('load failed'),
     );
-    render(<SettingsNotificationsPage />);
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
 
     const toggle = await screen.findByRole('switch', {
       name: 'Workflow Emails',
@@ -184,8 +241,8 @@ describe('SettingsNotificationsPage', () => {
   });
   it('persists agent emails independently from workflow emails', async () => {
     const user = userEvent.setup();
-    render(<SettingsNotificationsPage />);
-    const toggle = screen.getByRole('switch', { name: 'Agent Emails' });
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
+    const toggle = await screen.findByRole('switch', { name: 'Agent Emails' });
     await waitFor(() => expect(toggle).toBeEnabled());
     await user.click(toggle);
     await waitFor(() =>
@@ -197,8 +254,8 @@ describe('SettingsNotificationsPage', () => {
   it('rolls back agent preference when saving fails', async () => {
     mocks.patchAgentEmailPreference.mockRejectedValue(new Error('save failed'));
     const user = userEvent.setup();
-    render(<SettingsNotificationsPage />);
-    const toggle = screen.getByRole('switch', { name: 'Agent Emails' });
+    render(<SettingsNotificationsPage />, { wrapper: queryClientWrapper() });
+    const toggle = await screen.findByRole('switch', { name: 'Agent Emails' });
     await waitFor(() => expect(toggle).toBeEnabled());
     await user.click(toggle);
     await waitFor(() => expect(mocks.errorNotification).toHaveBeenCalled());
@@ -206,7 +263,10 @@ describe('SettingsNotificationsPage', () => {
   });
 
   it('aborts the agent preference request on unmount', async () => {
-    const { unmount } = render(<SettingsNotificationsPage />);
+    mocks.findAgentEmailPreference.mockReturnValue(new Promise(() => {}));
+    const { unmount } = render(<SettingsNotificationsPage />, {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() =>
       expect(mocks.findAgentEmailPreference).toHaveBeenCalled(),
     );

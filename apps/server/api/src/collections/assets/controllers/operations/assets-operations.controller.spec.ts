@@ -171,11 +171,11 @@ describe('AssetsOperationsController', () => {
       expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
         MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         expect.objectContaining({
-          height: 1080,
+          height: 512,
           modelCategory: ModelCategory.IMAGE,
           prompt:
-            'Generate a professional landscape banner (1920x1080) for Test Brand. Generate a banner. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
-          width: 1920,
+            'Generate a professional wide banner (1500x500, 3:1) for Test Brand. Generate a banner. Brand description. Primary color: #111111. Secondary color: #222222. Style: modern, clean, professional',
+          width: 1536,
         }),
         mockOrgId.toString(),
       );

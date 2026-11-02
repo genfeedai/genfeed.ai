@@ -19,10 +19,13 @@ const { privateKey } = generateKeyPairSync('rsa', {
 
 const AVATAR = 'https://cdn.genfeed.ai/ingredients/social-avatars/cred-1';
 
-function createInterceptor(): MediaDeliveryResponseInterceptor {
+function createInterceptor(
+  publicBrandAssets: { assetId: string; url: string | null }[] = [],
+): MediaDeliveryResponseInterceptor {
   const issuer = {
     projectAssets: async () => [],
     projectIngredients: async () => [],
+    projectPublicBrandAssets: async () => publicBrandAssets,
     projectPublicIngredients: async () => [],
   } as unknown as AuthorizedMediaUrlService;
   const config = {
@@ -38,12 +41,15 @@ function createInterceptor(): MediaDeliveryResponseInterceptor {
 async function respond(
   response: unknown,
   user?: Partial<AuthenticatedUser>,
+  publicBrandAssets: { assetId: string; url: string | null }[] = [],
 ): Promise<unknown> {
   const context = {
     switchToHttp: () => ({ getRequest: () => ({ user }) }),
   } as unknown as ExecutionContext;
   const next: CallHandler = { handle: () => of(response) };
-  return lastValueFrom(createInterceptor().intercept(context, next));
+  return lastValueFrom(
+    createInterceptor(publicBrandAssets).intercept(context, next),
+  );
 }
 
 describe('MediaDeliveryResponseInterceptor social avatars', () => {
@@ -74,5 +80,47 @@ describe('MediaDeliveryResponseInterceptor social avatars', () => {
     expect(await respond({ externalAvatar: provider })).toEqual({
       externalAvatar: provider,
     });
+  });
+});
+
+describe('MediaDeliveryResponseInterceptor public brand profile', () => {
+  const publicBrand = {
+    data: {
+      attributes: { slug: 'genfeedai' },
+      id: 'brand-1',
+      relationships: { logo: { data: { id: 'logo-1', type: 'asset' } } },
+      type: 'brand',
+    },
+    included: [
+      {
+        attributes: {
+          category: 'LOGO',
+          cdnUrl: 'https://cdn.genfeed.ai/logos/logo-1',
+        },
+        id: 'logo-1',
+        type: 'asset',
+      },
+    ],
+  };
+
+  it('gives an anonymous visitor the signed logo of a public brand', async () => {
+    const result = (await respond(publicBrand, undefined, [
+      {
+        assetId: 'logo-1',
+        url: 'https://cdn.genfeed.ai/logos/logo-1?Signature=s',
+      },
+    ])) as { included: { attributes: { cdnUrl: string | null } }[] };
+
+    expect(result.included[0].attributes.cdnUrl).toBe(
+      'https://cdn.genfeed.ai/logos/logo-1?Signature=s',
+    );
+  });
+
+  it('withholds the logo when the brand is not public instead of leaving it unsigned', async () => {
+    const result = (await respond(publicBrand, undefined, [
+      { assetId: 'logo-1', url: null },
+    ])) as { included: { attributes: { cdnUrl: string | null } }[] };
+
+    expect(result.included[0].attributes.cdnUrl).toBeNull();
   });
 });

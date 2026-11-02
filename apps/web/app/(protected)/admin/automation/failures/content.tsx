@@ -6,12 +6,13 @@ import {
   ButtonVariant,
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-
+import { useQueryClient } from '@tanstack/react-query';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
@@ -28,7 +29,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -40,13 +41,13 @@ import {
 } from './failure-presentation';
 
 const RESOLUTIONS: AgentFailureResolution[] = ['open', 'resolved', 'all'];
+const EMPTY_FAILURES: IWorkflowExecution[] = [];
 
 export default function AgentFailuresPage() {
   const translate = useTranslations('pages.agentFailures');
   const getService = useAuthedService((token: string) =>
     WorkflowExecutionsService.getInstance(token),
   );
-  const [failures, setFailures] = useState<IWorkflowExecution[]>([]);
   const [reason, setReason] = useState<AgentFailureReason>();
   const [resolution, setResolution] = useState<AgentFailureResolution>('open');
   const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
@@ -56,42 +57,43 @@ export default function AgentFailuresPage() {
   const [copiedId, setCopiedId] = useState<string>();
   const [offset, setOffset] = useState(0);
   const { search, setSearch } = useAdminSearchParam();
-  const requestController = useRef<AbortController | null>(null);
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const queryClient = useQueryClient();
 
-  const refreshFailures = useCallback(() => {
-    requestController.current?.abort();
-    const controller = new AbortController();
-    requestController.current = controller;
-    async function loadFailures() {
-      setState('loading');
+  // Cached per filter set and offset: coming back to Failures paints the rows
+  // it already has while it refreshes, and paging keeps the current rows on
+  // screen.
+  const filterKey = ['admin', 'agent-failures', { reason, resolution, search }];
+  const failuresQuery = useAuthedQuery({
+    keepPreviousDataWithin: filterKey,
+    queryFn: async (service, signal) => {
       try {
-        const service = await getService();
-        controller.signal.throwIfAborted();
-        const result = await service.listAdminFailures(
+        return await service.listAdminFailures(
           reason,
           offset,
-          controller.signal,
+          signal,
           resolution,
           search,
         );
-        if (!controller.signal.aborted) {
-          setFailures(result);
-          setState('ready');
-        }
       } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load agent failures', error);
-        setState('error');
+        if (!signal.aborted) {
+          logger.error('Failed to load agent failures', error);
+        }
+        throw error;
       }
-    }
-    void loadFailures();
-  }, [getService, reason, resolution, offset, search]);
-
-  useEffect(() => {
-    refreshFailures();
-    return () => requestController.current?.abort();
-  }, [refreshFailures]);
+    },
+    queryKey: [...filterKey, { offset }],
+    service: (token: string) => WorkflowExecutionsService.getInstance(token),
+  });
+  const failures = failuresQuery.data ?? EMPTY_FAILURES;
+  const state: 'loading' | 'ready' | 'error' = failuresQuery.isLoading
+    ? 'loading'
+    : failuresQuery.isError
+      ? 'error'
+      : 'ready';
+  const { isFetching: isRefreshing, refetch } = failuresQuery;
+  const refreshFailures = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   function changeSearch(value: string) {
     setSearch(value);
@@ -121,14 +123,16 @@ export default function AgentFailuresPage() {
     try {
       const service = await getService();
       const updated = await service.setAdminFailureResolved(run.id, isResolved);
-      setFailures((current) =>
-        resolution === 'all'
-          ? current.map((item) =>
-              item.id === run.id
-                ? { ...item, failureResolvedAt: updated.failureResolvedAt }
-                : item,
-            )
-          : current.filter((item) => item.id !== run.id),
+      queryClient.setQueriesData<IWorkflowExecution[]>(
+        { queryKey: filterKey },
+        (current) =>
+          resolution === 'all'
+            ? current?.map((item) =>
+                item.id === run.id
+                  ? { ...item, failureResolvedAt: updated.failureResolvedAt }
+                  : item,
+              )
+            : current?.filter((item) => item.id !== run.id),
       );
     } catch (error) {
       logger.error('Failed to update agent failure', error);
@@ -242,7 +246,7 @@ export default function AgentFailuresPage() {
     <AdminPageShell
       title={translate('title')}
       onRefresh={refreshFailures}
-      isRefreshing={state === 'loading'}
+      isRefreshing={isRefreshing}
       search={
         <SearchField
           ariaLabel={translate('search')}
@@ -342,7 +346,7 @@ export default function AgentFailuresPage() {
         <Button
           label={translate('previous')}
           variant={ButtonVariant.SECONDARY}
-          isDisabled={offset === 0 || state === 'loading'}
+          isDisabled={offset === 0 || isRefreshing}
           onClick={() => setOffset((value) => Math.max(0, value - 20))}
         />
         <Button

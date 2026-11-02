@@ -128,7 +128,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 4.2,
           id: 'org-1',
           name: 'Acme Inc',
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 3,
@@ -166,7 +165,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 4.2,
           id: 'org-1',
           name: 'Acme Inc',
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 3,
@@ -211,7 +209,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             id: 'user-9',
             name: 'Ada Lovelace',
           },
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 1,
@@ -225,7 +222,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 0,
           id: 'org-2',
           name: 'Orphan',
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 1,
@@ -263,7 +259,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
             id: 'user-3',
             name: 'poya@vitae.ai',
           },
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 1,
@@ -291,7 +286,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           avgEngagementRate: 0,
           growth: 0,
           id: 'org-work',
-          lifetimePosts: 3,
           name: 'Gateway Ventures',
           owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
           ownerEmailClass: 'company',
@@ -307,7 +301,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           avgEngagementRate: 0,
           growth: 0,
           id: 'org-personal',
-          lifetimePosts: 0,
           name: 'Personal',
           owner: { email: 'a@gmail.com', id: 'user-4', name: 'A' },
           ownerEmailClass: 'personal',
@@ -338,7 +331,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     expect(within(personalRow).getByText('Not set')).toBeVisible();
   });
 
-  it('shows lifetime usage and the owner email in the row sidebar', async () => {
+  it('shows the owner email and usage in the row sidebar', async () => {
     mocks.getOrganizationsWithStats.mockResolvedValue({
       data: [
         {
@@ -346,7 +339,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 0,
           id: 'org-work',
           lastActiveAt: '2026-11-01T09:30:00.000Z',
-          lifetimePosts: 3,
           name: 'Gateway Ventures',
           owner: { email: 'poya@vitae.ai', id: 'user-3', name: 'Poya' },
           ownerEmailClass: 'company',
@@ -369,8 +361,8 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     fireEvent.click(within(row).getByText('Work email'));
 
     const sidebar = screen.getByTestId('context-sidebar');
-    expect(within(sidebar).getByText('Generations (lifetime)')).toBeVisible();
-    expect(within(sidebar).getByText('Posts (lifetime)')).toBeVisible();
+    expect(within(sidebar).getByText('Generations')).toBeVisible();
+    expect(within(sidebar).getByText('Posts')).toBeVisible();
     expect(within(sidebar).getByText('Nov 1, 2026')).toBeVisible();
     expect(within(sidebar).getByText('poya@vitae.ai')).toBeVisible();
   });
@@ -384,7 +376,6 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
           growth: 0,
           id: 'org-1',
           name: 'Acme Inc',
-          lifetimePosts: 0,
           ownerEmailClass: 'unknown',
           totalGenerations: 0,
           totalBrands: 1,
@@ -468,7 +459,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       });
     });
 
-    it('asks the API for lifetime generations when that header is clicked', async () => {
+    it('asks the API for generations when that header is clicked', async () => {
       const user = userEvent.setup();
       mocks.getOrganizationsWithStats.mockResolvedValue(onePage);
 
@@ -490,7 +481,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       ['Owner email', 'Work email', { emailClass: 'company' }],
       ['Owner email', 'Personal email', { emailClass: 'personal' }],
       ['Usage', 'Generated or published', { usage: 'active' }],
-      ['Usage', 'Nothing yet', { usage: 'inactive' }],
+      ['Usage', 'No activity', { usage: 'inactive' }],
     ])('filters by %s: %s', async (facet, option, expected) => {
       const user = userEvent.setup();
       mocks.getOrganizationsWithStats.mockResolvedValue(onePage);

@@ -6,11 +6,15 @@ import { cva } from 'class-variance-authority';
  * `shape` instead of restyling with classes. Text size follows the frame so
  * the initials always fit.
  *
+ * The fill is the border tone, a step lighter than a card or table row. In
+ * dark mode `bg-muted` equals the card colour, so an initials tile on a table
+ * row disappeared.
+ *
  * `fill` takes the width of its parent and leaves the height to an `aspect-*`
  * class, for picture tiles in a grid.
  */
 export const avatarVariants = cva(
-  'group relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden bg-muted font-semibold text-foreground/80',
+  'group relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden bg-border font-semibold text-foreground/80',
   {
     compoundVariants: [
       { class: 'rounded-sm', shape: 'square', size: '2xs' },

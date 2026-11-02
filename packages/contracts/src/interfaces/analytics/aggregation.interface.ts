@@ -37,10 +37,8 @@ export interface IOrganizationWithStats {
   /** Whether the owner signed up with a work address, a free provider, or neither is known. */
   ownerEmailClass: OrganizationOwnerEmailClass;
   createdAt?: string;
-  /** Lifetime generated assets (not narrowed by the date range). */
+  /** Generated assets created in the selected date range. */
   totalGenerations: number;
-  /** Lifetime published posts (not narrowed by the date range). */
-  lifetimePosts: number;
   /** When the owner was last active in the app. */
   lastActiveAt?: string;
   totalPosts: number;

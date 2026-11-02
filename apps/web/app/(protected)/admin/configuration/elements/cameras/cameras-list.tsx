@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementCamera,
@@ -7,27 +7,28 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementCamera } from '@models/elements/camera.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CamerasService } from '@services/elements/cameras.service';
-import { useQuery } from '@tanstack/react-query';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalCamera } from '@/components/lazy/modal/LazyModal';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const CAMERA_SORT_KEYS = ['label', 'key'];
+const EMPTY_CAMERAS: ElementCamera[] = [];
 
 function CamerasListContent({
   filters,
@@ -49,10 +50,6 @@ function CamerasListContent({
     useCallback((token: string) => CamerasService.getInstance(token), []),
   );
 
-  const [selectedCamera, setSelectedCamera] = useState<IElementCamera | null>(
-    null,
-  );
-
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -68,25 +65,11 @@ function CamerasListContent({
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const {
-    data: cameras = [] as ElementCamera[],
-    isLoading,
-    isFetching,
-    error: camerasError,
-    refetch: refreshCameras,
-  } = useQuery({
-    queryKey: [
-      'cameras',
-      currentPage,
-      scope,
-      adminOrg,
-      adminBrand,
-      filters?.search,
-      sort,
-    ],
-    queryFn: async () => {
-      const service = await getCamerasService();
-
+  // Cached per page with the signed-in account in the key: coming back paints
+  // the rows and footer it already has while they refresh.
+  const camerasQuery = usePagedAuthedQuery({
+    enabled: Boolean(isSignedIn),
+    queryFn: async (service, signal) => {
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -103,21 +86,48 @@ function CamerasListContent({
         }
       }
 
-      const data = await service.findAll(query);
-      logger.info('GET /cameras success', data);
-      return data;
+      try {
+        const data = await service.findAll(query, signal);
+        logger.info('GET /cameras success', data);
+        return data;
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /cameras failed', error);
+        }
+        throw error;
+      }
     },
-    enabled: !!isSignedIn,
+    queryKey: [
+      'admin',
+      'cameras',
+      {
+        adminBrand,
+        adminOrg,
+        page: currentPage,
+        scope,
+        search: filters?.search,
+        sort,
+      },
+    ],
+    service: (token: string) => CamerasService.getInstance(token),
   });
-
+  const cameras = camerasQuery.data?.items ?? EMPTY_CAMERAS;
+  const {
+    errorUpdatedAt,
+    isError,
+    isFetching,
+    isLoading,
+    refetch: refreshCameras,
+  } = camerasQuery;
   const isRefreshing = isFetching && !isLoading;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (camerasError) {
-      logger.error('GET /cameras failed', camerasError);
+    if (isError) {
       notificationsService.error('Failed to load cameras');
     }
-  }, [camerasError, notificationsService]);
+  }, [errorUpdatedAt, isError, notificationsService]);
 
   // Notify parent of loading state changes
   useEffect(() => {
@@ -158,15 +168,8 @@ function CamerasListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (camera: ElementCamera) =>
-              openCameraModal(ModalEnum.CAMERA, camera),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (camera: ElementCamera) => {
-              setSelectedCamera(camera);
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -187,29 +190,28 @@ function CamerasListContent({
     }
   }, [onRefresh, refreshCameras]);
 
-  const openCameraModal = (modalId: ModalEnum, camera?: IElementCamera) => {
-    setSelectedCamera(camera || null);
-    openModal(modalId);
-  };
-
   const handleDelete = async (camera: IElementCamera) => {
     try {
       const service = await getCamerasService();
       await service.delete(camera.id);
       notificationsService.success('Camera deleted');
-      setSelectedCamera(null);
       refreshCameras();
     } catch (error) {
       logger.error('Failed to delete camera', error);
       notificationsService.error('Failed to delete camera');
-      setSelectedCamera(null);
     }
   };
 
+  const saveCamera = useInlineRecordSave<Partial<IElementCamera>>({
+    errorMessage: 'Failed to update camera',
+    onSaved: refreshCameras,
+    save: async (id, patch) => (await getCamerasService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementCamera>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) => openCameraModal(ModalEnum.CAMERA, element)
+        ? (camera, patch) => saveCamera(camera.id, patch)
         : undefined,
   });
 
@@ -229,18 +231,15 @@ function CamerasListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalCamera
-          item={selectedCamera}
-          onClose={() => setSelectedCamera(null)}
-          onConfirm={() => {
-            setSelectedCamera(null);
-            refreshCameras();
-          }}
-        />
+        <LazyModalCamera onConfirm={() => refreshCameras()} />
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="cameras" />
+        <AutoPagination
+          showTotal
+          totalLabel="cameras"
+          totals={camerasQuery.data?.totals}
+        />
       </div>
     </>
   );

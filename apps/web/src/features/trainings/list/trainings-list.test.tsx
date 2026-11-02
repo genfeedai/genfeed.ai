@@ -20,6 +20,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindAll = vi.fn();
+const mockPatch = vi.fn();
 const searchParamsState = vi.hoisted(() => ({
   current: new URLSearchParams(''),
 }));
@@ -27,6 +28,7 @@ const mockSubscribe = vi.fn(() => () => undefined);
 const mockOpenConfirm = vi.fn();
 
 const brandState = {
+  brands: [{ id: 'brand-1', label: 'Acme' }],
   brandId: 'brand-1',
   isReady: true,
   organizationId: 'org-1',
@@ -78,7 +80,7 @@ vi.mock('@services/ai/trainings.service', () => ({
     getInstance: () => ({
       delete: vi.fn(),
       findAll: mockFindAll,
-      patch: vi.fn(),
+      patch: mockPatch,
     }),
   },
 }));
@@ -218,15 +220,38 @@ describe('TrainingsList', () => {
     );
   });
 
-  it('opens a summary with an Edit action in the sidebar on row click', async () => {
+  it('opens an editable summary in the sidebar on row click', async () => {
     renderTrainingsList();
 
     fireEvent.click(await screen.findByText('Brand Style v1'));
 
     expect(await screen.findByText('Trigger word')).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('rail')).getByRole('button', { name: 'Edit' }),
-    ).toBeInTheDocument();
+    const rail = within(screen.getByTestId('rail'));
+    expect(rail.getByRole('button', { name: 'Label' })).toHaveTextContent(
+      'Brand Style v1',
+    );
+    expect(rail.queryByRole('button', { name: 'Edit' })).toBeNull();
+  });
+
+  it('saves a label edited in the sidebar and reloads the list', async () => {
+    mockPatch.mockResolvedValue({});
+    renderTrainingsList();
+
+    fireEvent.click(await screen.findByText('Brand Style v1'));
+    const rail = within(screen.getByTestId('rail'));
+    fireEvent.click(await rail.findByRole('button', { name: 'Label' }));
+    const input = rail.getByRole('textbox', { name: 'Label' });
+    fireEvent.change(input, { target: { value: 'Brand Style v2' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mockPatch).toHaveBeenCalledWith('training-1', {
+        label: 'Brand Style v2',
+      });
+    });
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('does not link the name in the organization scope', async () => {

@@ -7,7 +7,7 @@ import {
   SWITCHER_TRIGGER_CLASSNAME,
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
 import { ChevronsUpDown } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -56,10 +56,9 @@ export function BrandSelector(): ReactElement {
             isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
           )}
         >
-          <Avatar
+          <BrandAvatar
             alt={label}
             name={label}
-            shape="square"
             size="xs"
             src={selected?.logoUrl}
           />

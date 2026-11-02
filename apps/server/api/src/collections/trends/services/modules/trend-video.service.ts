@@ -337,23 +337,25 @@ export class TrendVideoService {
 
       reason = getTrendNativeFailureReason() ?? 'native_empty';
       this.loggerService.warn(
-        'YouTube native video discovery returned no signal; falling back to governed Apify',
+        'YouTube native video discovery returned no signal',
       );
     } catch (error: unknown) {
       reason = 'native_failed';
-      this.loggerService.warn(
-        'YouTube native video discovery failed; falling back to governed Apify',
-        { error: error instanceof Error ? error.message : 'unknown' },
-      );
+      this.loggerService.warn('YouTube native video discovery failed', {
+        error: error instanceof Error ? error.message : 'unknown',
+      });
     }
 
-    recordTrendProviderOutcome('fallback_failed', 'provider_failed');
-    const fallbackVideos = await this.apifyService.getYouTubeVideos(limit);
+    // Apify has no trending source for YouTube, only a keyword search whose
+    // results are videos that match the word, so there is no fallback. A miss
+    // is recorded as native so the health check does not read it as success.
     recordTrendProviderOutcome(
-      fallbackVideos.length ? 'fallback_available' : 'fallback_empty',
+      reason === 'native_empty' || reason === 'native_unavailable'
+        ? 'native_empty'
+        : 'native_failed',
       reason,
     );
-    return fallbackVideos.map((video) => ({ ...video }));
+    return [];
   }
 
   private getHoursSincePublication(publishedAt?: string): number {

@@ -1,14 +1,12 @@
 'use client';
 
-import {
-  type ActivityMessageFormatter,
-  ButtonSize,
-  ButtonVariant,
-} from '@genfeedai/contracts';
+import { ContextSidebarHeaderSlot } from '@contexts/ui/context-sidebar-context';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
@@ -22,19 +20,19 @@ import { Check, Circle, Copy, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import {
-  getActivityCreditsChange,
+  getActivityCreditsDelta,
   getActivityIngredientPreviewUrl,
   getActivityMediaPreviewUrl,
   getActivityStatus,
   getActivityValueFields,
+  getActivityVideoUrl,
 } from '@/features/activities/activities-list.utils';
 import ActivityStatusCell from '@/features/activities/components/ActivityStatusCell';
 
 interface ActivityDetailPanelProps {
   activity: IActivity;
-  activityMessageFormatter: ActivityMessageFormatter;
   /** Where the activity's subject lives; omitted when the viewer cannot open it. */
   openHref?: string;
   onToggleRead: (id: string) => void;
@@ -42,7 +40,7 @@ interface ActivityDetailPanelProps {
 
 interface DetailFact {
   label: string;
-  value: string | undefined | null;
+  value: ReactNode;
   isMono?: boolean;
 }
 
@@ -53,12 +51,12 @@ function formatTimestamp(value: string | undefined | null): string | undefined {
 
 /**
  * The activity's detail inside the right context sidebar: who and what it
- * belongs to, how it ended, and the stored value. In the admin it never links
- * into the user's own account, which an operator cannot open.
+ * belongs to, how it ended, and the stored value. The shell rail owns the
+ * title; read/unread sits beside its close control. In the admin it never
+ * links into the user's own account, which an operator cannot open.
  */
 export default function ActivityDetailPanel({
   activity,
-  activityMessageFormatter,
   openHref,
   onToggleRead,
 }: ActivityDetailPanelProps) {
@@ -66,12 +64,26 @@ export default function ActivityDetailPanel({
   const [failedPreviewSrc, setFailedPreviewSrc] = useState<string | null>(null);
 
   const fields = getActivityValueFields(activity);
-  const creditsChange = getActivityCreditsChange(activity);
-  const previewUrl = getActivityMediaPreviewUrl(activity, {
-    getPreviewUrl: getActivityIngredientPreviewUrl,
-  });
+  const status = getActivityStatus(activity);
+  const markReadLabel = activity.isRead
+    ? translate('markUnread')
+    : translate('markRead');
+  // Only a finished generation has an asset to show; running and failed rows
+  // have nothing yet (or nothing worth showing).
+  const isCompleted = status === 'completed';
+  const videoUrl = isCompleted ? getActivityVideoUrl(activity) : undefined;
+  const previewUrl =
+    isCompleted && !videoUrl
+      ? getActivityMediaPreviewUrl(activity, {
+          getPreviewUrl: getActivityIngredientPreviewUrl,
+        })
+      : undefined;
 
   const facts: DetailFact[] = [
+    {
+      label: translate('detailStatus'),
+      value: <ActivityStatusCell status={status} />,
+    },
     { label: translate('detailUser'), value: activity.user?.email },
     {
       isMono: true,
@@ -112,7 +124,7 @@ export default function ActivityDetailPanel({
     },
     {
       label: translate('detailCredits'),
-      value: creditsChange ? activityMessageFormatter(creditsChange) : null,
+      value: getActivityCreditsDelta(activity),
     },
     {
       label: translate('detailCreated'),
@@ -134,22 +146,34 @@ export default function ActivityDetailPanel({
 
   return (
     <div className="flex flex-col" data-testid="activity-detail-panel">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <ActivityStatusCell status={getActivityStatus(activity)} />
-        {openHref ? (
-          <Button
-            asChild
-            icon={<ExternalLink className="size-3.5" />}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link href={openHref}>{translate('detailOpen')}</Link>
-          </Button>
-        ) : null}
-      </div>
+      <ContextSidebarHeaderSlot>
+        <Button
+          ariaLabel={markReadLabel}
+          data-testid="activity-toggle-read"
+          icon={
+            activity.isRead ? (
+              <Circle className="size-4" />
+            ) : (
+              <Check className="size-4" />
+            )
+          }
+          onClick={() => onToggleRead(activity.id)}
+          size={ButtonSize.ICON}
+          tooltip={markReadLabel}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+      </ContextSidebarHeaderSlot>
 
       <div className="flex flex-col gap-5 p-4">
-        {previewUrl && failedPreviewSrc !== previewUrl ? (
+        {videoUrl ? (
+          <VideoPlayer
+            ariaLabel={activity.label || translate('detailPreviewAlt')}
+            className="aspect-video w-full overflow-hidden bg-card"
+            mediaClassName="object-contain"
+            src={videoUrl}
+          />
+        ) : previewUrl && failedPreviewSrc !== previewUrl ? (
           <div className="relative aspect-video w-full overflow-hidden bg-card">
             <Image
               alt={activity.label || translate('detailPreviewAlt')}
@@ -184,43 +208,40 @@ export default function ActivityDetailPanel({
             ))}
         </DefinitionList>
 
-        <div className="flex flex-wrap gap-2">
-          {fields.post ? (
-            <Button
-              asChild
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              <a
-                href={fields.post.url}
-                rel="noopener noreferrer"
-                target="_blank"
+        {openHref || fields.post ? (
+          <div className="flex flex-wrap gap-2">
+            {openHref ? (
+              <Button
+                asChild
+                icon={<ExternalLink className="size-3.5" />}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
               >
-                {getPlatformIcon(fields.post.platform, 'size-4') ?? (
-                  <ExternalLink className="size-4" />
-                )}
-                {translate('detailViewOnNetwork', {
-                  platform: getPostsPlatformLabel(fields.post.platform),
-                })}
-              </a>
-            </Button>
-          ) : null}
-          <Button
-            icon={
-              activity.isRead ? (
-                <Circle className="size-4" />
-              ) : (
-                <Check className="size-4" />
-              )
-            }
-            onClick={() => onToggleRead(activity.id)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            {activity.isRead ? translate('markUnread') : translate('markRead')}
-          </Button>
-        </div>
+                <Link href={openHref}>{translate('detailOpen')}</Link>
+              </Button>
+            ) : null}
+            {fields.post ? (
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <a
+                  href={fields.post.url}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {getPlatformIcon(fields.post.platform, 'size-4') ?? (
+                    <ExternalLink className="size-4" />
+                  )}
+                  {translate('detailViewOnNetwork', {
+                    platform: getPostsPlatformLabel(fields.post.platform),
+                  })}
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {fields.raw ? (
           <section className="flex flex-col gap-2">

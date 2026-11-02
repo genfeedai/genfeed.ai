@@ -16,6 +16,7 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import type { ReactElement, ReactNode } from 'react';
 
 type AgentChatEmptyStateProps = {
@@ -148,28 +149,13 @@ export function AgentChatEmptyState({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* Centered on the whole content area (not just the space above the
-          composer); the cap keeps a tall block scrolling clear of the bar. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6">
-        <div
-          className={cn(
-            'pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto',
-            isWideLayout && 'md:max-w-3xl',
-          )}
-        >
-          <div className="w-full text-center">
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-[1.75rem]">
-              {emptyStateTitle}
-            </h2>
-            <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">
-              {emptyStateDescription}
-            </p>
-          </div>
-          {promptBarSuggestions ? (
-            <div className="w-full">{promptBarSuggestions}</div>
-          ) : null}
-        </div>
-      </div>
+      <PromptEmptyState
+        description={emptyStateDescription}
+        isWide={isWideLayout}
+        title={emptyStateTitle}
+      >
+        {promptBarSuggestions}
+      </PromptEmptyState>
       {isComposerVisible ? (
         <div className="mt-auto shrink-0 px-4 pb-4 md:px-6">
           <PromptBarContainer

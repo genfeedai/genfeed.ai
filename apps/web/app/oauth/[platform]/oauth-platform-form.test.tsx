@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   postVerify: vi.fn(),
-  push: vi.fn(),
+  navigate: vi.fn(),
   searchParams: new URLSearchParams(),
 }));
 
@@ -82,11 +82,12 @@ vi.mock(
   }),
 );
 
+vi.mock('./oauth-return-navigation', () => ({
+  navigateToReturnPath: mocks.navigate,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  useRouter: () => ({
-    push: mocks.push,
-  }),
   useSearchParams: () => mocks.searchParams,
 }));
 
@@ -152,7 +153,7 @@ describe('OAuthPlatformForm', () => {
     ).toHaveStyle({ color: '#E1306C' });
     expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
   });
 
   it('returns to the stored page when the provider drops query params', async () => {
@@ -178,7 +179,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.push).toHaveBeenCalledWith(
+    expect(mocks.navigate).toHaveBeenCalledWith(
       '/demo/acme/settings/connected-accounts',
     );
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
@@ -200,8 +201,8 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
-    expect(mocks.push).not.toHaveBeenCalledWith(
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
   });
@@ -222,8 +223,8 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
-    expect(mocks.push).not.toHaveBeenCalledWith(
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).not.toHaveBeenCalledWith(
       expect.stringContaining('evil.com'),
     );
   });
@@ -243,7 +244,7 @@ describe('OAuthPlatformForm', () => {
         oauthVerifier: 'oauth-verifier',
       });
     });
-    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
   });
 
   it('waits for the authenticated session to hydrate before verifying', async () => {
@@ -338,7 +339,7 @@ describe('OAuthPlatformForm', () => {
     expect(
       screen.queryByRole('button', { name: 'Restart authorization' }),
     ).not.toBeInTheDocument();
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it('renders failure state and default back link when verification fails', async () => {
@@ -368,12 +369,12 @@ describe('OAuthPlatformForm', () => {
     expect(
       screen.getByRole('button', { name: 'Restart authorization' }),
     ).toBeVisible();
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Restart authorization' }),
     );
-    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/api-keys');
     expect(mocks.postVerify).toHaveBeenCalledTimes(1);
   });
 
@@ -506,7 +507,7 @@ describe('OAuthPlatformForm', () => {
       expect.objectContaining({ credentialId: 'credential-ambiguous' }),
     );
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it('aborts without saving and returns to the connect origin when the operator cancels account selection', async () => {
@@ -525,7 +526,7 @@ describe('OAuthPlatformForm', () => {
 
     fireEvent.click(await screen.findByText('cancel-selection'));
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
     expect(window.sessionStorage.getItem('oauth_connect_context')).toBeNull();
     expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
   });
@@ -546,7 +547,7 @@ describe('OAuthPlatformForm', () => {
       expect(screen.getByText('Instagram Connected')).toBeVisible();
     });
     expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
-    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings/publishing');
   });
 
   it('does not show the picker for an unconnected credential the server has not flagged for selection', async () => {

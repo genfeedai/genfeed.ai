@@ -419,10 +419,10 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
-    // for credential-1 — the accounts table must show that live health
-    // instead of falling back to a bare "Connected" badge.
+    // for credential-1 — the accounts table must show that live health next
+    // to the account's "Connected" badge.
     expect(await screen.findByText('Warming')).toBeInTheDocument();
-    expect(screen.queryAllByText('Connected')).toHaveLength(0);
+    expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 
   it('still fetches account health when the only connection is connected but needs reconnecting', async () => {
@@ -634,6 +634,29 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.getByText('Creator')).toBeInTheDocument();
     expect(screen.getByText('Fanvue')).toBeInTheDocument();
     expect(screen.queryByText('X Ads')).not.toBeInTheDocument();
+  });
+
+  it('opens the Ghost key form instead of an OAuth redirect when Ghost is chosen', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+    fireEvent.click(screen.getByText('Ghost'));
+
+    expect(postConnect).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('dialog', { name: 'Connect Ghost' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Site URL/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Admin API key/)).toBeInTheDocument();
   });
 
   it('renders connected social links', async () => {

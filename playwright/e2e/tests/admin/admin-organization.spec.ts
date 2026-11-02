@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
@@ -105,8 +106,10 @@ test.describe('Admin Organization', () => {
                     id: 'user-e2e-1',
                     name: 'Ada Lovelace',
                   },
+                  ownerEmailClass: 'company',
                   totalBrands: 1,
                   totalEngagement: 0,
+                  totalGenerations: 0,
                   totalMembers: 1,
                   totalPosts: 0,
                   totalViews: 0,
@@ -139,7 +142,6 @@ test.describe('Admin Organization', () => {
     ): Record<string, unknown> => ({
       avgEngagementRate: 0,
       growth: 0,
-      lifetimePosts: 0,
       ownerEmailClass: 'unknown',
       totalBrands: 1,
       totalEngagement: 0,
@@ -280,6 +282,70 @@ test.describe('Admin Organization', () => {
     await expect(main.getByText('Organization Controls')).toHaveCount(0);
   });
 
+  test("organization library is a tab in the page that lists that organization's generated content", async ({
+    adminPage,
+  }) => {
+    const requestedUrls: string[] = [];
+    await adminPage.route('**/v1/ingredients**', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      requestedUrls.push(route.request().url());
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                category: IngredientCategory.IMAGE,
+                cdnUrl: 'https://cdn.genfeed.ai/mock/org-library.jpg',
+                createdAt: '2026-11-01T10:00:00.000Z',
+                height: 1024,
+                status: 'GENERATED',
+                width: 1024,
+              },
+              id: 'org-library-asset-1',
+              type: 'ingredients',
+            },
+          ],
+          meta: { page: 1, pageSize: 48, totalCount: 1 },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/qa-org/library`,
+    );
+
+    const main = adminPage.getByRole('main');
+    const tabs = main.getByRole('navigation', { name: 'Organization' });
+    await expect(tabs.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(tabs.getByRole('link', { name: 'Analytics' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Spending' })).toBeVisible();
+    await expect(tabs.getByRole('link', { name: 'Settings' })).toBeVisible();
+
+    // The organization on screen narrows the shared Library list.
+    await expect
+      .poll(() =>
+        requestedUrls.some(
+          (url) => new URL(url).searchParams.get('organizationId') === 'qa-org',
+        ),
+      )
+      .toBe(true);
+    await expect(
+      main.getByRole('button', { name: 'Asset preview unavailable' }),
+    ).toBeVisible();
+    await expect(
+      main.getByText('This organization has not generated any content yet'),
+    ).toHaveCount(0);
+  });
+
   test('folders view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
 
@@ -393,5 +459,68 @@ test.describe('Admin Organization', () => {
     await expect(
       adminPage.getByRole('link', { name: 'Open spending', exact: true }),
     ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
+  });
+
+  test('organization Learning tab shows the prompt slot report for that organization', async ({
+    adminPage,
+  }) => {
+    let requestedOrganization: string | null = null;
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern(
+        'admin/content-learning/prompt-slots(?:\\?.*)?$',
+      ),
+      (route) => {
+        requestedOrganization = new URL(route.request().url()).searchParams.get(
+          'organizationId',
+        );
+        return route.fulfill({
+          json: {
+            data: {
+              groups: [
+                {
+                  category: 'IMAGE',
+                  comparison: {
+                    alpha: 0.05,
+                    comparisonCount: 1,
+                    comparisons: [
+                      {
+                        difference: 0.7,
+                        filled: { count: 25, mean: 0.5 },
+                        lower: 0.4,
+                        rest: { count: 25, mean: -0.2 },
+                        slot: 'lighting',
+                        upper: 1,
+                        value: null,
+                        verdict: 'better',
+                      },
+                    ],
+                    excludedCount: 0,
+                    observationCount: 50,
+                  },
+                  objective: 'engagement',
+                  postCount: 50,
+                },
+              ],
+              isPooled: false,
+              isTruncated: false,
+              organizationIds: ['org-learning-1'],
+              postCount: 50,
+              skipped: { noPrompt: 0, noSlots: 0, noValidReward: 0 },
+            },
+          },
+        });
+      },
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/org-learning-1/learning`,
+    );
+
+    await expect(
+      adminPage.getByRole('main').getByRole('cell', { name: 'lighting' }),
+    ).toBeVisible();
+    await expect(adminPage.getByText('50 posts read.')).toBeVisible();
+    expect(requestedOrganization).toBe('org-learning-1');
   });
 });
