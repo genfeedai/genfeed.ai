@@ -400,9 +400,6 @@
     "apps/web/src/features/brands/components/sidebar/AgentProfileSummaryCard.tsx": {
       "button-restyle": 1
     },
-    "apps/web/src/features/brands/components/sidebar/BrandDetailExternalLinksCard.tsx": {
-      "button-restyle": 4
-    },
     "apps/web/src/features/brands/components/sidebar/BrandDetailManualKitCard.tsx": {
       "button-restyle": 3
     },

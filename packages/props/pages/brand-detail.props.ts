@@ -97,7 +97,7 @@ export interface BrandDetailSidebarProps {
   connectedPlatformsCount: number;
   deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, the links card carries a connected-accounts summary linking to /settings/connected-accounts. */
+  /** When set, the sidebar lists connected accounts as rows with a Manage link to /settings/connected-accounts. */
   manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
@@ -143,10 +143,8 @@ export interface BrandDetailSocialMediaCardProps {
   variant?: 'compact' | 'page';
 }
 
-export interface BrandDetailLinksSocialSummary {
-  /** Connected ad accounts (e.g. Google Ads) — counted apart from social profiles. */
-  connectedAdAccountCount: number;
-  connectedSocialCount: number;
+export interface BrandDetailConnectedAccountsSectionProps {
+  connections: BrandDetailSocialConnection[];
   /** Link to /settings/connected-accounts, where accounts are managed. */
   manageHref: string;
 }
@@ -154,8 +152,6 @@ export interface BrandDetailLinksSocialSummary {
 export interface BrandDetailExternalLinksCardProps {
   links: ILink[];
   onOpenLinkModal: (link?: ILink) => void;
-  /** Connected-accounts summary; omitted when the full connect card is shown. */
-  social?: BrandDetailLinksSocialSummary;
 }
 
 export interface BrandDetailDefaultModelsCardProps {

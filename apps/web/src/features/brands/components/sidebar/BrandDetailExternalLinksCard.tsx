@@ -1,21 +1,13 @@
 'use client';
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  CardVariant,
-  LinkCategory,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
+import CollectionSection from '@ui/collection/CollectionSection';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-
-const SECTION_LABEL_CLASSNAME =
-  'text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground';
 
 function isManualLinkCategory(category: string | undefined): boolean {
   return (
@@ -25,103 +17,75 @@ function isManualLinkCategory(category: string | undefined): boolean {
   );
 }
 
-function formatConnected(socialCount: number, adCount: number): string {
-  const connected = `${socialCount} connected`;
-  if (adCount === 0) {
-    return connected;
+function formatLinkHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
   }
-  return `${connected} · ${adCount} ad ${adCount === 1 ? 'account' : 'accounts'}`;
 }
 
 /**
- * One card for everything a brand links out to: the connected-accounts summary
- * (count + Manage — the accounts themselves live on /settings/connected-accounts)
- * and manual website / other URLs. Without `social`, the full connect card owns
- * socials and this renders as plain website links.
+ * Manual website / other URLs for a brand. The title and Add link sit above
+ * the card; connected accounts are their own section and are never listed
+ * here.
  */
 export default function BrandDetailExternalLinksCard({
   links,
   onOpenLinkModal,
-  social,
 }: BrandDetailExternalLinksCardProps) {
   const manualLinks = useMemo(
     () => links.filter((link) => isManualLinkCategory(link.category)),
     [links],
   );
-  const hasManualLinks = manualLinks.length > 0;
 
   return (
-    <Card
-      label={social ? 'Social & links' : 'Website links'}
-      headerAction={
-        social ? (
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            className="h-8 shrink-0 px-2.5"
-          >
-            <Link href={social.manageHref}>Manage</Link>
-          </Button>
-        ) : undefined
+    <CollectionSection
+      actions={
+        <Button
+          icon={<Plus className="size-3" />}
+          label="Add link"
+          onClick={() => onOpenLinkModal()}
+          size={ButtonSize.XS}
+          variant={ButtonVariant.SECONDARY}
+        />
       }
+      title="Website links"
     >
-      <div className="flex flex-col gap-3">
-        {social ? (
-          <Card variant={CardVariant.INSET} padding={CardPadding.SM}>
-            <p className={SECTION_LABEL_CLASSNAME}>Accounts</p>
-            <p className="mt-1 text-sm text-foreground/90">
-              {formatConnected(
-                social.connectedSocialCount,
-                social.connectedAdAccountCount,
-              )}
-            </p>
-          </Card>
-        ) : null}
-
-        <div className="space-y-2">
-          <p className={SECTION_LABEL_CLASSNAME}>Websites & other</p>
-          {hasManualLinks ? (
-            manualLinks.map((link) => (
-              <div key={link.id} className="flex gap-1.5">
-                <Button
-                  asChild
-                  variant={ButtonVariant.SECONDARY}
-                  className="flex-1 gap-1.5 [&_svg]:size-3.5"
-                  size={ButtonSize.SM}
-                  wrapperClassName="flex-1"
+      {manualLinks.length === 0 ? (
+        <EmptyState title="No website links yet." />
+      ) : (
+        <Card>
+          <ul className="flex flex-col divide-y divide-border">
+            {manualLinks.map((link) => (
+              <li
+                className="flex items-center gap-3 py-2 first:pt-0 last:pb-0"
+                key={link.id}
+              >
+                <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                <Link
+                  className="min-w-0 flex-1 hover:underline"
+                  href={link.url}
+                  rel="noopener noreferrer"
+                  target="_blank"
                 >
-                  <Link href={link.url} target="_blank">
-                    <LinkIcon className="size-3.5" />
-                    {link.label}
-                  </Link>
-                </Button>
-
+                  <span className="block truncate text-sm">{link.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {formatLinkHost(link.url)}
+                  </span>
+                </Link>
                 <Button
-                  icon={<Pencil className="size-3.5" />}
                   ariaLabel={`Edit ${link.label}`}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.ICON}
-                  className="size-8 shrink-0 p-0 [&_svg]:size-3.5"
+                  icon={<Pencil className="size-3.5" />}
                   onClick={() => onOpenLinkModal(link)}
+                  size={ButtonSize.ICON}
+                  variant={ButtonVariant.GHOST}
                 />
-              </div>
-            ))
-          ) : (
-            <EmptyState title="No website links yet." />
-          )}
-
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            className="w-full gap-1.5 [&_svg]:size-3.5"
-            size={ButtonSize.SM}
-            wrapperClassName="w-full"
-            onClick={() => onOpenLinkModal()}
-            icon={<Plus className="size-3.5" />}
-            label="Add website link"
-          />
-        </div>
-      </div>
-    </Card>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </CollectionSection>
   );
 }
