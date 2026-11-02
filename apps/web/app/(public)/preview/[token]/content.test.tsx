@@ -6,7 +6,6 @@ import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ContentPreviewContent from './content';
 
-const pushMock = vi.fn();
 const TOKEN = 'a'.repeat(43);
 
 vi.mock('next-intl', async () => {
@@ -20,10 +19,6 @@ vi.mock('next-intl', async () => {
     useTranslations: translateFromCatalog,
   };
 });
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: pushMock }),
-}));
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai/v1' },
@@ -78,7 +73,6 @@ describe('ContentPreviewContent', () => {
 
   beforeEach(() => {
     fetchMock.mockReset();
-    pushMock.mockReset();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
   });
 
@@ -134,9 +128,9 @@ describe('ContentPreviewContent', () => {
     expect(readCall?.[1]).toMatchObject({ cache: 'no-store' });
   });
 
-  it('counts the claim click and sends the visitor to sign up', async () => {
+  it('asks for the claim email and tells the visitor to check their inbox', async () => {
     fetchMock.mockImplementation(async (url: string) =>
-      url.endsWith('/view') || url.endsWith('/cta')
+      url.endsWith('/view') || url.endsWith('/claim')
         ? new Response(null, { status: 204 })
         : new Response(JSON.stringify(previewDocument()), { status: 200 }),
     );
@@ -146,13 +140,40 @@ describe('ContentPreviewContent', () => {
       await screen.findByRole('button', { name: 'Claim this content' }),
     );
 
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/sign-up'));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Check your email.',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Claim this content' }),
+    ).toBeNull();
     expect(
       fetchMock.mock.calls.some(
         ([url, init]) =>
-          String(url).endsWith('/cta') && init?.method === 'POST',
+          String(url).endsWith('/claim') && init?.method === 'POST',
       ),
     ).toBe(true);
+  });
+
+  it('keeps the claim button and says so when the email could not be requested', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/view')
+        ? new Response(null, { status: 204 })
+        : url.endsWith('/claim')
+          ? new Response(null, { status: 429 })
+          : new Response(JSON.stringify(previewDocument()), { status: 200 }),
+    );
+
+    render(<ContentPreviewContent token={TOKEN} />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Claim this content' }),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We could not send the link.',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Claim this content' }),
+    ).toBeEnabled();
   });
 
   it('shows one plain message when the link is unknown, expired or revoked', async () => {

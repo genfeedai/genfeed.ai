@@ -180,7 +180,9 @@
   "contentPreview": {
     "claim": {
       "action": "Claim this content",
-      "prompt": "This content is worth posting on your socials."
+      "failed": "We could not send the link. Try again in a minute.",
+      "prompt": "This content is worth posting on your socials.",
+      "sent": "Check your email. We sent a link to the address this was prepared for. Open it to claim your content."
     },
     "context": {
       "audience": "Audience",

@@ -8,3 +8,5 @@ export type ContentPreviewLoadState =
   | { status: 'loading' }
   | { status: 'unavailable' }
   | { preview: IPublicContentPreview; status: 'ready' };
+
+export type ContentPreviewClaimStatus = 'failed' | 'idle' | 'sending' | 'sent';

@@ -1,4 +1,3 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Request } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 
@@ -94,7 +93,7 @@ test.describe('Claimable preview link', () => {
     ).toBeVisible();
   });
 
-  test('counts the visit once and the claim click, then leads to sign-up', async ({
+  test('counts the visit once, asks for the claim email, then tells the visitor to check their inbox', async ({
     unauthenticatedPage,
   }) => {
     const counted = await mockPreviewApi(unauthenticatedPage);
@@ -106,12 +105,12 @@ test.describe('Claimable preview link', () => {
       .getByRole('button', { name: 'Claim this content' })
       .click();
 
-    await expect(unauthenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.SIGN_UP}(?:\\?|$)`),
+    await expect(unauthenticatedPage.getByRole('status')).toContainText(
+      'Check your email',
     );
     const paths = counted.map((request) => new URL(request.url()).pathname);
     expect(paths.filter((path) => path.endsWith('/view'))).toHaveLength(1);
-    expect(paths.filter((path) => path.endsWith('/cta'))).toHaveLength(1);
+    expect(paths.filter((path) => path.endsWith('/claim'))).toHaveLength(1);
   });
 
   test('an unknown, expired or revoked link shows one plain message', async ({

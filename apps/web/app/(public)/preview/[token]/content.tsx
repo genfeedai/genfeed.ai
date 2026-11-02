@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IPublicContentPreview } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import { deserializeResource } from '@helpers/data/json-api/json-api.helper';
@@ -14,10 +13,10 @@ import CollectionSection from '@ui/collection/CollectionSection';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type {
+  ContentPreviewClaimStatus,
   ContentPreviewContentProps,
   ContentPreviewLoadState,
 } from '@/features/content-preview/props/content-preview-content.props';
@@ -31,7 +30,8 @@ export default function ContentPreviewContent({
 }: ContentPreviewContentProps) {
   const translate = useTranslations('common.contentPreview');
   const format = useFormatter();
-  const router = useRouter();
+  const [claimStatus, setClaimStatus] =
+    useState<ContentPreviewClaimStatus>('idle');
   const hasCountedView = useRef(false);
   const [state, setState] = useState<ContentPreviewLoadState>({
     status: 'loading',
@@ -76,13 +76,17 @@ export default function ContentPreviewContent({
     }).catch(() => undefined);
   }, [state.status, token]);
 
-  function claim(): void {
-    void fetch(previewUrl(token, '/cta'), {
-      keepalive: true,
-      method: 'POST',
-      referrerPolicy: 'no-referrer',
-    }).catch(() => undefined);
-    router.push(APP_ROUTES.SIGN_UP);
+  async function claim(): Promise<void> {
+    setClaimStatus('sending');
+    try {
+      const response = await fetch(previewUrl(token, '/claim'), {
+        method: 'POST',
+        referrerPolicy: 'no-referrer',
+      });
+      setClaimStatus(response.ok ? 'sent' : 'failed');
+    } catch {
+      setClaimStatus('failed');
+    }
   }
 
   if (state.status === 'loading') {
@@ -223,17 +227,31 @@ export default function ContentPreviewContent({
 
       <div className="sticky bottom-0 border-t border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-4 px-4 py-3">
-          <p className="hidden text-sm text-muted-foreground sm:block">
-            {translate('claim.prompt')}
-          </p>
-          <Button
-            className="w-full sm:w-auto"
-            onClick={claim}
-            size={ButtonSize.PUBLIC}
-            variant={ButtonVariant.DEFAULT}
-          >
-            {translate('claim.action')}
-          </Button>
+          {claimStatus === 'sent' ? (
+            <p className="text-sm" role="status">
+              {translate('claim.sent')}
+            </p>
+          ) : (
+            <>
+              <p
+                className="text-sm text-muted-foreground sm:max-w-sm"
+                role={claimStatus === 'failed' ? 'alert' : undefined}
+              >
+                {claimStatus === 'failed'
+                  ? translate('claim.failed')
+                  : translate('claim.prompt')}
+              </p>
+              <Button
+                className="w-full sm:w-auto"
+                isDisabled={claimStatus === 'sending'}
+                onClick={() => void claim()}
+                size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.DEFAULT}
+              >
+                {translate('claim.action')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </main>
