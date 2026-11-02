@@ -1,6 +1,5 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
-import { ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -17,7 +16,6 @@ import {
   type SystemWorkflowCatalogEntry,
   type WorkflowApiService,
 } from '@/features/workflows/services/workflow-api';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import {
   reserveTemplateAttempt,
   templateAttemptKey,
@@ -30,8 +28,6 @@ import {
   pageReducer,
 } from './workflow-template-state';
 import type { CatalogItem } from './workflow-template-types';
-
-const TEMPLATES_COLLECTION_SURFACE = 'automation.templates';
 
 export function useWorkflowTemplatesPage() {
   const { href, orgSlug, brandSlug } = useOrgUrl();
@@ -74,10 +70,6 @@ export function useWorkflowTemplatesPage() {
   templateIdRef.current = templateId;
   const catalogScopeRef = useRef<string | null>(null);
   const [detailsItem, setDetailsItem] = useState<CatalogItem | null>(null);
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: TEMPLATES_COLLECTION_SURFACE,
-  });
 
   /**
    * Per-request generation for each data source. Only the latest request
@@ -425,8 +417,6 @@ export function useWorkflowTemplatesPage() {
     href,
     detailsItem,
     setDetailsItem,
-    view,
-    setView,
     loadSources,
     installSystemEntry,
     copyFeaturedWorkflow,

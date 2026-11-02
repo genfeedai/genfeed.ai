@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
 
-import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
-import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
-import { MemberRole, ViewType } from '@genfeedai/contracts';
+import { MemberRole } from '@genfeedai/contracts';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCollectionViewStorageKey } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 
 const mocks = vi.hoisted(() => ({
   accessState: { memberRole: 'admin' as MemberRole },
@@ -109,7 +106,6 @@ describe('OrgLandingContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.homeApp = { appId: 'workspace', isResolved: true };
-    window.localStorage.clear();
     mocks.brandState.isReady = true;
     mocks.brandState.isBrandScopeResolved = true;
     mocks.accessState.memberRole = MemberRole.ADMIN;
@@ -396,22 +392,17 @@ describe('OrgLandingContent', () => {
     expect(solar).not.toHaveTextContent('platform');
   });
 
-  it('defaults to logo cards with a list toggle for up to 6 brands', async () => {
+  it('shows logo cards for up to 6 brands with no view switch', () => {
     mocks.brandState.brands = createBrands(6);
 
     render(<OrgLandingContent />);
 
     expect(screen.getAllByTestId('org-brand-card')).toHaveLength(6);
     expect(screen.queryByTestId('org-brand-row')).toBeNull();
-    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
-
-    await selectView(userEvent.setup(), 'List');
-
-    expect(screen.getAllByTestId('org-brand-row')).toHaveLength(6);
-    expect(screen.queryByTestId('org-brand-card')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
   });
 
-  it('defaults to the list view above 6 brands and keeps the grid toggle', async () => {
+  it('shows a list above 6 brands', () => {
     mocks.brandState.brands = createBrands(7);
 
     render(<OrgLandingContent />);
@@ -420,11 +411,6 @@ describe('OrgLandingContent', () => {
     expect(rows).toHaveLength(7);
     expect(rows[0]).toHaveAttribute('href', '/acme/brand-1/workspace');
     expect(screen.queryByTestId('org-brand-card')).toBeNull();
-    expect(viewMenuTrigger('List')).toBeInTheDocument();
-
-    await selectView(userEvent.setup(), 'Grid');
-
-    expect(screen.getAllByTestId('org-brand-card')).toHaveLength(7);
   });
 
   it('shows the picker skeleton in the default grid while brands load', () => {
@@ -443,20 +429,6 @@ describe('OrgLandingContent', () => {
     expect(screen.queryByTestId('org-landing-redirecting')).toBeNull();
     expect(screen.queryByText(/in this workspace/)).toBeNull();
     expect(mocks.replace).not.toHaveBeenCalled();
-  });
-
-  it('mirrors the saved list view in the loading skeleton', async () => {
-    window.localStorage.setItem(
-      getCollectionViewStorageKey('org.brands'),
-      ViewType.LIST,
-    );
-    mocks.brandState.isReady = false;
-
-    render(<OrgLandingContent />);
-
-    expect(await screen.findByTestId('list-rows-skeleton')).toBeVisible();
-    expect(screen.queryByTestId('skeleton-card')).toBeNull();
-    expect(viewMenuTrigger('List')).toBeInTheDocument();
   });
 
   it('keeps the skeleton while the user loads for a multi-brand organization', () => {

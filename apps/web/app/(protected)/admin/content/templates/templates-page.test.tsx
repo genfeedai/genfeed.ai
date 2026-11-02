@@ -2,7 +2,6 @@ import {
   createTestQueryClient,
   queryClientWrapper,
 } from '@app-tests/query-client.harness';
-import { selectView } from '@app-tests/view-menu.helpers';
 import {
   fireEvent,
   render,
@@ -102,39 +101,26 @@ const templates = Array.from({ length: 15 }, (_, index) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  localStorage.clear();
   mocks.searchParams = new URLSearchParams();
   mocks.service.getTemplates.mockResolvedValue(templates);
 });
 describe('admin templates collection', () => {
-  it('renders one page of navigable rows and persists the grid choice', async () => {
-    const user = userEvent.setup();
-    const first = render(<TemplatesPage />, { wrapper: queryClientWrapper() });
+  it('renders one page of navigable rows with no view switch', async () => {
+    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     expect(
       await screen.findByRole('link', { name: 'open Template 0' }),
     ).toHaveAttribute('href', expect.stringContaining('/template-0'));
     expect(screen.getByTestId('templates-list')).toBeInTheDocument();
     expect(screen.getAllByRole('link')).toHaveLength(15);
-    expect(screen.queryByTestId('template-card')).not.toBeInTheDocument();
-    await selectView(user, 'grid');
-    expect(screen.getByTestId('templates-grid')).toHaveClass('@container');
-    expect(screen.getAllByTestId('template-card')).toHaveLength(15);
-    first.unmount();
-    render(<TemplatesPage />, { wrapper: queryClientWrapper() });
-    expect(await screen.findByTestId('templates-grid')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
   });
-  it('renders no in-content header: the breadcrumb is the title and the toggle lives in the subbar', async () => {
+  it('renders no in-content header: the breadcrumb is the title', async () => {
     render(<TemplatesPage />, { wrapper: queryClientWrapper() });
     await screen.findByTestId('templates-list');
     expect(screen.queryByText('catalog')).not.toBeInTheDocument();
     expect(screen.queryByText('description')).not.toBeInTheDocument();
     const content = screen.getByTestId('content');
     expect(within(content).queryAllByRole('heading')).toHaveLength(0);
-    expect(
-      within(screen.getByTestId('subbar')).getByRole('button', {
-        name: /^View: /,
-      }),
-    ).toBeInTheDocument();
     expect(
       within(content).queryByRole('button', { name: /^View: / }),
     ).not.toBeInTheDocument();
@@ -225,15 +211,11 @@ describe('admin templates collection', () => {
     expect(screen.queryByText('active')).not.toBeInTheDocument();
   });
 
-  it('mirrors the stored grid view while loading', () => {
-    localStorage.setItem(
-      'genfeed:collection-view:admin.content.templates',
-      'grid',
-    );
+  it('shows a list skeleton while loading', () => {
     mocks.service.getTemplates.mockReturnValue(new Promise(() => {}));
     render(<TemplatesPage />, { wrapper: queryClientWrapper() });
-    expect(screen.getAllByTestId('skeleton-card')).toHaveLength(6);
-    expect(screen.queryByTestId('list-rows-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('list-rows-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
   });
   it('shows a retryable error separately from an empty catalog', async () => {
     mocks.service.getTemplates

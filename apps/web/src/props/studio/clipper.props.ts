@@ -13,7 +13,6 @@ import type {
   IBrand,
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
-import type { CollectionViewType } from '@props/ui/collection/collection.props';
 import type { ReactNode } from 'react';
 import type { ClipperApiClient } from '@/props/studio/clipper-api.props';
 
@@ -161,8 +160,6 @@ export interface ClipperProjectListProps {
   /** Hide the "Recent" carousel, e.g. on server pages after the first. */
   isRecentVisible?: boolean;
   projects: ClipperProjectSummary[];
-  /** List or grid, owned by the workspace so the toggle sits in the subbar. */
-  view: CollectionViewType;
   onRename?: (id: string, name: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }

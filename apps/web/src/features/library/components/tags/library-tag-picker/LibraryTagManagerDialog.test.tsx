@@ -2,7 +2,8 @@ import { TagScope } from '@genfeedai/contracts';
 import { LIBRARY_TAG_UPDATED_EVENT } from '@genfeedai/contracts/constants';
 import type { ILibraryTagUpdate, ITag } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createContext, useContext } from 'react';
+import userEvent from '@testing-library/user-event';
+import { createContext, useContext, useRef, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryTagManagerDialog from './LibraryTagManagerDialog';
 
@@ -154,6 +155,32 @@ describe('LibraryTagManagerDialog', () => {
     expect(screen.getByText('This brand · 4')).toBeInTheDocument();
     expect(screen.getByText('All brands · 12')).toBeInTheDocument();
     expect(screen.getByText('Default · 0')).toBeInTheDocument();
+  });
+
+  it('returns focus to the menu trigger when it closes', async () => {
+    function Harness() {
+      const triggerRef = useRef<HTMLButtonElement>(null);
+      const [isOpen, setIsOpen] = useState(true);
+      return (
+        <>
+          <button ref={triggerRef} type="button">
+            More actions
+          </button>
+          <LibraryTagManagerDialog
+            isOpen={isOpen}
+            onOpenChange={setIsOpen}
+            returnFocusRef={triggerRef}
+          />
+        </>
+      );
+    }
+    render(<Harness />);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('button', { name: 'More actions' })).toHaveFocus();
   });
 
   it('lists legacy default tags read-only, with no controls', () => {

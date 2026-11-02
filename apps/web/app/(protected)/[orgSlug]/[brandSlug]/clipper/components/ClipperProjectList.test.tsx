@@ -1,6 +1,4 @@
-import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
-import { ViewType } from '@genfeedai/contracts';
 import {
   fireEvent,
   render,
@@ -9,29 +7,9 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
-import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { ClipperProjectSummary } from '@/props/studio/clipper.props';
-import ClipperProjectListBase from './ClipperProjectList';
-
-/** The workspace owns the view and its toggle; mirror that here. */
-function ClipperProjectList(
-  props: Omit<ComponentProps<typeof ClipperProjectListBase>, 'view'>,
-) {
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: 'studio.clipper',
-  });
-
-  return (
-    <>
-      <CollectionViewToggle onViewChange={setView} view={view} />
-      <ClipperProjectListBase {...props} view={view} />
-    </>
-  );
-}
+import ClipperProjectList from './ClipperProjectList';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -66,7 +44,6 @@ const projects: ClipperProjectSummary[] = Array.from(
 
 describe('ClipperProjectList', () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.clearAllMocks();
     vi.stubGlobal(
       'ResizeObserver',
@@ -80,10 +57,8 @@ describe('ClipperProjectList', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
-  it('defaults to rows, orders three recent cards, and persists grid only for All', async () => {
-    const { unmount } = render(
-      <ClipperProjectList projects={projects} isLoading={false} />,
-    );
+  it('lists All as rows and orders three recent cards', () => {
+    render(<ClipperProjectList projects={projects} isLoading={false} />);
     const recent = screen.getByTestId('clipper-projects-recent');
     expect(within(recent).queryByText('Project 0')).toBeNull();
     expect(recent.textContent?.indexOf('Project 5')).toBeLessThan(
@@ -99,14 +74,7 @@ describe('ClipperProjectList', () => {
       'https://img.youtube.com/vi/zjXzkB8z5xg/hqdefault.jpg',
     );
     expect(within(recent).queryByText('Project 2')).toBeNull();
-    await selectView(userEvent.setup(), 'Grid');
-    expect(screen.getAllByTestId('clipper-project-card')).toHaveLength(9);
-    expect(within(recent).getAllByTestId('clipper-project-card')).toHaveLength(
-      3,
-    );
-    unmount();
-    render(<ClipperProjectList projects={projects} isLoading={false} />);
-    expect(screen.getAllByTestId('clipper-project-card')).toHaveLength(9);
+    expect(screen.getAllByTestId('clipper-project-card')).toHaveLength(3);
   });
   it('keeps rename/delete in overflow and retains the list after mutation failure', async () => {
     const rename = vi.fn().mockResolvedValue(undefined);
@@ -148,7 +116,7 @@ describe('ClipperProjectList', () => {
     expect(all.getByText('Project 0')).toBeVisible();
     expect(all.getAllByRole('link', { name: 'Open' })).toHaveLength(6);
   });
-  it('hides empty sections and follows the active view while loading', async () => {
+  it('hides empty sections and shows a list skeleton while loading', () => {
     const { rerender } = render(
       <ClipperProjectList projects={[]} isLoading={false} />,
     );
@@ -156,7 +124,5 @@ describe('ClipperProjectList', () => {
     expect(screen.queryByTestId('clipper-projects-all')).toBeNull();
     rerender(<ClipperProjectList projects={[]} isLoading />);
     expect(screen.getByTestId('clipper-project-list-loading')).toBeVisible();
-    await selectView(userEvent.setup(), 'Grid');
-    expect(viewMenuTrigger('Grid')).toBeInTheDocument();
   });
 });

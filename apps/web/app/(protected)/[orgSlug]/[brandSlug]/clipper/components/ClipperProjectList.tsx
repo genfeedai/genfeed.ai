@@ -43,7 +43,6 @@ export default function ClipperProjectList({
   isLoading,
   isRecentVisible = true,
   projects,
-  view,
   onRename,
   onDelete,
 }: ClipperProjectListProps) {
@@ -201,18 +200,10 @@ export default function ClipperProjectList({
               : 'clipper-projects-all-collection'
           }
           items={projects}
-          view={view}
           isLoading={isLoading}
           skeletonCount={3}
           getItemKey={(project) => project.id}
           renderListItem={row}
-          renderGridItem={(project) => (
-            <ClipperProjectCard
-              project={project}
-              href={projectHref(project)}
-              actions={actions(project)}
-            />
-          )}
         />
       </CollectionSection>
       <Dialog

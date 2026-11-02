@@ -160,6 +160,7 @@ function TagManagerRow({
 export default function LibraryTagManagerDialog({
   isOpen,
   onOpenChange,
+  returnFocusRef,
 }: LibraryTagManagerDialogProps) {
   const translate = useTranslations('pages.library.tags');
   const { brandId } = useBrand();
@@ -228,7 +229,16 @@ export default function LibraryTagManagerDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={isOpen}>
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(event) => {
+          const trigger = returnFocusRef?.current;
+          if (!trigger) {
+            return;
+          }
+          event.preventDefault();
+          trigger.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{translate('manageTags')}</DialogTitle>
           <DialogDescription>

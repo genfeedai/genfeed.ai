@@ -5,12 +5,10 @@ import {
   ButtonVariant,
   CardGap,
   ComponentSize,
-  ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -26,7 +24,6 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
   ClipperWorkspaceProps,
   ProviderOption,
@@ -80,11 +77,6 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
   const isSearching = search !== '';
   const isFirstPage = (Number(searchParams.get('page')) || 1) === 1;
 
-  const { view, setView } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: 'studio.clipper',
-  });
-
   const hasProjects = projects.length > 0;
   // A search that matches nothing keeps the toolbar, so it can be changed.
   const hasToolbar = hasProjects || isSearching;
@@ -101,7 +93,6 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
     </Button>
   ) : hasToolbar ? (
     <div className="flex items-center gap-2">
-      <CollectionViewToggle onViewChange={setView} view={view} />
       <Button
         asChild
         size={ButtonSize.SM}
@@ -156,7 +147,6 @@ export default function ClipperWorkspace({ projectId }: ClipperWorkspaceProps) {
                     isLoading={isListLoading}
                     isRecentVisible={isFirstPage}
                     projects={projects}
-                    view={view}
                     onRename={renameProject}
                     onDelete={deleteProject}
                   />
