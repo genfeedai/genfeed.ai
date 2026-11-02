@@ -44,10 +44,17 @@ import type {
   PostCountRow,
   ResolvedBrandDisplay,
 } from './analytics.types';
+import { EMPTY_ENTITY_TOTALS, sumEntityTotals } from './entity-totals';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type EntityType = 'organization' | 'brand';
 type EntityField = 'organizationId' | 'brandId';
+interface EntityTotalsFilters {
+  brandId?: string;
+  organizationId?: string;
+  search?: string;
+  type?: OrganizationCategory;
+}
 
 /** Default analytics stats for entities with no data */
 const DEFAULT_ANALYTICS: IEntityAnalyticsStats = {
@@ -391,25 +398,15 @@ export class EntityLeaderboardService {
     });
   }
 
-  /**
-   * Period totals across every entity the list matches, so the figures above a
-   * paged table describe the whole list and not the page on screen. Ranks all
-   * matching ids, then reuses the same per-id aggregations the rows use; no
-   * entity is hydrated.
-   */
+  /** Period totals across every entity the list matches, not only the page shown. */
   private async getEntityTotals(
     entityType: EntityType,
     range: DateRange,
     matchingEntities: number,
-    filters: {
-      brandId?: string;
-      organizationId?: string;
-      search?: string;
-      type?: OrganizationCategory;
-    },
+    filters: EntityTotalsFilters,
   ): Promise<IEntityStatsTotals> {
     if (matchingEntities === 0) {
-      return { growth: 0, totalEngagement: 0, totalPosts: 0, totalViews: 0 };
+      return { ...EMPTY_ENTITY_TOTALS };
     }
 
     const entityField: EntityField =
@@ -421,50 +418,22 @@ export class EntityLeaderboardService {
       { limit: matchingEntities, offset: 0 },
       filters,
     );
+    const { endDate, previousEndDate, previousStartDate, startDate } = range;
+    const [current, previousEngagement, publishedPosts] = await Promise.all([
+      this.getCurrentAnalytics(ids, startDate, endDate, entityField),
+      this.getPreviousEngagement(
+        ids,
+        previousStartDate,
+        previousEndDate,
+        entityField,
+      ),
+      this.getPublishedPostCounts(ids, startDate, endDate, entityField),
+    ]);
 
-    const [analyticsMap, previousEngagementMap, publishedPostsMap] =
-      await Promise.all([
-        this.getCurrentAnalytics(
-          ids,
-          range.startDate,
-          range.endDate,
-          entityField,
-        ),
-        this.getPreviousEngagement(
-          ids,
-          range.previousStartDate,
-          range.previousEndDate,
-          entityField,
-        ),
-        this.getPublishedPostCounts(
-          ids,
-          range.startDate,
-          range.endDate,
-          entityField,
-        ),
-      ]);
-
-    let totalViews = 0;
-    let totalEngagement = 0;
-    for (const stats of analyticsMap.values()) {
-      totalViews += stats.totalViews;
-      totalEngagement += stats.totalEngagement;
-    }
-    let totalPosts = 0;
-    for (const count of publishedPostsMap.values()) {
-      totalPosts += count;
-    }
-    let previousEngagement = 0;
-    for (const engagement of previousEngagementMap.values()) {
-      previousEngagement += engagement;
-    }
-
-    return {
-      growth: this.calculateGrowth(totalEngagement, previousEngagement),
-      totalEngagement,
-      totalPosts,
-      totalViews,
-    };
+    return sumEntityTotals(
+      { current, previousEngagement, publishedPosts },
+      (now, before) => this.calculateGrowth(now, before),
+    );
   }
 
   /**

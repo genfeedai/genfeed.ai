@@ -30,6 +30,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Avatar } from '@ui/primitives/avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -58,6 +59,8 @@ export default function AnalyticsBrandsList({
   basePath = '/analytics',
   isBrandScoped = true,
 }: AnalyticsBrandsListProps) {
+  const kpiT = useTranslations('pages.analytics.brandsList.kpi');
+  const metricT = useTranslations('pages.analytics.metricLabels');
   const { isSignedIn } = useAuthIdentity();
   const scope = useCollectionScope();
   const scopedBrandId = isBrandScoped ? scope.brandId : undefined;
@@ -224,22 +227,25 @@ export default function AnalyticsBrandsList({
         gridCols={{ desktop: 4, mobile: 1 }}
         isLoading={isLoading && !totals}
         items={[
-          { label: 'Brands', value: formatCompactNumberIntl(totalBrands) },
+          {
+            label: kpiT('brands'),
+            value: formatCompactNumberIntl(totalBrands),
+          },
           {
             analyticsMetric: 'posts',
-            label: 'Posts',
+            label: metricT('posts'),
             value: formatCompactNumberIntl(totals?.totalPosts ?? 0),
           },
           {
             analyticsMetric: 'views',
-            label: 'Views',
+            label: metricT('views'),
             value: formatCompactNumberIntl(totals?.totalViews ?? 0),
           },
           {
             analyticsMetric: 'engagement',
-            label: 'Engagement',
+            label: metricT('engagement'),
             trend: totals?.growth,
-            trendLabel: 'vs last period',
+            trendLabel: kpiT('vsLastPeriod'),
             value: formatCompactNumberIntl(totals?.totalEngagement ?? 0),
           },
         ]}
