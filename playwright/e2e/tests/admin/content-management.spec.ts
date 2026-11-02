@@ -30,17 +30,17 @@ test.describe('Admin Content Management', () => {
     });
   });
 
-  test.describe('Library', () => {
+  test.describe('Catalog', () => {
     test('should display admin voices library surfaces', async ({
       adminPage,
     }) => {
       await mockOrganizationIdentityDefaults(adminPage);
 
-      await adminPage.goto(APP_ROUTES.ADMIN.LIBRARY.VOICES);
+      await adminPage.goto(APP_ROUTES.ADMIN.CONTENT.VOICES);
       const admin = new AdminPage(adminPage);
 
       await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/library\/voices/);
+      await expect(adminPage).toHaveURL(/content\/voices/);
       // Catalog controls are the shared subbar (collapsed search, Filters
       // menu with the provider facet, sync actions), not a titled surface.
       await adminPage.getByRole('button', { name: /^Filters/ }).click();
@@ -58,6 +58,13 @@ test.describe('Admin Content Management', () => {
       await expect(
         voicesList.getByRole('table').or(voicesList.getByTestId('table-empty')),
       ).toBeVisible();
+      // Column headers are plain text, never uppercase eyebrows.
+      const headerTransforms = await voicesList
+        .getByRole('columnheader')
+        .evaluateAll((headers) =>
+          headers.map((header) => getComputedStyle(header).textTransform),
+        );
+      expect(headerTransforms.every((value) => value === 'none')).toBe(true);
     });
   });
 });

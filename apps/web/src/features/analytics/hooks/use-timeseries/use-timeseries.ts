@@ -15,9 +15,9 @@ import {
   getDateRangeKeys,
   getDateRangeWithDefaults,
 } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -36,12 +36,12 @@ const TIMESERIES_CACHE_META =
       })
     : null;
 
+const NO_POINTS: PlatformTimeSeriesDataPoint[] = [];
+
 export interface UseTimeseriesOptions {
   scope: PageScope;
   dateRange: DateRange;
-  initialData?: PlatformTimeSeriesDataPoint[];
-  initialCachedAt?: string | null;
-  revalidateOnMount?: boolean;
+  /** Changes on the analytics Refresh: re-reads in the background. */
   refreshTrigger?: number;
 }
 
@@ -53,161 +53,108 @@ export interface UseTimeseriesReturn {
   fetchTimeseries: () => Promise<void>;
 }
 
-export function useTimeseries(
-  options: UseTimeseriesOptions,
-): UseTimeseriesReturn {
-  const { scope, dateRange } = options;
+/** One read. When the API fails, the last saved copy stands in for it. */
+interface TimeseriesRead {
+  cachedAt: string | null;
+  isSavedCopy: boolean;
+  points: PlatformTimeSeriesDataPoint[];
+}
+
+function toPlatformPoints(data: unknown): PlatformTimeSeriesDataPoint[] {
+  const items = Array.isArray(data) ? (data as ITimeSeriesApiDataPoint[]) : [];
+  return items.map((item) => ({
+    date: item.date,
+    facebook: item.facebook?.views ?? 0,
+    instagram: item.instagram?.views ?? 0,
+    linkedin: item.linkedin?.views ?? 0,
+    medium: item.medium?.views ?? 0,
+    pinterest: item.pinterest?.views ?? 0,
+    reddit: item.reddit?.views ?? 0,
+    tiktok: item.tiktok?.views ?? 0,
+    twitter: item.twitter?.views ?? 0,
+    youtube: item.youtube?.views ?? 0,
+  }));
+}
+
+export function useTimeseries({
+  dateRange,
+  refreshTrigger,
+  scope,
+}: UseTimeseriesOptions): UseTimeseriesReturn {
   const { brandId, organizationId } = useCollectionScope();
-
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
-  const [timeseriesData, setTimeseriesData] = useState<
-    PlatformTimeSeriesDataPoint[]
-  >(options.initialData ?? []);
-  const [isTimeseriesLoading, setIsTimeseriesLoading] = useState(
-    options.revalidateOnMount ?? options.initialData == null,
-  );
-  const [timeseriesCachedAt, setTimeseriesCachedAt] = useState<string | null>(
-    options.initialCachedAt ?? null,
-  );
-  const [isTimeseriesUsingCache, setIsTimeseriesUsingCache] = useState(false);
+  const scopedBrandId = scope === PageScope.BRAND ? brandId : undefined;
 
   const { endDateKey, startDateKey } = useMemo(
     () => getDateRangeKeys(dateRange),
     [dateRange],
   );
 
-  const timeseriesCacheKey = useMemo(
-    () =>
-      createCacheKey(
-        'timeseries',
-        organizationId ?? 'none',
-        scope,
-        brandId ?? 'none',
-        startDateKey ?? 'none',
-        endDateKey ?? 'none',
-      ),
-    [brandId, organizationId, scope, startDateKey, endDateKey],
+  const savedCopyKey = createCacheKey(
+    'timeseries',
+    organizationId ?? 'none',
+    scope,
+    brandId ?? 'none',
+    startDateKey ?? 'none',
+    endDateKey ?? 'none',
   );
 
-  const hydrationKey = JSON.stringify([
-    timeseriesCacheKey,
-    options.refreshTrigger,
-  ]);
-  const [hydration] = useState(() => ({
-    key: hydrationKey,
-    hasData: options.initialData != null,
-  }));
-  const skipInitialFetch =
-    hydration.hasData &&
-    hydration.key === hydrationKey &&
-    (options.revalidateOnMount ?? false) === false;
-  const requestRef = useRef<AbortController | null>(null);
-  useEffect(() => () => requestRef.current?.abort(), []);
-
-  const fetchTimeseries = useCallback(
-    async (signal?: AbortSignal) => {
-      requestRef.current?.abort();
-      const controller = new AbortController();
-      requestRef.current = controller;
-      const isCancelled = () =>
-        controller.signal.aborted || Boolean(signal?.aborted);
+  const query = useAuthedQuery({
+    queryFn: async (service: AnalyticsService): Promise<TimeseriesRead> => {
       try {
-        setIsTimeseriesLoading(true);
-        const service = await getAnalyticsService();
         const { startDate, endDate } = getDateRangeWithDefaults(
-          dateRange?.startDate ?? undefined,
-          dateRange?.endDate ?? undefined,
+          dateRange.startDate ?? undefined,
+          dateRange.endDate ?? undefined,
         );
-        const data = await service.getTimeSeries({
-          ...(scope === PageScope.BRAND && brandId ? { brandId } : {}),
-          endDate,
-          startDate,
-        });
-
-        const dataArray = Array.isArray(data) ? data : [];
-
-        const transformedData: PlatformTimeSeriesDataPoint[] = (
-          dataArray as ITimeSeriesApiDataPoint[]
-        ).map((item) => ({
-          date: item.date,
-          facebook: item.facebook?.views ?? 0,
-          instagram: item.instagram?.views ?? 0,
-          linkedin: item.linkedin?.views ?? 0,
-          medium: item.medium?.views ?? 0,
-          pinterest: item.pinterest?.views ?? 0,
-          reddit: item.reddit?.views ?? 0,
-          tiktok: item.tiktok?.views ?? 0,
-          twitter: item.twitter?.views ?? 0,
-          youtube: item.youtube?.views ?? 0,
-        }));
-
-        if (isCancelled()) {
-          return;
-        }
-
-        setTimeseriesData(transformedData);
-
-        if (TIMESERIES_CACHE && TIMESERIES_CACHE_META) {
-          TIMESERIES_CACHE.set(
-            timeseriesCacheKey,
-            transformedData,
-            TIMESERIES_CACHE_TTL_MS,
-          );
-          TIMESERIES_CACHE_META.set(
-            timeseriesCacheKey,
-            new Date().toISOString(),
-            TIMESERIES_CACHE_TTL_MS,
-          );
-        }
-
-        setIsTimeseriesUsingCache(false);
-        setTimeseriesCachedAt(null);
+        const points = toPlatformPoints(
+          await service.getTimeSeries({
+            ...(scopedBrandId ? { brandId: scopedBrandId } : {}),
+            endDate,
+            startDate,
+          }),
+        );
+        TIMESERIES_CACHE?.set(savedCopyKey, points, TIMESERIES_CACHE_TTL_MS);
+        TIMESERIES_CACHE_META?.set(
+          savedCopyKey,
+          new Date().toISOString(),
+          TIMESERIES_CACHE_TTL_MS,
+        );
+        return { cachedAt: null, isSavedCopy: false, points };
       } catch (error) {
-        if (isCancelled()) {
-          return;
-        }
         logger.error('Failed to fetch timeseries', error);
-        const cachedTimeseries =
-          TIMESERIES_CACHE?.get(timeseriesCacheKey) ?? [];
-        const cachedAt = TIMESERIES_CACHE_META?.get(timeseriesCacheKey) ?? null;
-
-        if (cachedTimeseries.length > 0) {
-          setTimeseriesData(cachedTimeseries);
-          setIsTimeseriesUsingCache(true);
-          setTimeseriesCachedAt(cachedAt);
-        } else {
-          setTimeseriesData([]);
-          setIsTimeseriesUsingCache(false);
-          setTimeseriesCachedAt(null);
+        const saved = TIMESERIES_CACHE?.get(savedCopyKey) ?? [];
+        if (saved.length === 0) {
+          return { cachedAt: null, isSavedCopy: false, points: NO_POINTS };
         }
-      } finally {
-        if (!isCancelled()) {
-          setIsTimeseriesLoading(false);
-        }
+        return {
+          cachedAt: TIMESERIES_CACHE_META?.get(savedCopyKey) ?? null,
+          isSavedCopy: true,
+          points: saved,
+        };
       }
     },
-    [brandId, dateRange, getAnalyticsService, scope, timeseriesCacheKey],
-  );
+    queryKey: [
+      'analytics',
+      'timeseries',
+      organizationId ?? null,
+      scope,
+      scopedBrandId ?? null,
+      startDateKey,
+      endDateKey,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: The key includes explicit refresh events that restart the request.
-  useEffect(() => {
-    if (skipInitialFetch) {
-      return;
-    }
-
-    const controller = new AbortController();
-    void fetchTimeseries(controller.signal);
-    return () => controller.abort();
-  }, [fetchTimeseries, skipInitialFetch, hydrationKey]);
+  const { refetch } = query;
+  const fetchTimeseries = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
     fetchTimeseries,
-    isTimeseriesLoading,
-    isTimeseriesUsingCache,
-    timeseriesCachedAt,
-    timeseriesData,
+    isTimeseriesLoading: query.isLoading,
+    isTimeseriesUsingCache: query.data?.isSavedCopy ?? false,
+    timeseriesCachedAt: query.data?.cachedAt ?? null,
+    timeseriesData: query.data?.points ?? NO_POINTS,
   };
 }

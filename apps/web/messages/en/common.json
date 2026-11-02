@@ -1301,11 +1301,8 @@
     "chat": "Chat",
     "context": "Context",
     "history": "History",
-    "currentPage": "Current page",
-    "scope": "Conversation scope",
     "selection": "Selection",
-    "noSelection": "Select a record on the page to include it in the conversation.",
-    "selectedRecords": "{count, plural, one {# selected record} other {# selected records}}"
+    "noSelection": "Select a record on the page to include it in the conversation."
   },
   "desktop": {
     "generationCost": {

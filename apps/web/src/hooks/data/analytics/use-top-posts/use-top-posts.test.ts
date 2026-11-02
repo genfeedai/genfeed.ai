@@ -14,6 +14,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@helpers/data/cache/cache.helper', () => ({
   createCacheKey: vi.fn((...args: unknown[]) => args.join(':')),
   createLocalStorageCache: vi.fn(() => ({
@@ -133,21 +138,15 @@ describe('useTopPosts', () => {
 
     expect(result.current.topPosts).toEqual([]);
   });
-  it('uses hydration only for its initial brand and platform', async () => {
+  it('re-reads a changed brand and platform', async () => {
     const { result, rerender } = renderHook(
-      ({ brandId, platform }) =>
-        useTopPosts({
-          brandId,
-          platform,
-          initialData: [],
-          revalidateOnMount: false,
-        }),
+      ({ brandId, platform }) => useTopPosts({ brandId, platform }),
       {
         initialProps: { brandId: 'brand-1', platform: 'instagram' },
         wrapper: createQueryWrapper(),
       },
     );
-    expect(mockGetTopContent).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     rerender({ brandId: 'brand-2', platform: 'youtube' });
     await waitFor(() =>
       expect(mockGetTopContent).toHaveBeenCalledWith(
@@ -155,5 +154,29 @@ describe('useTopPosts', () => {
       ),
     );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
+
+  it('on Refresh re-reads in the background and keeps the posts on screen', async () => {
+    const first = [{ platform: 'x', postId: 'post-1', totalViews: 10 }];
+    const refreshed = [{ platform: 'x', postId: 'post-1', totalViews: 25 }];
+    mockGetTopContent.mockResolvedValue(first);
+    const { result, rerender } = renderHook(() => useTopPosts(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.topPosts).toEqual(first));
+
+    mockGetTopContent.mockResolvedValue(refreshed);
+    (useAnalyticsContext as ReturnType<typeof vi.fn>).mockReturnValue({
+      dateRange: {
+        endDate: new Date('2025-01-07T00:00:00.000Z'),
+        startDate: new Date('2025-01-01T00:00:00.000Z'),
+      },
+      refreshTrigger: 1,
+    });
+    rerender();
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.topPosts).toEqual(first);
+    await waitFor(() => expect(result.current.topPosts).toEqual(refreshed));
   });
 });

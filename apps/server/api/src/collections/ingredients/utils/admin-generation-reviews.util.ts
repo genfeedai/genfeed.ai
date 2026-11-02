@@ -17,6 +17,16 @@ export const ADMIN_GENERATION_STATUSES: readonly IngredientStatus[] = [
 ];
 
 /**
+ * The ledger's default view: generations that are running or done. Failed
+ * generations are dead rows, reachable only by choosing the Failed status, the
+ * same way the Library keeps them on their own shelf.
+ */
+export const ADMIN_GENERATION_DEFAULT_STATUSES: readonly IngredientStatus[] = [
+  IngredientStatus.PROCESSING,
+  IngredientStatus.GENERATED,
+];
+
+/**
  * The cross-organization ledger filter. Callers wrap the read in
  * `crossOrgUnsafe`; an explicit `organizationId` narrows it to one tenant.
  */
@@ -32,7 +42,7 @@ export function buildAdminGenerationReviewsWhere(
     isDeleted: false,
     status: query.status
       ? query.status
-      : { in: [...ADMIN_GENERATION_STATUSES] },
+      : { in: [...ADMIN_GENERATION_DEFAULT_STATUSES] },
     ...(query.organizationId ? { organizationId: query.organizationId } : {}),
     ...(query.brandId ? { brandId: query.brandId } : {}),
     ...(query.model

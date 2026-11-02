@@ -672,6 +672,79 @@ describe('EntityLeaderboardService', () => {
       );
     });
 
+    it('totals views, engagement, posts and growth across every matching brand, not just the page', async () => {
+      const brandIds = ['brand-1', 'brand-2', 'brand-3'];
+      const metricsById: Record<
+        string,
+        { likes: number; posts: number; previous: number; views: number }
+      > = {
+        'brand-1': { likes: 10, posts: 1, previous: 10, views: 100 },
+        'brand-2': { likes: 20, posts: 2, previous: 10, views: 200 },
+        'brand-3': { likes: 30, posts: 3, previous: 20, views: 300 },
+      };
+      mockPrismaService.$queryRaw.mockImplementation(
+        (strings: TemplateStringsArray, ...values: unknown[]) => {
+          const { sql, values: bound } = captureSqlQuery(strings, values);
+          if (sql.includes('SELECT e."id" AS entity_id')) {
+            const [limit, offset] = bound.slice(-2) as [number, number];
+            return Promise.resolve(
+              rankRows(...brandIds.slice(offset, offset + limit)),
+            );
+          }
+          const ids = bound[0] as string[];
+          if (sql.includes('AVG("engagementRate")')) {
+            return Promise.resolve(
+              ids.map((id) => ({
+                avg_engagement_rate: 1,
+                entity_id: id,
+                total_comments: 0,
+                total_likes: metricsById[id].likes,
+                total_saves: 0,
+                total_shares: 0,
+                total_views: metricsById[id].views,
+              })),
+            );
+          }
+          if (sql.includes('COUNT(*) AS total_posts')) {
+            return Promise.resolve(
+              ids.map((id) => ({
+                entity_id: id,
+                total_posts: metricsById[id].posts,
+              })),
+            );
+          }
+          return Promise.resolve(
+            ids.map((id) => ({
+              entity_id: id,
+              total_engagement: metricsById[id].previous,
+            })),
+          );
+        },
+      );
+      mockBrandsService.findAll.mockImplementation(
+        (query: { where: { id: { in: string[] } } }) =>
+          Promise.resolve({
+            docs: query.where.id.in.map((id) => ({ id, label: id })),
+          }),
+      );
+      mockPrismaService.brand.count.mockResolvedValue(3);
+
+      const result = await service.getBrandsWithStats(
+        undefined,
+        undefined,
+        1,
+        1,
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(result.totals).toEqual({
+        growth: 50,
+        totalEngagement: 60,
+        totalPosts: 6,
+        totalViews: 600,
+      });
+    });
+
     it('applies the name search to the ranking query and the total, not in memory', async () => {
       const capturedQueries = captureQueryRawCalls([rankRows('acme-1')]);
       mockOrganizationsService.findAll.mockResolvedValue({

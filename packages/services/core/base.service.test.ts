@@ -37,6 +37,8 @@ vi.mock('@services/core/json-api', () => ({
 
 vi.mock('@services/content/pages.service', () => ({
   PagesService: {
+    beginRequest: vi.fn(() => 7),
+    recordTotals: vi.fn(),
     setCurrentPage: vi.fn(),
     setTotalDocs: vi.fn(),
     setTotalPages: vi.fn(),
@@ -500,9 +502,10 @@ describe('BaseService', () => {
 
       await service.findAll({ page: 2 });
 
-      expect(PagesService.setCurrentPage).toHaveBeenCalledWith(2);
-      expect(PagesService.setTotalPages).toHaveBeenCalledWith(5);
-      expect(PagesService.setTotalDocs).toHaveBeenCalledWith(50);
+      expect(PagesService.recordTotals).toHaveBeenCalledWith(
+        { page: 2, pages: 5, total: 50 },
+        7,
+      );
     });
 
     it('should not set pagination when no page in query', async () => {
@@ -514,7 +517,7 @@ describe('BaseService', () => {
 
       await service.findAll();
 
-      expect(PagesService.setCurrentPage).not.toHaveBeenCalled();
+      expect(PagesService.recordTotals).not.toHaveBeenCalled();
     });
 
     it('should throw on error', async () => {

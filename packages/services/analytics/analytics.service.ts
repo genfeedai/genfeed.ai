@@ -6,6 +6,7 @@ import type {
   IAccountAnalyticsList,
   IAnalytics,
   IBrandWithStats,
+  IEntityStatsTotals,
   IOrgLeaderboardItem,
   IOrganizationWithStats as IOrgWithStats,
   IPlatformComparison,
@@ -41,6 +42,8 @@ export interface IPaginatedOrgsResponse {
 
 export interface IPaginatedBrandsResponse {
   data: IBrandWithStats[];
+  /** Period totals across every matching brand, not just this page. */
+  totals: IEntityStatsTotals;
   pagination: {
     page: number;
     limit: number;

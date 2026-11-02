@@ -9,6 +9,7 @@ import type {
   WorkflowExecutionStats,
   WorkflowExecutionSummaryQueryParams,
 } from '@genfeedai/contracts/types';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
@@ -58,8 +59,9 @@ class WorkflowExecutionsServiceClass {
       if (value !== undefined) query.set(key, String(value));
     }
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const requestId = PagesService.beginRequest();
     const document = await this.request(`/workflow-executions${suffix}`);
-    recordPageTotals(document, params);
+    recordPageTotals(document, params, requestId);
     return deserializeCollection<IWorkflowExecution>(document);
   }
 

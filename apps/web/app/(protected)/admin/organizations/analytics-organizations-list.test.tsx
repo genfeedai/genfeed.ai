@@ -36,6 +36,7 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,

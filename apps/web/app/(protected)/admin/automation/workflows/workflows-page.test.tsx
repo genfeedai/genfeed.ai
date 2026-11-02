@@ -14,7 +14,8 @@ import WorkflowsPage from './workflows-page';
 const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
   delete: vi.fn(),
-  findAll: vi.fn(),
+  findAllPages: vi.fn(),
+  replace: vi.fn(),
   listSystemCatalog: vi.fn(),
   getters: new Map<string, () => Promise<unknown>>(),
   list: vi.fn(),
@@ -55,19 +56,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin/automation/workflows',
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
-}));
-
-vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
 }));
 
 vi.mock('@services/automation/workflows.service', () => ({
   WorkflowsService: {
     getInstance: () => ({
       delete: mocks.delete,
-      findAll: mocks.findAll,
+      findAllPages: mocks.findAllPages,
     }),
   },
 }));
@@ -164,7 +161,15 @@ function featuredSection() {
 }
 
 function workflowsTable() {
-  return screen.getByRole('table', { name: 'Workflows in this organization' });
+  return screen.getByRole('table', { name: 'Workflows' });
+}
+
+/** Names of the rows on the current page, header excluded. */
+function renderedLabels() {
+  return within(workflowsTable())
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => row.textContent ?? '');
 }
 
 function workflowRow(label: string) {
@@ -227,7 +232,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     vi.clearAllMocks();
     mocks.searchParams = new URLSearchParams();
     mocks.getters.clear();
-    mocks.findAll.mockResolvedValue([
+    mocks.findAllPages.mockResolvedValue([
       TENANT_WORKFLOW,
       PINNED_WORKFLOW,
       SYSTEM_WORKFLOW,
@@ -236,50 +241,103 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     mocks.listSystemCatalog.mockResolvedValue(CATALOG);
   });
 
-  it('requests the page from the URL with the page size and renders pagination', async () => {
-    mocks.searchParams = new URLSearchParams('page=2');
-
+  it('requests every workflow once, with system copies included', async () => {
     await renderLoadedPage();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
-      {
-        includeSystem: true,
-        limit: ITEMS_PER_PAGE,
-        page: 2,
-        sort: 'createdAt: -1',
-      },
-      expect.any(AbortSignal),
-    );
-    expect(
-      screen.getByRole('navigation', { name: 'pagination' }),
-    ).toBeVisible();
-  });
-
-  it.each([
-    ['label', 'label: 1'],
-    ['-status', 'status: -1'],
-    ['trigger', 'trigger: 1'],
-    ['-createdAt', 'createdAt: -1'],
-  ])('sorts the request by ?sort=%s', async (urlSort, apiSort) => {
-    mocks.searchParams = new URLSearchParams(`sort=${urlSort}`);
-
-    await renderLoadedPage();
-
-    expect(mocks.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: apiSort }),
+    expect(mocks.findAllPages).toHaveBeenCalledWith(
+      { includeSystem: true },
       expect.any(AbortSignal),
     );
   });
 
-  it('ignores a sort on a column the API cannot order by', async () => {
+  it('passes the search to the API', async () => {
+    mocks.searchParams = new URLSearchParams('q=digest');
+
+    await renderLoadedPage();
+
+    expect(mocks.findAllPages).toHaveBeenCalledWith(
+      { includeSystem: true, search: 'digest' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  describe('pagination', () => {
+    const MANY = Array.from({ length: 20 }, (_, index) => ({
+      createdAt: `2026-09-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`,
+      id: `wf-${index + 1}`,
+      label: `Workflow ${String(index + 1).padStart(2, '0')}`,
+      status: 'active',
+    }));
+
+    beforeEach(() => {
+      mocks.findAllPages.mockResolvedValue(MANY);
+      mocks.listSystemCatalog.mockResolvedValue([]);
+    });
+
+    it('shows one page of rows, newest first, with the total', async () => {
+      render(<WorkflowsPage />);
+      await screen.findByText('Workflow 20');
+
+      expect(renderedLabels()).toHaveLength(ITEMS_PER_PAGE);
+      expect(renderedLabels()[0]).toContain('Workflow 20');
+      expect(screen.getByText('20 workflows')).toBeVisible();
+    });
+
+    it('shows the remaining rows on page 2', async () => {
+      mocks.searchParams = new URLSearchParams('page=2');
+      render(<WorkflowsPage />);
+      await screen.findByText('Workflow 05');
+
+      expect(renderedLabels()).toEqual([
+        expect.stringContaining('Workflow 05'),
+        expect.stringContaining('Workflow 04'),
+        expect.stringContaining('Workflow 03'),
+        expect.stringContaining('Workflow 02'),
+        expect.stringContaining('Workflow 01'),
+      ]);
+    });
+
+    it('goes to the next page through the URL', async () => {
+      const user = userEvent.setup();
+      render(<WorkflowsPage />);
+      await screen.findByText('Workflow 20');
+
+      await user.click(screen.getByRole('link', { name: /next/i }));
+
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/admin/automation/workflows?page=2',
+        { scroll: false },
+      );
+    });
+
+    it('falls back to the last page when ?page= is past the end', async () => {
+      mocks.searchParams = new URLSearchParams('page=9');
+      render(<WorkflowsPage />);
+      await screen.findByText('Workflow 01');
+
+      expect(renderedLabels()).toHaveLength(5);
+    });
+  });
+
+  it('sorts by a column from the URL', async () => {
+    mocks.searchParams = new URLSearchParams('sort=-label');
+
+    await renderLoadedPage();
+
+    expect(renderedLabels()).toEqual([
+      expect.stringContaining('Launch thread'),
+      expect.stringContaining('Founder thread'),
+      expect.stringContaining('Daily digest'),
+      expect.stringContaining('Ad optimizer'),
+    ]);
+  });
+
+  it('ignores a sort on a column the table cannot order by', async () => {
     mocks.searchParams = new URLSearchParams('sort=-config');
 
     await renderLoadedPage();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
-      expect.objectContaining({ sort: 'createdAt: -1' }),
-      expect.any(AbortSignal),
-    );
+    expect(renderedLabels()[0]).toContain('Ad optimizer');
   });
 
   it('lists the pins in order, including workflows from other organizations', async () => {
@@ -452,22 +510,111 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     });
   });
 
-  it('lists the system catalog with what this organization has installed', async () => {
+  it('lists system and organization workflows in one table, system first', async () => {
     await renderLoadedPage();
 
-    const table = screen.getByRole('table', {
-      name: 'System workflow catalog',
-    });
-    const rows = within(table).getAllByRole('row').slice(1);
-    expect(rows).toHaveLength(2);
-    expect(within(rows[0] as HTMLElement).getByText('Installed')).toBeVisible();
-    expect(within(rows[0] as HTMLElement).getByText('v2')).toBeVisible();
+    expect(renderedLabels()).toEqual([
+      expect.stringContaining('Ad optimizer'),
+      expect.stringContaining('Daily digest'),
+      expect.stringContaining('Launch thread'),
+      expect.stringContaining('Founder thread'),
+    ]);
     expect(
-      within(rows[1] as HTMLElement).getByText('Not installed'),
+      screen.queryByRole('heading', { name: /in this organization/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('labels every row System or Organization', async () => {
+    await renderLoadedPage();
+
+    expect(
+      within(workflowRow('Ad optimizer')).getByText('System'),
     ).toBeVisible();
     expect(
-      within(rows[1] as HTMLElement).getByText('ad automation'),
+      within(workflowRow('Daily digest')).getByText('System'),
     ).toBeVisible();
+    expect(
+      within(workflowRow('Launch thread')).getByText('Organization'),
+    ).toBeVisible();
+  });
+
+  it('shows a template that is not installed with its schedule and version', async () => {
+    await renderLoadedPage();
+
+    const row = workflowRow('Ad optimizer');
+
+    expect(within(row).getByText('Not installed')).toBeVisible();
+    expect(within(row).getByText('v1')).toBeVisible();
+    expect(
+      within(row).getByText('ad automation · Tunes ad spend'),
+    ).toBeVisible();
+  });
+
+  it('lists an installed template once, from the workflow that stands for it', async () => {
+    await renderLoadedPage();
+
+    expect(screen.queryByText('Daily Trends Digest')).not.toBeInTheDocument();
+    expect(
+      within(workflowRow('Daily digest')).getByText('active'),
+    ).toBeVisible();
+    expect(within(workflowRow('Daily digest')).getByText('v1')).toBeVisible();
+  });
+
+  it('offers no actions on a template that is not installed', async () => {
+    await renderLoadedPage();
+
+    expect(
+      within(workflowRow('Ad optimizer')).queryByRole('button'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a template listed as installed when its workflow is not visible', async () => {
+    mocks.findAllPages.mockResolvedValue([TENANT_WORKFLOW]);
+    await renderLoadedPage();
+
+    expect(
+      within(workflowRow('Daily Trends Digest')).getByText('Installed'),
+    ).toBeVisible();
+  });
+
+  it('shows only system workflows for ?type=system', async () => {
+    mocks.searchParams = new URLSearchParams('type=system');
+
+    render(<WorkflowsPage />);
+    await screen.findByText('Ad optimizer');
+
+    expect(renderedLabels()).toEqual([
+      expect.stringContaining('Ad optimizer'),
+      expect.stringContaining('Daily digest'),
+    ]);
+  });
+
+  it('shows only organization workflows for ?type=organization', async () => {
+    mocks.searchParams = new URLSearchParams('type=organization');
+
+    await renderLoadedPage();
+
+    expect(renderedLabels()).toEqual([
+      expect.stringContaining('Launch thread'),
+      expect.stringContaining('Founder thread'),
+    ]);
+  });
+
+  it('searches templates by description, and leaves the API-searched workflows alone', async () => {
+    mocks.searchParams = new URLSearchParams('q=nothing-matches');
+
+    await renderLoadedPage();
+
+    expect(screen.queryByText('Ad optimizer')).not.toBeInTheDocument();
+    expect(workflowRow('Launch thread')).toBeVisible();
+  });
+
+  it('keeps a template that matches the search', async () => {
+    mocks.searchParams = new URLSearchParams('q=tunes');
+
+    await renderLoadedPage();
+
+    expect(workflowRow('Ad optimizer')).toBeVisible();
   });
 
   it('keeps the workflows table when the catalog fails to load', async () => {
@@ -475,7 +622,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     await renderLoadedPage();
 
     expect(
-      screen.getByText('The system workflow catalog could not be loaded.'),
+      screen.getByText('The system workflows could not be loaded.'),
     ).toBeVisible();
     expect(workflowRow('Launch thread')).toBeVisible();
   });

@@ -295,7 +295,6 @@ export const ADMIN_RAIL_CATEGORIES: readonly AppRailItemConfig[] = [
       '/admin/content',
       '/admin/configuration',
       APP_ROUTES.ADMIN.FOLDERS,
-      APP_ROUTES.ADMIN.LIBRARY.VOICES,
     ],
     description: 'adminContent.description',
     group: 'admin-category',

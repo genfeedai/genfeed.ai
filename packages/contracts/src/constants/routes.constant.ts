@@ -63,6 +63,7 @@ export const APP_ROUTES = {
       INGREDIENTS: '/admin/content/ingredients',
       POSTS: '/admin/content/posts',
       TEMPLATES: '/admin/content/templates',
+      VOICES: '/admin/content/voices',
     },
     ECONOMICS: {
       COSTS: '/admin/economics/costs',
@@ -72,9 +73,6 @@ export const APP_ROUTES = {
       ROOT: '/admin/economics',
     },
     FOLDERS: '/admin/folders',
-    LIBRARY: {
-      VOICES: '/admin/library/voices',
-    },
     /** List at `/admin/organizations`; per-org config at `/admin/organizations/:id`. */
     ORGANIZATIONS: '/admin/organizations',
     OVERVIEW: {

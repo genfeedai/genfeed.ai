@@ -28,6 +28,7 @@ function PanelToggle({
   testId,
 }: PanelToggleProps) {
   return (
+    // ui-guard-allow:selection-button -- discloses a panel (aria-expanded) and shows it open; not a choice group
     <Button
       aria-controls={ariaControls}
       aria-expanded={isPressed}
@@ -40,7 +41,7 @@ function PanelToggle({
       size={ButtonSize.ICON}
       tooltip={label}
       type="button"
-      variant={ButtonVariant.GHOST}
+      variant={isPressed ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
       withWrapper={false}
     >
       {icon}

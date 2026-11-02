@@ -539,6 +539,7 @@ describe('AppProtectedTopbar', () => {
     const button = screen.getByTestId('topbar-context-toggle');
     expect(button).toHaveAccessibleName('Open context');
     expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(button).toHaveAttribute('data-active', 'false');
     fireEvent.click(button);
     expect(state.reveal).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
@@ -550,6 +551,7 @@ describe('AppProtectedTopbar', () => {
 
     const button = screen.getByTestId('topbar-context-toggle');
     expect(button).toHaveAccessibleName('Close context');
+    expect(button).toHaveAttribute('data-active', 'true');
     fireEvent.click(button);
     expect(state.toggle).toHaveBeenCalledTimes(1);
 

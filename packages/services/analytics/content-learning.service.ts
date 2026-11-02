@@ -8,6 +8,7 @@ import type {
   LearningReceivingInput,
   LearningResourceView,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -138,12 +139,13 @@ export class ContentLearningService extends HTTPBaseService {
     params: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ) {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ADMIN_CONTENT_LEARNING}/${resource}`,
       { params, signal },
     );
     // Feeds AutoPagination, which reads the totals from PagesService.
-    recordPageTotals(response.data, params);
+    recordPageTotals(response.data, params, requestId);
     return deserializeCollection<LearningResourceView>(response.data);
   }
   createDataset(body: LearningDatasetInput) {
