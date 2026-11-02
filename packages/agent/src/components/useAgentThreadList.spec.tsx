@@ -161,7 +161,7 @@ describe('useAgentThreadList', () => {
 
   it('paints the cached threads on a return visit without a loading state', () => {
     useAgentChatStore.getState().setThreads([makeThread('t-1')]);
-    const firstRender: boolean[] = [];
+    const firstRender: { isLoading: boolean; threadIds: string[] }[] = [];
 
     renderHook(() => {
       const state = useAgentThreadList({
@@ -169,11 +169,14 @@ describe('useAgentThreadList', () => {
         brandId: null,
         isActive: true,
       });
-      firstRender.push(state.isLoading);
+      firstRender.push({
+        isLoading: state.isLoading,
+        threadIds: state.threads.map((thread) => thread.id),
+      });
       return state;
     });
 
-    expect(firstRender[0]).toBe(false);
+    expect(firstRender[0]).toEqual({ isLoading: false, threadIds: ['t-1'] });
   });
 
   it('keeps the typed rename when the thread is deleted before PATCH completes', async () => {
