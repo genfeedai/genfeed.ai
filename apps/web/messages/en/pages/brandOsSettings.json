@@ -228,5 +228,10 @@
       "fact_check": "Fact check passed"
     },
     "invalid": "This Policy cannot be saved yet: {error}"
+  },
+  "assetFields": {
+    "label": "Label",
+    "platform": "Platform",
+    "url": "URL"
   }
 }

@@ -14,11 +14,13 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useBrandKitSectionTabs } from '@/features/brands/components/brand-kit/useBrandKitSectionTabs';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
+import BrandKitRulesIconActions from './brand-kit-rules-icon-actions';
+import ContentRulesSection from './content-rules-section';
 import ContentRulesDeliveryTab from './content-rules-delivery-tab';
 import ContentRulesExamplesTab from './content-rules-examples-tab';
 import ContentRulesIdentityTab from './content-rules-identity-tab';
@@ -45,16 +47,6 @@ const DEFAULT_LINE_RULES = [
   'No throat clearing',
   'Make transitions obvious',
 ];
-
-const CONTENT_RULES_TABS = [
-  'identity',
-  'structure',
-  'delivery',
-  'thesis',
-  'examples',
-] as const;
-
-type ContentRulesTabId = (typeof CONTENT_RULES_TABS)[number];
 
 function splitLines(value: string): string[] {
   return value.split('\n').flatMap((line) => {
@@ -128,7 +120,7 @@ export default function BrandContentRulesPage() {
   );
 
   const profileRef = useRef<IHarnessProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<ContentRulesTabId>('identity');
+  const sectionTabs = useBrandKitSectionTabs('rules');
   const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
     createDraft('', 'Brand'),
   );
@@ -292,41 +284,24 @@ export default function BrandContentRulesPage() {
     );
   }
 
-  const tabs = CONTENT_RULES_TABS.map((id) => ({
-    id,
-    label: translate(`tabs.${id}`),
-  }));
-
   return (
     <Container
       fullWidth
-      headerTabs={{
-        activeTab,
-        fullWidth: false,
-        onTabChange: (tab) => setActiveTab(tab as ContentRulesTabId),
-        tabs,
-      }}
+      moduleChrome
+      headerTabs={sectionTabs}
+      iconActions={
+        <BrandKitRulesIconActions
+          isPromoting={isPromoting}
+          isSaving={isSaving}
+          onPromote={handlePromoteWinners}
+          receiptsHref={href('/settings/agent/receipts')}
+        />
+      }
       right={
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={href('/settings/agent/receipts')} className="text-sm">
-            {receiptTranslate('open')}
-          </Link>
-          <Badge variant="outline">
-            {translate('badges.scopePrefix', {
-              scope: draft.scope ?? 'brand',
-            })}
-          </Badge>
+        <>
           <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
             {draft.status ?? 'active'}
           </Badge>
-          <Button
-            disabled={isPromoting || isSaving}
-            onClick={handlePromoteWinners}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            {isPromoting ? translate('promoting') : translate('promote')}
-          </Button>
           <Button
             disabled={isSaving}
             onClick={handleSave}
@@ -335,48 +310,50 @@ export default function BrandContentRulesPage() {
           >
             {isSaving ? translate('saving') : translate('save')}
           </Button>
-        </div>
+        </>
       }
     >
-      {draft.positioning ? (
-        <ContentRulesPositioningScorecard
-          interviewHref={href('/settings/brand-kit/guided-setup')}
-          positioning={draft.positioning}
-        />
-      ) : null}
+      <div className="flex max-w-3xl flex-col gap-8">
+        {draft.positioning ? (
+          <ContentRulesPositioningScorecard
+            interviewHref={href('/settings/brand-kit/guided-setup')}
+            positioning={draft.positioning}
+          />
+        ) : null}
 
-      {activeTab === 'identity' ? (
-        <ContentRulesIdentityTab
-          draft={draft}
-          onDraftChange={updateDraft}
-          splitLines={splitLines}
-        />
-      ) : null}
+        <ContentRulesSection title={translate('tabs.identity')}>
+          <ContentRulesIdentityTab
+            draft={draft}
+            onDraftChange={updateDraft}
+            splitLines={splitLines}
+          />
+        </ContentRulesSection>
 
-      {activeTab === 'structure' ? (
-        <ContentRulesStructureTab draft={draft} onListChange={updateList} />
-      ) : null}
+        <ContentRulesSection title={translate('tabs.structure')}>
+          <ContentRulesStructureTab draft={draft} onListChange={updateList} />
+        </ContentRulesSection>
 
-      {activeTab === 'delivery' ? (
-        <ContentRulesDeliveryTab
-          onVoiceChange={updateVoice}
-          splitLines={splitLines}
-          voice={draft.voice}
-        />
-      ) : null}
+        <ContentRulesSection title={translate('tabs.delivery')}>
+          <ContentRulesDeliveryTab
+            onVoiceChange={updateVoice}
+            splitLines={splitLines}
+            voice={draft.voice}
+          />
+        </ContentRulesSection>
 
-      {activeTab === 'thesis' ? (
-        <ContentRulesThesisTab draft={draft} onListChange={updateList} />
-      ) : null}
+        <ContentRulesSection title={translate('tabs.thesis')}>
+          <ContentRulesThesisTab draft={draft} onListChange={updateList} />
+        </ContentRulesSection>
 
-      {activeTab === 'examples' ? (
-        <ContentRulesExamplesTab
-          draft={draft}
-          onDraftChange={updateDraft}
-          onListChange={updateList}
-          splitLines={splitLines}
-        />
-      ) : null}
+        <ContentRulesSection title={translate('tabs.examples')}>
+          <ContentRulesExamplesTab
+            draft={draft}
+            onDraftChange={updateDraft}
+            onListChange={updateList}
+            splitLines={splitLines}
+          />
+        </ContentRulesSection>
+      </div>
     </Container>
   );
 }

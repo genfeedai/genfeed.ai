@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
@@ -15,27 +15,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import { Ellipsis } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { BrandKitWorkspaceProps } from '@/features/brands/props/brand-kit-workspace.props';
+import type {
+  BrandKitWorkspaceProps,
+  BrandPreviewSource,
+  BrandPreviewTemplate,
+} from '@/features/brands/props/brand-kit-workspace.props';
+import BrandKitIconActions from './BrandKitIconActions';
 import BrandKitLocalPreview from './BrandKitLocalPreview';
+import BrandKitPreviewMenu from './BrandKitPreviewMenu';
+import { useBrandKitSectionTabs } from './useBrandKitSectionTabs';
 
 export default function BrandKitWorkspace({
   brand,
   tab,
-  onTabChange,
   onScan,
   onManualImport,
   guidedSetupHref,
-  contentRulesHref,
   overview,
   writingEditor,
   assets,
@@ -51,65 +48,52 @@ export default function BrandKitWorkspace({
 }: BrandKitWorkspaceProps) {
   const t = useTranslations('pages.brandKitSettings');
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const revisionStatus = content ? (
-    <div className="flex items-center justify-between gap-3 border-t border-border py-3">
-      <span className="text-xs text-muted-foreground" role="status">
-        {isDirty ? t('unsaved') : t('saved')}
-      </span>
-      <Button onClick={onSave} isDisabled={isSaveDisabled}>
-        {t('saveDraft')}
-      </Button>
-    </div>
-  ) : null;
+  const [previewSource, setPreviewSource] =
+    useState<BrandPreviewSource>('draft');
+  const [previewTemplate, setPreviewTemplate] =
+    useState<BrandPreviewTemplate>('social');
+  const sectionTabs = useBrandKitSectionTabs(tab);
   return (
     <Container
       label={t('settingsAriaLabel')}
       titleVisibility="sr-only"
       moduleChrome
-      headerTabs={{
-        activeTab: tab,
-        onTabChange,
-        ariaLabel: t('sectionsLabel'),
-        fullWidth: false,
-        tabs: [
-          { id: 'overview', label: t('overview') },
-          { id: 'visual', label: t('visual') },
-          { id: 'voice', label: t('voice') },
-          { id: 'strategy', label: t('strategy') },
-        ],
-      }}
+      headerTabs={sectionTabs}
+      iconActions={
+        <BrandKitIconActions
+          guidedSetupHref={guidedSetupHref}
+          isDisabled={isDirty}
+          onManualImport={onManualImport}
+          onScan={onScan}
+        />
+      }
       right={
         <>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            onClick={onScan}
-            isDisabled={isDirty}
-          >
-            {t('scan')}
+          <BrandKitPreviewMenu
+            isApprovedAvailable={approvedContent !== null}
+            onSourceChange={setPreviewSource}
+            onTemplateChange={setPreviewTemplate}
+            source={previewSource}
+            template={previewTemplate}
+          />
+          {isDirty ? (
+            <span className="text-xs text-muted-foreground" role="status">
+              {t('unsaved')}
+            </span>
+          ) : null}
+          {content ? (
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              onClick={onSave}
+              isDisabled={isSaveDisabled}
+            >
+              {t('saveDraft')}
+            </Button>
+          ) : null}
+          <Button size={ButtonSize.SM} onClick={() => setIsReviewOpen(true)}>
+            {t('review')}
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                aria-label={t('actionsLabel')}
-                withWrapper={false}
-              >
-                <Ellipsis className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild disabled={isDirty}>
-                <Link href={guidedSetupHref}>{t('guidedSetup')}</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onManualImport} disabled={isDirty}>
-                {t('manualImport')}
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild disabled={isDirty}>
-                <Link href={contentRulesHref}>{t('contentRules')}</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={() => setIsReviewOpen(true)}>{t('review')}</Button>
         </>
       }
     >
@@ -140,14 +124,7 @@ export default function BrandKitWorkspace({
                 </p>
               )
             )}
-            {tab === 'visual' && (
-              <Collapsible>
-                <CollapsibleTrigger>{t('assets')}</CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3">
-                  {assets}
-                </CollapsibleContent>
-              </Collapsible>
-            )}
+            {tab === 'visual' ? assets : null}
             {(tab === 'voice' || tab === 'strategy') && (
               <Collapsible>
                 <CollapsibleTrigger>{t('snapshot')}</CollapsibleTrigger>
@@ -156,11 +133,9 @@ export default function BrandKitWorkspace({
                     {t('snapshotHelp')}
                   </p>
                   {editor}
-                  {revisionStatus}
                 </CollapsibleContent>
               </Collapsible>
             )}
-            {tab === 'voice' || tab === 'strategy' ? null : revisionStatus}
           </div>
           <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
             <BrandKitLocalPreview
@@ -168,6 +143,8 @@ export default function BrandKitWorkspace({
               brand={brand}
               content={content}
               approvedContent={approvedContent}
+              source={previewSource}
+              template={previewTemplate}
             />
           </div>
         </div>

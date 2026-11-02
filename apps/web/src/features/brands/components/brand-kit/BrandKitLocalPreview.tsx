@@ -10,18 +10,8 @@ import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Tabs } from '@ui/primitives/tabs';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 import type {
   BrandKitLocalPreviewProps,
   BrandPreviewColor,
@@ -29,6 +19,7 @@ import type {
   BrandPreviewSurfaceProps,
   BrandPreviewTemplate,
 } from '@/features/brands/props/brand-kit-workspace.props';
+import { readableTextColor } from './brand-kit-color-value';
 
 function hasPreviewValue(value: unknown): boolean {
   if (typeof value === 'string') return value.trim().length > 0;
@@ -79,8 +70,20 @@ function readPreviewSocialLinks(value: unknown): BrandPreviewSocialLink[] {
 const PREVIEW_FRAME_CLASS: Record<BrandPreviewTemplate, string> = {
   cover: 'aspect-video',
   profile: '',
-  social: 'aspect-square',
+  social: '',
 };
+
+function brandSurfaceStyle(colors: readonly BrandPreviewColor[]) {
+  const background = colors.find((color) => color.key === 'background');
+  if (!background) return undefined;
+  const others = colors
+    .filter((color) => color.key !== 'background')
+    .map((color) => color.value);
+  return {
+    backgroundColor: background.value,
+    color: readableTextColor(background.value, others),
+  };
+}
 
 function BrandPreviewSurface({
   colors,
@@ -99,6 +102,7 @@ function BrandPreviewSurface({
       gap={CardGap.LG}
       className={PREVIEW_FRAME_CLASS[template]}
       data-testid="brand-kit-preview-surface"
+      style={brandSurfaceStyle(colors)}
     >
       <div className="flex items-center gap-3">
         {logoUrl ? (
@@ -115,7 +119,10 @@ function BrandPreviewSurface({
             {label.slice(0, 1)}
           </span>
         )}
-        <span className="text-sm font-medium">{label}</span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{label}</p>
+          <p className="truncate text-xs opacity-70">@{slug}</p>
+        </div>
       </div>
       {template === 'profile' ? (
         <p className="text-sm leading-relaxed">{description}</p>
@@ -128,9 +135,7 @@ function BrandPreviewSurface({
           >
             {sample}
           </p>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+          <p className="text-sm leading-relaxed opacity-70">{description}</p>
         </div>
       )}
       {socialLinks.length > 0 ? (
@@ -155,23 +160,6 @@ function BrandPreviewSurface({
           ))}
         </ul>
       ) : null}
-      <div className="mt-auto flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs text-muted-foreground">{slug}</p>
-        {colors.length > 0 ? (
-          <ul className="flex shrink-0 gap-1.5">
-            {colors.map((color) => (
-              <li key={color.key}>
-                <SimpleTooltip label={color.value}>
-                  <span
-                    className="block size-4 rounded-sm border border-border"
-                    style={{ backgroundColor: color.value }}
-                  />
-                </SimpleTooltip>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
     </Card>
   );
 }
@@ -181,10 +169,10 @@ export default function BrandKitLocalPreview({
   brand,
   content,
   approvedContent,
+  source,
+  template,
 }: BrandKitLocalPreviewProps) {
   const t = useTranslations('pages.brandKitSettings.preview');
-  const [source, setSource] = useState('draft');
-  const [template, setTemplate] = useState<BrandPreviewTemplate>('social');
   const draft = source === 'approved' ? approvedContent : content;
   const fallbackBrand = source === 'approved' ? null : brand;
   function value(key: BrandKitFieldKey, fallback: unknown) {
@@ -247,47 +235,9 @@ export default function BrandKitLocalPreview({
   return (
     <section
       aria-label={t('label')}
-      className="space-y-4"
+      className="space-y-3"
       data-testid="brand-kit-local-preview"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-sm font-medium">
-          {t('title', {
-            source: source === 'approved' ? t('approved') : t('draft'),
-          })}
-        </span>
-        <Tabs
-          activeTab={source}
-          onTabChange={setSource}
-          ariaLabel={t('sourceLabel')}
-          fullWidth={false}
-          tabs={[
-            {
-              id: 'approved',
-              label: t('approved'),
-              isDisabled: !approvedContent,
-            },
-            { id: 'draft', label: t('draft') },
-          ]}
-        />
-      </div>
-      <Select
-        value={template}
-        onValueChange={(next) => {
-          if (next === 'cover' || next === 'profile' || next === 'social') {
-            setTemplate(next);
-          }
-        }}
-      >
-        <SelectTrigger aria-label={t('templateLabel')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="social">{t('social')}</SelectItem>
-          <SelectItem value="cover">{t('cover')}</SelectItem>
-          <SelectItem value="profile">{t('profile')}</SelectItem>
-        </SelectContent>
-      </Select>
       {isApprovedUnavailable ? (
         <p className="text-sm text-muted-foreground">{t('noApproved')}</p>
       ) : (

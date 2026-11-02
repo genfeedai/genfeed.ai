@@ -14,6 +14,8 @@ export interface BrandPreviewColor {
 
 export type BrandPreviewTemplate = 'cover' | 'profile' | 'social';
 
+export type BrandPreviewSource = 'approved' | 'draft';
+
 export interface BrandPreviewSurfaceProps {
   colors: readonly BrandPreviewColor[];
   description: string;
@@ -26,20 +28,43 @@ export interface BrandPreviewSurfaceProps {
   template: BrandPreviewTemplate;
 }
 
+export interface BrandKitSectionTabs {
+  activeTab: string;
+  ariaLabel: string;
+  fullWidth: boolean;
+  onTabChange: (tab: string) => void;
+  tabs: { id: string; label: string }[];
+}
+
+export interface BrandKitIconActionsProps {
+  guidedSetupHref: string;
+  isDisabled: boolean;
+  onManualImport: () => void;
+  onScan: () => void;
+}
+
 export interface BrandKitLocalPreviewProps {
   brand: IBrand;
   content: IBrandKitDraft | null;
   approvedContent: IBrandKitDraft | null;
+  source: BrandPreviewSource;
+  template: BrandPreviewTemplate;
+}
+
+export interface BrandKitPreviewMenuProps {
+  isApprovedAvailable: boolean;
+  onSourceChange: (source: BrandPreviewSource) => void;
+  onTemplateChange: (template: BrandPreviewTemplate) => void;
+  source: BrandPreviewSource;
+  template: BrandPreviewTemplate;
 }
 
 export interface BrandKitWorkspaceProps extends BrandKitRevisionWorkspace {
   brand: IBrand;
   tab: string;
-  onTabChange: (tab: string) => void;
   onScan: () => void;
   onManualImport: () => void;
   guidedSetupHref: string;
-  contentRulesHref: string;
   overview: ReactNode;
   writingEditor: ReactNode;
   assets: ReactNode;

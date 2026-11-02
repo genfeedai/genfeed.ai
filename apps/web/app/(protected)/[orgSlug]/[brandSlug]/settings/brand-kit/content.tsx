@@ -1,7 +1,6 @@
 'use client';
 
 import { AssetCategory, ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   BrandKitFieldGroup,
   IBrandKitDraft,
@@ -25,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
@@ -44,7 +43,7 @@ import BrandWatermarkSettings from '@/features/brands/components/sidebar/BrandWa
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
-import { BRAND_KIT_TAB_PATHS, isBrandKitPathTab } from './brand-kit-tabs';
+import { isBrandKitPathTab } from './brand-kit-tabs';
 
 const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
   overview: ['profile', 'links'],
@@ -59,7 +58,6 @@ export default function BrandKitPage() {
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const [refreshKey, setRefreshKey] = useState(0);
   const [workflow, setWorkflow] = useState<'scan' | 'manual' | null>(null);
-  const router = useRouter();
   const pathname = usePathname();
   const requestedTab = pathname?.split('/').filter(Boolean).at(-1) ?? '';
   const tab = isBrandKitPathTab(requestedTab) ? requestedTab : 'overview';
@@ -128,33 +126,13 @@ export default function BrandKitPage() {
             {...workspace}
             brand={brand}
             tab={tab}
-            onTabChange={(next) => {
-              router.push(
-                href(
-                  isBrandKitPathTab(next)
-                    ? BRAND_KIT_TAB_PATHS[next]
-                    : APP_ROUTES.SETTINGS.BRAND_KIT,
-                ),
-                { scroll: false },
-              );
-            }}
             onScan={() => setWorkflow('scan')}
             onManualImport={() => setWorkflow('manual')}
             guidedSetupHref={href('/settings/brand-kit/guided-setup')}
-            contentRulesHref={href('/settings/brand-kit/content-rules')}
             overview={
               <>
                 <BrandCompletenessCard brand={brand} />
                 {workspace.editor}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    isDisabled={workspace.isDirty}
-                    onClick={() => setWorkflow('manual')}
-                  >
-                    {t('createManualDraft')}
-                  </Button>
-                </div>
                 <Collapsible>
                   <CollapsibleTrigger>{t('capturedDraft')}</CollapsibleTrigger>
                   <CollapsibleContent
