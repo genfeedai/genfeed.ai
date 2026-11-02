@@ -3,11 +3,7 @@ import {
   presetElementSchema,
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  ButtonVariant,
-  ModalEnum,
-  ModelCategory,
-} from '@genfeedai/contracts';
+import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
 import type { IPreset } from '@genfeedai/contracts/interfaces';
 import type { ModalCreateProps } from '@genfeedai/props/modals/modal.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -17,7 +13,13 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
-import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 import { usePromptEnhance } from '@/hooks/ui/use-prompt-enhance/use-prompt-enhance';
 import ModalPresetFields from './ModalPresetFields';
@@ -127,7 +129,7 @@ export default function ModalPreset({ onConfirm, onClose }: ModalCreateProps) {
     try {
       const result = await enhance(
         watchedDescription ?? '',
-        form.getValues('category'),
+        form.getValues('category') ?? ModelCategory.IMAGE,
       );
       form.setValue('description', result, { shouldValidate: true });
       // The undo stays available for 30 seconds.
