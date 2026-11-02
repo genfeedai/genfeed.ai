@@ -8,7 +8,6 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import TurboNewPane from './TurboNewPane';
 
 const mocks = vi.hoisted(() => ({
@@ -21,11 +20,11 @@ const mocks = vi.hoisted(() => ({
     moduleOverrides: { automation: true },
   } as Record<string, unknown>,
   list: vi.fn(),
-  projectList: vi.fn(),
-  getWorkflowService: vi.fn(),
+  listProjects: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   getService: vi.fn(),
+  getWorkflowService: vi.fn(),
   push: vi.fn(),
   seedComposer: vi.fn(),
   publishContext: vi.fn(),
@@ -67,8 +66,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: unknown) =>
-    factory === createWorkflowApiService
+  // The pane resolves two services: the Turbo projects API (create, update and
+  // the project list the agent is told about) and the workflows API.
+  useAuthedService: (factory: { name: string }) =>
+    factory.name === 'createWorkflowApiService'
       ? mocks.getWorkflowService
       : mocks.getService,
 }));
@@ -116,6 +117,10 @@ const WEEKLY_MIX_ANGLE =
 
 function resetMocks() {
   vi.clearAllMocks();
+  window.history.replaceState(null, '', '/');
+  mocks.push.mockImplementation((url: string) =>
+    window.history.pushState(null, '', url),
+  );
   mocks.brandId = 'brand-1';
   mocks.isIdeasEnabled = true;
   mocks.settings = {
@@ -126,12 +131,12 @@ function resetMocks() {
   };
   mocks.getService.mockResolvedValue({
     create: mocks.create,
-    list: mocks.projectList,
+    list: mocks.listProjects,
     update: mocks.update,
   });
   mocks.getWorkflowService.mockResolvedValue({ list: mocks.list });
   mocks.list.mockResolvedValue([]);
-  mocks.projectList.mockResolvedValue([]);
+  mocks.listProjects.mockResolvedValue([]);
   mocks.create.mockResolvedValue({ id: 'run-1' });
   mocks.update.mockResolvedValue({ id: 'run-1' });
 }
@@ -191,7 +196,7 @@ describe('TurboNewPane', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenCalledWith({
       brandId: 'brand-1',
@@ -216,7 +221,7 @@ describe('TurboNewPane', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenCalledWith({
       brandId: 'brand-1',
@@ -258,7 +263,7 @@ describe('TurboNewPane', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenCalledWith({
       brandId: 'brand-1',
@@ -278,7 +283,7 @@ describe('TurboNewPane', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -367,32 +372,29 @@ describe('TurboNewPane', () => {
   );
 
   it('does not create against a changed brand during the service lookup', async () => {
-    let resolve:
-      | ((service: { create: typeof mocks.create }) => void)
-      | undefined;
-    const { rerender } = render(<TurboNewPane />);
-    await waitFor(() =>
-      expect(mocks.publishContext).toHaveBeenLastCalledWith({
-        app: 'turbo',
-        projects: [],
-      }),
-    );
-    mocks.getService.mockImplementationOnce(
+    // The pane looks the service up for the project list as well as for the
+    // create, so hold every lookup until the brand has changed.
+    const resolvers: Array<(service: object) => void> = [];
+    mocks.getService.mockImplementation(
       () =>
         new Promise((done) => {
-          resolve = done;
+          resolvers.push(done);
         }),
     );
+    const { rerender } = render(<TurboNewPane />);
+
     typePrompt('Launch week');
     fireEvent.click(sendButton());
     mocks.brandId = 'brand-2';
     rerender(<TurboNewPane />);
     await act(async () => {
-      resolve?.({ create: mocks.create });
+      for (const resolve of resolvers) {
+        resolve({ create: mocks.create, list: mocks.listProjects });
+      }
     });
 
     expect(mocks.create).not.toHaveBeenCalled();
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/');
   });
 
   it('offers billing and hides the composer for a subscription denial', async () => {
@@ -423,7 +425,7 @@ describe('TurboNewPane', () => {
       screen.queryByRole('button', { name: 'Create project' }),
     ).not.toBeInTheDocument();
     expect(mocks.create).toHaveBeenCalledTimes(1);
-    expect(mocks.push).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/');
   });
 
   it('keeps the prompt after a failed save and allows sending again', async () => {
@@ -446,7 +448,7 @@ describe('TurboNewPane', () => {
     await waitFor(() => expect(sendButton()).toBeEnabled());
     fireEvent.click(sendButton());
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenCalledTimes(2);
   });
@@ -474,7 +476,7 @@ describe('TurboNewPane from a workflow', () => {
     fireEvent.click(sendButton());
 
     await waitFor(() =>
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1'),
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1'),
     );
     expect(mocks.create).toHaveBeenCalledWith({
       brandId: 'brand-1',
@@ -565,7 +567,7 @@ describe('TurboNewPane from a workflow', () => {
     ];
 
     beforeEach(() => {
-      mocks.projectList.mockResolvedValue(PROJECTS);
+      mocks.listProjects.mockResolvedValue(PROJECTS);
     });
 
     it('tells the agent it is on the Turbo New screen with the brand projects', async () => {
@@ -584,7 +586,7 @@ describe('TurboNewPane from a workflow', () => {
 
     it('asks which project a change request applies to instead of creating one', async () => {
       render(<TurboNewPane />);
-      await waitFor(() => expect(mocks.projectList).toHaveBeenCalled());
+      await waitFor(() => expect(mocks.listProjects).toHaveBeenCalled());
       await screen.findByRole('textbox', { name: 'Creative angle' });
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith(
@@ -598,8 +600,9 @@ describe('TurboNewPane from a workflow', () => {
       expect(
         await screen.findByText('Which project should I apply this to?'),
       ).toBeInTheDocument();
+      // The composer still holds the request; the bubble is the div copy of it.
       expect(
-        screen.getByText('revise the intro', { selector: 'p' }),
+        screen.getByText('revise the intro', { selector: 'div' }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Spring launch' }),
@@ -625,7 +628,7 @@ describe('TurboNewPane from a workflow', () => {
       );
 
       expect(mocks.seedComposer).toHaveBeenCalledWith('revise the intro');
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/project-2');
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/project-2');
       expect(mocks.create).not.toHaveBeenCalled();
     });
 
@@ -652,7 +655,7 @@ describe('TurboNewPane from a workflow', () => {
           name: 'revise the intro',
         }),
       );
-      expect(mocks.push).toHaveBeenCalledWith('/acme/moonrise/turbo/run-1');
+      expect(window.location.pathname).toBe('/acme/moonrise/turbo/run-1');
     });
 
     it('creates a project for new work even when projects exist', async () => {
@@ -673,7 +676,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('creates a project for a change request when the brand has none', async () => {
-      mocks.projectList.mockResolvedValue([]);
+      mocks.listProjects.mockResolvedValue([]);
       render(<TurboNewPane />);
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith({

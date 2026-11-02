@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -61,6 +61,10 @@ const { default: ClipperIngredientImport } = await import(
 describe('ClipperIngredientImport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/acme/brand-1/clipper');
+    mocks.replace.mockImplementation((url: string) =>
+      window.history.replaceState(null, '', url),
+    );
     mocks.brand = { isReady: true, selectedBrand: { id: 'brand-1' } };
     mocks.createFromIngredient.mockResolvedValue({ projectId: 'project-2' });
   });
@@ -81,9 +85,7 @@ describe('ClipperIngredientImport', () => {
     render(<ClipperIngredientImport videoId="video-1" />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/brand-1/clipper/project-2',
-      );
+      expect(window.location.pathname).toBe('/acme/brand-1/clipper/project-2');
     });
     expect(mocks.createFromIngredient).toHaveBeenCalledWith({
       brandId: 'brand-1',
@@ -98,7 +100,9 @@ describe('ClipperIngredientImport', () => {
       </StrictMode>,
     );
 
-    await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(window.location.pathname).toBe('/acme/brand-1/clipper/project-2'),
+    );
     expect(mocks.createFromIngredient).toHaveBeenCalledTimes(1);
   });
 
@@ -115,6 +119,6 @@ describe('ClipperIngredientImport', () => {
     expect(
       screen.getByRole('link', { name: 'Back to Library' }),
     ).toHaveAttribute('href', '/acme/brand-1/library/assets');
-    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/acme/brand-1/clipper');
   });
 });

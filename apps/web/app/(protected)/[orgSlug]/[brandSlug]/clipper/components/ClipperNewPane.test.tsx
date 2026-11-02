@@ -69,6 +69,12 @@ describe('ClipperNewPane', () => {
       'Podcast highlights preset applied: up to 8 clips scoring 70 or higher.',
     );
     expect(mocks.analyze).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('YouTube URL')).toHaveValue(
+      'https://youtu.be/dQw4w9WgXcQ',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Import & transcribe' }),
+    ).toBeEnabled();
   });
 
   it('imports the source from the send button', () => {

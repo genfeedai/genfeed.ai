@@ -19,26 +19,24 @@ export function useCreativeAppAgentContext(
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
 
   useEffect(() => {
-    const creativeAppContext = creativeApp;
-    if (!creativeAppContext) {
+    if (!creativeApp) {
       return;
     }
+    // A const keeps the non-null narrowing inside the closures below.
+    const context = creativeApp;
 
-    const apply = (): void => {
+    function apply(): void {
       const current = useAgentChatStore.getState().pageContext;
-      if (
-        current?.route === pathname &&
-        current.creativeApp === creativeAppContext
-      ) {
+      if (current?.route === pathname && current.creativeApp === context) {
         return;
       }
       setPageContext({
         suggestedActions: [],
         ...(current?.route === pathname ? current : {}),
-        creativeApp: creativeAppContext,
+        creativeApp: context,
         route: pathname,
       });
-    };
+    }
 
     apply();
     // The protected layout rebuilds the route's context when its suggestions

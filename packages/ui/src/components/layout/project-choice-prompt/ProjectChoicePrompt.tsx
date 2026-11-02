@@ -1,12 +1,5 @@
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardGap,
-  CardPadding,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ProjectChoicePromptProps } from '@genfeedai/props/ui/layout/project-choice-prompt.props';
-import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
@@ -27,14 +20,10 @@ export default function ProjectChoicePrompt({
 }: ProjectChoicePromptProps): ReactElement {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-      <Card
-        className="ml-auto max-w-[85%] break-words"
-        gap={CardGap.NONE}
-        padding={CardPadding.SM}
-        variant={CardVariant.INSET}
-      >
-        <p className="text-sm">{request}</p>
-      </Card>
+      {/* ui-guard-allow:hand-built-card -- chat bubble for the viewer's own message, not a content card */}
+      <div className="ml-auto max-w-[85%] break-words rounded-2xl bg-muted px-3.5 py-2.5 text-sm">
+        {request}
+      </div>
       <p className="max-w-[92%] text-sm leading-relaxed text-foreground/90">
         {question}
       </p>
