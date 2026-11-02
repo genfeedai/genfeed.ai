@@ -57,7 +57,7 @@ import type {
 import { AgentMessageRole, AgentThreadMode } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Host callbacks for plan-mode turns that still depend on orchestrator-owned
@@ -86,6 +86,9 @@ const PLAN_MODE_INSTRUCTION =
  * input-request card as `request_input` by answering with a `question` instead
  * of a plan. The answer arrives as the next turn and the planner runs again.
  */
+/** Draws the planner gets when a model answers with no text. */
+const MAX_PLANNING_ATTEMPTS = 2;
+
 const PLAN_MODE_QUESTION_INSTRUCTION = `If the request leaves out something that would change the plan, ask one question instead of planning. Respond with valid JSON only: {"title":"optional thread title","question":{"title":"short card title","prompt":"the question","options":[{"id":"short-id","label":"Choice","description":"optional"}],"recommendedOptionId":"optional option id","allowFreeText":true}}. Offer two to five options and ask one question per turn. Ask only for what you cannot infer from the request, the brand context or earlier answers. For a video check the ${formatBriefLabels(VIDEO_BRIEF_CHECKLIST.map((field) => field.label))}. For an image check the ${formatBriefLabels(IMAGE_BRIEF_CHECKLIST.map((field) => field.label))}. For a post check the ${formatBriefLabels(POST_BRIEF_CHECKLIST.map((field) => field.label))}. When nothing important is missing, plan.`;
 
 const PLAN_MODE_NO_QUESTION_INSTRUCTION =
@@ -101,6 +104,8 @@ function isProseReply(response: ReturnType<typeof parsePlanResponse>): boolean {
 
 @Injectable()
 export class AgentOrchestratorPlanModeService {
+  private readonly logger = new Logger(AgentOrchestratorPlanModeService.name);
+
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
     private readonly llmDispatcher: LlmDispatcherService,
@@ -295,27 +300,40 @@ export class AgentOrchestratorPlanModeService {
       requestedModel: dispatchedModel,
       // A blank completion would persist a plan with nothing to review and
       // still ask for approval. Failing inside the round releases the hold,
-      // so an empty answer is not billed.
+      // so an empty answer is not billed. A reasoning model can spend its
+      // whole budget thinking and return no text, and a second draw usually
+      // answers, so one blank reply is retried before the turn fails.
       run: async () => {
-        const response = await this.llmDispatcher.chatCompletion(
-          chatParams,
-          params.context.organizationId,
-          {
-            brandId: params.context.scope?.brandId,
-            runId: params.context.executionId,
-            threadId: params.threadId,
-            userId: params.context.userId,
-          },
-        );
-        const planText = sanitizeAgentOutputText(
-          response.choices[0]?.message.content || '',
-        );
-        if (!planText.trim()) {
-          throw new Error(
-            'The planner returned an empty plan. Send the request again.',
+        for (let attempt = 1; attempt <= MAX_PLANNING_ATTEMPTS; attempt += 1) {
+          const response = await this.llmDispatcher.chatCompletion(
+            chatParams,
+            params.context.organizationId,
+            {
+              brandId: params.context.scope?.brandId,
+              runId: params.context.executionId,
+              threadId: params.threadId,
+              userId: params.context.userId,
+            },
           );
+          const choice = response.choices[0];
+          const planText = sanitizeAgentOutputText(
+            choice?.message.content || '',
+          );
+          if (planText.trim()) {
+            return response;
+          }
+          this.logger.warn('Planner returned no text', {
+            attempt,
+            finishReason: choice?.finish_reason ?? null,
+            hasReasoning: Boolean(choice?.message.reasoning_content?.trim()),
+            hasToolCalls: Boolean(choice?.message.tool_calls?.length),
+            model: response.model ?? chatParams.model,
+            threadId: params.threadId,
+          });
         }
-        return response;
+        throw new Error(
+          'The planner returned an empty plan. Send the request again.',
+        );
       },
       waived: params.turnCost === 0,
     });

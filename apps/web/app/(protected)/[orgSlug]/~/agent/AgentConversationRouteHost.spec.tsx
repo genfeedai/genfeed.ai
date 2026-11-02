@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentConversationRouteHost from './AgentConversationRouteHost';
@@ -8,8 +8,20 @@ const shellRenderSpy = vi.fn();
 const shellMountSpy = vi.fn();
 const shellUnmountSpy = vi.fn();
 
+const pushMock = vi.fn();
+
 vi.mock('next/navigation', () => ({
   usePathname: () => pathnameState.current,
+  useRouter: () => ({ push: pushMock }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/test-org/~${path}` }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'exitFullPage' ? 'Back to master and threads' : key,
 }));
 
 vi.mock('./AgentWorkspacePageShell', () => ({
@@ -26,7 +38,9 @@ vi.mock('./AgentWorkspacePageShell', () => ({
 }));
 
 vi.mock('./AgentMasterWorkspace', () => ({
-  default: () => <div data-testid="master-workspace" />,
+  default: ({ openThreadId }: { openThreadId: string | null }) => (
+    <div data-testid="master-workspace">{openThreadId ?? 'list'}</div>
+  ),
 }));
 
 function renderHost(pathname: string) {
@@ -43,6 +57,7 @@ describe('AgentConversationRouteHost', () => {
     shellRenderSpy.mockClear();
     shellMountSpy.mockClear();
     shellUnmountSpy.mockClear();
+    pushMock.mockClear();
   });
 
   it('exposes the documented default export', () => {
@@ -70,12 +85,58 @@ describe('AgentConversationRouteHost', () => {
     expect(queryByTestId('master-workspace')).toBeNull();
   });
 
-  it('keeps one mounted shell while the thread route changes', () => {
-    const { rerender, getByTestId } = renderHost('/test-org/~/agent/thread-1');
+  it('shows the Threads list beside the master on /agent/threads', () => {
+    const { getByTestId, queryByTestId } = renderHost(
+      '/test-org/~/agent/threads',
+    );
+
+    expect(getByTestId('master-workspace')).toHaveTextContent('list');
+    expect(queryByTestId('conversation-shell')).toBeNull();
+  });
+
+  it('opens the thread named in the URL beside the master on /agent/[id]', () => {
+    const { getByTestId, queryByTestId } = renderHost(
+      '/test-org/~/agent/thread-1',
+    );
+
+    expect(getByTestId('master-workspace')).toHaveTextContent('thread-1');
+    expect(queryByTestId('conversation-shell')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Back to master and threads' }),
+    ).toBeNull();
+  });
+
+  it('renders a thread full size on /agent/[id]/full with a way back to the two columns', () => {
+    const { getByTestId, queryByTestId } = renderHost(
+      '/test-org/~/agent/thread-1/full',
+    );
+
+    expect(getByTestId('conversation-shell')).toHaveTextContent('thread-1');
+    expect(queryByTestId('master-workspace')).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Back to master and threads' }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/agent/thread-1');
+  });
+
+  it('has no way back on /agent/new, which has no thread to return from', () => {
+    renderHost('/test-org/~/agent/new');
+
+    expect(
+      screen.queryByRole('button', { name: 'Back to master and threads' }),
+    ).toBeNull();
+  });
+
+  it('keeps one mounted shell while the full-size thread route changes', () => {
+    const { rerender, getByTestId } = renderHost(
+      '/test-org/~/agent/thread-1/full',
+    );
     expect(getByTestId('conversation-shell')).toHaveTextContent('thread-1');
     expect(shellMountSpy).toHaveBeenCalledTimes(1);
 
-    pathnameState.current = '/test-org/~/agent/thread-2';
+    pathnameState.current = '/test-org/~/agent/thread-2/full';
     rerender(
       <AgentConversationRouteHost>
         <div data-testid="route-page" />
@@ -99,7 +160,7 @@ describe('AgentConversationRouteHost', () => {
   });
 
   it('wraps the conversation in a full-height frame', () => {
-    const { getByTestId } = renderHost('/test-org/~/agent/thread-9');
+    const { getByTestId } = renderHost('/test-org/~/agent/thread-9/full');
 
     const shell = getByTestId('conversation-shell');
     expect(shell).toHaveTextContent('thread-9');
@@ -114,8 +175,8 @@ describe('AgentConversationRouteHost', () => {
     );
   });
 
-  it('passes no thread id for malformed thread segments', () => {
-    renderHost('/test-org/~/agent/undefined');
+  it('passes no thread id for malformed full-size thread segments', () => {
+    renderHost('/test-org/~/agent/undefined/full');
 
     expect(shellRenderSpy).toHaveBeenLastCalledWith(undefined);
   });

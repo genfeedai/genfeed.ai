@@ -20,11 +20,17 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/new-run')).toBe(true);
   });
 
-  it('matches the master conversation but not a single full-page thread', () => {
+  it('matches the master conversation, its Threads list and an open thread', () => {
     expect(isAgentOutputRoute('/agent')).toBe(true);
     expect(isAgentOutputRoute('/agent/')).toBe(true);
+    expect(isAgentOutputRoute('/agent/threads')).toBe(true);
+    expect(isAgentOutputRoute('/agent/thread-1')).toBe(true);
+  });
+
+  it('leaves the full-width conversations and the journey off the split layout', () => {
     expect(isAgentOutputRoute('/agent/new')).toBe(false);
     expect(isAgentOutputRoute('/agent/journey')).toBe(false);
+    expect(isAgentOutputRoute('/agent/thread-1/full')).toBe(false);
   });
 
   it('matches the workflow editor, new or saved', () => {
@@ -67,7 +73,7 @@ describe('isAgentOutputRoute', () => {
   });
 
   it('does not match other apps or nested paths', () => {
-    expect(isAgentOutputRoute('/agent/thread-1')).toBe(false);
+    expect(isAgentOutputRoute('/agent/thread-1/extra')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
 });

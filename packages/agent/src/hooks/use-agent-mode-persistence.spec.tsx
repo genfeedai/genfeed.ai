@@ -39,7 +39,9 @@ describe('useAgentModePersistence', () => {
     const updateAgentMode = vi
       .fn()
       .mockImplementationOnce(() => first.promise)
-      .mockRejectedValueOnce(new Error('failed'));
+      .mockRejectedValueOnce(
+        new Error('Failed to update agent mode: 404 - Thread not found'),
+      );
     const api = {
       getToken: vi.fn().mockResolvedValue('token'),
       updateAgentMode,
@@ -69,7 +71,7 @@ describe('useAgentModePersistence', () => {
     expect(useAgentChatStore.getState()).toMatchObject({
       savedAgentMode: 'auto',
       draftAgentMode: 'auto',
-      error: 'Failed to update agent mode.',
+      error: 'Failed to update agent mode: 404 - Thread not found',
     });
   });
   it('does not write without a token and keeps an unknown default unhydrated', async () => {

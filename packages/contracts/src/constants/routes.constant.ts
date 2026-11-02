@@ -106,6 +106,8 @@ export const APP_ROUTES = {
     ROOT: '/agent',
     JOURNEY: '/agent/journey',
     NEW: '/agent/new',
+    /** The master conversation beside the Threads list. */
+    THREADS: '/agent/threads',
   },
   AUTOMATION: {
     /** Content-run history: briefs handed off from Discovery through publish. */

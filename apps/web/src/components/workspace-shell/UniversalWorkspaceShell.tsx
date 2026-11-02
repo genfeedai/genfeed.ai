@@ -71,6 +71,7 @@ import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPi
 import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
 import {
   appendSearchParamsToHref,
+  buildAgentThreadHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
 import { isAgentOutputRoute } from '@/lib/workspace-shell/agent-output-routes';
@@ -629,7 +630,7 @@ function UniversalWorkspaceShellContent({
     const destinationThreadId = effectiveThreadId ?? activeThreadId;
     return activeHref(
       destinationThreadId
-        ? `${APP_ROUTES.AGENT.ROOT}/${destinationThreadId}`
+        ? buildAgentThreadHref(destinationThreadId, { isFull: true })
         : APP_ROUTES.AGENT.NEW,
     );
   }, [activeHref, activeThreadId, effectiveThreadId]);
@@ -1226,7 +1227,7 @@ function UniversalWorkspaceShellContent({
   // thread list and context as the dock, hosted in the page's own columns.
   const openFullThreadFromPage = useCallback(
     (threadId: string) => {
-      push(orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`));
+      push(orgHref(buildAgentThreadHref(threadId, { isFull: true })));
     },
     [orgHref, push],
   );
