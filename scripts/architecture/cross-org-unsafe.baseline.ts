@@ -82,6 +82,18 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
       line: 260,
     },
+    // Public brand pictures: the anonymous public profile (/u/<handle>) has no
+    // organization to scope by. projectPublicBrandAssets reads only LOGO and
+    // BANNER assets whose parent brand is non-deleted with scope PUBLIC, and
+    // only the signed picture URL leaves the service (never the storage key).
+    {
+      file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
+      line: 469,
+    },
+    {
+      file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
+      line: 496,
+    },
     // Access discovery: findActiveForUserAccess lists the caller's own active
     // memberships by canonical users.id (userId in the where) to resolve which
     // organizations they belong to (org switcher, identity resolution,
