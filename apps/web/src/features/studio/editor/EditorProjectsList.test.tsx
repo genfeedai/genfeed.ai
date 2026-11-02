@@ -28,6 +28,7 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
+  publishContext: vi.fn(),
   searchParams: new URLSearchParams(),
   deleteProject: vi.fn(),
   findAll: vi.fn(),
@@ -37,6 +38,11 @@ const mocks = vi.hoisted(() => ({
   notificationError: vi.fn(),
   updateProject: vi.fn(),
 }));
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/~/editor',
@@ -186,6 +192,32 @@ describe('EditorProjectsList', () => {
       '/acme/~/editor/project-3',
     ]);
     expect(all.getByRole('link', { name: /Cut 3/ })).toBeVisible();
+  });
+
+  it('tells the agent which projects are on screen once they have loaded', async () => {
+    mocks.findAll.mockResolvedValue([
+      {
+        id: 'project-1',
+        name: 'Cut 1',
+        status: 'draft',
+        tracks: [],
+        updatedAt: '2026-10-01T12:00:00Z',
+      },
+    ]);
+    render(<EditorProjectsList />);
+
+    await screen.findByTestId('editor-projects-all');
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'editor',
+      projects: [{ id: 'project-1', title: 'Cut 1' }],
+    });
+  });
+
+  it('tells the agent nothing while the projects are still loading', () => {
+    mocks.findAll.mockReturnValue(new Promise(() => undefined));
+    render(<EditorProjectsList />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith(null);
   });
 
   it('requests the server page from the URL and renders pagination', async () => {

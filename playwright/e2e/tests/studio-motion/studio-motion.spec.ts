@@ -1,5 +1,6 @@
 import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
 
 const settings = { width: 640, height: 360, fps: 30, durationFrames: 30 };
 const quote = {
@@ -191,4 +192,68 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
   await expect(
     page.getByRole('button', { name: 'Confirm and start' }),
   ).toHaveCount(0);
+});
+
+test('Motion opens a project with the agent on the left and the project on the right', async ({
+  authenticatedPage: page,
+}) => {
+  await page.setViewportSize({ height: 900, width: 1440 });
+  await page.route(
+    `${playwrightApiEndpoint}/visual-projects/**`,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith('/catalog'))
+        return route.fulfill({
+          json: {
+            data: {
+              type: 'visual-code-catalog',
+              id: 'catalog',
+              attributes: {
+                isAvailable: true,
+                defaultModelKey: 'test-model',
+                models: [
+                  {
+                    key: 'test-model',
+                    label: 'Test model',
+                    isAvailable: true,
+                    inspectionCapability: 'unknown',
+                  },
+                ],
+                defaultSettings: settings,
+              },
+            },
+          },
+        });
+      if (path.endsWith('/layout-project'))
+        return route.fulfill({
+          json: {
+            data: {
+              type: 'visual-projects',
+              id: 'layout-project',
+              attributes: {
+                label: 'Layout project',
+                currentRevision: 1,
+                revisions: [],
+                nextRevisionCursor: null,
+              },
+            },
+          },
+        });
+      return route.fulfill({
+        json: {
+          data: [],
+          links: { cursor: { hasMore: false, limit: 20, nextCursor: null } },
+        },
+      });
+    },
+  );
+
+  await page.goto('/test-org/brand-1/motion/layout-project');
+
+  await expectOpenProjectLayout(page);
+  await expect(
+    page
+      .getByTestId('agent-output-output-pane')
+      .getByRole('link', { name: 'All projects' }),
+  ).toBeVisible();
 });

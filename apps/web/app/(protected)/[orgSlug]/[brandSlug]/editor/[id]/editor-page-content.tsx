@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import type { EditorPageContentProps } from '@/features/studio/props/editor-page-content.props';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import EditorLayout from './EditorLayout';
 import EditorLoadingState from './EditorLoadingState';
 import EditorNotFound from './EditorNotFound';
@@ -39,6 +41,22 @@ export default function EditorPageContent({
     handleFrameChange,
     handlePlayingChange,
   } = useEditorPageContent(projectId);
+
+  // With a project open, change requests belong to it; the agent only needs
+  // to know which one that is.
+  const projectName = state.project?.name ?? '';
+  const creativeApp = useMemo(
+    () =>
+      state.project
+        ? {
+            app: 'editor' as const,
+            openProjectId: projectId,
+            projects: [{ id: projectId, title: projectName }],
+          }
+        : null,
+    [projectId, projectName, state.project],
+  );
+  useCreativeAppAgentContext(creativeApp);
 
   if (state.isLoading) {
     return <EditorLoadingState />;
