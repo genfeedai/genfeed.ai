@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { AgentAutonomyMode } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -52,12 +53,16 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: ({
     showTotal,
     totalLabel,
+    totals,
   }: {
     showTotal?: boolean;
     totalLabel?: string;
+    totals?: { totalDocs: number; totalPages: number };
   }) => (
     <div
       data-show-total={String(showTotal)}
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
       data-testid="opportunities-pagination"
     >
       {totalLabel}
@@ -245,17 +250,20 @@ function mockQueries(overrides: {
       queryKey[0] === 'agent-strategy'
         ? { ...baseStrategy, ...overrides.strategy }
         : queryKey[0] === 'agent-opportunities'
-          ? [
-              {
-                decisionReason:
-                  'Trend watcher matched a current platform trend.',
-                expectedTrafficScore: 89,
-                id: 'opp-1',
-                sourceType: 'trend',
-                status: 'queued',
-                topic: 'AI launch hooks',
-              },
-            ]
+          ? paginatedResponse(
+              [
+                {
+                  decisionReason:
+                    'Trend watcher matched a current platform trend.',
+                  expectedTrafficScore: 89,
+                  id: 'opp-1',
+                  sourceType: 'trend',
+                  status: 'queued',
+                  topic: 'AI launch hooks',
+                },
+              ],
+              { totalDocs: 61, totalPages: 5 },
+            )
           : queryKey[0] === 'agent-posts'
             ? (overrides.posts ?? [])
             : queryKey[0] === 'agent-performance'
@@ -359,11 +367,13 @@ describe('AgentDetailPage', () => {
     const pager = screen.getByTestId('opportunities-pagination');
     expect(pager).toHaveTextContent('opportunities');
     expect(pager).toHaveAttribute('data-show-total', 'true');
+    expect(pager).toHaveAttribute('data-total-docs', '61');
+    expect(pager).toHaveAttribute('data-total-pages', '5');
   });
 
   it('fetches the page named by ?page= with a cancellable request', async () => {
     searchState.page = '3';
-    listOpportunities.mockResolvedValue([]);
+    listOpportunities.mockResolvedValue(paginatedResponse([]));
     render(<AgentDetailPage agentId="strategy-1" />);
 
     const options = useQueryMock.mock.calls

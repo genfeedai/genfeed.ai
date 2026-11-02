@@ -1,7 +1,11 @@
 'use client';
 
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type {
+  IPageTotals,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
 import type {
   WorkflowExecutionListQueryParams,
   WorkflowExecutionStats,
@@ -22,6 +26,7 @@ export interface UseWorkflowExecutionsOptions {
 export interface UseWorkflowExecutionsReturn {
   cancelExecution: (id: string) => Promise<void>;
   executions: IWorkflowExecution[];
+  pageTotals: IPageTotals;
   isLoading: boolean;
   isError: boolean;
   isRefreshing: boolean;
@@ -36,6 +41,7 @@ export interface UseWorkflowExecutionsReturn {
 
 interface WorkflowExecutionsQueryData {
   executions: IWorkflowExecution[];
+  pageTotals: IPageTotals;
   isStatsDegraded: boolean;
   stats: WorkflowExecutionStats;
 }
@@ -162,13 +168,20 @@ export function useWorkflowExecutions(
       if (executionsResult.status === 'rejected') {
         throw executionsResult.reason;
       }
-      const executions = executionsResult.value;
+      const page = executionsResult.value;
+      const executions = page.items;
+      const pageTotals = { totalDocs: page.total, totalPages: page.totalPages };
       const parsedStats =
         statsResult.status === 'fulfilled'
           ? parseExecutionStats(statsResult.value)
           : null;
       if (parsedStats) {
-        return { executions, isStatsDegraded: false, stats: parsedStats };
+        return {
+          executions,
+          pageTotals,
+          isStatsDegraded: false,
+          stats: parsedStats,
+        };
       }
       // The stats call either rejected or resolved with something that is
       // not a summary (`null`, a collection, etc.) — both are degraded in
@@ -194,6 +207,7 @@ export function useWorkflowExecutions(
       const fallbackStats = previous?.stats ?? EMPTY_STATS;
       return {
         executions,
+        pageTotals,
         isStatsDegraded: true,
         stats: {
           ...fallbackStats,
@@ -222,6 +236,7 @@ export function useWorkflowExecutions(
   return {
     cancelExecution,
     executions: data?.executions ?? EMPTY_EXECUTIONS,
+    pageTotals: data?.pageTotals ?? EMPTY_PAGE_TOTALS,
     isRefreshing: isFetching && !isPending,
     isError,
     isLoading: options.enabled !== false && isPending,

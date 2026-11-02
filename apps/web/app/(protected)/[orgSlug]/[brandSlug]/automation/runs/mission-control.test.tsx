@@ -1,5 +1,5 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MissionControl from './mission-control';
@@ -44,6 +44,7 @@ vi.mock('@/hooks/data/workflow-executions/use-workflow-executions', () => ({
     return {
       cancelExecution: vi.fn(),
       executions: [],
+      pageTotals: { totalDocs: 61, totalPages: 5 },
       isLoading: false,
       isError: state.isError,
       refresh: state.refresh,
@@ -109,7 +110,7 @@ describe('MissionControl', () => {
     render(<MissionControl />);
     expect(state.params[0]).toMatchObject({ sort: 'createdAt: -1' });
   });
-  it('keeps header tools available and offers retry without an empty-list message on failure', () => {
+  it('keeps header tools available and offers retry without an empty-list message on failure', async () => {
     state.isError = true;
     render(<MissionControl />);
     expect(
@@ -124,7 +125,9 @@ describe('MissionControl', () => {
       'Workflow executions could not be loaded.',
     );
     expect(screen.queryByText('No workflow executions yet.')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    });
     expect(state.refresh).toHaveBeenCalledOnce();
   });
   it('distinguishes a filtered empty result and lets the user clear it', () => {

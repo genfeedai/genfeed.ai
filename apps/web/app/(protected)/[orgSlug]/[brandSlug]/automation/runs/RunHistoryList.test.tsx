@@ -1,4 +1,5 @@
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -38,7 +39,17 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
 }));
 
 vi.mock('@ui/display/table/Table', () => ({
@@ -80,6 +91,7 @@ describe('RunHistoryList', () => {
     render(
       <RunHistoryList
         executions={makeExecutions(25)}
+        pageTotals={{ totalDocs: 61, totalPages: 5 }}
         isLoading={false}
         isPaginated
       />,
@@ -88,17 +100,35 @@ describe('RunHistoryList', () => {
     expect(screen.getByText('Workflow 24')).toBeInTheDocument();
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
   });
 
   it('omits pagination unless the list is server-paged', () => {
-    render(<RunHistoryList executions={makeExecutions(3)} isLoading={false} />);
+    render(
+      <RunHistoryList
+        pageTotals={EMPTY_PAGE_TOTALS}
+        executions={makeExecutions(3)}
+        isLoading={false}
+      />,
+    );
 
     expect(screen.queryByRole('navigation', { name: 'pagination' })).toBeNull();
   });
 
   it('links the run name to its page and summarises the run in the sidebar', () => {
-    render(<RunHistoryList executions={[execution]} isLoading={false} />);
+    render(
+      <RunHistoryList
+        pageTotals={EMPTY_PAGE_TOTALS}
+        executions={[execution]}
+        isLoading={false}
+      />,
+    );
 
     const { getRowLink, rowSidebar } = tableProps.current ?? {};
     expect(getRowLink?.(execution)).toEqual({

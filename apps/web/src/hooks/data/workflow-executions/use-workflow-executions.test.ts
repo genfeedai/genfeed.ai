@@ -1,3 +1,5 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -40,10 +42,10 @@ vi.mock('@services/core/logger.service', () => ({
 
 describe('useWorkflowExecutions loading state', () => {
   it('distinguishes initial loading from background refresh and settles both flags', async () => {
-    let resolveRequest: (rows: []) => void = () => {};
+    let resolveRequest: (rows: IPaginatedResponse<unknown>) => void = () => {};
     listMock.mockImplementation(
       () =>
-        new Promise<[]>((resolve) => {
+        new Promise<IPaginatedResponse<unknown>>((resolve) => {
           resolveRequest = resolve;
         }),
     );
@@ -53,14 +55,18 @@ describe('useWorkflowExecutions loading state', () => {
     expect(result.current.isLoading).toBe(true);
     expect(result.current.isRefreshing).toBe(false);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
-    await act(async () => resolveRequest([]));
+    await act(async () =>
+      resolveRequest(paginatedResponse([], { totalDocs: 61, totalPages: 5 })),
+    );
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     act(() => {
       void result.current.refresh();
     });
     await waitFor(() => expect(result.current.isRefreshing).toBe(true));
     expect(result.current.isLoading).toBe(false);
-    await act(async () => resolveRequest([]));
+    await act(async () =>
+      resolveRequest(paginatedResponse([], { totalDocs: 61, totalPages: 5 })),
+    );
     await waitFor(() => expect(result.current.isRefreshing).toBe(false));
   });
 });
@@ -68,9 +74,12 @@ describe('useWorkflowExecutions loading state', () => {
 describe('useWorkflowExecutions organization scope', () => {
   it('clears executions and fetches again when collection organization changes', async () => {
     listMock.mockReset();
-    listMock.mockResolvedValueOnce([
-      { id: 'org-one-execution', status: 'COMPLETED', creditsUsed: 0 },
-    ]);
+    listMock.mockResolvedValueOnce(
+      paginatedResponse(
+        [{ id: 'org-one-execution', status: 'COMPLETED', creditsUsed: 0 }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     const { result, rerender } = renderHook(
       ({ organizationId }) =>
         useWorkflowExecutions({ strategyId: 'agent-1' }, { organizationId }),
@@ -85,6 +94,7 @@ describe('useWorkflowExecutions organization scope', () => {
     listMock.mockImplementation(() => new Promise(() => {}));
     rerender({ organizationId: 'org-2' });
     expect(result.current.executions).toEqual([]);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 0, totalPages: 1 });
     expect(result.current.isLoading).toBe(true);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
   });
@@ -100,7 +110,9 @@ describe('useWorkflowExecutions organization scope', () => {
 
 describe('useWorkflowExecutions summary', () => {
   it('uses all matching executions for counters and omits pagination from summary filters', async () => {
-    listMock.mockResolvedValue([]);
+    listMock.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     const { result } = renderHook(
       () =>
         useWorkflowExecutions({
@@ -119,6 +131,7 @@ describe('useWorkflowExecutions summary', () => {
     );
     expect(result.current.executions).toEqual([]);
     expect(result.current.stats.completedToday).toBe(2);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(statsMock).toHaveBeenLastCalledWith({
       brandId: 'brand-1',
       strategyId: 'agent-1',
@@ -130,9 +143,12 @@ describe('useWorkflowExecutions summary', () => {
   it('keeps executions and treats a non-summary statistics payload as degraded', async () => {
     listMock.mockReset();
     mockLoggerWarn.mockClear();
-    listMock.mockResolvedValue([
-      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValue(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockResolvedValueOnce([]);
     const { result } = renderHook(() => useWorkflowExecutions(), {
       wrapper: createQueryWrapper(),
@@ -144,6 +160,7 @@ describe('useWorkflowExecutions summary', () => {
     // A resolved-but-malformed response is degraded exactly like a
     // rejection: it must not be cached as a trustworthy zeroed summary.
     expect(result.current.isStatsDegraded).toBe(true);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(result.current.stats).toEqual({
       active: 0,
       completed: 0,
@@ -162,9 +179,12 @@ describe('useWorkflowExecutions summary', () => {
   it('keeps executions and reports empty stats when getStats rejects', async () => {
     listMock.mockReset();
     mockLoggerWarn.mockClear();
-    listMock.mockResolvedValue([
-      { creditsUsed: 0, id: 'exec-rejected', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValue(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-rejected', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
     const { result } = renderHook(() => useWorkflowExecutions(), {
       wrapper: createQueryWrapper(),
@@ -174,6 +194,7 @@ describe('useWorkflowExecutions summary', () => {
     );
     expect(result.current.isError).toBe(false);
     expect(result.current.isStatsDegraded).toBe(true);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(result.current.stats).toEqual({
       active: 0,
       completed: 0,
@@ -192,11 +213,16 @@ describe('useWorkflowExecutions summary', () => {
 
   it('derives active from PENDING/RUNNING executions when getStats rejects, instead of freezing at 0', async () => {
     listMock.mockReset();
-    listMock.mockResolvedValue([
-      { creditsUsed: 0, id: 'exec-running', status: 'RUNNING' },
-      { creditsUsed: 0, id: 'exec-pending', status: 'PENDING' },
-      { creditsUsed: 18, id: 'exec-done', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValue(
+      paginatedResponse(
+        [
+          { creditsUsed: 0, id: 'exec-running', status: 'RUNNING' },
+          { creditsUsed: 0, id: 'exec-pending', status: 'PENDING' },
+          { creditsUsed: 18, id: 'exec-done', status: 'COMPLETED' },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
     const { result } = renderHook(() => useWorkflowExecutions(), {
       wrapper: createQueryWrapper(),
@@ -204,6 +230,7 @@ describe('useWorkflowExecutions summary', () => {
     await waitFor(() => expect(result.current.executions).toHaveLength(3));
     expect(result.current.isError).toBe(false);
     expect(result.current.isStatsDegraded).toBe(true);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     // Two active rows in the freshly fetched list, even though the stats
     // call itself failed and could not report a count.
     expect(result.current.stats.active).toBe(2);
@@ -211,9 +238,12 @@ describe('useWorkflowExecutions summary', () => {
 
   it('falls back to the previously cached stats (not zeros) on a later rejected refetch, while still recomputing active from the fresh list', async () => {
     listMock.mockReset();
-    listMock.mockResolvedValueOnce([
-      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValueOnce(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockResolvedValueOnce({
       active: 0,
       completed: 10,
@@ -229,10 +259,15 @@ describe('useWorkflowExecutions summary', () => {
     await waitFor(() => expect(result.current.stats.total).toBe(12));
     expect(result.current.isStatsDegraded).toBe(false);
 
-    listMock.mockResolvedValueOnce([
-      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
-      { creditsUsed: 0, id: 'exec-2', status: 'RUNNING' },
-    ]);
+    listMock.mockResolvedValueOnce(
+      paginatedResponse(
+        [
+          { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
+          { creditsUsed: 0, id: 'exec-2', status: 'RUNNING' },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
     await act(async () => {
       await result.current.refresh();
@@ -240,6 +275,7 @@ describe('useWorkflowExecutions summary', () => {
 
     await waitFor(() => expect(result.current.stats.active).toBe(1));
     expect(result.current.isStatsDegraded).toBe(true);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     // completed/total/etc. survive from the last good summary rather than
     // resetting to zero just because this poll's stats call failed.
     expect(result.current.stats.completed).toBe(10);
@@ -249,9 +285,12 @@ describe('useWorkflowExecutions summary', () => {
 
   it('keeps executions and treats a null statistics payload as degraded', async () => {
     listMock.mockReset();
-    listMock.mockResolvedValue([
-      { creditsUsed: 0, id: 'exec-null-stats', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValue(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-null-stats', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockResolvedValueOnce(null);
     const { result } = renderHook(() => useWorkflowExecutions(), {
       wrapper: createQueryWrapper(),
@@ -261,6 +300,7 @@ describe('useWorkflowExecutions summary', () => {
     );
     expect(result.current.isError).toBe(false);
     expect(result.current.isStatsDegraded).toBe(true);
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
     expect(result.current.stats).toEqual({
       active: 0,
       completed: 0,
@@ -278,9 +318,12 @@ describe('useWorkflowExecutions summary', () => {
     // stay degraded across polls. The cached `active` must win so it is
     // never silently dropped to whatever the current page happens to show.
     listMock.mockReset();
-    listMock.mockResolvedValueOnce([
-      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValueOnce(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockResolvedValueOnce({
       active: 3,
       completed: 10,
@@ -297,9 +340,12 @@ describe('useWorkflowExecutions summary', () => {
 
     // The next page no longer shows any of those 3 active runs, but the
     // stats call also fails this time.
-    listMock.mockResolvedValueOnce([
-      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
-    ]);
+    listMock.mockResolvedValueOnce(
+      paginatedResponse(
+        [{ creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' }],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
     await act(async () => {
       await result.current.refresh();
@@ -313,7 +359,9 @@ describe('useWorkflowExecutions summary', () => {
 
   it('does not throw from refetchInterval when stats are null and keeps polling paused', async () => {
     listMock.mockReset();
-    listMock.mockResolvedValue([]);
+    listMock.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
     statsMock.mockResolvedValueOnce(null);
     const { result } = renderHook(() => useWorkflowExecutions(), {
       wrapper: createQueryWrapper(),
@@ -327,9 +375,12 @@ describe('useWorkflowExecutions summary', () => {
     vi.useFakeTimers();
     try {
       listMock.mockReset();
-      listMock.mockResolvedValue([
-        { creditsUsed: 0, id: 'exec-active', status: 'RUNNING' },
-      ]);
+      listMock.mockResolvedValue(
+        paginatedResponse(
+          [{ creditsUsed: 0, id: 'exec-active', status: 'RUNNING' }],
+          { totalDocs: 61, totalPages: 5 },
+        ),
+      );
       statsMock.mockRejectedValue(new Error('stats endpoint unavailable'));
       const { result } = renderHook(() => useWorkflowExecutions(), {
         wrapper: createQueryWrapper(),
@@ -338,6 +389,10 @@ describe('useWorkflowExecutions summary', () => {
       await vi.waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
       expect(result.current.isError).toBe(false);
       expect(result.current.isStatsDegraded).toBe(true);
+      expect(result.current.pageTotals).toEqual({
+        totalDocs: 61,
+        totalPages: 5,
+      });
       expect(result.current.stats.active).toBe(1);
 
       // A rejected stats call must not zero out `active` and freeze

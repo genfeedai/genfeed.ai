@@ -3,13 +3,15 @@ import {
   type AgentFailureResolution,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type {
+  IPaginatedResponse,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
 import type {
   WorkflowExecutionListQueryParams,
   WorkflowExecutionStats,
   WorkflowExecutionSummaryQueryParams,
 } from '@genfeedai/contracts/types';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
@@ -18,7 +20,7 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 const instances = new ServiceInstanceManager<WorkflowExecutionsServiceClass>();
@@ -53,16 +55,17 @@ class WorkflowExecutionsServiceClass {
 
   async list(
     params: WorkflowExecutionListQueryParams = {},
-  ): Promise<IWorkflowExecution[]> {
+  ): Promise<IPaginatedResponse<IWorkflowExecution>> {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined) query.set(key, String(value));
     }
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
-    const requestId = PagesService.beginRequest();
     const document = await this.request(`/workflow-executions${suffix}`);
-    recordPageTotals(document, params, requestId);
-    return deserializeCollection<IWorkflowExecution>(document);
+    return toPaginatedResponse(
+      deserializeCollection<IWorkflowExecution>(document),
+      document,
+    );
   }
 
   async getStats(

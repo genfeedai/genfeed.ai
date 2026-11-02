@@ -26,7 +26,7 @@ describe('WorkflowExecutionsService.list', () => {
     PagesService.setTotalDocs(0);
   });
 
-  it('sends the page and limit and records the pagination totals', async () => {
+  it('sends the page and limit and returns pagination with the rows', async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -37,7 +37,9 @@ describe('WorkflowExecutionsService.list', () => {
       ),
     );
 
-    await WorkflowExecutionsService.getInstance('token-page').list({
+    const result = await WorkflowExecutionsService.getInstance(
+      'token-page',
+    ).list({
       limit: 15,
       page: 2,
       sort: '-createdAt',
@@ -50,9 +52,16 @@ describe('WorkflowExecutionsService.list', () => {
       page: '2',
       sort: '-createdAt',
     });
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(6);
-    expect(PagesService.getTotalDocs()).toBe(84);
+    expect(result).toMatchObject({
+      items: [],
+      page: 2,
+      pageSize: 15,
+      total: 84,
+      totalPages: 6,
+    });
+    expect(PagesService.getCurrentPage()).toBe(1);
+    expect(PagesService.getTotalPages()).toBe(1);
+    expect(PagesService.getTotalDocs()).toBe(0);
   });
 
   it('leaves the shared page totals alone when no page is requested', async () => {
@@ -66,10 +75,13 @@ describe('WorkflowExecutionsService.list', () => {
       ),
     );
 
-    await WorkflowExecutionsService.getInstance('token-nopage').list({
+    const result = await WorkflowExecutionsService.getInstance(
+      'token-nopage',
+    ).list({
       limit: 20,
     });
 
+    expect(result).toMatchObject({ items: [], total: 170, totalPages: 9 });
     expect(PagesService.getTotalPages()).toBe(1);
     expect(PagesService.getTotalDocs()).toBe(0);
   });
