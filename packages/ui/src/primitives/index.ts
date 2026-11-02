@@ -209,10 +209,6 @@ export {
   TabsRoot,
   TabsTrigger,
 } from './tabs';
-export {
-  default as TagsEditable,
-  type TagsEditableProps,
-} from './tags-editable';
 export { Textarea, type TextareaProps } from './textarea';
 export { Toggle } from './toggle';
 export { toggleVariants } from './toggle.variants';

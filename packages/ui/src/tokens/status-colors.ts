@@ -3,6 +3,7 @@
  * Every component that renders a status indicator should import from here.
  */
 
+import type { BadgeVariant } from '@ui/primitives/badge.variants';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
@@ -60,6 +61,34 @@ export const statusBadge = {
 } as const;
 
 export type StatusKey = keyof typeof statusBadge;
+
+export const statusBadgeVariant = {
+  achieved: 'success',
+  active: 'success',
+  approved: 'success',
+  archived: 'secondary',
+  backlog: 'secondary',
+  blocked: 'destructive',
+  cancelled: 'secondary',
+  completed: 'success',
+  done: 'success',
+  error: 'destructive',
+  failed: 'destructive',
+  idle: 'warning',
+  in_progress: 'warning',
+  in_review: 'info',
+  paused: 'warning',
+  pending: 'warning',
+  pending_approval: 'warning',
+  planned: 'secondary',
+  rejected: 'destructive',
+  revision_requested: 'warning',
+  running: 'info',
+  succeeded: 'success',
+  terminated: 'destructive',
+  timed_out: 'warning',
+  todo: 'info',
+} satisfies Record<StatusKey, BadgeVariant>;
 
 export const statusIcon: Record<StatusKey, LucideIcon> = {
   achieved: CircleCheck,
