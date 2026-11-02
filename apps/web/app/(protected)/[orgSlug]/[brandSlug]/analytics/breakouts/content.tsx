@@ -5,7 +5,7 @@ import type {
   BreakoutResponseView,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { BreakoutResponsesService } from '@services/analytics/breakout-responses.service';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -13,13 +13,38 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { BreakoutResponsesContentProps } from '@/features/analytics/props/breakout-response-detail.props';
 import BreakoutResponseDetail from './response-detail';
+
+const SKELETON_CARD_KEYS = ['one', 'two', 'three'] as const;
+
+/**
+ * The loading shape of the response list: the same bordered article cards the
+ * results render, so the page does not jump when the data arrives.
+ */
+function BreakoutResponsesSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-3">
+      {SKELETON_CARD_KEYS.map((key) => (
+        <div
+          key={key}
+          className="space-y-3 rounded-lg border border-border p-4"
+        >
+          <Skeleton variant="text" height={20} className="w-1/3" />
+          <Skeleton variant="text" height={14} className="w-2/3" />
+          <Skeleton variant="text" height={14} className="w-1/2" />
+          <Skeleton variant="rounded" height={36} width={96} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function ScopedBreakoutResponses({
   brandId,
@@ -28,93 +53,75 @@ function ScopedBreakoutResponses({
 }: BreakoutResponsesContentProps) {
   const t = useTranslations('pages.analytics.breakouts');
   const locale = useLocale();
-  const getService = useAuthedService((token) =>
-    BreakoutResponsesService.forOrganization(token, organizationId),
-  );
   const [page, setPage] = useState(1);
   const refresh = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
-  const [result, setResult] = useState<BreakoutResponsePage | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<BreakoutResponseView | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
+  const service = (token: string) =>
+    BreakoutResponsesService.forOrganization(token, organizationId);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh explicitly re-reads current authorization and response state.
-  useEffect(() => {
-    const controller = new AbortController();
-    setResult(null);
-    setError(null);
-    async function load() {
-      try {
-        const service = await getService();
-        if (controller.signal.aborted) return;
-        const next = await service.list(
-          brandId,
-          { limit: 20, page },
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        if (
-          next.docs.some(
-            (response) =>
-              response.organizationId !== organizationId ||
-              response.brandId !== brandId,
-          )
-        ) {
-          throw new Error('Unexpected response scope');
-        }
-        setResult(next);
-      } catch {
-        if (!controller.signal.aborted) setError(t('loadError'));
+  // Cached per organization, brand and page, so coming back paints the list at
+  // once. Refresh re-reads authorization and state in the background; a read
+  // that fails or returns another scope's rows shows the error, never the
+  // stale rows.
+  const listQuery = useAuthedQuery({
+    queryFn: async (breakouts, signal): Promise<BreakoutResponsePage> => {
+      const next = await breakouts.list(brandId, { limit: 20, page }, signal);
+      if (
+        next.docs.some(
+          (response) =>
+            response.organizationId !== organizationId ||
+            response.brandId !== brandId,
+        )
+      ) {
+        throw new Error('Unexpected response scope');
       }
-    }
-    void load();
-    return () => controller.abort();
-  }, [brandId, organizationId, getService, page, refresh, t]);
+      return next;
+    },
+    queryKey: ['breakout-responses', 'list', organizationId, brandId, page],
+    refreshKey: refresh,
+    service,
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refresh also reconciles the selected response through its read endpoint.
-  useEffect(() => {
-    const controller = new AbortController();
-    setDetail(null);
-    setDetailError(null);
-    if (!selectedId) return () => controller.abort();
-    const id = selectedId;
-    async function load() {
-      try {
-        const service = await getService();
-        if (controller.signal.aborted) return;
-        const next = await service.detail(
-          brandId,
-          id,
-          strategyId ? { strategyId } : {},
-          controller.signal,
-        );
-        if (controller.signal.aborted) return;
-        if (
-          next.id !== id ||
-          next.organizationId !== organizationId ||
-          next.brandId !== brandId
-        ) {
-          throw new Error('Unexpected response scope');
-        }
-        setDetail(next);
-      } catch {
-        if (!controller.signal.aborted) setDetailError(t('detailLoadError'));
+  const detailQuery = useAuthedQuery({
+    enabled: selectedId !== null,
+    queryFn: async (breakouts, signal): Promise<BreakoutResponseView> => {
+      const id = selectedId ?? '';
+      const next = await breakouts.detail(
+        brandId,
+        id,
+        strategyId ? { strategyId } : {},
+        signal,
+      );
+      if (
+        next.id !== id ||
+        next.organizationId !== organizationId ||
+        next.brandId !== brandId
+      ) {
+        throw new Error('Unexpected response scope');
       }
-    }
-    void load();
-    return () => controller.abort();
-  }, [brandId, organizationId, getService, selectedId, strategyId, refresh, t]);
+      return next;
+    },
+    queryKey: [
+      'breakout-responses',
+      'detail',
+      organizationId,
+      brandId,
+      selectedId,
+      strategyId ?? null,
+    ],
+    refreshKey: refresh,
+    service,
+  });
 
-  const currentResult = result?.page === page ? result : null;
+  const error = listQuery.isError ? t('loadError') : null;
+  const currentResult = error ? null : (listQuery.data ?? null);
   const isLoading = currentResult === null && error === null;
-  const currentDetail = detail?.id === selectedId ? detail : null;
+  const detailError = detailQuery.isError ? t('detailLoadError') : null;
+  const currentDetail = detailError ? null : (detailQuery.data ?? null);
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <Text as="p" role="status">
-          {t('loading')}
-        </Text>
+        <BreakoutResponsesSkeleton label={t('loading')} />
       ) : error ? (
         <Text as="p" color="destructive" role="alert">
           {error}
@@ -195,9 +202,15 @@ function ScopedBreakoutResponses({
           ) : currentDetail ? (
             <BreakoutResponseDetail response={currentDetail} />
           ) : (
-            <Text as="p" role="status">
-              {t('loadingDetails')}
-            </Text>
+            <div
+              role="status"
+              aria-label={t('loadingDetails')}
+              className="space-y-3"
+            >
+              <Skeleton variant="text" height={20} className="w-1/3" />
+              <Skeleton variant="text" height={14} className="w-3/4" />
+              <Skeleton variant="text" height={14} className="w-1/2" />
+            </div>
           )}
         </div>
       )}
@@ -225,9 +238,7 @@ export default function BreakoutsContent() {
   return (
     <div>
       {!isReady ? (
-        <Text as="p" role="status">
-          {t('loadingBrandContext')}
-        </Text>
+        <BreakoutResponsesSkeleton label={t('loadingBrandContext')} />
       ) : !isScopeReady || !brandId ? (
         <Text as="p">{t('selectBrand')}</Text>
       ) : (

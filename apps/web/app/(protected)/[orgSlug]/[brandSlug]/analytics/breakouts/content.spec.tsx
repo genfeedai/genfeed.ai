@@ -1,4 +1,8 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   AnalyticsProvider,
   useAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
@@ -6,8 +10,16 @@ import type {
   BreakoutResponsePage,
   BreakoutResponseView,
 } from '@genfeedai/contracts/interfaces';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  act,
+  cleanup,
+  render as renderView,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BreakoutsContent from './content';
 import BreakoutResponseDetail from './response-detail';
@@ -135,11 +147,24 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
+
 describe('brand-scoped Breakouts read page', () => {
   it('loads evidence, inspects an empty plan and refreshes with abortable GET calls', async () => {
     const user = userEvent.setup();
     render(<BreakoutsContent />);
-    expect(screen.getByText('Loading breakout responses…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading breakout responses…' }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText('10× the comparable median'),
     ).toBeInTheDocument();
@@ -194,16 +219,44 @@ describe('brand-scoped Breakouts read page', () => {
       screen.getByRole('button', { name: 'Inspect breakout original-brand-a' }),
     );
     await screen.findByText('Response details');
-    const oldSignal = mocks.list.mock.calls[0]?.[2] as AbortSignal;
     mocks.scope = { ...mocks.scope, brandId: 'brand-b' };
     mocks.list.mockReturnValue(new Promise<BreakoutResponsePage>(() => {}));
     view.rerender(<BreakoutsContent />);
-    expect(oldSignal.aborted).toBe(true);
     expect(
       screen.queryByText('Original post: original-brand-a'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Response details')).not.toBeInTheDocument();
-    expect(screen.getByText('Loading breakout responses…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading breakout responses…' }),
+    ).toBeInTheDocument();
+  });
+
+  it('paints the cached responses at once when the page is opened again', async () => {
+    const firstVisit = render(<BreakoutsContent />);
+    await screen.findByText('Original post: original-brand-a');
+    firstVisit.unmount();
+
+    mocks.list.mockReturnValue(new Promise<BreakoutResponsePage>(() => {}));
+    render(<BreakoutsContent />);
+
+    expect(
+      screen.getByText('Original post: original-brand-a'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading breakout responses…' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cancels the previous brand read still in flight when the brand changes', async () => {
+    mocks.list.mockReturnValueOnce(new Promise<BreakoutResponsePage>(() => {}));
+    const view = render(<BreakoutsContent />);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+    const oldSignal = mocks.list.mock.calls[0]?.[2] as AbortSignal;
+
+    mocks.scope = { ...mocks.scope, brandId: 'brand-b' };
+    view.rerender(<BreakoutsContent />);
+
+    expect(oldSignal.aborted).toBe(true);
   });
 
   it('ignores a previous organization response that resolves after switching', async () => {

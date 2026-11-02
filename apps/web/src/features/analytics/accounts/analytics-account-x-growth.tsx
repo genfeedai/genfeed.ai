@@ -7,7 +7,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
@@ -15,7 +15,7 @@ import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import LoadingState from '@ui/feedback/LoadingState';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 interface AnalyticsAccountXGrowthProps {
   brandId: string;
@@ -55,49 +55,37 @@ export default function AnalyticsAccountXGrowth({
 }: AnalyticsAccountXGrowthProps) {
   const translate = useTranslations('pages.analytics.accounts');
   const { dateRange, refreshTrigger } = useAnalyticsContext();
-  const getService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-  const [report, setReport] = useState<IXGrowthReport | null>(null);
-  const [isFailed, setIsFailed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
     dateRange.endDate ?? undefined,
   );
-
-  useEffect(() => {
-    if (refreshTrigger < 0) {
-      return;
-    }
-    const controller = new AbortController();
-    void (async () => {
-      setIsFailed(false);
-      setIsLoading(true);
-      setReport(null);
+  const reportQuery = useAuthedQuery({
+    queryFn: async (service) => {
       try {
-        const service = await getService();
-        const data = await service.getXGrowthReport(credentialId, {
+        return await service.getXGrowthReport(credentialId, {
           brandId,
           endDate,
           startDate,
         });
-        if (!controller.signal.aborted) {
-          setReport(data);
-        }
       } catch (requestError) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch X growth report', requestError);
-          setIsFailed(true);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        logger.error('Failed to fetch X growth report', requestError);
+        throw requestError;
       }
-    })();
-    return () => controller.abort();
-  }, [brandId, credentialId, endDate, getService, refreshTrigger, startDate]);
+    },
+    queryKey: [
+      'analytics',
+      'x-growth',
+      brandId ?? null,
+      credentialId,
+      startDate,
+      endDate,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const report: IXGrowthReport | null = reportQuery.data ?? null;
+  const isFailed = reportQuery.isError && !report;
+  const isLoading = reportQuery.isLoading;
 
   const columns: TableColumn<IXActivityRow>[] = useMemo(
     () => [

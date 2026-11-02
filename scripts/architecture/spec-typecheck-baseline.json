@@ -7929,14 +7929,6 @@
       "workspace": "web"
     },
     {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/web/src/hooks/data/analytics/use-leaderboards/use-leaderboards.test.ts",
-      "fingerprint": "8e48cbd989bd1115331e",
-      "message": "Type '{ id: string; name: string; totalViews: number; }' is missing the following properties from type 'IBrandWithStats': organizationId, organizationName, totalPosts, totalEngagement, and 3 more.",
-      "workspace": "web"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/web/src/hooks/data/analytics/use-top-posts/use-top-posts.test.ts",
