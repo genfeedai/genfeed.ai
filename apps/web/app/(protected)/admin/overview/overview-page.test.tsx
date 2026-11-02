@@ -11,7 +11,9 @@ vi.mock('next/dynamic', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('../../../../tests/next-intl.stub');
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
 
   return { useTranslations: translateFromCatalog };
 });
