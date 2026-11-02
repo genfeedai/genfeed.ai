@@ -2565,6 +2565,29 @@ export async function setupApiMocks(
   // production-host catch-all must sit below routeApi() or it shadows every
   // resource handler and pages deserialize the wrong JSON:API shape.
   const fallbackCollectionHandler = async (r: Route): Promise<void> => {
+    const request = r.request();
+    const { pathname } = new URL(request.url());
+    // Unmocked preview tokens and visual project ids do not exist. Their
+    // controllers return 404, rather than a successful collection document.
+    if (
+      request.method() === 'GET' &&
+      (/\/public\/previews\/[^/]+\/?$/.test(pathname) ||
+        /\/visual-projects\/(?!catalog\/?$|projects\/?$)[^/]+\/?$/.test(
+          pathname,
+        ))
+    ) {
+      await r.fulfill({
+        body: JSON.stringify({
+          errors: [
+            { detail: 'Resource not found', status: '404', title: 'Not Found' },
+          ],
+        }),
+        contentType: 'application/json',
+        status: 404,
+      });
+      return;
+    }
+
     await r.fulfill({
       body: JSON.stringify(buildUnhandledApiMockBody(r.request().url())),
       contentType: 'application/json',

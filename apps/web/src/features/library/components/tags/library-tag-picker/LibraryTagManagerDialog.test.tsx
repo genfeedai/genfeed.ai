@@ -135,6 +135,23 @@ const defaultTag = {
   textColor: '#ffffff',
 } as ITag;
 
+function FocusReturnHarness() {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [isOpen, setIsOpen] = useState(true);
+  return (
+    <>
+      <button ref={triggerRef} type="button">
+        More actions
+      </button>
+      <LibraryTagManagerDialog
+        isOpen={isOpen}
+        onOpenChange={setIsOpen}
+        returnFocusRef={triggerRef}
+      />
+    </>
+  );
+}
+
 function open() {
   render(<LibraryTagManagerDialog isOpen onOpenChange={vi.fn()} />);
 }
@@ -158,23 +175,7 @@ describe('LibraryTagManagerDialog', () => {
   });
 
   it('returns focus to the menu trigger when it closes', async () => {
-    function Harness() {
-      const triggerRef = useRef<HTMLButtonElement>(null);
-      const [isOpen, setIsOpen] = useState(true);
-      return (
-        <>
-          <button ref={triggerRef} type="button">
-            More actions
-          </button>
-          <LibraryTagManagerDialog
-            isOpen={isOpen}
-            onOpenChange={setIsOpen}
-            returnFocusRef={triggerRef}
-          />
-        </>
-      );
-    }
-    render(<Harness />);
+    render(<FocusReturnHarness />);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');

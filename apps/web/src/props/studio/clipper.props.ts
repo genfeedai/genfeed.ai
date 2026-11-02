@@ -235,3 +235,7 @@ export interface StudioClipperIdentityContext {
     | 'defaultAvatarRef'
   > | null;
 }
+
+export interface ClipperIngredientImportProps {
+  videoId: string;
+}
