@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
@@ -9,7 +10,8 @@ import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactElement } from 'react';
+import { type ReactElement, useMemo } from 'react';
+import { useCreativeAppAgentContext } from '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context';
 import type { StoryboardRunPageProps } from '@/features/studio/props/storyboard.props';
 import StoryboardRunPanel from '@/features/studio/storyboard/components/StoryboardRunPanel';
 import StoryboardRunRecipe from '@/features/studio/storyboard/components/StoryboardRunRecipe';
@@ -186,6 +188,20 @@ export default function StoryboardRunPage({
     runId,
     run?.config.revision,
   );
+  // With a run open, change requests belong to it; the agent only needs to
+  // know which one that is.
+  const creativeApp = useMemo<CreativeAppAgentContext | null>(
+    () =>
+      run
+        ? {
+            app: 'storyboard',
+            openProjectId: runId,
+            projects: [{ id: runId, title: translate('runs.title') }],
+          }
+        : null,
+    [run, runId, translate],
+  );
+  useCreativeAppAgentContext(creativeApp);
   if (notFound)
     return (
       <AgentOutputShell>

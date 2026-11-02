@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  publishContext: vi.fn(),
   loadMore: vi.fn(),
   searches: [] as string[],
   state: {
@@ -21,6 +22,11 @@ vi.mock('@/features/studio/storyboard/hooks/use-storyboard-runs', () => ({
     return { ...mocks.state, loadMore: mocks.loadMore };
   },
 }));
+
+vi.mock(
+  '@/hooks/agent/use-creative-app-agent-context/use-creative-app-agent-context',
+  () => ({ useCreativeAppAgentContext: mocks.publishContext }),
+);
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/northstar${path}` }),
@@ -81,6 +87,23 @@ describe('StoryboardRunsList', () => {
     expect(
       screen.getByRole('link', { name: /Proof-led hook/ }),
     ).toHaveAttribute('href', '/acme/northstar/storyboard/run-1');
+  });
+
+  it('tells the agent which runs are on screen once they have loaded', () => {
+    mocks.state.runs = [summary()];
+    render(<StoryboardRunsList />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith({
+      app: 'storyboard',
+      projects: [{ id: 'run-1', title: 'Proof-led hook' }],
+    });
+  });
+
+  it('tells the agent nothing while the runs are still loading', () => {
+    mocks.state.isLoading = true;
+    render(<StoryboardRunsList />);
+
+    expect(mocks.publishContext).toHaveBeenLastCalledWith(null);
   });
 
   it('raises runs that need the creator above the full list', () => {
