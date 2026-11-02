@@ -191,16 +191,6 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
   },
   {
     category: 'admin-content',
-    group: 'Library',
-    hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.LIBRARY.VOICES,
-    label: 'Voice Library',
-    matchPaths: [APP_ROUTES.ADMIN.LIBRARY.VOICES],
-    outline: AudioLines,
-    solid: AudioLines,
-  },
-  {
-    category: 'admin-content',
     group: 'Catalog',
     hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES,
@@ -238,6 +228,16 @@ export const ADMIN_MENU_ITEMS: AdminMenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES],
     outline: AArrowUp,
     solid: AArrowUp,
+  },
+  {
+    category: 'admin-content',
+    group: 'Catalog',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.CONTENT.VOICES,
+    label: 'Voice Library',
+    matchPaths: [APP_ROUTES.ADMIN.CONTENT.VOICES],
+    outline: AudioLines,
+    solid: AudioLines,
   },
   {
     category: 'admin-content',

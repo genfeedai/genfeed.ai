@@ -52,5 +52,5 @@ It does not forbid query filters.
 `/referrals`, `/roles`, `/subscriptions`, `/system-emails`),
 `/admin/automation` (`/agents`, `/bots`, `/failures`, `/workflows`),
 `/admin/configuration` (`/elements/*`, `/font-families`, `/presets`),
-`/admin/content/generations`, `/admin/folders`, `/admin/library/voices`,
+`/admin/content/generations`, `/admin/content/voices`, `/admin/folders`,
 `/admin/flags` and `/admin/settings/*`.
