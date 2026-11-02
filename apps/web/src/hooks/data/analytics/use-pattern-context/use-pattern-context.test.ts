@@ -1,8 +1,10 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findAllMock = vi.fn();
+const getServiceMock = vi.fn(async () => ({ findAll: findAllMock }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -13,9 +15,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    findAll: findAllMock,
-  }),
+  useAuthedService: () => getServiceMock,
 }));
 
 vi.mock('@genfeedai/services/analytics/creative-patterns.service', () => ({
@@ -38,7 +38,9 @@ import { usePatternContext } from './use-pattern-context';
 describe('usePatternContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    findAllMock.mockResolvedValue([{ label: 'Hook' }]);
+    findAllMock.mockResolvedValue(
+      paginatedResponse([{ label: 'Hook' }], { totalDocs: 51, totalPages: 4 }),
+    );
   });
 
   it('loads patterns from the Nest creative-patterns collection', async () => {
@@ -55,6 +57,7 @@ describe('usePatternContext', () => {
     );
     expect(result.current.patterns).toEqual([{ label: 'Hook' }]);
     expect(result.current.error).toBeNull();
+    expect(result.current.pageTotals).toEqual({ totalDocs: 51, totalPages: 4 });
   });
 
   it('passes filters to the collection service', async () => {

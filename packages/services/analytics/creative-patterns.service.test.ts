@@ -65,7 +65,7 @@ describe('CreativePatternsService', () => {
         }),
       }),
     );
-    expect(patterns).toEqual([
+    expect(patterns.items).toEqual([
       expect.objectContaining({
         id: 'pattern-1',
         label: 'Hook',
@@ -74,14 +74,12 @@ describe('CreativePatternsService', () => {
     ]);
   });
 
-  it('publishes the page totals so AutoPagination can render', async () => {
+  it('returns page metadata with the patterns', async () => {
     const service = CreativePatternsService.getInstance('token-1');
 
-    await service.findAll({}, { limit: 15, page: 2 });
+    const page = await service.findAll({}, { limit: 15, page: 2 });
 
-    expect(PagesService.getCurrentPage()).toBe(2);
-    expect(PagesService.getTotalPages()).toBe(4);
-    expect(PagesService.getTotalDocs()).toBe(51);
+    expect(page).toMatchObject({ page: 2, totalPages: 4, total: 51 });
   });
 
   it('leaves the page totals alone when no page was requested', async () => {

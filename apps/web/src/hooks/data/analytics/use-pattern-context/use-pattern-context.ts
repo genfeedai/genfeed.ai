@@ -1,8 +1,15 @@
 'use client';
 
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { ICreativePattern } from '@genfeedai/contracts/interfaces';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  ICreativePattern,
+  IPageTotals,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -12,15 +19,14 @@ import type { PatternLabFilters } from '@/props/analytics/performance-lab.props'
 
 export interface UsePatternContextReturn {
   patterns: ICreativePattern[];
+  pageTotals: IPageTotals;
   isLoading: boolean;
   error: string | null;
 }
 
-/**
- * Loads one server-side page of creative patterns. The page totals are
- * published to PagesService by the service, so render `<AutoPagination />`
- * next to the list to page through it.
- */
+const EMPTY_PATTERNS: ICreativePattern[] = [];
+
+/** Loads one server-side page of patterns and its pagination metadata. */
 export function usePatternContext(
   filters?: PatternLabFilters,
   page: number = 1,
@@ -30,7 +36,9 @@ export function usePatternContext(
   const getCreativePatternsService = useAuthedService((token: string) =>
     CreativePatternsService.getInstance(token),
   );
-  const [patterns, setPatterns] = useState<ICreativePattern[]>([]);
+  const [patternsPage, setPatternsPage] =
+    useState<IPaginatedResponse<ICreativePattern> | null>(null);
+  const patterns = patternsPage?.items ?? EMPTY_PATTERNS;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +66,7 @@ export function usePatternContext(
         if (controller.signal.aborted) {
           return;
         }
-        setPatterns(nextPatterns);
+        setPatternsPage(nextPatterns);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -91,5 +99,12 @@ export function usePatternContext(
     refreshTrigger,
   ]);
 
-  return { error, isLoading, patterns };
+  return {
+    error,
+    isLoading,
+    patterns,
+    pageTotals: patternsPage
+      ? { totalDocs: patternsPage.total, totalPages: patternsPage.totalPages }
+      : EMPTY_PAGE_TOTALS,
+  };
 }

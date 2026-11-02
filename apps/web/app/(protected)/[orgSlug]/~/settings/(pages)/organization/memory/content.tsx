@@ -1,7 +1,12 @@
 'use client';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonSize, ButtonVariant, MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type { IPagedItems } from '@genfeedai/contracts/interfaces';
 import type { OrgMemoryEntry } from '@genfeedai/contracts/interfaces/settings/org-memory.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -25,6 +30,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useUserRole } from '@/hooks/auth/use-user-role/use-user-role';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import EditMemoryDialog from './edit-memory-dialog';
+
+const EMPTY_MEMORIES: IPagedItems<OrgMemoryEntry> = {
+  items: [],
+  totals: EMPTY_PAGE_TOTALS,
+};
 
 const MEMORY_SORT_KEYS = [
   'summary',
@@ -51,7 +61,9 @@ export default function SettingsOrganizationMemoryPage() {
     useCallback((token: string) => AgentMemoriesService.getInstance(token), []),
   );
 
-  const [entries, setEntries] = useState<OrgMemoryEntry[] | null>(null);
+  const [memoriesPage, setMemoriesPage] =
+    useState<IPagedItems<OrgMemoryEntry> | null>(null);
+  const entries = memoriesPage?.items ?? null;
   const [loadError, setLoadError] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<OrgMemoryEntry | null>(null);
@@ -82,11 +94,11 @@ export default function SettingsOrganizationMemoryPage() {
   const loadEntries = useCallback(
     async (signal?: AbortSignal) => {
       if (!isBillingEnabled) {
-        setEntries([]);
+        setMemoriesPage(EMPTY_MEMORIES);
         return;
       }
 
-      setEntries(null);
+      setMemoriesPage(null);
       setLoadError(false);
       try {
         const service = await getMemoriesService();
@@ -104,7 +116,7 @@ export default function SettingsOrganizationMemoryPage() {
         if (signal?.aborted) {
           return;
         }
-        setEntries(data);
+        setMemoriesPage(data);
       } catch (error) {
         if (signal?.aborted) {
           return;
@@ -112,7 +124,7 @@ export default function SettingsOrganizationMemoryPage() {
         logger.error('GET /agent/memories/organization failed', error);
         notificationsService.error(translate('notifications.loadFailed'));
         setLoadError(true);
-        setEntries([]);
+        setMemoriesPage(EMPTY_MEMORIES);
       }
     },
     [
@@ -360,7 +372,11 @@ export default function SettingsOrganizationMemoryPage() {
         }}
       />
       {entries && entries.length > 0 ? (
-        <AutoPagination showTotal totalLabel="memories" />
+        <AutoPagination
+          showTotal
+          totalLabel="memories"
+          totals={memoriesPage?.totals ?? EMPTY_PAGE_TOTALS}
+        />
       ) : null}
     </div>
   );

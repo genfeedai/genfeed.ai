@@ -5,7 +5,10 @@ import {
   ContentRunStatus,
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
+import type {
+  ContentRunBrief,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -43,7 +46,15 @@ const STATUS_OPTIONS = [
   { label: 'Failed', value: ContentRunStatus.FAILED },
 ];
 
-const EMPTY_RUNS: ContentRunRecord[] = [];
+const EMPTY_RUNS_PAGE: IPaginatedResponse<ContentRunRecord> = {
+  items: [],
+  total: 0,
+  totalPages: 1,
+  page: 1,
+  pageSize: ITEMS_PER_PAGE,
+  hasNext: false,
+  hasPrevious: false,
+};
 
 function getRunId(run: ContentRunRecord): string {
   return run.id;
@@ -98,19 +109,19 @@ export default function ContentRunListPage() {
   );
 
   const {
-    data = EMPTY_RUNS,
+    data: runsPage = EMPTY_RUNS_PAGE,
     isError,
     isFetching,
     refetch,
-  } = useQuery<ContentRunRecord[]>({
+  } = useQuery<IPaginatedResponse<ContentRunRecord>>({
     enabled: isBrandReady,
     // placeholderData, never initialData: the shared QueryClient has a 30s
     // staleTime, and initialData is treated as a fresh cache entry, so the
     // list would mount empty and skip the fetch until something invalidated it.
-    placeholderData: EMPTY_RUNS,
+    placeholderData: EMPTY_RUNS_PAGE,
     queryFn: async ({ signal }) => {
       if (!brandId) {
-        return EMPTY_RUNS;
+        return EMPTY_RUNS_PAGE;
       }
       const service = await getContentRunsService();
       return service.list(
@@ -128,6 +139,7 @@ export default function ContentRunListPage() {
     queryKey: ['content-runs', brandId, status, currentPage, search],
   });
 
+  const data = runsPage.items;
   const isInitialFetch = isFetching && data.length === 0;
 
   const searchField = (
@@ -196,7 +208,14 @@ export default function ContentRunListPage() {
                   ))}
                 </div>
               </Card>
-              <AutoPagination showTotal totalLabel="runs" />
+              <AutoPagination
+                showTotal
+                totalLabel="runs"
+                totals={{
+                  totalDocs: runsPage.total,
+                  totalPages: runsPage.totalPages,
+                }}
+              />
             </>
           ) : (
             <EmptyState
