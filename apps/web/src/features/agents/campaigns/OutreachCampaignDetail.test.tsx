@@ -3,6 +3,7 @@ import {
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/contracts';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +20,11 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => null,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} targets / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@/features/agents/campaigns/useOutreachCampaignDetail', () => ({
@@ -62,6 +67,7 @@ function mockDetail(
       total: 0,
     },
     targets: [],
+    pageTotals: { totalDocs: 61, totalPages: 5 },
     urlInput: '',
   } as unknown as ReturnType<typeof useOutreachCampaignDetail>);
 }
@@ -260,5 +266,17 @@ describe('OutreachCampaignDetail', () => {
     for (const button of screen.getAllByRole('button', { name: 'Resume' })) {
       expect(button).toBeDisabled();
     }
+  });
+  it('renders the totals owned by the target page', () => {
+    mockDetail({
+      campaignType: CampaignType.DM_OUTREACH,
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.ACTIVE,
+      label: 'Sequence',
+    });
+    render(<OutreachCampaignDetail />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 targets / 5 pages');
   });
 });

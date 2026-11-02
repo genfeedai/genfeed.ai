@@ -182,7 +182,9 @@ describe('OutreachCampaignsService', () => {
     expect(result).toEqual(analytics);
   });
 
-  it('getTargets GETs one page of campaign targets and publishes the totals', async () => {
+  it('getTargets returns one page of campaign targets without changing other lists', async () => {
+    PagesService.setTotalDocs(200);
+    PagesService.setTotalPages(20);
     const targets = [{ id: 'target_1' }];
     http.get.mockResolvedValue(
       axiosResponse({
@@ -209,8 +211,8 @@ describe('OutreachCampaignsService', () => {
       total: 52,
       totalPages: 4,
     });
-    expect(PagesService.getTotalPages()).toBe(4);
-    expect(PagesService.getTotalDocs()).toBe(52);
+    expect(PagesService.getTotalPages()).toBe(20);
+    expect(PagesService.getTotalDocs()).toBe(200);
   });
 
   it('discoverTargets POSTs discovery options', async () => {

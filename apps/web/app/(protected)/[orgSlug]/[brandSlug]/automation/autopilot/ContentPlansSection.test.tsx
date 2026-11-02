@@ -1,3 +1,5 @@
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 import '@testing-library/jest-dom/vitest';
 import { ContentPlanStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -60,7 +62,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} plans / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -333,6 +339,7 @@ describe('ContentPlansSection', () => {
     });
     mocks.getSeeds.mockResolvedValue(EMPTY_SEED_PREVIEW);
     mocks.useContentPlans.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       plans: [makePlan()],
       refresh: mocks.refresh,
@@ -367,6 +374,7 @@ describe('ContentPlansSection', () => {
 
   it('badges a grounded plan and shows no plans empty state otherwise', () => {
     mocks.useContentPlans.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       plans: [],
       refresh: mocks.refresh,
@@ -426,6 +434,7 @@ describe('ContentPlansSection', () => {
 
   it('shows the seed summary from a structured plan.seeds field over the description', () => {
     mocks.useContentPlans.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       plans: [
         makePlan({
@@ -532,5 +541,17 @@ describe('ContentPlansSection', () => {
         }),
       );
     });
+  });
+  it('renders metadata from the content plans query', () => {
+    mocks.useContentPlans.mockReturnValue({
+      plans: [makePlan()],
+      pageTotals: { totalDocs: 61, totalPages: 5 },
+      isLoading: false,
+      refresh: mocks.refresh,
+    });
+    render(<ContentPlansSection />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('61 plans / 5 pages');
   });
 });

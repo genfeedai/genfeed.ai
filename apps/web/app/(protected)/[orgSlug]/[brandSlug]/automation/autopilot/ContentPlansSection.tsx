@@ -24,6 +24,7 @@ export default function ContentPlansSection() {
     isLoading,
     isSubmitting,
     plans,
+    pageTotals,
     setIsDialogOpen,
   } = useContentPlansSection();
   const { columns } = useContentPlansColumns();
@@ -70,7 +71,7 @@ export default function ContentPlansSection() {
           emptyLabel={translate('emptyTitle')}
         />
         {!isLoading && plans.length > 0 ? (
-          <AutoPagination showTotal totalLabel="plans" />
+          <AutoPagination showTotal totalLabel="plans" totals={pageTotals} />
         ) : null}
       </Card>
 

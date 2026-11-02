@@ -3,11 +3,13 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
   EMPTY_STATES,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type {
   IMemberInvitation,
+  IPaginatedResponse,
   IQueryParams,
   IRole,
 } from '@genfeedai/contracts/interfaces';
@@ -138,7 +140,11 @@ function MembersListContent() {
     }
   }
 
-  const [members, setMembers] = useState<Member[] | null>(null);
+  const [membersPage, setMembersPage] =
+    useState<IPaginatedResponse<Member> | null>(null);
+  const members = membersPage?.items ?? [];
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const membersRequest = useRef<AbortController | null>(null);
   const [invitations, setInvitations] = useState<IMemberInvitation[] | null>(
     null,
   );
@@ -228,13 +234,17 @@ function MembersListContent() {
           void loadRoles();
         }}
         onUpdated={(updated) => {
-          setMembers(
-            (current) =>
-              current?.map((item) =>
-                item.id === updated.id
-                  ? new MemberModel({ ...item, ...updated })
-                  : item,
-              ) ?? null,
+          setMembersPage((current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.map((item) =>
+                    item.id === updated.id
+                      ? new MemberModel({ ...item, ...updated })
+                      : item,
+                  ),
+                }
+              : current,
           );
         }}
       />
@@ -274,16 +284,19 @@ function MembersListContent() {
   ];
 
   const findAllMembers = useCallback(async () => {
+    membersRequest.current?.abort();
+    const request = new AbortController();
+    membersRequest.current = request;
     if (!organizationId || isTeamSubscriptionLocked) {
-      setMembers([]);
+      setMembersPage(null);
+      setIsLoadingMembers(false);
       setInvitations([]);
       return;
     }
 
-    setMembers(null);
-    if (canManageInvitations) {
-      setInvitations(null);
-    }
+    setMembersPage(null);
+    setIsLoadingMembers(true);
+    if (canManageInvitations) setInvitations(null);
 
     try {
       const service = await getMembersService();
@@ -294,19 +307,22 @@ function MembersListContent() {
         ...(search ? { search } : {}),
         ...(sort ? { sort } : {}),
       };
-
       const [memberData, invitationData] = await Promise.all([
-        service.findAll(query),
+        service.findAllPage(query, request.signal),
         canManageInvitations ? service.listInvitations() : Promise.resolve([]),
       ]);
-      setMembers(memberData);
+      if (request.signal.aborted) return;
+      setMembersPage(memberData);
       setInvitations(invitationData);
-      logger.info('GET /members success', { count: memberData.length });
+      logger.info('GET /members success', { count: memberData.items.length });
     } catch (error) {
+      if (request.signal.aborted) return;
       logger.error('GET /members failed', error);
       notificationsService.error('Failed to load members');
-      setMembers([]);
+      setMembersPage(null);
       setInvitations([]);
+    } finally {
+      if (!request.signal.aborted) setIsLoadingMembers(false);
     }
   }, [
     canManageInvitations,
@@ -381,7 +397,8 @@ function MembersListContent() {
   ];
 
   useEffect(() => {
-    findAllMembers();
+    void findAllMembers();
+    return () => membersRequest.current?.abort();
   }, [findAllMembers]);
 
   const upgradeTierLabel = formatTierLabel(upgradeTier, 'a paid plan');
@@ -431,7 +448,7 @@ function MembersListContent() {
             items={members ?? []}
             columns={columns}
             actions={[]}
-            isLoading={members === null}
+            isLoading={isLoadingMembers}
             getRowKey={(item) => item.id}
             rowSidebar={memberSidebar}
             emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
@@ -453,7 +470,18 @@ function MembersListContent() {
           ) : null}
 
           <div className="mt-4">
-            <AutoPagination showTotal totalLabel="members" />
+            <AutoPagination
+              showTotal
+              totalLabel="members"
+              totals={
+                membersPage
+                  ? {
+                      totalDocs: membersPage.total,
+                      totalPages: membersPage.totalPages,
+                    }
+                  : EMPTY_PAGE_TOTALS
+              }
+            />
           </div>
 
           <LazyModalMember

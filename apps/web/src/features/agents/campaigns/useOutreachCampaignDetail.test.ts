@@ -1,3 +1,4 @@
+import { CampaignTargetStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
@@ -213,5 +214,20 @@ describe('useOutreachCampaignDetail — paginated targets', () => {
       skipped: 0,
       total: 40,
     });
+  });
+  it('keeps server target totals with the targets and status counts', async () => {
+    mocks.getTargets.mockResolvedValue({
+      page: 2,
+      pageSize: 15,
+      targets: [],
+      total: 61,
+      totalPages: 5,
+      statusCounts: { [CampaignTargetStatus.PENDING]: 61 },
+    });
+    const { result } = renderHook(() => useOutreachCampaignDetail());
+    expect(result.current.pageTotals).toEqual({ totalDocs: 0, totalPages: 1 });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.pageTotals).toEqual({ totalDocs: 61, totalPages: 5 });
+    expect(result.current.targetStats.pending).toBe(61);
   });
 });

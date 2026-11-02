@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +22,9 @@ import { useContentPlans } from './use-content-plans';
 describe('useContentPlans', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listMock.mockResolvedValue([{ id: 'plan-1' }]);
+    listMock.mockResolvedValue(
+      paginatedResponse([{ id: 'plan-1' }], { totalDocs: 50, totalPages: 4 }),
+    );
   });
 
   it('requests the given server page for the brand', async () => {
@@ -31,6 +34,7 @@ describe('useContentPlans', () => {
     );
 
     await waitFor(() => expect(result.current.plans).toHaveLength(1));
+    expect(result.current.pageTotals).toEqual({ totalDocs: 50, totalPages: 4 });
     expect(listMock).toHaveBeenCalledWith(
       'brand-1',
       { limit: 15, page: 2 },

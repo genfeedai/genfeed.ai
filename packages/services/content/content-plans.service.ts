@@ -3,8 +3,8 @@ import type {
   IContentPlanItem,
   IContentPlanSeedPreview,
   IGenerateContentPlanInput,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -12,7 +12,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
-import { recordPageTotals } from '@services/core/page-totals';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 export interface ContentPlanWithItems {
   plan: IContentPlan;
@@ -38,22 +38,21 @@ export class ContentPlansService extends HTTPBaseService {
   }
 
   /**
-   * One server page of a brand's plans, newest first. Passing `page`
-   * publishes the totals for `<AutoPagination />`.
+   * One server page of a brand's plans with its pagination metadata.
    */
   async list(
     brandId: string,
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
-  ): Promise<IContentPlan[]> {
-    const requestId = PagesService.beginRequest();
+  ): Promise<IPaginatedResponse<IContentPlan>> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content/plans`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query, requestId);
-
-    return deserializeCollection<IContentPlan>(response.data);
+    return toPaginatedResponse(
+      deserializeCollection<IContentPlan>(response.data),
+      response.data,
+    );
   }
 
   async get(
