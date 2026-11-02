@@ -113,9 +113,7 @@ describe('ApifyService', () => {
           useValue: {
             getYouTubeChannelUploads: vi.fn(),
             getYouTubeChannelVideos: vi.fn(),
-            getYouTubeTrends: vi.fn(),
             getYouTubeVideoComments: vi.fn(),
-            getYouTubeVideos: vi.fn(),
             searchYouTubeVideos: vi.fn(),
           },
         },

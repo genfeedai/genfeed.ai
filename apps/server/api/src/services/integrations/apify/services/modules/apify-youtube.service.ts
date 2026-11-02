@@ -1,10 +1,7 @@
 import type {
   ApifyNormalizedYouTubeComment,
-  ApifyTrendData,
-  ApifyVideoData,
   ApifyYouTubeComment,
   ApifyYouTubeVideo,
-  TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
@@ -15,7 +12,7 @@ import { Injectable } from '@nestjs/common';
  * ApifyYouTubeService
  *
  * Handles all YouTube-related Apify scraping operations:
- * trends, videos, comments, channel videos, and search.
+ * comments, channel videos, and search.
  */
 @Injectable()
 export class ApifyYouTubeService {
@@ -25,68 +22,6 @@ export class ApifyYouTubeService {
     private readonly baseService: ApifyBaseService,
     private readonly runner: ResearchCollectionRunner,
   ) {}
-
-  /**
-   * Get YouTube trending videos
-   */
-  async getYouTubeTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
-    try {
-      const videos = await this.getYouTubeVideos(options?.limit || 20);
-
-      return videos.map((video) => ({
-        growthRate: Math.min(100, video.velocity / 100),
-        mentions: video.viewCount,
-        metadata: {
-          creatorHandle: video.creatorHandle,
-          hashtags: video.hashtags,
-          likeCount: video.likeCount,
-          source: 'apify' as const,
-          thumbnailUrl: video.thumbnailUrl,
-          trendType: 'video' as const,
-          videoUrl: video.videoUrl,
-          viewCount: video.viewCount,
-        },
-        platform: 'youtube',
-        topic: video.title || 'Trending Video',
-        viralityScore: video.viralScore,
-      }));
-    } catch (error: unknown) {
-      this.baseService.loggerService.error(
-        `${this.constructorName}.getYouTubeTrends failed`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Get YouTube trending videos
-   */
-  async getYouTubeVideos(limit: number = 50): Promise<ApifyVideoData[]> {
-    try {
-      const input = {
-        maxResults: limit,
-        publishedAfter: new Date(
-          Date.now() - 7 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
-        searchQueries: ['trending'],
-        sortBy: 'viewCount',
-      };
-
-      const rawVideos = await this.baseService.runActor<ApifyYouTubeVideo>(
-        this.baseService.ACTORS.YOUTUBE_SCRAPER,
-        input,
-      );
-
-      return this.normalizeYouTubeVideos(rawVideos);
-    } catch (error: unknown) {
-      this.baseService.loggerService.error(
-        `${this.constructorName}.getYouTubeVideos failed`,
-        error,
-      );
-      throw error;
-    }
-  }
 
   /**
    * Get comments on a YouTube video
@@ -219,48 +154,6 @@ export class ApifyYouTubeService {
       );
       return [];
     }
-  }
-
-  private normalizeYouTubeVideos(
-    videos: ApifyYouTubeVideo[],
-  ): ApifyVideoData[] {
-    return videos.map((video) => {
-      const viewCount = video.viewCount || 0;
-      const likeCount = video.likeCount || 0;
-      const commentCount = video.commentCount || 0;
-      const publishedAt = video.publishedAt
-        ? new Date(video.publishedAt)
-        : undefined;
-
-      const metrics = this.baseService.calculateEngagementMetrics(
-        viewCount,
-        likeCount,
-        commentCount,
-        0, // YouTube doesn't expose shares
-        publishedAt,
-      );
-
-      return {
-        commentCount,
-        creatorHandle: video.channelName || 'unknown',
-        creatorId: video.channelId,
-        description: video.description,
-        duration: this.baseService.parseDuration(video.duration),
-        engagementRate: metrics.engagementRate,
-        externalId: video.id,
-        hashtags: this.baseService.extractHashtags(video.description || ''),
-        likeCount,
-        platform: 'youtube',
-        publishedAt,
-        shareCount: 0,
-        thumbnailUrl: video.thumbnailUrl,
-        title: video.title,
-        velocity: metrics.velocity,
-        videoUrl: video.url,
-        viewCount,
-        viralScore: metrics.viralScore,
-      };
-    });
   }
 
   private normalizeYouTubeComments(

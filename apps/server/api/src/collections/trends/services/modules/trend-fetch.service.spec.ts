@@ -35,7 +35,6 @@ describe('TrendFetchService', () => {
     getRedditTrends: vi.fn(),
     getTikTokTrends: vi.fn(),
     getTwitterTrends: vi.fn(),
-    getYouTubeTrends: vi.fn(),
   };
   const mockLinkedInService = {
     getTrends: vi.fn(),
@@ -110,7 +109,6 @@ describe('TrendFetchService', () => {
       select: { description: true },
       where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
     });
-    expect(mockApifyService.getYouTubeTrends).not.toHaveBeenCalled();
   });
 
   it('filters stale Grok topics with past-year tokens before returning Twitter trends', async () => {
@@ -551,7 +549,6 @@ describe('TrendFetchService', () => {
       const result = await service.fetchPlatformTrends('youtube');
 
       expect(mockYoutubeService.getTrends).toHaveBeenCalledWith('US', 20);
-      expect(mockApifyService.getYouTubeTrends).not.toHaveBeenCalled();
       expect(result[0]).toMatchObject({
         growthRate: 10,
         mentions: 10000,
@@ -707,7 +704,6 @@ describe('TrendFetchService', () => {
     mockApifyService.getInstagramTrends.mockResolvedValue([]);
     mockApifyService.getPinterestTrends.mockResolvedValue([]);
     mockApifyService.getRedditTrends.mockResolvedValue([]);
-    mockApifyService.getYouTubeTrends.mockResolvedValue([]);
     mockPrisma.trend.create.mockImplementation(({ data }) =>
       Promise.resolve({
         brandId: data.brandId,
@@ -971,20 +967,18 @@ describe('TrendFetchService', () => {
   it.each(['fallback_available', 'fallback_empty', 'fallback_failed'])(
     'records %s for a global provider fallback',
     async (outcome) => {
-      mockYoutubeService.getTrends.mockRejectedValue(
+      mockRedditService.getTrends.mockRejectedValue(
         new Error('native provider unavailable'),
       );
       if (outcome === 'fallback_failed')
-        mockApifyService.getYouTubeTrends.mockRejectedValue(
-          new Error('secret'),
-        );
+        mockApifyService.getRedditTrends.mockRejectedValue(new Error('secret'));
       else
-        mockApifyService.getYouTubeTrends.mockResolvedValue(
+        mockApifyService.getRedditTrends.mockResolvedValue(
           outcome === 'fallback_empty'
             ? []
             : [
                 {
-                  platform: 'youtube',
+                  platform: 'reddit',
                   topic: 'News',
                   mentions: 3,
                   growthRate: 1,
@@ -996,7 +990,7 @@ describe('TrendFetchService', () => {
           Promise.resolve({ id: 'trend', ...input.data }),
       );
       await service.fetchAndCacheTrends(undefined, undefined, undefined, {
-        platforms: ['youtube'],
+        platforms: ['reddit'],
       });
       expect(refreshHealth.record).toHaveBeenCalledWith(null, [
         expect.objectContaining({
@@ -1007,6 +1001,26 @@ describe('TrendFetchService', () => {
       ]);
     },
   );
+
+  it('records a global YouTube miss as a native failure and never as a fallback success', async () => {
+    mockYoutubeService.getTrends.mockRejectedValue(
+      new Error('native provider unavailable'),
+    );
+    const result = await service.fetchAndCacheTrends(
+      undefined,
+      undefined,
+      undefined,
+      { platforms: ['youtube'] },
+    );
+    expect(result).toEqual([]);
+    expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+      expect.objectContaining({
+        lastSuccessfulRefreshAt: null,
+        outcome: 'native_failed',
+        platform: 'youtube',
+      }),
+    ]);
+  });
 
   it('does not advance an attempt when the provider result is already cached', async () => {
     mockCacheService.get.mockResolvedValue([]);
