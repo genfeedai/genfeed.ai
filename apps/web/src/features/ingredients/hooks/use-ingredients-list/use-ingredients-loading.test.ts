@@ -110,6 +110,7 @@ describe('useIngredientsLoading', () => {
     currentPage: 1,
     form: mockForm as never,
     formatFilter: undefined,
+    isScopeReady: true,
     loadFolders: true,
     onRefresh: vi.fn(),
     organizationId: 'org-1',
@@ -149,6 +150,25 @@ describe('useIngredientsLoading', () => {
     expect(result.current).toHaveProperty('setIngredients');
     expect(result.current).toHaveProperty('notificationsService');
     expect(result.current).toHaveProperty('selectedFolderId');
+  });
+
+  it('stays loading while the brand is still resolving, then stops when there is none', () => {
+    const { rerender, result } = renderHook(
+      ({ isScopeReady }) =>
+        useIngredientsLoading({
+          ...baseProps,
+          brandId: undefined,
+          isScopeReady,
+        }),
+      { initialProps: { isScopeReady: false } },
+    );
+
+    expect(result.current.isLoading).toBe(true);
+    expect(ingredientsFindAllMock).not.toHaveBeenCalled();
+
+    rerender({ isScopeReady: true });
+
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('initializes with empty ingredients and folders', () => {

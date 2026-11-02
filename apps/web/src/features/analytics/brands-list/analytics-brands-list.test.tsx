@@ -62,6 +62,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,
@@ -135,6 +136,12 @@ describe('AnalyticsBrandsList', () => {
     getBrandsWithStatsMock.mockResolvedValue({
       data: [brandFixture, otherBrandFixture],
       pagination: { limit: 15, page: 1, total: 2, totalPages: 1 },
+      totals: {
+        growth: 8,
+        totalEngagement: 3400,
+        totalPosts: 1234,
+        totalViews: 56000,
+      },
     });
   });
 
@@ -151,6 +158,33 @@ describe('AnalyticsBrandsList', () => {
     expect(
       screen.queryByRole('button', { name: 'View Brand Details' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows no zero totals before the first response', async () => {
+    render(<AnalyticsBrandsList />);
+
+    // Every KPI tile is busy on first paint, so no zeros show before the data.
+    expect(screen.getAllByTestId('metric-card')[0]).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme')).toBeInTheDocument();
+    });
+  });
+
+  it('shows period totals for the whole list above the table', async () => {
+    render(<AnalyticsBrandsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme')).toBeInTheDocument();
+    });
+    const totals = screen.getByTestId('metric-card-grid');
+    expect(await within(totals).findByText('1.2K')).toBeInTheDocument();
+    expect(await within(totals).findByText('56K')).toBeInTheDocument();
+    expect(await within(totals).findByText('3.4K')).toBeInTheDocument();
+    expect(within(totals).getByText(/8%/)).toBeInTheDocument();
   });
 
   it('leaves the page title to the breadcrumb and the count to pagination', async () => {

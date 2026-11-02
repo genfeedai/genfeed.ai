@@ -1,4 +1,6 @@
+import { ActivityKey } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -25,5 +27,72 @@ test.describe('Admin Overview Activities', () => {
     await tryClick(adminPage, '[role="tab"]');
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
+  });
+
+  test('keeps the Context toggle after the panel closes and marks unread rows from their dot', async ({
+    adminPage,
+  }) => {
+    await adminPage.setViewportSize({ height: 900, width: 1440 });
+    const fulfill = async (route: Route): Promise<void> => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                createdAt: '2026-11-02T06:08:26.000Z',
+                isRead: false,
+                key: ActivityKey.VIDEO_GENERATED,
+                source: 'video-generate',
+                value: '',
+              },
+              id: 'activity-unread',
+              type: 'activities',
+            },
+            {
+              attributes: {
+                createdAt: '2026-11-02T05:08:26.000Z',
+                isRead: true,
+                key: ActivityKey.IMAGE_GENERATED,
+                source: 'image-generate',
+                value: '',
+              },
+              id: 'activity-read',
+              type: 'activities',
+            },
+          ],
+          meta: { page: 1, pageSize: 20, totalCount: 2 },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    };
+    await adminPage.route('**/api.genfeed.ai/v1/activities**', fulfill);
+    await adminPage.route('**/v1/activities**', fulfill);
+
+    await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ACTIVITIES, {
+      waitUntil: 'domcontentloaded',
+    });
+    await adminPage.getByText('Generated a video').click();
+
+    const toggle = adminPage.getByTestId('topbar-context-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await toggle.click();
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    // Only the unread row carries the mark-as-read dot.
+    await expect(
+      adminPage
+        .getByRole('table')
+        .getByRole('button', { name: 'Mark as read' }),
+    ).toHaveCount(1);
   });
 });

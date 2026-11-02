@@ -145,6 +145,11 @@ interface UseIngredientsLoadingProps {
   onRefresh?: (fn: () => void) => void;
   parsedSearchParams: URLSearchParams;
   loadFolders: boolean;
+  /**
+   * False while the organization and brand are still resolving. A brand list
+   * stays loading until then, so the empty state never paints first.
+   */
+  isScopeReady: boolean;
 }
 
 export function useIngredientsLoading({
@@ -161,6 +166,7 @@ export function useIngredientsLoading({
   onRefresh,
   parsedSearchParams,
   loadFolders,
+  isScopeReady,
 }: UseIngredientsLoadingProps) {
   const notificationsService = NotificationsService.getInstance();
 
@@ -545,7 +551,7 @@ export function useIngredientsLoading({
 
     if (shouldLoadData) {
       findAllIngredientsByCategory(false, abortController.signal);
-    } else {
+    } else if (isScopeReady) {
       setIsLoading(false);
     }
 
@@ -556,7 +562,7 @@ export function useIngredientsLoading({
     return () => {
       abortController.abort();
     };
-  }, [brandId, findAllIngredientsByCategory, onRefresh, scope]);
+  }, [brandId, findAllIngredientsByCategory, isScopeReady, onRefresh, scope]);
 
   useEffect(() => {
     let controller: AbortController | undefined;

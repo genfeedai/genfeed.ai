@@ -95,6 +95,10 @@ export interface StudioPlaygroundComposerProps {
   isResting?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
+  /** A generation is generating and the server can cancel it: Stop takes the slot. */
+  isStopAvailable?: boolean;
+  /** A submit is being sent to the provider: the send button shows loading. */
+  isSubmitting?: boolean;
   models: readonly IModel[];
   /** Status or recovery notice pinned inside the composer shell, never above it. */
   notice?: ReactNode;
@@ -109,6 +113,8 @@ export interface StudioPlaygroundComposerProps {
   onResetSettings: () => void;
   onSettingsChange: (patch: Partial<StudioPlaygroundSettings>) => void;
   onStartListening: () => void;
+  /** Cancels the newest run that is still generating. */
+  onStopGeneration?: () => void | Promise<void>;
   onStopListening: () => void;
   onSubmit: (options?: StudioSubmitOptions) => void;
   onTypeChange: (type: StudioPlaygroundType) => void;
@@ -338,6 +344,8 @@ export interface StudioPlaygroundInspectorProps {
     recoveredUrl: string | undefined,
   ) => void;
   /** Attaches a finished image to the composer as an image reference. */
+  /** Removes a failed generation; the header offers it only when one failed. */
+  onRemove?: (job: StudioPlaygroundJob) => void;
   onRemix: (job: StudioPlaygroundJob) => void;
   onEdit?: (job: StudioPlaygroundJob) => void;
   onSelect: (job: StudioPlaygroundJob) => void;

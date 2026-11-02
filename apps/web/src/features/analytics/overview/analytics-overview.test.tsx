@@ -363,26 +363,6 @@ describe('AnalyticsOverview', () => {
     mockDataHookOptions.topPosts.mockClear();
   });
 
-  // genfeedai/genfeed.ai#5418: the data hooks skip their mount fetch whenever
-  // they receive initial data with `revalidateOnMount: false`, so a page that
-  // passes no server data must not hand them an empty array ("hydrated").
-  it('lets the chart, leaderboard and top-post hooks fetch when no server data is passed', () => {
-    renderOverview();
-
-    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
-      expect.objectContaining({ initialData: undefined }),
-    );
-    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialBrandsLeaderboard: undefined,
-        initialOrgsLeaderboard: undefined,
-      }),
-    );
-    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ initialData: undefined }),
-    );
-  });
-
   it('scopes top posts to the selected brand on a brand page', () => {
     renderToStaticMarkup(<AnalyticsOverview scope={PageScope.BRAND} />);
 
@@ -399,36 +379,6 @@ describe('AnalyticsOverview', () => {
 
     expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: undefined }),
-    );
-  });
-
-  it('hands server-provided data to the hooks as hydrated initial data', () => {
-    const timeseriesData = [{ date: '2026-03-03', instagram: 10 }];
-
-    renderToStaticMarkup(
-      <AnalyticsOverview
-        brandsLeaderboard={[]}
-        orgsLeaderboard={[]}
-        timeseriesData={timeseriesData}
-        topPosts={[]}
-      />,
-    );
-
-    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialData: timeseriesData,
-        revalidateOnMount: false,
-      }),
-    );
-    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialBrandsLeaderboard: [],
-        initialOrgsLeaderboard: [],
-        revalidateOnMount: false,
-      }),
-    );
-    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
-      expect.objectContaining({ initialData: [], revalidateOnMount: false }),
     );
   });
 

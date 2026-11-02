@@ -19,14 +19,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import {
-  ArrowUpRight,
-  ClipboardList,
-  ExternalLink,
-  Mail,
-  MailOpen,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, ClipboardList, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -120,6 +113,29 @@ export default function ActivitiesList({
   const columns = useMemo(
     () => [
       {
+        className: 'w-8 pr-0',
+        header: '',
+        key: 'unread',
+        // Same unread dot as the notification inbox: it is the mark-as-read
+        // button, and read rows show nothing.
+        render: (a: IActivity) =>
+          a.isRead ? null : (
+            // ui-guard-allow:table-action -- unread dot is the row's mark-as-read control, matching the notification inbox
+            <Button
+              ariaLabel={translate('markRead')}
+              onClick={() => toggleActivityRead(a.id)}
+              size={ButtonSize.ICON}
+              title={translate('markRead')}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              <span className="size-1.5 rounded-full bg-info">
+                <span className="sr-only">{translate('unread')}</span>
+              </span>
+            </Button>
+          ),
+      },
+      {
         className: 'w-16',
         header: '',
         key: 'thumbnail',
@@ -198,7 +214,13 @@ export default function ActivitiesList({
         },
       },
     ],
-    [activityMessageFormatter, getActivityHref, handleViewIngredient],
+    [
+      activityMessageFormatter,
+      getActivityHref,
+      handleViewIngredient,
+      toggleActivityRead,
+      translate,
+    ],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -238,20 +260,8 @@ export default function ActivitiesList({
                 `Open ${getActivityDescription(a, activityMessageFormatter)}`,
             },
           ]),
-      {
-        getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
-        icon: (a: IActivity) =>
-          a.isRead ? (
-            <MailOpen className="size-4 text-foreground/50" />
-          ) : (
-            <Mail className="size-4 text-info" />
-          ),
-        onClick: (a: IActivity) => toggleActivityRead(a.id),
-        tooltip: (a: IActivity) =>
-          a.isRead ? 'Mark as unread' : 'Mark as read',
-      },
     ],
-    [activityMessageFormatter, href, isAdminScope, toggleActivityRead],
+    [activityMessageFormatter, href, isAdminScope],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {

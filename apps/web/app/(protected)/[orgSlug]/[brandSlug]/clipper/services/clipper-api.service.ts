@@ -3,6 +3,7 @@ import type {
   ClipperReferenceFrameSet,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
@@ -346,11 +347,12 @@ export class ClipperApiService implements ClipperApiClient {
     if (query.page) params.set('page', String(query.page));
     if (query.search) params.set('search', query.search);
 
+    const requestId = PagesService.beginRequest();
     const data = await this.fetchJson<unknown>(
       `${this.apiEndpoint}/clipper-projects?${params.toString()}`,
       { signal },
     );
-    recordPageTotals(data as JsonApiResponseDocument, query);
+    recordPageTotals(data as JsonApiResponseDocument, query, requestId);
 
     return this.extractCollection<ClipperResultRawItem>(data).map((item) =>
       mapClipperProjectSummary({

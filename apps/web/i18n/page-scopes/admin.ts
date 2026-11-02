@@ -29,6 +29,7 @@ const messages = {
   activities,
   analytics: {
     accounts: analytics.accounts,
+    brandsList: analytics.brandsList,
     overview: analytics.overview,
     performanceDataset: analytics.performanceDataset,
   },

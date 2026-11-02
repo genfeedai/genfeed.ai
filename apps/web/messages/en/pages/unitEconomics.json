@@ -1,5 +1,4 @@
 {
-  "allOrganizations": "All organizations",
   "columns": {
     "agentChatCredits": "Agent chat credits",
     "agentTurns": "Agent turns",
@@ -14,14 +13,26 @@
     "topModels": "Top models by cost",
     "user": "User"
   },
-  "description": "Per-organization revenue, credits consumed, provider cost, and gross margin. Select an organization to drill into its users.",
-  "descriptionDrillDown": "Per-user revenue, credits consumed, provider cost, and gross margin inside this organization",
   "empty": "No revenue or usage in this period",
   "loadFailed": "Unit economics could not be loaded",
+  "openOrganization": "Open spending for {name}",
+  "openSpending": "Open spending",
+  "spending": {
+    "kpis": {
+      "credits": "Credits used",
+      "creditsDescription": "{chat} agent chat · {generation} generation",
+      "grossMargin": "Gross margin",
+      "grossMarginDescription": "{percent} of revenue",
+      "providerCost": "Provider cost",
+      "providerCostDescription": "LLM {llm} · generation {media}",
+      "revenue": "Revenue",
+      "revenueDescription": "{turns} agent turns in this period"
+    },
+    "tableLabel": "Spending by user",
+    "totalLabel": "users"
+  },
   "tableLabel": "Unit economics",
   "title": "Unit Economics",
-  "titleDrillDown": "Unit Economics · {label}",
   "total": "Total",
-  "totalLabel": "organizations",
-  "totalLabelUsers": "users"
+  "totalLabel": "organizations"
 }

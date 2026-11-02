@@ -3,12 +3,14 @@
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonSize, ButtonVariant, CardPadding } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import {
-  getSystemWorkflowMetadata,
-  type IFeaturedWorkflowSummary,
-} from '@genfeedai/contracts/interfaces';
+import type { IFeaturedWorkflowSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
+import type {
+  AdminWorkflowRow,
+  AdminWorkflowType,
+  AdminWorkflowTypeFilter,
+} from '@props/admin/admin-workflow-row.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { AdminFeaturedWorkflowsService } from '@services/admin/featured-workflows.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
@@ -20,7 +22,8 @@ import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import Pagination from '@ui/navigation/pagination/Pagination';
+import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -31,15 +34,23 @@ import {
   PinOff,
   Trash2,
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
+import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
-
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import type { SystemWorkflowCatalogEntry } from '@/features/workflows/services/workflow-api.types';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
+import {
+  buildWorkflowRows,
+  clampPage,
+  filterWorkflowRows,
+  getPageCount,
+  sortWorkflowRows,
+  WORKFLOW_SORT_KEYS,
+} from './workflow-rows';
 
 function getWorkflowStatusVariant(
   status: string,
@@ -61,22 +72,10 @@ function getWorkflowStatusVariant(
   }
 }
 
-/** System workflows are installed per organization from the catalog; they are never featured. */
-function isPinnable(workflow: Workflow): boolean {
-  return getSystemWorkflowMetadata(workflow.metadata) === null;
-}
+const WORKFLOW_TYPES: readonly AdminWorkflowType[] = ['system', 'organization'];
 
-type CatalogStatus = 'installed' | 'available' | 'systemAction';
-
-function getCatalogStatus(entry: SystemWorkflowCatalogEntry): CatalogStatus {
-  if (entry.installed) {
-    return 'installed';
-  }
-  return entry.installable ? 'available' : 'systemAction';
-}
-
-function formatFamily(family: string): string {
-  return family.replaceAll('-', ' ');
+function parseTypeFilter(value: string | null): AdminWorkflowTypeFilter {
+  return WORKFLOW_TYPES.find((type) => type === value) ?? 'all';
 }
 
 /** Moves one id a step up or down, leaving every other position as it was. */
@@ -97,8 +96,6 @@ function movePin(
   return ids;
 }
 
-const WORKFLOW_SORT_KEYS = ['label', 'status', 'trigger', 'createdAt'];
-
 export default function WorkflowsPage() {
   const translate = useTranslations('pages.adminWorkflows');
   const getWorkflowsService = useAuthedService((token: string) =>
@@ -109,10 +106,13 @@ export default function WorkflowsPage() {
   );
   const getCatalogService = useAuthedService(createWorkflowApiService);
   const notificationsService = NotificationsService.getInstance();
+  const { replace } = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentPage = Number(searchParams.get('page')) || 1;
+  const searchParamsString = searchParams.toString();
+  const typeFilter = parseTypeFilter(searchParams.get('type'));
   const { search, setSearch } = useAdminSearchParam();
-  const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
+  const { sortKey, sortDirection, onSortChange } = useTableSort({
     allowedKeys: WORKFLOW_SORT_KEYS,
   });
   const { openConfirmDelete } = useConfirmDeleteModal();
@@ -127,6 +127,68 @@ export default function WorkflowsPage() {
   const [isSavingPins, setIsSavingPins] = useState(false);
 
   const pinnedIds = useMemo(() => new Set(pins.map((pin) => pin.id)), [pins]);
+
+  const rows = useMemo(
+    () =>
+      sortWorkflowRows(
+        filterWorkflowRows(
+          buildWorkflowRows(workflows, catalog),
+          typeFilter,
+          search,
+        ),
+        sortKey,
+        sortDirection,
+      ),
+    [catalog, search, sortDirection, sortKey, typeFilter, workflows],
+  );
+  const pageCount = getPageCount(rows.length, ITEMS_PER_PAGE);
+  const currentPage = clampPage(
+    Number(searchParams.get('page')) || 1,
+    pageCount,
+  );
+  const pageRows = rows.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  const updateParams = useCallback(
+    (change: (params: URLSearchParams) => void) => {
+      const params = new URLSearchParams(searchParamsString);
+      change(params);
+      const queryString = params.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  const changeType = useCallback(
+    (value: string) => {
+      const type = parseTypeFilter(value);
+      updateParams((params) => {
+        if (type === 'all') {
+          params.delete('type');
+        } else {
+          params.set('type', type);
+        }
+        params.delete('page');
+      });
+    },
+    [updateParams],
+  );
+
+  const changePage = useCallback(
+    (page: number) =>
+      updateParams((params) => {
+        if (page <= 1) {
+          params.delete('page');
+        } else {
+          params.set('page', String(page));
+        }
+      }),
+    [updateParams],
+  );
 
   const loadPins = useCallback(
     async (signal?: AbortSignal) => {
@@ -177,14 +239,13 @@ export default function WorkflowsPage() {
 
       try {
         const service = await getWorkflowsService();
+        // One list means one page size: every workflow is fetched and the
+        // table pages through the merged rows.
         const [fetchedWorkflows] = await Promise.all([
-          service.findAll(
+          service.findAllPages(
             {
               includeSystem: true,
-              limit: ITEMS_PER_PAGE,
-              page: currentPage,
               ...(search ? { search } : {}),
-              sort: sort ?? 'createdAt: -1',
             },
             signal,
           ),
@@ -210,13 +271,11 @@ export default function WorkflowsPage() {
       }
     },
     [
-      currentPage,
       getWorkflowsService,
       loadCatalog,
       loadPins,
       notificationsService,
       search,
-      sort,
       translate,
     ],
   );
@@ -268,8 +327,9 @@ export default function WorkflowsPage() {
             const service = await getWorkflowsService();
             await service.delete(workflow.id);
 
-            setWorkflows((prev) => prev.filter((w) => w.id !== workflow.id));
             notificationsService.success(translate('deleted'));
+            // A deleted system copy turns its template back into "Not installed".
+            await loadWorkflows(true);
           } catch (error) {
             logger.error('Failed to delete workflow', error);
             notificationsService.error(translate('errors.delete'));
@@ -277,17 +337,23 @@ export default function WorkflowsPage() {
         },
       });
     },
-    [openConfirmDelete, getWorkflowsService, notificationsService, translate],
+    [
+      getWorkflowsService,
+      loadWorkflows,
+      notificationsService,
+      openConfirmDelete,
+      translate,
+    ],
   );
 
-  const workflowActions: TableAction<Workflow>[] = [
+  const workflowActions: TableAction<AdminWorkflowRow>[] = [
     {
       icon: <PinOff />,
       isDisabled: () => isSavingPins,
-      isVisible: (workflow) => pinnedIds.has(workflow.id),
-      onClick: (workflow) =>
+      isVisible: (row) => pinnedIds.has(row.id),
+      onClick: (row) =>
         void savePins(
-          (service) => service.unpin(workflow.id),
+          (service) => service.unpin(row.id),
           translate('featured.unpinned'),
         ),
       tooltip: translate('actions.unpin'),
@@ -295,45 +361,74 @@ export default function WorkflowsPage() {
     {
       icon: <Pin />,
       isDisabled: () => isSavingPins,
-      isVisible: (workflow) =>
-        !pinnedIds.has(workflow.id) && isPinnable(workflow),
-      onClick: (workflow) =>
+      // System workflows are installed per organization from the catalog; they are never featured.
+      isVisible: (row) =>
+        row.type === 'organization' &&
+        row.workflow !== undefined &&
+        !pinnedIds.has(row.id),
+      onClick: (row) =>
         void savePins(
-          (service) => service.pin(workflow.id),
+          (service) => service.pin(row.id),
           translate('featured.pinned'),
         ),
       tooltip: translate('actions.pin'),
     },
     {
       icon: <Trash2 />,
-      onClick: handleDelete,
+      isVisible: (row) => row.workflow !== undefined,
+      onClick: (row) => {
+        if (row.workflow) {
+          handleDelete(row.workflow);
+        }
+      },
       tooltip: translate('actions.delete'),
       tone: 'destructive',
     },
   ];
 
-  const workflowColumns: TableColumn<Workflow>[] = [
+  const workflowColumns: TableColumn<AdminWorkflowRow>[] = [
     {
       header: translate('columns.workflow'),
       key: 'label',
       sortable: true,
-      render: (workflow) => (
+      render: (row) => (
         <span className="font-medium">
-          {workflow.label || translate('untitled')}
+          {row.label || translate('untitled')}
         </span>
       ),
-      subtext: (workflow) => workflow.description || undefined,
+      subtext: (row) =>
+        [row.family, row.description].filter(Boolean).join(' · ') || undefined,
+    },
+    {
+      header: translate('columns.type'),
+      key: 'type',
+      sortable: true,
+      render: (row) => (
+        <Badge variant={row.type === 'system' ? 'secondary' : 'outline'}>
+          {translate(`types.${row.type}`)}
+        </Badge>
+      ),
     },
     {
       header: translate('columns.status'),
       key: 'status',
       sortable: true,
-      render: (workflow) => (
+      render: (row) => (
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={getWorkflowStatusVariant(workflow.status)}>
-            {workflow.status}
-          </Badge>
-          {pinnedIds.has(workflow.id) ? (
+          {row.workflow ? (
+            <Badge variant={getWorkflowStatusVariant(row.workflow.status)}>
+              {row.workflow.status}
+            </Badge>
+          ) : row.catalogStatus ? (
+            <Badge
+              variant={
+                row.catalogStatus === 'installed' ? 'success' : 'secondary'
+              }
+            >
+              {translate(`catalog.status.${row.catalogStatus}`)}
+            </Badge>
+          ) : null}
+          {pinnedIds.has(row.id) ? (
             <Badge variant="info">{translate('featured.badge')}</Badge>
           ) : null}
         </div>
@@ -342,55 +437,26 @@ export default function WorkflowsPage() {
     {
       header: translate('columns.trigger'),
       key: 'trigger',
-      sortable: true,
-      render: (workflow) =>
-        workflow.trigger ? (
-          <Badge variant="outline">{workflow.trigger}</Badge>
-        ) : null,
+      render: (row) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {row.trigger ? <Badge variant="outline">{row.trigger}</Badge> : null}
+          {row.schedule ? (
+            <span className="font-mono text-sm">{row.schedule}</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: translate('columns.version'),
+      key: 'version',
+      render: (row) => (row.version === undefined ? '' : `v${row.version}`),
     },
     {
       header: translate('columns.created'),
       key: 'createdAt',
       sortable: true,
-      render: (workflow) => <TableDateCell value={workflow.createdAt} />,
-    },
-  ];
-
-  const catalogColumns: TableColumn<SystemWorkflowCatalogEntry>[] = [
-    {
-      header: translate('columns.workflow'),
-      key: 'label',
-      render: (entry) => <span className="font-medium">{entry.label}</span>,
-      subtext: (entry) => entry.description || undefined,
-    },
-    {
-      className: 'capitalize',
-      header: translate('columns.family'),
-      key: 'family',
-      render: (entry) => formatFamily(entry.family),
-    },
-    {
-      className: 'font-mono text-sm',
-      header: translate('columns.schedule'),
-      key: 'schedule',
-      render: (entry) => entry.schedule ?? '',
-    },
-    {
-      header: translate('columns.version'),
-      key: 'version',
-      render: (entry) => `v${entry.version}`,
-    },
-    {
-      header: translate('columns.status'),
-      key: 'installed',
-      render: (entry) => {
-        const status = getCatalogStatus(entry);
-        return (
-          <Badge variant={status === 'installed' ? 'success' : 'secondary'}>
-            {translate(`catalog.status.${status}`)}
-          </Badge>
-        );
-      },
+      render: (row) =>
+        row.createdAt ? <TableDateCell value={row.createdAt} /> : null,
     },
   ];
 
@@ -454,7 +520,29 @@ export default function WorkflowsPage() {
           onSearch={setSearch}
           placeholder={translate('search')}
           value={search}
-        />
+        >
+          <FilterMenu
+            isAttached
+            facets={[
+              {
+                defaultValue: 'all',
+                key: 'type',
+                label: translate('filters.type'),
+                onChange: changeType,
+                options: [
+                  { label: translate('types.all'), value: 'all' },
+                  ...WORKFLOW_TYPES.map((type) => ({
+                    label: translate(`types.${type}`),
+                    value: type,
+                  })),
+                ],
+                selection: 'single',
+                value: typeFilter,
+              },
+            ]}
+            onClear={() => changeType('all')}
+          />
+        </SearchField>
       }
       onRefresh={() => void loadWorkflows(true)}
       isRefreshing={isRefreshing}
@@ -500,38 +588,42 @@ export default function WorkflowsPage() {
           </CollectionSection>
         )}
 
-        <AppTable<SystemWorkflowCatalogEntry>
-          label={translate('catalog.title')}
-          ariaLabel={translate('catalog.title')}
-          items={catalog}
-          columns={catalogColumns}
-          isLoading={isLoading}
-          error={
-            hasCatalogLoadFailed
-              ? {
-                  onRetry: () => void loadCatalog(),
-                  title: translate('catalog.loadError'),
-                }
-              : undefined
-          }
-          getRowKey={(entry) => entry.canonicalId}
-          emptyLabel={translate('catalog.empty')}
-        />
+        {hasCatalogLoadFailed && !isLoading ? (
+          <Alert variant="destructive" icon={false}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <AlertDescription>
+                {translate('catalog.loadError')}
+              </AlertDescription>
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                onClick={() => void loadCatalog()}
+              >
+                {translate('actions.retry')}
+              </Button>
+            </div>
+          </Alert>
+        ) : null}
 
-        <AppTable<Workflow>
-          label={translate('listTitle')}
-          ariaLabel={translate('listTitle')}
-          items={workflows}
+        <AppTable<AdminWorkflowRow>
+          ariaLabel={translate('title')}
+          items={pageRows}
           columns={workflowColumns}
           actions={workflowActions}
           isLoading={isLoading}
           onSortChange={onSortChange}
           sortDirection={sortDirection}
           sortKey={sortKey}
-          getRowKey={(workflow) => workflow.id}
+          getRowKey={(row) => row.id}
           emptyLabel={translate('empty')}
         />
-        <AutoPagination showTotal totalLabel={translate('totalLabel')} />
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pageCount}
+          totalItems={isLoading ? undefined : rows.length}
+          totalLabel={translate('totalLabel')}
+          onPageChange={changePage}
+        />
       </div>
     </AdminPageShell>
   );

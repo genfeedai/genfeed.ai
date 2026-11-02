@@ -1,3 +1,8 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
 import '@testing-library/jest-dom/vitest';
 import type {
   IAnalytics,
@@ -6,7 +11,7 @@ import type {
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
@@ -21,6 +26,7 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,
@@ -124,7 +130,11 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
+  useAuthIdentity: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user-1',
+  }),
 }));
 
 vi.mock('@/hooks/data/analytics/use-analytics/use-analytics', () => ({
@@ -143,6 +153,17 @@ const getAnalyticsServiceMock = async () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAnalyticsServiceMock,
 }));
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
 
 describe('AnalyticsOrganizationOverview', () => {
   beforeEach(() => {

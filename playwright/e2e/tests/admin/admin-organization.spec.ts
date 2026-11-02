@@ -167,6 +167,101 @@ test.describe('Admin Organization', () => {
     await refreshButton.click();
     await refreshRequest;
   });
+
+  /** The unit economics report: one organization row, or its one user. */
+  async function mockUnitEconomics(adminPage: Page): Promise<string[]> {
+    const requestedOrganizations: string[] = [];
+    const metrics = {
+      agentChatCredits: 12,
+      agentTurns: 40,
+      generationCredits: 3,
+      grossMarginPercent: 80,
+      grossMarginUsd: 80,
+      llmProviderCostUsd: 15,
+      mediaProviderCostUsd: 5,
+      revenueUsd: 100,
+    };
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern('admin/unit-economics(?:\\?.*)?$'),
+      (route) => {
+        const organizationId = new URL(route.request().url()).searchParams.get(
+          'organizationId',
+        );
+        if (organizationId) {
+          requestedOrganizations.push(organizationId);
+        }
+        return route.fulfill({
+          json: {
+            data: {
+              attributes: {
+                from: '2026-10-01T00:00:00.000Z',
+                organizationId,
+                organizationLabel: organizationId ? 'Acme Inc' : null,
+                pagination: { limit: 15, page: 1, pages: 1, total: 1 },
+                rows: [
+                  {
+                    ...metrics,
+                    id: organizationId ? 'user-spend-1' : 'org-spend-1',
+                    label: organizationId ? 'ada@example.com' : 'Acme Inc',
+                    topModels: [],
+                  },
+                ],
+                to: '2026-10-30T23:59:59.999Z',
+                totals: metrics,
+              },
+              id: 'mock-unit-economics',
+              type: 'unit-economics-report',
+            },
+          },
+        });
+      },
+    );
+    return requestedOrganizations;
+  }
+
+  test('organization Spending tab shows revenue, cost and margin per user', async ({
+    adminPage,
+  }) => {
+    const requestedOrganizations = await mockUnitEconomics(adminPage);
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/org-spend-1/spending`,
+    );
+
+    await expect(
+      adminPage
+        .getByRole('main')
+        .getByRole('cell', { name: 'ada@example.com' }),
+    ).toBeVisible();
+    await expect(
+      adminPage.getByRole('main').getByText('LLM $15.00 · generation $5.00'),
+    ).toBeVisible();
+    expect(requestedOrganizations).toContain('org-spend-1');
+  });
+
+  test('economics organizations row opens its details in the context sidebar', async ({
+    adminPage,
+  }) => {
+    await mockUnitEconomics(adminPage);
+
+    await assertRouteRenders(
+      adminPage,
+      APP_ROUTES.ADMIN.ECONOMICS.ORGANIZATIONS,
+    );
+
+    const row = adminPage.getByRole('row', { name: /Acme Inc/ });
+    await expect(
+      row.getByRole('link', { name: 'Open spending for Acme Inc' }),
+    ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
+
+    await row.getByRole('cell').nth(1).click();
+
+    await expect(
+      adminPage.getByRole('link', { name: 'Open spending', exact: true }),
+    ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
+  });
+
   test('organization Learning tab shows the prompt slot report for that organization', async ({
     adminPage,
   }) => {

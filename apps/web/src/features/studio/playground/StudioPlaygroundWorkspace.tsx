@@ -193,6 +193,7 @@ import {
   resolveStudioUploadReferenceRole,
   studioAudioReferenceIds,
 } from '@/features/studio/playground/utils/studio-reference-selection';
+import { selectStoppableStudioJobs } from '@/features/studio/playground/utils/studio-stoppable-jobs';
 import type { PromptBarContextItem } from '@/features/studio/props/prompt-bar-context-row.props';
 import type {
   StudioPlaygroundComposerProps,
@@ -1396,6 +1397,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   const referencePreviewUrlRef = useRef<string | undefined>(undefined);
   // Generate submits at once now, so a double click must not send twice.
   const isSubmitInFlightRef = useRef(false);
+  // The same in-flight window, as state, so the send button can show it.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const stoppableJobs = useMemo(() => selectStoppableStudioJobs(jobs), [jobs]);
+  const handleStopGeneration = useCallback(async () => {
+    await Promise.all(stoppableJobs.map((job) => cancelJob(job)));
+  }, [cancelJob, stoppableJobs]);
   const handleSubmit = useCallback(
     (submitOptions?: StudioSubmitOptions) => {
       if (crunRestoreStatus || isUploading || isListening || isTranscribing) {
@@ -1418,12 +1425,14 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       if (type === 'image-edit') {
         const editOptions = { ...previewOption, ...submitOptions };
         isSubmitInFlightRef.current = true;
+        setIsSubmitting(true);
         const submission = (
           Object.keys(editOptions).length
             ? submit(prompt, resolvedReferences, editOptions)
             : submit(prompt, resolvedReferences)
         ).finally(() => {
           isSubmitInFlightRef.current = false;
+          setIsSubmitting(false);
         });
         const submittedPrompt = prompt;
         void submission.then((accepted) => {
@@ -1448,6 +1457,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
         notificationsService.warning(notice);
       }
       isSubmitInFlightRef.current = true;
+      setIsSubmitting(true);
       const submittedPrompt = prompt;
       const promptAuthor = resolveStudioPromptAuthor(
         agentPromptSeed,
@@ -1490,6 +1500,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
       )
         .finally(() => {
           isSubmitInFlightRef.current = false;
+          setIsSubmitting(false);
         })
         .then((isAccepted) => {
           // A sent generation leaves an empty composer (and draft) behind; the
@@ -3063,7 +3074,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                     clearCrunRestore();
                   updateSettings(patch);
                 }}
+                isStopAvailable={stoppableJobs.length > 0}
+                isSubmitting={isSubmitting}
                 onStartListening={startListening}
+                onStopGeneration={handleStopGeneration}
                 onStopListening={stopListening}
                 onSubmit={handleSubmit}
                 onTypeChange={(value) => {
@@ -3101,6 +3115,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             job={selectedJob}
             onOpenPreview={handleOpenFocusedPreview}
             onPreviewRecovered={recoverPreview}
+            onRemove={assetActions.onRemoveGeneration}
             onRemix={handleRemixJob}
             onEdit={handleEditJob}
             onAnimate={assetActions.onConvertToVideo}
