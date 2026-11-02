@@ -20,6 +20,7 @@ export default function ProjectChoicePrompt({
 }: ProjectChoicePromptProps): ReactElement {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+      {/* ui-guard-allow:hand-built-card -- chat bubble for the viewer's own message, not a content card */}
       <div className="ml-auto max-w-[85%] break-words rounded-2xl bg-muted px-3.5 py-2.5 text-sm">
         {request}
       </div>
