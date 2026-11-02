@@ -11,7 +11,8 @@ import {
  * Every subbar has one slot contract. `Container`, `SectionTopbar`,
  * `AdminPageShell` and `ListPageLayout` each take refresh in `refresh`, and
  * their controls in the order `SubbarControls` owns: dropdowns, Filters,
- * views, primary action. So a page that hands one of them a refresh button or
+ * views, primary action. The "..." menu goes in `overflow`, the first control
+ * of the bar's right cluster. So a page that hands one of them a refresh button or
  * a Filters menu in a free-form controls prop (`right`, `actions`, ...) has
  * drifted from the shared design.
  */
@@ -44,7 +45,7 @@ const BAR_COMPONENTS = new Set([
 const CONTROL_PROPS = new Set([
   'actions',
   'dropdowns',
-  'iconActions',
+  'overflow',
   'primaryAction',
   'right',
   'views',

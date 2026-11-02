@@ -39,8 +39,7 @@ const VALUE_SKELETON: Record<MetricCardSize, string> = {
   xs: 'h-5 w-10',
 };
 
-const LABEL_CLASS =
-  'text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground';
+const LABEL_CLASS = 'text-xs font-medium text-muted-foreground';
 
 const VALUE_CLASS = 'font-semibold tracking-[-0.02em] tabular-nums';
 

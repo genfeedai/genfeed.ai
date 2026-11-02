@@ -1,12 +1,11 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { ModelCategory, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementBlacklist,
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -14,12 +13,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BlacklistsService } from '@services/elements/blacklists.service';
 import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
+import { buildElementFacts } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Badge } from '@ui/primitives/badge';
 import { Checkbox } from '@ui/primitives/checkbox';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
@@ -29,6 +29,7 @@ import type {
   BlacklistsAction,
   BlacklistsState,
 } from '@/features/admin/props/blacklists.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 function blacklistsReducer(
@@ -42,8 +43,6 @@ function blacklistsReducer(
       return { ...state, blacklists: action.blacklists };
     case 'FETCH_DONE':
       return { ...state, isLoading: false };
-    case 'SET_SELECTED':
-      return { ...state, selectedBlacklist: action.blacklist };
     case 'UPDATING_ADD': {
       const next = new Set(state.updatingIds);
       next.add(action.id);
@@ -71,6 +70,13 @@ function BlacklistsListContent({
   const notificationsService = NotificationsService.getInstance();
   const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
+  const categoriesT = useTranslations('ui.rowSidebar.categories');
+  const categoryOptions = [
+    { label: categoriesT('video'), value: ModelCategory.VIDEO },
+    { label: categoriesT('image'), value: ModelCategory.IMAGE },
+    { label: categoriesT('text'), value: ModelCategory.TEXT },
+    { label: categoriesT('music'), value: ModelCategory.MUSIC },
+  ];
   const { openConfirm } = useConfirmModal();
 
   const getBlacklistsService = useAuthedService(
@@ -85,11 +91,10 @@ function BlacklistsListContent({
   const [state, dispatch] = useReducer(blacklistsReducer, undefined, () => ({
     blacklists: [] as ElementBlacklist[],
     isLoading: true,
-    selectedBlacklist: null,
     updatingIds: new Set<string>(),
   }));
 
-  const { blacklists, isLoading, updatingIds, selectedBlacklist } = state;
+  const { blacklists, isLoading, updatingIds } = state;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -158,15 +163,8 @@ function BlacklistsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (blacklist: ElementBlacklist) =>
-              openBlacklistModal(ModalEnum.BLACKLIST, blacklist),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (blacklist: ElementBlacklist) => {
-              dispatch({ type: 'SET_SELECTED', blacklist });
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -263,14 +261,6 @@ function BlacklistsListContent({
     }
   }, [onRefresh, findAllBlacklists]);
 
-  const openBlacklistModal = (
-    modalId: ModalEnum,
-    blacklist?: ElementBlacklist,
-  ) => {
-    dispatch({ type: 'SET_SELECTED', blacklist: blacklist || null });
-    openModal(modalId);
-  };
-
   const handleToggleDefault = async (blacklist: ElementBlacklist) => {
     dispatch({ type: 'UPDATING_ADD', id: blacklist.id });
     try {
@@ -291,14 +281,20 @@ function BlacklistsListContent({
       const service = await getBlacklistsService();
       await service.delete(blacklist.id);
       notificationsService.success('Blacklist deleted');
-      dispatch({ type: 'SET_SELECTED', blacklist: null });
       findAllBlacklists(true);
     } catch (error) {
       logger.error('Failed to delete blacklist', error);
       notificationsService.error('Failed to delete blacklist');
-      dispatch({ type: 'SET_SELECTED', blacklist: null });
     }
   };
+
+  const saveBlacklist = useInlineRecordSave<Partial<ElementBlacklist>>({
+    errorMessage: 'Failed to update blacklist',
+    onSaved: () => findAllBlacklists(true),
+    save: async (id, patch) => (await getBlacklistsService()).patch(id, patch),
+  });
+
+  const isEditable = scope === PageScope.SUPERADMIN;
 
   const rowSidebar = createSummaryRowSidebar<ElementBlacklist>({
     getBadges: (blacklist) => (
@@ -313,13 +309,37 @@ function BlacklistsListContent({
       </>
     ),
     getFacts: (blacklist) => [
-      { id: 'key', label: fieldsT('key'), value: blacklist.key },
+      ...buildElementFacts(
+        fieldsT,
+        blacklist,
+        isEditable ? (item, patch) => saveBlacklist(item.id, patch) : undefined,
+      ),
       {
-        id: 'description',
-        label: fieldsT('description'),
-        value: blacklist.description,
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('category'),
+              kind: 'select',
+              onSave: (category) =>
+                saveBlacklist(blacklist.id, {
+                  category: category as ElementBlacklist['category'],
+                }),
+              options: categoryOptions,
+              value: blacklist.category,
+            }
+          : undefined,
+        id: 'category',
+        label: fieldsT('category'),
+        value: blacklist.category,
       },
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('default'),
+              isChecked: blacklist.isDefault === true,
+              kind: 'switch',
+              onSave: (isDefault) => saveBlacklist(blacklist.id, { isDefault }),
+            }
+          : undefined,
         id: 'default',
         label: fieldsT('default'),
         value: blacklist.isDefault ? rowSidebarT('yes') : rowSidebarT('no'),
@@ -329,10 +349,6 @@ function BlacklistsListContent({
     getSubtitle: (blacklist) => blacklist.key,
     getTitle: (blacklist) => blacklist.label,
     kind: 'record',
-    onEdit:
-      scope === PageScope.SUPERADMIN
-        ? (blacklist) => openBlacklistModal(ModalEnum.BLACKLIST, blacklist)
-        : undefined,
   });
 
   return (
@@ -351,14 +367,7 @@ function BlacklistsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalBlacklist
-          item={selectedBlacklist}
-          onClose={() => dispatch({ type: 'SET_SELECTED', blacklist: null })}
-          onConfirm={() => {
-            dispatch({ type: 'SET_SELECTED', blacklist: null });
-            findAllBlacklists(true);
-          }}
-        />
+        <LazyModalBlacklist onConfirm={() => findAllBlacklists(true)} />
       )}
 
       <div className="mt-4">

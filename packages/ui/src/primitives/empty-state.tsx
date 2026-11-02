@@ -111,7 +111,8 @@ export function EmptyState({
       className={cn(
         'flex flex-col items-center justify-center gap-1 text-center',
         isFill ? 'absolute inset-0 px-6' : sizeClasses.body,
-        surface === 'card' && 'min-h-48 w-full',
+        surface === 'card' &&
+          (size === CardEmptySize.SM ? 'min-h-32 w-full' : 'min-h-48 w-full'),
         surface === 'none' && className,
       )}
       data-surface={surface}

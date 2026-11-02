@@ -772,5 +772,14 @@ export async function claimWarmupWorkspace(
       ],
     },
   });
+  await tx.contentPreview.updateMany({
+    where: {
+      claimedAt: null,
+      isDeleted: false,
+      organizationId,
+      warmupAccountId: account.id,
+    },
+    data: { claimedAt: new Date(event.timestamp), claimedByUserId: userId },
+  });
   return `/${workspace.organization.slug}/${workspace.brand.slug}`;
 }

@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import '@testing-library/jest-dom/vitest';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import {
@@ -64,6 +68,11 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => mocks.brandDetail,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -313,7 +322,9 @@ describe('BrandSettingsPublishingPage', () => {
   });
 
   it('uses Publishing defaults as its only primary heading and keeps section headings', async () => {
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Publishing defaults' }),
@@ -332,7 +343,9 @@ describe('BrandSettingsPublishingPage', () => {
   });
 
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByLabelText('Recurring schedule')).toBeChecked();
     expect(screen.getByText('Weekdays at 9:00 AM')).toBeVisible();
@@ -377,7 +390,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     };
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'You have the final say',
@@ -394,7 +409,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     };
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -410,7 +427,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     };
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByRole('alert')).toBeVisible();
 
@@ -438,7 +457,9 @@ describe('BrandSettingsPublishingPage', () => {
       hasBrandId: false,
       isLoading: true,
     };
-    const { rerender } = render(<BrandSettingsPublishingPage />);
+    const { rerender } = render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
     expect(screen.getByText('Loading publishing settings')).toBeVisible();
 
     mocks.brandDetail = {
@@ -553,7 +574,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     );
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Ready account')).toBeVisible();
     expect(screen.getByText('Publish Capable')).toBeVisible();
@@ -600,7 +623,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     };
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     fireEvent.change(screen.getByLabelText('RSS feed URL'), {
       target: { value: 'https://example.com/feed.xml' },
@@ -642,11 +667,52 @@ describe('BrandSettingsPublishingPage', () => {
       },
     ];
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(screen.getByText('Broken feed')).toBeVisible();
     expect(screen.getByText('HTTP 500 from origin')).toBeVisible();
     expect(screen.getByText('3')).toBeVisible();
+  });
+
+  it('shows posting-set skeletons, not the empty state, while the first read is in flight', () => {
+    mocks.findAllSets.mockReturnValue(new Promise(() => {}));
+
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
+
+    expect(
+      screen.getAllByRole('status', { name: 'Loading posting set' }),
+    ).toHaveLength(2);
+    expect(
+      screen.queryByText(
+        'No posting sets yet. Create one from connected accounts below.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('paints the cached posting sets at once when coming back while they revalidate', async () => {
+    mocks.findAllSets.mockResolvedValue([
+      { id: 'set-1', label: 'Evening accounts', targets: [] },
+    ]);
+    const client = createTestQueryClient();
+    const firstVisit = render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Evening accounts')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.findAllSets.mockReturnValue(new Promise(() => {}));
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(screen.getByText('Evening accounts')).toBeVisible();
+    expect(
+      screen.queryByRole('status', { name: 'Loading posting set' }),
+    ).not.toBeInTheDocument();
   });
 
   it('lists posting sets and expands a preview', async () => {
@@ -673,7 +739,9 @@ describe('BrandSettingsPublishingPage', () => {
       targets: [{ credentialId: 'credential-ready', platform: 'twitter' }],
     });
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Evening accounts')).toBeVisible();
     expect(screen.getByText('disconnected')).toBeVisible();
@@ -690,7 +758,9 @@ describe('BrandSettingsPublishingPage', () => {
     Object.assign(new Error('Aborted request'), { name: 'AbortError' }),
   ])('keeps cancelled posting-set loads silent: %j', async (error) => {
     mocks.findAllSets.mockRejectedValue(error);
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
     expect(
@@ -710,7 +780,9 @@ describe('BrandSettingsPublishingPage', () => {
         rejectLoad = reject;
       }),
     );
-    const view = render(<BrandSettingsPublishingPage />);
+    const view = render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(mocks.findAllSets).toHaveBeenCalledTimes(1));
     const signal = mocks.findAllSets.mock.calls[0]?.[1] as AbortSignal;
     expect(signal.aborted).toBe(false);
@@ -726,7 +798,9 @@ describe('BrandSettingsPublishingPage', () => {
   it('still reports genuine active posting-set loading failures', async () => {
     const error = new Error('Posting sets unavailable');
     mocks.findAllSets.mockRejectedValue(error);
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() =>
       expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -748,7 +822,9 @@ describe('BrandSettingsPublishingPage', () => {
       },
     };
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(
       screen.getByText('No connected accounts are available for this brand.'),
@@ -800,7 +876,9 @@ describe('BrandSettingsPublishingPage', () => {
       })
       .mockRejectedValueOnce(new Error('network error'));
 
-    render(<BrandSettingsPublishingPage />);
+    render(<BrandSettingsPublishingPage />, {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(await screen.findByText('Ready account')).toBeVisible();
     expect(screen.getAllByText('@failed-account').length).toBeGreaterThan(0);

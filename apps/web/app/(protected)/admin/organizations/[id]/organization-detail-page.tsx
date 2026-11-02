@@ -12,6 +12,7 @@ import EconomicsPeriodFilter from '@protected/economics/economics-period-filter'
 import { DEFAULT_ECONOMICS_PERIOD_DAYS } from '@protected/economics/economics-report.util';
 import { useUnitEconomicsReport } from '@protected/economics/organizations/use-unit-economics-report';
 import OrganizationAppAccess from '@protected/organizations/components/organization-app-access';
+import OrganizationLibrary from '@protected/organizations/components/organization-library';
 import OrganizationProfileHeader from '@protected/organizations/components/organization-profile-header';
 import { OrganizationSettingsTable } from '@protected/organizations/components/organization-settings-table';
 import OrganizationSpendingPanel from '@protected/organizations/components/organization-spending-panel';
@@ -73,6 +74,7 @@ function OrganizationDetailPageContent({
   }
 
   const isSettingsTab = activeTab === 'settings';
+  const isLibraryTab = activeTab === 'library';
   const handleSpendingPeriodChange = (days: string) => {
     setSpendingPeriodDays(days);
     spending.resetPage();
@@ -83,13 +85,15 @@ function OrganizationDetailPageContent({
       title={translate('detailTitle')}
       icon={Building2}
       onRefresh={
-        isSettingsTab
-          ? () => refresh()
-          : isLearningTab
-            ? () => void learning.refetch()
-            : isSpendingTab
-              ? () => void spending.refetch()
-              : triggerRefresh
+        isLibraryTab
+          ? undefined
+          : isSettingsTab
+            ? () => refresh()
+            : isLearningTab
+              ? () => void learning.refetch()
+              : isSpendingTab
+                ? () => void spending.refetch()
+                : triggerRefresh
       }
       isRefreshing={
         isSettingsTab
@@ -101,7 +105,9 @@ function OrganizationDetailPageContent({
               : isAnalyticsRefreshing
       }
       filters={
-        isSettingsTab || isLearningTab ? undefined : isSpendingTab ? (
+        isSettingsTab ||
+        isLearningTab ||
+        isLibraryTab ? undefined : isSpendingTab ? (
           <EconomicsPeriodFilter
             onChange={handleSpendingPeriodChange}
             value={spendingPeriodDays}
@@ -141,12 +147,18 @@ function OrganizationDetailPageContent({
               label: translate('learningTab'),
             },
             {
+              href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/library`,
+              label: translate('libraryTab'),
+            },
+            {
               href: `${APP_ROUTES.ADMIN.ORGANIZATIONS}/${organizationId}/settings`,
               label: translate('settingsTab'),
             },
           ]}
         />
-        {isSettingsTab ? (
+        {isLibraryTab ? (
+          <OrganizationLibrary organizationId={organizationId} />
+        ) : isSettingsTab ? (
           error ? (
             <Alert variant="destructive">
               {translate('settingsLoadError')}
@@ -207,8 +219,9 @@ function OrganizationDetailPageContent({
 /**
  * One organization: its analytics at `/admin/organizations/:id`, its revenue,
  * cost and margin at `/admin/organizations/:id/spending`, its prompt slot
- * learning report at `/admin/organizations/:id/learning` and its settings
- * (release preview, released apps, per-organization settings) at
+ * learning report at `/admin/organizations/:id/learning`, the content it has
+ * generated at `/admin/organizations/:id/library` and its settings (release
+ * preview, released apps, per-organization settings) at
  * `/admin/organizations/:id/settings`, as route tabs.
  */
 export default function OrganizationDetailPage({

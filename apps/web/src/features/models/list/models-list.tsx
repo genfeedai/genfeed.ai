@@ -31,7 +31,7 @@ export default function ModelsList({
   onPricingDetails,
   getModelHref,
   renderExpandedRow,
-  renderToolbar,
+  renderOverflow,
   rowActions,
   isModelPinned,
   beforeList,
@@ -319,7 +319,7 @@ export default function ModelsList({
   return (
     <AdminModelsToolbar
       category={category}
-      iconActions={renderToolbar?.(models)}
+      overflow={renderOverflow?.(models)}
       isRefreshing={isRefreshing}
       onRefresh={() => void handleRefresh()}
       onSearch={handleSearchChange}

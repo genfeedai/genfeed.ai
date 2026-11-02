@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@ui/primitives/dialog';
 import { EditableText } from '@ui/primitives/editable-text';
 import { Input } from '@ui/primitives/input';
@@ -31,13 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Settings2, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip';
 import { dispatchLibraryTagUpdate } from '@/components/tags/library-tag-picker/library-asset-tags-event';
 import TagColorPicker from '@/components/tags/library-tag-picker/TagColorPicker';
 import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
+import type { LibraryTagManagerDialogProps } from '@/features/library/props/library-tag-manager-dialog.props';
 
 type CreatableScope = TagScope.BRAND | TagScope.ORGANIZATION;
 
@@ -157,7 +157,10 @@ function TagManagerRow({
  * listed read-only. Deleting a tag removes it from every asset and keeps the
  * assets.
  */
-export default function LibraryTagManagerDialog() {
+export default function LibraryTagManagerDialog({
+  isOpen,
+  onOpenChange,
+}: LibraryTagManagerDialogProps) {
   const translate = useTranslations('pages.library.tags');
   const { brandId } = useBrand();
   const { createTag, isLoading, refresh, tags } = useLibraryTags({
@@ -224,17 +227,7 @@ export default function LibraryTagManagerDialog() {
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          ariaLabel={translate('manageTags')}
-          className="h-control-sm rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
-          icon={<Settings2 className="size-3.5" />}
-          tooltip={translate('manageTags')}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        />
-      </DialogTrigger>
+    <Dialog onOpenChange={onOpenChange} open={isOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{translate('manageTags')}</DialogTitle>

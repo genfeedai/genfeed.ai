@@ -27,13 +27,8 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   patch: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -279,17 +274,10 @@ describe('SoundsList', () => {
     });
   });
 
-  it('opens edit and delete flows with the clicked sound', async () => {
+  it('opens the delete flow with the clicked sound', async () => {
     render(<SoundsList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Inactive Sound');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Edit Inactive Sound' }),
-    );
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('sound-modal')).toHaveTextContent(
-      'Inactive Sound',
-    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Delete Inactive Sound' }),

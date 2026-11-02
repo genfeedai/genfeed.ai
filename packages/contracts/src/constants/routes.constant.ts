@@ -31,7 +31,6 @@ export const APP_ROUTES = {
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       SYSTEM_EMAILS: '/admin/administration/system-emails',
       USERS: '/admin/administration/users',
-      CONCIERGE_ACCOUNTS: '/admin/administration/concierge-accounts',
     },
     AUTOMATION: {
       AGENTS: '/admin/automation/agents',

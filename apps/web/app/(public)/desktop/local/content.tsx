@@ -20,7 +20,7 @@ import { Button } from '@ui/primitives/button';
 import { SegmentedControl } from '@ui/primitives/segmented-control';
 import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
-import { FolderOpen, HardDrive, RefreshCw, Sparkles } from 'lucide-react';
+import { FolderOpen, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
@@ -202,10 +202,6 @@ export default function LocalDesktopContent() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              <HardDrive aria-hidden="true" className="size-4" />
-              {translate('eyebrow')}
-            </div>
             <h1 className="text-3xl font-semibold tracking-tight text-balance">
               {translate('title')}
             </h1>

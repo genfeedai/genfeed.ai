@@ -18,6 +18,7 @@ import type {
   OnboardingMissingMedia,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { OnboardingDraftRunsService } from '@api/endpoints/onboarding/services/onboarding-draft-runs.service';
+import { buildCampaignImagePromptPrefix } from '@api/endpoints/onboarding/utils/onboarding-campaign-image.util';
 import { buildOnboardingImageBrief } from '@api/endpoints/onboarding/utils/onboarding-image-brief.util';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -34,13 +35,15 @@ import {
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
-import { Platform, RouterPriority } from '@genfeedai/contracts';
+import { Platform } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  ONBOARDING_CAMPAIGN_IMAGE_SLOTS,
   ONBOARDING_DRAFT_PLATFORMS,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type {
+  IOnboardingCampaignImage,
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
   IOnboardingScanResult,
@@ -101,10 +104,11 @@ const TONE_DIRECTION: Record<
 };
 
 /**
- * The first-run drafts: one post each for X, Instagram, TikTok and LinkedIn from
- * a cheap text model, plus one image shared by the posts that carry one. Every
- * draft is saved as a DRAFT post bound to a branded-generation receipt; nothing
- * is published and no account needs to be connected.
+ * The first-run campaign: one post each for X, Instagram, TikTok and LinkedIn
+ * from a cheap text model, one master image from the brand kit, and a platform
+ * image derived from that master for each channel. Every draft is saved as a
+ * DRAFT post bound to a branded-generation receipt; nothing is published and no
+ * account needs to be connected.
  */
 @Injectable()
 export class OnboardingFirstDraftsService {
@@ -245,10 +249,8 @@ export class OnboardingFirstDraftsService {
       imageUrl: null,
       requestKey: xDraft.requestKey,
       status: 'partial',
-      videoIngredientId: null,
-      videoUrl: null,
-      videoStatus: 'pending',
     };
+    let isMasterShort = false;
     let writes = Promise.resolve();
     const checkpoint = () => {
       const snapshot = structuredClone(result);
@@ -275,6 +277,7 @@ export class OnboardingFirstDraftsService {
         result.imageIngredientId =
           image.ingredientId ?? result.imageIngredientId;
         result.imageUrl = image.url;
+        isMasterShort = image.isShort;
         await checkpoint();
       }),
       ...otherPlatforms.map(async (platform) => {
@@ -308,13 +311,17 @@ export class OnboardingFirstDraftsService {
         ONBOARDING_DRAFT_PLATFORMS.indexOf(left.platform) -
         ONBOARDING_DRAFT_PLATFORMS.indexOf(right.platform),
     );
-    result.status =
-      result.drafts.length === ONBOARDING_DRAFT_PLATFORMS.length &&
-      result.imageUrl
-        ? 'ready'
-        : 'partial';
+    result.status = 'partial';
     await checkpoint();
-    await this.generateVideo(identity, brandName, result, checkpoint);
+    await this.generateCampaignImages({
+      brandName,
+      checkpoint,
+      description,
+      identity,
+      imageContext,
+      isMasterShort,
+      result,
+    });
     result.status = this.resolveStatus(result);
     return result;
   }
@@ -352,6 +359,7 @@ export class OnboardingFirstDraftsService {
       return writes;
     };
     await checkpoint();
+    let isMasterShort = false;
     if (missing.image) {
       const image = await this.generateImage({
         brandName,
@@ -369,10 +377,18 @@ export class OnboardingFirstDraftsService {
       });
       result.imageIngredientId = image.ingredientId ?? result.imageIngredientId;
       result.imageUrl = image.url;
+      isMasterShort = image.isShort;
       await checkpoint();
     }
-    if (missing.video)
-      await this.generateVideo(identity, brandName, result, checkpoint);
+    await this.generateCampaignImages({
+      brandName,
+      checkpoint,
+      description,
+      identity,
+      imageContext,
+      isMasterShort,
+      result,
+    });
     result.status = this.resolveStatus(result);
     return result;
   }
@@ -408,74 +424,91 @@ export class OnboardingFirstDraftsService {
   ): IOnboardingFirstDraftsResult['status'] {
     return result.drafts.length === ONBOARDING_DRAFT_PLATFORMS.length &&
       result.imageUrl &&
-      result.videoStatus === 'ready'
+      result.campaignImages?.length ===
+        ONBOARDING_CAMPAIGN_IMAGE_SLOTS.length &&
+      result.campaignImages.every((image) => image.status === 'ready')
       ? 'ready'
       : 'partial';
   }
 
-  private async generateVideo(
-    identity: Pick<User, 'organizationId' | 'brandId' | 'userId'>,
-    brandName: string,
-    result: IOnboardingFirstDraftsResult,
-    checkpoint: () => Promise<void>,
-  ): Promise<void> {
-    const { brandId } = identity;
-    const script = result.drafts.find((draft) => draft.platform === 'tiktok');
-    if (script) {
-      try {
-        const response = toMediaResponseRecord(
-          await this.generationGateway.generateVideo({
-            principal: identity,
-            body: {
-              brandId,
-              prompt: `Create a vertical brand clip with natural motion and no invented text or logos. Brand: ${brandName}. Idea: ${script.text}`,
-              text: script.text,
-              duration: 5,
-              width: 720,
-              height: 1280,
-              autoSelectModel: true,
-              prioritize: RouterPriority.COST,
-              waitForCompletion: true,
-              ...(result.imageIngredientId
-                ? { references: [result.imageIngredientId] }
-                : {}),
+  /**
+   * One image per channel slot, derived from the master and generated one at a
+   * time so each credit check sees the balance the last image left. A short
+   * wallet stops the run and marks the rest `needs_credits`; the master and the
+   * drafts are untouched. Slots that already came back are kept.
+   */
+  private async generateCampaignImages(input: {
+    brandName: string;
+    checkpoint: () => Promise<void>;
+    description: string;
+    identity: { brandId: string; organizationId: string; userId: string };
+    imageContext: Pick<
+      OnboardingImageBriefInput,
+      'audience' | 'goals' | 'offer' | 'tone'
+    >;
+    isMasterShort: boolean;
+    result: IOnboardingFirstDraftsResult;
+  }): Promise<void> {
+    const { result } = input;
+    const kept = new Map(
+      (result.campaignImages ?? []).map((image) => [image.id, image]),
+    );
+    const images: IOnboardingCampaignImage[] =
+      ONBOARDING_CAMPAIGN_IMAGE_SLOTS.map((slot) =>
+        kept.get(slot.id)?.status === 'ready'
+          ? (kept.get(slot.id) as IOnboardingCampaignImage)
+          : {
+              aspectRatio: slot.aspectRatio,
+              id: slot.id,
+              ingredientId: null,
+              platform: slot.platform,
+              status: 'pending',
+              url: null,
             },
-            onPlaceholderCreated: async (placeholder) => {
-              result.videoIngredientId = placeholder;
-              await checkpoint();
-            },
-          }),
-        );
-        result.videoIngredientId =
-          readMediaResponseString(response, 'id') ?? result.videoIngredientId;
-        result.videoUrl =
-          readUsableCdnAssetUrl(
-            response,
-            this.configService.ingredientsEndpoint,
-          ) ?? null;
-        result.videoStatus = result.videoUrl
-          ? 'ready'
-          : readMediaResponseString(response, 'status')?.toLowerCase() ===
-              'processing'
-            ? 'pending'
-            : 'failed';
-      } catch (error) {
-        // Credits are checked before any charge, so a short wallet means the
-        // video was never started: say so instead of calling it a failure.
-        if (isInsufficientCredits(error)) {
-          this.loggerService.warn('Onboarding video skipped: no credits', {
-            brandId,
-          });
-          result.videoIngredientId = null;
-          result.videoStatus = 'needs_credits';
-          return;
-        }
-        this.loggerService.error('Onboarding video generation failed', error, {
-          brandId,
-        });
-        result.videoStatus = 'failed';
+      );
+    result.campaignImages = images;
+    const masterId = result.imageIngredientId;
+    let isWalletShort = input.isMasterShort;
+    for (const image of images) {
+      if (image.status === 'ready') continue;
+      const draft = result.drafts.find(
+        (item) => item.platform === image.platform,
+      );
+      if (!masterId || !draft) {
+        image.status = isWalletShort ? 'needs_credits' : 'failed';
+        continue;
       }
-    } else result.videoStatus = 'failed';
+      if (isWalletShort) {
+        image.status = 'needs_credits';
+        continue;
+      }
+      await input.checkpoint();
+      const generated = await this.generateImage({
+        aspectRatio: image.aspectRatio,
+        brandName: input.brandName,
+        description: input.description,
+        identity: input.identity,
+        imageContext: input.imageContext,
+        leadingReferenceIds: [masterId],
+        onPlaceholderCreated: async (ingredientId) => {
+          image.ingredientId = ingredientId;
+          await input.checkpoint();
+        },
+        promptPrefix: buildCampaignImagePromptPrefix(image),
+        tweet: draft.text,
+      });
+      image.url = generated.url;
+      if (generated.isShort) {
+        isWalletShort = true;
+        image.ingredientId = null;
+        image.status = 'needs_credits';
+      } else {
+        image.ingredientId = generated.ingredientId ?? image.ingredientId;
+        image.status = generated.url ? 'ready' : 'failed';
+      }
+      await input.checkpoint();
+    }
+    await input.checkpoint();
   }
 
   private describeContext(context?: OnboardingDraftContextDto): string {
@@ -607,8 +640,12 @@ export class OnboardingFirstDraftsService {
     };
   }
 
-  /** One cost-priority image for the posts that carry one; nulls when it fails. */
+  /**
+   * One cost-priority image; nulls when it fails. `isShort` is set when the
+   * wallet cannot pay for it, which is not a failure and never charged.
+   */
   private async generateImage(input: {
+    aspectRatio?: string;
     brandName: string;
     description: string;
     identity: { brandId: string; organizationId: string; userId: string };
@@ -616,11 +653,17 @@ export class OnboardingFirstDraftsService {
       OnboardingImageBriefInput,
       'audience' | 'goals' | 'offer' | 'tone'
     >;
+    leadingReferenceIds?: string[];
+    promptPrefix?: string;
     tweet: string;
     onPlaceholderCreated?: (ingredientId: string) => Promise<void>;
-  }): Promise<{ ingredientId: string | null; url: string | null }> {
+  }): Promise<{
+    ingredientId: string | null;
+    isShort: boolean;
+    url: string | null;
+  }> {
     const dimensions = resolveAgentGenerationDimensions(
-      DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+      input.aspectRatio ?? DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
     try {
       const brief = buildOnboardingImageBrief({
@@ -632,6 +675,7 @@ export class OnboardingFirstDraftsService {
       const body = await buildFirstRunOnboardingImageBody({
         brandId: input.identity.brandId,
         height: dimensions.height,
+        leadingReferenceIds: input.leadingReferenceIds,
         nodeEnv: this.configService.get('NODE_ENV'),
         onReferenceError: (error) =>
           this.loggerService.warn('Onboarding image skipped brand references', {
@@ -639,7 +683,9 @@ export class OnboardingFirstDraftsService {
             error: error instanceof Error ? error.message : String(error),
           }),
         organizationId: input.identity.organizationId,
-        prompt: brief.prompt,
+        prompt: input.promptPrefix
+          ? `${input.promptPrefix} ${brief.prompt}`
+          : brief.prompt,
         resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets.bind(
           this.brandsService,
         ),
@@ -655,6 +701,7 @@ export class OnboardingFirstDraftsService {
       );
       return {
         ingredientId: readMediaResponseString(response, 'id') ?? null,
+        isShort: false,
         url:
           readUsableCdnAssetUrl(
             response,
@@ -662,10 +709,16 @@ export class OnboardingFirstDraftsService {
           ) ?? null,
       };
     } catch (error: unknown) {
+      if (isInsufficientCredits(error)) {
+        this.loggerService.warn('Onboarding image skipped: no credits', {
+          brandId: input.identity.brandId,
+        });
+        return { ingredientId: null, isShort: true, url: null };
+      }
       this.loggerService.error('Onboarding image generation failed', error, {
         brandId: input.identity.brandId,
       });
-      return { ingredientId: null, url: null };
+      return { ingredientId: null, isShort: false, url: null };
     }
   }
 }

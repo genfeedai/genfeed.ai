@@ -37,7 +37,8 @@ export interface ModelsListProps {
   onPricingDetails?: (model: IModel) => void;
   getModelHref?: (model: IModel) => string;
   renderExpandedRow?: (model: IModel) => ReactNode | undefined;
-  renderToolbar?: (models: IModel[]) => ReactNode;
+  /** The page's "..." menu, built from the loaded models. */
+  renderOverflow?: (models: IModel[]) => ReactNode;
   /** Admin only: row actions placed before edit and delete, e.g. "Fix pricing". */
   rowActions?: TableAction<IModel>[];
   /**
@@ -96,7 +97,7 @@ export interface AdminModelsFiltersProps {
 }
 export interface AdminModelsToolbarProps extends AdminModelsFiltersProps {
   children: ReactNode;
-  iconActions?: ReactNode;
+  overflow?: ReactNode;
   isRefreshing: boolean;
   onRefresh: () => void;
   onSearch: (value: string) => void;

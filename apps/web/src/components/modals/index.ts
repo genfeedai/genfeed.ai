@@ -19,7 +19,6 @@ export { default as ModalModel } from '@/components/modals/models/ModalModel';
 // Onboarding
 
 // Trainings
-export { default as ModalTraining } from '@/components/modals/trainings/ModalTraining';
 export { default as ModalTrainingNew } from '@/components/modals/trainings/ModalTrainingNew';
 
 // Upgrade

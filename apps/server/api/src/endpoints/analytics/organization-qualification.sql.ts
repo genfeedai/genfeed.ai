@@ -9,6 +9,10 @@ import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type { IOrganizationOwner } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import {
+  type OrganizationLifecycleFilters,
+  organizationLifecycleFilterSql,
+} from './organization-lifecycle.sql';
 
 /**
  * How the admin organizations list qualifies a lead: the owner's email class
@@ -25,10 +29,19 @@ export interface UsageWindow {
 }
 
 /** Filters only organization lists take. */
-export interface OrganizationListFilters {
+export interface OrganizationListFilters extends OrganizationLifecycleFilters {
   emailClass?: OrganizationEmailClassFilter;
   type?: OrganizationCategory;
   usage?: OrganizationUsageFilter;
+}
+
+/** Whether any filter needs the raw-SQL ranking and count instead of a plain Prisma count. */
+export function hasOrganizationListFilters(
+  filters: OrganizationListFilters,
+): boolean {
+  return Boolean(
+    filters.emailClass || filters.usage || filters.status || filters.source,
+  );
 }
 
 /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
@@ -106,7 +119,7 @@ export function organizationListFilterSql(
     usageFilter = Prisma.sql`AND NOT ${hasUsage}`;
   }
 
-  return Prisma.sql`${typeFilter} ${emailClassFilter} ${usageFilter}`;
+  return Prisma.sql`${typeFilter} ${emailClassFilter} ${usageFilter} ${organizationLifecycleFilterSql(filters)}`;
 }
 
 /**
