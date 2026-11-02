@@ -1,5 +1,5 @@
 'use client';
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -19,12 +19,10 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -48,12 +46,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAgentStrategies } from '@/features/agents/hooks/agent-strategies/use-agent-strategies';
 import type {
   AgentHubActionsProps,
-  AgentHubCardProps,
   AgentHubFactsProps,
   AgentHubRowProps,
   AgentHubStatusBadgeProps,
 } from '@/features/automation/props/agent-hub.props';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import AddAgentDialog from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
@@ -63,7 +59,6 @@ import {
 } from './open-content-agent-conversation';
 
 /** Per-viewer list/grid preference key for this collection. */
-const AGENT_HUB_SURFACE = 'automation.agents';
 
 /** `?add=library` opens the marketplace; any other value opens the conversation. */
 const MARKETPLACE_ADD_INTENT = 'library';
@@ -288,43 +283,6 @@ function AgentHubRow({
   );
 }
 
-function AgentHubCard({
-  onRunNow,
-  onRunWorkflow,
-  onToggle,
-  strategy,
-}: AgentHubCardProps) {
-  const { href } = useOrgUrl();
-
-  return (
-    <Card
-      actions={
-        <AgentHubActions
-          onRunNow={onRunNow}
-          onRunWorkflow={onRunWorkflow}
-          onToggle={onToggle}
-          primaryAction="runNow"
-          strategy={strategy}
-        />
-      }
-      data-testid={`agent-card-${strategy.id}`}
-      icon={getAgentTypeIcon(strategy.agentType)}
-      label={
-        <Link
-          className="hover:underline"
-          href={href(`${APP_ROUTES.AUTOMATION.AGENTS}/${strategy.id}`)}
-        >
-          {strategy.label}
-        </Link>
-      }
-    >
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <AgentHubMeta section="all" strategy={strategy} />
-      </div>
-    </Card>
-  );
-}
-
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
   const collectionScope = useCollectionScope();
@@ -360,10 +318,6 @@ export default function AgentHubPage() {
   const refresh = useCallback(async () => {
     await Promise.all([refreshPage(), refreshAll()]);
   }, [refreshAll, refreshPage]);
-  const { setView, view } = useCollectionViewPreference({
-    defaultView: ViewType.LIST,
-    surface: AGENT_HUB_SURFACE,
-  });
   const notificationsService = NotificationsService.getInstance();
   const pathname = usePathname();
   const router = useRouter();
@@ -521,9 +475,6 @@ export default function AgentHubPage() {
       right={
         isEmpty ? undefined : (
           <div className="flex items-center gap-2">
-            {hasLoadError ? null : (
-              <CollectionViewToggle onViewChange={setView} view={view} />
-            )}
             <Button
               icon={<Store className="size-4" />}
               isDisabled={!isBrandReady || !brandId}
@@ -628,10 +579,6 @@ export default function AgentHubPage() {
               getItemKey={(strategy) => strategy.id}
               isLoading={isLoading}
               items={pagedStrategies}
-              maxColumns={3}
-              renderGridItem={(strategy) => (
-                <AgentHubCard strategy={strategy} {...actionHandlers} />
-              )}
               renderListItem={(strategy) => (
                 <AgentHubRow
                   section="all"
@@ -640,7 +587,6 @@ export default function AgentHubPage() {
                 />
               )}
               skeletonCount={AGENT_HUB_SKELETON_COUNT}
-              view={view}
             />
           </CollectionSection>
           <AutoPagination showTotal totalLabel="agents" />

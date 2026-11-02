@@ -159,7 +159,7 @@ test.describe('Storyboard runs', () => {
     await expect(row.first()).toContainText('12s');
     await row
       .first()
-      .getByRole('link', { name: `Open ${TITLE}` })
+      .getByRole('link', { name: new RegExp(TITLE) })
       .click();
 
     await expect(page).toHaveURL(new RegExp(`/storyboard/${RUN_ID}$`));
@@ -182,7 +182,7 @@ test.describe('Storyboard runs', () => {
     ).toHaveValue('Lead with the customer proof, then the product.');
   });
 
-  test('leads an empty brand to the create choices', async ({
+  test('leads an empty brand to the prompt beside an empty list', async ({
     authenticatedPage: page,
   }) => {
     await page.route(
@@ -194,25 +194,18 @@ test.describe('Storyboard runs', () => {
 
     await page.goto(`${BRAND_BASE}/storyboard`);
 
-    // An empty brand lands on the first-run onboarding (#6693): preset cards
-    // plus the remix and from-scratch choices, not a bare empty message.
-    const onboarding = page.getByTestId('storyboard-onboarding');
+    // An empty brand lands on the one workspace: the prompt and its starter
+    // cards on the left, an empty run list on the right. No separate hero,
+    // preset shelf or /new page.
     await expect(
-      onboarding.getByRole('heading', {
-        name: 'Turn an idea into a storyboard',
-      }),
+      page.getByRole('heading', { name: 'Start a storyboard' }),
     ).toBeVisible();
+    await expect(page.getByLabel('Brief', { exact: true })).toBeVisible();
+    await expect(page.getByText('No storyboards yet')).toBeVisible();
+    await expect(page.getByTestId('storyboard-onboarding')).toHaveCount(0);
     await expect(
-      onboarding.getByRole('list', { name: 'Storyboard presets' }),
-    ).toBeVisible();
-    await expect(
-      onboarding.getByRole('link', { name: 'Choose a video' }),
-    ).toBeVisible();
-    await page.getByRole('link', { name: 'New storyboard' }).first().click();
-    await expect(page).toHaveURL(/\/storyboard\/new$/);
-    await expect(
-      page.getByRole('link', { name: 'Browse Discovery' }),
-    ).toHaveAttribute('href', /\/discovery\/overview$/);
+      page.getByRole('link', { name: 'New storyboard' }),
+    ).toHaveCount(0);
     await page.getByRole('combobox', { name: 'Storyboard source' }).click();
     await expect(
       page.getByRole('option', { name: 'From a brief' }),

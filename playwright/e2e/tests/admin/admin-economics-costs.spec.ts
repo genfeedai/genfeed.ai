@@ -42,8 +42,11 @@ test.describe('Admin economics costs', () => {
                 totals: {
                   byokCalls: 3,
                   costPerGenerationUsd: 0.25,
+                  generationCreditValueUsd: 1.5,
                   llmCalls: 5,
                   llmCostUsd: 1.5,
+                  marginPerGenerationUsd: 0.33,
+                  mediaChargedGenerations: 3,
                   mediaCostUsd: 0.5,
                   mediaGenerations: 4,
                   mediaPricedGenerations: 2,
@@ -67,6 +70,11 @@ test.describe('Admin economics costs', () => {
       .getByTestId('metric-card')
       .filter({ hasText: 'Cost per generation' });
     await expect(tile).toContainText('$0.25', { timeout: 60_000 });
+    await expect(
+      page
+        .getByTestId('metric-card')
+        .filter({ hasText: 'Margin per generation' }),
+    ).toContainText('$0.33');
     await expect(
       page.getByTestId('metric-card').filter({ hasText: 'Unpriced calls' }),
     ).toContainText('2');

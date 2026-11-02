@@ -1,4 +1,3 @@
-import { selectView, viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { AgentType } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -254,7 +253,6 @@ describe('AgentHubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.openConversation.mockReset();
-    window.localStorage.clear();
     mocks.addIntent = null;
     mocks.isLoading = false;
     mocks.loadError = null;
@@ -514,35 +512,15 @@ describe('AgentHubPage', () => {
     ).toBeVisible();
   });
 
-  it('defaults All to a list and switches to a remembered three-column grid of flat cards', async () => {
+  it('lists All as rows with no view switch', () => {
     mocks.strategies = [HEALTHY_AGENT, IDLE_AGENT];
 
     render(<AgentHubPage />);
 
     const all = getSection('all');
-    expect(viewMenuTrigger('List')).toBeInTheDocument();
     expect(within(all).getAllByTestId(/^agent-row-all-/)).toHaveLength(2);
     expect(within(all).queryAllByTestId(/^agent-card-/)).toHaveLength(0);
-
-    await selectView(userEvent.setup(), 'Grid');
-
-    expect(within(all).queryAllByTestId(/^agent-row-all-/)).toHaveLength(0);
-    const grid = within(all).getByTestId('agent-hub-collection')
-      .firstElementChild as HTMLElement;
-    expect(grid.className).toContain('@[60rem]:grid-cols-3');
-    expect(grid.className).not.toContain('grid-cols-4');
-    expect(
-      window.localStorage.getItem('genfeed:collection-view:automation.agents'),
-    ).toBe('grid');
-
-    const card = within(all).getByTestId('agent-card-agent-1');
-    expect(card).toHaveClass('rounded-card', 'shadow-border');
-    expect(card.className).not.toMatch(
-      /(^|\s)(rounded|rounded-lg|rounded-2xl|bg-secondary|gen-glass\S*|hover:bg-accent)(\s|$)/,
-    );
-    expect(card.querySelector('.bg-secondary, .bg-muted')).toBeNull();
-    expect(getVisibleActions(card)).toHaveLength(1);
-    expect(getVisibleActions(card)[0]).toHaveAccessibleName('Run now');
+    expect(screen.queryByRole('button', { name: /^View: / })).toBeNull();
   });
 
   it('keeps secondary actions in a real keyboard-reachable overflow menu', async () => {

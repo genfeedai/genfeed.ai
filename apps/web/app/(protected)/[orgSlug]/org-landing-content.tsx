@@ -26,7 +26,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
-import CollectionViewToggle from '@ui/collection/CollectionViewToggle';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -39,17 +38,14 @@ import { useTranslations } from 'next-intl';
 import { Fragment, useCallback, useEffect } from 'react';
 import { useHomeApp } from '@/components/shell/use-home-app';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
   OrgLandingBrandFact,
   OrgLandingBrandFactsProps,
   OrgLandingBrandItemProps,
 } from '@/props/pages/org-landing.props';
 
-/** Up to this many brands the picker leads with logo cards; above it, a list. */
+/** Up to this many brands the picker shows logo cards; above it, a list. There is no switch. */
 const ORG_LANDING_GRID_BRAND_LIMIT = 6;
-
-const ORG_LANDING_VIEW_SURFACE = 'org.brands';
 
 function hasCompletedOnboarding(user: IUser): boolean {
   const completedSteps = user.onboardingStepsCompleted ?? [];
@@ -178,13 +174,10 @@ export default function OrgLandingContent() {
   );
   const primaryBrandSlug = brands[0]?.slug ?? '';
   const accountType = getBrandOrganizationAccountType(brands[0]);
-  const { view, setView } = useCollectionViewPreference({
-    defaultView:
-      brands.length > ORG_LANDING_GRID_BRAND_LIMIT
-        ? ViewType.LIST
-        : ViewType.GRID,
-    surface: ORG_LANDING_VIEW_SURFACE,
-  });
+  const view =
+    brands.length > ORG_LANDING_GRID_BRAND_LIMIT
+      ? ViewType.LIST
+      : ViewType.GRID;
 
   useEffect(() => {
     if (!isReady || isCurrentUserLoading || !currentUser || hasNoBrandAccess) {
@@ -257,20 +250,17 @@ export default function OrgLandingContent() {
       icon={Building2}
       label={translate('title')}
       right={
-        <>
-          <CollectionViewToggle onViewChange={setView} view={view} />
-          <Button
-            asChild
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <Link href={orgHref('/settings/brands')}>
-              <Plus className="size-4" />
-              {translate('newBrand')}
-            </Link>
-          </Button>
-        </>
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
+        >
+          <Link href={orgHref('/settings/brands')}>
+            <Plus className="size-4" />
+            {translate('newBrand')}
+          </Link>
+        </Button>
       }
     >
       <div aria-busy={isResolving || undefined}>

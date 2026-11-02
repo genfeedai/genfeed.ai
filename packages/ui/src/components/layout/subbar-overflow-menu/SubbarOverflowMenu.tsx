@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 export default function SubbarOverflowMenu({
   actions,
   label,
+  triggerRef,
 }: SubbarOverflowMenuProps) {
   const translate = useTranslations('ui.collection');
   const triggerLabel = label ?? translate('moreActions');
@@ -38,6 +39,7 @@ export default function SubbarOverflowMenu({
         <Button
           ariaLabel={triggerLabel}
           icon={<Ellipsis className="size-4" />}
+          ref={triggerRef}
           size={ButtonSize.ICON}
           tooltip={triggerLabel}
           variant={ButtonVariant.GHOST}

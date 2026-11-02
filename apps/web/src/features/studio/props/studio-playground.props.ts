@@ -272,6 +272,11 @@ export interface StudioPlaygroundEmptyStateProps {
   type: StudioPlaygroundType;
 }
 
+export interface StudioPlaygroundWorkspaceProps {
+  /** The open generation (`/playground/[jobId]`); absent on the workspace. */
+  jobId?: string;
+}
+
 export interface StudioPlaygroundResultsProps {
   assetActions: StudioPlaygroundAssetActions;
   isLoading: boolean;
@@ -312,6 +317,12 @@ export interface StudioPlaygroundCardProps {
    */
   previewRevision?: number;
   view: ViewType.GRID | ViewType.LIST;
+}
+
+export interface StudioPlaygroundJobStatusProps {
+  assetActions: StudioPlaygroundAssetActions;
+  job: StudioPlaygroundJob;
+  onReprompt: (job: StudioPlaygroundJob) => void;
 }
 
 export interface StudioPlaygroundFailureDetailsDialogProps {
@@ -368,7 +379,7 @@ export interface StudioPlaygroundPreviewRecovery {
 }
 
 export interface StudioPlaygroundFocusedPreviewProps {
-  children: ReactElement;
+  children: ReactNode;
   job: StudioPlaygroundJob;
   jobs: readonly StudioPlaygroundJob[];
   onClose: () => void;

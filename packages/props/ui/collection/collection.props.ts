@@ -71,12 +71,16 @@ export interface CollectionListProps {
 
 export interface CollectionViewProps<TItem> {
   items: readonly TItem[];
-  view: CollectionViewType;
+  /** Defaults to the list. Only visual collections offer a grid. */
+  view?: CollectionViewType;
   getItemKey: (item: TItem) => string;
   /** One row per item; rows render inside a single bordered list surface. */
   renderListItem: (item: TItem, index: number) => ReactNode;
-  /** One card per item; cards render inside the container-query grid. */
-  renderGridItem: (item: TItem, index: number) => ReactNode;
+  /**
+   * One card per item; cards render inside the container-query grid. Leave it
+   * out for a record list: the collection then renders the list.
+   */
+  renderGridItem?: (item: TItem, index: number) => ReactNode;
   maxColumns?: CollectionMaxColumns;
   density?: CollectionGridDensity;
   isLoading?: boolean;

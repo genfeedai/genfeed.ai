@@ -7,13 +7,10 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/storyboard/run-1/')).toBe(true);
   });
 
-  it('matches the storyboard create page, where the idea is pitched', () => {
-    expect(isAgentOutputRoute('/storyboard/new')).toBe(true);
-    expect(isAgentOutputRoute('/storyboard/new/')).toBe(true);
-  });
-
-  it('leaves the storyboard list on the dock', () => {
-    expect(isAgentOutputRoute('/storyboard')).toBe(false);
+  it('matches the storyboard workspace, where the idea is pitched beside the runs', () => {
+    expect(isAgentOutputRoute('/storyboard')).toBe(true);
+    expect(isAgentOutputRoute('/storyboard/')).toBe(true);
+    expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
 
   it('keeps a run id that starts with "new" on the split layout', () => {
@@ -52,6 +49,13 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/turbo/project-1/extra')).toBe(false);
   });
 
+  it('matches the Playground workspace and an open generation', () => {
+    expect(isAgentOutputRoute('/playground')).toBe(true);
+    expect(isAgentOutputRoute('/playground/')).toBe(true);
+    expect(isAgentOutputRoute('/playground/job-1')).toBe(true);
+    expect(isAgentOutputRoute('/playground/job-1/extra')).toBe(false);
+  });
+
   it('matches the Motion workspace and an open Motion project', () => {
     expect(isAgentOutputRoute('/motion')).toBe(true);
     expect(isAgentOutputRoute('/motion/')).toBe(true);
@@ -59,11 +63,12 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/motion/project-1/extra')).toBe(false);
   });
 
-  it('matches a clipper project and leaves the list and the create form', () => {
+  it('matches the clipper workspace and a clipper project', () => {
+    expect(isAgentOutputRoute('/clipper')).toBe(true);
+    expect(isAgentOutputRoute('/clipper/')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1')).toBe(true);
     expect(isAgentOutputRoute('/clipper/project-1/')).toBe(true);
-    expect(isAgentOutputRoute('/clipper')).toBe(false);
-    expect(isAgentOutputRoute('/clipper/new')).toBe(false);
+    expect(isAgentOutputRoute('/clipper/project-1/extra')).toBe(false);
   });
 
   it('keeps Library, Publishing and Approvals on the dock', () => {

@@ -73,6 +73,10 @@ export function toAgentRequestPageContext(
     requestContext.analyticsQuery = context.analyticsQuery;
   }
 
+  if (context.creativeApp) {
+    requestContext.creativeApp = context.creativeApp;
+  }
+
   if (context.researchReferences?.length) {
     requestContext.researchReferences = context.researchReferences;
   }

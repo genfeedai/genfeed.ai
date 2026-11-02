@@ -37,7 +37,6 @@ vi.mock('next-intl', async () => {
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
-    organizationId: 'org-1',
   }),
 }));
 

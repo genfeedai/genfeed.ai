@@ -2,8 +2,6 @@ import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
 const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new', 'threads']);
 
-const STORYBOARD_RUN_ID_EXCLUSIONS = new Set(['new']);
-
 /** Max chars for agent conversation leaf in topbar breadcrumb. */
 export const BREADCRUMB_CONVERSATION_TITLE_MAX = 25;
 
@@ -29,7 +27,7 @@ export function extractStoryboardRunId(pathname: string | null): string | null {
   }
   const normalized = normalizeProtectedPathname(pathname);
   const runId = normalized.match(/^\/storyboard\/([^/]+)\/?$/)?.[1];
-  if (!runId || STORYBOARD_RUN_ID_EXCLUSIONS.has(runId)) {
+  if (!runId) {
     return null;
   }
   return runId;

@@ -87,7 +87,7 @@ test.describe('Core Content Loop', () => {
     );
   });
 
-  test('studio storyboard lists saved runs and opens the production modes', async ({
+  test('studio storyboard shows the prompt beside the saved runs and offers the production modes', async ({
     authenticatedPage,
   }) => {
     const studioPage = new StudioPage(authenticatedPage);
@@ -101,13 +101,9 @@ test.describe('Core Content Loop', () => {
     // Storyboard is its own app: no Studio parent in the breadcrumb (#5502).
     await expect(breadcrumb).toContainText('Storyboard');
     await expect(breadcrumb).not.toContainText('Studio');
-    await authenticatedPage
-      .getByRole('link', { name: 'New storyboard' })
-      .click();
-    await expect(authenticatedPage).toHaveURL(/\/storyboard\/new$/);
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Browse Discovery' }),
-    ).toHaveAttribute('href', /\/discovery\/overview$/);
+      authenticatedPage.getByRole('heading', { name: 'Start a storyboard' }),
+    ).toBeVisible();
     await authenticatedPage
       .getByRole('combobox', { name: 'Storyboard source' })
       .click();

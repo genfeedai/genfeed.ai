@@ -13,6 +13,8 @@
   "fromIdeas": "From ideas",
   "fromWorkflow": "From a workflow",
   "sourceAria": "Project source",
+  "projectChoiceQuestion": "Which project should I apply this to?",
+  "projectChoiceNew": "Start a new project instead",
   "heroTitle": "What should Turbo make?",
   "promptPlaceholder": "Describe what to make, or leave empty and Turbo picks an angle from your brand",
   "promptTooLong": "Keep the prompt under {max} characters.",

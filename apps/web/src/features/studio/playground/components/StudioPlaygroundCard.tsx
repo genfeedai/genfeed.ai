@@ -331,9 +331,7 @@ export default function StudioPlaygroundCard({
           size: ButtonSize.SM,
           variant: ButtonVariant.GHOST,
         })}
-        href={href(
-          `${APP_ROUTES.STUDIO.CLIPPER_NEW}?video=${job.ingredient?.id}`,
-        )}
+        href={href(`${APP_ROUTES.STUDIO.CLIPPER}?video=${job.ingredient?.id}`)}
       >
         <Scissors aria-hidden="true" className="size-3.5" />
         {translate('makeClips')}

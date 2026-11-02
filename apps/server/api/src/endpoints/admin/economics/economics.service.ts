@@ -6,15 +6,16 @@ import {
   buildDailyPoints,
   buildEconomicsTotals,
   buildOperationCoverage,
-  costPerUnitUsd,
   type EconomicsDailyAggregate,
   type EconomicsWindow,
   EMPTY_ECONOMICS_DAILY_AGGREGATE,
   enumerateWindowDays,
   formatUtcDay,
+  generationCreditValueUsd,
   microsToUsd,
   minorToUsd,
   type NumericSqlValue,
+  perUnitUsd,
   resolveEconomicsWindow,
   sumDailyAggregates,
   toNumber,
@@ -126,6 +127,7 @@ interface CostFlagsRow {
 interface MediaCategoryRow {
   category: string | null;
   costMicros: NumericSqlValue;
+  chargedGenerations: NumericSqlValue;
   generations: NumericSqlValue;
   pricedGenerations: NumericSqlValue;
 }
@@ -369,15 +371,15 @@ export class EconomicsService {
     const span = { from: window.from, toExclusive: window.toExclusive };
 
     // tenant-scope-ignore: superadmin cross-organization reporting
-    const [llmByDay, mediaByDay, models, flags, categories] = await Promise.all(
-      [
+    const [llmByDay, mediaByDay, models, flags, categories, creditsBySource] =
+      await Promise.all([
         this.prisma.$queryRaw<DayCostRow[]>(this.llmByDaySql(span)),
         this.prisma.$queryRaw<DayCostRow[]>(this.mediaByDaySql(span)),
         this.prisma.$queryRaw<CostModelRow[]>(this.costModelsSql(span)),
         this.prisma.$queryRaw<CostFlagsRow[]>(this.costFlagsSql(span)),
         this.prisma.$queryRaw<MediaCategoryRow[]>(this.mediaCategorySql(span)),
-      ],
-    );
+        this.prisma.$queryRaw<CreditSourceRow[]>(this.creditsBySourceSql(span)),
+      ]);
 
     const byDay = new Map<string, EconomicsDailyAggregate>();
     for (const row of llmByDay) {
@@ -403,6 +405,18 @@ export class EconomicsService {
       (sum, row) => sum + toNumber(row.pricedGenerations),
       0,
     );
+    // BYOK generations spend no credits and have no cost, so margin is taken
+    // over the generations we charged for.
+    const mediaChargedGenerations = categories.reduce(
+      (sum, row) => sum + toNumber(row.chargedGenerations),
+      0,
+    );
+    const generationCreditValue = generationCreditValueUsd(
+      creditsBySource.map((row) => ({
+        credits: toNumber(row.credits),
+        source: row.source,
+      })),
+    );
 
     const daily: IEconomicsCostDailyPoint[] = enumerateWindowDays(window).map(
       (date) => {
@@ -423,7 +437,7 @@ export class EconomicsService {
         const pricedGenerations = toNumber(row.pricedGenerations);
         return {
           category: row.category ?? 'UNKNOWN',
-          costPerGenerationUsd: costPerUnitUsd(costUsd, pricedGenerations),
+          costPerGenerationUsd: perUnitUsd(costUsd, pricedGenerations),
           costUsd,
           generations: toNumber(row.generations),
           pricedGenerations,
@@ -448,12 +462,15 @@ export class EconomicsService {
       to: formatUtcDay(new Date(window.toExclusive.getTime() - 1)),
       totals: {
         byokCalls: toNumber(flags[0]?.byokCalls),
-        costPerGenerationUsd: costPerUnitUsd(
-          mediaCostUsd,
-          mediaPricedGenerations,
-        ),
+        costPerGenerationUsd: perUnitUsd(mediaCostUsd, mediaPricedGenerations),
+        generationCreditValueUsd: generationCreditValue,
         llmCalls: total.llmCalls,
         llmCostUsd,
+        marginPerGenerationUsd: perUnitUsd(
+          generationCreditValue - mediaCostUsd,
+          mediaChargedGenerations,
+        ),
+        mediaChargedGenerations,
         mediaCostUsd,
         mediaGenerations: total.mediaGenerations,
         mediaPricedGenerations,
@@ -814,6 +831,7 @@ export class EconomicsService {
         UPPER(m."category") AS "category",
         COALESCE(SUM(m."vendorCostMicros") FILTER (WHERE m."isByok" = false), 0)::bigint AS "costMicros",
         COUNT(*)::bigint AS "generations",
+        COUNT(*) FILTER (WHERE m."isByok" = false)::bigint AS "chargedGenerations",
         COUNT(*) FILTER (WHERE m."isByok" = false AND m."vendorCostMicros" > 0)::bigint AS "pricedGenerations"
       FROM "media_vendor_costs" m
       WHERE m."isDeleted" = false
