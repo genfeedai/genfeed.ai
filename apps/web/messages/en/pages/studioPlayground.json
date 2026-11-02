@@ -36,14 +36,10 @@
   "emptyDescription": "Write a prompt below and everything you generate lands here.",
   "emptyTitle": "Nothing here yet",
   "agentProposals": {
-    "apply": "Use draft: {title}",
-    "description": "Written by your agent from the brand kit and what has performed.",
     "loading": "Your agent is drafting ideas for this brand.",
-    "needsBrandApproval": "Approve the brand kit so your agent can draft ideas for this brand.",
-    "title": "Agent drafts"
+    "needsBrandApproval": "Approve the brand kit so your agent can draft ideas for this brand."
   },
   "starterIdeas": {
-    "apply": "Use {label}",
     "avatarIntro": {
       "detail": "Avatar",
       "label": "Avatar intro",
@@ -56,7 +52,6 @@
       "label": "Cinematic video",
       "lead": "Cinematic brand film. Slow camera move, one subject, natural light."
     },
-    "description": "Pick one to fill the prompt. Edit it, then generate.",
     "needsProduct": "Add a product image",
     "productAd": {
       "characterLead": "Short product ad featuring ",
@@ -85,7 +80,6 @@
       "lead": "Warm background track for a product video, soft drums, no vocals."
     },
     "tagsCharacter": "Tags {name}",
-    "title": "Start with an idea",
     "usesProduct": "Uses {name}",
     "voiceover": {
       "detail": "Voice",
@@ -93,6 +87,10 @@
       "lead": "Meet the product. One line on the problem, one line on the result.",
       "softwareLead": "One line on the search, one line on being chosen. No product object."
     }
+  },
+  "start": {
+    "description": "Pick an idea below or write your own prompt.",
+    "title": "Start creating"
   },
   "filters": {
     "allTypes": "All types",

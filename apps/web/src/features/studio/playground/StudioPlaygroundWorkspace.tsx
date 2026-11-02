@@ -110,12 +110,11 @@ import KnowledgeReferenceSection, {
 } from '@/features/library/knowledge/components/KnowledgeReferenceSection';
 import { usePromptCommandExtension } from '@/features/studio/components/prompt-editor/use-prompt-command-extension';
 import { useAdvancedModePreference } from '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference';
-import StudioPlaygroundAgentProposals from '@/features/studio/playground/components/StudioPlaygroundAgentProposals';
 import StudioPlaygroundComposer from '@/features/studio/playground/components/StudioPlaygroundComposer';
+import StudioPlaygroundEmptyState from '@/features/studio/playground/components/StudioPlaygroundEmptyState';
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
-import StudioPlaygroundStarterIdeas from '@/features/studio/playground/components/StudioPlaygroundStarterIdeas';
 import { useCrunGenerationQuote } from '@/features/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
@@ -977,11 +976,10 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     jobs: visibleJobs,
     recoverPreview,
   });
-  const showEmptyStarterIdeas =
-    !galleryError &&
-    !isLoadingGallery &&
-    galleryJobs.length === 0 &&
-    prompt.trim().length === 0;
+  // Like the agent's new conversation, the cards stay up while a prompt is
+  // being written or seeded: they leave only when there is something to show.
+  const showEmptyState =
+    !galleryError && !isLoadingGallery && galleryJobs.length === 0;
   const starterOffering = starterOfferingKind(selectedBrand);
   const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
@@ -2915,23 +2913,7 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
                       {translate('history.retrying')}
                     </p>
                   ) : null}
-                  {showEmptyStarterIdeas ? (
-                    <>
-                      <StudioPlaygroundAgentProposals
-                        brandId={brandId || undefined}
-                        onSelect={handleStarterIdea}
-                        type={type}
-                      />
-                      <StudioPlaygroundStarterIdeas
-                        character={pickStarterCharacter(characterMentions)}
-                        offeringKind={starterOffering}
-                        onSelect={handleStarterIdea}
-                        productReference={pickStarterProductReference(
-                          selectedBrand?.references,
-                        )}
-                      />
-                    </>
-                  ) : !galleryError || visibleJobs.length > 0 ? (
+                  {!showEmptyState && (!galleryError || visibleJobs.length > 0) ? (
                     <StudioPlaygroundResults
                       assetActions={{
                         ...assetActions,
@@ -2952,6 +2934,18 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
               )}
             </div>
           </div>
+          {showEmptyState && !isFocusedPreview ? (
+            <StudioPlaygroundEmptyState
+              brandId={brandId || undefined}
+              character={pickStarterCharacter(characterMentions)}
+              offeringKind={starterOffering}
+              onSelect={handleStarterIdea}
+              productReference={pickStarterProductReference(
+                selectedBrand?.references,
+              )}
+              type={type}
+            />
+          ) : null}
           <PromptBarContainer
             className="px-5 pb-5"
             layoutMode="surface-fixed"

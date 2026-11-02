@@ -32,7 +32,43 @@ function clamp(value: string, maxLength: number): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
 }
 
-function unique(values: Array<string | undefined>): string[] {
+/** A label is cut at a word, never mid-word, and says so with an ellipsis. */
+function clampLabel(value: string, maxLength: number): string {
+  const text = value.trim().replace(/\s+/g, ' ');
+  if (text.length <= maxLength) {
+    return text;
+  }
+  const cut = text.slice(0, maxLength - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  const atWord = lastSpace > maxLength / 2 ? cut.slice(0, lastSpace) : cut;
+  return `${atWord.trimEnd()}…`;
+}
+
+const MIN_BARE_TOPIC_LENGTH = 6;
+
+/**
+ * Brand topics are free text, and they are pasted into "Create {topic}" /
+ * "Plan {topic}". Strip stray punctuation ("French builder identity;") and
+ * drop entries that cannot stand alone after a verb: a single short word such
+ * as a name ("David") reads as nonsense, so those fall back to the route's
+ * own suggestions. Acronyms ("SEO") and multi-word topics are kept.
+ */
+export function sanitizeBrandTopic(value: string | undefined): string | null {
+  const topic = (value ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s\p{P}\p{S}]+|[\s\p{P}\p{S}]+$/gu, '');
+  if (!topic) {
+    return null;
+  }
+  const isBareWord = !topic.includes(' ');
+  const isAcronym = /^\p{Lu}[\p{Lu}\d]+$/u.test(topic);
+  if (isBareWord && !isAcronym && topic.length < MIN_BARE_TOPIC_LENGTH) {
+    return null;
+  }
+  return topic;
+}
+
+function unique(values: Array<string | null | undefined>): string[] {
   const seen = new Set<string>();
   return values.flatMap((value) => {
     const normalized = value?.trim();
@@ -85,7 +121,7 @@ function buildSuggestion(
 ): AgentSurfaceSuggestion {
   return {
     intent,
-    label: clamp(label, MAX_LABEL_LENGTH),
+    label: clampLabel(label, MAX_LABEL_LENGTH),
     prompt: clamp(prompt, MAX_PROMPT_LENGTH),
   };
 }
@@ -260,11 +296,13 @@ export function resolveBrandSurfaceSuggestions(
     return [];
   }
 
-  const topics = unique([
-    ...(agentConfig.strategy?.topics ?? []),
-    ...(agentConfig.voice?.messagingPillars ?? []),
-    ...(agentConfig.prompting?.seeds.map((seed) => seed.topic) ?? []),
-  ]).slice(0, 6);
+  const topics = unique(
+    [
+      ...(agentConfig.strategy?.topics ?? []),
+      ...(agentConfig.voice?.messagingPillars ?? []),
+      ...(agentConfig.prompting?.seeds.map((seed) => seed.topic) ?? []),
+    ].map(sanitizeBrandTopic),
+  ).slice(0, 6);
   if (topics.length === 0) {
     return [];
   }
@@ -278,7 +316,8 @@ export function resolveBrandSurfaceSuggestions(
   const profileSeeds = agentConfig.prompting?.seeds ?? [];
   const seeds = topics.map((topic) => {
     const matchingSeed = profileSeeds.find(
-      (seed) => seed.topic.toLowerCase() === topic.toLowerCase(),
+      (seed) =>
+        sanitizeBrandTopic(seed.topic)?.toLowerCase() === topic.toLowerCase(),
     );
     return matchingSeed ?? buildFallbackSeed(topic, audience);
   });

@@ -100,7 +100,7 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
-  agentProposals: vi.fn(),
+  emptyState: vi.fn(),
   advancedMode: {
     value: { isAdvancedMode: true, isLoaded: true, setAdvancedMode: vi.fn() },
   },
@@ -328,35 +328,73 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock(
-  '@/features/studio/playground/components/StudioPlaygroundAgentProposals',
+  '@/features/studio/playground/components/StudioPlaygroundEmptyState',
   () => ({
     default: (props: {
       brandId?: string;
       onSelect: (selection: {
-        agentPrompt: string;
+        agentPrompt?: string;
         aspectRatio: string;
         content: { content: unknown[]; type: string };
+        openLibraryRole?: string;
+        productReference?: {
+          id: string;
+          label: string;
+          previewUrl?: string;
+          role: string;
+        };
+        promptTemplate?: string;
         seedId: string;
         type: string;
       }) => void;
+      productReference?: { id: string; label?: string; previewUrl?: string };
       type: string;
     }) => {
-      mocks.agentProposals(props);
+      mocks.emptyState(props);
+      // Mirrors how the real cards attach the brand product, or ask for one.
+      const pickProduct = (type: string, role: string) => {
+        const product = props.productReference;
+        props.onSelect({
+          aspectRatio: type === 'video' ? '9:16' : '1:1',
+          content: { content: [], type: 'doc' },
+          ...(product
+            ? {
+                productReference: {
+                  id: product.id,
+                  label: product.label ?? 'Product',
+                  previewUrl: product.previewUrl,
+                  role,
+                },
+              }
+            : { openLibraryRole: role }),
+          promptTemplate: type === 'video' ? 'product-ad-video' : 'product-photo',
+          seedId: `${type === 'video' ? 'productAd' : 'productPhoto'}:plain:no-product:${Date.now()}`,
+          type,
+        });
+      };
       return (
-        <button
-          type="button"
-          onClick={() =>
-            props.onSelect({
-              agentPrompt: 'Serum on wet stone.',
-              aspectRatio: '9:16',
-              content: { content: [], type: 'doc' },
-              seedId: 'proposal:0:1',
-              type: props.type,
-            })
-          }
-        >
-          Agent draft
-        </button>
+        <div data-testid="studio-playground-empty-state">
+          <button type="button" onClick={() => pickProduct('image', 'reference')}>
+            Product photo card
+          </button>
+          <button type="button" onClick={() => pickProduct('video', 'startFrame')}>
+            Product ad card
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              props.onSelect({
+                agentPrompt: 'Serum on wet stone.',
+                aspectRatio: '9:16',
+                content: { content: [], type: 'doc' },
+                seedId: 'proposal:0:1',
+                type: props.type,
+              })
+            }
+          >
+            Agent draft
+          </button>
+        </div>
       );
     },
   }),
@@ -930,7 +968,7 @@ describe('StudioPlaygroundWorkspace', () => {
     rerender(<StudioPlaygroundWorkspace />);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(
-      screen.getByTestId('studio-playground-starter-ideas'),
+      screen.getByTestId('studio-playground-empty-state'),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
   });
@@ -943,14 +981,9 @@ describe('StudioPlaygroundWorkspace', () => {
     render(<StudioPlaygroundWorkspace />);
 
     expect(
-      screen.getByTestId('studio-playground-starter-ideas'),
+      screen.getByTestId('studio-playground-empty-state'),
     ).toBeInTheDocument();
-    const [productPhoto] = screen.getAllByRole('button', { name: 'apply' });
-    expect(productPhoto).toBeDefined();
-    if (!productPhoto) {
-      return;
-    }
-    fireEvent.click(productPhoto);
+    fireEvent.click(screen.getByRole('button', { name: 'Product photo card' }));
 
     expect(mocks.setType).toHaveBeenCalledWith('image');
     const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
@@ -983,7 +1016,7 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     render(<StudioPlaygroundWorkspace />);
 
-    expect(mocks.agentProposals).toHaveBeenLastCalledWith(
+    expect(mocks.emptyState).toHaveBeenLastCalledWith(
       expect.objectContaining({
         brandId: mocks.brandId.value || undefined,
         type: 'image',
@@ -1024,14 +1057,10 @@ describe('StudioPlaygroundWorkspace', () => {
       ],
     };
     const { rerender } = render(<StudioPlaygroundWorkspace />);
-    const productButtons = screen.getAllByRole('button', { name: 'apply' });
-    const productPhoto = productButtons[0];
-    const productAd = productButtons[1];
-    expect(productPhoto).toBeDefined();
-    expect(productAd).toBeDefined();
-    if (!productPhoto || !productAd) {
-      return;
-    }
+    const productPhoto = screen.getByRole('button', {
+      name: 'Product photo card',
+    });
+    const productAd = screen.getByRole('button', { name: 'Product ad card' });
 
     fireEvent.click(productPhoto);
     expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).toEqual(
@@ -1063,13 +1092,9 @@ describe('StudioPlaygroundWorkspace', () => {
 
     mocks.selectedBrand.value = undefined;
     rerender(<StudioPlaygroundWorkspace />);
-    const [photoWithoutProduct] = screen.getAllByRole('button', {
-      name: 'apply',
+    const photoWithoutProduct = screen.getByRole('button', {
+      name: 'Product photo card',
     });
-    expect(photoWithoutProduct).toBeDefined();
-    if (!photoWithoutProduct) {
-      return;
-    }
     fireEvent.click(photoWithoutProduct);
     expect(screen.getByText('Reference library content')).toBeInTheDocument();
   });
@@ -1140,9 +1165,9 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('searchPlaceholder'),
     );
-    // Starter ideas belong to the empty state only; they never dock over
-    // the gallery once the brand has generations.
-    expect(screen.queryByTestId('studio-playground-starter-ideas')).toBeNull();
+    // The suggestion cards belong to the empty state only; they never dock
+    // over the gallery once the brand has generations.
+    expect(screen.queryByTestId('studio-playground-empty-state')).toBeNull();
   });
 
   it('removes a deleted asset from the current-session job queue', () => {
