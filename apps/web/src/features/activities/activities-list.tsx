@@ -19,12 +19,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import {
-  ArrowUpRight,
-  ClipboardList,
-  ExternalLink,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, ClipboardList, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -127,11 +122,10 @@ export default function ActivitiesList({
           a.isRead ? null : (
             <Button
               ariaLabel={translate('markRead')}
-              className="flex size-6 items-center justify-center rounded-sm"
               onClick={() => toggleActivityRead(a.id)}
               size={ButtonSize.ICON}
               title={translate('markRead')}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
               <span className="size-1.5 rounded-full bg-info">

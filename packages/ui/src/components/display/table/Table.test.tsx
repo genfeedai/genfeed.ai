@@ -15,6 +15,18 @@ vi.mock('next/dynamic', async () => {
   return { default: () => Checkbox };
 });
 
+function SidebarProbe() {
+  const contextSidebar = useContextSidebar();
+  return (
+    <div>
+      <p data-testid="probe">
+        {`${contextSidebar?.isOpen ? 'open' : 'closed'}:${contextSidebar?.selection?.title ?? 'nothing selected'}`}
+      </p>
+      <Button label="Close panel" onClick={() => contextSidebar?.close()} />
+    </div>
+  );
+}
+
 describe('Table', () => {
   it('should render without crashing', () => {
     const { container } = render(<Table columns={[]} items={[]} />);
@@ -1027,18 +1039,6 @@ describe('Table', () => {
     });
 
     describe('closing the sidebar', () => {
-      function SidebarProbe() {
-        const contextSidebar = useContextSidebar();
-        return (
-          <div>
-            <p data-testid="probe">
-              {`${contextSidebar?.isOpen ? 'open' : 'closed'}:${contextSidebar?.selection?.title ?? 'nothing selected'}`}
-            </p>
-            <Button label="Close panel" onClick={() => contextSidebar?.close()} />
-          </div>
-        );
-      }
-
       function renderProbedTable() {
         return render(
           <ContextSidebarProvider>
