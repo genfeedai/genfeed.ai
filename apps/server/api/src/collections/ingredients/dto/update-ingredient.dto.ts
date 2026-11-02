@@ -109,4 +109,6 @@ export class UpdateIngredientDto extends PartialType(
 export type IngredientServerUpdate = Partial<CreateIngredientDto> &
   Partial<UpdateIngredientDto> & {
     readonly s3Key?: string;
+    /** Declared media type; set by upload handlers once the type passed the allowlist. */
+    readonly mimeType?: string;
   };

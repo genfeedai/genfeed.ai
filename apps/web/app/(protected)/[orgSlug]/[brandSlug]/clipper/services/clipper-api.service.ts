@@ -44,6 +44,27 @@ export type {
   SubmitHookApprovalPayload,
 } from '@/props/studio/clipper-api.props';
 
+/**
+ * The API reports a refusal either as a plain `message` or as a JSON:API
+ * `errors[]` document whose `detail` is the reason meant for the user.
+ */
+function readErrorMessage(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') {
+    return undefined;
+  }
+  const { errors, message } = body as {
+    errors?: Array<{ detail?: unknown; title?: unknown }>;
+    message?: unknown;
+  };
+  const first = Array.isArray(errors) ? errors[0] : undefined;
+  for (const candidate of [first?.detail, first?.title, message]) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
 export class ClipperApiService implements ClipperApiClient {
   private readonly apiEndpoint: string;
   private readonly getToken: () => Promise<string>;
@@ -76,10 +97,10 @@ export class ClipperApiService implements ClipperApiClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      const message =
-        (errorData as Record<string, string> | null)?.message ??
-        `Request failed with status ${response.status}`;
-      throw new Error(message);
+      throw new Error(
+        readErrorMessage(errorData) ??
+          `Request failed with status ${response.status}`,
+      );
     }
 
     return response.json() as Promise<T>;
