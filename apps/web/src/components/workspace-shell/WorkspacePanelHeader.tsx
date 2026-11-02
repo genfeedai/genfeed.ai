@@ -12,8 +12,8 @@ import {
   History,
   type LucideIcon,
   Maximize2,
+  PanelRightClose,
   SquarePen,
-  X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -107,7 +107,7 @@ export default function WorkspacePanelHeader({
             })
           : null}
         {renderAction({
-          icon: X,
+          icon: PanelRightClose,
           label: translate('close'),
           onClick: onClose,
           testId: 'workspace-panel-close',

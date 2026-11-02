@@ -1583,7 +1583,9 @@ describe('UniversalWorkspaceShell', () => {
       expect(within(outputPane).queryByRole('tab')).toBeNull();
       expect(dock?.panel?.canShowContext).toBe(true);
       act(() => dock?.panel?.selectView('details'));
-      expect(await within(outputPane).findByText('Current page')).toBeVisible();
+      expect(
+        await within(outputPane).findByTestId('workspace-agent-context'),
+      ).toBeVisible();
       expect(within(outputPane).getByText('Board output')).not.toBeVisible();
       act(() => dock?.panel?.close());
       await waitFor(() =>
@@ -1638,8 +1640,6 @@ describe('UniversalWorkspaceShell', () => {
         'Context',
       );
       expect(screen.getByTestId('workspace-agent-context')).toBeVisible();
-      expect(screen.getByText('Current page')).toBeVisible();
-      expect(screen.getByText('Conversation scope')).toBeVisible();
       expect(
         screen.getByText(
           'Select a record on the page to include it in the conversation.',

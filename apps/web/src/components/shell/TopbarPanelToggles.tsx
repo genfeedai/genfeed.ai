@@ -3,6 +3,7 @@
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { BotMessageSquare, Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -33,7 +34,7 @@ function PanelToggle({
       aria-expanded={isPressed}
       aria-keyshortcuts={ariaKeyShortcuts}
       ariaLabel={label}
-      className="size-8"
+      className={cn('size-8', isPressed && 'bg-accent text-foreground')}
       data-active={isPressed ? 'true' : 'false'}
       data-testid={testId}
       onClick={onToggle}
