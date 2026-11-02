@@ -163,6 +163,28 @@ describe('resolveSignupOrganizationLabel', () => {
     ).toBe('Shipshit');
   });
 
+  it('uses the free-mail domains it is given, for the org and the workspace label', () => {
+    const personalEmailDomains = ['mail.ru'];
+
+    expect(
+      resolveSignupOrganizationLabel({
+        email: 'ivan@mail.ru',
+        personalEmailDomains,
+      }),
+    ).toBe('Personal');
+    // Not on the short built-in list, so without the list it reads as a company.
+    expect(resolveSignupOrganizationLabel({ email: 'ivan@mail.ru' })).toBe(
+      'Mail',
+    );
+    expect(
+      resolveSignupWorkspaceLabel({
+        email: 'ivan@mail.ru',
+        name: 'Ivan',
+        personalEmailDomains,
+      }),
+    ).toBe('Ivan');
+  });
+
   it('falls back to the workspace label when there is no email', () => {
     expect(resolveSignupOrganizationLabel({ name: 'Vincent D' })).toBe(
       'Vincent D',

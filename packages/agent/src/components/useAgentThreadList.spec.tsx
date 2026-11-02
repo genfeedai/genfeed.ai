@@ -10,6 +10,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentThreadList } from './useAgentThreadList';
 
@@ -92,6 +93,90 @@ describe('useAgentThreadList', () => {
   beforeEach(() => {
     window.localStorage.clear();
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  it('is loading, not empty, on the first render of a first visit', () => {
+    const firstRender: { isEmpty: boolean; isLoading: boolean }[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: null,
+        isActive: true,
+      });
+      firstRender.push({
+        isEmpty: state.shouldShowEmptyState,
+        isLoading: state.isLoading,
+      });
+      return state;
+    });
+
+    expect(firstRender[0]).toEqual({ isEmpty: false, isLoading: true });
+  });
+
+  it("is loading on a brand page when the cache only holds other brands' threads", () => {
+    useAgentChatStore
+      .getState()
+      .setThreads([makeThread('t-other', { brandId: 'brand-other' })]);
+    const firstRender: boolean[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: 'brand-1',
+        isActive: true,
+      });
+      firstRender.push(state.isLoading);
+      return state;
+    });
+
+    expect(firstRender[0]).toBe(true);
+  });
+
+  it('is loading in the first commit that opens an inactive list', () => {
+    const apiService = makeApiService();
+    // Layout effects see each committed render before paint and before the
+    // load effect runs, which is exactly what the user would see.
+    const commits: { isActive: boolean; isEmpty: boolean }[] = [];
+    const { rerender } = renderHook(
+      ({ isActive }) => {
+        const state = useAgentThreadList({
+          apiService,
+          brandId: null,
+          isActive,
+        });
+        const isEmpty = state.shouldShowEmptyState;
+        useLayoutEffect(() => {
+          commits.push({ isActive, isEmpty });
+        });
+        return state;
+      },
+      { initialProps: { isActive: false } },
+    );
+
+    rerender({ isActive: true });
+
+    expect(commits.find((commit) => commit.isActive)?.isEmpty).toBe(false);
+  });
+
+  it('paints the cached threads on a return visit without a loading state', () => {
+    useAgentChatStore.getState().setThreads([makeThread('t-1')]);
+    const firstRender: { isLoading: boolean; threadIds: string[] }[] = [];
+
+    renderHook(() => {
+      const state = useAgentThreadList({
+        apiService: makeApiService(),
+        brandId: null,
+        isActive: true,
+      });
+      firstRender.push({
+        isLoading: state.isLoading,
+        threadIds: state.threads.map((thread) => thread.id),
+      });
+      return state;
+    });
+
+    expect(firstRender[0]).toEqual({ isLoading: false, threadIds: ['t-1'] });
   });
 
   it('keeps the typed rename when the thread is deleted before PATCH completes', async () => {

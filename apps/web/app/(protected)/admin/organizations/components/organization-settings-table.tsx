@@ -5,6 +5,7 @@ import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { EditSettingModal } from '@protected/organizations/components/edit-setting-modal';
 import { useOrganizationSettings } from '@protected/organizations/hooks/use-organization-settings';
 import Table from '@ui/display/table/Table';
+import TableGroupHeading from '@ui/display/table/TableGroupHeading';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -268,7 +269,7 @@ export function OrganizationSettingsTable({
   return (
     <>
       <WorkspaceSurface
-        title="Settings Matrix"
+        title={translate('settingsTitle')}
         tone="muted"
         flush
         data-testid="organization-settings-surface"
@@ -278,7 +279,10 @@ export function OrganizationSettingsTable({
           ariaLabel="Organization settings"
           columns={columns}
           framed={false}
-          getGroupHeading={(row) => ({ content: row.group, key: row.group })}
+          getGroupHeading={(row) => ({
+            content: <TableGroupHeading>{row.group}</TableGroupHeading>,
+            key: row.group,
+          })}
           getRowKey={(row) => String(row.key)}
           isLoading={isLoading}
           items={rows}

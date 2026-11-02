@@ -14,11 +14,13 @@ import {
   resolvePlatformFlags,
 } from '@genfeedai/contracts/constants';
 import type { IPlatformFlags } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -29,11 +31,13 @@ import { ToggleRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 import AdminFlagCard from './admin-flag-card';
+
+const PLATFORM_FLAGS_KEY = ['admin', 'platform-flags'] as const;
 
 const MODULE_FLAG_KEY_SET = new Set<PlatformFlagKey>(PLATFORM_MODULE_FLAG_KEYS);
 const RELEASE_FLAG_KEY_SET = new Set<PlatformFlagKey>(
@@ -85,69 +89,74 @@ export default function AdminFlagsPage() {
   const getPlatformSettingsService = useAuthedService((token: string) =>
     AdminPlatformSettingsService.getInstance(token),
   );
-  const [flags, setFlags] = useState<IPlatformFlags>(DEFAULT_PLATFORM_FLAGS);
-  const [savingKey, setSavingKey] = useState<PlatformFlagKey | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
-
-  const loadFlags = useCallback(
-    async (signal: AbortSignal) => {
+  const queryClient = useQueryClient();
+  // Cached: coming back to Flags paints the stored switches while they
+  // refresh, with no skeleton.
+  const flagsQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getPlatformSettingsService();
         const settings = await service.getSettings(signal);
-        if (!signal.aborted) {
-          setFlags(parsePlatformFlags(settings.flags));
-          setLoadErrorMessage(null);
-        }
+        return parsePlatformFlags(settings.flags);
       } catch (error) {
         if (!signal.aborted) {
           logger.error('Failed to load platform flags', error);
-          // Never show the defaults as if they were stored: the switches stay
-          // hidden and the API's reason (e.g. the admin IP allowlist) shows.
-          setLoadErrorMessage(
-            getJsonApiErrorMessage(error, translate('loadErrorFallback')),
-          );
         }
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
     },
-    [getPlatformSettingsService, translate],
+    queryKey: PLATFORM_FLAGS_KEY,
+    service: (token: string) => AdminPlatformSettingsService.getInstance(token),
+  });
+  const {
+    error: loadError,
+    isError,
+    isFetching,
+    isLoading,
+    refetch,
+  } = flagsQuery;
+  const flags = flagsQuery.data ?? DEFAULT_PLATFORM_FLAGS;
+  // Never show the defaults as if they were stored: on a failed read the
+  // switches stay hidden and the API's reason (e.g. the admin IP allowlist)
+  // shows.
+  const loadErrorMessage = isError
+    ? getJsonApiErrorMessage(loadError, translate('loadErrorFallback'))
+    : null;
+  const isRefreshing = isFetching && !isLoading;
+  const [savingKey, setSavingKey] = useState<PlatformFlagKey | null>(null);
+
+  const setCachedFlags = useCallback(
+    (next: IPlatformFlags) => {
+      queryClient.setQueriesData<IPlatformFlags>(
+        { queryKey: PLATFORM_FLAGS_KEY },
+        next,
+      );
+    },
+    [queryClient],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadFlags(controller.signal);
-
-    return () => controller.abort();
-  }, [loadFlags]);
-
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadFlags(new AbortController().signal);
-    setIsRefreshing(false);
-  }, [loadFlags]);
+    await refetch();
+  }, [refetch]);
 
   async function handleToggle(
     key: PlatformFlagKey,
     isOn: boolean,
   ): Promise<void> {
     const previous = flags;
-    setFlags({ ...flags, [key]: isOn });
+    // A refresh still in flight must not land over the optimistic switch.
+    await queryClient.cancelQueries({ queryKey: PLATFORM_FLAGS_KEY });
+    setCachedFlags({ ...flags, [key]: isOn });
     setSavingKey(key);
 
     try {
       const service = await getPlatformSettingsService();
       const updated = await service.updateSettings({ flags: { [key]: isOn } });
-      setFlags(parsePlatformFlags(updated.flags));
+      setCachedFlags(parsePlatformFlags(updated.flags));
       // Open shells in this browser re-read the flags now; others within a minute.
       notifyPlatformFlagsChanged();
     } catch (error) {
       logger.error('Failed to save platform flag', error);
-      setFlags(previous);
+      setCachedFlags(previous);
       notificationsService.error(
         getJsonApiErrorMessage(error, translate('saveError')),
       );
@@ -178,10 +187,6 @@ export default function AdminFlagsPage() {
   })).filter((section) => section.keys.length > 0);
 
   function renderContent(): ReactElement {
-    if (isLoading) {
-      return <SkeletonCard showImage={false} />;
-    }
-
     if (loadErrorMessage) {
       return (
         <Alert variant="destructive" className="max-w-xl" icon={false}>
@@ -200,7 +205,7 @@ export default function AdminFlagsPage() {
     }
 
     return (
-      <div className="flex flex-col gap-10">
+      <div aria-busy={isLoading} className="flex flex-col gap-10">
         {visibleSections.map((section) => (
           <section key={section.id} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
@@ -228,14 +233,23 @@ export default function AdminFlagsPage() {
             <div className="gap-4 lg:columns-2 2xl:columns-3">
               {section.keys.map((key) => (
                 <div key={key} className="mb-4 break-inside-avoid">
-                  <AdminFlagCard
-                    flagKey={key}
-                    nestedKeys={nestedFlagKeysOf(key)}
-                    flags={flags}
-                    effectiveFlags={effectiveFlags}
-                    isSaving={savingKey !== null}
-                    onToggle={handleToggle}
-                  />
+                  {/* Loading keeps the final sections and columns: only the
+                      cards are placeholders, so nothing jumps when they land. */}
+                  {isLoading ? (
+                    <SkeletonCard
+                      label={translate('loadingFlag')}
+                      showImage={false}
+                    />
+                  ) : (
+                    <AdminFlagCard
+                      flagKey={key}
+                      nestedKeys={nestedFlagKeysOf(key)}
+                      flags={flags}
+                      effectiveFlags={effectiveFlags}
+                      isSaving={savingKey !== null}
+                      onToggle={handleToggle}
+                    />
+                  )}
                 </div>
               ))}
             </div>

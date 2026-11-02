@@ -34,6 +34,8 @@ import {
   ModelCategory,
 } from '@genfeedai/contracts';
 import {
+  BRAND_BANNER_GENERATION_HEIGHT,
+  BRAND_BANNER_GENERATION_WIDTH,
   CLOUD_QUALITY_IMAGE_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
 } from '@genfeedai/contracts/constants';
@@ -137,7 +139,10 @@ export class AssetsOperationsController {
 
     const { width, height } =
       category === AssetCategory.BANNER
-        ? { height: 1080, width: 1920 }
+        ? {
+            height: BRAND_BANNER_GENERATION_HEIGHT,
+            width: BRAND_BANNER_GENERATION_WIDTH,
+          }
         : { height: 1024, width: 1024 };
 
     // The brand scopes the asset to its tenant; a brand that is not found in
@@ -160,7 +165,7 @@ export class AssetsOperationsController {
     const enhancedPrompt = buildBrandAssetPrompt(
       brand,
       category === AssetCategory.BANNER
-        ? 'Generate a professional landscape banner (1920x1080)'
+        ? 'Generate a professional wide banner (1500x500, 3:1)'
         : 'Generate a professional logo (1024x1024)',
       text,
     );

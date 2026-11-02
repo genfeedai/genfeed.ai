@@ -21,6 +21,8 @@ export {
   type BlockquoteProps,
 } from './blockquote';
 export { blockquoteVariants } from './blockquote.variants';
+export { BrandAvatar, type BrandAvatarProps } from './brand-avatar';
+export { BrandBanner, type BrandBannerProps } from './brand-banner';
 export {
   Breadcrumb,
   BreadcrumbEllipsis,

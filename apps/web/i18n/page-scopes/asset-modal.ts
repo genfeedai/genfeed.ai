@@ -1,5 +1,6 @@
 import accountHistoryImport from '../../messages/en/pages/accountHistoryImport.json';
 import brandDetailOverview from '../../messages/en/pages/brandDetailOverview.json';
+import brandLinks from '../../messages/en/pages/brandLinks.json';
 import brandSocialMedia from '../../messages/en/pages/brandSocialMedia.json';
 import credentialPostingTimes from '../../messages/en/pages/credentialPostingTimes.json';
 import library from '../../messages/en/pages/library.json';
@@ -9,6 +10,7 @@ import studioPlayground from '../../messages/en/pages/studioPlayground.json';
 const messages = {
   accountHistoryImport,
   brandDetailOverview,
+  brandLinks,
   brandSocialMedia,
   credentialPostingTimes,
   library,

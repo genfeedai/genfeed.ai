@@ -265,7 +265,7 @@ export default function CampaignDetailShell({
         titleVisibility="visible"
         moduleChrome
         leading={slots.leadingNode}
-        iconActions={slots.exportNode}
+        overflow={slots.overflowNode}
         right={
           <>
             <Badge status={resolvedCampaign.status}>

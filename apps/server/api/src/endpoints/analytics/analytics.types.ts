@@ -113,6 +113,12 @@ export interface PostCountRow {
   total_posts: bigint;
 }
 
+/** A count per entity, for lifetime totals that are not tied to a date range. */
+export interface EntityCountRow {
+  entity_id: string;
+  total: bigint;
+}
+
 /** One ranked entity id from the database-side leaderboard ranking query */
 export interface EntityRankRow {
   entity_id: string;

@@ -1,7 +1,12 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { SubscriptionStatus } from '@genfeedai/contracts';
 import type { IOrganizationBilling } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { PagesService } from '@services/content/pages.service';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SubscriptionsList from './subscriptions-list';
@@ -28,13 +33,17 @@ const mocks = vi.hoisted(() => ({
         }
       | undefined,
   },
-  useQuery: vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
@@ -63,11 +72,6 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: (options: { queryFn: () => Promise<unknown> }) =>
-    mocks.useQuery(options),
-}));
-
 vi.mock('next/navigation', () => ({
   usePathname: () => '/admin',
   useRouter: () => ({ replace: vi.fn() }),
@@ -79,7 +83,9 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <div>Pager</div>,
+  default: ({ totals }: { totals?: { totalDocs: number } }) => (
+    <nav aria-label="pagination">{totals?.totalDocs ?? '?'} organizations</nav>
+  ),
 }));
 
 vi.mock('./credit-holds-panel', () => ({
@@ -154,21 +160,17 @@ function makeBilling(
   };
 }
 
-function mockRows(rows: IOrganizationBilling[]) {
-  mocks.useQuery.mockImplementation(() => ({
-    data: {
-      data: rows,
-      limit: 15,
-      page: 2,
-      success: true,
-      totalDocs: rows.length,
-      totalPages: 1,
-    },
-    error: null,
-    isFetching: false,
-    isLoading: false,
-    refetch: vi.fn(),
-  }));
+/** The billing read, recording its totals the way the service does. */
+function mockRows(rows: IOrganizationBilling[], totalDocs = rows.length) {
+  mocks.getAdminBilling.mockImplementation(async () => {
+    PagesService.setTotalDocs(totalDocs);
+    PagesService.setTotalPages(1);
+    return { data: rows, limit: 15, page: 2, success: true, totalDocs };
+  });
+}
+
+function renderList() {
+  return render(<SubscriptionsList />, { wrapper: queryClientWrapper() });
 }
 
 function getTableProps(): {
@@ -181,18 +183,17 @@ function getTableProps(): {
 describe('SubscriptionsList', () => {
   beforeEach(() => {
     mocks.getAdminBilling.mockReset();
-    mocks.useQuery.mockReset();
     mocks.queryString = 'page=2';
   });
 
-  it('lists an organization without a subscription as free, with dashes instead of N/A', () => {
+  it('lists an organization without a subscription as free, with dashes instead of N/A', async () => {
     mockRows([makeBilling()]);
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    expect(screen.getByTestId('organizationName-org-1')).toHaveTextContent(
-      'Acme',
-    );
+    expect(
+      await screen.findByTestId('organizationName-org-1'),
+    ).toHaveTextContent('Acme');
     expect(screen.getByTestId('ownerEmail-org-1')).toHaveTextContent(
       'owner@example.com',
     );
@@ -203,17 +204,17 @@ describe('SubscriptionsList', () => {
     expect(screen.queryByText('N/A')).not.toBeInTheDocument();
   });
 
-  it('marks a PAYG buyer without a subscription as free plus PAYG', () => {
+  it('marks a PAYG buyer without a subscription as free plus PAYG', async () => {
     mockRows([makeBilling({ hasPaygPurchase: true, organizationId: 'org-3' })]);
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    expect(screen.getByTestId('tier-org-3')).toHaveTextContent('free');
+    expect(await screen.findByTestId('tier-org-3')).toHaveTextContent('free');
     expect(screen.getByTestId('tier-org-3')).toHaveTextContent('planPayg');
     expect(screen.getByTestId('status-org-3')).toHaveTextContent('-');
   });
 
-  it('renders a status badge, usage and the customer id for a subscribed organization', () => {
+  it('renders a status badge, usage and the customer id for a subscribed organization', async () => {
     mockRows([
       makeBilling({
         hasSubscription: true,
@@ -227,9 +228,11 @@ describe('SubscriptionsList', () => {
       }),
     ]);
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    expect(screen.getByTestId('status-org-2')).toHaveTextContent('Trialing');
+    expect(await screen.findByTestId('status-org-2')).toHaveTextContent(
+      'Trialing',
+    );
     expect(screen.getByTestId('usedPercent-org-2')).toHaveTextContent('95%');
     expect(screen.getByTestId('isMaxedOut-org-2')).toHaveTextContent(
       'flagMaxedOut',
@@ -239,12 +242,13 @@ describe('SubscriptionsList', () => {
     );
   });
 
-  it('links the organization name to its analytics page and summarises it in the sidebar', () => {
+  it('links the organization name to its analytics page and summarises it in the sidebar', async () => {
     const billing = makeBilling({ stripeCustomerId: 'cus_123', tier: 'scale' });
     mockRows([billing]);
 
-    render(<SubscriptionsList />);
+    renderList();
 
+    await screen.findByTestId('organizationName-org-1');
     const { getRowLink, rowSidebar } = getTableProps();
     expect(getRowLink?.(billing)).toEqual({
       href: '/admin/organizations/org-1',
@@ -261,44 +265,30 @@ describe('SubscriptionsList', () => {
 
   it('requests the page named in the URL', async () => {
     mockRows([]);
-    mocks.getAdminBilling.mockResolvedValue({ data: [] });
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    const options = mocks.useQuery.mock.calls[0]?.[0] as {
-      queryFn: () => Promise<unknown>;
-      queryKey: unknown[];
-    };
-    await options.queryFn();
-
-    expect(options.queryKey).toEqual(['admin-subscriptions', 2, '', undefined]);
-    expect(mocks.getAdminBilling).toHaveBeenCalledWith({ limit: 15, page: 2 });
+    await waitFor(() =>
+      expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+        limit: 15,
+        page: 2,
+      }),
+    );
   });
 
   it('searches organizations server-side with the term in the URL', async () => {
     mocks.queryString = 'q=acme';
     mockRows([]);
-    mocks.getAdminBilling.mockResolvedValue({ data: [] });
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    const options = mocks.useQuery.mock.calls[0]?.[0] as {
-      queryFn: () => Promise<unknown>;
-      queryKey: unknown[];
-    };
-    await options.queryFn();
-
-    expect(options.queryKey).toEqual([
-      'admin-subscriptions',
-      1,
-      'acme',
-      undefined,
-    ]);
-    expect(mocks.getAdminBilling).toHaveBeenCalledWith({
-      limit: 15,
-      page: 1,
-      search: 'acme',
-    });
+    await waitFor(() =>
+      expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+        limit: 15,
+        page: 1,
+        search: 'acme',
+      }),
+    );
   });
 
   it.each([
@@ -309,37 +299,53 @@ describe('SubscriptionsList', () => {
     async (urlSort, apiSort) => {
       mocks.queryString = `sort=${urlSort}`;
       mockRows([]);
-      mocks.getAdminBilling.mockResolvedValue({ data: [] });
 
-      render(<SubscriptionsList />);
+      renderList();
 
-      const options = mocks.useQuery.mock.calls[0]?.[0] as {
-        queryFn: () => Promise<unknown>;
-        queryKey: unknown[];
-      };
-      await options.queryFn();
-
-      expect(options.queryKey).toEqual(['admin-subscriptions', 1, '', apiSort]);
-      expect(mocks.getAdminBilling).toHaveBeenCalledWith({
-        limit: 15,
-        page: 1,
-        sort: apiSort,
-      });
+      await waitFor(() =>
+        expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+          limit: 15,
+          page: 1,
+          sort: apiSort,
+        }),
+      );
     },
   );
 
   it('ignores a sort on a column the API cannot order by', async () => {
     mocks.queryString = 'sort=-balance';
     mockRows([]);
-    mocks.getAdminBilling.mockResolvedValue({ data: [] });
 
-    render(<SubscriptionsList />);
+    renderList();
 
-    const options = mocks.useQuery.mock.calls[0]?.[0] as {
-      queryFn: () => Promise<unknown>;
-    };
-    await options.queryFn();
+    await waitFor(() =>
+      expect(mocks.getAdminBilling).toHaveBeenCalledWith({
+        limit: 15,
+        page: 1,
+      }),
+    );
+  });
+  it('paints the cached page with its own footer total when coming back', async () => {
+    mockRows([makeBilling()], 42);
+    const client = createTestQueryClient();
+    const firstVisit = render(<SubscriptionsList />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByTestId('organizationName-org-1')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('42 organizations');
+    firstVisit.unmount();
 
-    expect(mocks.getAdminBilling).toHaveBeenCalledWith({ limit: 15, page: 1 });
+    PagesService.setTotalDocs(200);
+    mocks.getAdminBilling.mockReturnValue(new Promise(() => {}));
+    render(<SubscriptionsList />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByTestId('organizationName-org-1')).toHaveTextContent(
+      'Acme',
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('42 organizations');
   });
 });

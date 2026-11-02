@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TurboProjectsPage from '@/features/workflows/pages/turbo/TurboProjectsPage';
+import TurboWorkspace from '@/features/workflows/pages/turbo/TurboWorkspace';
 export const generateMetadata = createPageMetadata('Turbo');
 export default function StudioTurboPage() {
-  return <TurboProjectsPage />;
+  return <TurboWorkspace />;
 }

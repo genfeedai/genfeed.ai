@@ -59,19 +59,19 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    iconActions,
+    overflow,
     leading,
     right,
   }: {
     children: ReactNode;
-    iconActions?: ReactNode;
+    overflow?: ReactNode;
     leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <div>
       <div data-testid="topbar-leading">{leading}</div>
       <div data-testid="topbar-actions">
-        {iconActions}
+        {overflow}
         {right}
       </div>
       {children}
@@ -525,7 +525,8 @@ describe('persisted storyboard plan editor', () => {
   });
 
   describe('sub-topbar actions', () => {
-    it('keeps Undo and Reset as labelled icon actions and Approve last', () => {
+    it('keeps Undo and Reset in the "..." menu and Approve last', async () => {
+      const user = userEvent.setup();
       renderEditor();
       const actions = screen.getByTestId('topbar-actions');
       const buttons = within(actions)
@@ -533,7 +534,14 @@ describe('persisted storyboard plan editor', () => {
         .map(
           (button) => button.getAttribute('aria-label') ?? button.textContent,
         );
-      expect(buttons).toEqual(['Undo', 'Reset plan', 'Approve storyboard']);
+      expect(buttons).toEqual(['More actions', 'Approve storyboard']);
+
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      expect(
+        (await screen.findAllByRole('menuitem')).map(
+          (item) => item.textContent,
+        ),
+      ).toEqual(['Undo', 'Reset plan']);
     });
     it('renders page actions before the primary action', () => {
       renderEditor({ actions: <a href="/editor">Open in Editor</a> });
@@ -556,7 +564,11 @@ describe('persisted storyboard plan editor', () => {
         },
         resetPlan: reset,
       });
-      fireEvent.click(screen.getByRole('button', { name: 'Reset plan' }));
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'More actions' }));
+      await user.click(
+        await screen.findByRole('menuitem', { name: 'Reset plan' }),
+      );
       expect(modal.openConfirm).toHaveBeenCalledWith(
         expect.objectContaining({ confirmLabel: 'Reset plan' }),
       );

@@ -18,6 +18,35 @@ const REFRESHED_PROVIDERS: ReadonlySet<string> = new Set(['replicate', 'fal']);
 export const MODEL_PRICING_REFRESH_STALE_DAYS = 10;
 const DAY_MS = 86_400_000;
 
+/** A refresh that reached the model but could not read its provider rates. */
+const RATES_UNAVAILABLE_PREFIX = 'rates_unavailable:';
+
+export interface UnreadableRateDraftInput {
+  isActive: boolean;
+  providerSyncFailureCode?: string | null;
+  providerSyncStatus?: string | null;
+  reviewedProviderContractVersion?: string | null;
+}
+
+/**
+ * An inactive model with no approved rate whose provider publishes nothing the
+ * refresh can read (a quarantined contract, or `rates_unavailable:*`). There is
+ * no rate for an operator to approve and customers are never offered it, so it
+ * is not an alert: it stays in the models list until someone prices or removes it.
+ */
+export function isUnreadableRateDraft(
+  input: UnreadableRateDraftInput,
+): boolean {
+  return (
+    !input.isActive &&
+    !input.reviewedProviderContractVersion &&
+    (input.providerSyncStatus === 'quarantined' ||
+      Boolean(
+        input.providerSyncFailureCode?.startsWith(RATES_UNAVAILABLE_PREFIX),
+      ))
+  );
+}
+
 export interface ModelPricingAttentionInput {
   category: string;
   /** Sample duration for per-second rates; five seconds when unknown. */
@@ -183,7 +212,13 @@ export function classifyModelPricingAttention(
       attention.push({
         code: 'price_missing',
         level: 'red',
-        reason: quote.reason,
+        // The legacy-tariff text describes the fallback quote, not why the row
+        // has no price; name the provider outcome when the refresh recorded one.
+        reason: input.providerSyncFailureCode?.startsWith(
+          RATES_UNAVAILABLE_PREFIX,
+        )
+          ? `Provider rates could not be read (${input.providerSyncFailureCode})`
+          : quote.reason,
       });
     } else if (quote.snapshot.credits === 0 && !input.isFree) {
       attention.push({
@@ -214,7 +249,12 @@ export function classifyModelPricingAttention(
   else if (
     profile.reviewedPricing &&
     REFRESHED_PROVIDERS.has(input.provider) &&
-    input.providerPricingSyncedAt
+    input.providerPricingSyncedAt &&
+    // A refresh that reached the model and found no readable rate (Topaz bills
+    // an unnamed unit, a Replicate tier lists no price) never moves the
+    // timestamp, so waiting would never clear it; the approved rate stays as
+    // reviewed and there is nothing to refresh.
+    !input.providerSyncFailureCode?.startsWith(RATES_UNAVAILABLE_PREFIX)
   ) {
     const syncedAt = Date.parse(String(input.providerPricingSyncedAt));
     if (

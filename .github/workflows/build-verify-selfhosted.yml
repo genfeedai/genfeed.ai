@@ -17,6 +17,20 @@ name: Verify Self-Hosted Runtime
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      # The publisher builds the image it ships with the same build arguments,
+      # so every layer is a cache hit and the release does not compile the web
+      # app a second time. Both default to the build this workflow always did.
+      checkout_ref:
+        description: "Commit to build and verify; empty builds the caller's commit"
+        required: false
+        default: ""
+        type: string
+      release_tag:
+        description: "Release tag baked into the image; empty for unreleased builds"
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   # Release and recovery callers write the same selfhosted cache scope. Queue
@@ -49,6 +63,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.checkout_ref }}
           persist-credentials: false
 
       - name: Log in to GHCR (for build cache)
@@ -70,7 +85,12 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile.selfhosted
-          build-args: NODE_VERSION=${{ steps.node.outputs.version }}
+          # RELEASE_TAG and BUILD_ID are read by the web build, so they must
+          # match the publisher's build-args exactly or its web layer is rebuilt.
+          build-args: |
+            NODE_VERSION=${{ steps.node.outputs.version }}
+            RELEASE_TAG=${{ inputs.release_tag }}
+            BUILD_ID=${{ inputs.checkout_ref || 'dev' }}
           push: false
           load: true
           tags: ${{ env.IMAGE_NAME }}:test

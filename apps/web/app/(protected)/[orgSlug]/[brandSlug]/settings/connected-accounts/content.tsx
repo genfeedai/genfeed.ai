@@ -35,7 +35,9 @@ export default function BrandConnectedAccountsPage() {
   // instead of the connected-only list `useBrandDetail` exposes elsewhere.
   const connections = useMemo(() => buildSocialConnections(brand), [brand]);
 
-  if (!hasBrandId || isLoading) {
+  // Only the first read of the brand shows the spinner; a refetch keeps the
+  // table on screen.
+  if (!hasBrandId || (isLoading && !brand)) {
     return <Loading isFullSize={false} />;
   }
 

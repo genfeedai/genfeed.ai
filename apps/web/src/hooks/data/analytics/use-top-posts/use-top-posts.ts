@@ -6,9 +6,8 @@ import {
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useCallback, useMemo } from 'react';
 
 export interface TopPostData {
   postId: string;
@@ -35,8 +34,6 @@ export interface TopPostData {
 
 export interface UseTopPostsOptions {
   limit?: number;
-  initialCachedAt?: string | null;
-  initialData?: TopPostData[];
   metric?:
     | AnalyticsMetric.VIEWS
     | AnalyticsMetric.ENGAGEMENT
@@ -45,10 +42,28 @@ export interface UseTopPostsOptions {
   platform?: string;
   /** Restrict to posts captured by the browser extension. */
   source?: 'extension';
-  revalidateOnMount?: boolean;
 }
 
 const TOP_POSTS_CACHE_TTL_MS = 15 * 60 * 1000;
+
+const TOP_POSTS_CACHE =
+  typeof window !== 'undefined'
+    ? createLocalStorageCache<TopPostData[]>({ prefix: 'analytics:top-posts:' })
+    : null;
+
+const TOP_POSTS_CACHE_META =
+  typeof window !== 'undefined'
+    ? createLocalStorageCache<string>({ prefix: 'analytics:top-posts:meta:' })
+    : null;
+
+const NO_POSTS: TopPostData[] = [];
+
+/** One read. When the API fails, the last saved copy stands in for it. */
+interface TopPostsRead {
+  cachedAt: string | null;
+  isSavedCopy: boolean;
+  posts: TopPostData[];
+}
 
 export function useTopPosts(options: UseTopPostsOptions = {}) {
   const {
@@ -57,153 +72,87 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
     brandId,
     platform,
     source,
-    initialData,
-    initialCachedAt = null,
-    revalidateOnMount,
   } = options;
   const { dateRange, refreshTrigger } = useAnalyticsContext();
-
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
-  const [cachedAt, setCachedAt] = useState<string | null>(initialCachedAt);
-  const [isUsingCache, setIsUsingCache] = useState(false);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const { endDateKey, startDateKey } = useMemo(
     () => getDateRangeKeys(dateRange),
     [dateRange],
   );
+  const hasDates = Boolean(startDateKey && endDateKey);
 
-  const cacheKey = useMemo(
-    () =>
-      createCacheKey(
-        'top-posts',
-        limit,
-        metric,
-        brandId ?? 'all',
-        platform ?? 'all',
-        source ?? 'all',
-        startDateKey ?? 'none',
-        endDateKey ?? 'none',
-      ),
-    [limit, metric, brandId, platform, source, startDateKey, endDateKey],
+  const savedCopyKey = createCacheKey(
+    'top-posts',
+    limit,
+    metric,
+    brandId ?? 'all',
+    platform ?? 'all',
+    source ?? 'all',
+    startDateKey ?? 'none',
+    endDateKey ?? 'none',
   );
 
-  const topPostsCache = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    return createLocalStorageCache<TopPostData[]>({
-      prefix: 'analytics:top-posts:',
-    });
-  }, []);
-
-  const topPostsCacheMeta = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    return createLocalStorageCache<string>({
-      prefix: 'analytics:top-posts:meta:',
-    });
-  }, []);
-
-  const hydrationKey = JSON.stringify([cacheKey, refreshTrigger]);
-  const [hydration] = useState(() => ({
-    key: hydrationKey,
-    data: initialData,
-  }));
-  const hydratedData =
-    hydration.key === hydrationKey ? hydration.data : undefined;
-  const skipInitialFetch =
-    (revalidateOnMount ?? hydratedData == null) === false && !!hydratedData;
-
-  const { data, error, isLoading, refetch } = useQuery({
+  const query = useAuthedQuery({
+    enabled: hasDates,
+    queryFn: async (service: AnalyticsService): Promise<TopPostsRead> => {
+      try {
+        const posts =
+          ((await service.getTopContent({
+            endDate: endDateKey ?? undefined,
+            limit,
+            metric,
+            startDate: startDateKey ?? undefined,
+            ...(brandId && { brand: brandId }),
+            ...(platform && { platform }),
+            ...(source && { source }),
+          })) as TopPostData[]) || NO_POSTS;
+        TOP_POSTS_CACHE?.set(savedCopyKey, posts, TOP_POSTS_CACHE_TTL_MS);
+        TOP_POSTS_CACHE_META?.set(
+          savedCopyKey,
+          new Date().toISOString(),
+          TOP_POSTS_CACHE_TTL_MS,
+        );
+        return { cachedAt: null, isSavedCopy: false, posts };
+      } catch (fetchError) {
+        const saved = TOP_POSTS_CACHE?.get(savedCopyKey);
+        if (!saved || saved.length === 0) {
+          throw fetchError;
+        }
+        return {
+          cachedAt: TOP_POSTS_CACHE_META?.get(savedCopyKey) ?? null,
+          isSavedCopy: true,
+          posts: saved,
+        };
+      }
+    },
     queryKey: [
+      'analytics',
       'top-posts',
       startDateKey,
       endDateKey,
       limit,
       metric,
-      brandId,
-      platform,
-      source,
-      refreshTrigger,
+      brandId ?? null,
+      platform ?? null,
+      source ?? null,
     ],
-    queryFn: async () => {
-      if (!startDateKey || !endDateKey) {
-        return [];
-      }
-
-      try {
-        const service = await getAnalyticsService();
-        const fetchedData = (await service.getTopContent({
-          endDate: endDateKey,
-          limit,
-          metric,
-          startDate: startDateKey,
-          ...(brandId && { brand: brandId }),
-          ...(platform && { platform }),
-          ...(source && { source }),
-        })) as TopPostData[];
-
-        if (topPostsCache && topPostsCacheMeta) {
-          topPostsCache.set(
-            cacheKey,
-            fetchedData || [],
-            TOP_POSTS_CACHE_TTL_MS,
-          );
-          topPostsCacheMeta.set(
-            cacheKey,
-            new Date().toISOString(),
-            TOP_POSTS_CACHE_TTL_MS,
-          );
-        }
-
-        if (isMountedRef.current) {
-          setIsUsingCache(false);
-          setCachedAt(null);
-        }
-
-        return fetchedData || [];
-      } catch (fetchError) {
-        if (topPostsCache) {
-          const cached = topPostsCache.get(cacheKey);
-          if (cached && cached.length > 0) {
-            if (isMountedRef.current) {
-              setIsUsingCache(true);
-              setCachedAt(topPostsCacheMeta?.get(cacheKey) ?? null);
-            }
-            return cached;
-          }
-        }
-
-        throw fetchError;
-      }
-    },
-    enabled: Boolean(startDateKey && endDateKey),
-    initialData: hydratedData,
-    staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
   });
 
+  const { refetch } = query;
   const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    if (hasDates) {
+      await refetch();
+    }
+  }, [hasDates, refetch]);
 
   return {
-    cachedAt,
-    error,
-    isLoading,
-    isUsingCache,
+    cachedAt: query.data?.cachedAt ?? null,
+    error: query.error,
+    isLoading: query.isLoading,
+    isUsingCache: query.data?.isSavedCopy ?? false,
     refetch: refresh,
-    topPosts: data ?? [],
+    topPosts: query.data?.posts ?? NO_POSTS,
   };
 }

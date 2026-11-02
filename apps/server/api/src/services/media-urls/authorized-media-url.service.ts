@@ -454,6 +454,79 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
     return [...visible.values()];
   }
 
+  /**
+   * Anonymous profile access to brand identity. A public profile shows the
+   * brand's logo and banner, so those two asset kinds are signed for any
+   * visitor, but only when the owning brand is PUBLIC and not deleted. Every
+   * other asset (references, generated media) stays unreachable here, and an
+   * id that does not qualify resolves to a null URL like any withheld asset.
+   */
+  async projectPublicBrandAssets(
+    assetIds: readonly string[],
+  ): Promise<MediaAssetProjection[]> {
+    if (assetIds.length === 0) return [];
+    const requested = [...new Set(assetIds)].slice(0, 500);
+    const identities = await crossOrgUnsafe(() =>
+      // tenant-scope-ignore: anonymous public-profile discovery; the owning brand's PUBLIC scope below is the authorization.
+      this.prisma.asset.findMany({
+        select: {
+          id: true,
+          category: true,
+          cloudObjectKey: true,
+          parentBrandId: true,
+        },
+        where: {
+          id: { in: requested },
+          isDeleted: false,
+          parentType: AssetParent.BRAND,
+          category: { in: BRAND_IDENTITY_CATEGORIES },
+        },
+      }),
+    );
+    const brandIds = [
+      ...new Set(
+        identities
+          .map((asset) => asset.parentBrandId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const publicBrands =
+      brandIds.length === 0
+        ? []
+        : await crossOrgUnsafe(() =>
+            // tenant-scope-ignore: anonymous public-profile discovery; only PUBLIC, non-deleted brands qualify.
+            this.prisma.brand.findMany({
+              select: { id: true, organizationId: true },
+              where: {
+                id: { in: brandIds },
+                isDeleted: false,
+                scope: 'PUBLIC',
+              },
+            }),
+          );
+    const organizationByBrand = new Map(
+      publicBrands.map((brand) => [brand.id, brand.organizationId]),
+    );
+    const visible = new Map<string, MediaAssetProjection>(
+      requested.map((assetId) => [assetId, { assetId, url: null }]),
+    );
+    for (const asset of identities) {
+      const organizationId = asset.parentBrandId
+        ? organizationByBrand.get(asset.parentBrandId)
+        : undefined;
+      const key = trustedAssetKey(
+        asset.cloudObjectKey ||
+          `${BRAND_IDENTITY_FOLDERS[asset.category]}/${asset.id}`,
+      );
+      if (!organizationId || !key) continue;
+      visible.set(asset.id, {
+        assetId: asset.id,
+        url: this.safeAssetUrl(asset.id, organizationId, key),
+      });
+    }
+    return [...visible.values()];
+  }
+
   async readSources(
     organizationId: string,
     ingredientIds: readonly string[],

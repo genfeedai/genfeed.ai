@@ -2,23 +2,20 @@
 
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
-import { useMemo } from 'react';
-import {
-  getAccountConnectionStatus,
-  isSocialProfilePlatform,
-} from '@/features/brands/components/integrations/account-connection-status.util';
 import BrandDetailAccountSettingsCard from '@/features/brands/components/sidebar/BrandDetailAccountSettingsCard';
+import BrandDetailConnectedAccountsSection from '@/features/brands/components/sidebar/BrandDetailConnectedAccountsSection';
 import BrandDetailExternalLinksCard from '@/features/brands/components/sidebar/BrandDetailExternalLinksCard';
 import BrandDetailSocialMediaCard from '@/features/brands/components/sidebar/BrandDetailSocialMediaCard';
 
 /**
- * Public-profile column: visibility + social accounts + website links.
+ * Public-profile column: visibility + connected accounts + website links.
  *
- * - With `manageSocialHref`, one "Social & links" card: connected count + Manage
- *   (OAuth lives on /settings/connected-accounts) above the website links.
- * - Otherwise the full connect card, with a separate website-links card.
- * - Links are always the inline list + ModalBrandLink. No dedicated settings page —
- *   external URLs are simple CRUD, not an OAuth surface.
+ * - With `manageSocialHref`, a "Connected accounts" section lists the accounts
+ *   as rows with a Manage link (OAuth lives on /settings/connected-accounts).
+ * - Otherwise the full connect card owns the accounts.
+ * - Website links are always their own section: the inline list +
+ *   ModalBrandLink. No dedicated settings page — external URLs are simple
+ *   CRUD, not an OAuth surface.
  */
 export default function BrandDetailSidebar({
   brand,
@@ -32,34 +29,21 @@ export default function BrandDetailSidebar({
   onRefreshBrand,
 }: BrandDetailSidebarProps) {
   const isPublic = isPublicAssetScope(brand.scope);
-  const social = useMemo(() => {
-    if (!manageSocialHref) {
-      return undefined;
-    }
-
-    const connected = socialConnections.filter(
-      (connection) => getAccountConnectionStatus(connection) === 'connected',
-    );
-    const connectedSocialCount = connected.filter((connection) =>
-      isSocialProfilePlatform(connection.platform),
-    ).length;
-
-    return {
-      connectedAdAccountCount: connected.length - connectedSocialCount,
-      connectedSocialCount,
-      manageHref: manageSocialHref,
-    };
-  }, [manageSocialHref, socialConnections]);
 
   return (
-    <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
+    <div className="flex flex-col gap-6 lg:sticky lg:top-4 lg:self-start">
       <BrandDetailAccountSettingsCard
         isPublic={isPublic}
         isUpdating={isUpdatingPublicProfile}
         onToggle={onTogglePublicProfile}
       />
 
-      {manageSocialHref ? null : (
+      {manageSocialHref ? (
+        <BrandDetailConnectedAccountsSection
+          connections={socialConnections}
+          manageHref={manageSocialHref}
+        />
+      ) : (
         <BrandDetailSocialMediaCard
           brandId={brand.id}
           connections={socialConnections}
@@ -70,7 +54,6 @@ export default function BrandDetailSidebar({
 
       <BrandDetailExternalLinksCard
         links={links}
-        social={social}
         onOpenLinkModal={onOpenLinkModal}
       />
     </div>

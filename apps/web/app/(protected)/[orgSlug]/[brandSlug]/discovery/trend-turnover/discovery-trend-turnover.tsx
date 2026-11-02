@@ -6,7 +6,7 @@ import {
   ComponentSize,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import type {
@@ -36,7 +36,7 @@ import {
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
   loading: () => <Skeleton className="h-72 w-full" />,
@@ -59,47 +59,31 @@ function isTurnoverPeriod(value: number): value is TurnoverPeriod {
 
 export default function DiscoveryTrendTurnover() {
   const translate = useTranslations('pages.analytics.trendTurnover');
-  const getTrendsService = useAuthedService((token: string) =>
-    TrendsService.getInstance(token),
-  );
-
   const { href } = useOrgUrl();
 
   const [period, setPeriod] = useState<TurnoverPeriod>(30);
-  const [data, setData] = useState<TrendTurnoverResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      setHasError(false);
+  // Cached per period: coming back paints the numbers it already has while
+  // they refresh. A period it never loaded shows the skeletons, never another
+  // period's numbers.
+  const turnoverQuery = useAuthedQuery<TrendsService, TrendTurnoverResponse>({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getTrendsService();
-        const response = await service.getTurnoverStats(period);
-        if (controller.signal.aborted) {
-          return;
-        }
-        setData(response);
+        return await service.getTurnoverStats(period);
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to fetch trend turnover data', { error });
         }
-        setData(null);
-        setHasError(true);
-        logger.error('Failed to fetch trend turnover data', { error });
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
+        throw error;
       }
-    };
-
-    fetchData();
-    return () => controller.abort();
-  }, [getTrendsService, period]);
+    },
+    queryKey: ['trends', 'turnover', { period }],
+    service: (token: string) => TrendsService.getInstance(token),
+  });
+  const data = turnoverQuery.data;
+  const hasError = turnoverQuery.isError;
+  // Pending, not just fetching: until the first read lands the KPIs, chart
+  // and table are skeletons.
+  const isLoading = turnoverQuery.isPending && !hasError;
 
   const totals = data?.totals;
   const hasTurnoverData = Boolean(

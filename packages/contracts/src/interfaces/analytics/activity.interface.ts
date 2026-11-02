@@ -5,6 +5,8 @@ export interface IActivity extends IBaseEntity {
   user: IUser;
   userId?: string | null;
   organizationId?: string | null;
+  /** Organization name; only sent to superadmin callers. */
+  organizationLabel?: string;
   brandId?: string | null;
   entityId?: string | null;
   entityModel?: string | null;

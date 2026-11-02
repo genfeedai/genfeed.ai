@@ -202,6 +202,13 @@ export class WarmupPreparationService {
         actorUserId,
         {
           ...warmupDiagnostics(current).preparation,
+          appliedContextFields: [
+            ...new Set([
+              ...(warmupDiagnostics(current).preparation
+                ?.appliedContextFields ?? []),
+              ...result.appliedFields,
+            ]),
+          ],
           contextReviewedAt: new Date().toISOString(),
           contextReviewedBy: actorUserId,
         },

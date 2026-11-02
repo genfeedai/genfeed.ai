@@ -8,7 +8,7 @@ describe('PostsLayoutContext', () => {
     const { container } = render(
       <PostsLayoutContext.Provider
         value={{
-          setExportNode: vi.fn(),
+          setOverflowNode: vi.fn(),
           setFiltersNode: vi.fn(),
           setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),
@@ -27,7 +27,7 @@ describe('PostsLayoutContext', () => {
     const { container } = render(
       <PostsLayoutContext.Provider
         value={{
-          setExportNode: vi.fn(),
+          setOverflowNode: vi.fn(),
           setFiltersNode: vi.fn(),
           setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),
@@ -46,7 +46,7 @@ describe('PostsLayoutContext', () => {
     const { container } = render(
       <PostsLayoutContext.Provider
         value={{
-          setExportNode: vi.fn(),
+          setOverflowNode: vi.fn(),
           setFiltersNode: vi.fn(),
           setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),

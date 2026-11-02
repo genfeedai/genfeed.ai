@@ -6,6 +6,7 @@ import {
 } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IEntityStatsTotals } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import {
   formatCompactNumberIntl,
@@ -25,9 +26,11 @@ import {
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Avatar } from '@ui/primitives/avatar';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -56,6 +59,8 @@ export default function AnalyticsBrandsList({
   basePath = '/analytics',
   isBrandScoped = true,
 }: AnalyticsBrandsListProps) {
+  const kpiT = useTranslations('pages.analytics.brandsList.kpi');
+  const metricT = useTranslations('pages.analytics.metricLabels');
   const { isSignedIn } = useAuthIdentity();
   const scope = useCollectionScope();
   const scopedBrandId = isBrandScoped ? scope.brandId : undefined;
@@ -71,7 +76,10 @@ export default function AnalyticsBrandsList({
   );
 
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [totals, setTotals] = useState<IEntityStatsTotals | null>(null);
+  const [totalBrands, setTotalBrands] = useState(0);
+  // Starts loading so the first paint is a skeleton, not an empty table and zeros.
+  const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const searchTerm = filters.query ?? '';
   // The API searches, so a keystroke must not cost a request.
@@ -146,6 +154,8 @@ export default function AnalyticsBrandsList({
         }
 
         setBrandsData(response.data);
+        setTotals(response.totals);
+        setTotalBrands(response.pagination?.total ?? response.data.length);
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to fetch brand analytics list', error);
@@ -212,6 +222,34 @@ export default function AnalyticsBrandsList({
 
   return (
     <>
+      <KPISection
+        size="sm"
+        gridCols={{ desktop: 4, mobile: 1 }}
+        isLoading={isLoading && !totals}
+        items={[
+          {
+            label: kpiT('brands'),
+            value: formatCompactNumberIntl(totalBrands),
+          },
+          {
+            analyticsMetric: 'posts',
+            label: metricT('posts'),
+            value: formatCompactNumberIntl(totals?.totalPosts ?? 0),
+          },
+          {
+            analyticsMetric: 'views',
+            label: metricT('views'),
+            value: formatCompactNumberIntl(totals?.totalViews ?? 0),
+          },
+          {
+            analyticsMetric: 'engagement',
+            label: metricT('engagement'),
+            trend: totals?.growth,
+            trendLabel: kpiT('vsLastPeriod'),
+            value: formatCompactNumberIntl(totals?.totalEngagement ?? 0),
+          },
+        ]}
+      />
       <Table
         ariaLabel="Brands"
         items={brandsData}
@@ -238,10 +276,9 @@ export default function AnalyticsBrandsList({
             key: 'name',
             render: (brand) => (
               <div className="flex items-center gap-3">
-                <Avatar
+                <BrandAvatar
                   alt={brand.name}
                   name={brand.name}
-                  shape="square"
                   size="lg"
                   src={brand.logo}
                 />

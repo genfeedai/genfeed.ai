@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { HeyGenSpeechVoice } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.organizationId }),
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -40,7 +48,9 @@ describe('useHeyGenSpeechVoices', () => {
   });
 
   it('loads the speech voices and the personal-connection flag', async () => {
-    const { result } = renderHook(() => useHeyGenSpeechVoices());
+    const { result } = renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
     expect(result.current.voices).toEqual([voice]);
@@ -49,9 +59,52 @@ describe('useHeyGenSpeechVoices', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('is loading, not loaded, on the first render of a first visit', () => {
+    const firstRender: { isLoaded: boolean; isLoading: boolean }[] = [];
+
+    renderHook(
+      () => {
+        const state = useHeyGenSpeechVoices();
+        firstRender.push({
+          isLoaded: state.isLoaded,
+          isLoading: state.isLoading,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper() },
+    );
+
+    expect(firstRender[0]).toEqual({ isLoaded: false, isLoading: true });
+  });
+
+  it('paints the cached voices on a return visit without a loading state', async () => {
+    const client = createTestQueryClient();
+    const first = renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() => expect(first.result.current.isLoaded).toBe(true));
+    first.unmount();
+
+    const firstRender: {
+      isLoading: boolean;
+      voices: readonly HeyGenSpeechVoice[];
+    }[] = [];
+    renderHook(
+      () => {
+        const state = useHeyGenSpeechVoices();
+        firstRender.push({ isLoading: state.isLoading, voices: state.voices });
+        return state;
+      },
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(firstRender[0]).toEqual({ isLoading: false, voices: [voice] });
+  });
+
   it('does not fetch while disabled', () => {
-    const { result } = renderHook(() =>
-      useHeyGenSpeechVoices({ isEnabled: false }),
+    const { result } = renderHook(
+      () => useHeyGenSpeechVoices({ isEnabled: false }),
+      { wrapper: queryClientWrapper() },
     );
 
     expect(mocks.getService).not.toHaveBeenCalled();
@@ -62,14 +115,18 @@ describe('useHeyGenSpeechVoices', () => {
 
   it('does not fetch without an organization', () => {
     mocks.organizationId = undefined;
-    renderHook(() => useHeyGenSpeechVoices());
+    renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(),
+    });
 
     expect(mocks.getService).not.toHaveBeenCalled();
   });
 
   it('degrades to an empty, not-loaded catalog on failure and recovers on retry', async () => {
     mocks.fetchSpeechVoices.mockRejectedValueOnce(new Error('outage'));
-    const { result } = renderHook(() => useHeyGenSpeechVoices());
+    const { result } = renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(),
+    });
 
     await waitFor(() => expect(result.current.error).toContain('HeyGen Voice'));
     expect(result.current.isLoaded).toBe(false);
@@ -82,7 +139,9 @@ describe('useHeyGenSpeechVoices', () => {
   });
 
   it('hides the previous organization catalog while the next one loads', async () => {
-    const { result, rerender } = renderHook(() => useHeyGenSpeechVoices());
+    const { result, rerender } = renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
     mocks.fetchSpeechVoices.mockReturnValueOnce(new Promise(() => {}));
@@ -98,7 +157,9 @@ describe('useHeyGenSpeechVoices', () => {
 
   it('aborts a pending request on unmount', async () => {
     mocks.fetchSpeechVoices.mockReturnValue(new Promise(() => {}));
-    const { unmount } = renderHook(() => useHeyGenSpeechVoices());
+    const { unmount } = renderHook(() => useHeyGenSpeechVoices(), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(mocks.fetchSpeechVoices).toHaveBeenCalledOnce());
     const signal = mocks.fetchSpeechVoices.mock.calls[0][0] as AbortSignal;
 

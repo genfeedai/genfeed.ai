@@ -61,3 +61,46 @@ describe('PrivacyContent Google user data disclosure', () => {
     );
   });
 });
+
+describe('PrivacyContent Meta and TikTok disclosures', () => {
+  it('describes Instagram Direct message handling and links the Meta policy', () => {
+    render(<PrivacyContent />);
+
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'Facebook and Instagram Data',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/the Instagram Direct conversations of that account/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Meta Privacy Policy' }),
+    ).toHaveAttribute('href', 'https://www.facebook.com/privacy/policy/');
+  });
+
+  it('states that TikTok direct messages are not read', () => {
+    render(<PrivacyContent />);
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'TikTok Data' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/We do not read or send TikTok direct messages/),
+    ).toBeInTheDocument();
+  });
+
+  it('gives data deletion instructions at a linkable anchor', () => {
+    render(<PrivacyContent />);
+
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Deleting Data from Connected Platforms',
+    });
+    expect(heading.parentElement).toHaveAttribute('id', 'data-deletion');
+    expect(screen.getAllByText(/privacy@genfeed\.ai/).length).toBeGreaterThan(
+      0,
+    );
+  });
+});

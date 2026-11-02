@@ -21,7 +21,6 @@ describe('TrendVideoService', () => {
     getTikTokSounds: vi.fn(),
     getTikTokVideos: vi.fn(),
     getTrendingHashtags: vi.fn(),
-    getYouTubeVideos: vi.fn(),
   };
 
   const mockYoutubeService = {
@@ -322,7 +321,6 @@ describe('TrendVideoService', () => {
       ).resolves.toBe(1);
 
       expect(mockYoutubeService.getTrends).toHaveBeenCalledWith('US', 12);
-      expect(mockApifyService.getYouTubeVideos).not.toHaveBeenCalled();
       expect(mockPrisma.trendingVideo.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           data: expect.objectContaining({
@@ -538,10 +536,13 @@ describe('TrendVideoService', () => {
       expect(mockPrisma.trendingSound.create).toHaveBeenCalledTimes(1);
     });
   });
-  it.each(['native_available', 'fallback_empty', 'fallback_failed'] as const)(
-    'records completed video dataset outcome %s',
-    async (outcome) => {
-      if (outcome === 'native_available')
+  it.each([
+    { native: 'available', outcome: 'native_available', isSuccess: true },
+    { native: 'failed', outcome: 'native_failed', isSuccess: false },
+  ] as const)(
+    'records completed YouTube video dataset outcome $outcome',
+    async ({ native, outcome, isSuccess }) => {
+      if (native === 'available')
         mockYoutubeService.getTrends.mockResolvedValue([
           {
             id: 'video-1',
@@ -555,11 +556,6 @@ describe('TrendVideoService', () => {
         mockYoutubeService.getTrends.mockRejectedValue(
           new Error('native secret'),
         );
-      if (outcome === 'fallback_failed')
-        mockApifyService.getYouTubeVideos.mockRejectedValue(
-          new Error('fallback secret'),
-        );
-      else mockApifyService.getYouTubeVideos.mockResolvedValue([]);
       await service.fetchAndCacheViralVideos('youtube');
       expect(refreshHealth.record).toHaveBeenCalledWith(null, [
         expect.objectContaining({
@@ -569,6 +565,8 @@ describe('TrendVideoService', () => {
           lastAttemptAt: expect.any(String),
         }),
       ]);
+      const receipt = refreshHealth.record.mock.calls.at(-1)?.[1][0];
+      expect(receipt.lastSuccessfulRefreshAt !== null).toBe(isSuccess);
     },
   );
 

@@ -61,6 +61,41 @@ export class ActivitiesService extends BaseService<
     };
   }
 
+  /**
+   * Attaches `organizationLabel` to a page of activities with one read-only
+   * lookup by id. Organization is not a tenant-scoped model, so this adds no
+   * scope bypass; callers gate it to superadmins, the only audience that sees
+   * rows from other organizations.
+   */
+  async attachOrganizationLabels(
+    activities: ActivityDocument[],
+  ): Promise<ActivityDocument[]> {
+    const ids = [
+      ...new Set(
+        activities
+          .map((activity) => activity.organizationId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (!ids.length) return activities;
+    const organizations = await this.prisma.organization.findMany({
+      select: { id: true, label: true },
+      where: { id: { in: ids } },
+    });
+    const labelById = new Map(
+      organizations.map((organization) => [
+        organization.id,
+        organization.label,
+      ]),
+    );
+    return activities.map((activity) => {
+      const organizationLabel = activity.organizationId
+        ? labelById.get(activity.organizationId)
+        : undefined;
+      return organizationLabel ? { ...activity, organizationLabel } : activity;
+    });
+  }
+
   async hydrateGenerationActivities(
     activities: ActivityDocument[],
   ): Promise<ActivityDocument[]> {

@@ -11,9 +11,10 @@ import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
  * - The breadcrumb is the page title, so the title is screen-reader only and
  *   no header is drawn inside the content.
  * - Filters live in the subbar, never in the content.
- * - Controls keep one order: refresh, download, then {@link SubbarControls}
- *   (dropdowns, Filters menu, views, primary CTA). Search is the persistent
- *   search field on the left, with the page's Filters menu inside it.
+ * - Controls keep one order: the "..." menu, refresh, then
+ *   {@link SubbarControls} (dropdowns, Filters menu, views, primary CTA).
+ *   Search is the persistent search field on the left, with the page's
+ *   Filters menu inside it.
  */
 export default function AdminPageShell({
   title,
@@ -23,7 +24,7 @@ export default function AdminPageShell({
   tabs,
   onRefresh,
   isRefreshing = false,
-  download,
+  overflow,
   dropdowns,
   views,
   primaryAction,
@@ -49,7 +50,7 @@ export default function AdminPageShell({
           <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
         ) : undefined
       }
-      iconActions={download}
+      overflow={overflow}
       right={
         hasRight ? (
           <SubbarControls

@@ -1,7 +1,9 @@
 import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { InstagramWebhookController } from '@api/collections/social-inbox/controllers/instagram-webhook.controller';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { SuggestedReplyCreditsGuard } from '@api/collections/social-inbox/guards/suggested-reply-credits.guard';
+import { InstagramWebhookService } from '@api/collections/social-inbox/services/instagram-webhook.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
@@ -24,7 +26,11 @@ import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [SocialInboxController, SocialReplyCampaignController],
+  controllers: [
+    InstagramWebhookController,
+    SocialInboxController,
+    SocialReplyCampaignController,
+  ],
   exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
     PlatformSettingsModule,
@@ -39,6 +45,7 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
   ],
   providers: [
+    InstagramWebhookService,
     SocialInboxSuggestedReplyService,
     SuggestedReplyCreditsGuard,
     SocialInboxActionService,

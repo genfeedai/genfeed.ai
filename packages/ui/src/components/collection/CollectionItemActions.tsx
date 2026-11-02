@@ -22,7 +22,10 @@ import { useTranslations } from 'next-intl';
  * A destination renders as a real link inside the menu item, so the browser
  * keeps its link affordances; a command runs `onSelect` in place.
  */
-function OverflowItem({ action, className }: CollectionOverflowItemProps) {
+export function OverflowItem({
+  action,
+  className,
+}: CollectionOverflowItemProps) {
   // A disabled destination renders no link at all: Radix blocks selection on
   // a disabled item, but a delivered click on an anchor would still navigate.
   if (action.href !== undefined && !action.isDisabled) {

@@ -35,7 +35,7 @@ describe('Studio app menus (#5502)', () => {
   it('resolves nested Studio routes to their app and nothing else', () => {
     expect(getStudioAppForPath('/clipper/project-1')).toBe('clipper');
     expect(getStudioAppForPath('/editor/new')).toBe('editor');
-    expect(getStudioAppForPath('/turbo/new')).toBe('turbo');
+    expect(getStudioAppForPath('/turbo/project-1')).toBe('turbo');
     expect(getStudioAppForPath('/storyboard/run-1')).toBe('storyboard');
     expect(getStudioAppForPath('/studio')).toBeUndefined();
     expect(getStudioAppForPath('/playgrounds')).toBeUndefined();

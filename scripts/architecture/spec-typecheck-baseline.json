@@ -7033,14 +7033,6 @@
       "workspace": "web"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/web/src/components/modals/trainings/ModalTraining.test.tsx",
-      "fingerprint": "777c541a6610c7a88edc",
-      "message": "Conversion of type '{ current: null; }' to type 'RefObject<HTMLFormElement>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'current' are incompatible.     Type 'null' is not comparable to type 'HTMLFormElement'.",
-      "workspace": "web"
-    },
-    {
       "code": 2559,
       "count": 1,
       "file": "apps/web/src/components/modals/trainings/ModalTrainingNew.test.tsx",
@@ -7229,14 +7221,6 @@
       "count": 1,
       "file": "apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
       "fingerprint": "2767e8ebeba216b0e2d2",
-      "message": "Argument of type 'HTMLElement | null' is not assignable to parameter of type 'Element'.   Type 'null' is not assignable to type 'Element'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
-      "fingerprint": "e44a1fadd759a95d80d9",
       "message": "Argument of type 'HTMLElement | null' is not assignable to parameter of type 'Element'.   Type 'null' is not assignable to type 'Element'.",
       "workspace": "web"
     },
@@ -7934,14 +7918,6 @@
       "file": "apps/web/src/hooks/commands/use-default-commands-registration/use-default-commands-registration.test.ts",
       "fingerprint": "40f453025b9dd035ebc4",
       "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/web/src/hooks/data/analytics/use-leaderboards/use-leaderboards.test.ts",
-      "fingerprint": "8e48cbd989bd1115331e",
-      "message": "Type '{ id: string; name: string; totalViews: number; }' is missing the following properties from type 'IBrandWithStats': organizationId, organizationName, totalPosts, totalEngagement, and 3 more.",
       "workspace": "web"
     },
     {

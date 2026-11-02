@@ -85,6 +85,8 @@ export interface OnboardingImageBrief {
 
 /** Which first-run media a retry has to generate again. */
 export interface OnboardingMissingMedia {
+  /** Some platform images are missing; the master image is not. */
+  campaign: boolean;
+  /** The master campaign image is missing. */
   image: boolean;
-  video: boolean;
 }

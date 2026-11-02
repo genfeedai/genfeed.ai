@@ -135,8 +135,7 @@ const defaultTag = {
 } as ITag;
 
 function open() {
-  render(<LibraryTagManagerDialog />);
-  fireEvent.click(screen.getByRole('button', { name: 'Manage tags' }));
+  render(<LibraryTagManagerDialog isOpen onOpenChange={vi.fn()} />);
 }
 
 describe('LibraryTagManagerDialog', () => {

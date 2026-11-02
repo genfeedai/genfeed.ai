@@ -8,13 +8,8 @@ import {
   Platform,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type {
-  IBrandWithStats,
-  IOrgLeaderboardItem,
-} from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Button } from '@ui/primitives/button';
@@ -27,8 +22,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import AnalyticsTopAccounts from '@/features/analytics/accounts/analytics-top-accounts';
-import type { TopPostData } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
-import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
@@ -38,12 +31,6 @@ import { useAnalyticsOverview } from './use-analytics-overview';
 export interface AnalyticsOverviewProps {
   scope?: PageScope;
   basePath?: string;
-  analytics?: Partial<IAnalytics>;
-  brandsLeaderboard?: IBrandWithStats[];
-  cachedAt?: string;
-  orgsLeaderboard?: IOrgLeaderboardItem[];
-  timeseriesData?: PlatformTimeSeriesDataPoint[];
-  topPosts?: TopPostData[];
 }
 
 const PlatformTimeSeriesChart = dynamic(
@@ -68,12 +55,6 @@ const AnalyticsAgentDashboard = dynamic(
 export default function AnalyticsOverview({
   scope = PageScope.ORGANIZATION,
   basePath = '/analytics',
-  analytics: initialAnalytics,
-  brandsLeaderboard: initialBrandsLeaderboard,
-  cachedAt: initialCachedAt = '',
-  orgsLeaderboard: initialOrgsLeaderboard,
-  timeseriesData: initialTimeseriesData,
-  topPosts: initialTopPosts,
 }: AnalyticsOverviewProps) {
   const translate = useTranslations('pages.analytics.overview');
   const router = useRouter();
@@ -112,15 +93,7 @@ export default function AnalyticsOverview({
     topPosts,
     updateLocalUser,
     getLocalSnapshot,
-  } = useAnalyticsOverview({
-    analytics: initialAnalytics,
-    brandsLeaderboard: initialBrandsLeaderboard,
-    cachedAt: initialCachedAt,
-    orgsLeaderboard: initialOrgsLeaderboard,
-    scope,
-    timeseriesData: initialTimeseriesData,
-    topPosts: initialTopPosts,
-  });
+  } = useAnalyticsOverview({ scope });
 
   const isEmptyOverview =
     scope !== PageScope.SUPERADMIN && dashboardState === 'empty';

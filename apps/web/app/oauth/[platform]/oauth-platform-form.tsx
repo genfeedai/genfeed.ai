@@ -12,7 +12,7 @@ import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { CircleX } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
@@ -28,6 +28,7 @@ import {
 } from '@/hooks/auth/use-platform-oauth-connect/oauth-connect-context';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@/hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
+import { navigateToReturnPath } from './oauth-return-navigation';
 import {
   isHttpsAuthorizationUrl,
   resolveOAuthPlatformVerifyFailure,
@@ -49,7 +50,6 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const oauthVerifier = searchParams.get('oauth_verifier');
   const returnToParam = searchParams.get('return_to');
   const state = searchParams.get('state');
-  const { push } = useRouter();
   const { isLoaded, isSignedIn } = useAuthIdentity();
   const [result, setResult] = useState<VerifyResult>(INITIAL_STATE);
   const hasVerified = useRef(false);
@@ -92,12 +92,12 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     const returnTo = resolveReturnTo();
     clearStoredReturnTo();
     clearOAuthConnectContext();
-    push(returnTo);
-  }, [clearStoredReturnTo, push, resolveReturnTo]);
+    navigateToReturnPath(returnTo);
+  }, [clearStoredReturnTo, resolveReturnTo]);
 
   const completeSuccess = useCallback(() => {
     // Resolve before clearing: providers drop query params on redirect, so
-    // the stored path is the only return channel, and the delayed push below
+    // the stored path is the only return channel, and the delayed navigation below
     // reads it after this frame. Clearing first always fell back to default.
     const returnTo = resolveReturnTo();
     setResult({ status: 'success' });
@@ -109,9 +109,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     clearClientProtectedBootstrapCache();
 
     setTimeout(() => {
-      push(returnTo);
+      navigateToReturnPath(returnTo);
     }, REDIRECT_DELAY_MS);
-  }, [clearStoredReturnTo, push, resolveReturnTo]);
+  }, [clearStoredReturnTo, resolveReturnTo]);
 
   const verify = useCallback(
     async (forceRefresh = false) => {
@@ -217,7 +217,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     if (!context) {
       const returnTo = resolveReturnTo();
       clearStoredReturnTo();
-      push(returnTo);
+      navigateToReturnPath(returnTo);
       return;
     }
 
@@ -264,7 +264,6 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     clearStoredReturnTo,
     getServicesService,
     platform,
-    push,
     resolveReturnTo,
     translate,
   ]);

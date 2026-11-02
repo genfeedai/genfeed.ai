@@ -20,7 +20,7 @@ import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
 const NOOP = () => {};
 
-function IngredientsMediaGridSkeleton() {
+export function IngredientsMediaGridSkeleton() {
   return (
     <OrderedMasonry>
       {Array.from({ length: 12 }).map((_, index) => (

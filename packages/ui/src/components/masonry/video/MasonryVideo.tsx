@@ -11,6 +11,7 @@ import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import MasonrySelectionToggle from '@ui/masonry/shared/MasonrySelectionToggle';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
+import { SELECTED_CARD_CLASS } from '@ui/styles/selected-card';
 import MasonryVideoActionsBar from './MasonryVideoActionsBar';
 import MasonryVideoMediaArea from './MasonryVideoMediaArea';
 import { useMasonryVideo } from './useMasonryVideo';
@@ -131,12 +132,13 @@ function MasonryVideoTile({
       onMouseEnter={() => !isInteractionBlocked && handleMouseHover(true)}
       onMouseLeave={(e) => !isInteractionBlocked && handleMouseHover(false, e)}
       data-masonry-item="true"
+      data-motion={isSelected ? 'allow' : undefined}
       data-ingredient-id={video.id}
       data-state={isHovered ? 'hovered' : 'idle'}
       className={cn(
         'relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
-        isSelected && 'ring-2 ring-primary',
+        isSelected && SELECTED_CARD_CLASS,
         isFleetNsfwLocked && 'cursor-not-allowed',
         isFormatCompatible ? '' : 'opacity-50',
       )}

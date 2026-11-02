@@ -10,23 +10,18 @@ import {
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableAction } from '@props/ui/display/table.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
+import TableGroupHeading from '@ui/display/table/TableGroupHeading';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import {
-  ArrowUpRight,
-  ClipboardList,
-  ExternalLink,
-  Mail,
-  MailOpen,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, ClipboardList, ExternalLink, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -38,12 +33,16 @@ import { useActivities } from '@/hooks/data/activities/use-activities/use-activi
 import { useIngredientSidebar } from '@/hooks/ui/ingredient/use-ingredient-sidebar/use-ingredient-sidebar';
 
 import {
-  getActivityCreditsChange,
+  formatActivityClock,
+  formatActivityDayHeading,
+  getActivityCreditsDelta,
+  getActivityDayKey,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
   getActivityIngredientPreviewUrl,
   getActivityLifecycleText,
+  getActivityRunDuration,
   getActivityStatus,
   getBackgroundTaskStatus,
   getResultTypeFromActivityKey,
@@ -120,37 +119,57 @@ export default function ActivitiesList({
   const columns = useMemo(
     () => [
       {
-        className: 'w-16',
+        className: 'w-8 pr-0',
         header: '',
-        key: 'thumbnail',
-        render: (a: IActivity) => {
-          const parsed = parseActivityValue(a.value);
-          const bgTask = isBackgroundTask(a);
-          const status = getBackgroundTaskStatus(a.key);
-          const resultType =
-            (parsed?.resultType as IngredientCategory) ||
-            getResultTypeFromActivityKey(a.key);
-          const resultId = parsed?.resultId as string | undefined;
-          const parsedMediaUrl =
-            typeof parsed?.mediaUrl === 'string' ? parsed.mediaUrl : undefined;
-
-          return (
-            <ActivityThumbnailCell
-              activity={a}
-              isBackgroundTask={bgTask}
-              status={status}
-              resultType={resultType}
-              parsedMediaUrl={parsedMediaUrl}
-              resultId={resultId}
-              getPreviewUrl={getPreviewUrl}
-              onViewIngredient={handleViewIngredient}
-            />
-          );
-        },
+        key: 'unread',
+        sortable: false,
+        // Same unread dot as the notification inbox: it is the mark-as-read
+        // button, and read rows show nothing.
+        render: (a: IActivity) =>
+          a.isRead ? null : (
+            // ui-guard-allow:table-action -- unread dot is the row's mark-as-read control, matching the notification inbox
+            <Button
+              ariaLabel={translate('markRead')}
+              onClick={() => toggleActivityRead(a.id)}
+              size={ButtonSize.ICON}
+              title={translate('markRead')}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              <span className="size-1.5 rounded-full bg-info">
+                <span className="sr-only">{translate('unread')}</span>
+              </span>
+            </Button>
+          ),
       },
       {
-        header: 'Description',
+        header: translate('columnWhen'),
+        key: 'when',
+        sortable: false,
+        className: 'w-44',
+        render: (a: IActivity) => formatActivityClock(a.createdAt),
+        subtext: (a: IActivity) => {
+          const relative = a.createdAt ? getRelativeTime(a.createdAt) : '';
+          const duration = getActivityRunDuration(a);
+          return [duration ? `ran ${duration}` : null, relative]
+            .filter(Boolean)
+            .join(' · ');
+        },
+      },
+      ...(isAdminScope
+        ? [
+            {
+              header: translate('columnOrganization'),
+              key: 'organization',
+              sortable: false,
+              render: (a: IActivity) => a.organizationLabel ?? '—',
+            },
+          ]
+        : []),
+      {
+        header: translate('columnDescription'),
         key: 'label',
+        sortable: false,
         render: (a: IActivity) => {
           const description = getActivityDescription(
             a,
@@ -159,7 +178,7 @@ export default function ActivitiesList({
           const destination = getActivityHref(a);
           // The name opens the destination; a click anywhere else on the row
           // opens the sidebar.
-          return destination ? (
+          const title = destination ? (
             <Link
               aria-label={description}
               className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -170,6 +189,30 @@ export default function ActivitiesList({
           ) : (
             description
           );
+          const parsed = parseActivityValue(a.value);
+          const resultId = parsed?.resultId as string | undefined;
+          return (
+            <span className="flex items-center gap-3">
+              <ActivityThumbnailCell
+                activity={a}
+                getPreviewUrl={getPreviewUrl}
+                onViewIngredient={handleViewIngredient}
+                parsedMediaUrl={
+                  typeof parsed?.mediaUrl === 'string'
+                    ? parsed.mediaUrl
+                    : undefined
+                }
+                resultId={resultId}
+                resultType={
+                  (parsed?.resultType as IngredientCategory) ||
+                  getResultTypeFromActivityKey(a.key)
+                }
+                status={getBackgroundTaskStatus(a.key)}
+                isBackgroundTask={isBackgroundTask(a)}
+              />
+              <span>{title}</span>
+            </span>
+          );
         },
         subtext: (a: IActivity) =>
           [getActivityLifecycleText(a), getActivityDetailText(a)]
@@ -177,8 +220,9 @@ export default function ActivitiesList({
             .join(' · '),
       },
       {
-        header: 'Status',
+        header: translate('columnStatus'),
         key: 'status',
+        sortable: false,
         render: (a: IActivity) => {
           const status = getActivityStatus(a);
           return <ActivityStatusCell status={status} />;
@@ -186,19 +230,24 @@ export default function ActivitiesList({
       },
       {
         className: 'w-24',
-        header: 'Credits',
+        header: translate('columnCredits'),
         key: 'cost',
-        render: (a: IActivity) => {
-          const change = getActivityCreditsChange(a);
-          return (
-            <span className="text-sm text-foreground/70">
-              {change ? activityMessageFormatter(change) : '—'}
-            </span>
-          );
-        },
+        sortable: false,
+        render: (a: IActivity) => (
+          <span className="text-sm text-foreground/70">
+            {getActivityCreditsDelta(a) ?? '—'}
+          </span>
+        ),
       },
     ],
-    [activityMessageFormatter, getActivityHref, handleViewIngredient],
+    [
+      activityMessageFormatter,
+      getActivityHref,
+      handleViewIngredient,
+      isAdminScope,
+      toggleActivityRead,
+      translate,
+    ],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -238,20 +287,8 @@ export default function ActivitiesList({
                 `Open ${getActivityDescription(a, activityMessageFormatter)}`,
             },
           ]),
-      {
-        getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
-        icon: (a: IActivity) =>
-          a.isRead ? (
-            <MailOpen className="size-4 text-foreground/50" />
-          ) : (
-            <Mail className="size-4 text-info" />
-          ),
-        onClick: (a: IActivity) => toggleActivityRead(a.id),
-        tooltip: (a: IActivity) =>
-          a.isRead ? 'Mark as unread' : 'Mark as read',
-      },
     ],
-    [activityMessageFormatter, href, isAdminScope, toggleActivityRead],
+    [activityMessageFormatter, href, isAdminScope],
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {
@@ -290,7 +327,6 @@ export default function ActivitiesList({
       render: (activity: IActivity) => (
         <ActivityDetailPanel
           activity={activity}
-          activityMessageFormatter={activityMessageFormatter}
           onToggleRead={toggleActivityRead}
           openHref={getActivityHref(activity)}
         />
@@ -300,6 +336,17 @@ export default function ActivitiesList({
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
+  const getGroupHeading = useCallback((a: IActivity) => {
+    const dayKey = getActivityDayKey(a.createdAt);
+    return {
+      content: (
+        <TableGroupHeading>
+          {formatActivityDayHeading(dayKey)}
+        </TableGroupHeading>
+      ),
+      key: dayKey,
+    };
+  }, []);
   const getItemId = useCallback((a: IActivity) => a.id, []);
   const getRowClassName = useCallback(
     (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
@@ -361,7 +408,7 @@ export default function ActivitiesList({
         error={
           isError
             ? {
-                title: 'Failed to load activities',
+                title: translate('loadError'),
                 onRetry: () => refresh(),
               }
             : undefined
@@ -372,7 +419,8 @@ export default function ActivitiesList({
         actions={actions}
         getRowKey={getRowKey}
         getRowClassName={getRowClassName}
-        emptyLabel="No activity yet"
+        getGroupHeading={getGroupHeading}
+        emptyLabel={translate('empty')}
         selectable={true}
         selectedIds={selectedActivityIds}
         onSelectionChange={setSelectedActivityIds}

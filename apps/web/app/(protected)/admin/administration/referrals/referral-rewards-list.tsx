@@ -3,12 +3,10 @@
 import { ReferralRewardStatus } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IReferralAdminReward } from '@genfeedai/contracts/interfaces';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { logger } from '@services/core/logger.service';
-import { useQuery } from '@tanstack/react-query';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
@@ -20,7 +18,6 @@ import { Button } from '@ui/primitives/button';
 import { Gift, TriangleAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
@@ -50,44 +47,42 @@ function compactId(value: string | null): string {
   return value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-6)}` : value;
 }
 
+const EMPTY_REWARDS: IReferralAdminReward[] = [];
+
 export default function ReferralRewardsList() {
   const translate = useTranslations('common.referrals');
   const referralT = useTranslations('ui.rowSidebar.referral');
-  const { orgId, sessionId, userId } = useAuthIdentity();
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
   const { sort, sortKey, sortDirection, onSortChange } = useTableSort({
     allowedKeys: REFERRAL_REWARD_SORT_KEYS,
   });
-  const getReferralsService = useAuthedService((token: string) =>
-    ReferralsService.getInstance(token),
-  );
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
-    enabled: Boolean(userId),
+  // Cached per page; the footer shows the cached page's own totals.
+  const rewardsQuery = usePagedAuthedQuery({
+    queryFn: async (service, signal) => {
+      try {
+        return await service.getAdminRewards({
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+          ...(search ? { search } : {}),
+          ...(sort ? { sort } : {}),
+        });
+      } catch (error) {
+        if (!signal.aborted) {
+          logger.error('GET /referrals/admin/rewards failed', error);
+        }
+        throw error;
+      }
+    },
     queryKey: [
-      'admin-referral-rewards',
-      userId,
-      sessionId,
-      orgId,
-      currentPage,
-      search,
-      sort,
+      'admin',
+      'referral-rewards',
+      { page: currentPage, search, sort },
     ],
-    queryFn: async () =>
-      (await getReferralsService()).getAdminRewards({
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-      }),
+    service: (token: string) => ReferralsService.getInstance(token),
   });
-
-  useEffect(() => {
-    if (error) {
-      logger.error('GET /referrals/admin/rewards failed', error);
-    }
-  }, [error]);
+  const { data, error, isFetching, isLoading, refetch } = rewardsQuery;
 
   const columns: TableColumn<IReferralAdminReward>[] = [
     {
@@ -238,7 +233,7 @@ export default function ReferralRewardsList() {
         </Alert>
       ) : (
         <AppTable<IReferralAdminReward>
-          items={data ?? []}
+          items={data?.items ?? EMPTY_REWARDS}
           isLoading={isLoading}
           columns={columns}
           onSortChange={onSortChange}
@@ -251,7 +246,11 @@ export default function ReferralRewardsList() {
       )}
       {error ? null : (
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="rewards" />
+          <AutoPagination
+            showTotal
+            totalLabel="rewards"
+            totals={data?.totals}
+          />
         </div>
       )}
     </AdminPageShell>

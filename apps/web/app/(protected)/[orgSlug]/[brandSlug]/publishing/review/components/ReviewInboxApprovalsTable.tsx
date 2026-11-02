@@ -5,9 +5,9 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
-import { Avatar } from '@ui/primitives/avatar';
 import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -52,10 +52,9 @@ export default function ReviewInboxApprovalsTable({
         render: (item) =>
           item.brandLabel ? (
             <span className="flex min-w-0 items-center gap-2">
-              <Avatar
+              <BrandAvatar
                 alt={item.brandLabel}
                 name={item.brandLabel}
-                shape="square"
                 size="sm"
                 src={item.brandLogoUrl}
               />

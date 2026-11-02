@@ -5,8 +5,8 @@ import type { IAvatar } from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { isAvatarSourceImageIngredient } from '@genfeedai/utils/media/ingredient-type.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCallback, useEffect, useState } from 'react';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
+import { useCallback } from 'react';
 
 interface UseAvatarImagesResult {
   avatars: IAvatar[];
@@ -14,56 +14,54 @@ interface UseAvatarImagesResult {
   refresh: () => Promise<void>;
 }
 
+const EMPTY_AVATARS: IAvatar[] = [];
+
 export function useAvatarImages(
   organizationId?: string,
 ): UseAvatarImagesResult {
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
-  const [avatars, setAvatars] = useState<IAvatar[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const refresh = useCallback(async () => {
-    if (!organizationId) {
-      setAvatars([]);
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const service = await getOrganizationsService();
-      const ingredients = await service.findOrganizationIngredients(
-        organizationId,
-        {
-          category: IngredientCategory.AVATAR,
-          limit: 100,
-          sort: 'createdAt: -1',
-        },
-      );
-
-      setAvatars(
-        ingredients.filter((ingredient) =>
+  // Cached per organization: coming back to an avatar picker paints the
+  // avatars it already has while it refreshes, instead of an empty list.
+  const query = useAuthedQuery({
+    enabled: Boolean(organizationId),
+    queryFn: async (service, signal) => {
+      if (!organizationId) {
+        return EMPTY_AVATARS;
+      }
+      try {
+        const ingredients = await service.findOrganizationIngredients(
+          organizationId,
+          {
+            category: IngredientCategory.AVATAR,
+            limit: 100,
+            sort: 'createdAt: -1',
+          },
+          signal,
+        );
+        return ingredients.filter((ingredient) =>
           isAvatarSourceImageIngredient(ingredient),
-        ) as IAvatar[],
-      );
-    } catch (error) {
-      logger.error('Failed to load avatar ingredients', error);
-      setAvatars([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getOrganizationsService, organizationId]);
+        ) as IAvatar[];
+      } catch (error) {
+        logger.error('Failed to load avatar ingredients', error);
+        throw error;
+      }
+    },
+    queryKey: ['organizations', organizationId ?? null, 'avatar-images'],
+    service: (token: string) => OrganizationsService.getInstance(token),
+  });
 
-  useEffect(() => {
-    refresh().catch((error) => {
-      logger.error('Failed to refresh avatar ingredients', error);
-    });
-  }, [refresh]);
+  const { refetch } = query;
+  const refresh = useCallback(async () => {
+    if (organizationId) {
+      await refetch();
+    }
+  }, [organizationId, refetch]);
 
   return {
-    avatars,
-    isLoading,
+    avatars:
+      organizationId && !query.isError
+        ? (query.data ?? EMPTY_AVATARS)
+        : EMPTY_AVATARS,
+    isLoading: query.isLoading,
     refresh,
   };
 }

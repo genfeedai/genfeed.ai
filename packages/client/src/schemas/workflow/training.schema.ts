@@ -9,11 +9,3 @@ export const trainingSchema = z.object({
 });
 
 export type TrainingSchema = z.infer<typeof trainingSchema>;
-
-export const trainingEditSchema = z.object({
-  brand: z.string().optional(),
-  description: z.string().optional(),
-  label: z.string().min(1, 'Model name is required'),
-});
-
-export type TrainingEditSchema = z.infer<typeof trainingEditSchema>;

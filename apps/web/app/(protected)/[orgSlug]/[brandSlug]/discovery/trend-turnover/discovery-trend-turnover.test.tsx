@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +12,11 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
@@ -231,7 +240,7 @@ describe('DiscoveryTrendTurnover', () => {
   });
 
   it('loads trend turnover KPIs, chart, table, and volatility bars', async () => {
-    render(<DiscoveryTrendTurnover />);
+    render(<DiscoveryTrendTurnover />, { wrapper: queryClientWrapper() });
 
     expect(
       screen.getByRole('heading', {
@@ -282,7 +291,7 @@ describe('DiscoveryTrendTurnover', () => {
       })
       .mockRejectedValueOnce(new Error('network down'));
 
-    render(<DiscoveryTrendTurnover />);
+    render(<DiscoveryTrendTurnover />, { wrapper: queryClientWrapper() });
 
     expect(await screen.findByText('No trend turnover yet')).toBeVisible();
     expect(
@@ -304,5 +313,21 @@ describe('DiscoveryTrendTurnover', () => {
       expect.objectContaining({ error: expect.any(Error) }),
     );
     expect(screen.queryByText('No trend turnover yet')).not.toBeInTheDocument();
+  });
+
+  it('paints the cached numbers at once when coming back to the page', async () => {
+    const client = createTestQueryClient();
+    const firstVisit = render(<DiscoveryTrendTurnover />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('43%')).toBeVisible();
+    firstVisit.unmount();
+
+    mocks.getTurnoverStats.mockReturnValue(new Promise(() => {}));
+    render(<DiscoveryTrendTurnover />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('43%')).toBeVisible();
+    expect(screen.getByText('6.2d')).toBeVisible();
+    expect(screen.queryByText('Loading table')).not.toBeInTheDocument();
   });
 });

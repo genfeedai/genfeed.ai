@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,15 +47,9 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   })),
 }));
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: [],
-    isLoading: false,
-    refetch: vi.fn(),
-  })),
-  useQueryClient: vi.fn(() => ({
-    setQueryData: vi.fn(),
-  })),
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('next-intl', async () => {
@@ -103,12 +101,14 @@ describe('OutreachCampaignsList', () => {
   });
 
   it('should render without crashing', () => {
-    const { container } = render(<OutreachCampaignsList />);
+    const { container } = render(<OutreachCampaignsList />, {
+      wrapper: queryClientWrapper(),
+    });
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('uses outreach sequence copy instead of Campaign', () => {
-    render(<OutreachCampaignsList />);
+    render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
 
     expect(screen.getByText('Outreach sequences')).toBeInTheDocument();
     expect(screen.getByText('New sequence')).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe('OutreachCampaignsList', () => {
     mocks.findAllByOrganization.mockResolvedValue(everyCampaign);
     mocks.findPageByOrganization.mockResolvedValue(everyCampaign.slice(15));
 
-    render(<OutreachCampaignsList />);
+    render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
 
     expect(await screen.findByText('Sequence 19')).toBeInTheDocument();
     expect(screen.queryByText('Sequence 0')).not.toBeInTheDocument();
@@ -141,5 +141,49 @@ describe('OutreachCampaignsList', () => {
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
     ).toBeInTheDocument();
+  });
+
+  it('shows the KPIs as skeletons, not zeros, while the first read is in flight', () => {
+    mocks.findAllByOrganization.mockReturnValue(new Promise(() => {}));
+    mocks.findPageByOrganization.mockReturnValue(new Promise(() => {}));
+
+    render(<OutreachCampaignsList />, { wrapper: queryClientWrapper() });
+
+    expect(
+      screen.getByRole('status', { name: 'Loading Success Rate' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Loading Active' }),
+    ).toBeInTheDocument();
+  });
+
+  it('paints the cached sequences and KPIs at once when coming back', async () => {
+    const campaign = {
+      id: 'c1',
+      label: 'Cached sequence',
+      status: 'active',
+      totalFailed: 0,
+      totalReplies: 4,
+      totalSuccessful: 3,
+      totalTargets: 10,
+    };
+    mocks.findAllByOrganization.mockResolvedValue([campaign]);
+    mocks.findPageByOrganization.mockResolvedValue([campaign]);
+    const client = createTestQueryClient();
+    const firstVisit = render(<OutreachCampaignsList />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(await screen.findByText('Cached sequence')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    mocks.findAllByOrganization.mockReturnValue(new Promise(() => {}));
+    mocks.findPageByOrganization.mockReturnValue(new Promise(() => {}));
+    render(<OutreachCampaignsList />, { wrapper: queryClientWrapper(client) });
+
+    expect(screen.getByText('Cached sequence')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Loading Success Rate' }),
+    ).not.toBeInTheDocument();
   });
 });

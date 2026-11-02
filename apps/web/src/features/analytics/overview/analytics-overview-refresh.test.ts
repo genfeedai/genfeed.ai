@@ -81,12 +81,7 @@ beforeEach(() => {
 
 it('does not refresh again on an unrelated render after one refresh event', async () => {
   const { rerender, unmount } = renderHook(
-    () =>
-      useAnalyticsOverview({
-        analytics: { totalPosts: 1 },
-        cachedAt: '',
-        scope: PageScope.ORGANIZATION,
-      }),
+    () => useAnalyticsOverview({ scope: PageScope.ORGANIZATION }),
     { wrapper: createQueryWrapper() },
   );
   state.context.refreshTrigger = 1;

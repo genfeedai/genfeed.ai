@@ -8,6 +8,21 @@ export interface IApiResponse<T> {
   };
 }
 
+/** A list page's footer totals, as the list request reported them. */
+export interface IPageTotals {
+  totalDocs: number;
+  totalPages: number;
+}
+
+/**
+ * One cached list page with the totals its own request reported, so a cached
+ * page never shows the footer of whichever list was read last.
+ */
+export interface IPagedItems<T = unknown> {
+  items: T[];
+  totals: IPageTotals;
+}
+
 export interface IPaginatedResponse<T = unknown> {
   items: T[];
   total: number;

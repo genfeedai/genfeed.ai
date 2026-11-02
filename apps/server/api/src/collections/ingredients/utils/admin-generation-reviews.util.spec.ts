@@ -13,7 +13,7 @@ function query(
 }
 
 describe('buildAdminGenerationReviewsWhere', () => {
-  it('covers image, video and music generations that ran, failed or are running', () => {
+  it('covers image, video and music generations that are running or done, never failed', () => {
     expect(buildAdminGenerationReviewsWhere(query())).toEqual({
       category: {
         in: [
@@ -24,11 +24,7 @@ describe('buildAdminGenerationReviewsWhere', () => {
       },
       isDeleted: false,
       status: {
-        in: [
-          IngredientStatus.PROCESSING,
-          IngredientStatus.GENERATED,
-          IngredientStatus.FAILED,
-        ],
+        in: [IngredientStatus.PROCESSING, IngredientStatus.GENERATED],
       },
     });
   });

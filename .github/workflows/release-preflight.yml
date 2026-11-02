@@ -1,0 +1,93 @@
+name: Release preflight
+run-name: Release preflight ${{ inputs.tag }}
+
+# Read-only readiness check to run before dispatching Release. It repeats the
+# cheap checks that have failed real release dispatches (wrong root version,
+# missing browser suite evidence) and reports the Full Suite state, so a release
+# is only started when it can get past validation. It writes nothing: no draft,
+# no tag, no release. Results are in the job summary.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "stable release tag to check (vX.Y.Z)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-preflight
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  preflight:
+    name: Release preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require master
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Run the preflight from refs/heads/master (got ${GITHUB_REF}); Release runs from master."
+            exit 1
+          fi
+
+      - name: Validate release tag shape
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "${REQUESTED_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Stable release tag must use vX.Y.Z: ${REQUESTED_TAG}"
+            exit 1
+          fi
+
+      - name: Checkout master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Root package.json version matches the tag
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          package_version="$(jq -r '.version' package.json)"
+          if [ "v${package_version}" != "${REQUESTED_TAG}" ]; then
+            echo "::error::Root package.json is ${package_version} but the release tag is ${REQUESTED_TAG}. Bump the root version in a PR, merge it, then dispatch Release with the matching tag."
+            exit 1
+          fi
+
+      - name: Tag does not exist yet
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags "https://github.com/${GITHUB_REPOSITORY}.git" "refs/tags/${REQUESTED_TAG}" >/dev/null 2>&1; then
+            echo "::error::Git tag ${REQUESTED_TAG} already exists. Pick the next patch version."
+            exit 1
+          fi
+
+      # Same script Release runs. Playwright Full and Learning Runtime must be
+      # green on this commit, or on a recent master ancestor when every later
+      # change is neutral for that suite.
+      - name: Browser suite evidence for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: node scripts/ci/browser-suite-evidence.mjs
+
+      # One lookup, no waiting. A green exact-SHA run lets Release skip its own
+      # Full Suite (about 12 to 15 min); otherwise Release will run it.
+      - name: Full Suite evidence for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+          FULL_SUITE_DISCOVERY_ATTEMPTS: "1"
+          FULL_SUITE_POLL_ATTEMPTS: "1"
+        run: node scripts/ci/full-suite-evidence.mjs

@@ -2,7 +2,7 @@
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -20,11 +20,13 @@ import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import type { TemplateView } from '@/features/admin/props/templates.props';
 import { useCollectionViewPreference } from '@/hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { toTemplateView } from './template-view';
+
+const EMPTY_TEMPLATES: IContentTemplate[] = [];
 
 function TemplatesPageContent() {
   const t = useTranslations('pages.adminTemplates');
@@ -36,19 +38,12 @@ function TemplatesPageContent() {
     surface: 'admin.content.templates',
     defaultView: ViewType.LIST,
   });
-  const getTemplatesService = useAuthedService((token: string) =>
-    TemplateService.getInstance(token),
-  );
   const { replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('q') ?? '';
-  const [templates, setTemplates] = useState<IContentTemplate[] | null>(null);
-  const [hasError, setHasError] = useState(false);
-  const [reloadVersion, setReloadVersion] = useState(0);
-
   const setSearch = useCallback(
     (value: string) => {
       const next = new URLSearchParams(searchParamsString);
@@ -61,19 +56,12 @@ function TemplatesPageContent() {
     [pathname, replace, searchParamsString],
   );
 
-  const reload = useCallback(
-    () => setReloadVersion((version) => version + 1),
-    [],
-  );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadVersion is the explicit refresh and retry trigger
-  useEffect(() => {
-    const controller = new AbortController();
-    setTemplates(null);
-    setHasError(false);
-    void (async () => {
+  // Cached per page and search: coming back to Templates paints the rows it
+  // already has while it refreshes, and paging keeps the current rows on screen.
+  const templatesQuery = usePagedAuthedQuery({
+    keepPreviousDataWithin: ['admin', 'templates'],
+    queryFn: async (service, signal) => {
       try {
-        const service = await getTemplatesService();
         const data = await service.getTemplates(
           {
             includeSystem: true,
@@ -81,27 +69,38 @@ function TemplatesPageContent() {
             page: currentPage,
             ...(search ? { search } : {}),
           },
-          controller.signal,
+          signal,
         );
-        if (controller.signal.aborted) return;
-        setTemplates(data ?? []);
+        return data ?? [];
       } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load templates', error);
-        notificationsService.error(t('loadError'));
-        setHasError(true);
-        setTemplates([]);
+        if (!signal.aborted) {
+          logger.error('Failed to load templates', error);
+        }
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [
-    currentPage,
-    getTemplatesService,
-    notificationsService,
-    reloadVersion,
-    search,
-    t,
-  ]);
+    },
+    queryKey: ['admin', 'templates', { page: currentPage, search }],
+    service: (token: string) => TemplateService.getInstance(token),
+  });
+  const {
+    errorUpdatedAt,
+    isError: hasError,
+    isLoading,
+    refetch,
+  } = templatesQuery;
+  const templates = hasError ? EMPTY_TEMPLATES : templatesQuery.data?.items;
+  const isRefreshing = templatesQuery.isFetching;
+  const reload = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (hasError) {
+      notificationsService.error(t('loadError'));
+    }
+  }, [errorUpdatedAt, hasError, notificationsService, t]);
 
   const items = useMemo(
     () => (templates ?? []).map(toTemplateView),
@@ -144,7 +143,7 @@ function TemplatesPageContent() {
       }
       views={<CollectionViewToggle view={view} onViewChange={setView} />}
       onRefresh={reload}
-      isRefreshing={templates === null}
+      isRefreshing={isRefreshing}
     >
       {hasError ? (
         <Alert variant="destructive">
@@ -164,7 +163,7 @@ function TemplatesPageContent() {
           }
           view={view}
           items={items}
-          isLoading={templates === null}
+          isLoading={isLoading}
           maxColumns={3}
           getItemKey={(template) => template.id}
           emptyState={<EmptyState title={t('empty')} />}
@@ -211,7 +210,11 @@ function TemplatesPageContent() {
         />
       )}
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel={t('totalLabel')} />
+        <AutoPagination
+          showTotal
+          totalLabel={t('totalLabel')}
+          totals={templatesQuery.data?.totals}
+        />
       </div>
     </AdminPageShell>
   );
