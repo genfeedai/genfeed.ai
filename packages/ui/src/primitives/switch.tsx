@@ -1,5 +1,6 @@
 import { cn } from '@genfeedai/helpers';
 import * as SwitchPrimitives from '@radix-ui/react-switch';
+import { Skeleton } from '@ui/primitives/skeleton';
 import type {
   ChangeEvent,
   ComponentPropsWithoutRef,
@@ -19,6 +20,12 @@ export interface SwitchProps extends SwitchBaseProps {
   description?: string;
   isChecked?: boolean;
   isDisabled?: boolean;
+  /**
+   * The saved value is still loading: the label and description render, and a
+   * skeleton of the track stands in for the toggle, so it never shows "off"
+   * before the real value lands.
+   */
+  isLoading?: boolean;
   label?: ReactNode;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckedChange?: (checked: boolean) => void;
@@ -74,6 +81,12 @@ const SWITCH_SIZE_CLASSNAMES: Record<
   },
 };
 
+/** The loading track, sized like the toggle it stands in for. */
+const SWITCH_SKELETON_CLASSNAMES: Record<SwitchSize, string> = {
+  md: 'h-8 w-14',
+  sm: 'h-5 w-9',
+};
+
 function Switch({
   ref,
   checked,
@@ -81,6 +94,7 @@ function Switch({
   description,
   isChecked,
   isDisabled,
+  isLoading = false,
   label,
   onChange,
   onCheckedChange,
@@ -90,7 +104,13 @@ function Switch({
 }: SwitchProps): ReactElement {
   const resolvedChecked = checked ?? isChecked ?? false;
   const sizeClassNames = SWITCH_SIZE_CLASSNAMES[size];
-  const switchElement = (
+  const switchElement = isLoading ? (
+    <Skeleton
+      aria-label={props['aria-label']}
+      className={SWITCH_SKELETON_CLASSNAMES[size]}
+      variant="circular"
+    />
+  ) : (
     <SwitchPrimitives.Root
       className={cn(
         'peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50',
