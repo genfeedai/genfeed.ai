@@ -8,14 +8,14 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('next/dynamic', async () => {
   const { lazy, Suspense } = await import('react');
   return {
-    default: (
-      loader: () => Promise<{ default: ComponentType<never> }>,
+    default: <Props extends object>(
+      loader: () => Promise<{ default: ComponentType<Props> }>,
       options?: { loading?: () => React.ReactNode },
     ) => {
       const Lazy = lazy(loader);
-      return (props: object) => (
+      return (props: Props) => (
         <Suspense fallback={options?.loading?.() ?? null}>
-          <Lazy {...(props as never)} />
+          <Lazy {...props} />
         </Suspense>
       );
     },
