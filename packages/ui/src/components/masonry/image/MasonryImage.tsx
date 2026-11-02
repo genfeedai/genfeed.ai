@@ -225,7 +225,7 @@ function MasonryImageTile({
   const content = (
     <div
       className={cn(
-        'relative w-full group rounded-card',
+        'relative w-full group group/tile rounded-card',
         isSquare && 'aspect-square',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         isSelected && 'ring-2 ring-primary',

@@ -13,6 +13,10 @@ import type { MouseEvent, SyntheticEvent } from 'react';
 const BLUR_PLACEHOLDER =
   'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==';
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
+// The image moves inside the clipped frame (the Button is `overflow-hidden`),
+// so the card itself stays put. Scale covers the corners a 1.5deg tilt opens.
+const MASONRY_IMAGE_HOVER_CLASS =
+  'motion-safe:group-hover/tile:scale-[1.08] motion-safe:group-hover/tile:-rotate-[1.5deg]';
 
 type MasonryImageMediaAreaProps = {
   accessibleLabel?: string;
@@ -113,7 +117,9 @@ export default function MasonryImageMediaArea({
           width={Math.max(1, metadata?.width || 1080)}
           height={Math.max(1, metadata?.height || 1920)}
           className={cn(
-            'size-full outline-media transition-opacity duration-300',
+            'size-full outline-media transition-[opacity,scale,rotate] duration-500 ease-out',
+            !(isLoading || isProcessing || isFailed || isFleetNsfwLocked) &&
+              MASONRY_IMAGE_HOVER_CLASS,
             (isProcessing || isFailed || isFleetNsfwLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',

@@ -296,6 +296,39 @@ describe('MasonryImage', () => {
     expect(handleClickIngredient).toHaveBeenCalledWith(mockImage);
   });
 
+  it('zooms and tilts a loaded image inside the tile on hover, honoring reduced motion', () => {
+    render(<MasonryImage image={mockImage} />);
+
+    const image = screen.getByRole('img');
+    fireEvent.load(image);
+
+    expect(image).toHaveClass(
+      'motion-safe:group-hover/tile:scale-[1.08]',
+      'motion-safe:group-hover/tile:-rotate-[1.5deg]',
+    );
+  });
+
+  it('does not zoom a sensitive fleet asset on hover', () => {
+    vi.mocked(useBrand).mockReturnValue({
+      selectedBrand: { isFleetEnabled: true },
+      settings: { isFleetNsfwVisible: false },
+    } as ReturnType<typeof useBrand>);
+
+    render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          contentRating: 'nsfw',
+          personaSlug: 'test-character',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('img')).not.toHaveClass(
+      'motion-safe:group-hover/tile:scale-[1.08]',
+    );
+  });
+
   it('blurs sensitive fleet assets when NSFW visibility is disabled', () => {
     vi.mocked(useBrand).mockReturnValue({
       selectedBrand: { isFleetEnabled: true },
