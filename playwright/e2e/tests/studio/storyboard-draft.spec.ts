@@ -526,6 +526,14 @@ test('edits and approves a persisted draft through the actual route with loaded 
     new URL(destination ?? '', 'http://localhost').searchParams.getAll('video'),
   ).toEqual(['coffee-clip-1', 'coffee-clip-2']);
   await editorLink.click();
+  // The Editor opens on its New pane with the videos queued; the project is
+  // created once the person confirms it.
+  await expect(
+    page.getByRole('heading', { name: 'What are we editing?' }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Create project', exact: true })
+    .click();
   await expect
     .poll(() => editorSources)
     .toEqual(['coffee-clip-1', 'coffee-clip-2']);

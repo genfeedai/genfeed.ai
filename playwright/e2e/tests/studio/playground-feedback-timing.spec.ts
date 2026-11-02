@@ -307,6 +307,17 @@ test('measures twenty actual pending, sibling and completion UI transitions', as
   // A card opens its generation at /playground/:id with the preview in view.
   await page.getByTestId('studio-asset-sibling-a').click();
   const focused = page.getByTestId('studio-focused-preview');
+  // The first switch after opening a generation loads the sibling's media cold
+  // (320ms in CI against a ~150ms median). The receipt measures warmed media
+  // (see coldMediaInterval), so switch there and back once before sampling.
+  await focused.getByRole('button', { name: 'sibling-b', exact: true }).click();
+  await expect(
+    focused.getByRole('button', { name: 'sibling-b', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await focused.getByRole('button', { name: 'sibling-a', exact: true }).click();
+  await expect(
+    focused.getByRole('button', { name: 'sibling-a', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   for (let i = 0; i < count; i++) {
     const id = i % 2 === 0 ? 'sibling-b' : 'sibling-a';
     await observe(
