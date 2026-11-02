@@ -12,6 +12,7 @@ import type {
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
   GrantableOrganization,
+  IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { BaseService } from '@services/core/base.service';
 import {
@@ -73,6 +74,15 @@ export class PersonasService extends BaseService<
     return BaseService.getDataServiceInstance(PersonasService, token);
   }
 
+  /** One character page with metadata from the same response. */
+  async listCharactersPage(
+    query: { limit?: number; page?: number } = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<BrandCharacterListItem>> {
+    const page = await this.findAllPage(query, signal);
+    return { ...page, items: toCharacterListItems(page.items) };
+  }
+
   /**
    * With `page`, returns that single server page (and records the totals for
    * `<AutoPagination />`). Without it, returns every character across all
@@ -91,8 +101,7 @@ export class PersonasService extends BaseService<
 
   /**
    * Every character the active brand can use, across all server pages. The
-   * Library character filter lists them all, where `listCharacters` returns
-   * only the first page.
+   * Library character filter can narrow the read to one brand.
    */
   async listAllCharacters(
     options: { brandId?: string; signal?: AbortSignal } = {},

@@ -1,5 +1,9 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
+
 // @vitest-environment jsdom
-'use client';
+('use client');
 
 import {
   IngredientStatus,
@@ -8,6 +12,7 @@ import {
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -20,7 +25,7 @@ import LibraryCharactersPage from './content';
 const mocks = vi.hoisted(() => {
   const composeSheetPrompt = vi.fn();
   const createFromSheet = vi.fn();
-  const listCharacters = vi.fn();
+  const listCharactersPage = vi.fn();
   const updateAvailability = vi.fn();
   const moveOwnership = vi.fn();
   const listGrants = vi.fn();
@@ -37,7 +42,7 @@ const mocks = vi.hoisted(() => {
     composeSheetPrompt,
     createFromSheet,
     grantToOrganization,
-    listCharacters,
+    listCharactersPage,
     listGrantableOrganizations,
     listGrants,
     moveOwnership,
@@ -71,7 +76,7 @@ const mocks = vi.hoisted(() => {
     createFromSheet,
     getImagesService: async () => imagesService,
     getPersonasService: async () => personasService,
-    listCharacters,
+    listCharactersPage,
     postImage,
   };
 });
@@ -130,8 +135,12 @@ vi.mock('@/hooks/auth/use-user-role/use-user-role', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
-    const created = factory('test-token') as { listCharacters?: unknown };
-    if (created && typeof created === 'object' && 'listCharacters' in created) {
+    const created = factory('test-token') as { listCharactersPage?: unknown };
+    if (
+      created &&
+      typeof created === 'object' &&
+      'listCharactersPage' in created
+    ) {
       return mocks.getPersonasService;
     }
     return mocks.getImagesService;
@@ -145,7 +154,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <nav aria-label="pagination">
+      {totals?.totalDocs} characters / {totals?.totalPages} pages
+    </nav>
+  ),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -187,7 +200,7 @@ vi.mock('@services/content/personas.service', () => ({
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
       grantToOrganization: mocks.grantToOrganization,
-      listCharacters: mocks.listCharacters,
+      listCharactersPage: mocks.listCharactersPage,
       listGrantableOrganizations: mocks.listGrantableOrganizations,
       listGrants: mocks.listGrants,
       moveOwnership: mocks.moveOwnership,
@@ -211,7 +224,7 @@ describe('LibraryCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.role = MemberRole.USER;
-    mocks.listCharacters.mockResolvedValue([]);
+    mocks.listCharactersPage.mockResolvedValue(paginatedResponse([]));
     mocks.updateAvailability.mockResolvedValue({ id: 'p1' });
     mocks.moveOwnership.mockResolvedValue({ id: 'p1' });
     mocks.listGrants.mockResolvedValue([]);
@@ -235,8 +248,8 @@ describe('LibraryCharactersPage', () => {
   });
 
   it('renders section chrome and the characters table while the list loads', async () => {
-    let resolveListCharacters!: (rows: Array<unknown>) => void;
-    mocks.listCharacters.mockReturnValue(
+    let resolveListCharacters!: (page: IPaginatedResponse<unknown>) => void;
+    mocks.listCharactersPage.mockReturnValue(
       new Promise((resolve) => {
         resolveListCharacters = resolve;
       }),
@@ -249,7 +262,9 @@ describe('LibraryCharactersPage', () => {
       screen.getByRole('heading', { level: 1, name: 'References' }),
     ).toBeInTheDocument();
 
-    resolveListCharacters([]);
+    await act(async () => {
+      resolveListCharacters(paginatedResponse([]));
+    });
     await waitFor(() => {
       expect(screen.getByText('References')).toBeInTheDocument();
     });
@@ -375,24 +390,25 @@ describe('LibraryCharactersPage', () => {
     };
 
     it('pages the character list from the server', async () => {
-      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([privateCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       expect(await screen.findByText('Ben')).toBeVisible();
       expect(
         screen.getByRole('navigation', { name: 'pagination' }),
       ).toBeVisible();
-      expect(mocks.listCharacters).toHaveBeenCalledWith(
+      expect(mocks.listCharactersPage).toHaveBeenCalledWith(
         { limit: ITEMS_PER_PAGE, page: 1 },
         expect.any(AbortSignal),
       );
     });
 
     it('shows a shared badge with the owning brand and brand count', async () => {
-      mocks.listCharacters.mockResolvedValue([
-        sharedCharacter,
-        privateCharacter,
-      ]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([sharedCharacter, privateCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       expect(
@@ -402,7 +418,9 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('hides availability controls from members who are not owners or admins', async () => {
-      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([sharedCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       await screen.findByText('Shared · Podcast · 3 brands');
@@ -413,7 +431,9 @@ describe('LibraryCharactersPage', () => {
 
     it('lets an admin change availability to all brands in one action', async () => {
       mocks.role = MemberRole.ADMIN;
-      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([privateCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       fireEvent.click(
@@ -446,16 +466,18 @@ describe('LibraryCharactersPage', () => {
 
       it('shows a Granted by badge and no manage control for a granted character', async () => {
         mocks.role = MemberRole.ADMIN;
-        mocks.listCharacters.mockResolvedValue([
-          {
-            ...sharedCharacter,
-            grantedByOrganizationName: 'Vincent Shipshit',
-            id: 'pg',
-            isGranted: true,
-            isShared: false,
-            label: 'Granted Gina',
-          },
-        ]);
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([
+            {
+              ...sharedCharacter,
+              grantedByOrganizationName: 'Vincent Shipshit',
+              id: 'pg',
+              isGranted: true,
+              isShared: false,
+              label: 'Granted Gina',
+            },
+          ]),
+        );
         render(<LibraryCharactersPage />);
 
         expect(
@@ -470,7 +492,9 @@ describe('LibraryCharactersPage', () => {
 
       it('grants an owned character to an administered organization for selected brands', async () => {
         mocks.role = MemberRole.OWNER;
-        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([privateCharacter]),
+        );
         mocks.listGrantableOrganizations.mockResolvedValue(organizations);
         render(<LibraryCharactersPage />);
 
@@ -500,7 +524,9 @@ describe('LibraryCharactersPage', () => {
 
       it('lists active grants and revokes one', async () => {
         mocks.role = MemberRole.OWNER;
-        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([privateCharacter]),
+        );
         mocks.listGrants.mockResolvedValue([
           {
             availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
@@ -534,7 +560,9 @@ describe('LibraryCharactersPage', () => {
 
       it('offers no grant control when the member administers no other organization', async () => {
         mocks.role = MemberRole.OWNER;
-        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        mocks.listCharactersPage.mockResolvedValue(
+          paginatedResponse([privateCharacter]),
+        );
         render(<LibraryCharactersPage />);
 
         fireEvent.click(
@@ -552,7 +580,9 @@ describe('LibraryCharactersPage', () => {
 
     it('lets an admin move a shared character to another brand it is available to', async () => {
       mocks.role = MemberRole.ADMIN;
-      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([sharedCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       fireEvent.click(
@@ -571,7 +601,9 @@ describe('LibraryCharactersPage', () => {
 
     it('does not offer an ownership move for a character owned by one brand', async () => {
       mocks.role = MemberRole.ADMIN;
-      mocks.listCharacters.mockResolvedValue([privateCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([privateCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       fireEvent.click(
@@ -588,7 +620,9 @@ describe('LibraryCharactersPage', () => {
 
     it('offers selected brands with the owning brand locked on', async () => {
       mocks.role = MemberRole.OWNER;
-      mocks.listCharacters.mockResolvedValue([sharedCharacter]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([sharedCharacter]),
+      );
       render(<LibraryCharactersPage />);
 
       fireEvent.click(
@@ -692,7 +726,7 @@ describe('LibraryCharactersPage', () => {
     }
 
     it('shows the ordered reference thumbnails on the row', async () => {
-      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.listCharactersPage.mockResolvedValue(paginatedResponse([anna]));
       render(<LibraryCharactersPage />);
 
       await screen.findByText('@anna');
@@ -707,7 +741,7 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('persists a new order and promotes the first reference to primary', async () => {
-      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.listCharactersPage.mockResolvedValue(paginatedResponse([anna]));
       mocks.reorderReferences.mockResolvedValue([
         { ingredientId: 'img-b', position: 0 },
         { ingredientId: 'img-a', position: 1 },
@@ -733,7 +767,7 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('removes a reference and keeps the next one as primary', async () => {
-      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.listCharactersPage.mockResolvedValue(paginatedResponse([anna]));
       mocks.removeReference.mockResolvedValue([
         { ingredientId: 'img-b', position: 0 },
       ]);
@@ -757,7 +791,7 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('appends images picked from the Library', async () => {
-      mocks.listCharacters.mockResolvedValue([anna]);
+      mocks.listCharactersPage.mockResolvedValue(paginatedResponse([anna]));
       mocks.addReferences.mockResolvedValue([
         { ingredientId: 'img-a', position: 0 },
         { ingredientId: 'img-b', position: 1 },
@@ -788,15 +822,17 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('explains the 14 image limit instead of adding more', async () => {
-      mocks.listCharacters.mockResolvedValue([
-        {
-          ...anna,
-          referenceIngredientIds: Array.from(
-            { length: 14 },
-            (_, index) => `img-${index}`,
-          ),
-        },
-      ]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([
+          {
+            ...anna,
+            referenceIngredientIds: Array.from(
+              { length: 14 },
+              (_, index) => `img-${index}`,
+            ),
+          },
+        ]),
+      );
       const dialog = await openManageDialog();
 
       expect(
@@ -811,9 +847,11 @@ describe('LibraryCharactersPage', () => {
     });
 
     it('does not offer reference management for a granted character', async () => {
-      mocks.listCharacters.mockResolvedValue([
-        { ...anna, grantedByOrganizationName: 'Acme', isGranted: true },
-      ]);
+      mocks.listCharactersPage.mockResolvedValue(
+        paginatedResponse([
+          { ...anna, grantedByOrganizationName: 'Acme', isGranted: true },
+        ]),
+      );
       render(<LibraryCharactersPage />);
 
       await screen.findByText('@anna');
@@ -821,5 +859,33 @@ describe('LibraryCharactersPage', () => {
         screen.queryByRole('button', { name: 'Manage references for Anna' }),
       ).not.toBeInTheDocument();
     });
+  });
+  it('uses the character response totals independently of visible row count', async () => {
+    mocks.listCharactersPage.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'p1',
+            label: 'Anna',
+            handle: 'anna',
+            avatarIngredientId: null,
+            availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+            availableBrandCount: 1,
+            availableBrandIds: [],
+            owningBrandId: 'brand-1',
+            owningBrandName: 'Personal brand',
+            isShared: false,
+            referenceIngredientIds: [],
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
+    render(<LibraryCharactersPage />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('61 characters / 5 pages'),
+    );
   });
 });

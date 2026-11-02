@@ -6,6 +6,7 @@ import type {
   CharacterGrantItem,
   CharacterReferenceItem,
   GrantableOrganization,
+  IPageTotals,
 } from '@genfeedai/contracts/interfaces';
 
 export interface CharacterBrandOption {
@@ -46,6 +47,7 @@ export interface CharacterAvailabilityControls {
 }
 
 export interface CharactersPageState {
+  pageTotals: IPageTotals;
   approve: {
     availability: CharacterAvailabilityDraft;
     handle: string;

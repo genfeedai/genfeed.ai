@@ -121,6 +121,7 @@ function LibraryVoicesContent() {
     isLoading: isLoadingVoices,
     refresh: refreshVoices,
     voices,
+    pageTotals,
   } = useVoiceCatalog({
     isActive: true,
     isPaginated: true,
@@ -401,7 +402,7 @@ function LibraryVoicesContent() {
 
       {!voicesError ? (
         <div className="mt-4">
-          <AutoPagination showTotal totalLabel="voices" />
+          <AutoPagination showTotal totalLabel="voices" totals={pageTotals} />
         </div>
       ) : null}
     </div>

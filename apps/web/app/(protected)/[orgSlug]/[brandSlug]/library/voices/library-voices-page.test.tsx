@@ -1,3 +1,5 @@
+import { EMPTY_PAGE_TOTALS } from '@genfeedai/contracts/constants';
+import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 // @vitest-environment jsdom
 
 import { PageScope, VoiceProvider } from '@genfeedai/contracts';
@@ -187,7 +189,11 @@ vi.mock('@ui/primitives/badge', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <div data-testid="auto-pagination" />,
+  default: ({ totals }: AutoPaginationProps) => (
+    <div data-testid="auto-pagination">
+      {totals?.totalDocs} voices / {totals?.totalPages} pages
+    </div>
+  ),
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -275,6 +281,7 @@ describe('LibraryVoicesPage', () => {
 
   it('renders the row loading state while voices are loading', () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: true,
       refresh: vi.fn(),
       voices: [],
@@ -288,6 +295,7 @@ describe('LibraryVoicesPage', () => {
 
   it('uses organization scope when the shared org route requests it', () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: true,
       refresh: vi.fn(),
       voices: [],
@@ -303,6 +311,7 @@ describe('LibraryVoicesPage', () => {
 
   it('renders the row list when voices are available', () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [createVoice()],
@@ -317,6 +326,7 @@ describe('LibraryVoicesPage', () => {
 
   it('renders the empty state when no voices are available', () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [],
@@ -341,6 +351,7 @@ describe('LibraryVoicesPage', () => {
   it('renders a recoverable query error and retries without showing an empty state', () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       error: 'Voices could not be loaded.',
       isLoading: false,
       refresh,
@@ -369,6 +380,7 @@ describe('LibraryVoicesPage', () => {
       'provider=elevenlabs&search=rachel&sort=recent&status=generated&type=voices&page=3&keep=1',
     );
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [],
@@ -386,6 +398,7 @@ describe('LibraryVoicesPage', () => {
   it('opens the clone upload modal from the empty state', () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh,
       voices: [],
@@ -422,6 +435,7 @@ describe('LibraryVoicesPage', () => {
       key === 'page' ? '2' : null,
     );
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh,
       voices: [createVoice()],
@@ -456,6 +470,7 @@ describe('LibraryVoicesPage', () => {
 
   it('saves organization and brand default voices', async () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [createVoice()],
@@ -540,6 +555,7 @@ describe('LibraryVoicesPage', () => {
       },
     });
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh,
       voices: [clonedVoice],
@@ -586,6 +602,7 @@ describe('LibraryVoicesPage', () => {
       },
     });
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [createVoice()],
@@ -646,6 +663,7 @@ describe('LibraryVoicesPage', () => {
       new Error('delete failed'),
     );
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [
@@ -675,6 +693,7 @@ describe('LibraryVoicesPage', () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
     serviceMocks.unlinkImportedVoice.mockResolvedValue(undefined);
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh,
       voices: [
@@ -706,6 +725,7 @@ describe('LibraryVoicesPage', () => {
 
   it('opens the ElevenLabs account import with the Integrations link', () => {
     mockUseVoiceCatalog.mockReturnValue({
+      pageTotals: EMPTY_PAGE_TOTALS,
       isLoading: false,
       refresh: vi.fn(),
       voices: [createVoice()],
@@ -723,6 +743,19 @@ describe('LibraryVoicesPage', () => {
     expect(screen.getByTestId('account-voices-dialog')).toHaveAttribute(
       'data-connect-href',
       '/demo/~/settings/integrations',
+    );
+  });
+  it('renders the server total rather than the number of voices on this page', () => {
+    mockUseVoiceCatalog.mockReturnValue({
+      voices: [],
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+      pageTotals: { totalDocs: 61, totalPages: 5 },
+    });
+    render(<LibraryVoicesPage />);
+    expect(screen.getByTestId('auto-pagination')).toHaveTextContent(
+      '61 voices / 5 pages',
     );
   });
 });
