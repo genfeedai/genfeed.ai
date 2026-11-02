@@ -11,6 +11,7 @@ import type {
   AgentArtifactReference,
   AgentReviewQueueSnapshot,
   AnalyticsQueryReference,
+  CreativeAppAgentContext,
   KnowledgeSelection,
   ScopedResearchFindingReference,
   SocialInboxAgentContextRecord,
@@ -34,6 +35,8 @@ export interface AgentPageContext {
   authorizedSocialContext?: SocialInboxAgentContextRecord[];
   analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
+  /** The creative app page the viewer is on (untrusted; grants no scope). */
+  creativeApp?: CreativeAppAgentContext;
   draftBody?: string;
   draftInstructions?: string;
   draftSummary?: string;

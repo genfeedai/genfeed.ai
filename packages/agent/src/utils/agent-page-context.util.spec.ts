@@ -113,4 +113,27 @@ describe('toAgentRequestPageContext', () => {
       ),
     ).toBeUndefined();
   });
+
+  it('sends the creative app the page is on', () => {
+    expect(
+      toAgentRequestPageContext(
+        {
+          creativeApp: {
+            app: 'turbo',
+            projects: [{ id: 'project-1', title: 'Spring launch' }],
+          },
+          route: '/acme/brand/turbo',
+          suggestedActions: [],
+        },
+        'Europe/Madrid',
+      ),
+    ).toEqual({
+      creativeApp: {
+        app: 'turbo',
+        projects: [{ id: 'project-1', title: 'Spring launch' }],
+      },
+      route: '/acme/brand/turbo',
+      timezone: 'Europe/Madrid',
+    });
+  });
 });
