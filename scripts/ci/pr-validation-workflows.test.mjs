@@ -1093,6 +1093,37 @@ test('serializes reusable build verification without cancelling another caller',
   }
 });
 
+test('self-hosted release publish reuses the layers the verify build just tested', () => {
+  // The web layer reads RELEASE_TAG and BUILD_ID, so a verify build that omits
+  // them leaves the publisher to compile the web app a second time (~12 min).
+  const verify = readWorkflow('build-verify-selfhosted.yml');
+  const publisher = readWorkflow('_publish-selfhosted-core.yml');
+
+  assert.match(verify, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
+  assert.match(
+    verify,
+    /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \|\| 'dev' \}\}$/m,
+  );
+  assert.match(verify, /^ {10}ref: \$\{\{ inputs\.checkout_ref \}\}$/m);
+  assert.match(publisher, /^ {12}RELEASE_TAG=\$\{\{ inputs\.release_tag \}\}$/m);
+  assert.match(publisher, /^ {12}BUILD_ID=\$\{\{ inputs\.checkout_ref \}\}$/m);
+  assert.match(
+    publisher,
+    /uses: \.\/\.github\/workflows\/build-verify-selfhosted\.yml\n {4}with:\n {6}checkout_ref: \$\{\{ inputs\.checkout_ref \}\}\n {6}release_tag: \$\{\{ inputs\.release_tag \}\}/,
+    'the publisher must verify the exact commit and tag it publishes',
+  );
+  for (const [name, workflow] of [
+    ['verify', verify],
+    ['publisher', publisher],
+  ]) {
+    assert.match(
+      workflow,
+      /cache-from: type=gha,scope=selfhosted\n/,
+      `${name} build must read the shared selfhosted cache scope`,
+    );
+  }
+});
+
 test('release waits for exact-SHA Full Suite evidence in the existing validation step', () => {
   const workflow = readWorkflow('release.yml');
   const validateRelease = jobBlock(workflow, 'validate-release', 'release.yml');
