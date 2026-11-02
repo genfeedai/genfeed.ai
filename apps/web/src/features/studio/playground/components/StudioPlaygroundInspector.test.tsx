@@ -881,7 +881,7 @@ describe('StudioPlaygroundInspector', () => {
     expect(receipts).toHaveTextContent('Version 1');
   });
 
-  it('lists Recipe, Used in and History as tabs', () => {
+  it('picks Recipe, Used in and History from a menu, not tabs', async () => {
     render(
       <StudioPlaygroundInspector
         job={recipeJob}
@@ -893,11 +893,11 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-      'Recipe',
-      'Used in',
-      'History',
-    ]);
+    expect(screen.queryByRole('tab')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    expect(
+      screen.getAllByRole('menuitemradio').map((item) => item.textContent),
+    ).toEqual(['Recipe', 'Used in', 'History']);
     // The sidebar header owns the title and close; the panel has neither.
     expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
   });
@@ -909,8 +909,7 @@ describe('StudioPlaygroundInspector', () => {
     ) {
       return render(
         <ContextSidebarProvider>
-          <ContextSidebarHeaderOutlet slot="actions" testId="header-actions" />
-          <ContextSidebarHeaderOutlet slot="tabs" testId="header-tabs" />
+          <ContextSidebarHeaderOutlet testId="header-actions" />
           <StudioPlaygroundInspector
             job={job}
             onOpenPreview={vi.fn()}
@@ -925,20 +924,17 @@ describe('StudioPlaygroundInspector', () => {
       );
     }
 
-    it('puts the tabs and the preview button in the header, not the body', () => {
+    it('puts the section menu and the preview button in the header, not the body', () => {
       renderInSidebar(recipeJob);
 
-      const tabs = within(screen.getByTestId('header-tabs'));
-      expect(tabs.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
-        'Recipe',
-        'Used in',
-        'History',
-      ]);
+      const actions = within(screen.getByTestId('header-actions'));
       expect(
-        within(screen.getByTestId('header-actions')).getByRole('button', {
-          name: 'Open preview',
-        }),
+        actions.getByRole('button', { name: 'View: Recipe' }),
       ).toBeVisible();
+      expect(
+        actions.getByRole('button', { name: 'Open preview' }),
+      ).toBeVisible();
+      expect(screen.queryByRole('tab')).toBeNull();
     });
 
     it('offers Remove and no preview for a failed generation', async () => {
@@ -1328,7 +1324,10 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Used in' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', { name: 'Used in' }),
+    );
 
     await waitFor(() =>
       expect(
@@ -1356,7 +1355,10 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View: Recipe' }));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', { name: 'History' }),
+    );
 
     expect(
       screen.getByRole('button', { name: 'Sibling output' }),
