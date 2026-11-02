@@ -26,9 +26,8 @@ const mocks = vi.hoisted(() => ({
   },
   quote: vi.fn(),
   submit: vi.fn(),
-  replace: vi.fn(),
+  push: vi.fn(),
   refetchProject: vi.fn(),
-  search: '',
   settings: {
     hasOrganizationBilling: true,
     isReleasePreviewEnabled: true,
@@ -57,8 +56,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(mocks.search),
+  useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@ui/layout/container/Container', () => ({
@@ -155,8 +153,6 @@ vi.mock('@/hooks/data/content/use-visual-projects', () => ({
   }),
 }));
 
-import MotionContent from './content';
-
 const quote = {
   modelKey: 'model',
   isByok: false,
@@ -182,7 +178,6 @@ beforeEach(() => {
       },
     ],
   };
-  mocks.search = '';
   mocks.settings = {
     hasOrganizationBilling: true,
     isReleasePreviewEnabled: true,
@@ -193,6 +188,9 @@ beforeEach(() => {
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
+
+import MotionNewPane from './MotionNewPane';
+
 describe('Motion quote review', () => {
   it('hides creation and quote controls under disabled cloud defaults', () => {
     mocks.settings = {
@@ -200,7 +198,7 @@ describe('Motion quote review', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: {},
     };
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     expect(screen.queryByLabelText('prompt')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'getQuote' }),
@@ -208,64 +206,8 @@ describe('Motion quote review', () => {
     expect(mocks.quote).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
   });
-  it('preserves saved outputs and source reads while new Motion work is disabled', async () => {
-    mocks.settings = {
-      hasOrganizationBilling: true,
-      isReleasePreviewEnabled: true,
-      moduleOverrides: {},
-    };
-    mocks.search = 'project=saved';
-    mocks.projectData = {
-      id: 'saved',
-      label: 'Saved motion',
-      currentRevision: 1,
-      nextRevisionCursor: null,
-      revisions: [
-        {
-          id: 'revision',
-          number: 1,
-          status: 'completed',
-          progress: 100,
-          consumedCredits: 3,
-          maximumCredits: 3,
-          rendererVersion: '1',
-          modelKey: 'model',
-          hasSource: true,
-          props: {},
-          outputRequests: [{ format: 'png', frame: 0 }],
-          outputs: [
-            {
-              format: 'png',
-              ingredientId: 'asset',
-              url: '/retained.png',
-              width: 640,
-              height: 360,
-            },
-          ],
-        },
-      ],
-    };
-    render(<MotionContent />);
-    expect(screen.getByText('Saved motion')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'download' })).toHaveAttribute(
-      'href',
-      '/retained.png',
-    );
-    expect(
-      screen.queryByRole('button', { name: 'quoteExport' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'loadProps' }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'viewSource' }));
-    await waitFor(() => expect(mocks.source).toHaveBeenCalledWith(1));
-    expect(screen.getByLabelText('retainedSource')).toHaveValue(
-      'retained source',
-    );
-    expect(mocks.quote).not.toHaveBeenCalled();
-  });
   it('discards an acknowledged quote across a module disable and re-enable', async () => {
-    const { rerender } = render(<MotionContent />);
+    const { rerender } = render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });
@@ -277,13 +219,13 @@ describe('Motion quote review', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: false },
     };
-    rerender(<MotionContent />);
+    rerender(<MotionNewPane />);
     mocks.settings = {
       hasOrganizationBilling: true,
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: true },
     };
-    rerender(<MotionContent />);
+    rerender(<MotionNewPane />);
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
@@ -297,7 +239,7 @@ describe('Motion quote review', () => {
           resolve = accept;
         }),
     );
-    const { rerender } = render(<MotionContent />);
+    const { rerender } = render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });
@@ -307,7 +249,7 @@ describe('Motion quote review', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: false },
     };
-    rerender(<MotionContent />);
+    rerender(<MotionNewPane />);
     await act(async () => {
       resolve?.(quote);
     });
@@ -316,14 +258,14 @@ describe('Motion quote review', () => {
       isReleasePreviewEnabled: true,
       moduleOverrides: { motion: true },
     };
-    rerender(<MotionContent />);
+    rerender(<MotionNewPane />);
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
   });
 
   it('requires explicit cost acknowledgment before submission and clears it when input changes', async () => {
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('label'), {
       target: { value: 'Visual' },
     });
@@ -351,7 +293,7 @@ describe('Motion quote review', () => {
           resolve = accept;
         }),
     );
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'First' },
     });
@@ -365,14 +307,14 @@ describe('Motion quote review', () => {
     ).not.toBeInTheDocument();
   });
   it('clears prior actor source, props and review on authentication scope change', async () => {
-    const view = render(<MotionContent />);
+    const view = render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Private source instruction' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
     await screen.findByRole('button', { name: 'confirm' });
     mocks.identity = { orgId: 'other', userId: 'other', sessionId: 'new' };
-    view.rerender(<MotionContent />);
+    view.rerender(<MotionNewPane />);
     await waitFor(() =>
       expect(screen.getByLabelText('prompt')).toHaveValue(''),
     );
@@ -380,26 +322,11 @@ describe('Motion quote review', () => {
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
   });
-  it('offers a reload when the project revision is stale', async () => {
-    mocks.search = 'project=project-1';
-    mocks.quote.mockRejectedValue({
-      errors: [{ detail: 'stale_visual_revision', status: '409' }],
-    });
-    render(<MotionContent />);
-    fireEvent.change(screen.getByLabelText('prompt'), {
-      target: { value: 'Animate a title' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('staleRevision');
-    fireEvent.click(screen.getByRole('button', { name: 'reloadRevision' }));
-    expect(mocks.refetchProject).toHaveBeenCalledOnce();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  });
   it('clears a stale create conflict without fetching a project', async () => {
     mocks.quote.mockRejectedValue({
       errors: [{ detail: 'stale_visual_revision', status: '409' }],
     });
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });
@@ -411,7 +338,7 @@ describe('Motion quote review', () => {
   });
   it('keeps the generic message for a non-conflict failure', async () => {
     mocks.quote.mockRejectedValue({ unexpected: true });
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });
@@ -422,7 +349,7 @@ describe('Motion quote review', () => {
     ).not.toBeInTheDocument();
   });
   it('renders the compose controls inside the one shared prompt bar', async () => {
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     const bar = screen.getByTestId('motion-prompt-bar');
     expect(bar).toHaveAttribute('data-prompt-bar-composer');
     expect(within(bar).getByLabelText('prompt')).toBeInTheDocument();
@@ -438,7 +365,7 @@ describe('Motion quote review', () => {
     expect(bar).toContainElement(review);
   });
   it('requests a quote from the keyboard like every other prompt bar', async () => {
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     const prompt = screen.getByLabelText('prompt');
     fireEvent.change(prompt, { target: { value: 'Animate a title' } });
     fireEvent.keyDown(prompt, { key: 'Enter' });
@@ -447,21 +374,57 @@ describe('Motion quote review', () => {
   });
   it('keeps the send action blocked while the renderer is unavailable', () => {
     mocks.catalog = { ...mocks.catalog, isAvailable: false };
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     expect(screen.getByRole('button', { name: 'getQuote' })).toBeDisabled();
     expect(
       within(screen.getByTestId('motion-prompt-bar')).getByRole('status'),
     ).toHaveTextContent('unavailable');
   });
   it('opens size and output settings from the toolbar, not a separate form', () => {
-    render(<MotionContent />);
+    render(<MotionNewPane />);
     expect(screen.queryByLabelText('PNG')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('settings'));
     expect(screen.getByLabelText('PNG')).toBeInTheDocument();
   });
   it('renders when the catalog payload omits models', () => {
     Reflect.deleteProperty(mocks.catalog, 'models');
-    expect(() => render(<MotionContent />)).not.toThrow();
-    expect(screen.getByRole('complementary')).toBeVisible();
+    expect(() => render(<MotionNewPane />)).not.toThrow();
+    expect(screen.getByLabelText('prompt')).toBeVisible();
+  });
+  it('opens the new project at its own page after the quote is approved', async () => {
+    render(<MotionNewPane />);
+    fireEvent.change(screen.getByLabelText('label'), {
+      target: { value: 'Visual' },
+    });
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    await screen.findByRole('button', { name: 'confirm' });
+    fireEvent.click(screen.getByLabelText('acknowledge'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm' }));
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith('/motion/project'),
+    );
+    expect(mocks.submit).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'create' }),
+      3,
+    );
+  });
+  it('fills the form from a starter card without asking for a quote', () => {
+    render(<MotionNewPane />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /kineticQuote\.title/ }),
+    );
+    expect(screen.getByLabelText('label')).toHaveValue(
+      'presets.items.kineticQuote.title',
+    );
+    expect(
+      (screen.getByLabelText('prompt') as HTMLTextAreaElement).value,
+    ).toContain('kinetic typography animation');
+    expect(mocks.quote).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'confirm' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -9,6 +9,14 @@ export interface MotionLibraryAssetOption {
 
 export type MotionSettingKey = keyof IVisualCodeSettings;
 
+/** What the prompt bar's text area holds: a prompt, React source or props JSON. */
+export type MotionComposerMode = 'prompt' | 'sourceCode' | 'props';
+
+export interface UseMotionComposerOptions {
+  /** The open project; undefined while composing a new one. */
+  projectId?: string;
+}
+
 /** The settings popover of the Motion prompt bar: size, props, assets and outputs. */
 export interface MotionAdvancedSettingsProps {
   assetIds: string[];
