@@ -26,6 +26,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
+  IEntityStatsTotals,
   IOrganizationOwner,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
@@ -43,10 +44,17 @@ import type {
   PostCountRow,
   ResolvedBrandDisplay,
 } from './analytics.types';
+import { EMPTY_ENTITY_TOTALS, sumEntityTotals } from './entity-totals';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type EntityType = 'organization' | 'brand';
 type EntityField = 'organizationId' | 'brandId';
+interface EntityTotalsFilters {
+  brandId?: string;
+  organizationId?: string;
+  search?: string;
+  type?: OrganizationCategory;
+}
 
 /** Default analytics stats for entities with no data */
 const DEFAULT_ANALYTICS: IEntityAnalyticsStats = {
@@ -388,6 +396,44 @@ export class EntityLeaderboardService {
         organizationId: filters.organizationId,
       },
     });
+  }
+
+  /** Period totals across every entity the list matches, not only the page shown. */
+  private async getEntityTotals(
+    entityType: EntityType,
+    range: DateRange,
+    matchingEntities: number,
+    filters: EntityTotalsFilters,
+  ): Promise<IEntityStatsTotals> {
+    if (matchingEntities === 0) {
+      return { ...EMPTY_ENTITY_TOTALS };
+    }
+
+    const entityField: EntityField =
+      entityType === 'organization' ? 'organizationId' : 'brandId';
+    const ids = await this.rankEntityIds(
+      entityType,
+      range,
+      LeaderboardSort.ENGAGEMENT,
+      { limit: matchingEntities, offset: 0 },
+      filters,
+    );
+    const { endDate, previousEndDate, previousStartDate, startDate } = range;
+    const [current, previousEngagement, publishedPosts] = await Promise.all([
+      this.getCurrentAnalytics(ids, startDate, endDate, entityField),
+      this.getPreviousEngagement(
+        ids,
+        previousStartDate,
+        previousEndDate,
+        entityField,
+      ),
+      this.getPublishedPostCounts(ids, startDate, endDate, entityField),
+    ]);
+
+    return sumEntityTotals(
+      { current, previousEngagement, publishedPosts },
+      (now, before) => this.calculateGrowth(now, before),
+    );
   }
 
   /**
@@ -888,9 +934,14 @@ export class EntityLeaderboardService {
       this.countEntities('brand', { brandId, organizationId, search: needle }),
     ]);
 
-    const displayByBrandId = await this.resolveBrandDisplay(
-      rows.map(({ entity }) => entity),
-    );
+    const [displayByBrandId, totals] = await Promise.all([
+      this.resolveBrandDisplay(rows.map(({ entity }) => entity)),
+      this.getEntityTotals('brand', range, total, {
+        brandId,
+        organizationId,
+        search: needle,
+      }),
+    ]);
 
     const slice = this.buildPaginationSlice(
       rows.map(({ entity, prevEngagement, stats }) =>
@@ -906,7 +957,7 @@ export class EntityLeaderboardService {
       limit,
     );
 
-    return new PaginatedBrandsResponse(slice);
+    return new PaginatedBrandsResponse({ ...slice, totals });
   }
 
   /**

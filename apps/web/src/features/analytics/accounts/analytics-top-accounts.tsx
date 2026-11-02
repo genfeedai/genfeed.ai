@@ -5,7 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAccountAnalytics } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import {
   isCollectionFetchReady,
   useCollectionScope,
@@ -17,7 +17,6 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type { AnalyticsTopAccountsProps } from '@/features/analytics/props/analytics.props';
 
@@ -33,20 +32,10 @@ export default function AnalyticsTopAccounts({
   // lands puts `organizationId=` on the wire and the query DTO rejects it.
   const isFetchReady =
     Boolean(organizationIdProp) || isCollectionFetchReady(scope);
-  const getService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-  const [accounts, setAccounts] = useState<IAccountAnalytics[]>([]);
-
-  useEffect(() => {
-    if (!isFetchReady) {
-      return;
-    }
-
-    const controller = new AbortController();
-    void (async () => {
+  const accountsQuery = useAuthedQuery({
+    enabled: isFetchReady,
+    queryFn: async (service) => {
       try {
-        const service = await getService();
         const { startDate, endDate } = getDateRangeWithDefaults();
         const data = (await service.getTopAccounts({
           brandId: brandId || undefined,
@@ -55,18 +44,16 @@ export default function AnalyticsTopAccounts({
           organizationId,
           startDate,
         })) as { accounts?: IAccountAnalytics[] };
-        if (!controller.signal.aborted) {
-          setAccounts(data.accounts ?? []);
-        }
+        return data.accounts ?? [];
       } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch top accounts analytics', error);
-          setAccounts([]);
-        }
+        logger.error('Failed to fetch top accounts analytics', error);
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [brandId, getService, isFetchReady, organizationId]);
+    },
+    queryKey: ['analytics', 'top-accounts', organizationId, brandId ?? null],
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const accounts = accountsQuery.data ?? [];
 
   if (accounts.length === 0) {
     return null;

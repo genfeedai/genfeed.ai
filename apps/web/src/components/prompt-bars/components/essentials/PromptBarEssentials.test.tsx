@@ -200,13 +200,14 @@ describe('PromptBarEssentials', () => {
     const outputsButton = screen.getByTestId('outputs-button');
     const generateButton = screen.getByTestId('generate-button');
 
-    const submitCluster = generateButton.parentElement?.parentElement;
+    // The shared send button renders without a wrapper element.
+    const submitCluster = generateButton.parentElement;
 
     expect(submitCluster).toContainElement(outputsButton.parentElement);
 
     const orderedChildren = Array.from(submitCluster?.children ?? []);
     const outputsIndex = orderedChildren.indexOf(outputsButton.parentElement);
-    const generateIndex = orderedChildren.indexOf(generateButton.parentElement);
+    const generateIndex = orderedChildren.indexOf(generateButton);
 
     expect(outputsIndex).toBeGreaterThanOrEqual(0);
     expect(generateIndex).toBeGreaterThan(outputsIndex);

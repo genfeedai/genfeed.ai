@@ -5,14 +5,13 @@ import type {
   OutlierSnapshotResponse,
 } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { Badge } from '@ui/primitives/badge';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 import type { OutlierBaselinePanelProps } from '@/features/analytics/props/analytics-outliers.props';
 
 function formatTimestamp(value: string | undefined): string {
@@ -36,47 +35,28 @@ export default function OutlierBaselinePanel({
   post,
 }: OutlierBaselinePanelProps) {
   const translate = useTranslations('pages.analytics.outliers');
-  const getService = useAuthedService((token: string) =>
-    OutlierBaselinesService.getInstance(token),
-  );
-  const [snapshot, setSnapshot] = useState<OutlierSnapshotResponse | null>(
-    null,
-  );
-  const [snapshotPosts, setSnapshotPosts] = useState<
-    OutlierPerformanceResponse[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
   const baselineSnapshotId = post.baselineSnapshotId;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setIsLoading(true);
-    setSnapshot(null);
-    setSnapshotPosts([]);
-    void (async () => {
+  const baselineQuery = useAuthedQuery({
+    queryFn: async (service, signal) => {
       try {
-        const service = await getService();
-        const [nextSnapshot, nextPosts] = await Promise.all([
-          service.getSnapshot(baselineSnapshotId, controller.signal),
-          service.listSnapshotPosts(
-            baselineSnapshotId,
-            { limit: 100 },
-            controller.signal,
-          ),
+        const [snapshot, snapshotPosts] = await Promise.all([
+          service.getSnapshot(baselineSnapshotId, signal),
+          service.listSnapshotPosts(baselineSnapshotId, { limit: 100 }, signal),
         ]);
-        if (!controller.signal.aborted) {
-          setSnapshot(nextSnapshot);
-          setSnapshotPosts(nextPosts);
-        }
+        return { snapshot, snapshotPosts };
       } catch (error) {
-        if (controller.signal.aborted) return;
         logger.error('GET /outlier-baselines/:id failed', error);
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
+        throw error;
       }
-    })();
-    return () => controller.abort();
-  }, [baselineSnapshotId, getService]);
+    },
+    queryKey: ['outlier-baselines', 'snapshot', baselineSnapshotId],
+    service: (token: string) => OutlierBaselinesService.getInstance(token),
+  });
+  const snapshot: OutlierSnapshotResponse | null =
+    baselineQuery.data?.snapshot ?? null;
+  const snapshotPosts: OutlierPerformanceResponse[] =
+    baselineQuery.data?.snapshotPosts ?? [];
+  const isLoading = baselineQuery.isLoading;
 
   const contributors = snapshotPosts.filter((entry) => entry.isContributor);
   const excluded = snapshotPosts.filter(

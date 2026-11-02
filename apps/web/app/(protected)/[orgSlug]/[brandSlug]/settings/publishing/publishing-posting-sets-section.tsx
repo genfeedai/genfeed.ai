@@ -55,7 +55,9 @@ export default function PublishingPostingSetsSection({
   );
 
   const [postingSets, setPostingSets] = useState<IPostingSet[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Loading from the first paint: the mount effect fetches, so `false` here
+  // flashed the empty state before the skeleton.
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [selectedCredentialIds, setSelectedCredentialIds] = useState<string[]>(

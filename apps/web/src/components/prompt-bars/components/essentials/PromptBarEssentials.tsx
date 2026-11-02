@@ -6,9 +6,9 @@ import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/promp
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
+import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import {
-  ArrowUp,
   ChevronUp,
   Clipboard,
   Clock,
@@ -483,29 +483,28 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               />
             ) : null}
 
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              icon={<ArrowUp />}
+            <PromptBarSendButton
+              ariaLabel={
+                activeGenerations.length > 0
+                  ? `${generateLabel} (Queue)`
+                  : generateLabel
+              }
               isDisabled={
                 isGenerateBlocked ||
                 isGenerateDisabled ||
                 !form.formState.isValid ||
                 !watchedTextTrimmed
               }
+              // A generation that cannot be cancelled shows as loading; one
+              // that can has Stop beside the send.
+              isLoading={isGenerating && !onCancel}
               onClick={() => handleSubmitForm()}
+              testId="generate-button"
               tooltip={
                 activeGenerations.length > 0
                   ? `${generateLabel} (Queue)`
                   : generateLabel
               }
-              tooltipPosition="top"
-              ariaLabel={
-                activeGenerations.length > 0
-                  ? `${generateLabel} (Queue)`
-                  : generateLabel
-              }
-              className={cn('transition-colors duration-300', 'size-8 p-0')}
-              data-testid="generate-button"
             />
           </div>
         </div>

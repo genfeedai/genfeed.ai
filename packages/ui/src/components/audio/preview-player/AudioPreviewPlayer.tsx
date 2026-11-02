@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn';
 import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import { Loader2, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing' | 'error';
@@ -14,6 +15,7 @@ type SharedAudioSnapshot = {
   currentTime: number;
   duration: number;
   volume: number;
+  isMuted: boolean;
   status: SharedAudioStatus;
 };
 
@@ -25,6 +27,7 @@ let sharedSnapshot: SharedAudioSnapshot = {
   currentTime: 0,
   duration: 0,
   volume: 1,
+  isMuted: false,
   status: 'idle',
 };
 
@@ -97,7 +100,10 @@ function ensureSharedAudio(): HTMLAudioElement | null {
     sharedAudio.addEventListener('timeupdate', updateProgress);
     sharedAudio.addEventListener('durationchange', updateProgress);
     sharedAudio.addEventListener('volumechange', () =>
-      setSharedSnapshot({ volume: sharedAudio?.volume ?? 1 }),
+      setSharedSnapshot({
+        isMuted: sharedAudio?.muted ?? false,
+        volume: sharedAudio?.volume ?? 1,
+      }),
     );
   }
 
@@ -209,6 +215,16 @@ export function useAudioPreview({
     });
   };
 
+  const seek = (time: number) => {
+    if (sharedAudio && isCurrent) sharedAudio.currentTime = time;
+  };
+
+  const toggleMute = () => {
+    if (!sharedAudio) return;
+    sharedAudio.muted = !sharedAudio.muted;
+    setSharedSnapshot({ isMuted: sharedAudio.muted });
+  };
+
   return {
     currentTime: isCurrent ? snapshot.currentTime : 0,
     duration: isCurrent ? snapshot.duration : 0,
@@ -216,7 +232,10 @@ export function useAudioPreview({
     isErrored,
     isLoading,
     isPlaying,
+    isMuted: snapshot.isMuted,
+    seek,
     toggle,
+    toggleMute,
     volume: snapshot.volume,
   };
 }
@@ -235,10 +254,17 @@ export default function AudioPreviewPlayer({
     isCurrent,
     isErrored,
     isLoading,
+    isMuted,
     isPlaying,
+    seek,
     toggle,
-    volume,
+    toggleMute,
   } = useAudioPreview({ audioUrl, onError, stopOnUnmount });
+
+  const playLabel = isPlaying
+    ? `Pause preview for ${label}`
+    : `Play preview for ${label}`;
+  const PlayIcon = isLoading ? Loader2 : isPlaying ? Pause : Play;
 
   return (
     // ui-guard-allow:clickable-element -- stops the click from reaching a parent card; it is not an action
@@ -248,61 +274,62 @@ export default function AudioPreviewPlayer({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <Button
-        ariaLabel={
-          isPlaying ? `Pause preview for ${label}` : `Play preview for ${label}`
-        }
+        ariaLabel={playLabel}
+        className="size-8 shrink-0 rounded-full"
         isDisabled={!audioUrl}
         onClick={toggle}
-        size={ButtonSize.SM}
+        size={ButtonSize.ICON}
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       >
-        {!audioUrl
-          ? 'No Preview'
-          : isLoading
-            ? 'Loading…'
-            : isPlaying
-              ? 'Pause'
-              : 'Play'}
+        <PlayIcon
+          aria-hidden="true"
+          className={cn('size-4', isLoading && 'animate-spin')}
+        />
       </Button>
       {isTimelineVisible && (
-        <div className="min-w-0 flex-1 space-y-1">
+        <>
           <Slider
             aria-label={`Seek ${label}`}
-            min={0}
-            max={duration || 1}
-            step={0.1}
-            value={[currentTime]}
+            className="min-w-16 flex-1"
             disabled={!isCurrent || !duration}
+            max={duration || 1}
+            min={0}
             onValueChange={([time]) => {
-              if (sharedAudio && isCurrent && time !== undefined)
-                sharedAudio.currentTime = time;
+              if (time !== undefined) seek(time);
             }}
+            step={0.1}
+            value={[Math.min(currentTime, duration || 0)]}
           />
-          <div className="flex items-center gap-2">
-            <span className="flex-1 text-2xs tabular-nums text-muted-foreground">
-              {formatDuration(currentTime)} / {formatDuration(duration)}
-            </span>
-            <Slider
-              aria-label={`Volume for ${label}`}
-              min={0}
-              max={1}
-              step={0.1}
-              value={[volume]}
-              className="max-w-16"
-              disabled={!isCurrent}
-              onValueChange={([nextVolume]) => {
-                if (sharedAudio && isCurrent && nextVolume !== undefined) {
-                  sharedAudio.volume = nextVolume;
-                  setSharedSnapshot({ volume: nextVolume });
-                }
-              }}
-            />
-          </div>
-        </div>
+          <span className="w-[11ch] shrink-0 whitespace-nowrap text-right text-2xs tabular-nums text-muted-foreground">
+            {formatDuration(currentTime)}
+            {duration > 0 ? ` / ${formatDuration(duration)}` : ''}
+          </span>
+          <Button
+            ariaLabel={
+              isMuted
+                ? `Unmute preview for ${label}`
+                : `Mute preview for ${label}`
+            }
+            className="size-7 shrink-0"
+            isDisabled={!audioUrl}
+            onClick={toggleMute}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {isMuted ? (
+              <VolumeX aria-hidden="true" className="size-4" />
+            ) : (
+              <Volume2 aria-hidden="true" className="size-4" />
+            )}
+          </Button>
+        </>
       )}
       {isErrored ? (
-        <span className="text-xs text-destructive">Preview failed</span>
+        <span className="shrink-0 text-xs text-destructive">
+          Preview failed
+        </span>
       ) : null}
     </div>
   );

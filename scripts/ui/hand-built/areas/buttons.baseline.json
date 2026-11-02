@@ -321,10 +321,10 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.tsx": {
-      "button-restyle": 8
+      "button-restyle": 7
     },
     "apps/web/src/components/prompt-bars/components/essentials/PromptBarEssentials.tsx": {
-      "button-restyle": 7
+      "button-restyle": 6
     },
     "apps/web/src/components/prompt-bars/components/frame-controls/PromptBarFrameControls.tsx": {
       "button-restyle": 2,

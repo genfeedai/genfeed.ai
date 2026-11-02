@@ -8,9 +8,8 @@ import type {
 import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { AnalyticsService } from '@services/analytics/analytics.service';
-import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
 import { useLeaderboards } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
@@ -123,10 +122,6 @@ export function useWorkspaceDashboardData(brandId: string) {
     () => getDateRangeKeys(dateRange),
     [dateRange],
   );
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-
   const { analytics, isLoading: isAnalyticsLoading } = useAnalytics({
     autoLoad: true,
     endDate: endDateKey ?? undefined,
@@ -145,45 +140,46 @@ export function useWorkspaceDashboardData(brandId: string) {
     limit: 10,
     metric: AnalyticsMetric.VIEWS,
   });
+  const isChartReady = Boolean(brandId && startDateKey && endDateKey);
   const { data: platformComparisonData = [], isLoading: isPlatformLoading } =
-    useQuery<Array<Record<string, unknown>>>({
-      enabled: Boolean(brandId && startDateKey && endDateKey),
-      queryFn: async () => {
-        const service = await getAnalyticsService();
-        const value = await service.getPlatformComparison({
-          brandId,
-          endDate: endDateKey ?? undefined,
-          startDate: startDateKey ?? undefined,
-        });
-        return normalizePlatformComparison(value);
-      },
+    useAuthedQuery({
+      enabled: isChartReady,
+      queryFn: async (service: AnalyticsService) =>
+        normalizePlatformComparison(
+          await service.getPlatformComparison({
+            brandId,
+            endDate: endDateKey ?? undefined,
+            startDate: startDateKey ?? undefined,
+          }),
+        ),
       queryKey: [
         'dashboard-layout-platform-comparison',
         brandId,
         startDateKey,
         endDateKey,
-        refreshTrigger,
       ],
+      refreshKey: refreshTrigger,
+      service: (token: string) => AnalyticsService.getInstance(token),
     });
   const { data: timeSeriesData = [], isLoading: isTimeseriesLoading } =
-    useQuery<Array<Record<string, unknown>>>({
-      enabled: Boolean(brandId && startDateKey && endDateKey),
-      queryFn: async () => {
-        const service = await getAnalyticsService();
-        const value = await service.getTimeSeries({
-          brandId,
-          endDate: endDateKey ?? undefined,
-          startDate: startDateKey ?? undefined,
-        });
-        return normalizeTimeSeries(value);
-      },
+    useAuthedQuery({
+      enabled: isChartReady,
+      queryFn: async (service: AnalyticsService) =>
+        normalizeTimeSeries(
+          await service.getTimeSeries({
+            brandId,
+            endDate: endDateKey ?? undefined,
+            startDate: startDateKey ?? undefined,
+          }),
+        ),
       queryKey: [
         'dashboard-layout-timeseries',
         brandId,
         startDateKey,
         endDateKey,
-        refreshTrigger,
       ],
+      refreshKey: refreshTrigger,
+      service: (token: string) => AnalyticsService.getInstance(token),
     });
 
   const bundle = useMemo<DashboardPresetData>(

@@ -4,6 +4,7 @@ import type {
   IContentPlanSeedPreview,
   IGenerateContentPlanInput,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -45,11 +46,12 @@ export class ContentPlansService extends HTTPBaseService {
     query: { limit?: number; page?: number } = {},
     signal?: AbortSignal,
   ): Promise<IContentPlan[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content/plans`,
       { params: query, signal },
     );
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
 
     return deserializeCollection<IContentPlan>(response.data);
   }

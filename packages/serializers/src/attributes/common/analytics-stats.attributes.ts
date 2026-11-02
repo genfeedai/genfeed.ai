@@ -6,6 +6,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const analyticsPaginatedStatsAttributes = createEntityAttributes([
   'data',
   'pagination',
+  'totals',
 ]);
 
 // Named aliases used by org/brand analytics serializers.

@@ -49,6 +49,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => null,
   ContextSidebarPanel: ({
     children,
     selection,
