@@ -130,10 +130,6 @@ vi.mock('@ui/display/table/Table', () => ({
   },
 }));
 
-vi.mock('@/features/admin/lazy/lazy-modal.admin', () => ({
-  LazyModalSubscription: () => null,
-}));
-
 function makeBilling(
   overrides: Partial<IOrganizationBilling> = {},
 ): IOrganizationBilling {

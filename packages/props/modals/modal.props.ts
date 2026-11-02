@@ -407,11 +407,6 @@ export interface ModalMetadataProps extends ModalVisibilityProps {
   onConfirm: () => void;
 }
 
-export interface ModalOrganizationProps {
-  organizationId?: string | null;
-  onConfirm: () => void;
-}
-
 export interface ModalExportProps extends ModalVisibilityProps {
   onExport: (format: 'csv' | 'xlsx', fields: string[]) => void;
 }
