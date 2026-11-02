@@ -3,10 +3,7 @@ import {
   exportFields,
   exportSchema,
 } from '@genfeedai/client/schemas/workflow/export.schema';
-import {
-  trainingEditSchema,
-  trainingSchema,
-} from '@genfeedai/client/schemas/workflow/training.schema';
+import { trainingSchema } from '@genfeedai/client/schemas/workflow/training.schema';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -54,18 +51,6 @@ describe('workflow schemas', () => {
           trigger: 'T',
         }).success,
       ).toBe(false);
-    });
-  });
-
-  describe('trainingEditSchema', () => {
-    it('accepts valid', () => {
-      expect(trainingEditSchema.safeParse({ label: 'Name' }).success).toBe(
-        true,
-      );
-    });
-
-    it('rejects empty label', () => {
-      expect(trainingEditSchema.safeParse({ label: '' }).success).toBe(false);
     });
   });
 

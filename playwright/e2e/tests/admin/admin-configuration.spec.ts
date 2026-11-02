@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { filtersTrigger } from '../../utils/filter-menu';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
@@ -64,5 +65,70 @@ test.describe('Admin Configuration', () => {
     await expect(filtersTrigger(field)).toBeVisible();
     await search.fill('wide');
     await expect(search).toHaveValue('wide');
+  });
+
+  test('font family is edited in the context panel without a modal', async ({
+    adminPage,
+  }) => {
+    const patches: unknown[] = [];
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern(
+        'font-families(?:/[^?]*)?(?:\\?.*)?$',
+      ),
+      async (route) => {
+        const request = route.request();
+        if (request.method() === 'PATCH') {
+          patches.push(request.postDataJSON());
+          await route.fulfill({
+            json: {
+              data: {
+                attributes: { id: 'font-e2e-1' },
+                id: 'font-e2e-1',
+                type: 'font-families',
+              },
+            },
+          });
+          return;
+        }
+        await route.fulfill({
+          json: {
+            data: [
+              {
+                attributes: {
+                  description: null,
+                  isDeleted: false,
+                  key: 'geist',
+                  label: 'Geist',
+                },
+                id: 'font-e2e-1',
+                type: 'font-families',
+              },
+            ],
+          },
+        });
+      },
+    );
+
+    await assertRouteRenders(
+      adminPage,
+      APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES,
+    );
+    await adminPage.getByRole('row', { name: /Geist/ }).click();
+
+    await expect(adminPage.getByRole('button', { name: 'Edit' })).toHaveCount(
+      0,
+    );
+    await adminPage.getByRole('button', { name: 'Description' }).click();
+    await adminPage
+      .getByRole('textbox', { name: 'Description' })
+      .fill('Geometric sans');
+    await adminPage
+      .getByRole('textbox', { name: 'Description' })
+      .press('Control+Enter');
+
+    await expect
+      .poll(() => patches)
+      .toEqual([{ description: 'Geometric sans' }]);
+    await expect(adminPage.getByRole('dialog')).toHaveCount(0);
   });
 });

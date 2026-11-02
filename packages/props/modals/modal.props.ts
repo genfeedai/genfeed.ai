@@ -35,14 +35,11 @@ import type {
   IPostPlatformConfig,
   IPreset,
   IReplyBotConfig,
-  IRole,
   ISound,
   ITag,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
-import type { Training } from '@genfeedai/models/ai/training.model';
-import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/crun-video-prompt-binding.props';
 import type { ContentProps } from '@props/layout/content.props';
 import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
@@ -65,6 +62,12 @@ export type ModalModelProps = ModalBaseProps<IModel>;
  */
 export interface ModalCrudProps<T = unknown> {
   item?: T | null;
+  onConfirm: (isRefreshing?: boolean) => void;
+  onClose?: () => void;
+}
+
+/** A create-only modal: records are edited in place in the context sidebar. */
+export interface ModalCreateProps {
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
 }
@@ -173,24 +176,18 @@ export interface ModalStoryboardUploadProps {
   isMultiple?: boolean;
 }
 
-export interface ModalTagProps extends ModalCrudProps<ITag> {
+export interface ModalTagProps extends ModalCreateProps {
   entityType?: TagCategory;
   entityId?: string;
 }
 
 export interface ModalRoleProps {
-  role?: IRole | null;
   onConfirm: (isRefreshing?: boolean) => void;
 }
 
-// Special case: ModalBlacklist uses ElementBlacklist type instead of IElementBlacklist
-export interface ModalBlacklistProps extends ModalCrudProps<IElementBlacklist> {
-  item?: ElementBlacklist | null;
-}
+export type ModalBlacklistProps = ModalCreateProps;
 
-// Special case: ModalSound uses 'sound' instead of 'item'
 export interface ModalSoundProps {
-  sound?: ISound | null;
   onConfirm: (isRefreshing?: boolean) => void;
 }
 
@@ -403,11 +400,6 @@ export interface ModalPromptProps extends ModalVisibilityProps {
     sounds?: string[];
   }) => void;
   error?: string | null;
-}
-
-export interface ModalTrainingProps {
-  training: Training | null;
-  onSuccess?: () => void;
 }
 
 export interface ModalMetadataProps extends ModalVisibilityProps {

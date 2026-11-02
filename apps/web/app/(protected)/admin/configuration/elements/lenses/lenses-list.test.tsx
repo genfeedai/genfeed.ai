@@ -33,7 +33,6 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
 }));
 
@@ -46,10 +45,6 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -249,7 +244,7 @@ describe('LensesList', () => {
   it('renders superadmin lenses and reads the admin filters from the URL', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
-    expect(await screen.findByText('Wide Lens')).toBeInTheDocument();
+    expect((await screen.findAllByText('Wide Lens')).length).toBeGreaterThan(0);
     expect(screen.getByText('Macro Lens')).toBeInTheDocument();
     expect(mocks.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -293,50 +288,51 @@ describe('LensesList', () => {
     );
   });
 
-  it('opens the lens summary in the sidebar with Edit for superadmins', async () => {
+  it('shows the lens in the sidebar with fields editable in place for superadmins', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     const sidebar = within(await screen.findByTestId('row-sidebar'));
-    expect(sidebar.getByText('wide_lens')).toBeInTheDocument();
-    expect(sidebar.getByText('Lens description')).toBeInTheDocument();
-
-    fireEvent.click(sidebar.getByRole('button', { name: 'Edit' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('lens-modal')).toHaveTextContent('Wide Lens');
+    expect(sidebar.getByRole('button', { name: 'Key' })).toHaveTextContent(
+      'wide_lens',
+    );
+    expect(
+      sidebar.getByRole('button', { name: 'Description' }),
+    ).toHaveTextContent('Lens description');
+    expect(
+      sidebar.queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a read-only lens summary outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    expect(sidebar.getByText('wide_lens')).toBeInTheDocument();
     expect(
-      within(await screen.findByTestId('row-sidebar')).queryByRole('button', {
-        name: 'Edit',
-      }),
+      sidebar.queryByRole('button', { name: 'Label' }),
     ).not.toBeInTheDocument();
   });
 
-  it('registers external refresh and opens edit/delete flows with the selected lens', async () => {
+  it('registers external refresh and opens the delete flow with the selected lens', async () => {
     const onRefresh = vi.fn();
 
     renderList({ onRefresh, scope: PageScope.SUPERADMIN });
-    await screen.findByText('Macro Lens');
+    await screen.findAllByText('Macro Lens');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
     mocks.findAll.mockResolvedValue([makeLens({ label: 'Refreshed Lens' })]);
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    expect(await screen.findByText('Refreshed Lens')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Refreshed Lens')).length,
+    ).toBeGreaterThan(0);
 
     mocks.findAll.mockResolvedValue(LENSS);
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    await screen.findByText('Macro Lens');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Macro Lens' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('lens-modal')).toHaveTextContent('Macro Lens');
+    await screen.findAllByText('Macro Lens');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Macro Lens' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(
@@ -401,7 +397,7 @@ describe('LensesList', () => {
   it('hides superadmin filters and actions outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
-    await screen.findByText('Wide Lens');
+    await screen.findAllByText('Wide Lens');
     expect(screen.queryByRole('button', { name: 'Edit Wide Lens' })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Delete Wide Lens' }),
@@ -424,7 +420,7 @@ describe('LensesList', () => {
     mocks.findAll.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
-    expect(screen.getByText('Wide Lens')).toBeInTheDocument();
+    expect(screen.getAllByText('Wide Lens').length).toBeGreaterThan(0);
     expect(screen.getByText('Pagination: 14 lenses')).toBeInTheDocument();
     expect(screen.queryByText('Loading lenses')).not.toBeInTheDocument();
   });

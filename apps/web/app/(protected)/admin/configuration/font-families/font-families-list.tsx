@@ -16,21 +16,23 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { FontFamiliesService } from '@services/elements/font-families.service';
+import { normalizeElementKey } from '@ui/display/element-scope-badge/element-row-sidebar';
 import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect } from 'react';
 import AdminOrgBrandUrlFilter, {
   useAdminOrgBrandParams,
 } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { LazyModalFontFamily } from '@/components/lazy/modal/LazyModal';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const FONT_FAMILY_SORT_KEYS = ['label', 'key'];
@@ -57,9 +59,6 @@ function FontFamiliesListContent({
     useCallback((token: string) => FontFamiliesService.getInstance(token), []),
   );
 
-  const [selectedFontFamily, setSelectedFontFamily] =
-    useState<IFontFamily | null>(null);
-
   const columns: TableColumn<FontFamily>[] = [
     {
       header: 'Label',
@@ -79,15 +78,8 @@ function FontFamiliesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (fontFamily: FontFamily) =>
-              openFontFamilyModal(ModalEnum.FONT_FAMILY, fontFamily),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: (fontFamily: FontFamily) => {
-              setSelectedFontFamily(fontFamily);
               openConfirm({
                 confirmLabel: 'Delete',
                 isError: true,
@@ -154,32 +146,72 @@ function FontFamiliesListContent({
     }
   }, [errorUpdatedAt, isError, notificationsService]);
 
-  const openFontFamilyModal = (
-    modalId: ModalEnum,
-    fontFamily?: IFontFamily,
-  ) => {
-    setSelectedFontFamily(fontFamily ?? null);
-    openModal(modalId);
-  };
-
   const handleDelete = async (fontFamily: IFontFamily) => {
     try {
       const service = await getFontFamiliesService();
       await service.delete(fontFamily.id);
       notificationsService.success('Font family deleted');
-      setSelectedFontFamily(null);
       findAllFontFamilies();
     } catch (error) {
       logger.error('Failed to delete font family', error);
       notificationsService.error('Failed to delete font family');
-      setSelectedFontFamily(null);
     }
   };
 
+  const saveFontFamily = useInlineRecordSave<Partial<IFontFamily>>({
+    errorMessage: 'Failed to update font family',
+    onSaved: () => findAllFontFamilies(),
+    save: async (id, patch) =>
+      (await getFontFamiliesService()).patch(id, patch),
+  });
+
+  const isEditable = scope === PageScope.SUPERADMIN;
+
   const rowSidebar = createSummaryRowSidebar<FontFamily>({
     getFacts: (fontFamily) => [
-      { id: 'key', label: fieldsT('key'), value: fontFamily.key },
       {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('label'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (label) => saveFontFamily(fontFamily.id, { label }),
+              value: fontFamily.label,
+            }
+          : undefined,
+        id: 'label',
+        label: fieldsT('label'),
+        value: fontFamily.label,
+      },
+      {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('key'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (key) =>
+                saveFontFamily(fontFamily.id, {
+                  key: normalizeElementKey(key),
+                }),
+              value: fontFamily.key,
+            }
+          : undefined,
+        id: 'key',
+        label: fieldsT('key'),
+        value: fontFamily.key,
+      },
+      {
+        editor: isEditable
+          ? {
+              ariaLabel: fieldsT('description'),
+              isMultiline: true,
+              kind: 'text',
+              onSave: (description) =>
+                saveFontFamily(fontFamily.id, { description }),
+              placeholder: '-',
+              value: fontFamily.description,
+            }
+          : undefined,
         id: 'description',
         label: fieldsT('description'),
         value: fontFamily.description,
@@ -189,10 +221,6 @@ function FontFamiliesListContent({
     getSubtitle: (fontFamily) => fontFamily.key,
     getTitle: (fontFamily) => fontFamily.label,
     kind: 'record',
-    onEdit:
-      scope === PageScope.SUPERADMIN
-        ? (fontFamily) => openFontFamilyModal(ModalEnum.FONT_FAMILY, fontFamily)
-        : undefined,
   });
 
   return (
@@ -217,7 +245,7 @@ function FontFamiliesListContent({
             label="Font Family"
             icon={<Plus />}
             variant={ButtonVariant.DEFAULT}
-            onClick={() => openFontFamilyModal(ModalEnum.FONT_FAMILY)}
+            onClick={() => openModal(ModalEnum.FONT_FAMILY)}
           />
         ) : undefined
       }
@@ -236,14 +264,7 @@ function FontFamiliesListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalFontFamily
-          item={selectedFontFamily}
-          onClose={() => setSelectedFontFamily(null)}
-          onConfirm={() => {
-            setSelectedFontFamily(null);
-            findAllFontFamilies();
-          }}
-        />
+        <LazyModalFontFamily onConfirm={() => findAllFontFamilies()} />
       )}
 
       <div className="mt-4">

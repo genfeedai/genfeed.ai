@@ -27,12 +27,7 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -221,13 +216,10 @@ describe('ScenesList', () => {
     );
   });
 
-  it('opens edit and delete flows with the clicked scene', async () => {
+  it('opens the delete flow with the clicked scene', async () => {
     render(<ScenesList scope={PageScope.SUPERADMIN} />);
 
     await screen.findByText('Kitchen');
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Kitchen' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('scene-modal')).toHaveTextContent('Kitchen');
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Kitchen' }));
     expect(mocks.openConfirm).toHaveBeenCalledWith(
