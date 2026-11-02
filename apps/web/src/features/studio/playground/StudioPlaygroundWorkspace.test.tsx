@@ -3051,7 +3051,12 @@ describe('StudioPlaygroundWorkspace', () => {
         ]),
       );
       // One reference the server pruned and one the client could not load.
-      expect(await screen.findByText('draft.referencesDropped')).toBeVisible();
+      expect(
+        await notifications().findByText('draft.referencesDropped'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getAllByText('draft.referencesDropped').length,
+      ).toBeGreaterThan(1);
     });
 
     it('restores one Library image in both frame roles without merging their draft positions', async () => {
