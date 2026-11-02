@@ -59,7 +59,7 @@ export function getAcceptedTypes(
       '.png',
       '.webp',
       '.gif',
-      ...(isLibraryImage ? ['.heic', '.heif'] : []),
+      ...(isLibraryImage ? ['.heic', '.heif', '.svg'] : []),
     ];
   }
   if (isVideoLike) {

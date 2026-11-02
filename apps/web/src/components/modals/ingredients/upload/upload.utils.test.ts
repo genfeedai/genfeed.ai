@@ -15,7 +15,7 @@ function readBytes(file: File): Promise<string | ArrayBuffer | null> {
 }
 
 describe('Library upload declarations', () => {
-  it('adds HEIC and HEIF only to Library IMAGE acceptance', () => {
+  it('adds HEIC, HEIF and SVG only to Library IMAGE acceptance', () => {
     expect(getAcceptedTypes(true, false, false, true)).toEqual([
       '.jpg',
       '.jpeg',
@@ -24,6 +24,7 @@ describe('Library upload declarations', () => {
       '.gif',
       '.heic',
       '.heif',
+      '.svg',
     ]);
     expect(getAcceptedTypes(true, false, false)).toEqual([
       '.jpg',

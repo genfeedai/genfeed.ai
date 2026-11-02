@@ -19,6 +19,16 @@ import {
 } from 'vitest';
 import { useModalUpload } from './useModalUpload';
 
+vi.mock('./svg-rasterize.util', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./svg-rasterize.util')>()),
+  rasterizeSvgFile: vi.fn(
+    async (file: File) =>
+      new File(['png-bytes'], file.name.replace(/\.svg$/i, '.png'), {
+        type: 'image/png',
+      }),
+  ),
+}));
+
 const boundary = vi.hoisted(() => ({
   clearRecordedFile: vi.fn(),
   closeModal: vi.fn(),
@@ -547,6 +557,28 @@ describe('actual upload service transport delegation and completion', () => {
       expect(boundary.closeModal).toHaveBeenCalledTimes(1);
     },
   );
+
+  it('uploads an SVG as the transparent PNG the browser rendered from it', async () => {
+    const hook = renderUpload();
+    await pick(hook, [
+      new File(['<svg/>'], 'qa-logo.svg', { type: 'image/svg+xml' }),
+    ]);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    expect(boundary.presigned).toHaveBeenCalledWith(
+      'qa-logo.png',
+      'image/png',
+      IngredientCategory.IMAGE,
+      expect.any(Number),
+    );
+    expect(boundary.put).toHaveBeenCalledWith(
+      'https://bucket.s3.amazonaws.com/ingress',
+      expect.objectContaining({ name: 'qa-logo.png', type: 'image/png' }),
+      expect.objectContaining({ headers: { 'Content-Type': 'image/png' } }),
+    );
+    expect(boundary.onComplete.mock.calls[0][0][0]).toBe(jpegResult);
+  });
 
   it('normalizes URL intake immediately before transport without fabricating JPEG', async () => {
     vi.stubGlobal(
