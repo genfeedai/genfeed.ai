@@ -15,7 +15,7 @@ import type {
   IOnboardingFirstDraft,
   IOnboardingFirstDraftsResult,
 } from '@genfeedai/contracts/interfaces';
-import type { ContentRun } from '@genfeedai/prisma';
+import type { ContentRun, IngredientStatus } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -49,7 +49,11 @@ const resultSchema = z.object({
     .optional(),
 });
 
-const READY_INGREDIENT_STATUSES = ['GENERATED', 'UPLOADED', 'VALIDATED'];
+const READY_INGREDIENT_STATUSES: IngredientStatus[] = [
+  'GENERATED',
+  'UPLOADED',
+  'VALIDATED',
+];
 const legacyArtifactSchema = z.object({
   artifact: z.object({ kind: z.literal('post'), id: z.string() }),
 });
