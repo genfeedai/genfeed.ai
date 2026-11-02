@@ -2,6 +2,7 @@
 
 import { ButtonVariant, CampaignStatus } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isCollectionFetchReady,
@@ -14,6 +15,7 @@ import {
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -21,10 +23,13 @@ import { Button } from '@ui/primitives/button';
 import { Plus, Rocket } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import type { OutreachCampaignsData } from '@/features/agents/props/outreach-campaigns-list.props';
 
 import OutreachCampaignsKPI from './OutreachCampaignsKPI';
 import OutreachCampaignsTable from './OutreachCampaignsTable';
+
+const EMPTY_CAMPAIGNS: OutreachCampaign[] = [];
 
 export default function OutreachCampaignsList() {
   const router = useRouter();
@@ -42,31 +47,28 @@ export default function OutreachCampaignsList() {
 
   const notificationsService = NotificationsService.getInstance();
 
-  // `campaigns` is every campaign (the KPIs summarise all of them); the table
-  // shows only the current server page.
-  const [campaigns, setCampaigns] = useState<OutreachCampaign[]>([]);
-  const [pageCampaigns, setPageCampaigns] = useState<OutreachCampaign[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const queryClient = useQueryClient();
   const getService = useAuthedService((token: string) =>
     OutreachCampaignsService.getInstance(token),
   );
 
-  const loadCampaigns = useCallback(
-    async (refresh = false, signal?: AbortSignal) => {
-      if (!isFetchReady) {
-        return;
-      }
-
-      if (!refresh) {
-        setIsLoading(true);
-      }
-      setIsRefreshing(refresh);
-
+  // `all` is every campaign (the KPIs summarise all of them); `page` is the
+  // current server page the table shows. Cached: coming back paints both
+  // while they refresh, and paging keeps the KPIs on screen.
+  const scopeKey = [
+    'outreach-campaigns',
+    organizationId ?? null,
+    { brandId: brandId ?? null },
+  ] as const;
+  const campaignsQuery = useAuthedQuery<
+    OutreachCampaignsService,
+    OutreachCampaignsData
+  >({
+    enabled: isFetchReady,
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
       try {
-        const service = await getService();
-        const [fetchedCampaigns, fetchedPage] = await Promise.all([
+        const [all, page] = await Promise.all([
           service.findAllByOrganization(organizationId, brandId, signal),
           service.findPageByOrganization(
             organizationId,
@@ -74,56 +76,55 @@ export default function OutreachCampaignsList() {
             signal,
           ),
         ]);
-        if (signal?.aborted) {
-          return;
-        }
-        setCampaigns(fetchedCampaigns);
-        setPageCampaigns(fetchedPage);
-        logger.info('Loaded campaigns', { count: fetchedCampaigns.length });
+        logger.info('Loaded campaigns', { count: all.length });
+        return { all, page };
       } catch (error) {
-        if (
-          signal?.aborted ||
-          (error instanceof Error && error.name === 'AbortError')
-        ) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load campaigns', error);
         }
-        logger.error('Failed to load campaigns', error);
-        notificationsService.error(translate('notifications.loadFailed'));
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
+        throw error;
       }
     },
-    [
-      brandId,
-      currentPage,
-      getService,
-      isFetchReady,
-      notificationsService,
-      organizationId,
-      translate,
-    ],
-  );
+    queryKey: [...scopeKey, { page: currentPage }],
+    service: (token: string) => OutreachCampaignsService.getInstance(token),
+  });
+  const { errorUpdatedAt, isError, isFetching, isPending, refetch } =
+    campaignsQuery;
+  // Pending, not just fetching: until the scope is ready and the first read
+  // lands, the KPIs and table are skeletons, never zeros.
+  const isLoading = isPending;
+  const campaigns = campaignsQuery.data?.all ?? EMPTY_CAMPAIGNS;
+  const pageCampaigns = campaignsQuery.data?.page ?? EMPTY_CAMPAIGNS;
+  const isRefreshing = isFetching && !isPending;
 
+  // One toast per failed read, after its retry, not one per attempt.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: errorUpdatedAt marks each new failed read.
   useEffect(() => {
-    if (!isFetchReady) {
-      return;
+    if (isError) {
+      notificationsService.error(translate('notifications.loadFailed'));
     }
-    const controller = new AbortController();
-    void loadCampaigns(false, controller.signal);
-    return () => controller.abort();
-  }, [isFetchReady, loadCampaigns]);
+  }, [errorUpdatedAt, isError, notificationsService, translate]);
+
+  const updateCachedCampaigns = useCallback(
+    (update: (items: OutreachCampaign[]) => OutreachCampaign[]) => {
+      queryClient.setQueriesData<OutreachCampaignsData>(
+        { queryKey: ['outreach-campaigns'] },
+        (current) =>
+          current
+            ? { all: update(current.all), page: update(current.page) }
+            : current,
+      );
+    },
+    [queryClient],
+  );
 
   const patchCampaign = useCallback(
     (id: string, patch: Partial<OutreachCampaign>) => {
-      const apply = (items: OutreachCampaign[]) =>
-        items.map((item) => (item.id === id ? { ...item, ...patch } : item));
-      setCampaigns(apply);
-      setPageCampaigns(apply);
+      updateCachedCampaigns((items) =>
+        items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+      );
     },
-    [],
+    [updateCachedCampaigns],
   );
 
   const handleStartCampaign = useCallback(
@@ -204,10 +205,9 @@ export default function OutreachCampaignsList() {
         const service = await getService();
         await service.delete(campaign.id);
 
-        const withoutCampaign = (items: OutreachCampaign[]) =>
-          items.filter((item) => item.id !== campaign.id);
-        setCampaigns(withoutCampaign);
-        setPageCampaigns(withoutCampaign);
+        updateCachedCampaigns((items) =>
+          items.filter((item) => item.id !== campaign.id),
+        );
         notificationsService.success(
           translate('notifications.deleted', { label: campaign.label }),
         );
@@ -216,7 +216,7 @@ export default function OutreachCampaignsList() {
         notificationsService.error(translate('notifications.deleteFailed'));
       }
     },
-    [getService, notificationsService, translate],
+    [getService, notificationsService, translate, updateCachedCampaigns],
   );
 
   const activeCampaigns = useMemo(
@@ -250,7 +250,9 @@ export default function OutreachCampaignsList() {
       icon={Rocket}
       refresh={
         <ButtonRefresh
-          onClick={() => loadCampaigns(true)}
+          onClick={() => {
+            void refetch();
+          }}
           isRefreshing={isRefreshing}
         />
       }
@@ -269,6 +271,7 @@ export default function OutreachCampaignsList() {
       <div className="space-y-6">
         <OutreachCampaignsKPI
           campaigns={campaigns}
+          isLoading={isLoading}
           activeCampaignsCount={activeCampaigns.length}
           totalReplies={totalReplies}
           successRate={successRate}
