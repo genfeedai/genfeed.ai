@@ -167,8 +167,11 @@ export default function KnowledgeSourcesList({
         : rows,
     [rows, selectedSpaceId],
   );
+  // A source already in the list shows at once while its detail reloads, so
+  // the context sidebar stays open and only the data swaps; actions stay
+  // blocked until the load settles (see isActionableSource).
   const selectedRow =
-    !isLoading && !selectionError && !isInvalidSelection
+    !selectionError && !isInvalidSelection
       ? loadedSelectedRow?.source.id === selectedSourceId
         ? loadedSelectedRow
         : (rows.find((row) => row.source.id === selectedSourceId) ?? null)
@@ -577,7 +580,7 @@ export default function KnowledgeSourcesList({
           columns={columns}
           emptyLabel={translate('emptyTitle')}
           getRowKey={(row) => row.source.id}
-          isLoading={isLoading}
+          isLoading={isLoading && visibleRows.length === 0}
           items={visibleRows}
           onRowClick={(row) => selectSource(row.source.id)}
         />

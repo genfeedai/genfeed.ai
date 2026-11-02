@@ -125,6 +125,28 @@ describe('useKnowledgeLibrary', () => {
     expect(result.current.rows.map((row) => row.source.id)).toEqual(['s2']);
   });
 
+  it('keeps the list while only the selection changes, and hides stale selected details', async () => {
+    mocks.findForBrand.mockResolvedValue([{ id: 's1' }, { id: 's2' }]);
+    const { rerender, result } = renderHook(
+      ({ selectedSourceId }: { selectedSourceId?: string }) =>
+        useKnowledgeLibrary({ brandId: 'brand-a', selectedSourceId }),
+      { initialProps: { selectedSourceId: 's1' } },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.selectedRow?.source.id).toBe('s1');
+
+    rerender({ selectedSourceId: 's2' });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.rows.map((row) => row.source.id)).toEqual([
+      's1',
+      's2',
+    ]);
+    expect(result.current.selectedRow).toBeNull();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.selectedRow?.source.id).toBe('s2');
+  });
+
   it('reports a load error without leaking partial rows', async () => {
     mocks.findForBrand.mockRejectedValue(new Error('boom'));
 
