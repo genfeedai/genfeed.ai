@@ -38,6 +38,44 @@ test.describe('Admin Dashboard', () => {
     ).toBeVisible();
   });
 
+  test('should offer quick actions as cards that open their admin section', async ({
+    adminPage,
+  }) => {
+    const admin = new AdminPage(adminPage);
+    await admin.gotoOverview();
+    await admin.assertPageVisible();
+
+    const quickActions = adminPage.getByTestId('admin-overview-quick-actions');
+    await expect(quickActions).toBeVisible();
+    await expect(
+      quickActions.getByRole('link', { name: 'Manage Users' }),
+    ).toHaveAttribute('href', /\/admin\/administration\/users/);
+    await expect(
+      quickActions.getByRole('link', { name: 'View Elements' }),
+    ).toBeVisible();
+    await expect(
+      quickActions.getByRole('link', { name: 'View Posts' }),
+    ).toBeVisible();
+    await expect(
+      quickActions.getByText('Review accounts, roles and access.'),
+    ).toBeVisible();
+  });
+
+  test('should not show eyebrow labels above section titles', async ({
+    adminPage,
+  }) => {
+    const admin = new AdminPage(adminPage);
+    await admin.gotoOverview();
+    await admin.assertPageVisible();
+
+    await expect(adminPage.getByText('Quick Actions')).toBeVisible();
+    await expect(
+      adminPage.getByText(
+        /operational snapshot|command deck|performance trend|volume ranking/i,
+      ),
+    ).toHaveCount(0);
+  });
+
   test('should show KPI cards on overview', async ({ adminPage }) => {
     const admin = new AdminPage(adminPage);
     await admin.gotoOverview();

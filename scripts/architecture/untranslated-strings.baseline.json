@@ -149,7 +149,7 @@
     "apps/web/app/(protected)/admin/overview/activity-chart.tsx": 5,
     "apps/web/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx": 37,
     "apps/web/app/(protected)/admin/overview/analytics/layout.tsx": 5,
-    "apps/web/app/(protected)/admin/overview/overview-page.tsx": 21,
+    "apps/web/app/(protected)/admin/overview/overview-page.tsx": 17,
     "apps/web/app/(protected)/home/content.tsx": 9,
     "apps/web/app/(public)/agent-auth/claim/page.tsx": 1,
     "apps/web/app/(public)/desktop/local/page.tsx": 1,

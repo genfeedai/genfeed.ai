@@ -268,7 +268,6 @@ export function OrganizationSettingsTable({
   return (
     <>
       <WorkspaceSurface
-        eyebrow="Organization Controls"
         title="Settings Matrix"
         tone="muted"
         flush

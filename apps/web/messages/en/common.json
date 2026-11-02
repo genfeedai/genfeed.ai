@@ -126,7 +126,24 @@
     "scenes": "Search scenes"
   },
   "adminDashboard": {
-    "loadFailed": "Could not load the platform stats. Try again."
+    "loadFailed": "Could not load the platform stats. Try again.",
+    "quickActions": {
+      "elements": {
+        "cta": "View Elements",
+        "description": "Manage blacklisted terms and prompt elements.",
+        "label": "Elements"
+      },
+      "posts": {
+        "cta": "View Posts",
+        "description": "Browse posts across every organization.",
+        "label": "Posts"
+      },
+      "users": {
+        "cta": "Manage Users",
+        "description": "Review accounts, roles and access.",
+        "label": "Users"
+      }
+    }
   },
   "adminSearch": {
     "announcements": "Search announcements",
@@ -1323,7 +1340,6 @@
         "revealLogs": "Reveal logs",
         "title": "Local mode needs attention"
       },
-      "eyebrow": "Local mode",
       "loading": "Starting local workspace…",
       "generation": {
         "description": "Uses the provider configured on this device.",

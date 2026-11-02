@@ -47,7 +47,6 @@ export function OverviewTrendsPanel({
 
   return (
     <WorkspaceSurface
-      eyebrow="Social Trends"
       title="Research Trends"
       tone={tone}
       className="flex h-full flex-col gap-4"

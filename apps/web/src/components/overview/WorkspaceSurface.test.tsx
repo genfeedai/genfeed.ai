@@ -14,10 +14,9 @@ describe('WorkspaceSurface', () => {
     expect(body(container)).toHaveClass('shadow-border');
   });
 
-  it('renders eyebrow, title, description, and actions on a title row', () => {
+  it('renders title, description, and actions on a title row', () => {
     const { container } = render(
       <WorkspaceSurface
-        eyebrow="Operations"
         title="Recent Runs"
         description="Latest agent work across the workspace."
         actions={<button type="button">View all</button>}
@@ -26,7 +25,6 @@ describe('WorkspaceSurface', () => {
       </WorkspaceSurface>,
     );
 
-    expect(screen.getByText('Operations')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Recent Runs' }),
     ).toBeInTheDocument();

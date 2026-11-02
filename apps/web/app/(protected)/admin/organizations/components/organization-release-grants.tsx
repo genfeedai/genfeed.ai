@@ -67,7 +67,6 @@ export default function OrganizationReleaseGrants({
 
   return (
     <WorkspaceSurface
-      eyebrow={translate('title')}
       title={translate('grantsTitle')}
       tone="muted"
       data-testid="organization-release-grants"

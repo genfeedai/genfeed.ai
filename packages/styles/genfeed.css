@@ -153,30 +153,6 @@
 }
 
 /* --------------------------------------------------------------------------
-   Interactive States
-   -------------------------------------------------------------------------- */
-.gen-hover-lift {
-  transition: transform 0.3s ease-out;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
-.node-card {
-  transition:
-    transform 0.8s cubic-bezier(0.32, 0.72, 0, 1),
-    border-color 0.6s ease;
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--gray-alpha-500);
-    transform: scale(1.05);
-    z-index: 60;
-  }
-}
-
-/* --------------------------------------------------------------------------
    Trend Indicators
    -------------------------------------------------------------------------- */
 /* These are text, not dots — they take the semantic status roles, which are

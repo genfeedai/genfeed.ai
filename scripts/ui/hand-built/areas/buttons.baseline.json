@@ -314,7 +314,6 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/overview/OverviewLayout.tsx": {
-      "button-restyle": 2,
       "unstyled-look": 1
     },
     "apps/web/src/components/prompt-bars/components/blacklist-selector/PromptBarBlacklistSelector.tsx": {

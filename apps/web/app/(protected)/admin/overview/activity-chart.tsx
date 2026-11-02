@@ -51,7 +51,6 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
 
   return (
     <WorkspaceSurface
-      eyebrow="Performance Trend"
       title="Platform Activity"
       tone="muted"
       data-testid="activity-chart"

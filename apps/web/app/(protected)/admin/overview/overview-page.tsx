@@ -1,17 +1,13 @@
 'use client';
 
-import {
-  ButtonVariant,
-  CardEmptySize,
-  CardPadding,
-} from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
-import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';
@@ -23,6 +19,7 @@ import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { OverviewActionCard } from '@/components/overview/OverviewLayout';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import type {
   LeaderboardCardProps,
@@ -31,10 +28,7 @@ import type {
 import { useAdminStats } from '@/hooks/data/analytics/use-admin-stats/use-admin-stats';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
-const ActivityChart = dynamic(
-  () => import('@protected/overview/activity-chart'),
-  { ssr: false },
-);
+const ActivityChart = dynamic(() => import('./activity-chart'), { ssr: false });
 
 function formatNumber(num: number | undefined): string {
   if (num === undefined) {
@@ -49,40 +43,11 @@ function formatNumber(num: number | undefined): string {
   return num.toLocaleString();
 }
 
-// Quick action cards with B&W styling
-const quickActionCards: OverviewCard[] = [
-  {
-    color: 'bg-muted/50 text-foreground',
-    cta: 'Manage Users',
-    href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
-    icon: Users,
-    id: 'users',
-    label: 'Users',
-  },
-  {
-    color: 'bg-muted/50 text-foreground',
-    cta: 'View Elements',
-    href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
-    icon: Tag,
-    id: 'elements',
-    label: 'Elements',
-  },
-  {
-    color: 'bg-muted/50 text-foreground',
-    cta: 'View Posts',
-    href: APP_ROUTES.ADMIN.CONTENT.POSTS,
-    icon: Newspaper,
-    id: 'posts',
-    label: 'Posts',
-  },
-];
-
 // ActivityChart is lazy-loaded via dynamic import (see top of file)
 
 function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
   return (
     <WorkspaceSurface
-      eyebrow="Volume Ranking"
       title="Top Organizations"
       tone="muted"
       className="h-full"
@@ -192,7 +157,6 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
 
   return (
     <WorkspaceSurface
-      eyebrow="Operational Snapshot"
       framed={false}
       title="Quick Stats"
       tone="muted"
@@ -214,43 +178,51 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
 }
 
 function QuickActionsGrid() {
+  const translate = useTranslations('common');
+  const quickActionCards: OverviewCard[] = [
+    {
+      color: 'bg-muted/50 text-foreground',
+      cta: translate('adminDashboard.quickActions.users.cta'),
+      description: translate('adminDashboard.quickActions.users.description'),
+      href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+      icon: Users,
+      id: 'users',
+      label: translate('adminDashboard.quickActions.users.label'),
+    },
+    {
+      color: 'bg-muted/50 text-foreground',
+      cta: translate('adminDashboard.quickActions.elements.cta'),
+      description: translate(
+        'adminDashboard.quickActions.elements.description',
+      ),
+      href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
+      icon: Tag,
+      id: 'elements',
+      label: translate('adminDashboard.quickActions.elements.label'),
+    },
+    {
+      color: 'bg-muted/50 text-foreground',
+      cta: translate('adminDashboard.quickActions.posts.cta'),
+      description: translate('adminDashboard.quickActions.posts.description'),
+      href: APP_ROUTES.ADMIN.CONTENT.POSTS,
+      icon: Newspaper,
+      id: 'posts',
+      label: translate('adminDashboard.quickActions.posts.label'),
+    },
+  ];
+
   return (
     <WorkspaceSurface
-      eyebrow="Command Deck"
       framed={false}
       title="Quick Actions"
       tone="muted"
       data-testid="admin-overview-quick-actions"
     >
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <CollectionGrid maxColumns={3}>
         {quickActionCards.map((card) => (
-          <Link
-            href={card.href || '#'}
-            key={card.label}
-            className={cn(
-              'group relative block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            )}
-          >
-            <Card
-              label={card.label}
-              padding={CardPadding.XL}
-              bodyClassName="flex h-full flex-col justify-between"
-              icon={card.icon}
-              iconWrapperClassName={cn('p-3', card.color)}
-              isInteractive
-              className="h-full text-left group-hover:-translate-y-0.5"
-              data-testid="admin-overview-quick-action"
-            >
-              <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">
-                <span>{card.cta}</span>
-                <span className="text-foreground transition-colors group-hover:text-primary">
-                  Open
-                </span>
-              </div>
-            </Card>
-          </Link>
+          <OverviewActionCard card={card} key={card.id} />
         ))}
-      </div>
+      </CollectionGrid>
     </WorkspaceSurface>
   );
 }
