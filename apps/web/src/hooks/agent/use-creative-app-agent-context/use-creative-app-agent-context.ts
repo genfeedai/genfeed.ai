@@ -19,22 +19,26 @@ export function useCreativeAppAgentContext(
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
 
   useEffect(() => {
-    if (!creativeApp) {
+    const creativeAppContext = creativeApp;
+    if (!creativeAppContext) {
       return;
     }
 
-    function apply(): void {
+    const apply = (): void => {
       const current = useAgentChatStore.getState().pageContext;
-      if (current?.route === pathname && current.creativeApp === creativeApp) {
+      if (
+        current?.route === pathname &&
+        current.creativeApp === creativeAppContext
+      ) {
         return;
       }
       setPageContext({
         suggestedActions: [],
         ...(current?.route === pathname ? current : {}),
-        creativeApp,
+        creativeApp: creativeAppContext,
         route: pathname,
       });
-    }
+    };
 
     apply();
     // The protected layout rebuilds the route's context when its suggestions

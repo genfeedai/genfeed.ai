@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import TurboNewPane from './TurboNewPane';
 
 const mocks = vi.hoisted(() => ({
@@ -20,6 +21,8 @@ const mocks = vi.hoisted(() => ({
     moduleOverrides: { automation: true },
   } as Record<string, unknown>,
   list: vi.fn(),
+  projectList: vi.fn(),
+  getWorkflowService: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   getService: vi.fn(),
@@ -64,7 +67,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getService,
+  useAuthedService: (factory: unknown) =>
+    factory === createWorkflowApiService
+      ? mocks.getWorkflowService
+      : mocks.getService,
 }));
 
 vi.mock('@/hooks/feature-flags/use-feature-flag', () => ({
@@ -120,10 +126,12 @@ function resetMocks() {
   };
   mocks.getService.mockResolvedValue({
     create: mocks.create,
-    list: mocks.list,
+    list: mocks.projectList,
     update: mocks.update,
   });
+  mocks.getWorkflowService.mockResolvedValue({ list: mocks.list });
   mocks.list.mockResolvedValue([]);
+  mocks.projectList.mockResolvedValue([]);
   mocks.create.mockResolvedValue({ id: 'run-1' });
   mocks.update.mockResolvedValue({ id: 'run-1' });
 }
@@ -362,14 +370,19 @@ describe('TurboNewPane', () => {
     let resolve:
       | ((service: { create: typeof mocks.create }) => void)
       | undefined;
+    const { rerender } = render(<TurboNewPane />);
+    await waitFor(() =>
+      expect(mocks.publishContext).toHaveBeenLastCalledWith({
+        app: 'turbo',
+        projects: [],
+      }),
+    );
     mocks.getService.mockImplementationOnce(
       () =>
         new Promise((done) => {
           resolve = done;
         }),
     );
-    const { rerender } = render(<TurboNewPane />);
-
     typePrompt('Launch week');
     fireEvent.click(sendButton());
     mocks.brandId = 'brand-2';
@@ -528,7 +541,7 @@ describe('TurboNewPane from a workflow', () => {
 
   it('does not fetch workflows when the creator leaves while the service resolves', async () => {
     let resolve: ((service: { list: typeof mocks.list }) => void) | undefined;
-    mocks.getService.mockImplementationOnce(
+    mocks.getWorkflowService.mockImplementationOnce(
       () =>
         new Promise((ready) => {
           resolve = ready;
@@ -552,7 +565,7 @@ describe('TurboNewPane from a workflow', () => {
     ];
 
     beforeEach(() => {
-      mocks.list.mockResolvedValue(PROJECTS);
+      mocks.projectList.mockResolvedValue(PROJECTS);
     });
 
     it('tells the agent it is on the Turbo New screen with the brand projects', async () => {
@@ -571,7 +584,7 @@ describe('TurboNewPane from a workflow', () => {
 
     it('asks which project a change request applies to instead of creating one', async () => {
       render(<TurboNewPane />);
-      await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+      await waitFor(() => expect(mocks.projectList).toHaveBeenCalled());
       await screen.findByRole('textbox', { name: 'Creative angle' });
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith(
@@ -585,7 +598,9 @@ describe('TurboNewPane from a workflow', () => {
       expect(
         await screen.findByText('Which project should I apply this to?'),
       ).toBeInTheDocument();
-      expect(screen.getByText('revise the intro')).toBeInTheDocument();
+      expect(
+        screen.getByText('revise the intro', { selector: 'p' }),
+      ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Spring launch' }),
       ).toBeInTheDocument();
@@ -658,7 +673,7 @@ describe('TurboNewPane from a workflow', () => {
     });
 
     it('creates a project for a change request when the brand has none', async () => {
-      mocks.list.mockResolvedValue([]);
+      mocks.projectList.mockResolvedValue([]);
       render(<TurboNewPane />);
       await waitFor(() =>
         expect(mocks.publishContext).toHaveBeenLastCalledWith({

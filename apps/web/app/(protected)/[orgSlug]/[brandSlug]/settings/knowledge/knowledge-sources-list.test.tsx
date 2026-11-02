@@ -68,13 +68,13 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    iconActions,
+    overflow,
     leading,
     refresh,
     right,
   }: {
     children: ReactNode;
-    iconActions?: ReactNode;
+    overflow?: ReactNode;
     leading?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
@@ -83,7 +83,7 @@ vi.mock('@ui/layout/container/Container', () => ({
       <div role="toolbar">
         {leading}
         {refresh}
-        {iconActions}
+        {overflow}
         {right}
       </div>
       {children}
@@ -320,8 +320,10 @@ describe('KnowledgeSourcesList', () => {
     mocks.capture.mockResolvedValue({ jobId: 'job', source: { id: 'seed' } });
 
     renderList({ website: 'https://brand.example/' });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Seed from Brand Kit' }),
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(
+      screen.getByRole('menuitem', { name: 'Seed from Brand Kit' }),
     );
 
     await waitFor(() => expect(mocks.capture).toHaveBeenCalledTimes(1));

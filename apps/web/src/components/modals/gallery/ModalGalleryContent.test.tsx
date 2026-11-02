@@ -440,7 +440,7 @@ describe('ModalGalleryContent', () => {
         />,
       );
       const grid = screen.getByTestId('video-item-vid-1').parentElement;
-      expect(grid).toHaveClass('grid', 'gap-4', '@[40rem]:grid-cols-2');
+      expect(grid).toHaveClass('grid', 'gap-5', '@[40rem]:grid-cols-2');
       expect(grid?.parentElement).toHaveClass('@container');
       expect(screen.getByTestId('video-item-vid-1')).toBeInTheDocument();
       expect(screen.getByTestId('video-item-vid-2')).toBeInTheDocument();
