@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
 import { Button } from '@ui/primitives/button';
+import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
 import { ChevronRight, FileText } from 'lucide-react';
 
 import Link from 'next/link';
