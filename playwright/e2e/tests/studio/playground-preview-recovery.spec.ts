@@ -7,6 +7,7 @@ import {
 import type { Locator, Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { showOutputPane } from '../../utils/agent-output-layout';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import {
   mockGenerationQuote,
@@ -200,6 +201,8 @@ async function mountPlayground(page: Page) {
   await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
+  // Below xl the generations sit behind the Output view.
+  await showOutputPane(page);
   return { generationWrites, media };
 }
 

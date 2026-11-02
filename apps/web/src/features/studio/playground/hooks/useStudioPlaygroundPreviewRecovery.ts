@@ -1,33 +1,23 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
-import type { StudioPlaygroundPreviewRecovery } from '@/features/studio/props/studio-playground.props';
+import { useStudioPlaygroundPreviewRecoveryStore } from '@/store/studio-playground-preview-recovery.store';
 
 /**
  * Carries a successful Inspector "Retry preview" back to the gallery. The
  * Inspector owns the retry; without this the grid card for the same asset
  * keeps its local "Preview unavailable" state and its failed delivery grant.
- * Recovery only re-reads authorized media — it never starts a generation.
+ * The recovery is shared across workspaces because an open generation and the
+ * gallery are separate routes. Recovery only re-reads authorized media — it
+ * never starts a generation.
  */
 export function useStudioPlaygroundPreviewRecovery(
   jobs: readonly StudioPlaygroundJob[],
 ) {
-  const [recoveries, setRecoveries] = useState<
-    Readonly<Record<string, StudioPlaygroundPreviewRecovery>>
-  >({});
-
-  const recoverPreview = useCallback(
-    (job: StudioPlaygroundJob, recoveredUrl: string | undefined) => {
-      setRecoveries((current) => ({
-        ...current,
-        [job.id]: {
-          revision: (current[job.id]?.revision ?? 0) + 1,
-          ...(recoveredUrl && recoveredUrl !== job.url
-            ? { staleUrl: job.url, url: recoveredUrl }
-            : {}),
-        },
-      }));
-    },
-    [],
+  const recoveries = useStudioPlaygroundPreviewRecoveryStore(
+    (state) => state.recoveries,
+  );
+  const recoverPreview = useStudioPlaygroundPreviewRecoveryStore(
+    (state) => state.recordRecovery,
   );
 
   const recoveredJobs = useMemo(

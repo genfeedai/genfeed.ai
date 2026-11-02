@@ -1,8 +1,9 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useStudioPlaygroundPreviewRecovery } from '@/features/studio/playground/hooks/useStudioPlaygroundPreviewRecovery';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
+import { useStudioPlaygroundPreviewRecoveryStore } from '@/store/studio-playground-preview-recovery.store';
 
 const job: StudioPlaygroundJob = {
   createdAt: 1,
@@ -21,6 +22,10 @@ const sibling: StudioPlaygroundJob = {
 };
 
 describe('useStudioPlaygroundPreviewRecovery', () => {
+  beforeEach(() => {
+    useStudioPlaygroundPreviewRecoveryStore.setState({ recoveries: {} });
+  });
+
   it('bumps only the recovered asset and swaps in the freshly read URL', () => {
     const { result } = renderHook(() =>
       useStudioPlaygroundPreviewRecovery([job, sibling]),
@@ -59,5 +64,24 @@ describe('useStudioPlaygroundPreviewRecovery', () => {
 
     expect(result.current.recoveredJobs).toEqual([reloaded]);
     expect(result.current.previewRevisions).toEqual({ 'job-1': 1 });
+  });
+
+  it('shows a recovery made in one workspace to the other', () => {
+    const gallery = renderHook(() => useStudioPlaygroundPreviewRecovery([job]));
+    const openGeneration = renderHook(() =>
+      useStudioPlaygroundPreviewRecovery([job]),
+    );
+
+    act(() =>
+      openGeneration.result.current.recoverPreview(
+        job,
+        'https://cdn.example/fresh.png',
+      ),
+    );
+
+    expect(gallery.result.current.recoveredJobs).toEqual([
+      { ...job, url: 'https://cdn.example/fresh.png' },
+    ]);
+    expect(gallery.result.current.previewRevisions).toEqual({ 'job-1': 1 });
   });
 });

@@ -10,6 +10,7 @@ import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/c
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { showOutputPane } from '../../utils/agent-output-layout';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
@@ -46,40 +47,6 @@ async function previewResponse(file: string) {
 }
 const base = '/test-org/brand-1/storyboard';
 
-/**
- * The run page is an agent + output split. Plan fields live in the Context
- * view, which swaps in for the board while the topbar's Context icon has it
- * open; below xl the layout also shows one pane at a time through a view
- * dropdown and opens on the agent.
- */
-async function showOutputPane(page: Page) {
-  // The page being left can stay mounted but hidden, so only the visible
-  // layout counts.
-  const layout = page
-    .getByTestId('agent-output-layout')
-    .filter({ visible: true });
-  const output = layout.getByTestId('agent-output-output-pane');
-  const views = layout.getByRole('button', {
-    exact: true,
-    name: 'View: Agent',
-  });
-  // After a reload, or while a new storyboard opens, the layout is not
-  // settled yet, so isVisible() alone would skip the Output choice on a narrow
-  // viewport.
-  await expect(layout).toHaveCount(1);
-  if (await views.isVisible())
-    // A click that lands before hydration after a reload is dropped, so retry
-    // until the output pane is actually showing.
-    await expect(async () => {
-      await views.click();
-      await page
-        .getByRole('menuitemradio', { exact: true, name: 'Output' })
-        .click();
-      await expect(output).toBeVisible({ timeout: 2_000 });
-    }).toPass({ timeout: 15_000 });
-  await expect(output).toBeVisible();
-  return output;
-}
 /**
  * Sets the Context view open or closed. A click that lands before hydration
  * after a reload is dropped, so retry until the view is in the wanted state,

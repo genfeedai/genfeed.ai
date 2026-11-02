@@ -203,7 +203,11 @@ for (const fixture of [
       }
     }
     await expect(inlineError).toBeVisible();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    // The settings page behind the dialog has its own Retry buttons.
+    await page
+      .getByRole('dialog', { name: 'Notifications' })
+      .getByRole('button', { name: 'Retry', exact: true })
+      .click();
     await expect(
       page.getByRole('button', { name: 'Open notifications, 0 unread' }),
     ).toBeVisible();

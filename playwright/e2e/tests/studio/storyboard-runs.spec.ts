@@ -157,10 +157,8 @@ test.describe('Storyboard runs', () => {
     await expect(row.first()).toContainText('Remix · Discovery');
     await expect(row.first()).toContainText('2 shots');
     await expect(row.first()).toContainText('12s');
-    await row
-      .first()
-      .getByRole('link', { name: new RegExp(TITLE) })
-      .click();
+    // The row is the link.
+    await row.first().click();
 
     await expect(page).toHaveURL(new RegExp(`/storyboard/${RUN_ID}$`));
     const recipe = page.getByRole('region', { name: 'Run recipe' });
