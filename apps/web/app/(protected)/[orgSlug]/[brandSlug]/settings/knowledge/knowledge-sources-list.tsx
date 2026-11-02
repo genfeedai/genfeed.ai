@@ -580,7 +580,7 @@ export default function KnowledgeSourcesList({
           columns={columns}
           emptyLabel={translate('emptyTitle')}
           getRowKey={(row) => row.source.id}
-          isLoading={isLoading}
+          isLoading={isLoading && visibleRows.length === 0}
           items={visibleRows}
           onRowClick={(row) => selectSource(row.source.id)}
         />

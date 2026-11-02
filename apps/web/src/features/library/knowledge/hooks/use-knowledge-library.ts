@@ -268,14 +268,24 @@ export function useKnowledgeLibrary({
   const refresh = useCallback(() => load(), [load]);
 
   // Hide data synchronously during a scope change, before effect cleanup runs.
-  const isLoadedScope = loadedScopeRef.current === scope;
+  // Picking another source changes only the selection: the list, its spaces
+  // and the page stay valid, so they stay on screen while the new selection
+  // loads. Selected details are always hidden until their own scope loads.
+  const loadedScope = loadedScopeRef.current;
+  const isLoadedScope = loadedScope === scope;
+  const isSameList =
+    loadedScope !== null &&
+    loadedScope.brandId === scope.brandId &&
+    loadedScope.page === scope.page &&
+    loadedScope.getSourcesService === scope.getSourcesService &&
+    loadedScope.getSpacesService === scope.getSpacesService;
   return {
     error: isLoadedScope ? error : null,
     isLoading: !isLoadedScope || isLoading,
     refresh,
-    rows: isLoadedScope ? rows : [],
+    rows: isSameList ? rows : [],
     selectedRow: isLoadedScope ? selectedRow : null,
     selectionError: isLoadedScope ? selectionError : null,
-    spaces: isLoadedScope ? spaces : [],
+    spaces: isSameList ? spaces : [],
   };
 }
