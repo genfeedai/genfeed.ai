@@ -212,7 +212,6 @@
     "apps/web/src/components/modals/content/batch/ModalPostBatchFormAlerts.tsx": 2,
     "apps/web/src/components/modals/content/batch/ModalPostBatchIngredientPreview.tsx": 1,
     "apps/web/src/components/modals/content/batch/ModalPostBatchResultsView.tsx": 13,
-    "apps/web/src/components/modals/content/folder/ModalFolder.tsx": 6,
     "apps/web/src/components/modals/content/generate-illustration/IllustrationActions.tsx": 3,
     "apps/web/src/components/modals/content/generate-illustration/IllustrationPreview.tsx": 1,
     "apps/web/src/components/modals/content/generate-illustration/ModalGenerateIllustration.tsx": 1,
