@@ -2,7 +2,10 @@
 
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IRole } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -44,7 +47,7 @@ export default function RolesList() {
     keepPreviousDataWithin: ['admin', 'roles'],
     queryFn: async (service, signal) => {
       try {
-        return await service.findAll(
+        return await service.findAllPage(
           { limit: ITEMS_PER_PAGE, page: currentPage },
           signal,
         );
@@ -208,7 +211,7 @@ export default function RolesList() {
           <AutoPagination
             showTotal
             totalLabel="roles"
-            totals={rolesQuery.data?.totals}
+            totals={rolesQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
           />
         </div>
       )}

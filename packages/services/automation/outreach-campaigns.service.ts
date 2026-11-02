@@ -5,6 +5,7 @@ import type {
   CampaignType,
 } from '@genfeedai/contracts';
 import { CampaignTargetType } from '@genfeedai/contracts';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
@@ -213,16 +214,13 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     );
   }
 
-  /**
-   * One server page of an organization's campaigns. Publishes the totals for
-   * `<AutoPagination />`.
-   */
+  /** One server page of an organization's campaigns, with its own totals. */
   async findPageByOrganization(
     organizationId: string,
     query: { brandId?: string; limit: number; page: number },
     signal?: AbortSignal,
-  ): Promise<OutreachCampaign[]> {
-    return this.findAll(
+  ): Promise<IPaginatedResponse<OutreachCampaign>> {
+    return this.findAllPage(
       {
         ...(query.brandId ? { brandId: query.brandId } : {}),
         limit: query.limit,

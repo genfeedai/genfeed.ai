@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementCamera,
   IQueryParams,
@@ -87,7 +90,7 @@ function CamerasListContent({
       }
 
       try {
-        const data = await service.findAll(query, signal);
+        const data = await service.findAllPage(query, signal);
         logger.info('GET /cameras success', data);
         return data;
       } catch (error) {
@@ -241,7 +244,7 @@ function CamerasListContent({
         <AutoPagination
           showTotal
           totalLabel="cameras"
-          totals={camerasQuery.data?.totals}
+          totals={camerasQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </>

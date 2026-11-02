@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
-import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -36,20 +36,12 @@ export class PromptsService extends BaseService<Prompt> {
   public findAdminWithoutGeneration(
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
-  ): Promise<Prompt[]> {
+  ): Promise<IPaginatedResponse<Prompt>> {
     return this.instance
       .get<JsonApiResponseDocument>('admin/without-generation', {
         params: query,
         signal,
       })
-      .then(async (response) => {
-        const page = await this.mapPage(response.data);
-        if ((query as { page?: number }).page) {
-          PagesService.setCurrentPage(page.page);
-          PagesService.setTotalPages(page.totalPages);
-          PagesService.setTotalDocs(page.total);
-        }
-        return page.items;
-      });
+      .then((response) => this.mapPage(response.data));
   }
 }

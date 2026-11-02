@@ -17,17 +17,19 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
+  GalleryLoadedPage,
   UseModalGalleryProps,
   UseModalGalleryReturn,
 } from '@genfeedai/props/modals/modal-gallery.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const EMPTY_ITEMS: never[] = [];
 
 export function useModalGallery({
   category,
@@ -45,7 +47,8 @@ export function useModalGallery({
   const [selectedItemsData, setSelectedItemsData] = useState<
     (IVideo | IMusic | IImage)[]
   >([]);
-  const [items, setItems] = useState<(IVideo | IMusic | IImage)[]>([]);
+  const [loadedPage, setLoadedPage] = useState<GalleryLoadedPage | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
     'media' | 'references' | 'uploads' | 'creations'
@@ -53,19 +56,23 @@ export function useModalGallery({
   const [filterReferenceId, setFilterReferenceId] = useState<string>(
     initialFilterReferenceId,
   );
-  const [localFormat, setLocalFormat] = useState<IngredientFormat>(
-    format as IngredientFormat,
-  );
+  const [localFormat, setLocalFormat] = useState<IngredientFormat>(format);
   // `format` narrows what the gallery lists; a picker that accepts any aspect
   // ratio turns the narrowing off while the format control keeps its state.
   const formatFilter = isFormatFilterEnabled ? localFormat : undefined;
-  const [uploads, setUploads] = useState<IImage[]>([]);
-  const [references, setReferences] = useState<IAsset[]>([]);
-  const [creations, setCreations] = useState<IImage[]>([]);
-  const [isLoadingReferences, setIsLoadingReferences] = useState(false);
-  const [isLoadingCreations, setIsLoadingCreations] = useState(false);
-  const isLoadingReferencesRef = useRef(false);
-  const isLoadingCreationsRef = useRef(false);
+  const items =
+    loadedPage?.tab === 'media' ? loadedPage.data.items : EMPTY_ITEMS;
+  const uploads =
+    loadedPage?.tab === 'uploads' ? loadedPage.data.items : EMPTY_ITEMS;
+  const references =
+    loadedPage?.tab === 'references' ? loadedPage.data.items : EMPTY_ITEMS;
+  const creations =
+    loadedPage?.tab === 'creations' ? loadedPage.data.items : EMPTY_ITEMS;
+  const currentPage = loadedPage?.tab === activeTab ? loadedPage.data.page : 1;
+  const totalPages =
+    loadedPage?.tab === activeTab ? loadedPage.data.totalPages : 1;
+  const isLoadingReferences = isLoading && activeTab === 'references';
+  const isLoadingCreations = isLoading && activeTab === 'creations';
 
   const selectionLimit =
     typeof maxSelectableItems === 'number' && maxSelectableItems > 0
@@ -130,310 +137,172 @@ export function useModalGallery({
     }
   };
 
-  const findAllReferences = useCallback(async () => {
-    setIsLoadingReferences(true);
-    isLoadingReferencesRef.current = true;
-
-    try {
-      const service = await getAssetsService();
-      const query: IQueryParams = {
-        category: AssetCategory.REFERENCE,
-        lightweight: true, // Use lightweight mode for better performance
-        page: 1,
-        parent: brandId,
-        parentModel: 'Brand',
-        sort: 'createdAt: -1',
-        // Filter by format for consistent aspect ratios when selecting references
-        ...(formatFilter && { format: formatFilter }),
-      };
-
-      const data = await service.findAll(query as Record<string, unknown>);
-
-      setReferences(data);
-      logger.info('GET /assets (references)', {
-        data: data.length,
-        format: formatFilter,
-      });
-    } catch (error) {
-      logger.error('Failed to load brand references', error);
-      notificationsService.error(
-        'Failed to load brand references. Some files may be too large.',
-      );
-      setReferences([]);
-    } finally {
-      setIsLoadingReferences(false);
-      isLoadingReferencesRef.current = false;
-    }
-  }, [getAssetsService, notificationsService, brandId, formatFilter]);
-
-  const findAllCreations = useCallback(
-    async (pageOverride?: number) => {
-      setIsLoadingCreations(true);
-      isLoadingCreationsRef.current = true;
-
-      const currentPage = pageOverride ?? (PagesService.getCurrentPage() || 1);
-
-      try {
-        const service = await getImagesService();
-        const query: IQueryParams = {
-          lightweight: true,
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          sort: 'createdAt: -1',
-          // Only show generated/validated images (user's AI creations)
-          status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
-        };
-
-        if (brandId) {
-          query.brand = brandId;
-        }
-        if (formatFilter) {
-          query.format = formatFilter;
-        }
-
-        const data = await service.findAll(query as Record<string, unknown>);
-
-        setCreations(data);
-        logger.info('GET /images (creations)', {
-          data: data.length,
-          format: formatFilter,
-        });
-      } catch (error) {
-        logger.error('Failed to load creations', error);
-        notificationsService.error('Failed to load your creations');
-        setCreations([]);
-      } finally {
-        setIsLoadingCreations(false);
-        isLoadingCreationsRef.current = false;
-      }
-    },
-    [getImagesService, notificationsService, brandId, formatFilter],
-  );
-
-  const findAllUploads = useCallback(
-    async (pageOverride?: number) => {
+  const loadPage = useCallback(
+    async (page = 1) => {
+      requestRef.current?.abort();
+      const controller = new AbortController();
+      requestRef.current = controller;
+      const { signal } = controller;
       setIsLoading(true);
 
-      const currentPage = pageOverride ?? (PagesService.getCurrentPage() || 1);
-
-      try {
-        const service = await getImagesService();
-        const query: IQueryParams = {
-          lightweight: true, // Use lightweight mode for better performance
-          limit: ITEMS_PER_PAGE,
-          page: currentPage,
-          sort: 'createdAt: -1',
-          status: IngredientStatus.UPLOADED,
-        };
-
-        if (brandId) {
-          query.brand = brandId;
-        }
-        if (formatFilter) {
-          query.format = formatFilter;
-        }
-
-        const data = await service.findAll(query as Record<string, unknown>);
-
-        setUploads(data);
-        logger.info('GET /images (uploads)', {
-          data: data.length,
-          format: formatFilter,
-        });
-      } catch (error) {
-        logger.error('Failed to load uploads', error);
-        notificationsService.error('Failed to load uploads');
-        setUploads([]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [getImagesService, notificationsService, brandId, formatFilter],
-  );
-
-  const findAllItems = useCallback(
-    async (pageOverride?: number) => {
-      setIsLoading(true);
-
-      const currentPage = pageOverride ?? (PagesService.getCurrentPage() || 1);
-
       try {
         const query: IQueryParams = {
-          page: currentPage,
+          page,
           sort: 'createdAt: -1',
-          status: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+          ...(formatFilter && { format: formatFilter }),
         };
+        let nextPage: GalleryLoadedPage;
 
-        switch (category) {
-          case IngredientCategory.VIDEO: {
-            const service = await getVideosService();
-            query.limit = 12;
+        if (activeTab === 'references') {
+          const service = await getAssetsService();
+          if (signal.aborted) return;
+          nextPage = {
+            tab: 'references',
+            data: await service.findAllPage(
+              {
+                ...query,
+                category: AssetCategory.REFERENCE,
+                lightweight: true,
+                parent: brandId,
+                parentModel: 'Brand',
+              },
+              signal,
+            ),
+          };
+        } else if (activeTab === 'uploads' || activeTab === 'creations') {
+          const service = await getImagesService();
+          if (signal.aborted) return;
+          nextPage = {
+            tab: activeTab,
+            data: await service.findAllPage(
+              {
+                ...query,
+                ...(brandId && { brand: brandId }),
+                lightweight: true,
+                limit: ITEMS_PER_PAGE,
+                status:
+                  activeTab === 'uploads'
+                    ? IngredientStatus.UPLOADED
+                    : [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+              },
+              signal,
+            ),
+          };
+        } else {
+          query.status = [
+            IngredientStatus.GENERATED,
+            IngredientStatus.VALIDATED,
+          ];
+          if (brandId) query.brand = brandId;
 
-            if (brandId) {
-              (query as Record<string, unknown>).brand = brandId;
-            }
-            if (filterReferenceId) {
-              (query as Record<string, unknown>).reference = filterReferenceId;
-            }
-
-            if (formatFilter) {
-              query.format = formatFilter;
-            }
-
-            const data = await service.findAll(
-              query as Record<string, unknown>,
-            );
-            const filteredVideos = data.filter((video: IVideo) => {
-              return (
-                video.status !== IngredientStatus.FAILED &&
-                video.status !== IngredientStatus.PROCESSING
+          switch (category) {
+            case IngredientCategory.VIDEO: {
+              const service = await getVideosService();
+              if (signal.aborted) return;
+              const data = await service.findAllPage(
+                {
+                  ...query,
+                  limit: 12,
+                  ...(filterReferenceId && { reference: filterReferenceId }),
+                },
+                signal,
               );
-            });
-
-            setItems(filteredVideos);
-            logger.info('GET /videos', data);
-            break;
-          }
-          case IngredientCategory.MUSIC: {
-            const service = await getMusicsService();
-
-            if (brandId) {
-              (query as Record<string, unknown>).brand = brandId;
+              nextPage = {
+                tab: 'media',
+                data: {
+                  ...data,
+                  items: data.items.filter(
+                    (video) =>
+                      video.status !== IngredientStatus.FAILED &&
+                      video.status !== IngredientStatus.PROCESSING,
+                  ),
+                },
+              };
+              break;
             }
-
-            const musics = await service.findAll(query);
-
-            setItems(musics);
-
-            logger.info('GET /musics', {
-              currentPage: PagesService.getCurrentPage(),
-              items: musics.length,
-              totalPages: PagesService.getTotalPages(),
-            });
-            break;
-          }
-          default: {
-            const service = await getImagesService();
-            query.limit = 12;
-            query.lightweight = true; // Use lightweight mode for gallery performance
-
-            if (brandId) {
-              query.brand = brandId;
+            case IngredientCategory.MUSIC: {
+              const service = await getMusicsService();
+              if (signal.aborted) return;
+              // Music has no aspect ratio filter.
+              delete query.format;
+              nextPage = {
+                tab: 'media',
+                data: await service.findAllPage(query, signal),
+              };
+              break;
             }
-            if (filterReferenceId) {
-              query.reference = filterReferenceId;
+            default: {
+              const service = await getImagesService();
+              if (signal.aborted) return;
+              nextPage = {
+                tab: 'media',
+                data: await service.findAllPage(
+                  {
+                    ...query,
+                    lightweight: true,
+                    limit: 12,
+                    ...(filterReferenceId && { reference: filterReferenceId }),
+                  },
+                  signal,
+                ),
+              };
             }
-
-            if (formatFilter) {
-              query.format = formatFilter;
-            }
-
-            const data = await service.findAll(
-              query as Record<string, unknown>,
-            );
-            setItems(data);
-            logger.info('GET /images', { data, format: formatFilter });
-            break;
           }
         }
+
+        if (!signal.aborted) setLoadedPage(nextPage);
       } catch (error) {
-        logger.error(`Failed to load ${category}`, error);
-        notificationsService.error(`Failed to load ${category}`);
-        setItems([]);
+        if (signal.aborted) return;
+        logger.error('Failed to load gallery page', error);
+        notificationsService.error(
+          activeTab === 'references'
+            ? 'Failed to load brand references. Some files may be too large.'
+            : activeTab === 'creations'
+              ? 'Failed to load your creations'
+              : activeTab === 'uploads'
+                ? 'Failed to load uploads'
+                : `Failed to load ${category}`,
+        );
+        setLoadedPage(null);
       } finally {
-        setIsLoading(false);
+        if (!signal.aborted) setIsLoading(false);
       }
     },
     [
-      category,
-      getVideosService,
-      getMusicsService,
-      getImagesService,
-      notificationsService,
+      activeTab,
       brandId,
-      formatFilter,
+      category,
       filterReferenceId,
+      formatFilter,
+      getAssetsService,
+      getImagesService,
+      getMusicsService,
+      getVideosService,
+      notificationsService,
     ],
   );
 
   // Sync format prop to local state whenever format changes (not just on open)
   useEffect(() => {
     if (format) {
-      setLocalFormat(format as IngredientFormat);
+      setLocalFormat(format);
     }
   }, [format]);
 
-  // Load items when modal opens, tab changes, or format changes
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoadedPage(null);
+    void loadPage(1);
+    return () => requestRef.current?.abort();
+  }, [isOpen, loadPage]);
+
   useEffect(() => {
     if (!isOpen) {
-      return;
-    }
-
-    // Reset pagination when switching tabs
-    PagesService.setCurrentPage(1);
-
-    switch (activeTab) {
-      case 'uploads':
-        if (category === IngredientCategory.IMAGE) {
-          // Always load uploads when tab is clicked
-          setIsLoading(true);
-          setUploads([]); // Clear previous uploads immediately
-          findAllUploads();
-        }
-        break;
-
-      case 'creations':
-        if (category === IngredientCategory.IMAGE) {
-          // Load user's generated images when tab is clicked
-          if (!isLoadingCreationsRef.current) {
-            setCreations([]); // Clear previous creations immediately
-            findAllCreations();
-          }
-        }
-        break;
-
-      case 'references':
-        if (category === IngredientCategory.IMAGE) {
-          // Always load references when tab is clicked
-          if (!isLoadingReferencesRef.current) {
-            setReferences([]); // Clear previous references immediately
-            findAllReferences();
-          }
-        }
-        break;
-      default:
-        // Set loading state immediately when modal opens or tab changes
-        setIsLoading(true);
-        setItems([]); // Clear previous items immediately
-        findAllItems();
-        break;
-    }
-  }, [
-    isOpen,
-    activeTab,
-    category,
-    findAllUploads,
-    findAllCreations,
-    findAllReferences,
-    findAllItems,
-  ]);
-
-  // Reset when closing
-  useEffect(() => {
-    if (!isOpen) {
-      setItems([]);
-      setUploads([]);
-      setReferences([]);
-      setCreations([]);
+      setLoadedPage(null);
       setActiveTab('media');
       setSelectedItems([]);
       setSelectedItemsData([]);
-      setIsLoading(true); // Reset loading state for next open
-      setIsLoadingReferences(false);
-      setIsLoadingCreations(false);
-      isLoadingReferencesRef.current = false;
-      isLoadingCreationsRef.current = false;
-      PagesService.setCurrentPage(1);
+      setIsLoading(true);
     }
   }, [isOpen]);
 
@@ -518,10 +387,9 @@ export function useModalGallery({
     activeTab,
     creations,
     filterReferenceId,
-    findAllCreations,
-    findAllItems,
-    findAllReferences,
-    findAllUploads,
+    currentPage,
+    totalPages,
+    loadPage,
     handleItemSelect,
     isLoading,
     isLoadingCreations,

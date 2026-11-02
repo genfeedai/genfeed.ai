@@ -6,7 +6,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
-import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 import type { AxiosRequestConfig } from 'axios';
 
@@ -66,7 +65,7 @@ export class SubscriptionsService extends BaseService<Subscription> {
   /**
    * Every organization with its subscription and credit balance. The route
    * answers a plain `{ data, page, totalPages, totalDocs }` envelope rather
-   * than JSON:API, so the shared pager is fed from it here.
+   * than JSON:API; callers keep its totals with the returned rows.
    */
   public async getAdminBilling(query: {
     limit: number;
@@ -78,9 +77,6 @@ export class SubscriptionsService extends BaseService<Subscription> {
       'admin/billing',
       { params: query },
     );
-    PagesService.setCurrentPage(res.data.page);
-    PagesService.setTotalPages(res.data.totalPages);
-    PagesService.setTotalDocs(res.data.totalDocs);
     return res.data;
   }
 }

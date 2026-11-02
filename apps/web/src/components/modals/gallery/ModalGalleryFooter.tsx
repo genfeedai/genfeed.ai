@@ -6,13 +6,14 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type { ModalGalleryFooterProps } from '@genfeedai/props/modals/modal-gallery.props';
-import { PagesService } from '@genfeedai/services/content/pages.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 
 export default function ModalGalleryFooter({
   category,
+  currentPage,
+  totalPages,
   activeTab,
   isLoading,
   selectedItems,
@@ -32,8 +33,8 @@ export default function ModalGalleryFooter({
         <div className="flex items-center">
           {!isLoading && (
             <Pagination
-              currentPage={PagesService.getCurrentPage()}
-              totalPages={PagesService.getTotalPages()}
+              currentPage={currentPage}
+              totalPages={totalPages}
               onPageChange={onPageChange}
             />
           )}

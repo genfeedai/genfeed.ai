@@ -52,7 +52,7 @@ describe('OutreachCampaignsService', () => {
     expect(result[0]).toBeInstanceOf(OutreachCampaign);
   });
 
-  it('findPageByOrganization requests one server page and records the totals', async () => {
+  it('findPageByOrganization returns one server page with its totals', async () => {
     http.get.mockResolvedValue(
       axiosResponse(
         collectionDocument([{ id: campaignId, label: 'Camp' }], {
@@ -76,9 +76,9 @@ describe('OutreachCampaignsService', () => {
       },
       signal: undefined,
     });
-    expect(PagesService.getTotalPages()).toBe(3);
-    expect(PagesService.getTotalDocs()).toBe(40);
-    expect(result[0]).toBeInstanceOf(OutreachCampaign);
+    expect(result.totalPages).toBe(3);
+    expect(result.total).toBe(40);
+    expect(result.items[0]).toBeInstanceOf(OutreachCampaign);
   });
 
   it('findByStatus pages through the status filter', async () => {

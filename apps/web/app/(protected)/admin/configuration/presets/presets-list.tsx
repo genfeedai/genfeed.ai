@@ -7,7 +7,10 @@ import {
   ModelCategory,
   PageScope,
 } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { SummaryFact } from '@genfeedai/props/ui/display/table-row-summary.props';
@@ -139,7 +142,7 @@ function PresetsListContent({
       }
 
       try {
-        const data = await service.findAll(queryParams, signal);
+        const data = await service.findAllPage(queryParams, signal);
         logger.info('GET /presets success', data);
         return data;
       } catch (error) {
@@ -437,7 +440,7 @@ function PresetsListContent({
         <AutoPagination
           showTotal
           totalLabel="presets"
-          totals={presetsQuery.data?.totals}
+          totals={presetsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
         />
       </div>
     </AdminPageShell>

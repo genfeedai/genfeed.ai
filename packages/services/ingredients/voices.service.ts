@@ -6,8 +6,8 @@ import type {
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
-import { PagesService } from '@services/content/pages.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 const voiceInstances = new ServiceInstanceManager<VoicesService>();
@@ -65,7 +65,7 @@ export class VoicesService extends IngredientsService<Voice> {
 
   /**
    * One page of the provider catalog, cut by the server. Also publishes the
-   * page counts to `PagesService`, which `AutoPagination` reads.
+   * page counts alongside the catalog rows.
    */
   async findCatalog(
     params: CatalogFindParams = {},
@@ -73,19 +73,19 @@ export class VoicesService extends IngredientsService<Voice> {
   ): Promise<IPaginatedResponse<ExternalVoice>> {
     const query: Record<string, unknown> = {};
     if (params.provider) {
-      query['provider'] = params.provider;
+      query.provider = params.provider;
     }
     if (params.search) {
-      query['search'] = params.search;
+      query.search = params.search;
     }
     if (params.sort) {
-      query['sort'] = params.sort;
+      query.sort = params.sort;
     }
     if (params.page) {
-      query['page'] = params.page;
+      query.page = params.page;
     }
     if (params.limit) {
-      query['limit'] = params.limit;
+      query.limit = params.limit;
     }
 
     return this.executeWithErrorHandling(
@@ -94,23 +94,7 @@ export class VoicesService extends IngredientsService<Voice> {
         .get<JsonApiResponseDocument>('/catalog', { params: query, signal })
         .then((res) => {
           const items = this.extractCollection<ExternalVoice>(res.data);
-          const pagination = res.data.links?.pagination;
-          const page = pagination?.page ?? 1;
-          const total = pagination?.total ?? items.length;
-          const totalPages = Math.max(1, pagination?.pages ?? 1);
-          PagesService.setCurrentPage(page);
-          PagesService.setTotalPages(totalPages);
-          PagesService.setTotalDocs(total);
-
-          return {
-            hasNext: page < totalPages,
-            hasPrevious: page > 1,
-            items,
-            page,
-            pageSize: pagination?.limit ?? items.length,
-            total,
-            totalPages,
-          };
+          return toPaginatedResponse(items, res.data);
         }),
     );
   }

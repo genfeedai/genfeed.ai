@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -20,7 +23,7 @@ vi.mock('next-intl', async () => {
 
 const mocks = vi.hoisted(() => ({
   deleteScene: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getScenesService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -63,7 +66,7 @@ vi.mock('@services/elements/scenes.service', () => ({
   ScenesService: {
     getInstance: () => ({
       delete: mocks.deleteScene,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -152,8 +155,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -186,7 +197,7 @@ function makeScene(overrides: Record<string, unknown> = {}) {
 function mockScenes(
   data = [makeScene(), makeScene({ id: 'scene-2', label: 'Kitchen' })],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('ScenesList', () => {
@@ -195,9 +206,34 @@ describe('ScenesList', () => {
     mocks.deleteScene.mockResolvedValue({ ok: true });
     mocks.getScenesService.mockResolvedValue({
       delete: mocks.deleteScene,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockScenes();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: scenes 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeScene()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<ScenesList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: scenes 61');
+    });
+    expect(
+      screen.queryByText('Pagination: scenes 200'),
+    ).not.toBeInTheDocument();
   });
 
   it('loads superadmin scenes and reads the admin filters from the URL', async () => {
@@ -207,7 +243,7 @@ describe('ScenesList', () => {
     expect(await screen.findByText('Studio')).toBeInTheDocument();
     expect(screen.getByText('Kitchen')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -242,7 +278,7 @@ describe('ScenesList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <ScenesList
         scope={PageScope.SUPERADMIN}
@@ -267,7 +303,7 @@ describe('ScenesList', () => {
     vi.clearAllMocks();
     mocks.getScenesService.mockResolvedValue({
       delete: mocks.deleteScene,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockScenes();
     mocks.deleteScene.mockRejectedValueOnce(new Error('delete failed'));

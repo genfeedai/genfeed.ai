@@ -6601,43 +6601,11 @@
       "workspace": "web"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "5504d7a71dffb51c346c",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "c71c133957085f936c11",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 6,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "f126b9f734b20f9723d7",
-      "message": "Type 'ICalendarSlot' is not assignable to type 'never'.",
-      "workspace": "web"
-    },
-    {
       "code": 2344,
       "count": 2,
       "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
       "fingerprint": "3fe29f8d24b07d75bacd",
       "message": "Type 'CalendarItemShape' does not satisfy the constraint 'CalendarItem'.   Property 'title' is missing in type 'CalendarItemShape' but required in type 'CalendarItem'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/web/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.test.tsx",
-      "fingerprint": "c1dd8df54c085a94e694",
-      "message": "Argument of type 'ICalendarSlot[]' is not assignable to parameter of type 'never[]'.   Type 'ICalendarSlot' is not assignable to type 'never'.",
       "workspace": "web"
     },
     {

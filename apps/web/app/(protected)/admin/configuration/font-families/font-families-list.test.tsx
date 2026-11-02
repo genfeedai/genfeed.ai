@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -18,7 +19,7 @@ import FontFamiliesList from './font-families-list';
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteFontFamily: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getFontFamiliesService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -76,7 +77,7 @@ vi.mock('@services/elements/font-families.service', () => ({
   FontFamiliesService: {
     getInstance: () => ({
       delete: mocks.deleteFontFamily,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -265,7 +266,7 @@ function makeFontFamily(overrides: Record<string, unknown> = {}) {
 function mockFontFamilies(
   data = [makeFontFamily(), makeFontFamily({ id: 'font-2', label: 'Geist' })],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('FontFamiliesList', () => {
@@ -275,7 +276,7 @@ describe('FontFamiliesList', () => {
     mocks.deleteFontFamily.mockResolvedValue({ ok: true });
     mocks.getFontFamiliesService.mockResolvedValue({
       delete: mocks.deleteFontFamily,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockFontFamilies();
   });
@@ -291,7 +292,7 @@ describe('FontFamiliesList', () => {
     expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
     expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -326,7 +327,7 @@ describe('FontFamiliesList', () => {
       });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
           expect.any(AbortSignal),
         );
@@ -341,9 +342,9 @@ describe('FontFamiliesList', () => {
     });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalled();
+      expect(mocks.findAllPage).toHaveBeenCalled();
     });
-    expect(mocks.findAll).not.toHaveBeenCalledWith(
+    expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
       expect.any(AbortSignal),
     );
@@ -378,12 +379,12 @@ describe('FontFamiliesList', () => {
       'Font family deleted',
     );
 
-    const readsBeforeConfirm = mocks.findAll.mock.calls.length;
+    const readsBeforeConfirm = mocks.findAllPage.mock.calls.length;
     fireEvent.click(
       screen.getByRole('button', { name: 'Confirm Font Family Modal' }),
     );
     await waitFor(() =>
-      expect(mocks.findAll.mock.calls.length).toBeGreaterThan(
+      expect(mocks.findAllPage.mock.calls.length).toBeGreaterThan(
         readsBeforeConfirm,
       ),
     );
@@ -391,7 +392,7 @@ describe('FontFamiliesList', () => {
   });
 
   it('reports load and delete failures', async () => {
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     const { unmount } = render(
       <FontFamiliesList scope={PageScope.SUPERADMIN} />,
       { wrapper: queryClientWrapper() },
@@ -411,7 +412,7 @@ describe('FontFamiliesList', () => {
     vi.clearAllMocks();
     mocks.getFontFamiliesService.mockResolvedValue({
       delete: mocks.deleteFontFamily,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     });
     mockFontFamilies();
     mocks.deleteFontFamily.mockRejectedValueOnce(new Error('delete failed'));
@@ -454,7 +455,7 @@ describe('FontFamiliesList', () => {
     });
     await screen.findByText('Inter');
     first.unmount();
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
 
     render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
       wrapper: queryClientWrapper(client),

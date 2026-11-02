@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import {
   createTestQueryClient,
@@ -27,7 +28,7 @@ vi.mock('next-intl', async () => {
 const mocks = vi.hoisted(() => ({
   urlSort: null as string | null,
   deleteLighting: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -81,7 +82,7 @@ vi.mock('@services/elements/lightings.service', () => ({
   LightingsService: {
     getInstance: () => ({
       delete: mocks.deleteLighting,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
     }),
   },
 }));
@@ -241,7 +242,7 @@ describe('LightingsList', () => {
     vi.clearAllMocks();
     mocks.urlSort = null;
     mocks.deleteLighting.mockResolvedValue({ ok: true });
-    mocks.findAll.mockResolvedValue(LIGHTINGS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(LIGHTINGS));
   });
 
   it('renders superadmin lightings and reads the admin filters from the URL', async () => {
@@ -251,7 +252,7 @@ describe('LightingsList', () => {
       (await screen.findAllByText('Wide Lighting')).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText('Macro Lighting')).toBeInTheDocument();
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -272,7 +273,7 @@ describe('LightingsList', () => {
       renderList({ scope: PageScope.SUPERADMIN });
 
       await waitFor(() => {
-        expect(mocks.findAll).toHaveBeenCalledWith(
+        expect(mocks.findAllPage).toHaveBeenCalledWith(
           expect.objectContaining({ page: 2, sort }),
           expect.any(AbortSignal),
         );
@@ -285,9 +286,9 @@ describe('LightingsList', () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalled();
+      expect(mocks.findAllPage).toHaveBeenCalled();
     });
-    expect(mocks.findAll).not.toHaveBeenCalledWith(
+    expect(mocks.findAllPage).not.toHaveBeenCalledWith(
       expect.objectContaining({ sort: expect.anything() }),
       expect.any(AbortSignal),
     );
@@ -325,9 +326,9 @@ describe('LightingsList', () => {
     await screen.findAllByText('Macro Lighting');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
-    mocks.findAll.mockResolvedValue([
-      makeLighting({ label: 'Refreshed Lighting' }),
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([makeLighting({ label: 'Refreshed Lighting' })]),
+    );
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -335,7 +336,7 @@ describe('LightingsList', () => {
       (await screen.findAllByText('Refreshed Lighting')).length,
     ).toBeGreaterThan(0);
 
-    mocks.findAll.mockResolvedValue(LIGHTINGS);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse(LIGHTINGS));
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
@@ -352,7 +353,7 @@ describe('LightingsList', () => {
       }),
     );
 
-    mocks.findAll.mockResolvedValue([makeLighting()]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([makeLighting()]));
     await act(async () => {
       await mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
     });
@@ -366,7 +367,7 @@ describe('LightingsList', () => {
 
   it('reports load and delete failures while notifying parent loading state', async () => {
     const onLoadingChange = vi.fn();
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
 
     renderList({ onLoadingChange, scope: PageScope.SUPERADMIN });
 
@@ -416,9 +417,8 @@ describe('LightingsList', () => {
   });
 
   it('paints the cached lightings and their own footer total when coming back', async () => {
-    mocks.findAll.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 2, pages: 2, total: 14 });
-      return LIGHTINGS;
+    mocks.findAllPage.mockImplementation(async () => {
+      return paginatedResponse(LIGHTINGS, { totalDocs: 14, totalPages: 2 });
     });
     const client = createTestQueryClient();
     const firstVisit = renderList({ scope: PageScope.SUPERADMIN }, client);
@@ -428,7 +428,7 @@ describe('LightingsList', () => {
     firstVisit.unmount();
 
     PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
     expect(screen.getAllByText('Wide Lighting').length).toBeGreaterThan(0);
@@ -437,7 +437,7 @@ describe('LightingsList', () => {
   });
 
   it('shows the empty label in brand scope when there are no lightings', async () => {
-    mocks.findAll.mockResolvedValue([]);
+    mocks.findAllPage.mockResolvedValue(paginatedResponse([]));
     renderList({ scope: PageScope.BRAND });
 
     expect(

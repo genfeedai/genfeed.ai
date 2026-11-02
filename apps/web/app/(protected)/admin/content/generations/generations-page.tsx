@@ -1,6 +1,9 @@
 'use client';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
@@ -131,7 +134,7 @@ function GenerationsPageContent() {
             query,
             signal,
           );
-          return (Array.isArray(fetched) ? fetched : []).map(toPromptView);
+          return { ...fetched, items: fetched.items.map(toPromptView) };
         }
         if (status) query.status = status;
         if (type) query.category = type;
@@ -140,7 +143,7 @@ function GenerationsPageContent() {
           query,
           signal,
         );
-        return (Array.isArray(fetched) ? fetched : []).map(toGenerationView);
+        return { ...fetched, items: fetched.items.map(toGenerationView) };
       } catch (error) {
         if (!signal.aborted) {
           logger.error('Failed to load generations', error);
@@ -326,7 +329,9 @@ function GenerationsPageContent() {
                 onOpen={setSelected}
               />
             ))}
-            <AutoPagination totals={generationsQuery.data?.totals} />
+            <AutoPagination
+              totals={generationsQuery.data?.totals ?? EMPTY_PAGE_TOTALS}
+            />
           </>
         )}
       </div>

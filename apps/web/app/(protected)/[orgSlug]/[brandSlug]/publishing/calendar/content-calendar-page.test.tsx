@@ -114,7 +114,7 @@ const getReleaseGroupsServiceMock = vi.fn(async () => ({
   update: updateReleaseMock,
   updateTarget: updateTargetMock,
 }));
-const listSlotsMock = vi.fn(async () => []);
+const listSlotsMock = vi.fn(async (): Promise<ICalendarSlot[]> => []);
 const listCadencesMock = vi.fn(async () => []);
 const skipSlotMock = vi.fn();
 const cancelSlotMock = vi.fn();
@@ -1217,13 +1217,15 @@ describe('ContentCalendarPage', () => {
   });
 
   it('confirms bulk generate with the missing-slot count before starting', async () => {
-    listSlotsMock.mockResolvedValue([
+    const slotsReady = Promise.withResolvers<ICalendarSlot[]>();
+    listSlotsMock.mockReturnValueOnce(slotsReady.promise);
+    const slots = [
       calendarSlot({ identityKey: 'ghost-1' }),
       calendarSlot({
         identityKey: 'ghost-2',
         instant: '2026-03-12T12:00:00.000Z',
       }),
-    ]);
+    ];
     generateBulkMock.mockResolvedValue({
       completed: [
         calendarSlot({ identityKey: 'ghost-1' }),
@@ -1241,10 +1243,11 @@ describe('ContentCalendarPage', () => {
       },
     );
 
-    await renderLoaded();
+    renderCalendarPage();
+    queueMicrotask(() => slotsReady.resolve(slots));
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate missing (2)' }),
+      await screen.findByRole('button', { name: 'Generate missing (2)' }),
     );
 
     expect(openConfirmMock).toHaveBeenCalledWith(

@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import {
   createTestQueryClient,
   queryClientWrapper,
@@ -19,13 +20,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RolesList from './roles-list';
 
 const mocks = vi.hoisted(() => {
-  const findAll = vi.fn();
+  const findAllPage = vi.fn();
   const patch = vi.fn();
   return {
-    findAll,
+    findAllPage,
     patch,
     // A stable reference, as the real hook returns, so the list loads once.
-    getService: async () => ({ findAll, patch }),
+    getService: async () => ({ findAllPage, patch }),
   };
 });
 
@@ -86,9 +87,25 @@ describe('RolesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.patch.mockResolvedValue({});
-    mocks.findAll.mockResolvedValue([
-      { id: 'role-1', key: 'editor', label: 'Editor', primaryColor: '#f00' },
-    ]);
+    mocks.findAllPage.mockResolvedValue(
+      paginatedResponse([
+        { id: 'role-1', key: 'editor', label: 'Editor', primaryColor: '#f00' },
+      ]),
+    );
+  });
+
+  it('owns an empty footer while its first response is still pending', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
+    render(
+      <ContextSidebarProvider>
+        <RolesList />
+      </ContextSidebarProvider>,
+      { wrapper: queryClientWrapper() },
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('0 roles');
   });
 
   it('edits a role in the sidebar without opening a form', async () => {
@@ -120,7 +137,7 @@ describe('RolesList', () => {
       });
     });
     await waitFor(() => {
-      expect(mocks.findAll).toHaveBeenCalledTimes(2);
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -133,7 +150,7 @@ describe('RolesList', () => {
     );
 
     await screen.findByText('editor');
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       { limit: 15, page: 1 },
       expect.any(AbortSignal),
     );
@@ -152,7 +169,7 @@ describe('RolesList', () => {
     );
     await screen.findByText('editor');
     first.unmount();
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
 
     render(
       <ContextSidebarProvider>
@@ -165,9 +182,11 @@ describe('RolesList', () => {
   });
 
   it('keeps its own footer total on a return visit after another list was read', async () => {
-    mocks.findAll.mockImplementation(async () => {
-      PagesService.recordTotals({ page: 1, pages: 3, total: 61 });
-      return [{ id: 'role-1', key: 'editor', label: 'editor' }];
+    mocks.findAllPage.mockImplementation(async () => {
+      return paginatedResponse(
+        [{ id: 'role-1', key: 'editor', label: 'editor' }],
+        { totalDocs: 61, totalPages: 3 },
+      );
     });
     const client = createTestQueryClient();
     const first = render(
@@ -180,7 +199,7 @@ describe('RolesList', () => {
     first.unmount();
     // Another list (say, bots) is read in between and records its totals.
     PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
-    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    mocks.findAllPage.mockReturnValue(new Promise(() => {}));
 
     render(
       <ContextSidebarProvider>

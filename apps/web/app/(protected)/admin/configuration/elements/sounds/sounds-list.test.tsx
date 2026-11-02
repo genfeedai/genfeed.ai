@@ -1,3 +1,6 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
+import type { IPageTotals } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import '@testing-library/jest-dom/vitest';
 import { PageScope } from '@genfeedai/contracts';
 import {
@@ -20,7 +23,7 @@ vi.mock('next-intl', async () => {
 
 const mocks = vi.hoisted(() => ({
   deleteSound: vi.fn(),
-  findAll: vi.fn(),
+  findAllPage: vi.fn(),
   getSoundsService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -68,7 +71,7 @@ vi.mock('@services/elements/sounds.service', () => ({
   SoundsService: {
     getInstance: () => ({
       delete: mocks.deleteSound,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     }),
   },
@@ -157,8 +160,16 @@ vi.mock('@/components/lazy/modal/LazyModal', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: ({ totalLabel }: { totalLabel: string }) => (
-    <nav>Pagination: {totalLabel}</nav>
+  default: ({
+    totalLabel,
+    totals,
+  }: {
+    totalLabel: string;
+    totals?: IPageTotals;
+  }) => (
+    <nav aria-label="pagination">
+      Pagination: {totalLabel} {totals?.totalDocs}
+    </nav>
   ),
 }));
 
@@ -215,7 +226,7 @@ function mockSounds(
     makeSound({ id: 'sound-2', isActive: false, label: 'Inactive Sound' }),
   ],
 ) {
-  mocks.findAll.mockResolvedValue(data);
+  mocks.findAllPage.mockResolvedValue(paginatedResponse(data));
 }
 
 describe('SoundsList', () => {
@@ -224,11 +235,36 @@ describe('SoundsList', () => {
     mocks.deleteSound.mockResolvedValue({ ok: true });
     mocks.getSoundsService.mockResolvedValue({
       delete: mocks.deleteSound,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     });
     mocks.patch.mockResolvedValue({});
     mockSounds();
+  });
+
+  it('owns empty totals before its first response', () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockReturnValueOnce(new Promise(() => {}));
+    render(<SoundsList scope={PageScope.SUPERADMIN} />);
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveTextContent('Pagination: sounds 0');
+  });
+
+  it('keeps the server total with its rows instead of another list total', async () => {
+    PagesService.recordTotals({ page: 1, pages: 9, total: 200 });
+    mocks.findAllPage.mockResolvedValueOnce(
+      paginatedResponse([makeSound()], { totalDocs: 61, totalPages: 5 }),
+    );
+    render(<SoundsList scope={PageScope.SUPERADMIN} />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveTextContent('Pagination: sounds 61');
+    });
+    expect(
+      screen.queryByText('Pagination: sounds 200'),
+    ).not.toBeInTheDocument();
   });
 
   it('loads superadmin sounds and reads the admin filters from the URL', async () => {
@@ -238,7 +274,7 @@ describe('SoundsList', () => {
     expect(await screen.findByText('Launch Sound')).toBeInTheDocument();
     expect(screen.getByText('Inactive Sound')).toBeInTheDocument();
 
-    expect(mocks.findAll).toHaveBeenCalledWith(
+    expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
         organization: 'org-1',
@@ -270,7 +306,7 @@ describe('SoundsList', () => {
       expect(mocks.patch).toHaveBeenCalledWith('sound-1', {
         isDefault: true,
       });
-      expect(mocks.findAll).toHaveBeenCalledTimes(3);
+      expect(mocks.findAllPage).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -302,7 +338,7 @@ describe('SoundsList', () => {
     const onLoadingChange = vi.fn();
     const onRefreshingChange = vi.fn();
 
-    mocks.findAll.mockRejectedValueOnce(new Error('load failed'));
+    mocks.findAllPage.mockRejectedValueOnce(new Error('load failed'));
     render(
       <SoundsList
         scope={PageScope.SUPERADMIN}
@@ -326,7 +362,7 @@ describe('SoundsList', () => {
     vi.clearAllMocks();
     mocks.getSoundsService.mockResolvedValue({
       delete: mocks.deleteSound,
-      findAll: mocks.findAll,
+      findAllPage: mocks.findAllPage,
       patch: mocks.patch,
     });
     mockSounds();
