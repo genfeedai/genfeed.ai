@@ -92,7 +92,7 @@ describe('BrandRuleProposals', () => {
       await screen.findByText('Too salesy.', undefined, SLOW),
     ).toBeTruthy();
     expect(mocks.proposeRules).toHaveBeenCalledWith(
-      { brandId: 'brand-1', reason: 'Too salesy' },
+      { reason: 'Too salesy' },
       expect.anything(),
     );
   });

@@ -76,14 +76,13 @@ describe('HarnessProfilesService', () => {
     );
 
     const result = await service.proposeRules({
-      brandId: 'brand_1',
       edited: 'Live.',
       original: 'Truly live.',
     });
 
     expect(http.post).toHaveBeenCalledWith(
       '/rule-proposals',
-      { brandId: 'brand_1', edited: 'Live.', original: 'Truly live.' },
+      { edited: 'Live.', original: 'Truly live.' },
       { signal: undefined },
     );
     expect(result).toEqual(['Never use "truly".']);
