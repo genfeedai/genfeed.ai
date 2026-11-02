@@ -636,6 +636,29 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.queryByText('X Ads')).not.toBeInTheDocument();
   });
 
+  it('opens the Ghost key form instead of an OAuth redirect when Ghost is chosen', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+    fireEvent.click(screen.getByText('Ghost'));
+
+    expect(postConnect).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('dialog', { name: 'Connect Ghost' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Site URL/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Admin API key/)).toBeInTheDocument();
+  });
+
   it('renders connected social links', async () => {
     render(
       <BrandDetailSocialMediaCard

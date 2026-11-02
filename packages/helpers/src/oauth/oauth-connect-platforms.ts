@@ -2,6 +2,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   FacebookIcon,
+  GhostIcon,
   GoogleColorIcon,
   InstagramIcon,
   LinkedinIcon,
@@ -17,7 +18,14 @@ export type OAuthConnectPlatformCategoryId =
   | 'video'
   | 'communities'
   | 'creator'
+  | 'publishing'
   | 'ads';
+
+/**
+ * How a tile connects: `oauth` redirects to the provider, `api_key` asks for a
+ * site URL and key in a form and stores the credential directly.
+ */
+export type OAuthConnectMethod = 'oauth' | 'api_key';
 
 export interface OAuthConnectPlatformCategory {
   id: OAuthConnectPlatformCategoryId;
@@ -27,6 +35,8 @@ export interface OAuthConnectPlatformCategory {
 
 export interface OAuthConnectPlatform {
   category: OAuthConnectPlatformCategoryId;
+  /** Defaults to `oauth`. Only the brand Connect Account modal renders `api_key`. */
+  connectMethod?: OAuthConnectMethod;
   /**
    * Unique list key when multiple tiles share one {@link platform}
    * (e.g. Meta Ads + Facebook organic both use FACEBOOK credentials).
@@ -106,6 +116,11 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
       description: 'Manage subscriber and fan platform integrations.',
     },
     {
+      id: 'publishing',
+      label: 'Publishing',
+      description: 'Deliver long-form articles to your blog or newsletter.',
+    },
+    {
       id: 'ads',
       label: 'Advertising',
       description: 'Connect ad accounts to run and track campaigns.',
@@ -113,8 +128,9 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
   ];
 
 /**
- * Platforms with a brand OAuth `POST services/{path}/connect` endpoint that the
- * settings Connect button actually calls.
+ * Platforms with a brand `POST services/{path}/connect` endpoint that the
+ * settings Connect button actually calls. OAuth tiles redirect to the provider;
+ * `connectMethod: 'api_key'` tiles (Ghost) open a site URL + key form instead.
  *
  * Not listed:
  * - Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
@@ -199,6 +215,15 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     servicePath: 'fanvue',
   },
   {
+    category: 'publishing',
+    connectMethod: 'api_key',
+    Icon: GhostIcon,
+    iconClassName: 'text-foreground',
+    label: 'Ghost',
+    platform: CredentialPlatform.GHOST,
+    servicePath: 'ghost',
+  },
+  {
     category: 'ads',
     connectId: 'meta-ads',
     Icon: FacebookIcon,
@@ -219,6 +244,13 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     servicePath: 'google-ads',
   },
 ];
+
+/** True when a tile connects through a credential form rather than a redirect. */
+export function isApiKeyConnectPlatform(
+  platform: Pick<OAuthConnectPlatform, 'connectMethod'>,
+): boolean {
+  return platform.connectMethod === 'api_key';
+}
 
 /**
  * Apply live server readiness to the shared connect catalog. Platforms without
