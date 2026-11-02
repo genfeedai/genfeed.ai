@@ -8,6 +8,7 @@
   "unread": "Unread",
   "copyValue": "Copy",
   "detailOpen": "Open",
+  "detailStatus": "Status",
   "detailValue": "Stored value",
   "detailPreviewAlt": "Activity preview",
   "detailViewOnNetwork": "View on {platform}",

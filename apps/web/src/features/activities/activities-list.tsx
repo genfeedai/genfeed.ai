@@ -300,7 +300,6 @@ export default function ActivitiesList({
       render: (activity: IActivity) => (
         <ActivityDetailPanel
           activity={activity}
-          activityMessageFormatter={activityMessageFormatter}
           onToggleRead={toggleActivityRead}
           openHref={getActivityHref(activity)}
         />
