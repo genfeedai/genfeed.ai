@@ -1,5 +1,5 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IElementLighting,
@@ -7,7 +7,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePagedAuthedQuery } from '@hooks/auth/use-paged-authed-query/use-paged-authed-query';
 import type { ElementLighting } from '@models/elements/lighting.model';
@@ -19,7 +18,7 @@ import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge
 import { useElementRowSidebar } from '@ui/display/element-scope-badge/element-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -29,10 +28,10 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { LazyModalLighting } from '@/components/lazy/modal/LazyModal';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 const LIGHTING_SORT_KEYS = ['label', 'key'];
@@ -65,9 +64,6 @@ function LightingsListContent({
   const getLightingsService = useAuthedService(
     useCallback((token: string) => LightingsService.getInstance(token), []),
   );
-
-  const [selectedLighting, setSelectedLighting] =
-    useState<IElementLighting | null>(null);
 
   const onLoadingChangeRef = useRef(onLoadingChange);
   const onRefreshingChangeRef = useRef(onRefreshingChange);
@@ -185,14 +181,6 @@ function LightingsListContent({
     }
   }, [onRefresh, refreshLightings]);
 
-  function openLightingModal(
-    modalId: ModalEnum,
-    lighting?: IElementLighting,
-  ): void {
-    setSelectedLighting(lighting ?? null);
-    openModal(modalId);
-  }
-
   async function handleDelete(
     lighting: IElementLighting | null,
   ): Promise<void> {
@@ -204,17 +192,14 @@ function LightingsListContent({
       const service = await getLightingsService();
       await service.delete(lighting.id);
       notificationsService.success('Lighting deleted');
-      setSelectedLighting(null);
       refreshLightings();
     } catch (error) {
       logger.error('Failed to delete lighting', error);
       notificationsService.error('Failed to delete lighting');
-      setSelectedLighting(null);
     }
   }
 
   function handleConfirmDelete(lighting: ElementLighting): void {
-    setSelectedLighting(lighting);
     openConfirm({
       confirmLabel: 'Delete',
       isError: true,
@@ -228,12 +213,6 @@ function LightingsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <Pencil />,
-            onClick: (lighting: ElementLighting) =>
-              openLightingModal(ModalEnum.LIGHTING, lighting),
-            tooltip: 'Edit',
-          },
-          {
             icon: <Trash2 />,
             onClick: handleConfirmDelete,
             tooltip: 'Delete',
@@ -241,10 +220,16 @@ function LightingsListContent({
         ]
       : [];
 
+  const saveLighting = useInlineRecordSave<Partial<IElementLighting>>({
+    errorMessage: 'Failed to update lighting',
+    onSaved: refreshLightings,
+    save: async (id, patch) => (await getLightingsService()).patch(id, patch),
+  });
+
   const rowSidebar = useElementRowSidebar<ElementLighting>({
-    onEdit:
+    onSave:
       scope === PageScope.SUPERADMIN
-        ? (element) => openLightingModal(ModalEnum.LIGHTING, element)
+        ? (element, patch) => saveLighting(element.id, patch)
         : undefined,
   });
 
@@ -264,14 +249,7 @@ function LightingsListContent({
       />
 
       {scope === PageScope.SUPERADMIN && (
-        <LazyModalLighting
-          item={selectedLighting}
-          onClose={() => setSelectedLighting(null)}
-          onConfirm={() => {
-            setSelectedLighting(null);
-            refreshLightings();
-          }}
-        />
+        <LazyModalLighting onConfirm={() => refreshLightings()} />
       )}
 
       <div className="mt-4">

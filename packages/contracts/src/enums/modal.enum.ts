@@ -50,7 +50,6 @@ export enum ModalEnum {
   TAG = 'modal-tag',
   TEXT_OVERLAY = 'modal-text-overlay',
   TRAINING = 'modal-training',
-  TRAINING_EDIT = 'modal-training-edit',
   TRAINING_UPLOAD = 'modal-training-new',
   UPLOAD = 'modal-upload',
   UPGRADE_PROMPT = 'modal-upgrade-prompt',

@@ -4,7 +4,6 @@ import {
   type SoundElementSchema,
   soundElementSchema,
 } from '@genfeedai/client/schemas';
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
 import type { ISound } from '@genfeedai/contracts/interfaces';
 import type { ModalSoundProps } from '@genfeedai/props/modals/modal.props';
@@ -17,22 +16,17 @@ import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
-import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 import ElementPlatformFields from '@/components/modals/elements/shared/ElementPlatformFields';
 import { useCrudModal } from '@/hooks/ui/use-crud-modal/use-crud-modal';
 
-export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
-  const { isSuperAdmin } = useAccessState();
-
-  const {
-    form,
-    formRef,
-    isSubmitting,
-    onSubmit,
-    closeModal,
-    handleDelete: deleteModalSound,
-  } = useCrudModal<ISound, SoundElementSchema>({
+export default function ModalSound({ onConfirm }: ModalSoundProps) {
+  const t = useTranslations('ui.createModal');
+  const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
+    ISound,
+    SoundElementSchema
+  >({
     defaultValues: {
       description: '',
       isActive: true,
@@ -40,7 +34,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
       sortOrder: 0,
       label: '',
     },
-    entity: sound || null,
+    entity: null,
     modalId: ModalEnum.SOUND,
     onConfirm,
     schema: soundElementSchema,
@@ -67,7 +61,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
   };
 
   return (
-    <Modal id={ModalEnum.SOUND} title={sound ? 'Update Sound' : 'Create Sound'}>
+    <Modal id={ModalEnum.SOUND} title={t('sound')}>
       <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
@@ -89,17 +83,11 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             onChange={updateModalSound}
             placeholder="lowercase-with-hyphens"
             isRequired={true}
-            isDisabled={isSubmitting || (!!sound && !isSuperAdmin)}
+            isDisabled={isSubmitting}
           />
 
           <p className="text-xs text-foreground/70 mt-1">
             Unique identifier (lowercase, alphanumeric with hyphens)
-            {sound && !isSuperAdmin && (
-              <span className="text-warning">
-                {' '}
-                (Key editing requires superadmin privileges)
-              </span>
-            )}
           </p>
         </FormControl>
 
@@ -157,18 +145,9 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             isLoading={isSubmitting}
           />
 
-          {sound && deleteModalSound && (
-            <Button
-              label={<Trash2 />}
-              variant={ButtonVariant.DESTRUCTIVE}
-              onClick={deleteModalSound}
-              isLoading={isSubmitting}
-            />
-          )}
-
           <Button
             type="submit"
-            label={sound ? 'Update' : 'Create'}
+            label={t('create')}
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}

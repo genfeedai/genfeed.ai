@@ -33,7 +33,6 @@ const mocks = vi.hoisted(() => ({
   notificationsError: vi.fn(),
   notificationsSuccess: vi.fn(),
   openConfirm: vi.fn(),
-  openModal: vi.fn(),
   replace: vi.fn(),
 }));
 
@@ -46,10 +45,6 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),
-}));
-
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: mocks.openModal,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -252,7 +247,9 @@ describe('LightingsList', () => {
   it('renders superadmin lightings and reads the admin filters from the URL', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
-    expect(await screen.findByText('Wide Lighting')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Wide Lighting')).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText('Macro Lighting')).toBeInTheDocument();
     expect(mocks.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -296,35 +293,36 @@ describe('LightingsList', () => {
     );
   });
 
-  it('opens the lighting summary in the sidebar with Edit for superadmins', async () => {
+  it('shows the lighting in the sidebar with fields editable in place for superadmins', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     const sidebar = within(await screen.findByTestId('row-sidebar'));
-    expect(sidebar.getByText('wide_lighting')).toBeInTheDocument();
-    expect(sidebar.getByText('Lighting description')).toBeInTheDocument();
-
-    fireEvent.click(sidebar.getByRole('button', { name: 'Edit' }));
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('lighting-modal')).toHaveTextContent(
-      'Wide Lighting',
+    expect(sidebar.getByRole('button', { name: 'Key' })).toHaveTextContent(
+      'wide_lighting',
     );
+    expect(
+      sidebar.getByRole('button', { name: 'Description' }),
+    ).toHaveTextContent('Lighting description');
+    expect(
+      sidebar.queryByRole('button', { name: 'Edit' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a read-only lighting summary outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
+    const sidebar = within(await screen.findByTestId('row-sidebar'));
+    expect(sidebar.getByText('wide_lighting')).toBeInTheDocument();
     expect(
-      within(await screen.findByTestId('row-sidebar')).queryByRole('button', {
-        name: 'Edit',
-      }),
+      sidebar.queryByRole('button', { name: 'Label' }),
     ).not.toBeInTheDocument();
   });
 
-  it('registers external refresh and opens edit/delete flows with the selected lighting', async () => {
+  it('registers external refresh and opens the delete flow with the selected lighting', async () => {
     const onRefresh = vi.fn();
 
     renderList({ onRefresh, scope: PageScope.SUPERADMIN });
-    await screen.findByText('Macro Lighting');
+    await screen.findAllByText('Macro Lighting');
 
     expect(onRefresh).toHaveBeenCalledWith(expect.any(Function));
     mocks.findAll.mockResolvedValue([
@@ -333,21 +331,15 @@ describe('LightingsList', () => {
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    expect(await screen.findByText('Refreshed Lighting')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Refreshed Lighting')).length,
+    ).toBeGreaterThan(0);
 
     mocks.findAll.mockResolvedValue(LIGHTINGS);
     await act(async () => {
       await onRefresh.mock.calls.at(-1)?.[0]();
     });
-    await screen.findByText('Macro Lighting');
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Edit Macro Lighting' }),
-    );
-    expect(mocks.openModal).toHaveBeenCalled();
-    expect(screen.getByTestId('lighting-modal')).toHaveTextContent(
-      'Macro Lighting',
-    );
+    await screen.findAllByText('Macro Lighting');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Delete Macro Lighting' }),
@@ -414,7 +406,7 @@ describe('LightingsList', () => {
   it('hides superadmin filters and actions outside superadmin scope', async () => {
     renderList({ scope: PageScope.BRAND });
 
-    await screen.findByText('Wide Lighting');
+    await screen.findAllByText('Wide Lighting');
     expect(
       screen.queryByRole('button', { name: 'Edit Wide Lighting' }),
     ).toBeNull();
@@ -439,7 +431,7 @@ describe('LightingsList', () => {
     mocks.findAll.mockReturnValue(new Promise(() => {}));
     renderList({ scope: PageScope.SUPERADMIN }, client);
 
-    expect(screen.getByText('Wide Lighting')).toBeInTheDocument();
+    expect(screen.getAllByText('Wide Lighting').length).toBeGreaterThan(0);
     expect(screen.getByText('Pagination: 14 lightings')).toBeInTheDocument();
     expect(screen.queryByText('Loading lightings')).not.toBeInTheDocument();
   });
@@ -448,6 +440,8 @@ describe('LightingsList', () => {
     mocks.findAll.mockResolvedValue([]);
     renderList({ scope: PageScope.BRAND });
 
-    expect(await screen.findByText('No lightings found')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('No lightings found')).length,
+    ).toBeGreaterThan(0);
   });
 });

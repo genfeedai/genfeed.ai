@@ -60,7 +60,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.TAG).toBe('modal-tag');
       expect(ModalEnum.TEXT_OVERLAY).toBe('modal-text-overlay');
       expect(ModalEnum.TRAINING).toBe('modal-training');
-      expect(ModalEnum.TRAINING_EDIT).toBe('modal-training-edit');
       expect(ModalEnum.TRAINING_UPLOAD).toBe('modal-training-new');
       expect(ModalEnum.UPLOAD).toBe('modal-upload');
       expect(ModalEnum.UPGRADE_PROMPT).toBe('modal-upgrade-prompt');

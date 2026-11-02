@@ -22,7 +22,7 @@ import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
+import { FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
@@ -32,6 +32,7 @@ import type {
   FoldersListAction,
   FoldersListState,
 } from '@/features/admin/props/folders.props';
+import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
@@ -51,8 +52,6 @@ function foldersListReducer(
   action: FoldersListAction,
 ): FoldersListState {
   switch (action.type) {
-    case 'SET_SELECTED_FOLDER':
-      return { ...state, selectedFolder: action.payload };
     case 'SET_ADMIN_ORG':
       return { ...state, adminOrg: action.payload };
     case 'SET_ADMIN_BRAND':
@@ -75,7 +74,6 @@ function foldersListReducer(
 }
 
 function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
-  const rowSidebarT = useTranslations('ui.rowSidebar');
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const { isSignedIn } = useAuthIdentity();
   const notificationsService = NotificationsService.getInstance();
@@ -95,7 +93,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   );
 
   const [state, dispatch] = useReducer(foldersListReducer, undefined, () => ({
-    selectedFolder: null,
     adminOrg: parsedSearchParams.get('organization') || '',
     adminBrand: parsedSearchParams.get('brand') || '',
     query: {} as IFilters,
@@ -109,7 +106,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     } as IFiltersState,
   }));
 
-  const { selectedFolder, adminOrg, adminBrand, query, filters } = state;
+  const { adminOrg, adminBrand, query, filters } = state;
 
   // Admin filter URL sync handlers
   const handleAdminOrgChange = useCallback(
@@ -236,24 +233,20 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         const service = await getFoldersService();
         await service.delete(folder.id);
         notificationsService.success('Folder deleted');
-        dispatch({ type: 'SET_SELECTED_FOLDER', payload: null });
         refreshFolders();
       } catch (error) {
         logger.error('Failed to delete folder', error);
         notificationsService.error('Failed to delete folder');
-        dispatch({ type: 'SET_SELECTED_FOLDER', payload: null });
       }
     },
     [getFoldersService, notificationsService, refreshFolders],
   );
 
-  const openFoldersModal = useCallback(
-    (modalId: ModalEnum, folder?: IFolder) => {
-      dispatch({ type: 'SET_SELECTED_FOLDER', payload: folder || null });
-      openModal(modalId);
-    },
-    [],
-  );
+  const saveFolder = useInlineRecordSave<Partial<IFolder>>({
+    errorMessage: 'Failed to update folder',
+    onSaved: () => refreshFolders(),
+    save: async (id, patch) => (await getFoldersService()).patch(id, patch),
+  });
 
   const columns = useMemo(
     () => buildFoldersColumns(handleToggleActive),
@@ -263,14 +256,8 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const actions = useMemo(
     () => [
       {
-        icon: <Pencil />,
-        onClick: (folder: Folder) => openFoldersModal(ModalEnum.FOLDER, folder),
-        tooltip: 'Edit',
-      },
-      {
         icon: <Trash2 />,
         onClick: (folder: Folder) => {
-          dispatch({ type: 'SET_SELECTED_FOLDER', payload: folder });
           openConfirm({
             confirmLabel: 'Delete',
             isError: true,
@@ -282,7 +269,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         tooltip: 'Delete',
       },
     ],
-    [openConfirm, openFoldersModal, handleDelete],
+    [openConfirm, handleDelete],
   );
 
   const rowSidebar = useMemo(
@@ -290,9 +277,27 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
       createSummaryRowSidebar<Folder>({
         getFacts: (folder) => [
           {
+            editor: {
+              ariaLabel: fieldsT('label'),
+              isRequired: true,
+              kind: 'text',
+              onSave: (label) => saveFolder(folder.id, { label }),
+              value: folder.label,
+            },
+            id: 'label',
+            label: fieldsT('label'),
+          },
+          {
+            editor: {
+              ariaLabel: fieldsT('description'),
+              isMultiline: true,
+              kind: 'text',
+              onSave: (description) => saveFolder(folder.id, { description }),
+              placeholder: '-',
+              value: folder.description,
+            },
             id: 'description',
             label: fieldsT('description'),
-            value: folder.description,
           },
           { id: 'brand', label: fieldsT('brand'), value: folder.brand?.label },
           {
@@ -306,20 +311,21 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
             value: folder.tags?.join(', '),
           },
           {
+            editor: {
+              ariaLabel: fieldsT('active'),
+              isChecked: folder.isActive !== false,
+              kind: 'switch',
+              onSave: (isActive) => saveFolder(folder.id, { isActive }),
+            },
             id: 'active',
             label: fieldsT('active'),
-            value:
-              folder.isActive === false
-                ? rowSidebarT('no')
-                : rowSidebarT('yes'),
           },
         ],
         getId: (folder) => folder.id,
         getTitle: (folder) => folder.label || '-',
         kind: 'record',
-        onEdit: (folder) => openFoldersModal(ModalEnum.FOLDER, folder),
       }),
-    [openFoldersModal, rowSidebarT, fieldsT],
+    [saveFolder, fieldsT],
   );
 
   return (
@@ -352,16 +358,14 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         />
       }
       right={
-        <>
-          {scope !== PageScope.SUPERADMIN && (
-            <Button
-              label="Folder"
-              icon={<Plus />}
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => openFoldersModal(ModalEnum.FOLDER)}
-            />
-          )}
-        </>
+        scope !== PageScope.SUPERADMIN && (
+          <Button
+            label="Folder"
+            icon={<Plus />}
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => openModal(ModalEnum.FOLDER)}
+          />
+        )
       }
     >
       {scope === PageScope.SUPERADMIN && (
@@ -388,11 +392,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         emptyLabel="No folders found"
       />
 
-      <FoldersListModals
-        selectedFolder={selectedFolder}
-        onConfirm={() => refreshFolders()}
-        scope={scope}
-      />
+      <FoldersListModals onConfirm={() => refreshFolders()} scope={scope} />
     </Container>
   );
 }

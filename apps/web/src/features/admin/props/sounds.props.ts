@@ -23,7 +23,6 @@ export interface SoundCheckboxCellProps {
 
 export interface SoundsListModalsProps {
   scope: ContentScope;
-  selectedSound: Sound | null;
   onConfirm: () => void;
 }
 
@@ -33,7 +32,6 @@ export interface SoundsListState {
   sounds: Sound[];
   fetchStatus: SoundFetchStatus;
   updatingIds: Set<string>;
-  selectedSound: Sound | null;
 }
 
 export type SoundsListAction =
@@ -41,5 +39,4 @@ export type SoundsListAction =
   | { type: 'FETCH_SUCCESS'; sounds: Sound[]; isRefresh: boolean }
   | { type: 'FETCH_FINALLY' }
   | { type: 'ADD_UPDATING_ID'; id: string }
-  | { type: 'REMOVE_UPDATING_ID'; id: string }
-  | { type: 'SET_SELECTED_SOUND'; sound: Sound | null };
+  | { type: 'REMOVE_UPDATING_ID'; id: string };
