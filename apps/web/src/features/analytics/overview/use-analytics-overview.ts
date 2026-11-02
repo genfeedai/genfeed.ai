@@ -7,19 +7,12 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  DashboardScopePreferences,
-  IAnalytics,
-} from '@genfeedai/contracts/interfaces';
+import type { DashboardScopePreferences } from '@genfeedai/contracts/interfaces';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { User } from '@models/auth/user.model';
-import type {
-  IBrandWithStats,
-  IOrgLeaderboardItem,
-} from '@services/analytics/analytics.service';
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useRef } from 'react';
@@ -27,11 +20,7 @@ import { useHealthChecks } from '@/features/analytics/hooks/use-health-checks/us
 import { useTimeseries } from '@/features/analytics/hooks/use-timeseries/use-timeseries';
 import { useAnalytics } from '@/hooks/data/analytics/use-analytics/use-analytics';
 import { useLeaderboards } from '@/hooks/data/analytics/use-leaderboards/use-leaderboards';
-import {
-  type TopPostData,
-  useTopPosts,
-} from '@/hooks/data/analytics/use-top-posts/use-top-posts';
-import type { PlatformTimeSeriesDataPoint } from '@/props/analytics/charts.props';
+import { useTopPosts } from '@/hooks/data/analytics/use-top-posts/use-top-posts';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
 
@@ -49,30 +38,11 @@ interface DashboardHeroContent {
 
 const DB_DASHBOARD_SCOPE_KEY = 'organization';
 
-/**
- * Server-provided initial data. Leave a field `undefined` when there is none:
- * the data hooks treat any provided value (even `[]`) with
- * `revalidateOnMount: false` as already hydrated and skip their mount fetch.
- */
 export interface UseAnalyticsOverviewParams {
-  analytics?: Partial<IAnalytics>;
-  brandsLeaderboard?: IBrandWithStats[];
-  cachedAt: string;
-  orgsLeaderboard?: IOrgLeaderboardItem[];
   scope: PageScope;
-  timeseriesData?: PlatformTimeSeriesDataPoint[];
-  topPosts?: TopPostData[];
 }
 
-export function useAnalyticsOverview({
-  analytics: initialAnalytics,
-  brandsLeaderboard: initialBrandsLeaderboard,
-  cachedAt: initialCachedAt,
-  orgsLeaderboard: initialOrgsLeaderboard,
-  scope,
-  timeseriesData: initialTimeseriesData,
-  topPosts: initialTopPosts,
-}: UseAnalyticsOverviewParams) {
+export function useAnalyticsOverview({ scope }: UseAnalyticsOverviewParams) {
   const agentBlocks = useAgentDashboardStore((s) => s.blocks);
   const isAgentModified = useAgentDashboardStore((s) => s.isAgentModified);
   const resetToDefaults = useAgentDashboardStore((s) => s.resetToDefaults);
@@ -101,9 +71,6 @@ export function useAnalyticsOverview({
   } = useAnalytics({
     autoLoad: true,
     endDate,
-    initialCachedAt: initialCachedAt || null,
-    initialData: initialAnalytics,
-    revalidateOnMount: false,
     scope,
     startDate,
   });
@@ -120,10 +87,6 @@ export function useAnalyticsOverview({
     orgsLeaderboard,
   } = useLeaderboards({
     dateRange,
-    initialBrandsLeaderboard,
-    initialCachedAt: initialCachedAt || null,
-    initialOrgsLeaderboard,
-    revalidateOnMount: false,
     scope,
   });
   // A brand page never ranks the organization's other brands.
@@ -140,9 +103,6 @@ export function useAnalyticsOverview({
     timeseriesData,
   } = useTimeseries({
     dateRange,
-    initialCachedAt: initialCachedAt || null,
-    initialData: initialTimeseriesData,
-    revalidateOnMount: false,
     scope,
   });
 
@@ -153,11 +113,8 @@ export function useAnalyticsOverview({
     topPosts,
   } = useTopPosts({
     brandId: scope === PageScope.BRAND ? brandId : undefined,
-    initialCachedAt: initialCachedAt || null,
-    initialData: initialTopPosts,
     limit: 10,
     metric: AnalyticsMetric.VIEWS,
-    revalidateOnMount: false,
   });
 
   const retryAllData = useMemo(
