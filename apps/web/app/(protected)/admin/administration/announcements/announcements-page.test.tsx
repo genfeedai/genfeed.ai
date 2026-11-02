@@ -1,3 +1,4 @@
+import { paginatedResponse } from '@app-tests/paginated-response';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,13 +41,25 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
 }));
 
 describe('AnnouncementsPage history', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getAnnouncements.mockResolvedValue([]);
+    mocks.getAnnouncements.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
   });
 
   it('requests the page in the URL and shows the pager', async () => {
@@ -61,5 +74,13 @@ describe('AnnouncementsPage history', () => {
     expect(
       await screen.findByRole('navigation', { name: 'pagination' }),
     ).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('navigation', { name: 'pagination' }),
+      ).toHaveAttribute('data-total-docs', '61'),
+    );
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
   });
 });

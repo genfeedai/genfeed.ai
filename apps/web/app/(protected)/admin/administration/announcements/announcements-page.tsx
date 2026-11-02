@@ -1,6 +1,9 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
@@ -54,7 +57,14 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'SET_SUBMITTING':
       return { ...state, isSubmitting: action.isSubmitting };
     case 'SET_ANNOUNCEMENTS':
-      return { ...state, announcements: action.announcements };
+      return {
+        ...state,
+        announcements: action.page.items,
+        pageTotals: {
+          totalDocs: action.page.total,
+          totalPages: action.page.totalPages,
+        },
+      };
     case 'SET_LOADING_HISTORY':
       return { ...state, isLoadingHistory: action.isLoadingHistory };
     case 'SUBMIT_SUCCESS':
@@ -77,11 +87,18 @@ export default function AnnouncementsPage({
     form: INITIAL_FORM,
     isSubmitting: false,
     announcements: [],
+    pageTotals: EMPTY_PAGE_TOTALS,
     isLoadingHistory: defaultTab === 'history',
   });
 
-  const { activeTab, form, isSubmitting, announcements, isLoadingHistory } =
-    state;
+  const {
+    activeTab,
+    form,
+    isSubmitting,
+    announcements,
+    isLoadingHistory,
+    pageTotals,
+  } = state;
   const currentPage = Number(useSearchParams().get('page')) || 1;
   const searchT = useTranslations('common.adminSearch');
   const { search, setSearch } = useAdminSearchParam();
@@ -106,8 +123,8 @@ export default function AnnouncementsPage({
         );
 
         if (!signal.aborted) {
-          dispatch({ type: 'SET_ANNOUNCEMENTS', announcements: data });
-          logger.info('Announcements loaded', { count: data.length });
+          dispatch({ type: 'SET_ANNOUNCEMENTS', page: data });
+          logger.info('Announcements loaded', { count: data.items.length });
         }
       } catch (error) {
         if (signal.aborted) {
@@ -239,7 +256,11 @@ export default function AnnouncementsPage({
             announcements={announcements}
           />
           <div className="mt-4">
-            <AutoPagination showTotal totalLabel="announcements" />
+            <AutoPagination
+              showTotal
+              totalLabel="announcements"
+              totals={pageTotals}
+            />
           </div>
         </>
       )}

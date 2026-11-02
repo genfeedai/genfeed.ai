@@ -1,4 +1,5 @@
 import { selectFilterOption } from '@app-tests/filter-menu.helpers';
+import { paginatedResponse } from '@app-tests/paginated-response';
 import { viewMenuTrigger } from '@app-tests/view-menu.helpers';
 import '@testing-library/jest-dom/vitest';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
@@ -57,7 +58,17 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => <nav aria-label="pagination" />,
+  default: ({
+    totals,
+  }: {
+    totals?: { totalDocs: number; totalPages: number };
+  }) => (
+    <nav
+      aria-label="pagination"
+      data-total-docs={totals?.totalDocs}
+      data-total-pages={totals?.totalPages}
+    />
+  ),
 }));
 
 describe('IssuesList view controls', () => {
@@ -66,8 +77,10 @@ describe('IssuesList view controls', () => {
     mocks.replace.mockReset();
     mocks.getService.mockReset();
     mocks.list.mockReset();
-    mocks.list.mockResolvedValue([]);
-    mocks.getService.mockResolvedValue({ list: mocks.list });
+    mocks.list.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
+    mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
   });
 
   it('reports a failed list request', async () => {
@@ -83,7 +96,7 @@ describe('IssuesList view controls', () => {
   });
 
   it('shows a table skeleton while loading before the empty card', async () => {
-    let resolveList: (value: unknown[]) => void = () => undefined;
+    let resolveList: (value: unknown) => void = () => undefined;
     mocks.list.mockReturnValueOnce(
       new Promise((resolve) => {
         resolveList = resolve;
@@ -96,7 +109,7 @@ describe('IssuesList view controls', () => {
     expect(screen.queryByText('No tasks yet')).not.toBeInTheDocument();
     expect(screen.queryByText('All Statuses')).not.toBeInTheDocument();
 
-    resolveList([]);
+    resolveList(paginatedResponse([]));
 
     expect(await screen.findByText('No tasks yet')).toBeVisible();
     expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
@@ -119,16 +132,21 @@ describe('IssuesList view controls', () => {
   });
 
   it('names the view controls and exposes their selected state once tasks exist', async () => {
-    mocks.list.mockResolvedValue([
-      {
-        id: 'task-1',
-        identifier: 'TASK-1',
-        priority: 'medium',
-        status: 'todo',
-        title: 'Ship empty-state CTA',
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Ship empty-state CTA',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
 
     render(<IssuesList />);
 
@@ -156,17 +174,22 @@ describe('IssuesList view controls', () => {
 });
 
 it('keeps failed tasks visible in the shared table and opens their details', async () => {
-  mocks.list.mockResolvedValue([
-    {
-      id: 'failed-task',
-      identifier: 'QA-9',
-      priority: 'high',
-      status: 'failed',
-      title: 'Recover the failed publish',
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
-  mocks.getService.mockResolvedValue({ list: mocks.list });
+  mocks.list.mockResolvedValue(
+    paginatedResponse(
+      [
+        {
+          id: 'failed-task',
+          identifier: 'QA-9',
+          priority: 'high',
+          status: 'failed',
+          title: 'Recover the failed publish',
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      { totalDocs: 61, totalPages: 5 },
+    ),
+  );
+  mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
   render(<IssuesList />);
   const title = await screen.findByRole('link', {
     name: 'Recover the failed publish',
@@ -217,11 +240,13 @@ describe('IssuesList inline editing and deep links', () => {
     Element.prototype.releasePointerCapture = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
     mocks.searchParams = new URLSearchParams();
-    mocks.list.mockResolvedValue([failedTask]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse([failedTask], { totalDocs: 61, totalPages: 5 }),
+    );
     mocks.updateTask.mockResolvedValue(failedTask);
     mocks.getService.mockResolvedValue({
       findOne: mocks.findOne,
-      list: mocks.list,
+      findAllPage: mocks.list,
       updateTask: mocks.updateTask,
     });
   });
@@ -291,17 +316,22 @@ describe('IssuesList inline editing and deep links', () => {
 describe('IssuesList URL view state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.list.mockResolvedValue([
-      {
-        id: 'task-1',
-        identifier: 'TASK-1',
-        priority: 'medium',
-        status: 'todo',
-        title: 'Ship empty-state CTA',
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
-    mocks.getService.mockResolvedValue({ list: mocks.list });
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Ship empty-state CTA',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
+    mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
   });
 
   it('restores the kanban view and status filter from the URL', async () => {
@@ -313,6 +343,7 @@ describe('IssuesList URL view state', () => {
     expect(viewMenuTrigger('Kanban view')).toBeInTheDocument();
     expect(mocks.list).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'todo' }),
+      expect.any(AbortSignal),
     );
   });
 });
@@ -324,27 +355,33 @@ describe('IssuesList search', () => {
     Element.prototype.releasePointerCapture = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
     mocks.searchParams = new URLSearchParams();
-    mocks.getService.mockResolvedValue({ list: mocks.list });
+    mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
   });
 
   it('searches tasks on the server with the term in the URL', async () => {
     mocks.searchParams = new URLSearchParams('q=empty-state');
-    mocks.list.mockResolvedValue([
-      {
-        id: 'task-1',
-        identifier: 'TASK-1',
-        priority: 'medium',
-        status: 'todo',
-        title: 'Ship empty-state CTA',
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Ship empty-state CTA',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
 
     render(<IssuesList />);
 
     expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
     expect(mocks.list).toHaveBeenCalledWith(
       expect.objectContaining({ search: 'empty-state' }),
+      expect.any(AbortSignal),
     );
     expect(screen.getByRole('textbox', { name: 'Search tasks' })).toHaveValue(
       'empty-state',
@@ -353,7 +390,9 @@ describe('IssuesList search', () => {
 
   it('keeps the search field when a search matches nothing', async () => {
     mocks.searchParams = new URLSearchParams('q=zzz');
-    mocks.list.mockResolvedValue([]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
 
     render(<IssuesList />);
 
@@ -371,8 +410,10 @@ describe('IssuesList pagination', () => {
     Element.prototype.releasePointerCapture = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
     mocks.searchParams = new URLSearchParams();
-    mocks.list.mockResolvedValue([]);
-    mocks.getService.mockResolvedValue({ list: mocks.list });
+    mocks.list.mockResolvedValue(
+      paginatedResponse([], { totalDocs: 61, totalPages: 5 }),
+    );
+    mocks.getService.mockResolvedValue({ findAllPage: mocks.list });
   });
 
   it('requests the server page from the URL with the page size', async () => {
@@ -382,26 +423,39 @@ describe('IssuesList pagination', () => {
     await waitFor(() =>
       expect(mocks.list).toHaveBeenCalledWith(
         expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 3 }),
+        expect.any(AbortSignal),
       ),
     );
   });
 
   it('defaults to the first page and renders pagination once tasks exist', async () => {
-    mocks.list.mockResolvedValue([
-      {
-        id: 'task-1',
-        identifier: 'TASK-1',
-        priority: 'medium',
-        status: 'todo',
-        title: 'Paginated task',
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Paginated task',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     render(<IssuesList />);
 
     expect(await screen.findByText('Paginated task')).toBeVisible();
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-docs', '61');
+    expect(
+      screen.getByRole('navigation', { name: 'pagination' }),
+    ).toHaveAttribute('data-total-pages', '5');
     expect(mocks.list).toHaveBeenCalledWith(
       expect.objectContaining({ limit: ITEMS_PER_PAGE, page: 1 }),
+      expect.any(AbortSignal),
     );
     expect(
       screen.getByRole('navigation', { name: 'pagination' }),
@@ -410,16 +464,21 @@ describe('IssuesList pagination', () => {
 
   it('drops the page param when the status filter changes', async () => {
     mocks.searchParams = new URLSearchParams('page=2&status=todo');
-    mocks.list.mockResolvedValue([
-      {
-        id: 'task-1',
-        identifier: 'TASK-1',
-        priority: 'medium',
-        status: 'todo',
-        title: 'Filtered task',
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    mocks.list.mockResolvedValue(
+      paginatedResponse(
+        [
+          {
+            id: 'task-1',
+            identifier: 'TASK-1',
+            priority: 'medium',
+            status: 'todo',
+            title: 'Filtered task',
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        { totalDocs: 61, totalPages: 5 },
+      ),
+    );
     const user = userEvent.setup();
     render(<IssuesList />);
     await screen.findByText('Filtered task');

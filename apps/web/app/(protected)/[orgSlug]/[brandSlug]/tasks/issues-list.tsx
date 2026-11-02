@@ -1,7 +1,11 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -136,6 +140,7 @@ const initialIssuesListState: IssuesListState = {
   isCreating: false,
   isLoading: true,
   issues: [],
+  pageTotals: EMPTY_PAGE_TOTALS,
   showCreateDialog: false,
 };
 
@@ -145,7 +150,16 @@ function issuesListReducer(
 ): IssuesListState {
   switch (action.type) {
     case 'SET_ISSUES':
-      return { ...state, issues: action.payload };
+      return {
+        ...state,
+        issues: action.payload?.items ?? [],
+        pageTotals: action.payload
+          ? {
+              totalDocs: action.payload.total,
+              totalPages: action.payload.totalPages,
+            }
+          : EMPTY_PAGE_TOTALS,
+      };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_SHOW_CREATE_DIALOG':
@@ -218,6 +232,7 @@ export default function IssuesList() {
     isCreating,
     isLoading,
     issues,
+    pageTotals,
     showCreateDialog,
   } = state;
   const controllerRef = useRef<AbortController | null>(null);
@@ -234,22 +249,25 @@ export default function IssuesList() {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const service = await getTasksService();
-      const result = await service.list({
-        ...(statusFilter ? { status: statusFilter } : {}),
-        ...(search ? { search } : {}),
-        ...(sort ? { sort } : {}),
-        // Brand selected → filter. Brand cleared on org Workspace → all brands.
-        ...(brandId ? { brandId } : {}),
-        limit: ITEMS_PER_PAGE,
-        page: currentPage,
-      });
+      const result = await service.findAllPage(
+        {
+          ...(statusFilter ? { status: statusFilter } : {}),
+          ...(search ? { search } : {}),
+          ...(sort ? { sort } : {}),
+          // Brand selected → filter. Brand cleared on org Workspace → all brands.
+          ...(brandId ? { brandId } : {}),
+          limit: ITEMS_PER_PAGE,
+          page: currentPage,
+        },
+        controller.signal,
+      );
       if (!controller.signal.aborted) {
         dispatch({ type: 'SET_ISSUES', payload: result });
       }
     } catch (error) {
       if (!controller.signal.aborted) {
         logger.error('Failed to load tasks', error);
-        dispatch({ type: 'SET_ISSUES', payload: [] });
+        dispatch({ type: 'SET_ISSUES', payload: null });
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -573,7 +591,7 @@ export default function IssuesList() {
         </div>
       )}
       {!isLoading && hasItems ? (
-        <AutoPagination showTotal totalLabel="tasks" />
+        <AutoPagination showTotal totalLabel="tasks" totals={pageTotals} />
       ) : null}
       <Dialog
         open={showCreateDialog}

@@ -7,7 +7,11 @@ import {
 } from '@contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ModalEnum } from '@genfeedai/contracts';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import { isModalOpen } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
@@ -105,6 +109,7 @@ const initialState: PageState = {
   originalSkillDraft: emptyDraft(),
   forkCreatedForSkillId: '',
   skills: [],
+  pageTotals: EMPTY_PAGE_TOTALS,
   sourceFilter: 'all',
   stageFilter: 'all',
 };
@@ -214,9 +219,18 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         error: null,
         isLoading: true,
         skills: [],
+        pageTotals: EMPTY_PAGE_TOTALS,
       };
     case 'LOAD_SUCCESS':
-      return { ...state, isLoading: false, skills: action.skills };
+      return {
+        ...state,
+        isLoading: false,
+        skills: action.page.items,
+        pageTotals: {
+          totalDocs: action.page.total,
+          totalPages: action.page.totalPages,
+        },
+      };
     case 'LOAD_ERROR':
       return {
         ...state,
@@ -225,6 +239,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         selectedSkillId: '',
         skillDraft: emptyDraft(),
         skills: [],
+        pageTotals: EMPTY_PAGE_TOTALS,
       };
     case 'SELECT_SKILL':
       return {
@@ -314,6 +329,7 @@ export default function BrandSettingsSkillsPage() {
     originalSkillDraft,
     forkCreatedForSkillId,
     skills: catalogSkillsState,
+    pageTotals: catalogPageTotals,
     sourceFilter,
     stageFilter,
   } = state;
@@ -357,6 +373,11 @@ export default function BrandSettingsSkillsPage() {
 
   const skills =
     catalogScopeKeyRef.current === scopeKey ? catalogSkillsState : [];
+
+  const pageTotals =
+    catalogScopeKeyRef.current === scopeKey
+      ? catalogPageTotals
+      : EMPTY_PAGE_TOTALS;
 
   // The table shows one server page, so the defaults come from their own query.
   const [defaultSkillSlugs, setDefaultSkillSlugs] = useState<string[]>([]);
@@ -431,7 +452,7 @@ export default function BrandSettingsSkillsPage() {
       if (!isCurrent()) return;
       setDefaultSkillSlugs(defaultSkills.map((skill) => skill.slug));
       catalogScopeKeyRef.current = scopeKey;
-      dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
+      dispatch({ type: 'LOAD_SUCCESS', page: catalogSkills });
       lifecycleRef.current.importSent = false;
       dispatch({ type: 'IMPORT_RECOVERED' });
     } catch {
@@ -492,7 +513,7 @@ export default function BrandSettingsSkillsPage() {
           controller.signal,
         );
         if (controller.signal.aborted) return;
-        dispatch({ type: 'LOAD_SUCCESS', skills: pageSkills });
+        dispatch({ type: 'LOAD_SUCCESS', page: pageSkills });
       } catch {
         if (controller.signal.aborted) return;
         loadedPageQueryKeyRef.current = '';
@@ -794,7 +815,7 @@ export default function BrandSettingsSkillsPage() {
         throw new Error('Skill details unavailable');
       const catalog = await service.listSkillsPage(pageQueryRef.current);
       if (!operation.isCurrent()) return;
-      dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
+      dispatch({ type: 'LOAD_SUCCESS', page: catalog });
       dispatch({ type: 'HYDRATE_SKILL', skill: hydrated });
     } catch {
       if (!operation.isCurrent()) return;
@@ -895,7 +916,7 @@ export default function BrandSettingsSkillsPage() {
       if (!operation.isCurrent()) return;
       const catalog = await service.listSkillsPage(pageQueryRef.current);
       if (!operation.isCurrent()) return;
-      dispatch({ type: 'LOAD_SUCCESS', skills: catalog });
+      dispatch({ type: 'LOAD_SUCCESS', page: catalog });
       dispatch({ type: 'CLEAR_SELECTED_SKILL' });
       operation.finish();
       lifecycleRef.current.selectedId = '';
@@ -1111,7 +1132,7 @@ export default function BrandSettingsSkillsPage() {
         skills={skills}
       />
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="skills" />
+        <AutoPagination showTotal totalLabel="skills" totals={pageTotals} />
       </div>
 
       <SkillDetailPanel
