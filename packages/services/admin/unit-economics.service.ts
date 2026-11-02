@@ -2,7 +2,6 @@ import type {
   IUnitEconomicsQuery,
   IUnitEconomicsReport,
 } from '@genfeedai/contracts/interfaces';
-import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -31,12 +30,6 @@ export class AdminUnitEconomicsService extends HTTPBaseService {
       signal,
     });
     const report = deserializeResource<IUnitEconomicsReport>(response.data);
-    // Feeds AutoPagination, which reads the totals from PagesService.
-    if (query.page && report.pagination) {
-      PagesService.setCurrentPage(report.pagination.page);
-      PagesService.setTotalPages(report.pagination.pages);
-      PagesService.setTotalDocs(report.pagination.total ?? 0);
-    }
     return report;
   }
 }

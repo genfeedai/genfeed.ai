@@ -1,11 +1,12 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { Training } from '@genfeedai/models/ai/training.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
-import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { toPaginatedResponse } from '@services/core/paginated-response';
 
 export class TrainingsService extends BaseService<Training> {
   constructor(token: string) {
@@ -23,7 +24,7 @@ export class TrainingsService extends BaseService<Training> {
     trainingId: string,
     query?: { page?: number; [key: string]: unknown },
     signal?: AbortSignal,
-  ): Promise<Image[]> {
+  ): Promise<IPaginatedResponse<Image>> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${trainingId}/images`, {
         params: query,
@@ -31,17 +32,10 @@ export class TrainingsService extends BaseService<Training> {
       })
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-          PagesService.setTotalDocs(pagination.total ?? 0);
-        }
-
-        return this.extractCollection<Partial<Image>>(document).map(
+        const items = this.extractCollection<Partial<Image>>(document).map(
           (image) => new Image(image),
         );
+        return toPaginatedResponse(items, document);
       });
   }
 
@@ -52,7 +46,7 @@ export class TrainingsService extends BaseService<Training> {
     trainingId: string,
     query?: { page?: number; [key: string]: unknown },
     signal?: AbortSignal,
-  ): Promise<Image[]> {
+  ): Promise<IPaginatedResponse<Image>> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${trainingId}/sources`, {
         params: query,
@@ -60,17 +54,10 @@ export class TrainingsService extends BaseService<Training> {
       })
       .then((res) => {
         const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-          PagesService.setTotalDocs(pagination.total ?? 0);
-        }
-
-        return this.extractCollection<Partial<Image>>(document).map(
+        const items = this.extractCollection<Partial<Image>>(document).map(
           (image) => new Image(image),
         );
+        return toPaginatedResponse(items, document);
       });
   }
 }
