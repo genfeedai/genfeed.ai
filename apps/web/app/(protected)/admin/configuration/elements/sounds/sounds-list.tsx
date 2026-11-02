@@ -1,6 +1,9 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
 import type { IQueryParams, ISound } from '@genfeedai/contracts/interfaces';
 import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -40,7 +43,7 @@ function soundsListReducer(
         fetchStatus: action.isRefresh ? 'refreshing' : 'loading',
       };
     case 'FETCH_SUCCESS':
-      return { ...state, sounds: action.sounds };
+      return { ...state, page: action.page };
     case 'FETCH_FINALLY':
       return { ...state, fetchStatus: 'idle' };
     case 'ADD_UPDATING_ID': {
@@ -57,6 +60,8 @@ function soundsListReducer(
       return state;
   }
 }
+
+const EMPTY_SOUNDS: Sound[] = [];
 
 const SOUND_SORT_KEYS = ['label', 'key', 'sortOrder'];
 
@@ -82,12 +87,13 @@ function SoundsListContent({
   });
 
   const [state, dispatch] = useReducer(soundsListReducer, undefined, () => ({
-    sounds: [],
+    page: null,
     fetchStatus: 'loading' as FetchStatus,
     updatingIds: new Set<string>(),
   }));
 
-  const { sounds, fetchStatus, updatingIds } = state;
+  const { page, fetchStatus, updatingIds } = state;
+  const sounds = page?.items ?? EMPTY_SOUNDS;
 
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
@@ -141,13 +147,13 @@ function SoundsListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
-        dispatch({ type: 'FETCH_SUCCESS', sounds: data, isRefresh });
+        dispatch({ type: 'FETCH_SUCCESS', page: data });
 
-        logger.info('GET /sounds success', data);
+        logger.info('GET /sounds success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -374,7 +380,15 @@ function SoundsListContent({
       />
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="sounds" />
+        <AutoPagination
+          showTotal
+          totalLabel="sounds"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );

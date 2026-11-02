@@ -1,6 +1,10 @@
 import { useConfirmModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { PageScope } from '@genfeedai/contracts';
-import { ITEMS_PER_PAGE, MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  EMPTY_PAGE_TOTALS,
+  ITEMS_PER_PAGE,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type {
   IElementStyle,
   IQueryParams,
@@ -37,12 +41,14 @@ function stylesListReducer(
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_STYLES':
-      return { ...state, styles: action.payload, isLoading: false };
+    case 'SET_PAGE':
+      return { ...state, page: action.payload, isLoading: false };
     default:
       return state;
   }
 }
+
+const EMPTY_STYLES: ElementStyle[] = [];
 
 const STYLE_SORT_KEYS = ['label', 'key'];
 
@@ -67,11 +73,12 @@ function StylesListContent({
   });
 
   const [state, dispatch] = useReducer(stylesListReducer, {
-    styles: [],
+    page: null,
     isLoading: true,
   });
 
-  const { styles, isLoading } = state;
+  const { page, isLoading } = state;
+  const styles = page?.items ?? EMPTY_STYLES;
   const { brand: adminBrand, organization: adminOrg } =
     useAdminOrgBrandParams();
 
@@ -178,13 +185,13 @@ function StylesListContent({
           }
         }
 
-        const data = await service.findAll(query);
+        const data = await service.findAllPage(query);
         if (requestId !== latestRequestRef.current) {
           return;
         }
-        dispatch({ type: 'SET_STYLES', payload: data });
+        dispatch({ type: 'SET_PAGE', payload: data });
 
-        logger.info('GET /styles success', data);
+        logger.info('GET /styles success', data.items);
       } catch (error) {
         if (requestId !== latestRequestRef.current) {
           return;
@@ -289,7 +296,15 @@ function StylesListContent({
       )}
 
       <div className="mt-4">
-        <AutoPagination showTotal totalLabel="styles" />
+        <AutoPagination
+          showTotal
+          totalLabel="styles"
+          totals={
+            page
+              ? { totalDocs: page.total, totalPages: page.totalPages }
+              : EMPTY_PAGE_TOTALS
+          }
+        />
       </div>
     </>
   );
