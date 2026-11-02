@@ -928,6 +928,10 @@ describe('KnowledgeSourcesList', () => {
       { expected: ['Voice notes'], search: 'type=text' },
       { expected: ['Pricing page'], search: 'space=inbox' },
       { expected: ['Media kit'], search: 'space=launch&status=failed' },
+      {
+        expected: ['Pricing page', 'Media kit', 'Voice notes'],
+        search: 'space=archived-space',
+      },
       { expected: ['Pricing page'], search: 'q=pricing' },
       { expected: ['Media kit'], search: 'q=media-kit.pdf' },
       {

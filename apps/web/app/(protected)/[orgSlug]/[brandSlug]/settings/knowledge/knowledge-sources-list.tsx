@@ -183,9 +183,18 @@ export default function KnowledgeSourcesList({
     if (actionScopeRef.current === actionScope) setIsSubmitting(false);
   }, [actionScope]);
 
+  // A space that is not in this brand's list reads as no space filter, the
+  // same as the Space facet shows it.
+  const activeSpaceId = spaces.some((space) => space.id === filters.spaceId)
+    ? (filters.spaceId ?? ALL)
+    : ALL;
   const visibleRows = useMemo(
-    () => filterKnowledgeRows(rows, filters),
-    [filters, rows],
+    () =>
+      filterKnowledgeRows(rows, {
+        ...filters,
+        spaceId: activeSpaceId === ALL ? null : activeSpaceId,
+      }),
+    [activeSpaceId, filters, rows],
   );
   const selectedRow =
     !isLoading && !selectionError && !isInvalidSelection
@@ -556,10 +565,6 @@ export default function KnowledgeSourcesList({
       value: space.id,
     })),
   ];
-  const activeSpaceId = spaces.some((space) => space.id === filters.spaceId)
-    ? (filters.spaceId ?? ALL)
-    : ALL;
-
   return (
     <Container
       label={translatePage('title')}
