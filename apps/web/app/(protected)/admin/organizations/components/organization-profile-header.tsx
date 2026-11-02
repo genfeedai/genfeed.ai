@@ -1,8 +1,8 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
+import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -34,10 +34,9 @@ export default function OrganizationProfileHeader({
 
   return (
     <header className="flex items-center gap-4">
-      <Avatar
+      <BrandAvatar
         alt={profile.name}
         name={profile.name}
-        shape="square"
         size="xl"
         src={profile.logo}
       />

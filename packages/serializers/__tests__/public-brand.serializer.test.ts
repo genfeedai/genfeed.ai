@@ -93,4 +93,57 @@ describe('PublicBrandSerializer', () => {
 
     expect(document.data.relationships).toHaveProperty('links');
   });
+
+  it('serializes the logo and banner with only the picture, never storage or ownership', () => {
+    const document = PublicBrandSerializer.serialize({
+      banner: {
+        category: 'BANNER',
+        cdnUrl: 'https://cdn.example.com/banners/asset_2?Signature=b',
+        cloudObjectKey: 'banners/asset_2',
+        id: 'asset_2',
+        mimeType: 'image/png',
+        parentOrgId: 'org_1',
+        sha256: 'abc',
+        userId: 'user_1',
+      },
+      id: 'brand_1',
+      label: 'Public brand',
+      logo: {
+        category: 'LOGO',
+        cdnUrl: 'https://cdn.example.com/logos/asset_1?Signature=a',
+        cloudObjectKey: 'logos/asset_1',
+        id: 'asset_1',
+        mimeType: 'image/png',
+        parentOrgId: 'org_1',
+        sha256: 'def',
+        userId: 'user_1',
+      },
+      slug: 'public-brand',
+    }) as {
+      included?: { attributes: Record<string, unknown>; id: string }[];
+    };
+
+    expect(
+      document.included
+        ?.map((asset) => ({ attributes: asset.attributes, id: asset.id }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    ).toEqual([
+      {
+        attributes: {
+          category: 'LOGO',
+          cdnUrl: 'https://cdn.example.com/logos/asset_1?Signature=a',
+          mimeType: 'image/png',
+        },
+        id: 'asset_1',
+      },
+      {
+        attributes: {
+          category: 'BANNER',
+          cdnUrl: 'https://cdn.example.com/banners/asset_2?Signature=b',
+          mimeType: 'image/png',
+        },
+        id: 'asset_2',
+      },
+    ]);
+  });
 });

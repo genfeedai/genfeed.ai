@@ -42,6 +42,7 @@ const source: MediaDeliverySource = {
 async function setup() {
   const prisma = {
     asset: { findMany: vi.fn().mockResolvedValue([]) },
+    brand: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -199,6 +200,61 @@ describe('AuthorizedMediaUrlService', () => {
     const [logo] = await service.projectAssets(scope, ['asset-1']);
     expect(urls.buildUrl).toHaveBeenCalledWith('logos/asset-1');
     expect(logo.url).toContain('signed=1');
+  });
+
+  it('signs the logo and banner of a public brand for an anonymous visitor', async () => {
+    const { service, prisma } = await setup();
+    const brandId = testId('brand', 3);
+    prisma.asset.findMany.mockResolvedValue([
+      {
+        id: 'logo-1',
+        category: 'LOGO',
+        cloudObjectKey: null,
+        parentBrandId: brandId,
+      },
+      {
+        id: 'banner-1',
+        category: 'BANNER',
+        cloudObjectKey: 'banners/banner-1.png',
+        parentBrandId: brandId,
+      },
+    ] as never);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: brandId, organizationId },
+    ] as never);
+
+    expect(
+      await service.projectPublicBrandAssets(['logo-1', 'banner-1']),
+    ).toEqual([
+      {
+        assetId: 'logo-1',
+        url: 'https://media.example/logos%2Flogo-1?signed=1',
+      },
+      {
+        assetId: 'banner-1',
+        url: 'https://media.example/banners%2Fbanner-1.png?signed=1',
+      },
+    ]);
+  });
+
+  it('withholds a logo whose brand is not public and anything that is not brand identity', async () => {
+    const { service, prisma } = await setup();
+    prisma.asset.findMany.mockResolvedValue([
+      {
+        id: 'logo-private',
+        category: 'LOGO',
+        cloudObjectKey: 'logos/logo-private',
+        parentBrandId: testId('brand', 4),
+      },
+    ] as never);
+    prisma.brand.findMany.mockResolvedValue([]);
+
+    expect(
+      await service.projectPublicBrandAssets(['logo-private', 'reference-1']),
+    ).toEqual([
+      { assetId: 'logo-private', url: null },
+      { assetId: 'reference-1', url: null },
+    ]);
   });
 
   beforeEach(() => vi.mocked(isCloudDeployment).mockReturnValue(true));

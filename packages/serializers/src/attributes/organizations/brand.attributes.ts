@@ -65,7 +65,16 @@ export const publicBrandAttributes = [
   'isHighlighted',
   'logoUrl',
   'bannerUrl',
+  'logo',
+  'banner',
   'links',
   'createdAt',
   'updatedAt',
 ];
+
+/**
+ * What a public profile reveals about a brand's logo or banner: the picture
+ * the visitor is meant to see and nothing about where or by whom it is stored
+ * (no owner, organization, storage key or checksum).
+ */
+export const publicBrandAssetAttributes = ['category', 'cdnUrl', 'mimeType'];
