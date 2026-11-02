@@ -1,4 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountDetail from './analytics-account-detail';
 
@@ -89,6 +99,11 @@ const getService = async () => ({
   ),
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
@@ -102,6 +117,17 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
     pageScope: 'org',
   }),
 }));
+
+let queryClient: QueryClient;
+
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+});
+
+/** Every render in a test shares one cache, as the app's provider does. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
 
 describe('AnalyticsAccountDetail', () => {
   beforeEach(() => {
