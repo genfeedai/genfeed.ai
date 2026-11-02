@@ -19,14 +19,27 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
+import {
+  countLifetimeGenerations,
+  countLifetimePosts,
+  countOrganizationsInSql,
+  type OrganizationListFilters,
+  organizationListFilterSql,
+  type PrismaSql,
+  resolveFirstBrandLogos,
+  resolveOwnersByUserId,
+  resolvePersonalOwnerDomains,
+  toContainsPattern,
+} from '@api/endpoints/analytics/organization-qualification.sql';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IEntityAnalyticsStats,
-  IOrganizationOwner,
+  IEntityStatsTotals,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,10 +56,16 @@ import type {
   PostCountRow,
   ResolvedBrandDisplay,
 } from './analytics.types';
+import { EMPTY_ENTITY_TOTALS, sumEntityTotals } from './entity-totals';
 
-type PrismaSql = ReturnType<typeof Prisma.sql>;
 type EntityType = 'organization' | 'brand';
 type EntityField = 'organizationId' | 'brandId';
+interface EntityTotalsFilters {
+  brandId?: string;
+  organizationId?: string;
+  search?: string;
+  type?: OrganizationCategory;
+}
 
 /** Default analytics stats for entities with no data */
 const DEFAULT_ANALYTICS: IEntityAnalyticsStats = {
@@ -63,13 +82,18 @@ const DEFAULT_BRAND_ANALYTICS: IEntityAnalyticsStats = {
 };
 
 /** The numeric stat keys a leaderboard can be ranked by */
-type SortableMetric = 'totalEngagement' | 'totalPosts' | 'totalViews';
+type SortableMetric =
+  | 'totalEngagement'
+  | 'totalGenerations'
+  | 'totalPosts'
+  | 'totalViews';
 
 /** Map sort enum to field name */
 const SORT_FIELD_MAP: Record<LeaderboardSort, SortableMetric> = {
   [LeaderboardSort.VIEWS]: 'totalViews',
   [LeaderboardSort.POSTS]: 'totalPosts',
   [LeaderboardSort.ENGAGEMENT]: 'totalEngagement',
+  [LeaderboardSort.GENERATIONS]: 'totalGenerations',
 };
 
 @Injectable()
@@ -230,6 +254,7 @@ export class EntityLeaderboardService {
       case 'totalViews':
         return Prisma.sql`SUM("totalViews")`;
       case 'totalPosts':
+      case 'totalGenerations':
         return Prisma.sql`COUNT(*)`;
       default:
         return Prisma.sql`SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves")`;
@@ -245,6 +270,15 @@ export class EntityLeaderboardService {
     range: DateRange,
     organizationFilter: PrismaSql,
   ): PrismaSql {
+    // Lifetime on purpose: a lead qualifies on what it ever generated, not on
+    // whatever the date picker happens to cover.
+    if (SORT_FIELD_MAP[sort] === 'totalGenerations') {
+      return Prisma.sql`"ingredients"
+        WHERE "isDeleted" = false
+          AND "origin" = 'GENERATED'::"IngredientOrigin"
+          ${organizationFilter}`;
+    }
+
     if (SORT_FIELD_MAP[sort] === 'totalPosts') {
       return Prisma.sql`"posts"
         WHERE "isDeleted" = false
@@ -258,11 +292,6 @@ export class EntityLeaderboardService {
         WHERE "date" >= ${range.startDate}
           AND "date" <= ${range.endDate}
           ${organizationFilter}`;
-  }
-
-  /** Case-insensitive "contains" pattern with LIKE wildcards escaped. */
-  private toContainsPattern(search: string): string {
-    return `%${search.replace(/[\\%_]/g, '\\$&')}%`;
   }
 
   /**
@@ -284,8 +313,7 @@ export class EntityLeaderboardService {
       order?: LeaderboardOrder;
       organizationId?: string;
       search?: string;
-      type?: OrganizationCategory;
-    },
+    } & OrganizationListFilters,
   ): Promise<string[]> {
     const isOrganization = entityType === 'organization';
     const entityTable = Prisma.raw(
@@ -308,16 +336,18 @@ export class EntityLeaderboardService {
       isOrganization && filters.organizationId
         ? Prisma.sql`AND e."id" = ${filters.organizationId}`
         : Prisma.empty;
-    // The type an admin sees is the onboarding account type, else the category.
-    const typeFilter =
-      isOrganization && filters.type
-        ? Prisma.sql`AND COALESCE(e."accountType", e."category") = ${filters.type}::"OrganizationCategory"`
-        : Prisma.empty;
+    const personalDomains =
+      isOrganization && filters.emailClass
+        ? await resolvePersonalOwnerDomains(this.prisma)
+        : [];
+    const organizationFilters = isOrganization
+      ? organizationListFilterSql(filters, personalDomains)
+      : Prisma.empty;
     const direction = Prisma.raw(
       filters.order === LeaderboardOrder.ASC ? 'ASC' : 'DESC',
     );
     const searchFilter = filters.search
-      ? Prisma.sql`AND e."label" ILIKE ${this.toContainsPattern(filters.search)}`
+      ? Prisma.sql`AND e."label" ILIKE ${toContainsPattern(filters.search)}`
       : Prisma.empty;
     // A selected brand narrows the ranking to that one brand. The organization
     // filter above still applies, so a foreign brand id matches nothing.
@@ -338,7 +368,7 @@ export class EntityLeaderboardService {
         ${entityOrganizationFilter}
         ${brandFilter}
         ${organizationIdFilter}
-        ${typeFilter}
+        ${organizationFilters}
         ${searchFilter}
       ORDER BY COALESCE(m.metric, 0) ${direction}, e."createdAt" DESC, e."id" DESC
       LIMIT ${window.limit} OFFSET ${window.offset}
@@ -354,28 +384,22 @@ export class EntityLeaderboardService {
       brandId?: string;
       organizationId?: string;
       search?: string;
-      type?: OrganizationCategory;
-    },
+    } & OrganizationListFilters,
   ): Promise<number> {
     const label = filters.search
       ? { contains: filters.search, mode: 'insensitive' as const }
       : undefined;
 
     if (entityType === 'organization') {
+      if (filters.emailClass || filters.usage) {
+        return countOrganizationsInSql(this.prisma, filters);
+      }
       return this.prisma.organization.count({
         where: {
+          accountType: filters.type,
           id: filters.organizationId,
           isDeleted: false,
           label,
-          // Same rule as the ranking: account type, else category.
-          ...(filters.type
-            ? {
-                OR: [
-                  { accountType: filters.type },
-                  { accountType: null, category: filters.type },
-                ],
-              }
-            : {}),
         },
       });
     }
@@ -388,6 +412,44 @@ export class EntityLeaderboardService {
         organizationId: filters.organizationId,
       },
     });
+  }
+
+  /** Period totals across every entity the list matches, not only the page shown. */
+  private async getEntityTotals(
+    entityType: EntityType,
+    range: DateRange,
+    matchingEntities: number,
+    filters: EntityTotalsFilters,
+  ): Promise<IEntityStatsTotals> {
+    if (matchingEntities === 0) {
+      return { ...EMPTY_ENTITY_TOTALS };
+    }
+
+    const entityField: EntityField =
+      entityType === 'organization' ? 'organizationId' : 'brandId';
+    const ids = await this.rankEntityIds(
+      entityType,
+      range,
+      LeaderboardSort.ENGAGEMENT,
+      { limit: matchingEntities, offset: 0 },
+      filters,
+    );
+    const { endDate, previousEndDate, previousStartDate, startDate } = range;
+    const [current, previousEngagement, publishedPosts] = await Promise.all([
+      this.getCurrentAnalytics(ids, startDate, endDate, entityField),
+      this.getPreviousEngagement(
+        ids,
+        previousStartDate,
+        previousEndDate,
+        entityField,
+      ),
+      this.getPublishedPostCounts(ids, startDate, endDate, entityField),
+    ]);
+
+    return sumEntityTotals(
+      { current, previousEngagement, publishedPosts },
+      (now, before) => this.calculateGrowth(now, before),
+    );
   }
 
   /**
@@ -408,8 +470,7 @@ export class EntityLeaderboardService {
       includePlatforms?: boolean;
       order?: LeaderboardOrder;
       search?: string;
-      type?: OrganizationCategory;
-    } = {},
+    } & OrganizationListFilters = {},
   ): Promise<EntityStatsRow<TEntity>[]> {
     const includePlatforms = options.includePlatforms ?? false;
     const entityField: EntityField =
@@ -417,10 +478,12 @@ export class EntityLeaderboardService {
 
     const ids = await this.rankEntityIds(entityType, range, sort, window, {
       brandId: options.brandId,
+      emailClass: options.emailClass,
       order: options.order,
       organizationId: options.organizationId,
       search: options.search,
       type: options.type,
+      usage: options.usage,
     });
     if (ids.length === 0) {
       return [];
@@ -647,55 +710,6 @@ export class EntityLeaderboardService {
     );
   }
 
-  /**
-   * The owning user of each organization (`organizations.userId`), one read for
-   * the page. Display name falls back to email, then handle, so a row never
-   * renders an empty link.
-   */
-  private async resolveOwnersByUserId(
-    userIds: string[],
-  ): Promise<Map<string, IOrganizationOwner>> {
-    const ids = [...new Set(userIds.filter(Boolean))];
-    if (ids.length === 0) {
-      return new Map();
-    }
-
-    const users = await this.prisma.user.findMany({
-      select: {
-        avatar: true,
-        email: true,
-        firstName: true,
-        handle: true,
-        id: true,
-        lastName: true,
-        name: true,
-      },
-      where: { id: { in: ids } },
-    });
-
-    return new Map(
-      users.map((user) => {
-        const splitName = [user.firstName, user.lastName]
-          .filter(Boolean)
-          .join(' ');
-        return [
-          user.id,
-          {
-            avatar: user.avatar ?? undefined,
-            email: user.email ?? undefined,
-            id: user.id,
-            name:
-              user.name?.trim() ||
-              splitName ||
-              user.email ||
-              user.handle ||
-              'Unknown',
-          },
-        ];
-      }),
-    );
-  }
-
   /** Shape a database-paged result into the paginated payload */
   private buildPaginationSlice<TItem>(
     data: TItem[],
@@ -796,6 +810,7 @@ export class EntityLeaderboardService {
     organizationId?: string,
     type?: OrganizationCategory,
     order: LeaderboardOrder = LeaderboardOrder.DESC,
+    listFilters: Omit<OrganizationListFilters, 'type'> = {},
   ): Promise<PaginatedOrgsResponse> {
     const range = DateRangeUtil.parseDateRange(startDateStr, endDateStr);
     // The name search runs in the same query that ranks and pages, and in the
@@ -807,9 +822,10 @@ export class EntityLeaderboardService {
         range,
         sort,
         { limit, offset: (page - 1) * limit },
-        { order, organizationId, search: needle, type },
+        { ...listFilters, order, organizationId, search: needle, type },
       ),
       this.countEntities('organization', {
+        ...listFilters,
         organizationId,
         search: needle,
         type,
@@ -817,15 +833,26 @@ export class EntityLeaderboardService {
     ]);
 
     const organizationIds = rows.map(({ entity }) => entity.id);
-    const [brandCountMap, memberCountMap, logoUrlMap, ownerMap] =
-      await Promise.all([
-        this.countBrandsByOrganization(organizationIds),
-        this.countMembersByOrganization(organizationIds),
-        this.organizationLogoService.resolveLogoUrls(organizationIds),
-        this.resolveOwnersByUserId(
-          rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
-        ),
-      ]);
+    const [
+      brandCountMap,
+      memberCountMap,
+      logoUrlMap,
+      ownerMap,
+      generationCountMap,
+      lifetimePostMap,
+      brandLogoMap,
+    ] = await Promise.all([
+      this.countBrandsByOrganization(organizationIds),
+      this.countMembersByOrganization(organizationIds),
+      this.organizationLogoService.resolveLogoUrls(organizationIds),
+      resolveOwnersByUserId(
+        this.prisma,
+        rows.flatMap(({ entity }) => (entity.userId ? [entity.userId] : [])),
+      ),
+      countLifetimeGenerations(this.prisma, organizationIds),
+      countLifetimePosts(this.prisma, organizationIds),
+      resolveFirstBrandLogos(this.prisma, this.brandsService, organizationIds),
+    ]);
 
     const data = rows.map(
       ({ entity, prevEngagement, stats }) =>
@@ -833,19 +860,30 @@ export class EntityLeaderboardService {
           avgEngagementRate: stats.avgEngagementRate,
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
-          // The organization's own logo asset, then the auth provider's.
+          // The organization's own logo asset, then the auth provider's, then
+          // its first brand's: signup scraping saves the company logo on the
+          // brand, so most organizations have no logo of their own.
+          lastActiveAt: entity.userId
+            ? ownerMap.get(entity.userId)?.lastActiveAt
+            : undefined,
+          lifetimePosts: lifetimePostMap.get(entity.id) ?? 0,
           logo:
             logoUrlMap.get(entity.id) ??
             entity.authProviderLogoUrl ??
+            brandLogoMap.get(entity.id) ??
             undefined,
           name: entity.label || entity.name || 'Unknown',
           owner: entity.userId ? ownerMap.get(entity.userId) : undefined,
+          ownerEmailClass: classifyEmail(
+            entity.userId ? ownerMap.get(entity.userId)?.email : undefined,
+          ),
           slug: entity.slug,
-          // Onboarding writes `accountType`; `category` always has a value.
-          type: (entity.accountType ?? entity.category ?? undefined) as
+          // Only what onboarding recorded: `category` always has a default.
+          type: (entity.accountType ?? undefined) as
             | OrganizationCategory
             | undefined,
           createdAt: entity.createdAt?.toISOString(),
+          totalGenerations: generationCountMap.get(entity.id) ?? 0,
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
           totalMembers: memberCountMap.get(entity.id) || 0,
@@ -888,9 +926,14 @@ export class EntityLeaderboardService {
       this.countEntities('brand', { brandId, organizationId, search: needle }),
     ]);
 
-    const displayByBrandId = await this.resolveBrandDisplay(
-      rows.map(({ entity }) => entity),
-    );
+    const [displayByBrandId, totals] = await Promise.all([
+      this.resolveBrandDisplay(rows.map(({ entity }) => entity)),
+      this.getEntityTotals('brand', range, total, {
+        brandId,
+        organizationId,
+        search: needle,
+      }),
+    ]);
 
     const slice = this.buildPaginationSlice(
       rows.map(({ entity, prevEngagement, stats }) =>
@@ -906,7 +949,7 @@ export class EntityLeaderboardService {
       limit,
     );
 
-    return new PaginatedBrandsResponse(slice);
+    return new PaginatedBrandsResponse({ ...slice, totals });
   }
 
   /**

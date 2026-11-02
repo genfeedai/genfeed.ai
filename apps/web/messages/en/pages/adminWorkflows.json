@@ -10,21 +10,18 @@
     "unpinNamed": "Unpin {label} from Featured"
   },
   "catalog": {
-    "empty": "No system workflows found",
-    "loadError": "The system workflow catalog could not be loaded.",
+    "loadError": "The system workflows could not be loaded.",
     "status": {
       "available": "Not installed",
       "installed": "Installed",
       "systemAction": "System action"
-    },
-    "title": "System workflow catalog"
+    }
   },
   "columns": {
     "created": "Created",
-    "family": "Family",
-    "schedule": "Schedule",
     "status": "Status",
     "trigger": "Trigger",
+    "type": "Type",
     "version": "Version",
     "workflow": "Workflow"
   },
@@ -46,9 +43,16 @@
     "title": "Featured",
     "unpinned": "Removed from Featured"
   },
-  "listTitle": "Workflows in this organization",
+  "filters": {
+    "type": "Type"
+  },
   "search": "Search workflows",
   "title": "Workflows",
   "totalLabel": "workflows",
+  "types": {
+    "all": "All",
+    "organization": "Organization",
+    "system": "System"
+  },
   "untitled": "Untitled workflow"
 }

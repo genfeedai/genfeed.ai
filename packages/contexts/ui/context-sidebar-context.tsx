@@ -2,6 +2,10 @@
 
 import type {
   ContextSidebarContextValue,
+  ContextSidebarHeaderOutletProps,
+  ContextSidebarHeaderSlotName,
+  ContextSidebarHeaderSlotProps,
+  ContextSidebarHeaderTargets,
   ContextSidebarOutletProps,
   ContextSidebarPanelProps,
   ContextSidebarProviderProps,
@@ -11,6 +15,7 @@ import type {
 } from '@props/ui/context-sidebar.props';
 import {
   createContext,
+  type ReactNode,
   type ReactPortal,
   use,
   useCallback,
@@ -24,6 +29,11 @@ import { createPortal } from 'react-dom';
 
 /** Below `xl` the rail is display:none and the sidebar renders as a drawer. */
 export const CONTEXT_SIDEBAR_COMPACT_QUERY = '(max-width: 1279px)';
+
+const EMPTY_HEADER_TARGETS: ContextSidebarHeaderTargets = {
+  desktop: { actions: null, tabs: null },
+  mobile: { actions: null, tabs: null },
+};
 
 const ContextSidebarContext = createContext<ContextSidebarContextValue | null>(
   null,
@@ -62,6 +72,8 @@ export function ContextSidebarProvider({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [desktopTarget, setDesktopTarget] = useState<HTMLElement | null>(null);
   const [mobileTarget, setMobileTarget] = useState<HTMLElement | null>(null);
+  const [headerTargets, setHeaderTargets] =
+    useState<ContextSidebarHeaderTargets>(EMPTY_HEADER_TARGETS);
   const activeRef = useRef<ActiveRegistration | null>(null);
   const openedRef = useRef<{
     readonly key: string | null;
@@ -146,12 +158,31 @@ export function ContextSidebarProvider({
     setIsOpen((current) => !current);
   }, []);
 
+  const setHeaderTarget = useCallback(
+    (
+      mode: 'desktop' | 'mobile',
+      slot: ContextSidebarHeaderSlotName,
+      element: HTMLElement | null,
+    ) => {
+      setHeaderTargets((current) =>
+        current[mode][slot] === element
+          ? current
+          : {
+              ...current,
+              [mode]: { ...current[mode], [slot]: element },
+            },
+      );
+    },
+    [],
+  );
+
   const portalTarget =
     isMobileOpen && mobileTarget ? mobileTarget : desktopTarget;
 
   const value = useMemo<ContextSidebarContextValue>(
     () => ({
       close,
+      headerTargets,
       isMobileOpen,
       isOpen,
       portalTarget,
@@ -159,18 +190,21 @@ export function ContextSidebarProvider({
       reveal,
       selection,
       setDesktopTarget,
+      setHeaderTarget,
       setIsMobileOpen,
       setMobileTarget,
       toggle,
     }),
     [
       close,
+      headerTargets,
       isMobileOpen,
       isOpen,
       portalTarget,
       registerSelection,
       reveal,
       selection,
+      setHeaderTarget,
       toggle,
     ],
   );
@@ -247,4 +281,44 @@ export function ContextSidebarOutlet({
       }
     />
   );
+}
+
+/**
+ * Puts controls in the sidebar header instead of the scrolling body: `actions`
+ * land in the title row, `tabs` in the strip pinned under it. Renders in the
+ * page's React tree, so tab and button state keep every provider the page has.
+ */
+export function ContextSidebarHeaderSlot({
+  children,
+  slot,
+}: ContextSidebarHeaderSlotProps): ReactNode {
+  const contextSidebar = use(ContextSidebarContext);
+  // Outside the protected frame there is no header to move into: render in place.
+  if (!contextSidebar) {
+    return children;
+  }
+
+  const { desktop, mobile } = contextSidebar.headerTargets;
+  const target =
+    contextSidebar.isMobileOpen && mobile[slot] ? mobile[slot] : desktop[slot];
+
+  return target ? createPortal(children, target) : null;
+}
+
+/** The DOM node a selected page's header controls are portaled into. */
+export function ContextSidebarHeaderOutlet({
+  className,
+  slot,
+  target = 'desktop',
+  testId,
+}: ContextSidebarHeaderOutletProps) {
+  const contextSidebar = use(ContextSidebarContext);
+  const setHeaderTarget = contextSidebar?.setHeaderTarget;
+  const ref = useCallback(
+    (element: HTMLDivElement | null) =>
+      setHeaderTarget?.(target, slot, element),
+    [setHeaderTarget, slot, target],
+  );
+
+  return <div className={className} data-testid={testId} ref={ref} />;
 }

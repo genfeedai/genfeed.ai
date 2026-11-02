@@ -29,6 +29,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { SELECTED_CARD_CLASS } from '@ui/styles/selected-card';
 import {
   Film,
   GitBranch,
@@ -562,8 +563,9 @@ export default function StudioPlaygroundCard({
           isListView
             ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
             : 'overflow-hidden'
-        } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+        } ${isSelected ? SELECTED_CARD_CLASS : ''}`}
         data-asset-media-state={mediaState}
+        data-motion={isSelected ? 'allow' : undefined}
         data-selected={isSelected ? 'true' : 'false'}
         data-testid={`studio-asset-${job.id}`}
         onClick={handleCardActivate}
@@ -642,8 +644,9 @@ export default function StudioPlaygroundCard({
         isListView
           ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
           : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      } ${isSelected ? SELECTED_CARD_CLASS : ''}`}
       data-asset-media-state={mediaState}
+      data-motion={isSelected ? 'allow' : undefined}
       data-selected={isSelected ? 'true' : 'false'}
       data-testid={`studio-asset-${job.id}`}
       onClick={handleCardActivate}

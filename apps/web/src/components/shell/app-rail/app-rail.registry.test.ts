@@ -190,7 +190,7 @@ describe('app rail registry', () => {
       '/admin/content/ingredients/images/abc',
       '/admin/content/ingredients/videos/abc',
       '/admin/folders',
-      '/admin/library/voices',
+      '/admin/content/voices',
       '/admin/configuration/tags',
       '/admin/configuration/elements/moods',
     ]) {

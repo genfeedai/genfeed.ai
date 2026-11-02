@@ -1,4 +1,8 @@
 import {
+  ContextSidebarHeaderOutlet,
+  ContextSidebarProvider,
+} from '@genfeedai/contexts/ui/context-sidebar-context';
+import {
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -15,6 +19,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import StudioPlaygroundInspector from './StudioPlaygroundInspector';
 
 const mocks = vi.hoisted(() => {
@@ -876,7 +881,7 @@ describe('StudioPlaygroundInspector', () => {
     expect(receipts).toHaveTextContent('Version 1');
   });
 
-  it('puts Recipe, Used in and History in a PanelTabs row under the facts', () => {
+  it('lists Recipe, Used in and History as tabs', () => {
     render(
       <StudioPlaygroundInspector
         job={recipeJob}
@@ -888,8 +893,6 @@ describe('StudioPlaygroundInspector', () => {
       />,
     );
 
-    const tabList = screen.getByRole('tablist', { name: 'Generation details' });
-    expect(tabList.parentElement).toHaveClass('h-12', 'border-b');
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
       'Recipe',
       'Used in',
@@ -897,6 +900,69 @@ describe('StudioPlaygroundInspector', () => {
     ]);
     // The sidebar header owns the title and close; the panel has neither.
     expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
+  });
+
+  describe('in the context sidebar header', () => {
+    function renderInSidebar(
+      job: typeof recipeJob,
+      onRemove?: (job: StudioPlaygroundJob) => void,
+    ) {
+      return render(
+        <ContextSidebarProvider>
+          <ContextSidebarHeaderOutlet slot="actions" testId="header-actions" />
+          <ContextSidebarHeaderOutlet slot="tabs" testId="header-tabs" />
+          <StudioPlaygroundInspector
+            job={job}
+            onOpenPreview={vi.fn()}
+            onRemove={onRemove}
+            onRemix={vi.fn()}
+            onSelect={vi.fn()}
+            onUseInPost={vi.fn()}
+            onVary={vi.fn()}
+            runJobs={[job]}
+          />
+        </ContextSidebarProvider>,
+      );
+    }
+
+    it('puts the tabs and the preview button in the header, not the body', () => {
+      renderInSidebar(recipeJob);
+
+      const tabs = within(screen.getByTestId('header-tabs'));
+      expect(tabs.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+        'Recipe',
+        'Used in',
+        'History',
+      ]);
+      expect(
+        within(screen.getByTestId('header-actions')).getByRole('button', {
+          name: 'Open preview',
+        }),
+      ).toBeVisible();
+    });
+
+    it('offers Remove and no preview for a failed generation', async () => {
+      const onRemove = vi.fn();
+      const failedJob = { ...recipeJob, status: IngredientStatus.FAILED };
+      renderInSidebar(failedJob, onRemove);
+
+      const actions = within(screen.getByTestId('header-actions'));
+      expect(
+        actions.queryByRole('button', { name: 'Open preview' }),
+      ).toBeNull();
+      await userEvent.click(actions.getByRole('button', { name: /^Remove/ }));
+      expect(onRemove).toHaveBeenCalledWith(failedJob);
+    });
+
+    it('does not offer Remove for a finished generation', () => {
+      renderInSidebar(recipeJob, vi.fn());
+
+      expect(
+        within(screen.getByTestId('header-actions')).queryByRole('button', {
+          name: /^Remove/,
+        }),
+      ).toBeNull();
+    });
   });
 
   it('lists the asset facts it knows and omits credits when no hold paid for the asset', async () => {

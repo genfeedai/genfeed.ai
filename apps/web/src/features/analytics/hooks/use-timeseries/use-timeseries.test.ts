@@ -14,6 +14,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   useCollectionScope: () => collectionScope,
 }));
@@ -42,8 +47,23 @@ vi.mock('@helpers/data/cache/cache.helper', () => ({
   },
 }));
 
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useTimeseries } from './use-timeseries';
+import type { QueryClient } from '@tanstack/react-query';
+import { type UseTimeseriesOptions, useTimeseries } from './use-timeseries';
+
+let queryClient: QueryClient;
+
+/** Every hook in a test shares one cache, as the app's provider does. */
+function renderTimeseries(options: UseTimeseriesOptions) {
+  return renderHook((props: UseTimeseriesOptions) => useTimeseries(props), {
+    initialProps: options,
+    wrapper: queryClientWrapper(queryClient),
+  });
+}
 
 const DATE_RANGE = {
   endDate: new Date('2025-01-07T00:00:00.000Z'),
@@ -53,6 +73,7 @@ const DATE_RANGE = {
 describe('useTimeseries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = createTestQueryClient();
     for (const store of cacheStores.values()) {
       store.clear();
     }
@@ -76,9 +97,10 @@ describe('useTimeseries', () => {
       },
     ]);
 
-    const { result } = renderHook(() =>
-      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isTimeseriesLoading).toBe(false);
@@ -109,45 +131,16 @@ describe('useTimeseries', () => {
   it('treats a non-array payload as empty data', async () => {
     mockGetTimeSeries.mockResolvedValue({ unexpected: true });
 
-    const { result } = renderHook(() =>
-      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isTimeseriesLoading).toBe(false);
     });
 
     expect(result.current.timeseriesData).toEqual([]);
-  });
-
-  it('skips the initial fetch when initial data is provided without revalidation', () => {
-    const initialPoint = {
-      date: '2025-01-01',
-      facebook: 0,
-      instagram: 1,
-      linkedin: 0,
-      medium: 0,
-      pinterest: 0,
-      reddit: 0,
-      tiktok: 0,
-      twitter: 0,
-      youtube: 0,
-    };
-
-    const { result } = renderHook(() =>
-      useTimeseries({
-        dateRange: DATE_RANGE,
-        initialCachedAt: '2025-01-05T00:00:00.000Z',
-        initialData: [initialPoint],
-        revalidateOnMount: false,
-        scope: PageScope.ORGANIZATION,
-      }),
-    );
-
-    expect(mockGetAnalyticsService).not.toHaveBeenCalled();
-    expect(result.current.timeseriesData).toEqual([initialPoint]);
-    expect(result.current.isTimeseriesLoading).toBe(false);
-    expect(result.current.timeseriesCachedAt).toBe('2025-01-05T00:00:00.000Z');
   });
 
   it('falls back to cached data when the fetch fails', async () => {
@@ -175,9 +168,10 @@ describe('useTimeseries', () => {
     timeseriesMetaStore.set(cacheKey, '2025-01-03T00:00:00.000Z');
     mockGetTimeSeries.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isTimeseriesLoading).toBe(false);
@@ -191,9 +185,10 @@ describe('useTimeseries', () => {
   it('clears data when the fetch fails with no cache', async () => {
     mockGetTimeSeries.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isTimeseriesLoading).toBe(false);
@@ -219,12 +214,13 @@ describe('useTimeseries', () => {
         { date: '2025-01-02', instagram: { views: 22 } },
       ]);
 
-    const { rerender, result } = renderHook(() =>
-      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.BRAND }),
-    );
+    const { rerender, result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.BRAND,
+    });
 
     collectionScope.brandId = 'brand-2';
-    rerender();
+    rerender({ dateRange: DATE_RANGE, scope: PageScope.BRAND });
 
     await waitFor(() => {
       expect(result.current.timeseriesData[0]?.instagram).toBe(22);
@@ -237,30 +233,80 @@ describe('useTimeseries', () => {
 
     expect(result.current.timeseriesData[0]?.instagram).toBe(22);
   });
-  it('fetches changed dates and refresh events after hydration', async () => {
-    const { rerender } = renderHook(
-      ({ dateRange, refreshTrigger }) =>
-        useTimeseries({
-          dateRange,
-          refreshTrigger,
-          scope: PageScope.ORGANIZATION,
-          initialData: [],
-          revalidateOnMount: false,
-        }),
-      { initialProps: { dateRange: DATE_RANGE, refreshTrigger: 0 } },
+  it('paints the cached series on the first render when the page is opened again', async () => {
+    mockGetTimeSeries.mockResolvedValue([
+      { date: '2025-01-01', instagram: { views: 12 } },
+    ]);
+    const firstVisit = renderTimeseries({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.timeseriesData).toHaveLength(1),
     );
-    expect(mockGetTimeSeries).not.toHaveBeenCalled();
+    firstVisit.unmount();
+
+    const firstRender: { isLoading: boolean; views?: number }[] = [];
+    renderHook(
+      () => {
+        const state = useTimeseries({
+          dateRange: DATE_RANGE,
+          scope: PageScope.ORGANIZATION,
+        });
+        firstRender.push({
+          isLoading: state.isTimeseriesLoading,
+          views: state.timeseriesData[0]?.instagram,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper(queryClient) },
+    );
+
+    expect(firstRender[0]).toEqual({ isLoading: false, views: 12 });
+  });
+
+  it('re-reads changed dates, and on Refresh keeps the series on screen', async () => {
+    mockGetTimeSeries.mockResolvedValue([
+      { date: '2025-01-01', instagram: { views: 12 } },
+    ]);
+    const { rerender, result } = renderTimeseries({
+      dateRange: DATE_RANGE,
+      refreshTrigger: 0,
+      scope: PageScope.ORGANIZATION,
+    });
+    await waitFor(() =>
+      expect(result.current.timeseriesData[0]?.instagram).toBe(12),
+    );
+
     const changedDates = {
       ...DATE_RANGE,
       startDate: new Date('2025-01-03T00:00:00.000Z'),
     };
-    rerender({ dateRange: changedDates, refreshTrigger: 0 });
+    rerender({
+      dateRange: changedDates,
+      refreshTrigger: 0,
+      scope: PageScope.ORGANIZATION,
+    });
     await waitFor(() =>
       expect(mockGetTimeSeries).toHaveBeenCalledWith(
         expect.objectContaining({ startDate: '2025-01-03' }),
       ),
     );
-    rerender({ dateRange: changedDates, refreshTrigger: 1 });
-    await waitFor(() => expect(mockGetTimeSeries).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.isTimeseriesLoading).toBe(false));
+
+    mockGetTimeSeries.mockResolvedValue([
+      { date: '2025-01-03', instagram: { views: 40 } },
+    ]);
+    rerender({
+      dateRange: changedDates,
+      refreshTrigger: 1,
+      scope: PageScope.ORGANIZATION,
+    });
+
+    expect(result.current.isTimeseriesLoading).toBe(false);
+    expect(result.current.timeseriesData[0]?.instagram).toBe(12);
+    await waitFor(() =>
+      expect(result.current.timeseriesData[0]?.instagram).toBe(40),
+    );
   });
 });

@@ -6,6 +6,7 @@ import {
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import { IngredientsMediaGridSkeleton } from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientsList from '@/features/ingredients/list/ingredients-list';
 import LibraryBrowser from '@/features/library/browser/library-browser';
 import type { LibraryShelfPageProps } from '@/features/library/props/library-shelf-page.props';
@@ -35,7 +36,7 @@ export default async function LibraryShelfPage({
 
   return (
     <LibraryBrowser shelf={parsed} scope={PageScope.BRAND}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<IngredientsMediaGridSkeleton />}>
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

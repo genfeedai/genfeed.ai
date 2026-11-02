@@ -3,6 +3,7 @@
   "detailTitle": "Organization",
   "analyticsTab": "Analytics",
   "settingsTab": "Settings",
+  "spendingTab": "Spending",
   "missingId": "Organization ID is required. Open an organization from the organizations list.",
   "settingsLoadError": "Failed to load organization settings. Please try again.",
   "releaseAccess": "Release access",
@@ -21,6 +22,28 @@
   "membersLabel": "Members",
   "brandsLabel": "Brands",
   "profileLoadError": "Failed to load organization details.",
+  "emailColumn": "Email",
+  "emailLabel": "Owner email",
+  "emailClassFilterLabel": "Owner email",
+  "allEmailClasses": "Any email",
+  "emailClasses": {
+    "company": "Work email",
+    "personal": "Personal email",
+    "unknown": "No email"
+  },
+  "typeColumn": "Type",
+  "typeNotSet": "Not set",
+  "generationsColumn": "Generations",
+  "generationsLabel": "Generations (lifetime)",
+  "lifetimePostsLabel": "Posts (lifetime)",
+  "lastActiveLabel": "Owner last active",
+  "neverActive": "Never",
+  "usageFilterLabel": "Usage",
+  "allUsage": "Any usage",
+  "usage": {
+    "active": "Generated or published",
+    "inactive": "Nothing yet"
+  },
   "types": {
     "CREATOR": "Creator",
     "BUSINESS": "Business",

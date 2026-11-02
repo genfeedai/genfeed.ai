@@ -25,6 +25,7 @@ import { RolesService } from '@api/collections/roles/services/roles.service';
 import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { PERSONAL_EMAIL_DOMAIN_LIST } from '@api/shared/utils/email-class/email-class.util';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import {
   DEFAULT_THEME,
@@ -91,6 +92,7 @@ export class UserSetupService {
       const workspaceLabel = resolveSignupWorkspaceLabel({
         email: profile?.email,
         name: profile?.name,
+        personalEmailDomains: PERSONAL_EMAIL_DOMAIN_LIST,
       });
       const organizationResult = await this.getOrCreateOrganization(
         userId,
@@ -98,6 +100,7 @@ export class UserSetupService {
         resolveSignupOrganizationLabel({
           email: profile?.email,
           name: profile?.name,
+          personalEmailDomains: PERSONAL_EMAIL_DOMAIN_LIST,
         }),
       );
       organization = organizationResult.organization;

@@ -18,7 +18,7 @@ import {
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
 import { Pre } from '@ui/primitives/pre';
-import { Copy, ExternalLink, Mail, MailOpen } from 'lucide-react';
+import { Check, Circle, Copy, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -208,9 +208,9 @@ export default function ActivityDetailPanel({
           <Button
             icon={
               activity.isRead ? (
-                <MailOpen className="size-4" />
+                <Circle className="size-4" />
               ) : (
-                <Mail className="size-4" />
+                <Check className="size-4" />
               )
             }
             onClick={() => onToggleRead(activity.id)}

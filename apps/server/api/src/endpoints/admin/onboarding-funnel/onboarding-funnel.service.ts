@@ -1,10 +1,10 @@
 import {
-  classifyOwnerEmail,
   readDraftsStatus,
   readPrefillMarker,
   summarizeOnboardingFunnel,
 } from '@api/endpoints/admin/onboarding-funnel/onboarding-funnel.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { classifyEmail } from '@api/shared/utils/email-class/email-class.util';
 import { LinkCategory, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import type {
@@ -93,7 +93,7 @@ export class OnboardingFunnelService {
       return {
         createdAt: row.createdAt.toISOString(),
         draftsStatus,
-        emailClass: classifyOwnerEmail(row.user.email),
+        emailClass: classifyEmail(row.user.email),
         id: row.id,
         scanStatus:
           markers.find((marker) => marker.status !== null)?.status ?? null,

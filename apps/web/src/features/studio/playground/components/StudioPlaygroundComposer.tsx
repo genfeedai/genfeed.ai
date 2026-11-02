@@ -167,6 +167,8 @@ export default function StudioPlaygroundComposer({
   isTranscribing,
   isUploading,
   isResting = false,
+  isStopAvailable = false,
+  isSubmitting = false,
   models,
   notice,
   onExpand,
@@ -179,6 +181,7 @@ export default function StudioPlaygroundComposer({
   onResetSettings,
   onSettingsChange,
   onStartListening,
+  onStopGeneration,
   onStopListening,
   onSubmit,
   onTypeChange,
@@ -1426,37 +1429,50 @@ export default function StudioPlaygroundComposer({
             isTranscribing={isTranscribing}
             isVoiceAvailable={isVoiceInputAvailable}
             onStartListening={onStartListening}
-            onStopListening={onStopListening}
-            send={
-              <StudioGenerationSummary
-                crunQuote={crunQuote}
-                estimate={isDraftActive ? draftEstimate : estimate}
-                // Music Auto is one catalog default with a tariff, and an
-                // avatar quote resolves its Auto engine on the server, so
-                // both stay visible. Image and video Auto hide it.
-                isEstimateHidden={
-                  !isDraftActive &&
-                  isAutoView &&
-                  type !== 'music' &&
-                  type !== 'avatar'
-                }
-                model={selectedModel}
-                onOpen={() => setRetryCreditBackRefresh((count) => count + 1)}
-                retryCreditBackCredits={retryCreditBackCredits}
-                type={type}
-                label={translate('generate')}
-              >
-                <PromptBarSendButton
-                  ariaLabel={translate('generate')}
-                  className={
-                    isSubmitBlocked
-                      ? 'cursor-not-allowed opacity-50'
-                      : undefined
+            onStop={
+              onStopGeneration
+                ? () => {
+                    void onStopGeneration();
                   }
-                  isAriaDisabled={Boolean(isSubmitBlocked)}
-                  onClick={guardedSubmit}
-                />
-              </StudioGenerationSummary>
+                : undefined
+            }
+            onStopListening={onStopListening}
+            showStop={isStopAvailable && !isSubmitting}
+            stopLabel={translate('stopGeneration')}
+            // Nothing left to send while a run generates: Stop is the control.
+            send={
+              isStopAvailable && isPromptEmpty && !isSubmitting ? null : (
+                <StudioGenerationSummary
+                  crunQuote={crunQuote}
+                  estimate={isDraftActive ? draftEstimate : estimate}
+                  // Music Auto is one catalog default with a tariff, and an
+                  // avatar quote resolves its Auto engine on the server, so
+                  // both stay visible. Image and video Auto hide it.
+                  isEstimateHidden={
+                    !isDraftActive &&
+                    isAutoView &&
+                    type !== 'music' &&
+                    type !== 'avatar'
+                  }
+                  model={selectedModel}
+                  onOpen={() => setRetryCreditBackRefresh((count) => count + 1)}
+                  retryCreditBackCredits={retryCreditBackCredits}
+                  type={type}
+                  label={translate('generate')}
+                >
+                  <PromptBarSendButton
+                    ariaLabel={translate('generate')}
+                    className={
+                      isSubmitBlocked
+                        ? 'cursor-not-allowed opacity-50'
+                        : undefined
+                    }
+                    isAriaDisabled={Boolean(isSubmitBlocked)}
+                    isLoading={isQuoting || isSubmitting}
+                    onClick={guardedSubmit}
+                  />
+                </StudioGenerationSummary>
+              )
             }
           />
         }

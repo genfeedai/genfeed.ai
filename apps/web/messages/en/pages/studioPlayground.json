@@ -138,6 +138,7 @@
     "unavailableForModel": "The price of {model} could not be confirmed, so nothing was generated. {reason}"
   },
   "generate": "Generate",
+  "stopGeneration": "Stop generation",
   "generationFailed": "Generation failed",
   "failure": {
     "reasons": {

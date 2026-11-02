@@ -460,7 +460,7 @@ describe('fal refresh of a rate-sheet contract', () => {
     });
   });
 
-  it('leaves the reviewed sheet untouched when fal prices in an opaque unit', async () => {
+  it('leaves the reviewed sheet untouched, and says why it cannot be re-verified, when fal prices in an opaque unit', async () => {
     const { model, modelProviderContract, service } = harness(sheetContract);
 
     const result = await service.synchronizeModel(
@@ -471,7 +471,12 @@ describe('fal refresh of a rate-sheet contract', () => {
     );
 
     expect(result.refreshFailure).toBeUndefined();
-    expect(model.update).not.toHaveBeenCalled();
+    expect(model.update).toHaveBeenCalledExactlyOnceWith({
+      data: {
+        providerSyncFailureCode: 'rates_unavailable:fal_rate_unverifiable',
+      },
+      where: { id: 'model-1' },
+    });
     expect(modelProviderContract.upsert).not.toHaveBeenCalled();
   });
 });

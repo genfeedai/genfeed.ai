@@ -47,7 +47,11 @@ export function useIngredientsFilters({
   );
   const pathname = usePathname();
 
-  const { brandId, organizationId } = useCollectionScope();
+  const {
+    brandId,
+    isReady: isScopeReady,
+    organizationId,
+  } = useCollectionScope();
   const { filters, query, setQuery, setIsRefreshing, onRefresh } =
     useIngredientsContext();
 
@@ -113,6 +117,7 @@ export function useIngredientsFilters({
     getFilteredIngredients,
     getMediaIngredients,
     isActionsEnabled,
+    isScopeReady,
     onRefresh,
     organizationId,
     parsedSearchParams,

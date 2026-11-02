@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
@@ -129,6 +130,105 @@ test.describe('Admin Organization', () => {
     await expect(ownerLink.getByText('ada@example.com')).toBeVisible();
   });
 
+  test('organizations list highlights work emails, shows logos and usage, and filters by owner email', async ({
+    adminPage,
+  }) => {
+    const requestedEmailClasses: Array<string | null> = [];
+    const organization = (
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      avgEngagementRate: 0,
+      growth: 0,
+      lifetimePosts: 0,
+      ownerEmailClass: 'unknown',
+      totalBrands: 1,
+      totalEngagement: 0,
+      totalGenerations: 0,
+      totalMembers: 1,
+      totalPosts: 0,
+      totalViews: 0,
+      ...overrides,
+    });
+    // Registered after the fixture's catch-all analytics mock, so it wins.
+    await adminPage.route('**/analytics/organizations**', (route) => {
+      const emailClass = new URL(route.request().url()).searchParams.get(
+        'emailClass',
+      );
+      requestedEmailClasses.push(emailClass);
+      const organizations = [
+        organization({
+          id: 'org-e2e-work',
+          logo: 'https://cdn.example.test/gateway.png',
+          name: 'Gateway Ventures',
+          owner: {
+            email: 'poya@vitae.ai',
+            id: 'user-e2e-work',
+            name: 'Poya',
+          },
+          ownerEmailClass: 'company',
+          totalGenerations: 12,
+          type: 'BUSINESS',
+        }),
+        organization({
+          id: 'org-e2e-personal',
+          name: 'Personal',
+          owner: {
+            email: 'someone@gmail.com',
+            id: 'user-e2e-personal',
+            name: 'Someone',
+          },
+          ownerEmailClass: 'personal',
+        }),
+      ];
+      const visible =
+        emailClass === 'company' ? organizations.slice(0, 1) : organizations;
+      return route.fulfill({
+        json: {
+          data: {
+            attributes: {
+              data: visible,
+              pagination: {
+                limit: 10,
+                page: 1,
+                total: visible.length,
+                totalPages: 1,
+              },
+            },
+            id: 'organizations',
+            type: 'organizations',
+          },
+        },
+      });
+    });
+
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATIONS);
+
+    const main = adminPage.getByRole('main');
+    const workRow = main.getByRole('row', { name: /Gateway Ventures/ });
+    const personalRow = main.getByRole('row', { name: /Personal/ });
+    await expect(workRow.getByText('Work email')).toBeVisible();
+    await expect(workRow.getByText('Business', { exact: true })).toBeVisible();
+    await expect(workRow.getByText('12')).toBeVisible();
+    await expect(personalRow.getByText('Personal email')).toBeVisible();
+    await expect(personalRow.getByText('Not set')).toBeVisible();
+    await adminPage
+      .getByRole('button', { exact: true, name: 'Filters' })
+      .click();
+    await adminPage.getByRole('menuitem', { name: /^Owner email/ }).click();
+    const filtered = adminPage.waitForRequest((request) =>
+      request.url().includes('emailClass=company'),
+    );
+    await adminPage.getByRole('menuitemradio', { name: 'Work email' }).click();
+    await filtered;
+
+    expect(requestedEmailClasses).toContain('company');
+    await adminPage.keyboard.press('Escape');
+    await expect(
+      main.getByRole('row', { name: /Gateway Ventures/ }),
+    ).toBeVisible();
+    await expect(main.getByRole('row', { name: /Personal/ })).toHaveCount(0);
+  });
+
   test('flags releases card points to per-organization release access', async ({
     adminPage,
   }) => {
@@ -199,5 +299,99 @@ test.describe('Admin Organization', () => {
     );
     await refreshButton.click();
     await refreshRequest;
+  });
+
+  /** The unit economics report: one organization row, or its one user. */
+  async function mockUnitEconomics(adminPage: Page): Promise<string[]> {
+    const requestedOrganizations: string[] = [];
+    const metrics = {
+      agentChatCredits: 12,
+      agentTurns: 40,
+      generationCredits: 3,
+      grossMarginPercent: 80,
+      grossMarginUsd: 80,
+      llmProviderCostUsd: 15,
+      mediaProviderCostUsd: 5,
+      revenueUsd: 100,
+    };
+    await adminPage.route(
+      createPlaywrightMockApiRoutePattern('admin/unit-economics(?:\\?.*)?$'),
+      (route) => {
+        const organizationId = new URL(route.request().url()).searchParams.get(
+          'organizationId',
+        );
+        if (organizationId) {
+          requestedOrganizations.push(organizationId);
+        }
+        return route.fulfill({
+          json: {
+            data: {
+              attributes: {
+                from: '2026-10-01T00:00:00.000Z',
+                organizationId,
+                organizationLabel: organizationId ? 'Acme Inc' : null,
+                pagination: { limit: 15, page: 1, pages: 1, total: 1 },
+                rows: [
+                  {
+                    ...metrics,
+                    id: organizationId ? 'user-spend-1' : 'org-spend-1',
+                    label: organizationId ? 'ada@example.com' : 'Acme Inc',
+                    topModels: [],
+                  },
+                ],
+                to: '2026-10-30T23:59:59.999Z',
+                totals: metrics,
+              },
+              id: 'mock-unit-economics',
+              type: 'unit-economics-report',
+            },
+          },
+        });
+      },
+    );
+    return requestedOrganizations;
+  }
+
+  test('organization Spending tab shows revenue, cost and margin per user', async ({
+    adminPage,
+  }) => {
+    const requestedOrganizations = await mockUnitEconomics(adminPage);
+
+    await assertRouteRenders(
+      adminPage,
+      `${APP_ROUTES.ADMIN.ORGANIZATIONS}/org-spend-1/spending`,
+    );
+
+    await expect(
+      adminPage
+        .getByRole('main')
+        .getByRole('cell', { name: 'ada@example.com' }),
+    ).toBeVisible();
+    await expect(
+      adminPage.getByRole('main').getByText('LLM $15.00 · generation $5.00'),
+    ).toBeVisible();
+    expect(requestedOrganizations).toContain('org-spend-1');
+  });
+
+  test('economics organizations row opens its details in the context sidebar', async ({
+    adminPage,
+  }) => {
+    await mockUnitEconomics(adminPage);
+
+    await assertRouteRenders(
+      adminPage,
+      APP_ROUTES.ADMIN.ECONOMICS.ORGANIZATIONS,
+    );
+
+    const row = adminPage.getByRole('row', { name: /Acme Inc/ });
+    await expect(
+      row.getByRole('link', { name: 'Open spending for Acme Inc' }),
+    ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
+
+    await row.getByRole('cell').nth(1).click();
+
+    await expect(
+      adminPage.getByRole('link', { name: 'Open spending', exact: true }),
+    ).toHaveAttribute('href', '/admin/organizations/org-spend-1/spending');
   });
 });

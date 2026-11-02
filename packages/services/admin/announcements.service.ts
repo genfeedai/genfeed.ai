@@ -2,6 +2,7 @@ import type {
   IAnnouncement,
   IAnnouncementBroadcastRequest,
 } from '@genfeedai/contracts/interfaces';
+import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -35,11 +36,12 @@ export class AdminAnnouncementsService extends HTTPBaseService {
     query?: { limit?: number; page?: number; search?: string },
     signal?: AbortSignal,
   ): Promise<IAnnouncement[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: query,
       signal,
     });
-    recordPageTotals(response.data, query);
+    recordPageTotals(response.data, query, requestId);
     return deserializeCollection<IAnnouncement>(response.data);
   }
 }

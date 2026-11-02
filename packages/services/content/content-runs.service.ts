@@ -86,6 +86,7 @@ import {
   deserializeLegacyStoryboardRunDocument,
   deserializeStoryboardRunDocument,
 } from '@services/content/content-run-document';
+import { PagesService } from '@services/content/pages.service';
 import { isExpectedStoryboardSaveConflict } from '@services/content/storyboard-save-conflict';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -513,6 +514,7 @@ export class ContentRunsService extends HTTPBaseService {
     filters: ListContentRunsFilters = {},
     signal?: AbortSignal,
   ): Promise<ContentRunRecord[]> {
+    const requestId = PagesService.beginRequest();
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/brands/${brandId}/content-runs`,
       {
@@ -526,7 +528,7 @@ export class ContentRunsService extends HTTPBaseService {
         signal,
       },
     );
-    recordPageTotals(response.data, filters);
+    recordPageTotals(response.data, filters, requestId);
 
     return deserializeCollection<ContentRunRecord>(response.data);
   }

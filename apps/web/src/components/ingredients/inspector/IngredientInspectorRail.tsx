@@ -1,7 +1,9 @@
 'use client';
 
 import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
+import { ContextSidebarHeaderSlot } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {
+  ButtonSize,
   ButtonVariant,
   IngredientCategory,
   IngredientLineageDirection,
@@ -217,6 +219,21 @@ export default function IngredientInspectorRail({
         className,
       )}
     >
+      {/* A failed generation has nothing to preview. */}
+      {onOpenPreview && shelf !== LibraryShelf.FAILED ? (
+        <ContextSidebarHeaderSlot slot="actions">
+          <Button
+            ariaLabel={translate('openPreview')}
+            data-testid="library-open-preview"
+            icon={<Maximize2 className="size-4" />}
+            onClick={onOpenPreview}
+            size={ButtonSize.ICON}
+            tooltip={translate('openPreview')}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </ContextSidebarHeaderSlot>
+      ) : null}
       {previewUrl || videoUrl ? (
         <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
           {videoUrl ? (
@@ -237,25 +254,6 @@ export default function IngredientInspectorRail({
                 !canOptimizeImageSource(previewUrl)
               }
             />
-          ) : null}
-          {onOpenPreview ? (
-            <Button
-              ariaLabel={translate('openPreview')}
-              className={cn(
-                'absolute z-10 flex items-center justify-center',
-                // A video keeps its own controls, so only its corner opens
-                // the lightbox; an image is one big hit target.
-                videoUrl
-                  ? 'right-2 top-2 size-7 rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background'
-                  : 'inset-0 cursor-zoom-in',
-              )}
-              onClick={onOpenPreview}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              {videoUrl ? <Maximize2 className="size-3.5" /> : null}
-            </Button>
           ) : null}
         </div>
       ) : null}

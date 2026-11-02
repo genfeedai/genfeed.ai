@@ -12,7 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { FilterMenuFacet } from '@genfeedai/props/ui/forms/filter-menu.props';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
@@ -22,7 +22,7 @@ import Pagination from '@ui/navigation/pagination/Pagination';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import type { AnalyticsHooksProps } from '@/features/analytics/props/analytics-hooks.props';
 import { useClientPagination } from '@/hooks/data/pagination/use-client-pagination/use-client-pagination';
@@ -41,6 +41,7 @@ const createDefaultAnalysis = (): IViralHookAnalysis => ({
   topPlatforms: [],
   totalVideos: 0,
 });
+const DEFAULT_ANALYSIS = createDefaultAnalysis();
 
 export default function AnalyticsHooks({
   brandId: propBrandId,
@@ -54,67 +55,60 @@ export default function AnalyticsHooks({
   const postId = searchParams.get('postId')?.trim() || undefined;
   const minOutlierTier = OUTLIER_TIERS.find((tier) => tier === filters.tier);
 
-  const getAnalyticsService = useAuthedService((token: string) =>
-    AnalyticsService.getInstance(token),
-  );
-  const [videos, setVideos] = useState<IViralHookVideo[] | null>(null);
-  const [analysisData, setAnalysisData] = useState<IViralHookAnalysis>(() =>
-    createDefaultAnalysis(),
-  );
+  const endDate = dateRange.endDate
+    ? format(dateRange.endDate, 'yyyy-MM-dd')
+    : undefined;
+  const startDate = dateRange.startDate
+    ? format(dateRange.startDate, 'yyyy-MM-dd')
+    : undefined;
 
-  const isLoading = videos === null;
-
-  const fetchHookData = useCallback(
-    async (signal: AbortSignal) => {
-      setVideos(null);
+  const hooksQuery = useAuthedQuery({
+    enabled: Boolean(organizationId),
+    queryFn: async (service) => {
       const url = 'GET /analytics/hooks';
+      const query: IQueryParams = { endDate, startDate };
+      if (brandId) {
+        query.brand = brandId;
+        query.brandId = brandId;
+      }
+      if (minOutlierTier) {
+        query.minOutlierTier = minOutlierTier;
+      }
+      if (postId) {
+        query.postId = postId;
+      }
 
       try {
-        const service = await getAnalyticsService();
-        const query: IQueryParams = {
-          endDate: dateRange.endDate
-            ? format(dateRange.endDate, 'yyyy-MM-dd')
-            : undefined,
-          startDate: dateRange.startDate
-            ? format(dateRange.startDate, 'yyyy-MM-dd')
-            : undefined,
-        };
-
-        if (brandId) {
-          query.brand = brandId;
-          query.brandId = brandId;
-        }
-        if (minOutlierTier) {
-          query.minOutlierTier = minOutlierTier;
-        }
-        if (postId) {
-          query.postId = postId;
-        }
-
         const response = await service.getViralHooks(query);
-        if (signal.aborted) return;
-        setVideos(response.videos ?? []);
-        setAnalysisData(response.analysis ?? createDefaultAnalysis());
         logger.info(`${url} success`, response);
+        return {
+          analysis: response.analysis ?? createDefaultAnalysis(),
+          videos: response.videos ?? [],
+        };
       } catch (error) {
-        if (signal.aborted) return;
+        // The page reads a failed analysis as an empty one.
         logger.error(`${url} failed`, error);
-        setVideos([]);
-        setAnalysisData(createDefaultAnalysis());
+        return { analysis: createDefaultAnalysis(), videos: [] };
       }
     },
-    [brandId, dateRange, getAnalyticsService, minOutlierTier, postId],
-  );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the hooks.
-  useEffect(() => {
-    if (!organizationId) {
-      return;
-    }
-    const controller = new AbortController();
-    void fetchHookData(controller.signal);
-    return () => controller.abort();
-  }, [organizationId, fetchHookData, refreshTrigger]);
+    queryKey: [
+      'analytics',
+      'hooks',
+      organizationId,
+      brandId ?? null,
+      startDate ?? null,
+      endDate ?? null,
+      minOutlierTier ?? null,
+      postId ?? null,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => AnalyticsService.getInstance(token),
+  });
+  const videos: IViralHookVideo[] | null = hooksQuery.data?.videos ?? null;
+  const analysisData: IViralHookAnalysis =
+    hooksQuery.data?.analysis ?? DEFAULT_ANALYSIS;
+  // Skeleton only while nothing is cached for this scope and filter.
+  const isLoading = videos === null;
 
   const toolbar = useMemo(() => {
     const facets: FilterMenuFacet[] = [

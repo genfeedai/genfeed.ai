@@ -1,3 +1,3 @@
 export interface OrganizationDetailPageProps {
-  activeTab: 'analytics' | 'settings';
+  activeTab: 'analytics' | 'settings' | 'spending';
 }

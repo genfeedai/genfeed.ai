@@ -15,6 +15,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
@@ -39,8 +44,26 @@ vi.mock('@helpers/data/cache/cache.helper', () => ({
   },
 }));
 
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useLeaderboards } from './use-leaderboards';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  type UseLeaderboardsOptions,
+  useLeaderboards,
+} from './use-leaderboards';
+
+let queryClient: QueryClient;
+
+/** Every hook in a test shares one cache, as the app's provider does. */
+function renderLeaderboards(options: UseLeaderboardsOptions) {
+  return renderHook((props: UseLeaderboardsOptions) => useLeaderboards(props), {
+    initialProps: options,
+    wrapper: queryClientWrapper(queryClient),
+  });
+}
 
 const DATE_RANGE = {
   endDate: new Date('2025-01-07T00:00:00.000Z'),
@@ -53,6 +76,7 @@ const BRAND_ITEM = { id: 'brand-1', name: 'Brand', totalViews: 50 };
 describe('useLeaderboards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient = createTestQueryClient();
     for (const store of cacheStores.values()) {
       store.clear();
     }
@@ -68,9 +92,10 @@ describe('useLeaderboards', () => {
   });
 
   it('fetches both leaderboards for superadmin scope', async () => {
-    const { result } = renderHook(() =>
-      useLeaderboards({ dateRange: DATE_RANGE, scope: PageScope.SUPERADMIN }),
-    );
+    const { result } = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      scope: PageScope.SUPERADMIN,
+    });
 
     await waitFor(() => {
       expect(result.current.isLeaderboardLoading).toBe(false);
@@ -89,9 +114,10 @@ describe('useLeaderboards', () => {
   });
 
   it('skips the org leaderboard outside superadmin scope', async () => {
-    const { result } = renderHook(() =>
-      useLeaderboards({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isLeaderboardLoading).toBe(false);
@@ -103,34 +129,15 @@ describe('useLeaderboards', () => {
   });
 
   it('does not fetch when the date range has no keys', async () => {
-    const { result } = renderHook(() =>
-      useLeaderboards({
-        dateRange: { endDate: null, startDate: null },
-        scope: PageScope.ORGANIZATION,
-      }),
-    );
+    const { result } = renderLeaderboards({
+      dateRange: { endDate: null, startDate: null },
+      scope: PageScope.ORGANIZATION,
+    });
 
     await act(async () => {
       await result.current.fetchLeaderboards();
     });
 
-    expect(mockGetAnalyticsService).not.toHaveBeenCalled();
-  });
-
-  it('skips the initial fetch when initial data is provided without revalidation', async () => {
-    const { result } = renderHook(() =>
-      useLeaderboards({
-        dateRange: DATE_RANGE,
-        initialBrandsLeaderboard: [BRAND_ITEM],
-        initialCachedAt: '2025-01-01T00:00:00.000Z',
-        revalidateOnMount: false,
-        scope: PageScope.ORGANIZATION,
-      }),
-    );
-
-    expect(result.current.brandsLeaderboard).toEqual([BRAND_ITEM]);
-    expect(result.current.leaderboardCachedAt).toBe('2025-01-01T00:00:00.000Z');
-    expect(result.current.isLeaderboardLoading).toBe(false);
     expect(mockGetAnalyticsService).not.toHaveBeenCalled();
   });
 
@@ -144,9 +151,10 @@ describe('useLeaderboards', () => {
     brandsMetaStore?.set(cacheKey, '2025-01-02T00:00:00.000Z');
     mockGetBrandsLeaderboard.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useLeaderboards({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isLeaderboardLoading).toBe(false);
@@ -160,9 +168,10 @@ describe('useLeaderboards', () => {
   it('clears cache flags when the fetch fails with no cached data', async () => {
     mockGetBrandsLeaderboard.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useLeaderboards({ dateRange: DATE_RANGE, scope: PageScope.ORGANIZATION }),
-    );
+    const { result } = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
 
     await waitFor(() => {
       expect(result.current.isLeaderboardLoading).toBe(false);
@@ -171,33 +180,76 @@ describe('useLeaderboards', () => {
     expect(result.current.isLeaderboardUsingCache).toBe(false);
     expect(result.current.leaderboardCachedAt).toBeNull();
   });
-  it('fetches changed dates and refresh events after hydration', async () => {
-    const { rerender } = renderHook(
-      ({ dateRange, refreshTrigger }) =>
-        useLeaderboards({
-          dateRange,
-          refreshTrigger,
-          scope: PageScope.ORGANIZATION,
-          initialBrandsLeaderboard: [],
-          initialOrgsLeaderboard: [],
-          revalidateOnMount: false,
-        }),
-      { initialProps: { dateRange: DATE_RANGE, refreshTrigger: 0 } },
+
+  it('paints the cached leaderboard on the first render when the page is opened again', async () => {
+    const firstVisit = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      scope: PageScope.ORGANIZATION,
+    });
+    await waitFor(() =>
+      expect(firstVisit.result.current.brandsLeaderboard).toEqual([BRAND_ITEM]),
     );
-    expect(mockGetBrandsLeaderboard).not.toHaveBeenCalled();
+    firstVisit.unmount();
+
+    const firstRender: { brands: unknown[]; isLoading: boolean }[] = [];
+    renderHook(
+      () => {
+        const state = useLeaderboards({
+          dateRange: DATE_RANGE,
+          scope: PageScope.ORGANIZATION,
+        });
+        firstRender.push({
+          brands: state.brandsLeaderboard,
+          isLoading: state.isLeaderboardLoading,
+        });
+        return state;
+      },
+      { wrapper: queryClientWrapper(queryClient) },
+    );
+
+    expect(firstRender[0]).toEqual({ brands: [BRAND_ITEM], isLoading: false });
+  });
+
+  it('re-reads changed dates, and on Refresh keeps the leaderboard on screen', async () => {
+    const { rerender, result } = renderLeaderboards({
+      dateRange: DATE_RANGE,
+      refreshTrigger: 0,
+      scope: PageScope.ORGANIZATION,
+    });
+    await waitFor(() =>
+      expect(result.current.brandsLeaderboard).toEqual([BRAND_ITEM]),
+    );
+
     const changedDates = {
       ...DATE_RANGE,
       startDate: new Date('2025-01-03T00:00:00.000Z'),
     };
-    rerender({ dateRange: changedDates, refreshTrigger: 0 });
+    rerender({
+      dateRange: changedDates,
+      refreshTrigger: 0,
+      scope: PageScope.ORGANIZATION,
+    });
     await waitFor(() =>
       expect(mockGetBrandsLeaderboard).toHaveBeenCalledWith(
         expect.objectContaining({ startDate: '2025-01-03' }),
       ),
     );
-    rerender({ dateRange: changedDates, refreshTrigger: 1 });
     await waitFor(() =>
-      expect(mockGetBrandsLeaderboard).toHaveBeenCalledTimes(2),
+      expect(result.current.isLeaderboardLoading).toBe(false),
+    );
+
+    const refreshed = { ...BRAND_ITEM, totalViews: 75 };
+    mockGetBrandsLeaderboard.mockResolvedValue([refreshed]);
+    rerender({
+      dateRange: changedDates,
+      refreshTrigger: 1,
+      scope: PageScope.ORGANIZATION,
+    });
+
+    expect(result.current.isLeaderboardLoading).toBe(false);
+    expect(result.current.brandsLeaderboard).toEqual([BRAND_ITEM]);
+    await waitFor(() =>
+      expect(result.current.brandsLeaderboard).toEqual([refreshed]),
     );
   });
 });

@@ -16,7 +16,11 @@ export interface IOrganizationOwner {
   name: string;
   email?: string;
   avatar?: string;
+  /** When the owner was last active in the app. */
+  lastActiveAt?: string;
 }
+
+export type OrganizationOwnerEmailClass = 'company' | 'personal' | 'unknown';
 
 export interface IOrganizationWithStats {
   id: string;
@@ -24,15 +28,36 @@ export interface IOrganizationWithStats {
   logo?: string;
   owner?: IOrganizationOwner;
   slug?: string;
-  /** What the organization said it is: `accountType` (onboarding), else `category`. */
+  /**
+   * What the organization said it is at onboarding (`accountType`). Absent
+   * until onboarding finishes: `category` always holds a default, so it says
+   * nothing about the organization.
+   */
   type?: OrganizationCategory;
+  /** Whether the owner signed up with a work address, a free provider, or neither is known. */
+  ownerEmailClass: OrganizationOwnerEmailClass;
   createdAt?: string;
+  /** Lifetime generated assets (not narrowed by the date range). */
+  totalGenerations: number;
+  /** Lifetime published posts (not narrowed by the date range). */
+  lifetimePosts: number;
+  /** When the owner was last active in the app. */
+  lastActiveAt?: string;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
   totalBrands: number;
   totalMembers: number;
   avgEngagementRate: number;
+  growth: number;
+}
+
+/** Period totals across every entity a list matches, not just the page on screen. */
+export interface IEntityStatsTotals {
+  totalPosts: number;
+  totalViews: number;
+  totalEngagement: number;
+  /** Engagement change against the previous period, in percent. */
   growth: number;
 }
 

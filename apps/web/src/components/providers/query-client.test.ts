@@ -6,7 +6,7 @@ describe('makeQueryClient', () => {
     const queryClient = makeQueryClient();
 
     expect(queryClient.getDefaultOptions().queries).toMatchObject({
-      gcTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 30_000,

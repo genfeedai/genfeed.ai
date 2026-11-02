@@ -574,3 +574,54 @@
   top: 0.625rem;
   right: 0.625rem;
 }
+
+/* A selected asset card. The outline follows the card's radius and leaves its
+   own shadow alone. The running highlight is a second, moving arc and only
+   draws on a card that opts into motion (`data-motion="allow"`), because the
+   product motion policy freezes every other animation. */
+@property --gen-selected-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.gen-selected-card {
+  outline: 2px solid hsl(var(--info) / 0.7);
+  outline-offset: 0;
+}
+
+.gen-selected-card[data-motion="allow"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--gen-selected-angle),
+    transparent 0deg,
+    hsl(var(--info)) 70deg,
+    transparent 140deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: gen-selected-run 3s linear infinite;
+}
+
+@keyframes gen-selected-run {
+  to {
+    --gen-selected-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-selected-card[data-motion="allow"]::after {
+    display: none;
+  }
+}

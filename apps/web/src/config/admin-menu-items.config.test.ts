@@ -41,12 +41,25 @@ describe('ADMIN_MENU_ITEMS', () => {
     );
   });
 
+  it('lists Voice Library in the Catalog group with the other shared catalog data', () => {
+    const catalogHrefs = ADMIN_MENU_ITEMS.filter(
+      (item) => item.group === 'Catalog',
+    ).map((item) => item.href);
+
+    expect(catalogHrefs).toContain('/admin/content/voices');
+    expect(
+      ADMIN_MENU_ITEMS.some(
+        (item) => item.group === 'Library' && item.label === 'Voice Library',
+      ),
+    ).toBe(false);
+  });
+
   it('includes cross-org cloud management destinations', () => {
     const hrefs = ADMIN_MENU_ITEMS.map((item) => item.href);
 
     expect(hrefs).toContain('/admin/organizations');
     expect(hrefs).toContain('/admin/administration/learning');
-    expect(hrefs).toContain('/admin/library/voices');
+    expect(hrefs).toContain('/admin/content/voices');
     expect(hrefs).toContain('/admin/administration/users');
     expect(hrefs).toContain('/admin/administration/concierge-accounts');
     expect(hrefs).toContain('/admin/administration/subscriptions');
