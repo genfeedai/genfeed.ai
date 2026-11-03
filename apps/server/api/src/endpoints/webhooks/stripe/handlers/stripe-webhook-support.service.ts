@@ -355,6 +355,13 @@ export class StripeWebhookSupportService {
       // The operator alert commits in the same transaction as the ledger row,
       // so a replay can never double-alert and a new row is never silent.
       const currency = input.currency.trim().toLowerCase() || 'usd';
+      // The name only decorates the card, so a failed lookup never holds it back.
+      const organization = await this.prisma.organization
+        .findFirst({
+          select: { label: true },
+          where: { id: input.organizationId, isDeleted: false },
+        })
+        .catch(() => null);
       const commit = await this.prisma.$transaction(async (transaction) => {
         const { count } = await transaction.billingRevenueEvent.createMany({
           data: [
@@ -382,6 +389,7 @@ export class StripeWebhookSupportService {
                   amountMinor,
                   currency,
                   organizationId: input.organizationId,
+                  organizationLabel: organization?.label || undefined,
                   planLabel: input.planLabel,
                   source: input.source,
                   userId: input.userId,

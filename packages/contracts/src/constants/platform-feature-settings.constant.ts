@@ -82,6 +82,7 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     discordChannelIdStudio: null,
     discordChannelIdUsers: null,
     discordChannelIdModels: null,
+    discordChannelIdBilling: null,
     discordBotAvatarUrl: null,
     discordWebhookNamePrefix: null,
     discordWebhookReason: null,
@@ -395,6 +396,11 @@ export function parsePlatformFeatureSettings(
     discordChannelIdModels: pickRuntimeString(
       row.discordChannelIdModels,
       defaults.discordChannelIdModels,
+      /^\d{17,20}$/,
+    ),
+    discordChannelIdBilling: pickRuntimeString(
+      row.discordChannelIdBilling,
+      defaults.discordChannelIdBilling,
       /^\d{17,20}$/,
     ),
     discordBotAvatarUrl: pickRuntimeString(

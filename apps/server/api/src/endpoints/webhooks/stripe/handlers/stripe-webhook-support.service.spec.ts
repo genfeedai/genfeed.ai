@@ -43,6 +43,9 @@ describe('StripeWebhookSupportService', () => {
     creditTransaction: {
       findFirst: vi.fn(),
     },
+    organization: {
+      findFirst: vi.fn(),
+    },
   };
   const revenueCommit = {
     activities: [],
@@ -104,6 +107,7 @@ describe('StripeWebhookSupportService', () => {
     );
     prisma.creditTransaction.findFirst.mockResolvedValue(null);
     prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
+    prisma.organization.findFirst.mockResolvedValue({ label: 'Acme Studio' });
     organizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
       ['model_1'],
     );
@@ -739,10 +743,21 @@ describe('StripeWebhookSupportService', () => {
           amountMinor: 4900,
           currency: 'usd',
           organizationId: 'org_1',
+          organizationLabel: 'Acme Studio',
           source: BillingRevenueSource.CREDIT_PURCHASE,
           userId: 'user_1',
         }),
       );
+      expect(activityRecorder.afterCommit).toHaveBeenCalledWith(revenueCommit);
+    });
+
+    it('still records the ledger row and alerts when the organization name cannot be read', async () => {
+      prisma.organization.findFirst.mockRejectedValue(new Error('db blip'));
+
+      await service.recordRevenueEvent(baseInput);
+
+      expect(prisma.billingRevenueEvent.createMany).toHaveBeenCalledTimes(1);
+      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledTimes(1);
       expect(activityRecorder.afterCommit).toHaveBeenCalledWith(revenueCommit);
     });
 

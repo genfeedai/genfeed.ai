@@ -50,6 +50,7 @@ export interface IPlatformFeatureSettings {
   discordChannelIdStudio: string | null;
   discordChannelIdUsers: string | null;
   discordChannelIdModels: string | null;
+  discordChannelIdBilling: string | null;
   discordBotAvatarUrl: string | null;
   discordWebhookNamePrefix: string | null;
   discordWebhookReason: string | null;

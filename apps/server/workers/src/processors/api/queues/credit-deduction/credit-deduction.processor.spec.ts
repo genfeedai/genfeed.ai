@@ -46,6 +46,7 @@ describe('CreditDeductionProcessor', () => {
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
     crunGenerationTask: { findFirst: ReturnType<typeof vi.fn> };
     metadata: { updateMany: ReturnType<typeof vi.fn> };
+    organization: { findFirst: ReturnType<typeof vi.fn> };
     organizationSetting: { findFirst: ReturnType<typeof vi.fn> };
     workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
   };
@@ -85,6 +86,9 @@ describe('CreditDeductionProcessor', () => {
       ingredient: { findFirst: vi.fn() },
       crunGenerationTask: { findFirst: vi.fn().mockResolvedValue(null) },
       metadata: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      organization: {
+        findFirst: vi.fn().mockResolvedValue({ label: 'Acme Studio' }),
+      },
       organizationSetting: {
         findFirst: vi
           .fn()
@@ -449,7 +453,11 @@ describe('CreditDeductionProcessor', () => {
           operatorMessages: {
             discord: {
               action: 'low_credits_alert',
-              payload: { balance: 500, organizationId: 'org-1' },
+              payload: {
+                balance: 500,
+                organizationId: 'org-1',
+                organizationLabel: 'Acme Studio',
+              },
               type: 'discord',
             },
           },

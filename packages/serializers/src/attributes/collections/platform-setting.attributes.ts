@@ -27,6 +27,7 @@ export const platformSettingAttributes = createEntityAttributes([
   'discordChannelIdStudio',
   'discordChannelIdUsers',
   'discordChannelIdModels',
+  'discordChannelIdBilling',
   'discordBotAvatarUrl',
   'discordWebhookNamePrefix',
   'discordWebhookReason',

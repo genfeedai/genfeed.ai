@@ -39,6 +39,7 @@ const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
   'studio',
   'models',
   'users',
+  'billing',
   'posts',
   'deployments',
 ];

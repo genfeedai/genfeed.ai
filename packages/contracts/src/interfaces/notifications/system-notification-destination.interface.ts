@@ -30,6 +30,7 @@ export interface IDiscordTransportStatus {
 
 /** Platform-settings Discord channels the operator bot can post a test message to. */
 export type DiscordTestChannel =
+  | 'billing'
   | 'deployments'
   | 'models'
   | 'posts'

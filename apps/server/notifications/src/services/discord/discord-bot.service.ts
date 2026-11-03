@@ -305,6 +305,21 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  /**
+   * Credit and revenue alerts. Without a billing channel they keep posting to
+   * the users channel, so nothing changes until one is set.
+   */
+  async getBillingWebhook(): Promise<WebhookClient | null> {
+    if (!this.hasWebhookAccess()) return null;
+    const channelId = (await this.runtimeSettings.get())
+      .discordChannelIdBilling;
+    if (!channelId) return this.getUsersWebhook();
+    return this.getOrCreateWebhook(
+      channelId,
+      await this.getWebhookName('Billing'),
+    );
+  }
+
   async getModelsWebhook(): Promise<WebhookClient | null> {
     if (!this.hasWebhookAccess()) return null;
     const channelId =
@@ -413,6 +428,12 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
         channelId:
           (await this.runtimeSettings.get()).discordChannelIdUsers ?? undefined,
         name: 'USERS',
+      },
+      {
+        channelId:
+          (await this.runtimeSettings.get()).discordChannelIdBilling ??
+          undefined,
+        name: 'BILLING',
       },
     ];
 

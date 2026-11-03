@@ -113,6 +113,7 @@
       "discordChannelIdStudio": "Studio",
       "discordChannelIdUsers": "Users",
       "discordChannelIdModels": "Models",
+      "discordChannelIdBilling": "Billing",
       "discordBotAvatarUrl": "Avatar URL",
       "discordWebhookNamePrefix": "Name prefix",
       "discordWebhookReason": "Creation reason",
@@ -160,6 +161,7 @@
     "discordChannelTest": "Test {channel}",
     "discordChannelTestSent": "Test message posted to the {channel} channel",
     "discordChannels": {
+      "billing": "Billing",
       "deployments": "Deployments",
       "models": "Models",
       "posts": "Posts",

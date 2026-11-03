@@ -21,6 +21,7 @@ import { ResendService } from '@notifications/services/resend/resend.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
 
 const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'billing',
   'deployments',
   'models',
   'posts',
