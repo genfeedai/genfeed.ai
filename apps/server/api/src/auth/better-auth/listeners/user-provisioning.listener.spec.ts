@@ -16,7 +16,7 @@ vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 function buildSetupResult(): UserSetupResult {
   return {
     brand: { id: 'b_1' },
-    organization: { id: 'o_1' },
+    organization: { id: 'o_1', label: 'Acme Studio' },
   } as unknown as UserSetupResult;
 }
 
@@ -115,6 +115,35 @@ describe('UserProvisioningListener', () => {
         ],
       }),
     );
+  });
+
+  it('puts the provider name, picture and workspace name in the operator alert', async () => {
+    await listener.handleUserCreated({
+      avatar: 'https://lh3.googleusercontent.com/a/photo',
+      email: 'new@genfeed.ai',
+      name: 'Jane Doe',
+      userId: 'u_1',
+    });
+
+    const dispatched = notificationsService.dispatch.mock.calls[0][0];
+    expect(dispatched.messages[0].message.payload).toEqual({
+      avatar: 'https://lh3.googleusercontent.com/a/photo',
+      email: 'new@genfeed.ai',
+      id: 'u_1',
+      name: 'Jane Doe',
+      organizationLabel: 'Acme Studio',
+    });
+  });
+
+  it('leaves a non-https picture out of the operator alert', async () => {
+    await listener.handleUserCreated({
+      avatar: 'http://example.com/a.png',
+      email: 'new@genfeed.ai',
+      userId: 'u_1',
+    });
+
+    const dispatched = notificationsService.dispatch.mock.calls[0][0];
+    expect(dispatched.messages[0].message.payload.avatar).toBeUndefined();
   });
 
   it('schedules the background brand prefill with the signup email', async () => {

@@ -62,6 +62,8 @@ type BetterAuthUserBeforePayload = {
 type BetterAuthUserAfterPayload = {
   email?: string | null;
   id: string;
+  image?: string | null;
+  name?: string | null;
 };
 
 /**
@@ -613,7 +615,9 @@ export function buildBetterAuthUserDatabaseHooks(
         after: async (user) => {
           const typed = user as BetterAuthUserAfterPayload;
           await onUserCreated?.({
+            avatar: typed.image ?? null,
             email: typed.email ?? null,
+            name: typed.name ?? null,
             userId: typed.id,
           });
         },

@@ -160,6 +160,10 @@ export interface IVercelNotificationPayload {
 export interface IUserCreatedPayload {
   id: string;
   email?: string;
+  /** Full display name; wins over `firstName` and `lastName`. */
+  name?: string;
+  /** The workspace created for the user, shown instead of its id. */
+  organizationLabel?: string;
   firstName?: string;
   lastName?: string;
   avatar?: string;

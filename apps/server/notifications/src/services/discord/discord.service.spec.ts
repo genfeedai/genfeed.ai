@@ -996,9 +996,9 @@ describe('DiscordService', () => {
       await service.sendUserCreatedNotification({
         avatar: 'https://cdn/avatar-user.png',
         email: 'jane@example.com',
-        firstName: 'Jane',
         id: 'u-1',
-        lastName: 'Doe',
+        name: 'Jane Doe',
+        organizationLabel: 'Acme Studio',
       });
 
       const payload = lastSendPayload();
@@ -1008,6 +1008,7 @@ describe('DiscordService', () => {
         fields: [
           { inline: true, name: 'Name', value: 'Jane Doe' },
           { inline: true, name: 'Email', value: 'jane@example.com' },
+          { inline: true, name: 'Organization', value: 'Acme Studio' },
         ],
         thumbnail: { url: 'https://cdn/avatar-user.png' },
         title: 'New User Signed Up',

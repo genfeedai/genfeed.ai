@@ -632,7 +632,9 @@ export class DiscordService {
       await this.discordBotService.getUsersWebhook(),
       url,
       async (webhookClient) => {
-        const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+        const name =
+          user.name ||
+          [user.firstName, user.lastName].filter(Boolean).join(' ');
         const userUrl = adminUserUrl(
           this.configService.get('GENFEEDAI_APP_URL'),
           user.id,
@@ -647,6 +649,7 @@ export class DiscordService {
           fields: [
             { name: 'Name', value: name },
             { name: 'Email', value: user.email ?? '' },
+            { name: 'Organization', value: user.organizationLabel ?? '' },
           ],
           summary: name ? `**${name}** ${verb}.` : `A new user ${verb}.`,
           thumbnailUrl: user.avatar,

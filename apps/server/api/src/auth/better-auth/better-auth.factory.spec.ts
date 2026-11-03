@@ -516,10 +516,14 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     await hooks.after({
       email: 'new@example.com',
       id: 'user_canonical',
+      image: 'https://lh3.googleusercontent.com/a/photo',
+      name: 'Jane Doe',
     } as never);
 
     expect(onUserCreated).toHaveBeenCalledWith({
+      avatar: 'https://lh3.googleusercontent.com/a/photo',
       email: 'new@example.com',
+      name: 'Jane Doe',
       userId: 'user_canonical',
     });
   });
@@ -544,7 +548,9 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     await hooks.after({ id: 'user_without_email' } as never);
 
     expect(onUserCreated).toHaveBeenCalledWith({
+      avatar: null,
       email: null,
+      name: null,
       userId: 'user_without_email',
     });
   });

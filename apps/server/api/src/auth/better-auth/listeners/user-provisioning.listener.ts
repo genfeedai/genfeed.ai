@@ -11,6 +11,11 @@ import * as Sentry from '@sentry/nestjs';
 import { BETTER_AUTH_USER_CREATED_EVENT } from '../better-auth.constants';
 import type { IBetterAuthUserCreatedEvent } from '../better-auth.types';
 
+/** The card thumbnail must be a public https URL Discord can fetch. */
+function readHttpsUrl(value: string | null | undefined): string | undefined {
+  return value?.startsWith('https://') ? value : undefined;
+}
+
 /**
  * Provisions a newly created Better Auth user — organization, settings, brand,
  * member and credit balance — by reusing the idempotent
@@ -50,7 +55,7 @@ export class UserProvisioningListener {
       );
       await this.scheduleLifecycleEmails(event.userId);
       this.scheduleBrandPrefill(event, setupResult);
-      this.notifyOperatorOfNewUser(event);
+      this.notifyOperatorOfNewUser(event, setupResult);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -116,7 +121,10 @@ export class UserProvisioningListener {
    * a slow or failing notification transport must never delay or fail
    * sign-in, which has already committed above.
    */
-  private notifyOperatorOfNewUser(event: IBetterAuthUserCreatedEvent): void {
+  private notifyOperatorOfNewUser(
+    event: IBetterAuthUserCreatedEvent,
+    setupResult: UserSetupResult,
+  ): void {
     void this.activityRecorder
       .dispatch({
         deduplicationKey: `message.user-created/${event.userId}`,
@@ -125,7 +133,13 @@ export class UserProvisioningListener {
             destination: null,
             message: {
               action: 'user_notification',
-              payload: { email: event.email ?? undefined, id: event.userId },
+              payload: {
+                avatar: readHttpsUrl(event.avatar),
+                email: event.email ?? undefined,
+                id: event.userId,
+                name: event.name || undefined,
+                organizationLabel: setupResult.organization?.label || undefined,
+              },
               type: 'discord',
             },
           },
