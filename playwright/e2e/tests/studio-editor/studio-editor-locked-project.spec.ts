@@ -9,6 +9,7 @@ import type {
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
@@ -38,7 +39,8 @@ async function openInspector(page: Page) {
   return addText;
 }
 
-const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
+const EDITOR_PROJECTS_PATTERN =
+  createPlaywrightMockApiRoutePattern('editor-projects');
 
 type StoredProject = Pick<
   IEditorProject,

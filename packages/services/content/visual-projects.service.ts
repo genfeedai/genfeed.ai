@@ -9,6 +9,7 @@ import type {
   IVisualProject,
   VisualCodeQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -16,6 +17,11 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import type { AxiosRequestConfig } from 'axios';
+
+const WRITE_OPTIONS: AxiosRequestConfig & IHttpRequestOptions = {
+  handledErrorStatuses: [409],
+};
 
 export class VisualProjectsService extends HTTPBaseService {
   constructor(token: string) {
@@ -111,7 +117,15 @@ export class VisualProjectsService extends HTTPBaseService {
   }
   private async write(path: string, input: object): Promise<IVisualProject> {
     return deserializeResource<IVisualProject>(
-      (await this.instance.post<JsonApiResponseDocument>(path, input)).data,
+      (
+        await this.instance.post<JsonApiResponseDocument>(
+          path,
+          input,
+          // A 409 revision conflict is shown by the project surface with a
+          // reload action, so the dev-only Error Debug modal must not cover it.
+          WRITE_OPTIONS,
+        )
+      ).data,
     );
   }
 }

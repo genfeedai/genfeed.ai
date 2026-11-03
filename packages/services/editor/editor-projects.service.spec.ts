@@ -105,6 +105,7 @@ describe('EditorProjectsService', () => {
         name: 'Untitled Project',
         settings: expect.objectContaining({ fps: 30 }),
       }),
+      { handledErrorStatuses: [500, 502, 503, 504] },
     );
     expect(result).toBeDefined();
   });
@@ -134,6 +135,7 @@ describe('EditorProjectsService', () => {
           fps: 24,
         }),
       }),
+      { handledErrorStatuses: [500, 502, 503, 504] },
     );
   });
 
@@ -186,6 +188,7 @@ describe('EditorProjectsService', () => {
     await service.findAll();
 
     expect(mockInstance.get).toHaveBeenCalledWith('', {
+      handledErrorStatuses: [500, 502, 503, 504],
       params: { sort: '-updatedAt' },
       signal: undefined,
     });
@@ -206,6 +209,7 @@ describe('EditorProjectsService', () => {
     );
 
     expect(mockInstance.get).toHaveBeenCalledWith('', {
+      handledErrorStatuses: [500, 502, 503, 504],
       params: { limit: 15, page: 2, sort: '-updatedAt' },
       signal: controller.signal,
     });
@@ -261,6 +265,7 @@ describe('EditorProjectsService', () => {
     expect(mockInstance.post).toHaveBeenCalledWith(
       '',
       expect.objectContaining({ sourceVideoIds: ['video-2', 'video-1'] }),
+      { handledErrorStatuses: [500, 502, 503, 504] },
     );
   });
 

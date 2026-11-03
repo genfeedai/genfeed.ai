@@ -1,4 +1,4 @@
-import { playwrightApiEndpoint } from '../../config/environment';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
 
@@ -27,7 +27,7 @@ test('Motion reviews exact output cost and retains source on a revision conflict
 }) => {
   let submitted = 0;
   await page.route(
-    `${playwrightApiEndpoint}/visual-projects/**`,
+    createPlaywrightMockApiRoutePattern('visual-projects/.+'),
     async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/catalog'))
@@ -133,7 +133,7 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
   authenticatedPage: page,
 }) => {
   await page.route(
-    `${playwrightApiEndpoint}/visual-projects/**`,
+    createPlaywrightMockApiRoutePattern('visual-projects/.+'),
     async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/catalog'))
@@ -199,7 +199,7 @@ test('Motion opens a project with the agent on the left and the project on the r
 }) => {
   await page.setViewportSize({ height: 900, width: 1440 });
   await page.route(
-    `${playwrightApiEndpoint}/visual-projects/**`,
+    createPlaywrightMockApiRoutePattern('visual-projects/.+'),
     async (route) => {
       const path = new URL(route.request().url()).pathname;
       if (path.endsWith('/catalog'))
