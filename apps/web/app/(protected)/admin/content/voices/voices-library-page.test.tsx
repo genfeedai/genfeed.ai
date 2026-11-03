@@ -54,14 +54,14 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
-    dropdowns,
+    secondaryActions,
     filters,
     onRefresh,
     primaryAction,
     search,
   }: {
     children: ReactNode;
-    dropdowns?: ReactNode;
+    secondaryActions?: ReactNode;
     filters?: ReactNode;
     onRefresh?: () => void;
     primaryAction?: ReactNode;
@@ -71,7 +71,7 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
       {search}
       {filters}
       <button aria-label="Refresh" onClick={onRefresh} type="button" />
-      {dropdowns}
+      {secondaryActions}
       {primaryAction}
       {children}
     </main>

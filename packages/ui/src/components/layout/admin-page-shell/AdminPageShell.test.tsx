@@ -19,16 +19,17 @@ vi.mock('next-intl', async () => {
 });
 
 describe('AdminPageShell', () => {
-  it('orders the subbar controls "..." menu, refresh, dropdown, Filters menu, view toggle, primary action', () => {
+  it('orders the subbar controls "..." menu, refresh, secondary action, Filters menu, view toggle, date range, primary action', () => {
     render(
       <AdminPageShell
         title="Models"
         search={<input aria-label="Search" />}
         onRefresh={vi.fn()}
         overflow={<button type="button">More actions</button>}
-        dropdowns={<button type="button">All organizations</button>}
+        secondaryActions={<button type="button">Sync</button>}
         filters={<button type="button">Filters</button>}
         views={<button type="button">Grid view</button>}
+        dateRange={<button type="button">Last 7 days</button>}
         primaryAction={<button type="button">Create</button>}
       >
         <p>body</p>
@@ -43,9 +44,10 @@ describe('AdminPageShell', () => {
     expect(labels).toEqual([
       'More actions',
       'Refresh',
-      'All organizations',
+      'Sync',
       'Filters',
       'Grid view',
+      'Last 7 days',
       'Create',
     ]);
   });

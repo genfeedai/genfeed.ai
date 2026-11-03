@@ -12,16 +12,11 @@ export interface FoldersListModalsProps {
 }
 
 export interface FoldersListState {
-  adminOrg: string;
-  adminBrand: string;
   query: IFilters;
   filters: IFiltersState;
 }
 
 export type FoldersListAction =
-  | { type: 'SET_ADMIN_ORG'; payload: string }
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | { type: 'SET_ORG_AND_CLEAR_BRAND'; payload: string }
   | { type: 'SET_QUERY'; payload: IFilters }
   | { type: 'SET_FILTERS'; payload: IFiltersState }
   | {

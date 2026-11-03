@@ -14,7 +14,7 @@ export interface SectionTopbarProps {
   title: string;
   /** Optional leading icon next to the title */
   icon?: IconComponent;
-  /** Right-aligned controls: dropdowns followed by the primary action */
+  /** Right-aligned controls, filled through `SubbarControls`: Filters, views, date range, then the primary action */
   actions?: ReactNode;
   /**
    * The "..." menu (`SubbarOverflowMenu`): the page's secondary actions such

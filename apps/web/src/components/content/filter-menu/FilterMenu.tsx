@@ -27,6 +27,7 @@ import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { ListFilter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useAdminOrgBrandUrlFacets } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 
 /** A search box earns its place once a list is longer than a glance. */
 const SEARCH_THRESHOLD = 8;
@@ -173,7 +174,7 @@ function FilterMenuFacetItem({
  * however many facets a page has. Owners keep the state and the URL/query
  * mapping; this component only renders and reports changes.
  */
-export default function FilterMenu({
+function FilterMenuView({
   align = 'end',
   allLabel,
   className,
@@ -244,5 +245,45 @@ export default function FilterMenu({
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/**
+ * The Filters menu of a platform-wide admin list: the page's own facets, then
+ * the organization and brand facets. "Clear filters" clears both.
+ */
+function AdminScopedFilterMenu({
+  facets,
+  onClear,
+  ...props
+}: Omit<FilterMenuProps, 'hasAdminScope'>) {
+  const scope = useAdminOrgBrandUrlFacets();
+
+  return (
+    <FilterMenuView
+      {...props}
+      facets={[...facets, ...scope.facets]}
+      onClear={() => {
+        onClear();
+        scope.clearAfterPageClear();
+      }}
+    />
+  );
+}
+
+/**
+ * The Filters menu of a page. Every filter axis of the page is a facet of this
+ * one menu. A page that lists platform-wide records sets `hasAdminScope`, and
+ * the menu adds the organization and brand facets, so those two never become
+ * dropdowns of their own in the header.
+ */
+export default function FilterMenu({
+  hasAdminScope = false,
+  ...props
+}: FilterMenuProps) {
+  return hasAdminScope ? (
+    <AdminScopedFilterMenu {...props} />
+  ) : (
+    <FilterMenuView {...props} />
   );
 }

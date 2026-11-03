@@ -15,7 +15,7 @@ export default function ProductAgentLibrary({ librarySections }: Props) {
       </Heading>
       <div className="space-y-8">
         {librarySections.map((section) => (
-          <Card key={section.title} label={section.title}>
+          <Card isHeaderInside key={section.title} label={section.title}>
             <div className="space-y-6">
               {section.description ? (
                 <Text as="p" color="muted">

@@ -14,6 +14,7 @@ export default function FiltersSearch({
   className,
   filterOptions,
   filters,
+  hasAdminScope,
   onFiltersChange,
   visibleFilters,
 }: FiltersBarProps) {
@@ -37,6 +38,7 @@ export default function FiltersSearch({
       <FiltersButton
         filterOptions={filterOptions}
         filters={filters}
+        hasAdminScope={hasAdminScope}
         isAttached
         onFiltersChange={onFiltersChange}
         visibleFilters={visibleFilters}

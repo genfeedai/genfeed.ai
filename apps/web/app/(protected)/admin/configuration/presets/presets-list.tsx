@@ -34,9 +34,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useEffect, useState } from 'react';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import { useInlineRecordSave } from '@/hooks/ui/use-inline-record-save/use-inline-record-save';
@@ -403,13 +402,14 @@ function PresetsListContent({
           onSearch={setSearch}
           placeholder={searchT('presets')}
           value={search}
-        />
+        >
+          {scope === PageScope.SUPERADMIN ? (
+            <AdminScopeFilter isAttached />
+          ) : null}
+        </SearchField>
       }
       onRefresh={() => refreshPresets()}
       isRefreshing={isRefreshing}
-      dropdowns={
-        scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : undefined
-      }
       primaryAction={
         scope === PageScope.SUPERADMIN ? (
           <Button

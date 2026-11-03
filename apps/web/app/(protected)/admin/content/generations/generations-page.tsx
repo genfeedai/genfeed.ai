@@ -21,9 +21,7 @@ import { Download, Image as ImageIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
 import type {
@@ -284,6 +282,7 @@ function GenerationsPageContent() {
                     },
                   ] satisfies FilterMenuFacet[])),
             ]}
+            hasAdminScope
             isAttached
             onClear={clearFilters}
           />
@@ -304,7 +303,6 @@ function GenerationsPageContent() {
           ]}
         />
       }
-      dropdowns={<AdminOrgBrandUrlFilter />}
     >
       <div className="grid gap-3" data-testid="content-generations-list">
         {isLoading ? (

@@ -99,32 +99,8 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@/components/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-      <button type="button" onClick={() => onOrganizationChange('')}>
-        Clear Org
-      </button>
-    </section>
-  ),
+vi.mock('@/components/content/admin-filters/AdminScopeFilter', () => ({
+  default: () => <div>Admin scope in the Filters menu</div>,
 }));
 
 vi.mock('@ui/primitives/badge', () => ({
@@ -196,16 +172,19 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     label,
+    leading,
     refresh,
     right,
   }: {
     children: ReactNode;
     label?: ReactNode;
+    leading?: ReactNode;
     refresh?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
+      <div>{leading}</div>
       <div data-testid="container-refresh">{refresh}</div>
       <div>{right}</div>
       {children}
@@ -330,7 +309,7 @@ describe('PresetsList', () => {
     mocks.patch.mockResolvedValue({});
   });
 
-  it('renders superadmin presets, query filters, and admin URL sync controls', async () => {
+  it('renders superadmin presets and queries by the organization and brand in the URL', async () => {
     renderList({ scope: PageScope.SUPERADMIN });
 
     expect(
@@ -341,8 +320,9 @@ describe('PresetsList', () => {
     expect(screen.getByText('Aspect: 9:16')).toBeInTheDocument();
     expect(screen.getByText('Duration: 5s')).toBeInTheDocument();
     expect(screen.getByText('Style: cinematic')).toBeInTheDocument();
-    expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
-    expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
+    expect(
+      screen.getByText('Admin scope in the Filters menu'),
+    ).toBeInTheDocument();
     expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: 'brand-1',
@@ -350,18 +330,6 @@ describe('PresetsList', () => {
         page: 2,
       }),
       expect.any(AbortSignal),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/presets?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/presets?organization=org-1&brand=brand-2',
-      { scroll: false },
     );
 
     const refreshSlot = screen.getByTestId('container-refresh');
@@ -572,7 +540,9 @@ describe('PresetsList', () => {
     expect(
       await screen.findByRole('button', { name: 'Active' }),
     ).toBeDisabled();
-    expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Admin scope in the Filters menu'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add Preset' })).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Edit Launch Video' }),

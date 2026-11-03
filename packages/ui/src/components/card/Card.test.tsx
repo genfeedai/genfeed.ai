@@ -26,10 +26,85 @@ describe('Card', () => {
     expect(heading).toHaveClass('break-words');
   });
   it('renders compact surface styling by default', () => {
-    const { container } = render(<Card label="Surface">Body</Card>);
-    expect(container.firstChild).toHaveClass('shadow-border');
-    expect(container.firstChild).toHaveClass('bg-card');
-    expect(container.firstChild).not.toHaveClass('hover:shadow-border-strong');
+    render(<Card label="Surface">Body</Card>);
+    const surface = screen.getByText('Body').parentElement;
+    expect(surface).toHaveClass('shadow-border');
+    expect(surface).toHaveClass('bg-card');
+    expect(surface).not.toHaveClass('hover:shadow-border-strong');
+  });
+
+  it('puts the title, description and action of a panel above its surface', () => {
+    render(
+      <Card
+        label="Webhooks"
+        description="Where events are sent"
+        headerAction={<span>Add</span>}
+      >
+        Body
+      </Card>,
+    );
+    const surface = screen.getByText('Body').parentElement as HTMLElement;
+
+    expect(surface).not.toContainElement(
+      screen.getByRole('heading', { name: 'Webhooks' }),
+    );
+    expect(surface).not.toContainElement(screen.getByText('Add'));
+    expect(surface).not.toContainElement(
+      screen.getByText('Where events are sent'),
+    );
+  });
+
+  it('keeps the title inside a tile that is the thing the card shows', () => {
+    const { rerender } = render(
+      <Card label="Tile" onClick={() => undefined}>
+        Body
+      </Card>,
+    );
+    expect(screen.getByRole('button', { name: 'Tile' })).toContainElement(
+      screen.getByRole('heading', { name: 'Tile' }),
+    );
+
+    rerender(<Card label="Tile" />);
+    expect(screen.getByText('Tile').closest('.shadow-border')).not.toBeNull();
+
+    rerender(
+      <Card label="Tile" isHeaderInside>
+        Body
+      </Card>,
+    );
+    expect(screen.getByText('Body').parentElement).toContainElement(
+      screen.getByRole('heading', { name: 'Tile' }),
+    );
+
+    rerender(
+      <Card label="Tile" isCentered>
+        Body
+      </Card>,
+    );
+    expect(screen.getByText('Body').parentElement).toContainElement(
+      screen.getByRole('heading', { name: 'Tile' }),
+    );
+  });
+
+  it('gives the id, test id and layout classes to the element that holds the title', () => {
+    render(
+      <Card
+        className="md:col-span-2"
+        data-testid="settings-card"
+        id="chat-defaults"
+        label="Chat Defaults"
+      >
+        Body
+      </Card>,
+    );
+    const card = screen.getByTestId('settings-card');
+
+    expect(card).toHaveAttribute('id', 'chat-defaults');
+    expect(card).toHaveClass('scroll-mt-20', 'md:col-span-2');
+    expect(card).toContainElement(
+      screen.getByRole('heading', { name: 'Chat Defaults' }),
+    );
+    expect(card).toContainElement(screen.getByText('Body'));
   });
 
   it('renders header content when label and description are provided', () => {
@@ -119,6 +194,9 @@ describe('Card', () => {
     const { container, rerender } = render(<Card label="Surface">Body</Card>);
 
     expect(container.firstChild).not.toHaveClass('overflow-hidden');
+    expect(screen.getByText('Body').parentElement).not.toHaveClass(
+      'overflow-hidden',
+    );
 
     rerender(
       <Card id="chat-defaults" label="Chat Defaults">
@@ -276,5 +354,16 @@ describe('Card looks', () => {
       'items-center',
       'text-center',
     );
+  });
+
+  it('puts a caller style on the bordered surface when the title sits above it', () => {
+    render(
+      <Card label="Plan" style={{ minHeight: '120px' }}>
+        Body text
+      </Card>,
+    );
+    const surface = screen.getByText('Body text').closest('.rounded-card');
+    expect(surface).toHaveStyle({ minHeight: '120px' });
+    expect(surface?.parentElement).not.toHaveStyle({ minHeight: '120px' });
   });
 });

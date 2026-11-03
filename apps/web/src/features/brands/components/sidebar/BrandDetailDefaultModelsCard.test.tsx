@@ -34,7 +34,8 @@ describe('BrandDetailDefaultModelsCard', () => {
     const { container } = render(
       <BrandDetailDefaultModelsCard brand={brand} />,
     );
-    const rootElement = container.firstChild as HTMLElement;
+    // The title sits above the card; the surface is the bordered element.
+    const rootElement = container.querySelector('.rounded-card') as HTMLElement;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement).toHaveClass('rounded-card');
     expect(rootElement).toHaveClass('bg-card');

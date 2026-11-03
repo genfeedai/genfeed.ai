@@ -74,6 +74,7 @@ export default function ProductPage({ product }: { product: Product }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {product.features.map((feature) => (
             <Card
+              isHeaderInside
               key={feature.title}
               label={feature.title}
               description={feature.description}
@@ -97,6 +98,7 @@ export default function ProductPage({ product }: { product: Product }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {product.useCases.map((useCase) => (
             <Card
+              isHeaderInside
               key={useCase.title}
               label={useCase.title}
               description={useCase.description}
@@ -112,7 +114,7 @@ export default function ProductPage({ product }: { product: Product }) {
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card label="Perfect For">
+        <Card isHeaderInside label="Perfect For">
           <div className="flex flex-col gap-2">
             {product.targetAudience.map((audience) => (
               <li key={audience} className="flex items-start gap-2 list-none">
@@ -126,7 +128,7 @@ export default function ProductPage({ product }: { product: Product }) {
 
       {product.integrations && product.integrations.length > 0 && (
         <section className="max-w-4xl mx-auto pb-20">
-          <Card label="Integrations">
+          <Card isHeaderInside label="Integrations">
             <div className="flex flex-wrap justify-center gap-4">
               {product.integrations.map((integration) => (
                 <Badge key={integration}>{integration}</Badge>

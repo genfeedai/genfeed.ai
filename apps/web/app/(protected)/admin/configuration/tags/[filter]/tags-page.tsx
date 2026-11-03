@@ -43,6 +43,7 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
       search={
         <FiltersSearch
           filters={filters}
+          hasAdminScope={scope === PageScope.SUPERADMIN}
           onFiltersChange={(f: IFiltersState) => {
             setFilters(f);
           }}

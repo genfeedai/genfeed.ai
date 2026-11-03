@@ -26,10 +26,10 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, Plus, Trash2 } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
-import AdminOrgBrandFilter from '@/components/content/admin-filters/AdminOrgBrandFilter';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
 import type {
   FoldersListAction,
@@ -55,12 +55,6 @@ function foldersListReducer(
   action: FoldersListAction,
 ): FoldersListState {
   switch (action.type) {
-    case 'SET_ADMIN_ORG':
-      return { ...state, adminOrg: action.payload };
-    case 'SET_ADMIN_BRAND':
-      return { ...state, adminBrand: action.payload };
-    case 'SET_ORG_AND_CLEAR_BRAND':
-      return { ...state, adminOrg: action.payload, adminBrand: '' };
     case 'SET_QUERY':
       return { ...state, query: action.payload };
     case 'SET_FILTERS':
@@ -82,22 +76,13 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
 
-  const { replace } = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
 
   const getFoldersService = useAuthedService((token: string) =>
     FoldersService.getInstance(token),
   );
 
   const [state, dispatch] = useReducer(foldersListReducer, undefined, () => ({
-    adminOrg: parsedSearchParams.get('organization') || '',
-    adminBrand: parsedSearchParams.get('brand') || '',
     query: {} as IFilters,
     filters: {
       format: '',
@@ -109,45 +94,10 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     } as IFiltersState,
   }));
 
-  const { adminOrg, adminBrand, query, filters } = state;
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      dispatch({ type: 'SET_ORG_AND_CLEAR_BRAND', payload: orgId });
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      dispatch({ type: 'SET_ADMIN_BRAND', payload: brandId });
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, replace, searchParamsString],
-  );
+  const { query, filters } = state;
+  // The organization and brand are facets of the Filters menu; the URL owns them.
+  const { brand: adminBrand, organization: adminOrg } =
+    useAdminOrgBrandParams();
 
   // Extract page from URL to use as dependency (triggers re-fetch when page changes)
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -340,6 +290,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         <FiltersSearch
           filterOptions={{ sort: FOLDER_SORT_OPTIONS }}
           filters={filters}
+          hasAdminScope={scope === PageScope.SUPERADMIN}
           onFiltersChange={(f: IFiltersState, q: IFilters) => {
             dispatch({
               type: 'SET_FILTERS_AND_QUERY',
@@ -372,17 +323,6 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
         )
       }
     >
-      {scope === PageScope.SUPERADMIN && (
-        <div className="mb-4">
-          <AdminOrgBrandFilter
-            organization={adminOrg}
-            brand={adminBrand}
-            onOrganizationChange={handleAdminOrgChange}
-            onBrandChange={handleAdminBrandChange}
-          />
-        </div>
-      )}
-
       <AppTable<Folder>
         items={folders}
         columns={columns}

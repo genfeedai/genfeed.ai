@@ -15,7 +15,6 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Library } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
 import { useLibrarySummary } from '@/features/library/hooks/use-library-summary';
 import type { LibraryBrowserProps } from '@/features/library/props/library-browser.props';
@@ -185,8 +184,6 @@ export default function LibraryBrowser({
           }
           right={
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {/* Subbar order: the organization picker first, then filters. */}
-              {isAdminScope ? <AdminOrgBrandUrlFilter /> : null}
               <LibraryBrowserToolbar
                 isRecoveryView={isRecoveryView}
                 onViewModeChange={handleViewModeChange}

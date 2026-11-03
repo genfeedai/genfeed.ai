@@ -86,6 +86,7 @@ export default function AdminModelsFilters({
     <FilterMenu
       clearLabel={translate('clearFilters')}
       facets={facets}
+      hasAdminScope
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
       isAttached={isAttached}
       label={translate('filters')}

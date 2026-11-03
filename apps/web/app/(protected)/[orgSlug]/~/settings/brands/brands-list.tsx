@@ -336,7 +336,7 @@ function BrandsListContent() {
       }
       right={
         <SubbarControls
-          dropdowns={
+          secondaryActions={
             canMoveBrands && selectedBrands.length > 0 ? (
               <Button
                 variant={ButtonVariant.SECONDARY}

@@ -89,7 +89,7 @@ export default function ComparisonPage({
           Which one fits your work
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card label={`Choose ${competitor.name} when`}>
+          <Card isHeaderInside label={`Choose ${competitor.name} when`}>
             <p className="text-sm">{competitor.whenToUseCompetitor}.</p>
             <p className="text-sm gen-text-muted mt-3">
               Built for: {competitor.targetAudience}
@@ -98,7 +98,7 @@ export default function ComparisonPage({
               Pricing: {competitor.pricing}
             </p>
           </Card>
-          <Card label="Choose Genfeed when">
+          <Card isHeaderInside label="Choose Genfeed when">
             <p className="text-sm">{competitor.whenToUseGenFeed}.</p>
             <p className="text-sm gen-text-muted mt-3">
               Free to start, pay per output, or self-host the open-source
@@ -109,7 +109,7 @@ export default function ComparisonPage({
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">
-        <Card label={`What ${competitor.name} does well`}>
+        <Card isHeaderInside label={`What ${competitor.name} does well`}>
           <ul className="space-y-2 text-left">
             {competitor.strengths.map((strength: string) => (
               <li key={strength} className="flex items-start gap-2">

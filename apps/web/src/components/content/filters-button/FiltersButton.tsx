@@ -48,6 +48,7 @@ export default function FiltersButton({
   onFiltersChange,
   className = '',
   isAttached = false,
+  hasAdminScope = false,
   filterOptions = DEFAULT_FILTER_OPTIONS,
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
@@ -124,9 +125,10 @@ export default function FiltersButton({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {facets.length > 0 ? (
+      {facets.length > 0 || hasAdminScope ? (
         <FilterMenu
           facets={facets}
+          hasAdminScope={hasAdminScope}
           isAttached={isAttached}
           onClear={() => notifyFilterChange({ ...filters, ...EMPTY_FILTERS })}
         />

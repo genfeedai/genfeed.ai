@@ -27,8 +27,11 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: mocks.currentOrganizationId }),
 }));
 
-vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
+vi.mock('@/components/content/admin-filters/AdminScopeFilter', () => ({
   default: () => <div>organization filter</div>,
+}));
+
+vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
   useAdminOrgBrandParams: () => {
     const params = new URLSearchParams(mocks.search);
     return {
@@ -54,16 +57,16 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
-    dropdowns,
+    filters,
     title,
   }: {
     children: ReactNode;
-    dropdowns?: ReactNode;
+    filters?: ReactNode;
     title: string;
   }) => (
     <main>
       <h1>{title}</h1>
-      {dropdowns}
+      {filters}
       {children}
     </main>
   ),

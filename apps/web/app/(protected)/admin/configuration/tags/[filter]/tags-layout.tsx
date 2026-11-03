@@ -6,7 +6,6 @@ import { createPathViewHref } from '@helpers/navigation/filter-href.helper';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Tag } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type { ITagsLayoutProps } from '@/features/admin/props/tags.props';
 
 export default function TagsLayout({
@@ -70,9 +69,6 @@ export default function TagsLayout({
       filters={filters}
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
-      dropdowns={
-        scope === PageScope.SUPERADMIN ? <AdminOrgBrandUrlFilter /> : undefined
-      }
       primaryAction={primaryAction}
     >
       {children}

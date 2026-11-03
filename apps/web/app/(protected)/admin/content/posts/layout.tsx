@@ -10,7 +10,6 @@ import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
-import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import type {
   PostsLayoutAction,
   PostsLayoutState,
@@ -167,7 +166,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     );
   }
 
-  // Subbar order: refresh, download, dropdowns (organization first), CTA.
+  // Subbar order: "..." (download), refresh, Filters (organization and brand are facets), CTA.
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <AdminPageShell
@@ -177,14 +176,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
         overflow={overflowNode}
-        dropdowns={
-          isListRoute ? (
-            <>
-              <AdminOrgBrandUrlFilter />
-              {filtersNode}
-            </>
-          ) : undefined
-        }
+        filters={isListRoute ? filtersNode : undefined}
         primaryAction={scheduleActionsNode}
       >
         {children}

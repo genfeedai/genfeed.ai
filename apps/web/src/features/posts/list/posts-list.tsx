@@ -155,6 +155,7 @@ export default function PostsList({
         onSearchChange={handleSearchChange}
       >
         <PostsListToolbar
+          hasAdminScope={isAdminScope}
           isAttached
           sortValue={filterSort || getDefaultSort(status)}
           sortOptions={sortOptions}

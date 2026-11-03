@@ -68,6 +68,7 @@ const Card = memo(function Card({
   label,
   labelAs: LabelTag = 'h3',
   isLabelWrapped = false,
+  isHeaderInside = false,
   description,
   isDisabled,
   isLoading = false,
@@ -79,6 +80,24 @@ const Card = memo(function Card({
   ref,
   ...surfaceProps
 }: CardProps) {
+  // A static panel with a title puts the title and its action above the
+  // surface, like a collection section. Tiles (clickable, centered, artwork)
+  // and cards without a body keep their title in the surface, because there it
+  // is the thing the card shows.
+  const hasBody =
+    children !== undefined && children !== null && children !== false;
+  const hasOuterHeader =
+    !isHeaderInside &&
+    Boolean(label || headerAction) &&
+    hasBody &&
+    !onClick &&
+    !isInteractive &&
+    !isCentered &&
+    !overlay &&
+    !figure;
+  const hasHeader = Boolean(icon || label || description || headerAction);
+  const hasInnerHeader = hasHeader && !hasOuterHeader;
+
   const cardClasses = cn(
     CARD_SURFACE_BASE_CLASS,
     'text-left transition-[border-color,background-color] duration-150 ease-out',
@@ -86,7 +105,8 @@ const Card = memo(function Card({
     // clipping ancestor for Radix popovers (model picker, select) and shrinks
     // --radix-popover-content-available-height to the card interior.
     overlay && 'overflow-hidden',
-    id && 'scroll-mt-20',
+    // With the header above the surface the wrapper is the anchor target.
+    id && !hasOuterHeader && 'scroll-mt-20',
     CARD_SURFACE_VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
     onClick && 'cursor-pointer',
@@ -94,7 +114,59 @@ const Card = memo(function Card({
     (onClick || isInteractive) && INTERACTIVE_VARIANT_CLASSES[variant],
     isSelected && 'ring-1 ring-inset ring-primary/50',
     tone && TONE_CLASSES[tone],
-    className,
+    // A wrapped card gives its layout classes to the wrapper.
+    !hasOuterHeader && className,
+    hasOuterHeader && 'grow',
+  );
+
+  const cardHeaderContent = (
+    <>
+      {icon && (
+        <CardIcon
+          icon={icon}
+          className={iconWrapperClassName}
+          iconClassName={iconClassName}
+        />
+      )}
+
+      {(label || description || headerAction) && (
+        <div className="min-w-0 flex-1">
+          {(label || headerAction) && (
+            <div className="flex items-start justify-between gap-3">
+              {label ? (
+                <LabelTag
+                  className={cn(
+                    'min-w-0 text-sm font-semibold tracking-[-0.01em]',
+                    isLabelWrapped ? 'break-words' : 'truncate',
+                  )}
+                >
+                  {label}
+                </LabelTag>
+              ) : (
+                <span />
+              )}
+              {headerAction}
+            </div>
+          )}
+          {description ? (
+            onDescriptionClick ? (
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                className="mt-0.5 line-clamp-2 min-h-[2lh] w-full text-left text-xs leading-snug text-muted-foreground"
+                onClick={onDescriptionClick}
+              >
+                {description}
+              </Button>
+            ) : (
+              <p className="mt-0.5 line-clamp-2 min-h-[2lh] text-xs leading-snug text-muted-foreground">
+                {description}
+              </p>
+            )
+          ) : null}
+        </div>
+      )}
+    </>
   );
 
   const cardContent = (
@@ -125,53 +197,9 @@ const Card = memo(function Card({
           bodyClassName,
         )}
       >
-        {(icon || label || description || headerAction) && (
+        {hasInnerHeader && (
           <div className={cn('flex items-start gap-3', children && 'mb-1')}>
-            {icon && (
-              <CardIcon
-                icon={icon}
-                className={iconWrapperClassName}
-                iconClassName={iconClassName}
-              />
-            )}
-
-            {(label || description || headerAction) && (
-              <div className="min-w-0 flex-1">
-                {(label || headerAction) && (
-                  <div className="flex items-start justify-between gap-3">
-                    {label ? (
-                      <LabelTag
-                        className={cn(
-                          'min-w-0 text-sm font-semibold tracking-[-0.01em]',
-                          isLabelWrapped ? 'break-words' : 'truncate',
-                        )}
-                      >
-                        {label}
-                      </LabelTag>
-                    ) : (
-                      <span />
-                    )}
-                    {headerAction}
-                  </div>
-                )}
-                {description ? (
-                  onDescriptionClick ? (
-                    <Button
-                      variant={ButtonVariant.UNSTYLED}
-                      withWrapper={false}
-                      className="mt-0.5 line-clamp-2 min-h-[2lh] w-full text-left text-xs leading-snug text-muted-foreground"
-                      onClick={onDescriptionClick}
-                    >
-                      {description}
-                    </Button>
-                  ) : (
-                    <p className="mt-0.5 line-clamp-2 min-h-[2lh] text-xs leading-snug text-muted-foreground">
-                      {description}
-                    </p>
-                  )
-                ) : null}
-              </div>
-            )}
+            {cardHeaderContent}
           </div>
         )}
 
@@ -220,6 +248,31 @@ const Card = memo(function Card({
       >
         {cardContent}
       </Button>
+    );
+  }
+
+  if (hasOuterHeader) {
+    // The caller's style belongs to the bordered surface, not the wrapper.
+    const { style: surfaceStyle, ...wrapperProps } = surfaceProps;
+    return createElement(
+      surfaceTag,
+      {
+        ...wrapperProps,
+        ref,
+        'aria-busy': isLoading || wrapperProps['aria-busy'] || undefined,
+        className: cn(
+          'flex min-w-0 flex-col gap-3',
+          id && 'scroll-mt-20',
+          className,
+        ),
+        'data-card-index': index,
+        'data-testid': dataTestId,
+        id,
+      },
+      <div className="flex items-start gap-3">{cardHeaderContent}</div>,
+      <div className={cardClasses} style={surfaceStyle}>
+        {cardContent}
+      </div>,
     );
   }
 

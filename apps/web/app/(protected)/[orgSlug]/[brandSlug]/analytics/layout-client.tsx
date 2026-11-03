@@ -6,6 +6,7 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorBoundary } from '@ui/display/error-boundary/ErrorBoundary';
 import Container from '@ui/layout/container/Container';
+import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -35,14 +36,16 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       }
       overflow={<AnalyticsScopedExportMenu />}
       right={
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          {toolbarNode}
-          <FormDateRangePicker
-            onChange={setDateRange}
-            defaultPreset={Timeframe.D7}
-            value={dateRange}
-          />
-        </div>
+        <SubbarControls
+          filters={toolbarNode}
+          dateRange={
+            <FormDateRangePicker
+              onChange={setDateRange}
+              defaultPreset={Timeframe.D7}
+              value={dateRange}
+            />
+          }
+        />
       }
     >
       <ErrorBoundary

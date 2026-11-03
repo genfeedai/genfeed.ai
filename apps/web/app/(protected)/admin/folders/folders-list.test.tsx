@@ -105,58 +105,38 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@/components/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-    </section>
-  ),
-}));
-
 vi.mock('@/components/content/filters-button/FiltersSearch', () => ({
   default: ({
+    hasAdminScope,
     onFiltersChange,
   }: {
+    hasAdminScope?: boolean;
     onFiltersChange: (
       filters: Record<string, string>,
       query: Record<string, string>,
     ) => void;
   }) => (
-    <button
-      type="button"
-      onClick={() =>
-        onFiltersChange(
-          {
-            format: '',
-            provider: '',
-            search: 'launch',
-            sort: 'createdAt: -1',
-            status: '',
-            type: '',
-          },
-          { search: 'launch' },
-        )
-      }
-    >
-      Apply Filters
-    </button>
+    <>
+      {hasAdminScope ? <div>Admin scope in the Filters menu</div> : null}
+      <button
+        type="button"
+        onClick={() =>
+          onFiltersChange(
+            {
+              format: '',
+              provider: '',
+              search: 'launch',
+              sort: 'createdAt: -1',
+              status: '',
+              type: '',
+            },
+            { search: 'launch' },
+          )
+        }
+      >
+        Apply Filters
+      </button>
+    </>
   ),
 }));
 
@@ -354,14 +334,15 @@ describe('FoldersList', () => {
     mockFolders();
   });
 
-  it('renders folders, applies filters, and syncs superadmin filters to the URL', async () => {
+  it('renders folders, applies filters, and queries by the superadmin scope in the URL', async () => {
     render(<FoldersList scope={PageScope.SUPERADMIN} />);
 
     expect(screen.getByText('Launch Folder')).toBeInTheDocument();
     expect(screen.getByText('Archive Folder')).toBeInTheDocument();
     expect(screen.getAllByText('Primary Brand')[0]).toBeInTheDocument();
-    expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
-    expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
+    expect(
+      screen.getByText('Admin scope in the Filters menu'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add Folder' })).toBeNull();
 
     await waitFor(() => {
@@ -386,18 +367,6 @@ describe('FoldersList', () => {
         expect.any(AbortSignal),
       );
     });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/folders?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/folders?organization=org-1&brand=brand-2',
-      { scroll: false },
-    );
   });
 
   it.each([

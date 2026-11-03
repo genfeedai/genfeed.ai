@@ -31,6 +31,8 @@ const PUBLISHING_VIEW_OPTIONS: {
 ];
 
 export interface PostsListToolbarProps {
+  /** Adds the admin organization and brand facets to the menu. */
+  hasAdminScope?: boolean;
   /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
   isAttached?: boolean;
   sortValue: string;
@@ -72,6 +74,7 @@ export function PostsListSearch({
 
 /** Publishing state, source and sort behind the shared Filters menu. */
 export default function PostsListToolbar({
+  hasAdminScope,
   isAttached,
   sortValue,
   sortOptions,
@@ -154,6 +157,7 @@ export default function PostsListToolbar({
   return (
     <FilterMenu
       facets={facets}
+      hasAdminScope={hasAdminScope}
       isAttached={isAttached}
       onClear={() => {
         onSourceChange?.(undefined);
