@@ -3,15 +3,18 @@
  * Handles image relationship operations:
  * - Get image children (derived images)
  */
+
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { ImageSerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
@@ -24,6 +27,7 @@ export class ImagesRelationshipsController {
   constructor(private readonly imagesService: ImagesService) {}
 
   @Get(':imageId/children')
+  @RequiredScopes(ApiKeyScope.IMAGES_READ)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findChildren(
     @Req() request: Request,
