@@ -355,7 +355,7 @@
     "apps/web/src/features/posts/components/posts/preview/thread-preview-panel/ThreadPreviewPanel.tsx": 3,
     "apps/web/src/features/posts/detail/components/PostDetailCardBody.tsx": 4,
     "apps/web/src/features/posts/detail/components/PostDetailHeader.tsx": 1,
-    "apps/web/src/features/posts/library/publishing-content-library.tsx": 6,
+    "apps/web/src/features/posts/library/publishing-content-library.tsx": 5,
     "apps/web/src/features/posts/list/components/PostsCardActions.tsx": 9,
     "apps/web/src/features/posts/list/components/PostsGrid.tsx": 7,
     "apps/web/src/features/posts/list/components/PostsTableActions.tsx": 9,
