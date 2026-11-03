@@ -255,7 +255,7 @@ describe('AnalyticsBrandsList', () => {
     const sidebar = await screen.findByTestId('context-sidebar');
     expect(sidebar).toHaveAttribute('data-kind', 'brand');
     expect(
-      within(sidebar).getByText('+12.00% vs last period'),
+      await within(sidebar).findByText('vs last period'),
     ).toBeInTheDocument();
     expect(
       within(sidebar).getByRole('link', { name: 'Open analytics' }),

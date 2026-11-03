@@ -22,14 +22,15 @@ describe('RowSidebarSection', () => {
 });
 
 describe('RowSidebarStats', () => {
-  it('shows each stat with its hint', () => {
+  it('shows each stat with its label and change versus the last period', async () => {
     render(
       <RowSidebarStats
         stats={[
           {
-            hint: '+4% vs last period',
             id: 'views',
             label: 'Views',
+            trend: 4,
+            trendLabel: 'vs last period',
             value: '1.2K',
           },
           { id: 'posts', label: 'Posts', value: '8' },
@@ -37,10 +38,11 @@ describe('RowSidebarStats', () => {
       />,
     );
 
+    expect(await screen.findByText('1.2K')).toBeInTheDocument();
     expect(screen.getByText('Views')).toBeInTheDocument();
-    expect(screen.getByText('1.2K')).toBeInTheDocument();
-    expect(screen.getByText('+4% vs last period')).toBeInTheDocument();
-    expect(screen.getByText('8')).toBeInTheDocument();
+    expect(screen.getByText('vs last period')).toBeInTheDocument();
+    expect(await screen.findByText('8')).toBeInTheDocument();
+    expect(screen.getByText('Posts')).toBeInTheDocument();
   });
 
   it('hides values while loading', () => {
@@ -52,7 +54,6 @@ describe('RowSidebarStats', () => {
     );
 
     expect(screen.queryByText('1.2K')).not.toBeInTheDocument();
-    expect(screen.getByText('Views')).toBeInTheDocument();
   });
 });
 

@@ -155,11 +155,10 @@ export default function AnalyticsBrandSummary({
             value: formatCompactNumberIntl(brand.totalViews),
           },
           {
-            hint: summaryT('growthVsLastPeriod', {
-              value: `${brand.growth > 0 ? '+' : ''}${formatPercentageSimple(brand.growth, 2)}`,
-            }),
             id: 'engagement',
             label: fieldsT('engagement'),
+            trend: brand.growth,
+            trendLabel: summaryT('vsLastPeriod'),
             value: formatCompactNumberIntl(brand.totalEngagement),
           },
           {

@@ -876,13 +876,13 @@
       "views": "Views"
     },
     "analytics": {
-      "growthVsLastPeriod": "{value} vs last period",
       "manual": "Manual",
       "openAccount": "Open account analytics",
       "openBrand": "Open analytics",
       "openOrganization": "Open organization analytics",
       "brandCount": "{count, plural, one {# brand} other {# brands}}",
       "rankLabel": "Rank {rank}",
+      "vsLastPeriod": "vs last period",
       "engagementTitle": "Engagement",
       "engagementPerDay": "Engagement per day",
       "noEngagement": "No engagement in this period",

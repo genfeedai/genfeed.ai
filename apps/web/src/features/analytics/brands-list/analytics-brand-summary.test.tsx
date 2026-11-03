@@ -81,15 +81,16 @@ describe('AnalyticsBrandSummary', () => {
     ]);
   });
 
-  it('shows the headline numbers from the row straight away', () => {
+  it('shows the headline numbers from the row straight away', async () => {
     render(<AnalyticsBrandSummary brand={brand} openHref="/brands/brand-1" />);
 
     expect(
       screen.getByRole('link', { name: 'Open analytics' }),
     ).toHaveAttribute('href', '/brands/brand-1');
-    expect(screen.getByText('4.2K')).toBeInTheDocument();
-    expect(screen.getByText('900')).toBeInTheDocument();
-    expect(screen.getByText('+12.00% vs last period')).toBeInTheDocument();
+    expect(await screen.findByText('4.2K')).toBeInTheDocument();
+    expect(await screen.findByText('900')).toBeInTheDocument();
+    expect(screen.getByText(/12%/)).toBeInTheDocument();
+    expect(screen.getByText('vs last period')).toBeInTheDocument();
   });
 
   it('charts engagement, ranks platforms and lists the best published posts', async () => {

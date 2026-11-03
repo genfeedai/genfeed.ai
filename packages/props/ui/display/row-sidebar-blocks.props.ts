@@ -11,8 +11,10 @@ export interface RowSidebarStat {
   label: string;
   /** Already formatted for display. */
   value: string;
-  /** Secondary line, e.g. the change versus the last period. */
-  hint?: string;
+  /** Change versus the last period, in percent; omit to hide. */
+  trend?: number;
+  /** Words after the trend, e.g. "vs last period". */
+  trendLabel?: string;
 }
 
 export interface RowSidebarStatsProps {
