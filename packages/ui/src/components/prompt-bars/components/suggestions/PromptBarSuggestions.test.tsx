@@ -137,4 +137,56 @@ describe('PromptBarSuggestions', () => {
     expect(button.className).toContain('rounded-2xl');
     expect(button.className).toContain('flex-col');
   });
+
+  it('shows a thumbnail on a card tile and drops its icon', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            description: 'A short reel',
+            icon: <svg data-testid="tile-icon" />,
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+          {
+            icon: <svg data-testid="tile-icon" />,
+            id: 'plain',
+            label: 'Plain',
+            prompt: 'Make something',
+          },
+        ]}
+        variant="cards"
+      />,
+    );
+
+    const images = container.querySelectorAll('img');
+    expect(images).toHaveLength(1);
+    expect(images[0]?.getAttribute('src')).toContain('videoShorts.webp');
+    // Only the tile without a thumbnail keeps its icon.
+    expect(screen.getAllByTestId('tile-icon')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Reel' })).toHaveTextContent(
+      'A short reel',
+    );
+  });
+
+  it('ignores a thumbnail in the chip variant', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+  });
 });

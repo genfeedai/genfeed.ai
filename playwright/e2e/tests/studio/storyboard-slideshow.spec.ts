@@ -2,6 +2,7 @@ import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/sto
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import { expectStarterThumbnails } from '../../utils/starter-cards';
 
 const base = '/test-org/brand-1/storyboard';
 const time = '2026-11-01T00:00:00.000Z';
@@ -229,6 +230,7 @@ test('starts a slideshow from a brief as a 4:5 storyboard', async ({
   await expect(
     page.getByRole('combobox', { name: 'Runtime budget (seconds)' }),
   ).toHaveCount(0);
+  await expectStarterThumbnails(page, 3);
   await page.getByRole('button', { name: 'Quick tips' }).click();
   await expect(page.getByLabel('Brief', { exact: true })).toHaveText(
     /^Five small habits/,

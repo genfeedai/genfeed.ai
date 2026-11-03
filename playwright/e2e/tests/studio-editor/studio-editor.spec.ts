@@ -12,6 +12,7 @@ import {
   assertRouteRenders,
   expectNoErrorOverlay,
 } from '../../utils/route-assertions';
+import { expectStarterThumbnails } from '../../utils/starter-cards';
 
 /**
  * E2E Tests for Studio Editor (the Remotion timeline, merged into Studio in #2309)
@@ -244,6 +245,7 @@ test.describe('Studio Editor', () => {
       await expect(
         authenticatedPage.getByRole('button', { name: /Vertical short/ }),
       ).toBeVisible();
+      await expectStarterThumbnails(authenticatedPage, 3);
       const hasOverflow = await authenticatedPage.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth,
       );
