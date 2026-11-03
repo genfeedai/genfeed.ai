@@ -273,7 +273,8 @@
         "description": "A problem, three clear steps and the outcome.",
         "title": "3-step explainer"
       }
-    }
+    },
+    "runtime": "{seconds}s"
   },
   "recipe": {
     "addReferences": "Add references",

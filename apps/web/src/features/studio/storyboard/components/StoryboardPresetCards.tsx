@@ -10,19 +10,22 @@ import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard
 /**
  * The storyboard presets as prompt cards, in the same tiles as the other
  * creative apps. A click prefills the brief, format and runtime; it never
- * submits. They scroll sideways so eight of them stay one row tall.
+ * submits. Each card keeps its format and runtime in front of the description
+ * so presets stay comparable. They scroll sideways so eight of them stay one row tall.
  */
 export default function StoryboardPresetCards({
   activePresetId,
   isDisabled = false,
   onSelect,
 }: StoryboardPresetCardsProps): ReactElement {
-  const translate = useTranslations('pages.studioStoryboard.presets.items');
+  const translate = useTranslations('pages.studioStoryboard.presets');
   const suggestions: PromptBarSuggestionItem[] = STORYBOARD_PRESETS.map(
     (preset) => ({
-      description: translate(`${preset.id}.description`),
+      description: `${preset.format} · ${translate('runtime', {
+        seconds: preset.runtimeBudgetSeconds,
+      })} · ${translate(`items.${preset.id}.description`)}`,
       id: preset.id,
-      label: translate(`${preset.id}.title`),
+      label: translate(`items.${preset.id}.title`),
       prompt: preset.brief,
       thumbnailUrl: preset.thumbnailSrc,
     }),
