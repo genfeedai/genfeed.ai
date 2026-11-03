@@ -501,9 +501,6 @@
     "apps/web/src/features/studio/storyboard/components/StoryboardInspector.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/features/studio/storyboard/components/StoryboardPresetCards.tsx": {
-      "unstyled-look": 1
-    },
     "apps/web/src/features/studio/storyboard/components/StoryboardReferencesPanel.tsx": {
       "button-restyle": 1
     },
