@@ -120,6 +120,7 @@ for (const fixture of [
     orgId: 'alpha-inbox',
     slug: 'alpha',
     label: 'Alice agent alert',
+    isSheet: false,
     viewport: { width: 1280, height: 720 },
   },
   {
@@ -127,6 +128,7 @@ for (const fixture of [
     orgId: 'bravo-inbox',
     slug: 'bravo',
     label: 'Bob agent alert',
+    isSheet: true,
     viewport: { width: 390, height: 844 },
   },
 ]) {
@@ -180,9 +182,17 @@ for (const fixture of [
       name: 'Notifications',
     });
     await expect(inbox).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Close notifications, 1 unread' }),
-    ).toHaveAttribute('aria-expanded', 'true');
+    if (fixture.isSheet) {
+      // The phone sheet is a modal dialog: the page behind it, bell included,
+      // is hidden from the accessibility tree until the sheet closes.
+      await expect(
+        page.getByRole('dialog', { name: 'Notifications' }),
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('button', { name: 'Close notifications, 1 unread' }),
+      ).toHaveAttribute('aria-expanded', 'true');
+    }
     await expect(
       page
         .getByTestId('notification-inbox-row')
@@ -210,9 +220,15 @@ for (const fixture of [
     await expect(inlineError).toBeVisible();
     // The settings page behind the drawer has its own Retry buttons.
     await inbox.getByRole('button', { name: 'Retry', exact: true }).click();
-    await expect(
-      page.getByRole('button', { name: 'Close notifications, 0 unread' }),
-    ).toBeVisible();
+    if (fixture.isSheet) {
+      await expect(
+        inbox.getByRole('button', { exact: true, name: 'Mark read' }),
+      ).toHaveCount(0);
+    } else {
+      await expect(
+        page.getByRole('button', { name: 'Close notifications, 0 unread' }),
+      ).toBeVisible();
+    }
     await page.reload();
     await expect(inbox).toBeHidden();
     await page
