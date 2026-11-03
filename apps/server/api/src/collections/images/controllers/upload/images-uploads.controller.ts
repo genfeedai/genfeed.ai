@@ -18,6 +18,7 @@ import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
 import { downloadNftImage } from '@api/collections/images/services/nft-image-download.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -29,6 +30,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ApiKeyScope,
   AssetScope,
   categoryToPlural,
   FileInputType,
@@ -188,6 +190,7 @@ export class ImagesUploadsController {
   ) {}
 
   @Post('upload')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
@@ -295,6 +298,7 @@ export class ImagesUploadsController {
   }
 
   @Post('upload/nft')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async uploadNFT(
     @Req() request: Request,
@@ -342,12 +346,19 @@ export class ImagesUploadsController {
   }
 
   @Post('upload/presigned')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generatePresignedUrl(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Body() body: PresignedUploadDto,
   ): Promise<JsonApiSingleResponse> {
+    // This route is gated by images:create, so it only issues image uploads.
+    // Other categories go through their own routes and scopes.
+    if (body.category && body.category !== IngredientCategory.IMAGE) {
+      throw createBadRequest('This route only accepts image uploads');
+    }
+
     const result = await this.presignedUploadService.getPresignedUploadUrl(
       user,
       body,
@@ -357,6 +368,7 @@ export class ImagesUploadsController {
   }
 
   @Post('upload/confirm/:imageId')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async confirmUpload(
     @Req() request: Request,

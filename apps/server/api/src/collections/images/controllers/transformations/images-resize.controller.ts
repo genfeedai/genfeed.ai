@@ -2,10 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IResizeBodyParams,
   JsonApiSingleResponse,
@@ -34,6 +36,7 @@ export class ImagesResizeController {
   ) {}
 
   @Post(':imageId/resize')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'ImagesTransformationsController.resizeImage',

@@ -4,6 +4,7 @@ import { ImageReframeService } from '@api/collections/images/services/image-refr
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -17,7 +18,11 @@ import {
   RateLimit,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
@@ -45,6 +50,7 @@ export class ImagesReframeController {
   ) {}
 
   @Post(':imageId/reframe')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @RateLimit(RateLimitPresets.external) // 30 requests per minute for AI generation
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @UseGuards(CreditsGuard, ModelsGuard)

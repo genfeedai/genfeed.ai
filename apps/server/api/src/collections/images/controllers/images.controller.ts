@@ -7,6 +7,7 @@ import { IngredientCharacterFilterService } from '@api/collections/ingredients/s
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -25,7 +26,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/index';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { ActivityEntityModel, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ActivityEntityModel,
+  ApiKeyScope,
+  IngredientCategory,
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -62,6 +67,7 @@ export class ImagesController {
   ) {}
 
   @Get()
+  @RequiredScopes(ApiKeyScope.IMAGES_READ)
   // Cache only the `latest=true` shorthand (formerly GET /images/latest): the
   // general image list is intentionally uncached to keep freshly generated
   // images visible immediately. The keyGenerator returns '' for non-latest
@@ -197,6 +203,7 @@ export class ImagesController {
 
   @TenantReadPolicy('selected')
   @Get(':imageId')
+  @RequiredScopes(ApiKeyScope.IMAGES_READ)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() request: Request,
@@ -264,6 +271,7 @@ export class ImagesController {
   }
 
   @Delete(':imageId')
+  @RequiredScopes(ApiKeyScope.IMAGES_DELETE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Req() request: Request,

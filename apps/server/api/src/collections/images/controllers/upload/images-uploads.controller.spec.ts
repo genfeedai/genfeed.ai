@@ -609,6 +609,20 @@ describe('ImagesUploadsController', () => {
         mockServices.presignedUploadService.getPresignedUploadUrl,
       ).toHaveBeenCalledWith(mockUser, body);
     });
+
+    it.each([IngredientCategory.VIDEO, IngredientCategory.MUSIC])(
+      'rejects a %s upload on the image route',
+      async (category) => {
+        await expect(
+          controller.generatePresignedUrl(mockRequest, mockUser, {
+            category,
+            contentType: 'video/mp4',
+            filename: 'clip.mp4',
+            sizeBytes: 2048,
+          }),
+        ).rejects.toThrow('This route only accepts image uploads');
+      },
+    );
   });
 
   describe('confirmUpload', () => {

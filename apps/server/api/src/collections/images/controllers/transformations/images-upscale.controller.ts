@@ -4,6 +4,7 @@ import { ImageUpscaleService } from '@api/collections/images/services/image-upsc
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -13,7 +14,11 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
@@ -41,6 +46,7 @@ export class ImagesUpscaleController {
   ) {}
 
   @Post(':imageId/upscale')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @UseGuards(CreditsGuard, ModelsGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @Credits({
