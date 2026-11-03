@@ -169,6 +169,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-authority-field-optional.ts',
+    ],
+    name: '@IsOptional() authority-field ratchet (#7137)',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-raw-fetch-org-header.ts',
     ],
     name: 'Raw-fetch routed-organization header (#5393)',
