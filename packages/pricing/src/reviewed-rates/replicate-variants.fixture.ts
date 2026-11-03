@@ -1,4 +1,4 @@
-/** Public provider schema/billingConfig captured 2026-10-05 (kling motion-control, gpt-5-structured and p-video-2 added 2026-10-27). No approvals or margins. */
+/** Public provider schema/billingConfig captured 2026-10-05 (kling motion-control, gpt-5-structured and p-video-2 added 2026-10-27, xai/grok-imagine-image-2 added 2026-11-03). No approvals or margins. */
 export const REPLICATE_VARIANT_FIXTURES: Readonly<
   Record<
     string,
@@ -495,6 +495,221 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
             price: '$0.136',
           },
         ],
+      },
+    ],
+  },
+  'xai/grok-imagine-image-2': {
+    sourceUrl: 'https://replicate.com/xai/grok-imagine-image-2/api/schema',
+    inputProperties: {
+      image: {
+        type: 'string',
+        title: 'Image',
+        format: 'uri',
+        'x-order': 1,
+        nullable: true,
+        description:
+          'Input image for editing. When provided, the model edits this image based on the prompt. Supports jpg, jpeg, png, webp.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description: 'Text prompt for image generation or editing',
+      },
+      quality: {
+        enum: ['low', 'medium'],
+        type: 'string',
+        title: 'quality',
+        description:
+          "Generation quality. 'medium' produces the best results, 'low' is faster and cheaper.",
+        default: 'medium',
+        'x-order': 4,
+      },
+      resolution: {
+        enum: ['1k', '2k'],
+        type: 'string',
+        title: 'resolution',
+        description: 'Resolution of the generated image.',
+        default: '2k',
+        'x-order': 3,
+      },
+      aspect_ratio: {
+        enum: [
+          '1:1',
+          '16:9',
+          '9:16',
+          '4:3',
+          '3:4',
+          '3:2',
+          '2:3',
+          '2:1',
+          '1:2',
+          '19.5:9',
+          '9:19.5',
+          '20:9',
+          '9:20',
+          'auto',
+        ],
+        type: 'string',
+        title: 'aspect_ratio',
+        description:
+          'Aspect ratio of the generated image. Ignored when editing an image.',
+        default: '1:1',
+        'x-order': 2,
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 'low',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'low',
+          },
+          {
+            description: '1k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1k',
+          },
+        ],
+        description: '1024px output at low quality',
+        prices: [
+          {
+            description: 'or 25 images for $1',
+            metric: 'image_output_count',
+            metric_display: 'output image',
+            price: '$0.04',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 100 megapixels for $1',
+            metric: 'image_input_megapixel_count',
+            metric_display: 'input image megapixel',
+            price: '$0.01',
+            title: 'per input image megapixel',
+            type: 'per-unit',
+          },
+        ],
+        title: '1k, low quality',
+      },
+      {
+        criteria: [
+          {
+            description: 'low',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'low',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+        ],
+        description: '2048px output at low quality',
+        prices: [
+          {
+            description: 'or around 16 images for $1',
+            metric: 'image_output_count',
+            metric_display: 'output image',
+            price: '$0.06',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 100 megapixels for $1',
+            metric: 'image_input_megapixel_count',
+            metric_display: 'input image megapixel',
+            price: '$0.01',
+            title: 'per input image megapixel',
+            type: 'per-unit',
+          },
+        ],
+        title: '2k, low quality',
+      },
+      {
+        criteria: [
+          {
+            description: 'medium',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'medium',
+          },
+          {
+            description: '1k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1k',
+          },
+        ],
+        description: '1024px output at medium quality',
+        prices: [
+          {
+            description: 'or around 16 images for $1',
+            metric: 'image_output_count',
+            metric_display: 'output image',
+            price: '$0.06',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 100 megapixels for $1',
+            metric: 'image_input_megapixel_count',
+            metric_display: 'input image megapixel',
+            price: '$0.01',
+            title: 'per input image megapixel',
+            type: 'per-unit',
+          },
+        ],
+        title: '1k, medium quality',
+      },
+      {
+        criteria: [
+          {
+            description: 'medium',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'medium',
+          },
+          {
+            description: '2k',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '2k',
+          },
+        ],
+        description: '2048px output at medium quality',
+        prices: [
+          {
+            description: 'or around 12 images for $1',
+            metric: 'image_output_count',
+            metric_display: 'output image',
+            price: '$0.08',
+            title: 'per output image',
+            type: 'per-unit',
+          },
+          {
+            description: 'or 100 megapixels for $1',
+            metric: 'image_input_megapixel_count',
+            metric_display: 'input image megapixel',
+            price: '$0.01',
+            title: 'per input image megapixel',
+            type: 'per-unit',
+          },
+        ],
+        title: '2k, medium quality',
       },
     ],
   },

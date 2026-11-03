@@ -76,3 +76,68 @@ describe('derived Replicate billing criteria (#6224)', () => {
     });
   });
 });
+
+/** Replicate model page and input schema for xai/grok-imagine-image-2, checked 2026-11-03. */
+describe('xai/grok-imagine-image-2 quality and resolution tiers', () => {
+  const tier = (quality: string, resolution: string, output: string) => ({
+    criteria: [
+      {
+        title: 'model variant',
+        subtype: 'string',
+        type: 'equals',
+        value: quality,
+      },
+      {
+        title: 'target resolution',
+        subtype: 'string',
+        type: 'equals',
+        value: resolution,
+      },
+    ],
+    prices: [
+      { metric: 'image_output_count', type: 'per-unit', price: output },
+      {
+        metric: 'image_input_megapixel_count',
+        type: 'per-unit',
+        price: '$0.01',
+      },
+    ],
+  });
+
+  it('prices every quality and resolution from the model page', () => {
+    const result = mapReplicateBillingTiers(
+      [tier('low', '1k', '$0.04'), tier('medium', '2k', '$0.08')],
+      {
+        quality: { type: 'string', enum: ['low', 'medium'], default: 'medium' },
+        resolution: { type: 'string', enum: ['1k', '2k'], default: '2k' },
+      },
+      'xai/grok-imagine-image-2',
+    );
+
+    expect(result).toMatchObject({
+      status: 'ok',
+      rates: [
+        {
+          unit: 'output',
+          unitPriceUsd: 0.04,
+          when: { model_variant: 'low', resolution: '1k' },
+        },
+        {
+          unit: 'input-megapixel',
+          unitPriceUsd: 0.01,
+          when: { model_variant: 'low', resolution: '1k' },
+        },
+        {
+          unit: 'output',
+          unitPriceUsd: 0.08,
+          when: { model_variant: 'medium', resolution: '2k' },
+        },
+        {
+          unit: 'input-megapixel',
+          unitPriceUsd: 0.01,
+          when: { model_variant: 'medium', resolution: '2k' },
+        },
+      ],
+    });
+  });
+});
