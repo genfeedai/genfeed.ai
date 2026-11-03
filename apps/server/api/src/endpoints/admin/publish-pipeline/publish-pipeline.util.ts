@@ -1,7 +1,9 @@
-import { PostStatus } from '@genfeedai/contracts';
+import { PostStatus, TargetExecutionState } from '@genfeedai/contracts';
 import type {
   IPublishPipelineCounts,
   IPublishPipelineItem,
+  IPublishPipelineReviewedPost,
+  IPublishPipelineReviewQueueCounts,
 } from '@genfeedai/contracts/interfaces';
 
 /** Posts in these states are done: a past schedule date is not "overdue". */
@@ -12,7 +14,26 @@ const SETTLED_POST_STATUSES = new Set<string>([
   PostStatus.FAILED,
 ]);
 
+/** Execution states after which a past schedule date is not "overdue". */
+const SETTLED_EXECUTION_STATES = new Set<string>([
+  TargetExecutionState.PUBLISHED,
+  TargetExecutionState.FAILED,
+  TargetExecutionState.SKIPPED,
+  TargetExecutionState.CANCELLED,
+]);
+
 const MAX_ERROR_LENGTH = 200;
+
+export interface PublishPipelineReviewedPostRow {
+  brandId: string;
+  id: string;
+  organizationId: string;
+  platform: string | null;
+  reviewedAt: Date;
+  scheduledDate: Date | null;
+  status: string | null;
+  targetExecutionState: string;
+}
 
 export interface PublishPipelineApprovalRow {
   brandId: string;
@@ -87,6 +108,51 @@ export function summarizePublishPipeline(
       counts.withError += 1;
     }
     if (isOverdue(row, now)) {
+      counts.overdue += 1;
+    }
+  }
+
+  return counts;
+}
+
+export function toReviewedPostItem(
+  row: PublishPipelineReviewedPostRow,
+): IPublishPipelineReviewedPost {
+  return {
+    brandId: row.brandId,
+    executionState: row.targetExecutionState,
+    organizationId: row.organizationId,
+    platform: row.platform,
+    postId: row.id,
+    postStatus: row.status,
+    reviewedAt: row.reviewedAt.toISOString(),
+    scheduledDate: row.scheduledDate?.toISOString() ?? null,
+  };
+}
+
+export function summarizeReviewQueue(
+  rows: readonly PublishPipelineReviewedPostRow[],
+  now: Date,
+): IPublishPipelineReviewQueueCounts {
+  const counts: IPublishPipelineReviewQueueCounts = {
+    byExecutionState: {},
+    overdue: 0,
+    total: rows.length,
+    withoutScheduleDate: 0,
+    withScheduleDate: 0,
+  };
+
+  for (const row of rows) {
+    increment(counts.byExecutionState, row.targetExecutionState);
+    if (!row.scheduledDate) {
+      counts.withoutScheduleDate += 1;
+      continue;
+    }
+    counts.withScheduleDate += 1;
+    if (
+      row.scheduledDate.getTime() < now.getTime() &&
+      !SETTLED_EXECUTION_STATES.has(row.targetExecutionState)
+    ) {
       counts.overdue += 1;
     }
   }
