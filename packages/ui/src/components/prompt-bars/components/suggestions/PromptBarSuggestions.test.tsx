@@ -230,6 +230,13 @@ describe('PromptBarSuggestions', () => {
       'aria-pressed',
       'false',
     );
+    expect(screen.getByRole('button', { name: 'Use plan mode' })).toHaveClass(
+      'ring-2',
+      'ring-primary',
+    );
+    expect(screen.getByRole('button', { name: 'Review' })).not.toHaveClass(
+      'ring-primary',
+    );
   });
 
   it('leaves aria-pressed off when no active suggestion is tracked', () => {
