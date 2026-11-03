@@ -50,8 +50,14 @@ export default function ClipperProjectsPane() {
   const isSearching = search !== '';
   const hasProjects = projects.length > 0;
   const isEmpty = !isLoading && !hasProjects && !error;
+  // An empty page past the last one (the final row of a page deleted) is not
+  // an empty brand: the total says whether any project exists.
   useCreativeProjectsPresence(
-    hasProjects ? 'populated' : isEmpty && !isSearching ? 'empty' : 'unknown',
+    hasProjects || pageTotals.totalDocs > 0
+      ? 'populated'
+      : isEmpty && !isSearching
+        ? 'empty'
+        : 'unknown',
   );
 
   return (

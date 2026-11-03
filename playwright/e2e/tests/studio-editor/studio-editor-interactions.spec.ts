@@ -39,6 +39,8 @@ test.describe('Studio Editor — Interactions', () => {
     await expect(
       authenticatedPage.getByTestId('agent-output-output-pane'),
     ).toBeHidden({ timeout: 15_000 });
+    // The list stays mounted behind the hidden pane, so its card is still there.
+    await expect(authenticatedPage.getByText('No projects yet')).toBeAttached();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
