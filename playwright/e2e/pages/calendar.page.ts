@@ -112,8 +112,10 @@ export class CalendarPage {
     this.postSidebarTitle = page.locator(
       '[data-testid="context-sidebar-title"]',
     );
+    // The panel has no close control of its own: the topbar's Context toggle
+    // closes it.
     this.modalCloseButton = page.locator(
-      '[data-testid="workspace-panel-close"]',
+      '[data-testid="topbar-context-toggle"]',
     );
     this.viewDetailsButton = this.postModal.locator(
       'a:has-text("Open editor")',
@@ -214,7 +216,13 @@ export class CalendarPage {
   }
 
   async closeModal(): Promise<void> {
-    await this.modalCloseButton.first().click();
+    // At >=1280px the detail is the right rail, closed from the topbar toggle;
+    // below it the detail is a sheet that Escape dismisses.
+    if ((this.page.viewportSize()?.width ?? 0) >= 1280) {
+      await this.modalCloseButton.first().click();
+    } else {
+      await this.page.keyboard.press('Escape');
+    }
     await this.postModal.waitFor({ state: 'hidden' });
   }
 

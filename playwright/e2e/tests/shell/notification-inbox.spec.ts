@@ -167,12 +167,19 @@ for (const fixture of [
     });
     await mockInbox(page, fixture.label, fixture.slug);
     await page.goto(`/${fixture.slug}/~/settings/notifications`);
+    // The bell opens the inbox in the right drawer (a bottom sheet on a
+    // phone), not a dropdown, and is the only control that closes it.
     const trigger = page.getByRole('button', {
       name: 'Open notifications, 1 unread',
     });
     await expect(trigger).toBeVisible();
     await trigger.focus();
     await page.keyboard.press('Enter');
+    const inbox = page.getByRole('region', { name: 'Notifications' });
+    await expect(inbox).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Close notifications, 1 unread' }),
+    ).toHaveAttribute('aria-expanded', 'true');
     await expect(
       page
         .getByTestId('notification-inbox-row')
@@ -194,24 +201,17 @@ for (const fixture of [
       await debugDialog
         .getByRole('button', { name: 'Close', exact: true })
         .click();
-      if (
-        !(await page
-          .getByRole('heading', { name: 'Notifications', exact: true })
-          .isVisible())
-      ) {
-        await trigger.click();
-      }
     }
+    // The drawer stays open behind the error dialog.
+    await expect(inbox).toBeVisible();
     await expect(inlineError).toBeVisible();
-    // The settings page behind the dialog has its own Retry buttons.
-    await page
-      .getByRole('dialog', { name: 'Notifications' })
-      .getByRole('button', { name: 'Retry', exact: true })
-      .click();
+    // The settings page behind the drawer has its own Retry buttons.
+    await inbox.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect(
-      page.getByRole('button', { name: 'Open notifications, 0 unread' }),
+      page.getByRole('button', { name: 'Close notifications, 0 unread' }),
     ).toBeVisible();
     await page.reload();
+    await expect(inbox).toBeHidden();
     await page
       .getByRole('button', { name: 'Open notifications, 0 unread' })
       .click();

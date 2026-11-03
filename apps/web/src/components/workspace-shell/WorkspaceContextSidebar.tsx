@@ -21,8 +21,8 @@ type WorkspaceContextSidebarProps = {
 
 type WorkspaceContextSidebarRailProps = WorkspaceContextSidebarProps & {
   /**
-   * The host already renders the sidebar's one topbar and close control (the
-   * workspace panel's tab strip). The rail then shows the selection as plain
+   * The host already owns the sidebar's chrome: the app topbar's Context
+   * toggle opens and closes it. The rail then shows the selection as plain
    * content instead of a second bar with its own collapse button.
    */
   readonly isTopbarHosted?: boolean;

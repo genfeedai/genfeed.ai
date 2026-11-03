@@ -86,7 +86,8 @@ test('organization Apps browser keeps scope, search and previews usable on deskt
     path: testInfo.outputPath('apps-mobile.png'),
     fullPage: true,
   });
-  await page.getByRole('button', { name: 'Close panel' }).click();
+  // The sheet has no close control: Escape dismisses it.
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
     'Apps',
   );

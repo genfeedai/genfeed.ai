@@ -12,30 +12,30 @@ import {
   History,
   type LucideIcon,
   Maximize2,
-  PanelRightClose,
   SquarePen,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /**
- * The sidebar and compact sheet share one header. The topbar's Chat and
- * Context toggles choose the view; this bar names it and holds its actions.
- * History is a part of Chat, so it opens from the Chat header.
+ * The sidebar and compact sheet share one header, for the views that have
+ * actions: Chat and its History. The topbar toggles choose the view and close
+ * the panel, so there is no close control here. Context has nothing to hold
+ * and Notifications carries its own row, so neither gets this header.
  */
 export default function WorkspacePanelHeader({
   activeView,
   hasAgent,
-  onClose,
   onNewThread,
   onOpenFullPage,
   onSelectView,
 }: WorkspacePanelHeaderProps) {
   const translate = useTranslations('common.sidePanel');
-  const viewTitle = {
-    agent: translate('chat'),
-    details: translate('context'),
-    history: translate('history'),
-  }[activeView];
+  if (activeView === 'details' || activeView === 'notifications') {
+    return null;
+  }
+
+  const viewTitle =
+    activeView === 'history' ? translate('history') : translate('chat');
 
   const renderAction = ({
     icon: Icon,
@@ -90,7 +90,7 @@ export default function WorkspacePanelHeader({
               testId: 'workspace-panel-back',
             })
           : null}
-        {hasAgent && activeView !== 'details'
+        {hasAgent
           ? renderAction({
               icon: SquarePen,
               label: translate('newThread'),
@@ -106,12 +106,6 @@ export default function WorkspacePanelHeader({
               testId: 'workspace-panel-full-page',
             })
           : null}
-        {renderAction({
-          icon: PanelRightClose,
-          label: translate('close'),
-          onClick: onClose,
-          testId: 'workspace-panel-close',
-        })}
       </div>
     </div>
   );

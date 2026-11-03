@@ -151,7 +151,9 @@ test.describe('Agent dock', () => {
     const sheet = page.getByRole('dialog', { name: 'Agent' });
     await expect(sheet).toBeVisible();
     await expect(sheet.getByTestId('workspace-panel-header')).toHaveCount(1);
-    await sheet.getByTestId('workspace-panel-close').click();
+    // No close control in the sheet: Escape (or a tap outside) dismisses it.
+    await expect(sheet.getByTestId('workspace-panel-close')).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
   });
 });

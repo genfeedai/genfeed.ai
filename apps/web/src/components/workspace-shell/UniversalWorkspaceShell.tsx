@@ -37,7 +37,12 @@ import type {
   WorkspacePanelTab,
 } from '@props/ui/workspace-panel.props';
 import { Button } from '@ui/primitives/button';
-import { Drawer, DrawerContent } from '@ui/primitives/drawer';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+} from '@ui/primitives/drawer';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -56,6 +61,7 @@ import {
   SIDEBAR_TRANSITION_DURATION_MS,
   SIDEBAR_TRANSITION_EASING,
 } from '@/components/layouts/app/app-layout.utils';
+import NotificationInboxPanel from '@/components/shell/NotificationInboxPanel';
 
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,
@@ -202,6 +208,7 @@ function UniversalWorkspaceShellContent({
   const contextSidebar = useContextSidebar();
   const translateContextSidebar = useTranslations('common.contextSidebar');
   const translateSidePanel = useTranslations('common.sidePanel');
+  const translateNotifications = useTranslations('common.notificationInbox');
   const activeContextSidebar = contextSidebar?.selection
     ? contextSidebar
     : null;
@@ -667,14 +674,23 @@ function UniversalWorkspaceShellContent({
     isAgentDockHost && isAgentDockOpen && !isCompactViewport;
   // A split page shows its selection inside the output pane, so the right
   // rail stays shut.
+  // The notifications view is the one view that opens its own rail anywhere,
+  // split pages included: the bell has no pane of its own to swap into.
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  // The inbox loads (and keeps its place) only once it has been opened.
+  const [hasOpenedNotifications, setHasOpenedNotifications] = useState(false);
   const isPanelOpen =
-    !isAgentOutputSurface && (isInspectorOpen || isAgentPanelOpen);
+    isNotificationsOpen ||
+    (!isAgentOutputSurface && (isInspectorOpen || isAgentPanelOpen));
   const [panelTabPreference, setPanelTabPreference] =
     useState<WorkspacePanelTab>('agent');
   const requestedPanelTabRef = useRef<WorkspacePanelTab | null>(null);
   const isMobileContextOpen = activeContextSidebar?.isMobileOpen ?? false;
-  const activePanelTab: WorkspacePanelTab =
-    isAgentDockHost && isAgentDockOpen ? panelTabPreference : 'details';
+  const activePanelTab: WorkspacePanelTab = isNotificationsOpen
+    ? 'notifications'
+    : isAgentDockHost && isAgentDockOpen
+      ? panelTabPreference
+      : 'details';
   const selectionKey = activeContextSidebar?.selection
     ? `${activeContextSidebar.selection.kind}:${activeContextSidebar.selection.id}`
     : null;
@@ -686,6 +702,14 @@ function UniversalWorkspaceShellContent({
       setPanelTabPreference('details');
     }
   }, [isInspectorOpen, isMobileContextOpen, selectionKey]);
+
+  // Opening the conversation by any route (⌘J, a sent message, an attached
+  // record) brings it in front of the notifications.
+  useEffect(() => {
+    if (isAgentDockOpen) {
+      setIsNotificationsOpen(false);
+    }
+  }, [isAgentDockOpen]);
 
   useEffect(() => {
     if (isAgentDockOpen) {
@@ -717,6 +741,16 @@ function UniversalWorkspaceShellContent({
 
   const handleSelectPanelTab = useCallback(
     (tab: WorkspacePanelTab) => {
+      if (tab === 'notifications') {
+        setHasOpenedNotifications(true);
+        setIsNotificationsOpen(true);
+        // Below `xl` the conversation is its own sheet: only one sheet at a time.
+        if (isCompactViewport) {
+          closeAgentDock?.();
+        }
+        return;
+      }
+      setIsNotificationsOpen(false);
       if (isAgentOutputSurface) {
         setIsOutputContextOpen(tab === 'details');
         return;
@@ -734,6 +768,7 @@ function UniversalWorkspaceShellContent({
     },
     [
       activeContextSidebar,
+      closeAgentDock,
       isAgentDockHost,
       isAgentDockOpen,
       isAgentOutputSurface,
@@ -748,6 +783,7 @@ function UniversalWorkspaceShellContent({
   const selectDockThread = dockThreads.selectThread;
   const handleSelectThread = useCallback(
     (threadId: string) => {
+      setIsNotificationsOpen(false);
       openAgentDock?.();
       setPanelTabPreference('agent');
       void selectDockThread(threadId);
@@ -755,6 +791,11 @@ function UniversalWorkspaceShellContent({
     [openAgentDock, selectDockThread],
   );
   const handleClosePanel = useCallback(() => {
+    // Notifications sit over whatever was open: closing them reveals it again.
+    if (isNotificationsOpen) {
+      setIsNotificationsOpen(false);
+      return;
+    }
     if (isAgentOutputSurface) {
       setIsOutputContextOpen(false);
       return;
@@ -769,25 +810,28 @@ function UniversalWorkspaceShellContent({
     isAgentOutputSurface,
     isInspectorOpen,
     isMobileContextOpen,
+    isNotificationsOpen,
     setIsOutputContextOpen,
   ]);
 
-  // The topbar's Chat and Context toggles drive this panel through the dock.
+  // The topbar's Notifications, Chat and Context toggles drive this panel through the dock.
   const registerAgentDockPanel = agentDock?.registerPanel;
   // Below `xl` the rail does not render, so a context left open at a wider
   // size is not visible: only the sheet (dock or mobile context) is.
-  const isPanelVisible = isAgentOutputSurface
-    ? isOutputContextOpen
-    : (isAgentDockHost && isAgentDockOpen) ||
-      (isInspectorOpen && !isCompactViewport) ||
-      isMobileContextOpen;
+  const isPanelVisible =
+    isNotificationsOpen ||
+    (isAgentOutputSurface
+      ? isOutputContextOpen
+      : (isAgentDockHost && isAgentDockOpen) ||
+        (isInspectorOpen && !isCompactViewport) ||
+        isMobileContextOpen);
   // A split page always has Context to show: its pane swaps to it.
   const hasContextView =
     isAgentOutputSurface || isAgentDockHost || Boolean(activeContextSidebar);
   const panelControls = useMemo<WorkspacePanelControls>(
     () => ({
       activeView: isPanelVisible
-        ? isAgentOutputSurface
+        ? isAgentOutputSurface && !isNotificationsOpen
           ? 'details'
           : activePanelTab
         : null,
@@ -801,6 +845,7 @@ function UniversalWorkspaceShellContent({
       handleSelectPanelTab,
       hasContextView,
       isAgentOutputSurface,
+      isNotificationsOpen,
       isPanelVisible,
     ],
   );
@@ -1173,7 +1218,6 @@ function UniversalWorkspaceShellContent({
     <WorkspacePanelHeader
       activeView={activePanelTab}
       hasAgent={isAgentDockHost}
-      onClose={handleClosePanel}
       onNewThread={() => {
         dockThreads.startThread();
         handleSelectPanelTab('agent');
@@ -1457,14 +1501,45 @@ function UniversalWorkspaceShellContent({
               {isCompactViewport || isAgentOutputSurface
                 ? null
                 : alternatePanelContent}
+              {isCompactViewport || !hasOpenedNotifications ? null : (
+                <NotificationInboxPanel isActive={isNotificationsOpen} />
+              )}
             </div>
           </aside>
         </div>
 
         <Drawer
+          open={isCompactViewport && isNotificationsOpen}
+          onOpenChange={(isOpen: boolean) => {
+            if (!isOpen) {
+              setIsNotificationsOpen(false);
+            }
+          }}
+        >
+          <DrawerContent
+            className="h-[85dvh] rounded-t-[var(--radius-workspace-overlay)]"
+            data-testid="notifications-sheet"
+          >
+            <DrawerTitle className="sr-only">
+              {translateNotifications('title')}
+            </DrawerTitle>
+            <DrawerDescription className="sr-only">
+              {translateNotifications('description')}
+            </DrawerDescription>
+            {isCompactViewport ? (
+              <NotificationInboxPanel
+                isActive={isNotificationsOpen}
+                onNavigate={() => setIsNotificationsOpen(false)}
+              />
+            ) : null}
+          </DrawerContent>
+        </Drawer>
+
+        <Drawer
           open={
             !isAgentDockHost &&
             !isAgentOutputSurface &&
+            !isNotificationsOpen &&
             (activeContextSidebar?.isMobileOpen ?? false)
           }
           onOpenChange={(isOpen: boolean) => {

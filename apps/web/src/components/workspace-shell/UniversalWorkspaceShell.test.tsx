@@ -1,6 +1,7 @@
 import {
   ContextSidebarPanel,
   ContextSidebarProvider,
+  useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import type { WorkspacePanelTab } from '@props/ui/workspace-panel.props';
 import {
@@ -410,6 +411,28 @@ vi.mock('@ui/primitives/drawer', () => ({
   DrawerTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
+// The inbox is covered by NotificationInboxPanel.test.tsx; the shell only
+// decides when it is on screen.
+vi.mock('@/components/shell/NotificationInboxPanel', () => ({
+  default: ({
+    isActive,
+    onNavigate,
+  }: {
+    isActive: boolean;
+    onNavigate?: () => void;
+  }) => (
+    <section
+      aria-label="Notifications"
+      hidden={!isActive}
+      id="workspace-notifications-panel"
+    >
+      <a href="/acme/~/agent/thread-1" onClick={onNavigate}>
+        Open notification
+      </a>
+    </section>
+  ),
+}));
+
 vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
   captureWorkspaceShellError: vi.fn(),
   captureWorkspaceShellOverlayAbandonment: vi.fn(),
@@ -514,11 +537,22 @@ function AnalyticsBrandRouteAdapterFixture({
   return <div>Brand analytics canvas</div>;
 }
 
+const contextHandle: { current: ReturnType<typeof useContextSidebar> } = {
+  current: null,
+};
+
+/** What the topbar's Context toggle reaches when no shell panel is registered. */
+function ContextHandleProbe() {
+  contextHandle.current = useContextSidebar();
+  return null;
+}
+
 function DismissibleSelectionSurface() {
   const [isSelected, setIsSelected] = useState(true);
 
   return (
     <>
+      <ContextHandleProbe />
       <ContextSidebarPanel
         onClose={() => setIsSelected(false)}
         selection={
@@ -547,6 +581,7 @@ function FocusableSelectionSurface() {
       <button type="button" onClick={() => setSelected(true)}>
         Inspect image
       </button>
+      <ContextHandleProbe />
       <ContextSidebarPanel
         onClose={() => setSelected(false)}
         selection={
@@ -585,17 +620,20 @@ function ResizableSelectionSurface() {
 
 function LayoutSelectionSurface() {
   return (
-    <ContextSidebarPanel
-      onClose={() => {}}
-      selection={{
-        id: 'asset-1',
-        kind: 'asset',
-        origin: 'user',
-        title: 'Image',
-      }}
-    >
-      <p>Asset detail</p>
-    </ContextSidebarPanel>
+    <>
+      <ContextHandleProbe />
+      <ContextSidebarPanel
+        onClose={() => {}}
+        selection={{
+          id: 'asset-1',
+          kind: 'asset',
+          origin: 'user',
+          title: 'Image',
+        }}
+      >
+        <p>Asset detail</p>
+      </ContextSidebarPanel>
+    </>
   );
 }
 
@@ -726,19 +764,21 @@ describe('UniversalWorkspaceShell', () => {
       within(sidebar).getByTestId('context-sidebar-outlet'),
     ).toHaveTextContent('Asset detail');
 
-    // One topbar, one close: the panel's own. The selection is plain content.
+    // No header and no close control: the topbar's Context toggle closes it.
+    // The selection is plain content.
     expect(within(sidebar).queryByTestId('context-sidebar-close')).toBeNull();
     expect(
       within(sidebar).queryByRole('button', { name: 'Collapse details' }),
     ).toBeNull();
+    expect(within(sidebar).queryByTestId('workspace-panel-header')).toBeNull();
     expect(
-      within(sidebar).getAllByTestId('workspace-panel-close'),
-    ).toHaveLength(1);
+      within(sidebar).queryByRole('button', { name: 'Close panel' }),
+    ).toBeNull();
     expect(
       within(sidebar).getByTestId('context-sidebar-title').closest('.border-b'),
     ).toBeNull();
 
-    fireEvent.click(within(sidebar).getByTestId('workspace-panel-close'));
+    act(() => contextHandle.current?.close());
 
     expect(screen.queryByText('Asset detail')).toBeNull();
     expect(
@@ -762,9 +802,7 @@ describe('UniversalWorkspaceShell', () => {
     act(() => asset.focus());
     fireEvent.click(asset);
     act(() => screen.getByRole('button', { name: 'Inspector action' }).focus());
-    const close = screen.getByTestId('workspace-panel-close');
-    act(() => close.focus());
-    fireEvent.click(close);
+    act(() => contextHandle.current?.close());
     expect(asset).toHaveFocus();
   });
 
@@ -873,7 +911,7 @@ describe('UniversalWorkspaceShell', () => {
       ),
     ).toBe('300ms');
 
-    fireEvent.click(screen.getByTestId('workspace-panel-close'));
+    act(() => contextHandle.current?.close());
 
     expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
     expect(
@@ -1636,9 +1674,8 @@ describe('UniversalWorkspaceShell', () => {
       await screen.findByTestId('dock-conversation');
       expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
       showPanelView(dock, 'details');
-      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
-        'Context',
-      );
+      // Context has no actions, so it has no header.
+      expect(screen.queryByTestId('workspace-panel-header')).toBeNull();
       expect(screen.getByTestId('workspace-agent-context')).toBeVisible();
       expect(
         screen.getByText(
@@ -1701,10 +1738,11 @@ describe('UniversalWorkspaceShell', () => {
       expect(
         document.getElementById('workspace-context-inspector-drawer'),
       ).toBeNull();
-      expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
+      expect(screen.queryByTestId('workspace-panel-header')).toBeNull();
       showPanelView(dock, 'agent');
       expect(screen.getByTestId('dock-conversation')).toBeVisible();
-      fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
+      expect(screen.getAllByTestId('workspace-panel-header')).toHaveLength(1);
+      act(() => dock?.panel?.close());
       await waitFor(() =>
         expect(screen.queryByTestId('workspace-panel-header')).toBeNull(),
       );
@@ -1770,9 +1808,7 @@ describe('UniversalWorkspaceShell', () => {
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
 
       // A selection brings Context forward while the agent is closed.
-      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
-        'Context',
-      );
+      expect(screen.queryByTestId('workspace-panel-header')).toBeNull();
       expect(dock?.panel?.activeView).toBe('details');
       expect(screen.getByText('Asset detail')).toBeVisible();
 
@@ -1824,7 +1860,7 @@ describe('UniversalWorkspaceShell', () => {
 
       // Close the panel while preserving the page selection, then reopen Chat.
       showPanelView(dock, 'details');
-      fireEvent.click(screen.getByTestId('workspace-panel-close'));
+      act(() => dock?.panel?.close());
       expect(
         screen.getByRole('complementary', { hidden: true }),
       ).toHaveAttribute('aria-hidden', 'true');
@@ -1835,21 +1871,148 @@ describe('UniversalWorkspaceShell', () => {
 
       showPanelView(dock, 'details');
 
-      expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
-        'Context',
-      );
+      expect(dock?.panel?.activeView).toBe('details');
       expect(screen.getByText('Asset detail')).toBeVisible();
     });
 
-    it('closes the agent from the panel header', async () => {
+    it('closes the agent from the topbar toggle, not from a panel control', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       renderWithDock();
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
       act(() => dock?.open());
 
-      fireEvent.click(screen.getByTestId('workspace-panel-close'));
+      expect(screen.queryByRole('button', { name: 'Close panel' })).toBeNull();
+      act(() => dock?.panel?.close());
 
       expect(dock?.isOpen).toBe(false);
+    });
+
+    describe('notifications view', () => {
+      it('opens the inbox in the right panel and closes it from the same toggle', async () => {
+        navigation.pathname = '/acme/moonrise/workspace';
+        const { container } = renderWithDock();
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        expect(
+          screen.queryByRole('region', { name: 'Notifications' }),
+        ).toBeNull();
+
+        showPanelView(dock, 'notifications');
+
+        expect(dock?.panel?.activeView).toBe('notifications');
+        expect(
+          screen.getByRole('region', { name: 'Notifications' }),
+        ).toBeVisible();
+        expect(
+          container.querySelector('#workspace-context-inspector'),
+        ).not.toHaveAttribute('inert');
+        expect(screen.queryByTestId('workspace-panel-header')).toBeNull();
+
+        act(() => dock?.panel?.close());
+
+        expect(dock?.panel?.activeView).toBeNull();
+        expect(
+          container.querySelector('#workspace-context-inspector'),
+        ).toHaveAttribute('inert');
+      });
+
+      it('sits over an open conversation and reveals it again when closed', async () => {
+        navigation.pathname = '/acme/moonrise/workspace';
+        renderWithDock();
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        act(() => dock?.open());
+        await screen.findByTestId('dock-conversation');
+
+        showPanelView(dock, 'notifications');
+        expect(
+          screen.getByRole('region', { name: 'Notifications' }),
+        ).toBeVisible();
+        expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+        // The conversation stays mounted behind it.
+        expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+
+        act(() => dock?.panel?.close());
+        expect(dock?.panel?.activeView).toBe('agent');
+        expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
+        expect(dock?.isOpen).toBe(true);
+      });
+
+      it('gives way to a conversation opened elsewhere', async () => {
+        navigation.pathname = '/acme/moonrise/workspace';
+        renderWithDock();
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+
+        showPanelView(dock, 'notifications');
+        // ⌘J, a sent message or an attached record all open the dock directly.
+        act(() => dock?.open());
+
+        expect(dock?.panel?.activeView).toBe('agent');
+        expect(
+          screen.queryByRole('region', { name: 'Notifications' }),
+        ).toBeNull();
+      });
+
+      it('gives way to Context', async () => {
+        navigation.pathname = '/acme/moonrise/workspace';
+        render(
+          <ContextSidebarProvider>
+            <AgentDockProvider>
+              <UniversalWorkspaceShell agentApiService={agentApiService}>
+                <DockProbe onDock={recordDock} />
+                <DockSelectionSurface />
+              </UniversalWorkspaceShell>
+            </AgentDockProvider>
+          </ContextSidebarProvider>,
+        );
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+
+        showPanelView(dock, 'notifications');
+        showPanelView(dock, 'details');
+        expect(dock?.panel?.activeView).toBe('details');
+        expect(screen.getByText('Asset detail')).toBeVisible();
+      });
+
+      it('opens on a conversation page, where the dock itself is off', async () => {
+        navigation.pathname = '/acme/~/agent/thread-1';
+        const { container } = renderWithDock();
+        await waitFor(() => expect(dock?.panel).not.toBeNull());
+
+        showPanelView(dock, 'notifications');
+
+        expect(
+          screen.getByRole('region', { name: 'Notifications' }),
+        ).toBeVisible();
+        expect(
+          container.querySelector('#workspace-context-inspector'),
+        ).not.toHaveAttribute('inert');
+      });
+
+      it('opens as a bottom sheet below xl and dismisses when a notification opens', async () => {
+        navigation.pathname = '/acme/moonrise/workspace';
+        window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+          addEventListener: vi.fn(),
+          addListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+          matches: query === '(max-width: 1279px)',
+          media: query,
+          onchange: null,
+          removeEventListener: vi.fn(),
+          removeListener: vi.fn(),
+        }));
+        renderWithDock();
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        act(() => dock?.open());
+
+        showPanelView(dock, 'notifications');
+
+        // One sheet at a time: the conversation sheet makes way.
+        expect(dock?.isOpen).toBe(false);
+        const region = screen.getByRole('region', { name: 'Notifications' });
+        expect(region).toBeVisible();
+        fireEvent.click(
+          within(region).getByRole('link', { name: 'Open notification' }),
+        );
+        expect(dock?.panel?.activeView).toBeNull();
+      });
     });
 
     it('renders scope notices in the dock without the scope switchers', async () => {

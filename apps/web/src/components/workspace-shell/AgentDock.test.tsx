@@ -236,7 +236,9 @@ describe('AgentDock', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
     expect(onOpenFullPage).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
+    // The topbar toggle closes the panel; the sheet carries no close control.
+    expect(screen.queryByRole('button', { name: 'Close panel' })).toBeNull();
+    fireEvent.keyDown(sheet, { key: 'Escape' });
     expect(dock.close).toHaveBeenCalled();
   });
 

@@ -1,0 +1,261 @@
+'use client';
+
+import {
+  ButtonSize,
+  ButtonVariant,
+  getActivityMessageDescriptor,
+} from '@genfeedai/contracts';
+import type { INotificationInboxItem } from '@genfeedai/contracts/interfaces';
+import { Button } from '@ui/primitives/button';
+import {
+  CircleAlert,
+  CircleCheck,
+  Info,
+  MessageCircleReply,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
+import { useNotificationInbox } from '@/components/shell/use-notification-inbox';
+import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
+
+function alertIcon(item: INotificationInboxItem): ReactNode {
+  if (item.socialReply) {
+    return (
+      <MessageCircleReply aria-hidden="true" className="size-4 text-info" />
+    );
+  }
+  const severity =
+    item.severity ?? (item.outcome === 'completed' ? 'success' : 'critical');
+  if (severity === 'success') {
+    return <CircleCheck aria-hidden="true" className="size-4 text-success" />;
+  }
+  if (severity === 'info') {
+    return <Info aria-hidden="true" className="size-4 text-info" />;
+  }
+  return (
+    <CircleAlert
+      aria-hidden="true"
+      className={
+        severity === 'warning'
+          ? 'size-4 text-warning'
+          : 'size-4 text-destructive'
+      }
+    />
+  );
+}
+
+type NotificationInboxPanelProps = {
+  /** Only the visible view loads history and refreshes the unread count. */
+  readonly isActive: boolean;
+  /** Called after a notification's source opens, e.g. to dismiss a sheet. */
+  readonly onNavigate?: () => void;
+};
+
+/**
+ * The notifications view of the side panel. It shows alerts only (#5197): each
+ * row is an inbox item the alert policy raised from an activity. The full
+ * history lives on the activities pages. The bell in the topbar opens and
+ * closes it, so it carries no close control of its own.
+ */
+export default function NotificationInboxPanel({
+  isActive,
+  onNavigate,
+}: NotificationInboxPanelProps) {
+  const translate = useTranslations('common.notificationInbox');
+  const formatActivity = useActivityMessageFormatter();
+  const { count, history, read } = useNotificationInbox(isActive);
+  const items = history.data?.pages.flatMap((page) => page.items) ?? [];
+  const unreadCount = count.data?.unreadCount;
+  return (
+    <section
+      aria-label={translate('title')}
+      className="flex min-h-0 flex-1 flex-col"
+      hidden={!isActive}
+      id="workspace-notifications-panel"
+    >
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
+        <h2 className="text-sm font-medium">{translate('title')}</h2>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
+          withWrapper={false}
+          className="shrink-0"
+          disabled={read.isPending || !unreadCount}
+          onClick={() => read.mutate(null)}
+        >
+          {translate('readAll')}
+        </Button>
+      </div>
+      <div
+        className="min-h-0 flex-1 overflow-y-auto text-xs"
+        aria-busy={history.isFetching || read.isPending}
+      >
+        {count.isError ? (
+          <div role="alert" className="p-3">
+            <p>{translate('countError')}</p>
+            <Button
+              variant={ButtonVariant.GHOST}
+              onClick={() => void count.refetch()}
+            >
+              {translate('retry')}
+            </Button>
+          </div>
+        ) : null}
+        {read.isError ? (
+          <div role="alert" className="p-3">
+            <p>{translate('readError')}</p>
+            <Button
+              variant={ButtonVariant.GHOST}
+              disabled={read.isPending}
+              onClick={() => read.mutate(read.variables ?? null)}
+            >
+              {translate('retry')}
+            </Button>
+          </div>
+        ) : null}
+        {history.isLoading ? (
+          <p className="p-3" role="status">
+            {translate('loading')}
+          </p>
+        ) : null}
+        {history.isError ? (
+          <div role="alert" className="p-3">
+            <p>{translate('loadError')}</p>
+            <Button
+              variant={ButtonVariant.GHOST}
+              onClick={() =>
+                void (history.isFetchNextPageError
+                  ? history.fetchNextPage()
+                  : history.refetch())
+              }
+            >
+              {translate('retry')}
+            </Button>
+          </div>
+        ) : null}
+        {!history.isLoading && !history.isError && items.length === 0 ? (
+          <p className="p-3">{translate('empty')}</p>
+        ) : null}
+        <ol className="divide-y divide-border">
+          {items.map((item) => {
+            const socialReply = item.socialReply ?? null;
+            const title =
+              item.failure?.title ??
+              (socialReply
+                ? socialReply.accountHandle
+                  ? translate('socialReply.titleWithHandle', {
+                      count: socialReply.replyCount,
+                      handle: socialReply.accountHandle,
+                    })
+                  : translate('socialReply.title', {
+                      count: socialReply.replyCount,
+                    })
+                : item.activity
+                  ? formatActivity(
+                      getActivityMessageDescriptor(item.activity.key),
+                    )
+                  : translate(
+                      item.outcome === 'completed' ? 'completed' : 'failed',
+                    ));
+            const description = item.failure
+              ? [item.failure.summary, item.failure.recovery]
+                  .filter(Boolean)
+                  .join(' ')
+              : item.activity?.value?.trim() ||
+                item.sourceLabel?.trim() ||
+                translate(
+                  socialReply
+                    ? 'descriptions.socialReply'
+                    : item.topic === 'billing.credits'
+                      ? 'descriptions.credits'
+                      : item.topic.startsWith('publishing.')
+                        ? 'descriptions.publishing'
+                        : item.outcome === 'completed'
+                          ? 'descriptions.completed'
+                          : 'descriptions.failed',
+                );
+            const body = (
+              <>
+                <span className="mt-0.5 shrink-0">{alertIcon(item)}</span>
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate font-medium leading-5 text-foreground">
+                      {title}
+                    </span>
+                    <ClientFormattedDate
+                      value={item.occurredAt}
+                      format="relative"
+                      fallback=""
+                      className="shrink-0 text-xs text-muted-foreground"
+                    />
+                  </span>
+                  <span className="line-clamp-2 text-xs leading-4 text-muted-foreground">
+                    {description}
+                  </span>
+                  {!item.sourceHref ? (
+                    <span className="sr-only">{translate('unavailable')}</span>
+                  ) : null}
+                </span>
+              </>
+            );
+            return (
+              <li
+                key={item.id}
+                data-testid="notification-inbox-row"
+                className="flex items-stretch hover:bg-accent focus-within:bg-accent"
+              >
+                <div className="flex w-8 shrink-0 items-start justify-center pt-2.5">
+                  {!item.readAt ? (
+                    <Button
+                      variant={ButtonVariant.UNSTYLED}
+                      size={ButtonSize.ICON}
+                      withWrapper={false}
+                      className="flex size-6 items-center justify-center rounded-sm"
+                      ariaLabel={translate('markRead')}
+                      title={translate('markRead')}
+                      disabled={read.isPending}
+                      onClick={() => read.mutate([item.id])}
+                    >
+                      <span className="size-1.5 rounded-full bg-info">
+                        <span className="sr-only">{translate('unread')}</span>
+                      </span>
+                    </Button>
+                  ) : null}
+                </div>
+                {item.sourceHref ? (
+                  <Link
+                    href={item.sourceHref}
+                    onClick={() => {
+                      if (!item.readAt) read.mutate([item.id]);
+                      onNavigate?.();
+                    }}
+                    className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3">
+                    {body}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        {history.hasNextPage ? (
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+            className="w-full justify-center rounded-none border-t border-border"
+            disabled={history.isFetching}
+            onClick={() => void history.fetchNextPage()}
+          >
+            {translate('loadMore')}
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}

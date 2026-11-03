@@ -145,7 +145,15 @@ test.describe('Context sidebar — selection driven', () => {
       authenticatedPage.getByTestId('studio-playground-inspector'),
     ).toHaveCount(1);
 
-    await contextSidebar.getByTestId('workspace-panel-close').click();
+    // The panel has no header or close control of its own: the topbar's
+    // Context toggle (the panel icon) closes it.
+    await expect(
+      contextSidebar.getByTestId('workspace-panel-header'),
+    ).toHaveCount(0);
+    await expect(
+      contextSidebar.getByTestId('workspace-panel-close'),
+    ).toHaveCount(0);
+    await authenticatedPage.getByTestId('topbar-context-toggle').click();
 
     await expect(contextSidebar).toHaveCount(0);
     await expect(
@@ -196,7 +204,7 @@ test.describe('Context sidebar — selection driven', () => {
       'topbar-context-toggle',
     );
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
-    await contextSidebar.getByTestId('workspace-panel-close').click();
+    await contextToggle.click();
     await expect(card).toHaveAttribute('data-selected', 'false');
     await expect(
       authenticatedPage.locator('#workspace-context-inspector'),
@@ -228,7 +236,10 @@ test.describe('Context sidebar — selection driven', () => {
     const contextToggle = authenticatedPage.getByTestId(
       'topbar-context-toggle',
     );
-    await expect(title).toHaveText('Context');
+    const contextView = contextSidebar.getByTestId('workspace-agent-context');
+    // Context has no header: the topbar toggle names the view.
+    await expect(contextView).toBeVisible();
+    await expect(title).toHaveCount(0);
     await expect(contextToggle).toHaveAttribute('aria-expanded', 'true');
     await expect(chatToggle).toHaveAttribute('aria-expanded', 'false');
 
@@ -246,7 +257,8 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(title).toHaveText('Chat');
 
     await contextToggle.click();
-    await expect(title).toHaveText('Context');
+    await expect(contextView).toBeVisible();
+    await expect(title).toHaveCount(0);
     await contextToggle.click();
     await expect(contextSidebar).toHaveCount(0);
     await expectNoErrorOverlay(authenticatedPage);
@@ -263,10 +275,10 @@ test.describe('Context sidebar — selection driven', () => {
 
     const drawer = authenticatedPage.getByRole('dialog', { name: 'Agent' });
     await expect(drawer).toBeVisible();
-    await expect(drawer.getByTestId('workspace-panel-header')).toHaveCount(1);
-    await expect(drawer.getByTestId('workspace-panel-title')).toHaveText(
-      'Context',
-    );
+    await expect(drawer.getByTestId('workspace-panel-header')).toHaveCount(0);
+    await expect(
+      drawer.getByTestId('studio-playground-inspector'),
+    ).toBeVisible();
     await expect(
       drawer.getByTestId('studio-playground-inspector'),
     ).toBeVisible();
@@ -314,7 +326,7 @@ test.describe('Context sidebar — selection driven', () => {
     ).toHaveText('Product Photo');
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
-    await contextSidebar.getByTestId('workspace-panel-close').click();
+    await authenticatedPage.getByTestId('topbar-context-toggle').click();
 
     await expect(contextSidebar).toHaveCount(0);
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');

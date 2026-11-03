@@ -1,5 +1,14 @@
-vi.mock('@/components/shell/NotificationInboxMenu', () => ({
-  default: () => <div data-testid="notification-inbox" />,
+vi.mock('@/components/shell/NotificationInboxToggle', () => ({
+  default: (props: { isPressed: boolean; onToggle: () => void }) => (
+    <button
+      aria-expanded={props.isPressed}
+      data-testid="topbar-notifications-toggle"
+      onClick={props.onToggle}
+      type="button"
+    >
+      Notifications
+    </button>
+  ),
 }));
 
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
