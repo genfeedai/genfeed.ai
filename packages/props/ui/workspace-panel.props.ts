@@ -3,11 +3,17 @@ import type {
   ContextSidebarOutletProps,
 } from './context-sidebar.props';
 
-export type WorkspacePanelTab = 'agent' | 'details' | 'history';
+export type WorkspacePanelTab =
+  | 'agent'
+  | 'details'
+  | 'history'
+  | 'notifications';
 
 /**
- * What the workspace shell hands the topbar so its Chat and Context toggles
- * drive the one side panel. Chat covers the conversation and its History.
+ * What the workspace shell hands the topbar so its Notifications, Chat and
+ * Context toggles drive the one side panel. Chat covers the conversation and
+ * its History. Closing is the active toggle pressed again: the panel has no
+ * close control of its own.
  */
 export interface WorkspacePanelControls {
   /** The view on screen, or `null` while the panel is closed. */
@@ -21,7 +27,6 @@ export interface WorkspacePanelControls {
 export interface WorkspacePanelHeaderProps {
   readonly activeView: WorkspacePanelTab;
   readonly hasAgent: boolean;
-  readonly onClose: () => void;
   readonly onNewThread?: () => void;
   readonly onOpenFullPage: () => void;
   readonly onSelectView: (view: WorkspacePanelTab) => void;

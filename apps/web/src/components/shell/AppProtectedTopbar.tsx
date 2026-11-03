@@ -15,7 +15,6 @@ import { isPersonalSettingsPage } from '@/components/layouts/protected/app-prote
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import GenerationToasts from '@/components/shell/GenerationToasts';
-import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import TopbarAppsLink from '@/components/shell/TopbarAppsLink';
 import TopbarPanelToggles from '@/components/shell/TopbarPanelToggles';
 import TopbarBreadcrumbs from '@/components/topbars/breadcrumbs/TopbarBreadcrumbs';
@@ -140,8 +139,6 @@ function AppProtectedTopbarContent({
             {!isAdminChrome ? <CreditsLiveSync /> : null}
 
             {!isAdminChrome ? <TopbarAppsLink orgSlug={orgSlug} /> : null}
-
-            {!isAdminChrome ? <NotificationInboxMenu /> : null}
           </div>
           {!isAdminChrome ? <GenerationToasts /> : null}
 
@@ -152,7 +149,7 @@ function AppProtectedTopbarContent({
             </span>
           ) : null}
 
-          {/* The side panel's Chat and Context toggles (⌘J opens Chat). */}
+          {/* The side panel's Notifications, Chat and Context toggles (⌘J opens Chat). */}
           <TopbarPanelToggles isAdminChrome={isAdminChrome} />
         </div>
       </div>

@@ -18,7 +18,6 @@ function renderHeader(overrides: Partial<WorkspacePanelHeaderProps> = {}) {
   const props: WorkspacePanelHeaderProps = {
     activeView: 'agent',
     hasAgent: true,
-    onClose: vi.fn(),
     onNewThread: vi.fn(),
     onOpenFullPage: vi.fn(),
     onSelectView: vi.fn(),
@@ -35,12 +34,7 @@ describe('WorkspacePanelHeader', () => {
     );
     expect(screen.queryByRole('tab')).toBeNull();
     expect(screen.queryByRole('button', { name: 'More' })).toBeNull();
-    for (const name of [
-      'History',
-      'New thread',
-      'Open full page',
-      'Close panel',
-    ]) {
+    for (const name of ['History', 'New thread', 'Open full page']) {
       expect(screen.getByRole('button', { name })).toBeVisible();
     }
   });
@@ -65,19 +59,22 @@ describe('WorkspacePanelHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
     expect(props.onOpenFullPage).toHaveBeenCalledTimes(1);
   });
-  it('keeps Context to its title and the close control', () => {
-    const { props } = renderHeader({ activeView: 'details' });
-    expect(screen.getByTestId('workspace-panel-title')).toHaveTextContent(
-      'Context',
-    );
-    expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'New thread' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Close panel' }));
-    expect(props.onClose).toHaveBeenCalledTimes(1);
+  it('has no close control: the topbar toggle closes the panel', () => {
+    renderHeader();
+    expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
   });
-  it('keeps selection-only surfaces focused on Context', () => {
-    renderHeader({ activeView: 'details', hasAgent: false });
-    expect(screen.getAllByRole('button')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Close panel' })).toBeVisible();
+  it('renders no header for Context or Notifications', () => {
+    const { container, rerender } = renderHeader({ activeView: 'details' });
+    expect(container).toBeEmptyDOMElement();
+    rerender(
+      <WorkspacePanelHeader
+        activeView="notifications"
+        hasAgent
+        onNewThread={vi.fn()}
+        onOpenFullPage={vi.fn()}
+        onSelectView={vi.fn()}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

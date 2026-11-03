@@ -2,60 +2,20 @@
 
 import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
-import { BotMessageSquare, Info } from 'lucide-react';
+import { BotMessageSquare, PanelRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-
-type PanelToggleProps = {
-  readonly ariaControls: string;
-  readonly ariaKeyShortcuts?: string;
-  readonly icon: ReactNode;
-  readonly isPressed: boolean;
-  readonly label: string;
-  readonly onToggle: () => void;
-  readonly testId: string;
-};
-
-function PanelToggle({
-  ariaControls,
-  ariaKeyShortcuts,
-  icon,
-  isPressed,
-  label,
-  onToggle,
-  testId,
-}: PanelToggleProps) {
-  return (
-    // ui-guard-allow:selection-button -- discloses a panel (aria-expanded) and shows it open; not a choice group
-    <Button
-      aria-controls={ariaControls}
-      aria-expanded={isPressed}
-      aria-keyshortcuts={ariaKeyShortcuts}
-      ariaLabel={label}
-      className="size-8"
-      data-active={isPressed ? 'true' : 'false'}
-      data-testid={testId}
-      onClick={onToggle}
-      size={ButtonSize.ICON}
-      tooltip={label}
-      type="button"
-      variant={isPressed ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
-      withWrapper={false}
-    >
-      {icon}
-    </Button>
-  );
-}
+import NotificationInboxToggle from '@/components/shell/NotificationInboxToggle';
+import PanelToggle from '@/components/shell/PanelToggle';
 
 /**
- * Account chrome only: the two toggles that open the right-hand side panel.
- * Chat (⌘J) opens the conversation and its history; Context opens what the
- * page has selected. The panel header names the view, so there is one control
- * per view and no tab strip. Chat is hidden wherever the dock is unavailable
- * (`/agent`, where the conversation is the page). Admin has no agent, so it
- * only shows Context, and only while something is selected.
+ * Account chrome only: the toggles that open the right-hand side panel, one
+ * per view and no tab strip. Notifications (the bell) opens the alert inbox;
+ * Chat (⌘J) opens the conversation and its history; Context (the panel icon)
+ * opens what the page has selected. Pressing the active toggle closes the
+ * panel, so the panel itself has no close control. Chat is hidden wherever the
+ * dock is unavailable (`/agent`, where the conversation is the page). Admin has
+ * no agent or alerts, so it only shows Context, and only while something is
+ * selected.
  */
 export default function TopbarPanelToggles({
   isAdminChrome,
@@ -82,6 +42,20 @@ export default function TopbarPanelToggles({
   const isContextPressed = panel
     ? panel.activeView === 'details'
     : Boolean(contextSidebar?.isOpen || contextSidebar?.isMobileOpen);
+
+  const hasNotifications = Boolean(panel) && !isAdminChrome;
+  const isNotificationsPressed = panel?.activeView === 'notifications';
+
+  const toggleNotifications = () => {
+    if (!panel) {
+      return;
+    }
+    if (isNotificationsPressed) {
+      panel.close();
+    } else {
+      panel.selectView('notifications');
+    }
+  };
 
   const toggleChat = () => {
     if (!agentDock) {
@@ -117,7 +91,7 @@ export default function TopbarPanelToggles({
     }
   };
 
-  if (!hasChat && !isContextVisible) {
+  if (!hasChat && !hasNotifications && !isContextVisible) {
     return null;
   }
 
@@ -127,6 +101,12 @@ export default function TopbarPanelToggles({
 
   return (
     <div className="flex items-center gap-1" data-testid="topbar-panel-toggles">
+      {hasNotifications ? (
+        <NotificationInboxToggle
+          isPressed={isNotificationsPressed}
+          onToggle={toggleNotifications}
+        />
+      ) : null}
       {hasChat ? (
         <PanelToggle
           ariaControls="workspace-agent-dock"
@@ -141,7 +121,7 @@ export default function TopbarPanelToggles({
       {isContextVisible ? (
         <PanelToggle
           ariaControls="workspace-details-panel"
-          icon={<Info className="size-4" />}
+          icon={<PanelRight className="size-4" />}
           isPressed={isContextPressed}
           label={
             isContextPressed

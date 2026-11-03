@@ -1,5 +1,14 @@
-vi.mock('@/components/shell/NotificationInboxMenu', () => ({
-  default: () => <div data-testid="notification-inbox" />,
+vi.mock('@/components/shell/NotificationInboxToggle', () => ({
+  default: (props: { isPressed: boolean; onToggle: () => void }) => (
+    <button
+      aria-expanded={props.isPressed}
+      data-testid="topbar-notifications-toggle"
+      onClick={props.onToggle}
+      type="button"
+    >
+      Notifications
+    </button>
+  ),
 }));
 vi.mock('@/components/shell/GenerationToasts', () => ({
   default: () => null,
@@ -25,10 +34,12 @@ const agentDockState = vi.hoisted(() => ({
     isAvailable: boolean;
     isOpen: boolean;
     panel?: {
-      activeView: 'agent' | 'details' | 'history' | null;
+      activeView: 'agent' | 'details' | 'history' | 'notifications' | null;
       canShowContext: boolean;
       close: () => void;
-      selectView: (view: 'agent' | 'details' | 'history') => void;
+      selectView: (
+        view: 'agent' | 'details' | 'history' | 'notifications',
+      ) => void;
     } | null;
     toggle: () => void;
   } | null,
@@ -344,7 +355,22 @@ describe('AppProtectedTopbar', () => {
     });
   });
 
+  function mountShellPanel() {
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: false,
+      panel: {
+        activeView: null,
+        canShowContext: true,
+        close: vi.fn(),
+        selectView: vi.fn(),
+      },
+      toggle: vi.fn(),
+    };
+  }
+
   it('leads with the brand switcher and a left-aligned breadcrumb', () => {
+    mountShellPanel();
     render(
       <AppProtectedTopbar
         orgSlug="acme"
@@ -357,7 +383,7 @@ describe('AppProtectedTopbar', () => {
     const breadcrumbs = screen.getByRole('navigation', {
       name: 'Breadcrumb',
     });
-    const activityMenu = screen.getByTestId('notification-inbox');
+    const activityMenu = screen.getByTestId('topbar-notifications-toggle');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
@@ -373,16 +399,17 @@ describe('AppProtectedTopbar', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
+      cloudSyncIndicator.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  it('links Apps to the app catalog, right before the activity menu', () => {
+  it('links Apps to the app catalog, before the panel toggles', () => {
+    mountShellPanel();
     render(<AppProtectedTopbar orgSlug="acme" brandSlug="brand" />);
 
     const apps = screen.getByRole('link', { name: 'Apps' });
-    const activityMenu = screen.getByTestId('notification-inbox');
+    const activityMenu = screen.getByTestId('topbar-notifications-toggle');
 
     expect(apps).toHaveAttribute('href', '/acme/~/apps');
     expect(apps).toHaveAttribute('data-testid', 'topbar-apps-link');
@@ -446,15 +473,16 @@ describe('AppProtectedTopbar', () => {
   });
 
   it('keeps the wallet synced but shows no credit balance in the topbar', () => {
+    mountShellPanel();
     render(<AppProtectedTopbar />);
 
-    const activityMenu = screen.getByTestId('notification-inbox');
+    const activityMenu = screen.getByTestId('topbar-notifications-toggle');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
 
     expect(screen.getByTestId('credits-live-sync')).toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-trigger')).toBeNull();
     expect(
-      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
+      cloudSyncIndicator.compareDocumentPosition(activityMenu) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -569,7 +597,12 @@ describe('AppProtectedTopbar', () => {
 
   it('drives the shell panel from Chat and Context, with History under Chat', () => {
     const panel = {
-      activeView: 'agent' as 'agent' | 'details' | 'history' | null,
+      activeView: 'agent' as
+        | 'agent'
+        | 'details'
+        | 'history'
+        | 'notifications'
+        | null,
       canShowContext: true,
       close: vi.fn(),
       selectView: vi.fn(),
@@ -619,6 +652,88 @@ describe('AppProtectedTopbar', () => {
       'aria-expanded',
       'true',
     );
+  });
+
+  it('opens Notifications in the shell panel and closes it from the bell', () => {
+    const panel = {
+      activeView: null as 'agent' | 'notifications' | null,
+      canShowContext: true,
+      close: vi.fn(),
+      selectView: vi.fn(),
+    };
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: false,
+      panel,
+      toggle: vi.fn(),
+    };
+
+    const { rerender } = render(<AppProtectedTopbar />);
+
+    const bell = screen.getByTestId('topbar-notifications-toggle');
+    expect(bell).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(bell);
+    expect(panel.selectView).toHaveBeenCalledWith('notifications');
+
+    agentDockState.value = {
+      ...agentDockState.value,
+      panel: { ...panel, activeView: 'notifications' },
+    };
+    rerender(<AppProtectedTopbar />);
+    expect(screen.getByTestId('topbar-notifications-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    fireEvent.click(screen.getByTestId('topbar-notifications-toggle'));
+    expect(panel.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the Context toggle with the panel icon, not the help icon', () => {
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: false,
+      panel: {
+        activeView: null,
+        canShowContext: true,
+        close: vi.fn(),
+        selectView: vi.fn(),
+      },
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const context = screen.getByTestId('topbar-context-toggle');
+    expect(context.querySelector('.lucide-panel-right')).not.toBeNull();
+    expect(context.querySelector('.lucide-info')).toBeNull();
+  });
+
+  it('offers no bell in admin or without a shell panel', () => {
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: false,
+      panel: {
+        activeView: null,
+        canShowContext: true,
+        close: vi.fn(),
+        selectView: vi.fn(),
+      },
+      toggle: vi.fn(),
+    };
+    const { rerender } = render(<AppProtectedTopbar chrome="admin" />);
+    expect(screen.queryByTestId('topbar-notifications-toggle')).toBeNull();
+
+    agentDockState.value = {
+      isAvailable: true,
+      isOpen: false,
+      toggle: vi.fn(),
+    };
+    rerender(<AppProtectedTopbar />);
+    expect(screen.queryByTestId('topbar-notifications-toggle')).toBeNull();
   });
 
   it('hides Context where the shell has nothing to show', () => {

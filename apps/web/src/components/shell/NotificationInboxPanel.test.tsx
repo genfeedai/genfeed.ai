@@ -15,7 +15,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-import NotificationInboxMenu from './NotificationInboxMenu';
+import NotificationInboxPanel from './NotificationInboxPanel';
 
 const item: INotificationInboxItem = {
   id: 'item-1',
@@ -53,17 +53,14 @@ beforeEach(() => {
   current = state();
   hook.mockImplementation(() => current);
 });
-async function open() {
+function open() {
   const user = userEvent.setup();
-  render(<NotificationInboxMenu />);
-  await user.click(
-    screen.getByRole('button', { name: 'Open notifications, 1 unread' }),
-  );
+  render(<NotificationInboxPanel isActive />);
   return user;
 }
-describe('NotificationInboxMenu', () => {
+describe('NotificationInboxPanel', () => {
   it('shows alerts only, with no activity tab or live activity', async () => {
-    await open();
+    open();
     expect(
       screen.getByRole('heading', { name: 'Notifications' }),
     ).toBeInTheDocument();
@@ -94,14 +91,14 @@ describe('NotificationInboxMenu', () => {
         },
       },
     ];
-    await open();
+    open();
     expect(screen.getByText('Credits are running low')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Credits are running low/ }),
     ).toHaveAttribute('href', '/acme/workspace/activity');
   });
   it('washes the full notification row on hover, including time and mark-read', async () => {
-    await open();
+    open();
     const row = screen.getByTestId('notification-inbox-row');
     expect(row).toHaveClass('hover:bg-accent');
     expect(row).toContainElement(screen.getByRole('link', { name: /My task/ }));
@@ -112,7 +109,7 @@ describe('NotificationInboxMenu', () => {
   });
 
   it('exposes unread state, source link, read actions, and older pages', async () => {
-    const user = await open();
+    const user = open();
     expect(screen.getByText('Unread')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /My task/ })).toHaveAttribute(
       'href',
@@ -139,7 +136,7 @@ describe('NotificationInboxMenu', () => {
         failure: null,
       },
     ];
-    await open();
+    open();
     expect(
       screen.getByRole('link', { name: /Workflow completed/ }),
     ).toHaveAttribute('href', '/acme/brand/library/images?asset=img-1');
@@ -159,7 +156,7 @@ describe('NotificationInboxMenu', () => {
         socialReply: { accountHandle: 'acme', replyCount: 3 },
       },
     ];
-    await open();
+    open();
     expect(screen.getByText('3 new replies on @acme')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /new repl/ })).toHaveAttribute(
       'href',
@@ -178,7 +175,7 @@ describe('NotificationInboxMenu', () => {
         socialReply: { accountHandle: 'acme', replyCount: 1 },
       },
     ];
-    const user = await open();
+    const user = open();
     const link = screen.getByRole('link', { name: /new repl/ });
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
@@ -188,7 +185,7 @@ describe('NotificationInboxMenu', () => {
     current.history.data.pages[0].items = [
       { ...item, readAt: '2026-09-05T11:00:00Z' },
     ];
-    const user = await open();
+    const user = open();
     const link = screen.getByRole('link', { name: /My task/ });
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
@@ -196,7 +193,7 @@ describe('NotificationInboxMenu', () => {
   });
   it('keeps existing rows and failed read action retryable', async () => {
     current.read.isError = true;
-    const user = await open();
+    const user = open();
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Could not mark notifications read',
     );
@@ -208,7 +205,7 @@ describe('NotificationInboxMenu', () => {
     current.history.data.pages[0].items = [
       { ...item, sourceHref: null, sourceLabel: null },
     ];
-    await open();
+    open();
     expect(screen.getByText('Source unavailable')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Open run' }),
@@ -217,21 +214,17 @@ describe('NotificationInboxMenu', () => {
   it('shows loading and empty states', async () => {
     current.history.isLoading = true;
     current.history.data.pages = [];
-    const user = userEvent.setup();
-    const view = render(<NotificationInboxMenu />);
-    await user.click(
-      screen.getByRole('button', { name: 'Open notifications, 1 unread' }),
-    );
+    const view = render(<NotificationInboxPanel isActive />);
     expect(screen.getByRole('status')).toHaveTextContent(
       'Loading notifications',
     );
     current.history.isLoading = false;
-    view.rerender(<NotificationInboxMenu />);
+    view.rerender(<NotificationInboxPanel isActive />);
     expect(screen.getByText(/You are all caught up/)).toBeInTheDocument();
   });
   it('shows load failure and allows retry', async () => {
     current.history.isError = true;
-    const user = await open();
+    const user = open();
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Could not load notifications',
     );
@@ -249,7 +242,7 @@ describe('NotificationInboxMenu', () => {
         },
       },
     ];
-    await open();
+    open();
     expect(screen.getByText(/The agent hit an error/)).toHaveClass(
       'line-clamp-2',
     );
@@ -261,18 +254,25 @@ describe('NotificationInboxMenu', () => {
     );
     expect(row).not.toHaveClass('rounded-md');
   });
-  it('supports keyboard opening and escape to return focus', async () => {
-    const user = userEvent.setup();
-    render(<NotificationInboxMenu />);
-    const trigger = screen.getByRole('button', {
-      name: 'Open notifications, 1 unread',
-    });
-    trigger.focus();
-    await user.keyboard('{Enter}');
+  it('loads history only while its view is on screen', () => {
+    const view = render(<NotificationInboxPanel isActive={false} />);
+    expect(hook).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByRole('heading', { name: 'Notifications' })).toBeNull();
+    view.rerender(<NotificationInboxPanel isActive />);
+    expect(hook).toHaveBeenLastCalledWith(true);
     expect(
       screen.getByRole('heading', { name: 'Notifications' }),
     ).toBeInTheDocument();
-    await user.keyboard('{Escape}');
-    expect(trigger).toHaveFocus();
+  });
+  it('has no close control: the topbar bell closes it', () => {
+    open();
+    expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
+  });
+  it('tells its host when a notification opens', async () => {
+    const onNavigate = vi.fn();
+    const user = userEvent.setup();
+    render(<NotificationInboxPanel isActive onNavigate={onNavigate} />);
+    await user.click(screen.getByRole('link', { name: /My task/ }));
+    expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 });

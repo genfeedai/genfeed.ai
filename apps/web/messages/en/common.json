@@ -1358,7 +1358,6 @@
   "sidePanel": {
     "agent": "Agent",
     "backToChat": "Back to chat",
-    "close": "Close panel",
     "closeContext": "Close context",
     "closeChat": "Close {title}",
     "details": "Details",
@@ -2652,8 +2651,11 @@
       "publishing": "There is an update to your publishing activity."
     },
     "title": "Notifications",
+    "description": "Alerts about your runs, publishing, credits and replies to your posts.",
     "open": "Open notifications",
     "openCount": "Open notifications, {count} unread",
+    "close": "Close notifications",
+    "closeCount": "Close notifications, {count} unread",
     "readAll": "Mark all read",
     "markRead": "Mark read",
     "retry": "Retry",

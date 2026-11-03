@@ -206,7 +206,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       });
       if (width === 390) await page.keyboard.press('Escape');
       else {
-        const close = page.getByTestId('workspace-panel-close');
+        const close = page.getByTestId('topbar-context-toggle');
         await close.focus();
         await expect(close).toBeFocused();
         await page.keyboard.press('Enter');
