@@ -45,7 +45,7 @@ describe('RowSidebarStats', () => {
     expect(screen.getByText('Posts')).toBeInTheDocument();
   });
 
-  it('hides values while loading', () => {
+  it('marks the tile busy while loading', () => {
     render(
       <RowSidebarStats
         isLoading
@@ -53,7 +53,10 @@ describe('RowSidebarStats', () => {
       />,
     );
 
-    expect(screen.queryByText('1.2K')).not.toBeInTheDocument();
+    expect(screen.getByTestId('metric-card')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
   });
 });
 
