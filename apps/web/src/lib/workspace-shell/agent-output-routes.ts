@@ -19,9 +19,6 @@ const AGENT_OUTPUT_ROUTE_PATTERNS: readonly RegExp[] = [
   // Storyboard: `/storyboard` is the prompt that starts a run beside the run
   // list, `/storyboard/[runId]` is one open run.
   new RegExp(`^${APP_ROUTES.STUDIO.STORYBOARD}(?:/[^/]+)?/?$`),
-  // Playground: `/playground` is the prompt that starts a generation beside
-  // the generation list, `/playground/[jobId]` is one open generation.
-  new RegExp(`^${APP_ROUTES.STUDIO.PLAYGROUND}(?:/[^/]+)?/?$`),
   // Motion: `/motion` is the prompt that starts a project beside the project
   // list, `/motion/[projectId]` is one open project.
   new RegExp(`^${APP_ROUTES.STUDIO.MOTION}(?:/[^/]+)?/?$`),

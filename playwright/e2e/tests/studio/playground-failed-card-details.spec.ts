@@ -3,7 +3,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { showOutputPane } from '../../utils/agent-output-layout';
 import { mockGenerationQuote } from '../../utils/generation-setup';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
@@ -67,8 +66,6 @@ async function mountFailedPlayground(page: Page): Promise<void> {
   await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
-  // Below xl the generations sit behind the Output view.
-  await showOutputPane(page);
 }
 
 for (const viewport of [

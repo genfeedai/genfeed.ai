@@ -1,5 +1,9 @@
 import { selectView } from '@app-tests/view-menu.helpers';
-import { AgentOutputHostContext } from '@contexts/ui/agent-output-host-context';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -65,6 +69,36 @@ import type {
   StudioPlaygroundFocusedPreviewProps,
 } from '@/features/studio/props/studio-playground.props';
 import StudioPlaygroundWorkspace from './StudioPlaygroundWorkspace';
+
+function ContextSidebarCloseControl() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <>
+      <button type="button" onClick={contextSidebar?.close}>
+        Close sidebar
+      </button>
+      <button
+        type="button"
+        aria-expanded={contextSidebar?.isOpen}
+        onClick={contextSidebar?.toggle}
+      >
+        Collapse sidebar
+      </button>
+    </>
+  );
+}
+
+/** The shell's side of the context sidebar: provider, outlet and close. */
+function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
+  return (
+    <ContextSidebarProvider>
+      <ContextSidebarCloseControl />
+      <ContextSidebarOutlet testId="context-sidebar-outlet" />
+      {children}
+    </ContextSidebarProvider>
+  );
+}
 
 const mocks = vi.hoisted(() => ({
   emptyState: vi.fn(),
@@ -163,7 +197,6 @@ const mocks = vi.hoisted(() => ({
     item.textContent = message;
     document.querySelector('ol[aria-label="Test notices"]')?.append(item);
   }),
-  push: vi.fn(),
   results: vi.fn(),
   rehydratePending: vi.fn(),
   removeJob: vi.fn(),
@@ -287,15 +320,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/default/default/playground',
-  useRouter: () => ({ push: mocks.push }),
   useSearchParams: () => new URLSearchParams(mocks.searchParams.value),
-}));
-
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    href: (path: string) => `/acme/moonrise${path}`,
-    orgHref: (path: string) => `/acme${path}`,
-  }),
 }));
 
 vi.mock('next-intl', () => ({
@@ -447,15 +472,6 @@ vi.mock(
       mocks.results(props);
       return <div data-testid="studio-results" />;
     },
-  }),
-);
-
-vi.mock(
-  '@/features/studio/playground/components/StudioPlaygroundJobStatus',
-  () => ({
-    default: ({ job }: { job: { id: string } }) => (
-      <div data-testid={`studio-job-status-${job.id}`} />
-    ),
   }),
 );
 
@@ -825,9 +841,6 @@ describe('StudioPlaygroundWorkspace', () => {
     document.body.append(host);
     toast.dismiss();
     window.history.replaceState(null, '', '/');
-    mocks.push.mockImplementation((url: string) =>
-      window.history.pushState(null, '', url),
-    );
     mocks.crunQuote.mockReturnValue({
       quote: null,
       status: 'idle',
@@ -994,6 +1007,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(
       screen.getByTestId('studio-playground-empty-state'),
     ).toBeInTheDocument();
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
   });
 
   it('applies a starter idea as a document seed and user-owned setup', () => {
@@ -1188,6 +1202,9 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('searchPlaceholder'),
     );
+    // The suggestion cards belong to the empty state only; they never dock
+    // over the gallery once the brand has generations.
+    expect(screen.queryByTestId('studio-playground-empty-state')).toBeNull();
   });
 
   it('removes a deleted asset from the current-session job queue', () => {
@@ -1198,15 +1215,17 @@ describe('StudioPlaygroundWorkspace', () => {
     );
   });
 
-  it('keeps the composer in the prompt column instead of floating over the gallery', () => {
+  it('floats the composer over the gallery like the Agent dock', () => {
     render(<StudioPlaygroundWorkspace />);
 
     const container = screen
       .getByTestId('studio-composer')
       .closest('[data-layout-mode]');
 
-    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
+    expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
+    expect(container).toHaveAttribute('data-max-width', '4xl');
     expect(container).not.toHaveClass('bg-background');
+    expect(container).toHaveStyle({ zIndex: '40' });
     expect(container?.querySelector('[data-composer-top-fade]')).toBeNull();
   });
 
@@ -1657,7 +1676,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
   });
 
-  it('lists the generations beside the prompt, with no view toggle', () => {
+  it('defaults to the masonry grid and toggles the results into a list', async () => {
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
       refresh: vi.fn(),
@@ -1673,97 +1692,19 @@ describe('StudioPlaygroundWorkspace', () => {
     });
     render(<StudioPlaygroundWorkspace />);
 
-    expect(screen.getByTestId('studio-results')).toBeVisible();
-    expect(screen.getByTestId('studio-playground-empty-state')).toBeVisible();
-    expect(mocks.composer).toHaveBeenCalled();
+    expect(screen.getByTestId('studio-results').parentElement).toHaveClass(
+      'w-full',
+      'max-w-7xl',
+    );
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'grid' }),
     );
-  });
-
-  it('toggles the results into a list', async () => {
-    mocks.gallery.mockReturnValue({
-      isLoadingGallery: false,
-      refresh: vi.fn(),
-      storedJobs: [
-        {
-          createdAt: 1,
-          id: 'grid-1',
-          prompt: 'A still',
-          status: 'GENERATED',
-          type: 'image',
-        },
-      ],
-    });
-    render(<StudioPlaygroundWorkspace />);
 
     await selectView(userEvent.setup(), 'viewList');
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'list' }),
     );
-  });
-
-  it('opens a card on its own URL', () => {
-    const job = {
-      createdAt: 1,
-      id: 'card-1',
-      prompt: 'A still',
-      status: 'GENERATED',
-      type: 'image',
-    };
-    mocks.gallery.mockReturnValue({
-      isLoadingGallery: false,
-      refresh: vi.fn(),
-      storedJobs: [job],
-    });
-    render(<StudioPlaygroundWorkspace />);
-
-    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
-
-    expect(window.location.pathname).toBe('/acme/moonrise/playground/card-1');
-  });
-
-  it('puts the prompt in the agent column and the list in the output column', () => {
-    mocks.gallery.mockReturnValue({
-      isLoadingGallery: false,
-      refresh: vi.fn(),
-      storedJobs: [
-        {
-          createdAt: 1,
-          id: 'grid-1',
-          prompt: 'A still',
-          status: 'GENERATED',
-          type: 'image',
-        },
-      ],
-    });
-    render(
-      <AgentOutputHostContext
-        value={{
-          agent: <p>Shell conversation</p>,
-          contextPanel: <p>Shell context</p>,
-          isContextOpen: false,
-          onCloseContext: vi.fn(),
-          onNewThread: vi.fn(),
-          onOpenContext: vi.fn(),
-          onOpenFullPage: vi.fn(),
-          threadsPanel: <p>Shell threads</p>,
-        }}
-      >
-        <StudioPlaygroundWorkspace />
-      </AgentOutputHostContext>,
-    );
-
-    const agentPane = screen.getByTestId('agent-output-agent-pane');
-    const outputPane = screen.getByTestId('agent-output-output-pane');
-    expect(
-      within(agentPane).getByTestId('studio-playground-empty-state'),
-    ).toBeVisible();
-    expect(within(agentPane).getByTestId('studio-composer')).toBeVisible();
-    expect(within(agentPane).queryByText('Shell conversation')).toBeNull();
-    expect(within(outputPane).getByTestId('studio-results')).toBeVisible();
-    expect(within(outputPane).queryByTestId('studio-composer')).toBeNull();
   });
 
   it('prefills the composer from a card recipe on vary', async () => {
@@ -1794,10 +1735,11 @@ describe('StudioPlaygroundWorkspace', () => {
       storedJobs: [recipeJob],
     });
 
-    const { rerender } = await renderLoaded();
+    await renderLoaded({ wrapper: ContextSidebarHost });
 
     const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
       onReprompt: (job: typeof recipeJob) => void;
+      onSelect: (job: typeof recipeJob) => void;
     };
     act(() => resultsProps.onReprompt(recipeJob));
 
@@ -1812,7 +1754,7 @@ describe('StudioPlaygroundWorkspace', () => {
     );
     expect(screen.getByText('A founder at a desk')).toBeVisible();
 
-    rerender(<StudioPlaygroundWorkspace jobId="job-1" />);
+    act(() => resultsProps.onSelect(recipeJob));
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(1);
     act(() => {
@@ -1821,7 +1763,7 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
   });
 
-  it('opens the generation named in the URL without replacing the draft, and steps through the others by URL', () => {
+  it('opens and navigates one focused inspector without replacing the draft, then restores gallery focus and scroll', async () => {
     const jobs: StudioPlaygroundJob[] = ['image-9', 'image-10'].map((id) => ({
       createdAt: 1,
       id,
@@ -1842,44 +1784,114 @@ describe('StudioPlaygroundWorkspace', () => {
       refresh: vi.fn(),
       storedJobs: jobs,
     });
-    render(<StudioPlaygroundWorkspace jobId="image-9" />);
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
     act(() =>
       mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Keep this draft'),
     );
-
-    expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
-    expect(screen.getByText('Prompt for image-9')).toBeVisible();
-    expect(screen.queryByTestId('studio-results')).toBeNull();
-    expect(screen.getByTestId('studio-composer')).toBeVisible();
-
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(jobs[0]));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTop = 180;
+    scrollContainer.scrollTo = vi.fn();
+    const openButton = screen.getByRole('button', { name: 'Open preview' });
+    openButton.focus();
+    fireEvent.click(openButton);
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('studio-inspector')).toHaveLength(1);
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'Next focused asset' }));
-    expect(window.location.pathname).toBe('/acme/moonrise/playground/image-10');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
-    expect(window.location.pathname).toBe('/acme/moonrise/playground');
-
+    expect(screen.getByText('Prompt for image-10')).toBeVisible();
     expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
       'Keep this draft',
     );
     expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
     expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to gallery' }));
+    expect(screen.getByTestId('studio-results')).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Open preview' }),
+      ).toHaveFocus(),
+    );
+    expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 180 });
   });
 
-  it('says so when the generation in the URL is not in the gallery', () => {
+  it('keeps the focused preview open while the prompt is edited', () => {
+    const job: StudioPlaygroundJob = {
+      id: 'selected',
+      createdAt: 1,
+      prompt: 'Selected asset',
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+    };
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
       refresh: vi.fn(),
-      storedJobs: [],
+      storedJobs: [job],
     });
-    render(<StudioPlaygroundWorkspace jobId="gone" />);
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTo = vi.fn();
+    fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+    expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
 
-    expect(screen.queryByTestId('studio-focused-preview')).toBeNull();
-    expect(screen.getByText('focusedPreview.unavailable')).toBeVisible();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'focusedPreview.back' }),
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A new idea'),
     );
-    expect(window.location.pathname).toBe('/acme/moonrise/playground');
+
+    expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('A new idea');
   });
+
+  it.each(['brand', 'organization', 'session'])(
+    'does not revive a focused preview after switching %s away and back',
+    (scope) => {
+      const job: StudioPlaygroundJob = {
+        id: 'selected',
+        createdAt: 1,
+        prompt: 'Selected asset',
+        type: 'image',
+        status: IngredientStatus.GENERATED,
+      };
+      mocks.gallery.mockReturnValue({
+        isLoadingGallery: false,
+        refresh: vi.fn(),
+        storedJobs: [job],
+      });
+      const view = render(<StudioPlaygroundWorkspace />, {
+        wrapper: ContextSidebarHost,
+      });
+      act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+      const scrollContainer = screen
+        .getByTestId('studio-results')
+        .closest('[tabindex="-1"]') as HTMLDivElement;
+      scrollContainer.scrollTo = vi.fn();
+      fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+      expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+      const scopedValue =
+        scope === 'brand'
+          ? mocks.brandId
+          : scope === 'organization'
+            ? mocks.organizationId
+            : mocks.authIdentity;
+      const original = scopedValue.value;
+      scopedValue.value = `${original}-changed`;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      scopedValue.value = original;
+      view.rerender(<StudioPlaygroundWorkspace />);
+      expect(
+        screen.queryByTestId('studio-focused-preview'),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('studio-results')).toBeVisible();
+    },
+  );
 
   it('remixes a selected image as an image reference', async () => {
     const job = {
@@ -1903,9 +1915,11 @@ describe('StudioPlaygroundWorkspace', () => {
       storedJobs: [job],
     });
 
-    render(<StudioPlaygroundWorkspace jobId="image-9" />);
-    await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
-    await act(async () => {});
+    await renderLoaded({ wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
     fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
 
     expect(
@@ -2012,7 +2026,82 @@ describe('StudioPlaygroundWorkspace', () => {
     ).toBeInTheDocument();
   });
 
-  it('routes See Details to the URL of the same generation', () => {
+  it('hands a successful Inspector preview retry back to the gallery card', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      ingredientId: 'ing-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+      url: 'https://cdn.example/expired.png',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+    expect(mocks.results.mock.calls.at(-1)?.[0].previewRevisions).toEqual({});
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Report recovered preview' }),
+    );
+
+    const recovered = mocks.results.mock.calls.at(-1)?.[0];
+    expect(recovered.previewRevisions).toEqual({ 'job-7': 1 });
+    expect(recovered.jobs).toEqual([
+      expect.objectContaining({
+        id: 'job-7',
+        url: 'https://cdn.example/fresh.png',
+      }),
+    ]);
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it('opens the selected asset in the context sidebar and deselects on close', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(outlet).toBeEmptyDOMElement();
+
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+
+    // The panel renders in the shell's outlet, not beside the results grid.
+    expect(outlet).toContainElement(screen.getByTestId('studio-inspector'));
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'job-7',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+
+    expect(screen.queryByTestId('studio-inspector')).toBeNull();
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: null,
+    });
+  });
+
+  it('routes See Details to the same job inspector as the gallery card', () => {
     const ingredient = { id: 'saved-image' } as IIngredient;
     const job = {
       createdAt: 1,
@@ -2028,14 +2117,29 @@ describe('StudioPlaygroundWorkspace', () => {
       refresh: vi.fn(),
       storedJobs: [job],
     });
-    render(<StudioPlaygroundWorkspace />);
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
     const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
       onInspectIngredient: (asset: IIngredient) => void;
     };
     act(() => hookParams.onInspectIngredient(ingredient));
-    expect(window.location.pathname).toBe(
-      '/acme/moonrise/playground/local-job',
+    expect(screen.getByTestId('context-sidebar-outlet')).toContainElement(
+      screen.getByTestId('studio-inspector'),
     );
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'local-job',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    const latestParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onInspectIngredient: (asset: IIngredient) => void;
+    };
+    act(() => latestParams.onInspectIngredient(ingredient));
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
   });
 
   it('applies an Agent handoff end-to-end: switches type, prefills the prompt, falls back an unavailable model and unsupported params with a notice, and attaches the resolved reference (#4716 review)', async () => {

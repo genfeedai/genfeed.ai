@@ -1,6 +1,9 @@
 'use client';
 
-import { useAgentOutputHost } from '@contexts/ui/agent-output-host-context';
+import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
@@ -19,7 +22,6 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import {
-  APP_ROUTES,
   getImageEditMaxSources,
   getModelMaxAudioReferences,
   getModelMaxVideoReferences,
@@ -59,7 +61,7 @@ import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { usePromptBarResting } from '@hooks/prompt-bar/use-prompt-bar-resting/use-prompt-bar-resting';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -72,20 +74,25 @@ import {
   setGenerationSetupField,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
-import Container from '@ui/layout/container/Container';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
 import { Label } from '@ui/primitives/label';
-import { Skeleton } from '@ui/primitives/skeleton';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
-import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ImageIcon,
+  ImagePlus,
+  LayoutGrid,
+  RotateCcw,
+  Rows3,
+  Sparkles,
+  Video,
+} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -107,7 +114,6 @@ import StudioPlaygroundComposer from '@/features/studio/playground/components/St
 import StudioPlaygroundEmptyState from '@/features/studio/playground/components/StudioPlaygroundEmptyState';
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
-import StudioPlaygroundJobStatus from '@/features/studio/playground/components/StudioPlaygroundJobStatus';
 import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
 import { useCrunGenerationQuote } from '@/features/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
@@ -192,7 +198,6 @@ import type {
   StudioPlaygroundComposerProps,
   StudioPlaygroundFilter,
   StudioPlaygroundStarterSelection,
-  StudioPlaygroundWorkspaceProps,
 } from '@/features/studio/props/studio-playground.props';
 import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 
@@ -282,13 +287,8 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
   };
 }
 
-export default function StudioPlaygroundWorkspace({
-  jobId,
-}: StudioPlaygroundWorkspaceProps): ReactElement {
+export default function StudioPlaygroundWorkspace(): ReactElement {
   const editSourceQueryId = useSearchParams().get('editImage');
-  const router = useRouter();
-  const { href } = useOrgUrl();
-  const hasAgentColumn = Boolean(useAgentOutputHost());
   const translate = useTranslations('pages.studioPlayground');
   const translateRef = useRef(translate);
   translateRef.current = translate;
@@ -350,8 +350,12 @@ export default function StudioPlaygroundWorkspace({
   ]);
   const crunRestoreScopeRef = useRef(crunRestoreScope);
   const crunRestoreEpochRef = useRef(0);
+  // Counts scope switches only: composer edits bump the restore epoch too, and
+  // must not close an open focused preview.
+  const scopeEpochRef = useRef(0);
   if (crunRestoreScopeRef.current !== crunRestoreScope) {
     crunRestoreEpochRef.current += 1;
+    scopeEpochRef.current += 1;
     crunRestoreScopeRef.current = crunRestoreScope;
   }
   const [crunRestoreStatus, setCrunRestoreStatus] = useState<
@@ -375,10 +379,31 @@ export default function StudioPlaygroundWorkspace({
   const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
     ViewType.GRID,
   );
-  // The open generation lives in the URL: `/playground/[jobId]`.
-  const selectedJobId = jobId ?? null;
-  const isOpenGeneration = selectedJobId !== null;
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [focusedScope, setFocusedScope] = useState<string | null>(null);
+  // The scope epoch fences A → B → A changes without reviving the old selection.
+  const focusedScopeKey = `${crunRestoreScope}:${scopeEpochRef.current}`;
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
   const composerDockRef = useRef<HTMLDivElement>(null);
+  // The composer overlays the gallery, so the last card needs scroll room for
+  // however tall the composer currently is (it grows with attachments, notices
+  // and context rows).
+  const [composerHeight, setComposerHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const dock = composerDockRef.current;
+    if (!dock || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() =>
+      setComposerHeight(dock.offsetHeight),
+    );
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, []);
+  const composerResting = usePromptBarResting({
+    composerRef: composerDockRef,
+    scrollRef: galleryScrollRef,
+  });
+  const galleryPositionRef = useRef(0);
+  const focusReturnRef = useRef<HTMLElement | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentLibraryRole, setContentLibraryRole] =
     useState<StudioPlaygroundReferenceRole>('reference');
@@ -968,11 +993,12 @@ export default function StudioPlaygroundWorkspace({
     jobs: visibleJobs,
     recoverPreview,
   });
+  // Like the agent's new conversation, the cards stay up while a prompt is
+  // being written or seeded: they leave only when there is something to show.
+  const showEmptyState =
+    !galleryError && !isLoadingGallery && galleryJobs.length === 0;
   const starterOffering = starterOfferingKind(selectedBrand);
-  const generationHref = useCallback(
-    (id: string) => href(`${APP_ROUTES.STUDIO.PLAYGROUND}/${id}`),
-    [href],
-  );
+  const revealInspector = useContextSidebar()?.reveal;
   const handleInspectIngredient = useCallback(
     (ingredient: IIngredient) => {
       const job = visibleJobs.find(
@@ -980,9 +1006,12 @@ export default function StudioPlaygroundWorkspace({
           candidate.ingredientId === ingredient.id ||
           candidate.ingredient?.id === ingredient.id,
       );
-      if (job && job.id !== selectedJobId) router.push(generationHref(job.id));
+      if (job) {
+        setSelectedJobId(job.id);
+        if (job.id === selectedJobId) revealInspector?.();
+      }
     },
-    [generationHref, router, selectedJobId, visibleJobs],
+    [revealInspector, selectedJobId, visibleJobs],
   );
   const { transformActions, confirmation: transformConfirmation } =
     useStudioPlaygroundTransformActions({
@@ -1010,6 +1039,8 @@ export default function StudioPlaygroundWorkspace({
     () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
     [selectedJobId, visibleJobs],
   );
+  const isFocusedPreview =
+    focusedScope === focusedScopeKey && Boolean(selectedJob);
   const selectedRunJobs = useMemo(() => {
     if (!selectedJob) {
       return [];
@@ -1032,6 +1063,12 @@ export default function StudioPlaygroundWorkspace({
       ? visibleJobs.find((job) => job.ingredientId === parentId)
       : undefined;
   }, [selectedJob, visibleJobs]);
+
+  useEffect(() => {
+    if (selectedJobId && !selectedJob) {
+      setSelectedJobId(null);
+    }
+  }, [selectedJob, selectedJobId]);
 
   const referenceOrderRef = useRef<StudioReferenceMentionSource[]>([]);
   const orderedReferenceSources = useMemo(() => {
@@ -2591,15 +2628,34 @@ export default function StudioPlaygroundWorkspace({
     [applyRecipeContinuation, prepareContinuation],
   );
 
-  const handleSelectJob = useCallback(
-    (job: StudioPlaygroundJob) => {
-      if (job.id !== selectedJobId) router.push(generationHref(job.id));
-    },
-    [generationHref, router, selectedJobId],
-  );
-  const handleCloseGeneration = useCallback(() => {
-    router.push(href(APP_ROUTES.STUDIO.PLAYGROUND));
-  }, [href, router]);
+  const handleSelectJob = useCallback((job: StudioPlaygroundJob) => {
+    setSelectedJobId(job.id);
+  }, []);
+  const handleCloseInspector = useCallback(() => {
+    setSelectedJobId(null);
+    setFocusedScope(null);
+  }, []);
+  const handleOpenFocusedPreview = useCallback(() => {
+    focusReturnRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    galleryPositionRef.current = galleryScrollRef.current?.scrollTop ?? 0;
+    setFocusedScope(focusedScopeKey);
+    galleryScrollRef.current?.scrollTo({ top: 0 });
+  }, [focusedScopeKey]);
+  const handleCloseFocusedPreview = useCallback(() => {
+    setFocusedScope(null);
+    requestAnimationFrame(() => {
+      galleryScrollRef.current?.scrollTo({ top: galleryPositionRef.current });
+      const returnTarget = focusReturnRef.current?.isConnected
+        ? focusReturnRef.current
+        : (document.querySelector<HTMLElement>(
+            '[data-testid="studio-open-focused-preview"]',
+          ) ?? galleryScrollRef.current);
+      returnTarget?.focus({ preventScroll: true });
+    });
+  }, []);
   // Remix feeds a finished image back into the composer as an image
   // reference. Videos are not offered: a video reference is dropped again by
   // any model without video-reference support, including Auto.
@@ -2612,7 +2668,50 @@ export default function StudioPlaygroundWorkspace({
     [handleAttachGeneratedReference],
   );
 
+  const translateInspectorActions = useTranslations(
+    'common.videoCreativeActions.inspector',
+  );
   const composerContextGroups = useMemo(() => {
+    const selection: PromptBarContextItem[] = [];
+    if (selectedJob && !isFocusedPreview) {
+      const mention = studioJobToContentMention(selectedJob);
+      const isImage = selectedJob.type === 'image' && selectedJob.ingredient;
+      selection.push({
+        icon: <ImageIcon className="size-3.5" />,
+        id: `selected-${selectedJob.id}`,
+        isIconOnly: Boolean(mention?.thumbnailUrl && isImage),
+        label: studioAssetAccessibleLabel(selectedJob),
+        onRemove: handleCloseInspector,
+        onSelect: handleOpenFocusedPreview,
+        removeLabel: translate('composerContext.clearSelection'),
+        thumbnailUrl: isImage ? mention?.thumbnailUrl : undefined,
+      });
+      if (isImage && selectedJob.ingredient) {
+        const ingredient = selectedJob.ingredient;
+        selection.push(
+          {
+            icon: <Sparkles className="size-3.5" />,
+            id: 'variation',
+            label: translateInspectorActions('createVariation'),
+            onSelect: () => handleRemixJob(selectedJob),
+          },
+          {
+            icon: <Video className="size-3.5" />,
+            id: 'animate',
+            label: translateInspectorActions('animate'),
+            onSelect: () => assetActions.onConvertToVideo(ingredient),
+          },
+        );
+      }
+      if (canUseGeneratedReference(selectedJob)) {
+        selection.push({
+          icon: <ImagePlus className="size-3.5" />,
+          id: 'reference',
+          label: translate('useAsReference'),
+          onSelect: () => handleUseGeneratedReference(selectedJob),
+        });
+      }
+    }
     const recent: PromptBarContextItem[] =
       type === 'image'
         ? visibleJobs
@@ -2639,8 +2738,24 @@ export default function StudioPlaygroundWorkspace({
         items: recent,
         label: translate('composerContext.moreLike'),
       },
+      selection: selection.length
+        ? { id: 'selection', items: selection }
+        : undefined,
     };
-  }, [handleRemixJob, translate, type, visibleJobs]);
+  }, [
+    assetActions,
+    canUseGeneratedReference,
+    handleCloseInspector,
+    handleOpenFocusedPreview,
+    handleRemixJob,
+    handleUseGeneratedReference,
+    isFocusedPreview,
+    selectedJob,
+    translate,
+    translateInspectorActions,
+    type,
+    visibleJobs,
+  ]);
 
   const remixableVideos = attachments.filter(
     (attachment: AttachmentItem) =>
@@ -2649,165 +2764,40 @@ export default function StudioPlaygroundWorkspace({
       attachment.ingredientId,
   );
 
-  const newPane = (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <StudioPlaygroundEmptyState
-        brandId={brandId || undefined}
-        character={pickStarterCharacter(characterMentions)}
-        offeringKind={starterOffering}
-        onSelect={handleStarterIdea}
-        productReference={pickStarterProductReference(
-          selectedBrand?.references,
-        )}
-        type={type}
-      />
-      <div className="mt-auto shrink-0 px-3 pb-3">
-        <PromptBarContainer
-          className="mx-auto w-full max-w-2xl"
-          layoutMode="inflow"
-          maxWidth="full"
-          zIndex={60}
-        >
-          <div
-            ref={composerDockRef}
-            {...(capabilities.hasReferences ? dragHandlers : {})}
-          >
-            <StudioPlaygroundComposer
-              notice={
-                referenceValidation.errors.length > 0 ||
-                (prompt.trim() &&
-                  referenceValidation.unusedTokens.length > 0) ||
-                draftSaveStatus === 'error' ||
-                draftSaveStatus === 'failed' ||
-                crunRestoreStatus === 'failed' ||
-                remixableVideos.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-2 px-3.5 py-2">
-                    {referenceValidation.errors.map((error) => (
-                      <p
-                        key={error}
-                        role="alert"
-                        className="text-xs text-destructive"
-                        data-testid="studio-reference-mention-error"
-                      >
-                        {error}
-                      </p>
-                    ))}
-                    {prompt.trim() &&
-                    referenceValidation.unusedTokens.length > 0 ? (
-                      <p
-                        role="status"
-                        className="text-xs text-muted-foreground"
-                        data-testid="studio-reference-mention-notice"
-                      >
-                        {translate('referenceMentionNotice', {
-                          tokens: referenceValidation.unusedTokens.join(', '),
-                        })}
-                      </p>
-                    ) : null}
-                    {draftSaveStatus === 'error' ||
-                    draftSaveStatus === 'failed' ? (
-                      <p
-                        aria-live="polite"
-                        className="text-xs text-destructive"
-                        data-draft-status={draftSaveStatus}
-                        data-testid="studio-draft-status"
-                        role="status"
-                      >
-                        {draftSaveStatus === 'error'
-                          ? translate('draft.saveFailed')
-                          : translate('draft.saveRejected')}
-                      </p>
-                    ) : null}
-                    {crunRestoreStatus === 'failed' ? (
-                      <Label role="alert">
-                        {translate('crun.referenceUnavailable')}
-                      </Label>
-                    ) : null}
-                    {remixableVideos.map((attachment: AttachmentItem) => (
-                      <Button
-                        ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
-                        key={attachment.id}
-                        label={translateActions('remixThisVideo')}
-                        onClick={() => {
-                          if (attachment.ingredientId)
-                            void storyboardEntry.createFromUploadAssetId(
-                              attachment.ingredientId,
-                            );
-                        }}
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.SECONDARY}
-                        withWrapper={false}
-                      />
-                    ))}
-                  </div>
-                ) : null
-              }
-              attachedAssets={attachedAssets}
-              contextGroups={composerContextGroups}
-              crunQuote={crunModel ? crunQuote : undefined}
-              isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
-              isPromptInvalid={referenceValidation.errors.length > 0}
-              crunReferenceCount={crunPreparedIntent.referenceIds.length}
-              crunStartFrameId={crunPreparedIntent.referenceIds[0]}
-              crunEndFrameId={resolvedReferences.endFrameId}
-              documentSeed={documentSeed}
-              extraExtensions={composerExtensions}
-              isDragActive={capabilities.hasReferences && dragState.isActive}
-              isListening={isListening}
-              isLoadingModels={isLoadingModels}
-              isTranscribing={isTranscribing}
-              isUploading={isUploading}
-              models={models}
-              onAddFiles={handleAddFiles}
-              onOpenLibrary={handleOpenLibrary}
-              onPromptCommandContextChange={setPromptCommandContext}
-              onPromptChange={(value) => {
-                clearCrunRestore();
-                setPrompt(value);
-              }}
-              onPromptDocumentChange={(document) => {
-                promptDocumentRef.current = document;
-                setQuoteDocumentRevision((value) => value + 1);
-              }}
-              onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onResetSettings={() => {
-                clearCrunRestore();
-                resetSettings();
-              }}
-              onSettingsChange={(patch) => {
-                if (
-                  patch.modelKey !== undefined &&
-                  patch.modelKey !== settings.modelKey
-                )
-                  clearCrunRestore();
-                updateSettings(patch);
-              }}
-              isStopAvailable={stoppableJobs.length > 0}
-              isSubmitting={isSubmitting}
-              onStartListening={startListening}
-              onStopGeneration={handleStopGeneration}
-              onStopListening={stopListening}
-              onSubmit={handleSubmit}
-              onTypeChange={(value) => {
-                clearCrunRestore();
-                setType(value);
-              }}
-              prompt={prompt}
-              settings={settings}
-              isVoiceInputAvailable={isVoiceInputAvailable}
-              type={type}
-            />
-          </div>
-        </PromptBarContainer>
-      </div>
-    </div>
-  );
-
-  const outputPane = (
-    <Container
-      label={translate('title')}
-      leading={
-        isOpenGeneration ? undefined : (
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
+      <SectionTopbar
+        actions={
+          <SubbarControls
+            views={
+              <ViewMenu
+                activeView={resultsView}
+                onChange={(view) => {
+                  if (view === ViewType.GRID || view === ViewType.LIST) {
+                    setResultsView(view);
+                  }
+                }}
+                options={[
+                  {
+                    icon: <Rows3 className={SHELL_ICON_CLASS} />,
+                    label: translate('viewList'),
+                    type: ViewType.LIST,
+                  },
+                  {
+                    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
+                    label: translate('viewGrid'),
+                    type: ViewType.GRID,
+                  },
+                ]}
+              />
+            }
+          />
+        }
+        refresh={
+          <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
+        }
+        leading={
           <SearchField
             ariaLabel={translate('searchPlaceholder')}
             onChange={(event) => setSearch(event.target.value)}
@@ -2860,163 +2850,305 @@ export default function StudioPlaygroundWorkspace({
               }}
             />
           </SearchField>
-        )
-      }
-      moduleChrome
-      refresh={
-        <ButtonRefresh isRefreshing={isLoadingGallery} onClick={refresh} />
-      }
-      right={
-        isOpenGeneration ? undefined : (
-          <SubbarControls
-            views={
-              <ViewMenu
-                activeView={resultsView}
-                onChange={(view) => {
-                  if (view === ViewType.GRID || view === ViewType.LIST) {
-                    setResultsView(view);
-                  }
-                }}
-                options={[
-                  {
-                    icon: <Rows3 className={SHELL_ICON_CLASS} />,
-                    label: translate('viewList'),
-                    type: ViewType.LIST,
-                  },
-                  {
-                    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
-                    label: translate('viewGrid'),
-                    type: ViewType.GRID,
-                  },
-                ]}
-              />
-            }
-          />
-        )
-      }
-      titleVisibility="sr-only"
-    >
-      <div className="flex flex-col gap-4">
-        {isOpenGeneration && selectedJob ? (
-          <StudioPlaygroundFocusedPreview
-            job={selectedJob}
-            jobs={visibleJobs}
-            onClose={handleCloseGeneration}
-            onSelect={handleSelectJob}
-          >
-            <StudioPlaygroundJobStatus
-              assetActions={{
-                ...assetActions,
-                onCancelGeneration: cancelJob,
-              }}
-              job={selectedJob}
-              onReprompt={handleVaryRecipe}
-            />
-            <StudioPlaygroundInspector
-              isFocused
-              job={selectedJob}
-              onRemix={handleRemixJob}
-              onEdit={handleEditJob}
-              onAnimate={assetActions.onConvertToVideo}
-              onOpenInEditor={assetActions.onOpenInEditor}
-              transformActions={transformActions}
-              onPreviewRecovered={recoverPreview}
-              isUseAsReferenceEnabled={canUseGeneratedReference(selectedJob)}
-              onSelect={handleSelectJob}
-              onUseAsReference={handleUseGeneratedReference}
-              onUseInPost={assetActions.onPublishIngredient}
-              onVary={handleVaryRecipe}
-              parentJob={selectedParentJob}
-              runJobs={selectedRunJobs}
-            />
-          </StudioPlaygroundFocusedPreview>
-        ) : isOpenGeneration ? (
-          isLoadingGallery ? (
-            <Skeleton className="h-64 w-full" variant="rounded" />
-          ) : (
-            <EmptyState
-              title={translate('focusedPreview.unavailable')}
-              action={{
-                label: translate('focusedPreview.back'),
-                onClick: handleCloseGeneration,
-              }}
-            />
-          )
-        ) : (
-          <>
-            {galleryError ? (
-              <Alert role="alert">
-                <AlertTitle>
-                  {translate(`history.${galleryError}FailedTitle`)}
-                </AlertTitle>
-                <AlertDescription>
-                  <p>{translate(`history.${galleryError}FailedDescription`)}</p>
-                  <Button
-                    aria-busy={isLoadingGallery}
-                    ariaLabel={translate('history.retry')}
-                    className="mt-3"
-                    disabled={isLoadingGallery}
-                    icon={<RotateCcw aria-hidden="true" className="size-4" />}
-                    isLoading={isLoadingGallery}
-                    onClick={refresh}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
-                  >
-                    {translate('history.retry')}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {galleryError && isLoadingGallery ? (
-              <p
-                aria-live="polite"
-                className="text-sm text-muted-foreground"
-                role="status"
-              >
-                {translate('history.retrying')}
-              </p>
-            ) : null}
-            {!galleryError || visibleJobs.length > 0 ? (
-              <StudioPlaygroundResults
-                assetActions={{
-                  ...assetActions,
-                  onCancelGeneration: cancelJob,
-                }}
-                isLoading={isLoadingGallery}
-                isUseAsReferenceEnabled={canUseGeneratedReference}
-                jobs={recoveredJobs}
-                onReprompt={handleVaryRecipe}
-                onSelect={handleSelectJob}
-                onUseAsReference={handleUseGeneratedReference}
-                previewRevisions={previewRevisions}
-                selectedJobId={selectedJobId}
-                view={resultsView}
-              />
-            ) : null}
-          </>
-        )}
-      </div>
-    </Container>
-  );
+        }
+        title={translate('title')}
+      />
 
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <MasonryConfirmBridge key={crunRestoreScope} {...transformConfirmation} />
-      {hasAgentColumn ? (
-        <AgentOutputShell
-          agent={newPane}
-          agentTitle={translate('new')}
-          outputLabel={translate('generations')}
-        >
-          {outputPane}
-        </AgentOutputShell>
-      ) : (
-        <>
-          {outputPane}
-          {newPane}
-        </>
-      )}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div
+            ref={galleryScrollRef}
+            tabIndex={-1}
+            className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
+            style={
+              composerHeight === null
+                ? undefined
+                : { paddingBottom: Math.max(160, composerHeight + 40) }
+            }
+          >
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+              {isFocusedPreview && selectedJob ? (
+                <StudioPlaygroundFocusedPreview
+                  job={selectedJob}
+                  jobs={visibleJobs}
+                  onClose={handleCloseFocusedPreview}
+                  onSelect={handleSelectJob}
+                >
+                  <StudioPlaygroundInspector
+                    isFocused
+                    job={selectedJob}
+                    onRemix={handleRemixJob}
+                    onEdit={handleEditJob}
+                    onAnimate={assetActions.onConvertToVideo}
+                    onOpenInEditor={assetActions.onOpenInEditor}
+                    transformActions={transformActions}
+                    onPreviewRecovered={recoverPreview}
+                    isUseAsReferenceEnabled={canUseGeneratedReference(
+                      selectedJob,
+                    )}
+                    onSelect={handleSelectJob}
+                    onUseAsReference={handleUseGeneratedReference}
+                    onUseInPost={assetActions.onPublishIngredient}
+                    onVary={handleVaryRecipe}
+                    parentJob={selectedParentJob}
+                    runJobs={selectedRunJobs}
+                  />
+                </StudioPlaygroundFocusedPreview>
+              ) : (
+                <>
+                  {galleryError ? (
+                    <Alert role="alert">
+                      <AlertTitle>
+                        {translate(`history.${galleryError}FailedTitle`)}
+                      </AlertTitle>
+                      <AlertDescription>
+                        <p>
+                          {translate(
+                            `history.${galleryError}FailedDescription`,
+                          )}
+                        </p>
+                        <Button
+                          aria-busy={isLoadingGallery}
+                          ariaLabel={translate('history.retry')}
+                          className="mt-3"
+                          disabled={isLoadingGallery}
+                          icon={
+                            <RotateCcw aria-hidden="true" className="size-4" />
+                          }
+                          isLoading={isLoadingGallery}
+                          onClick={refresh}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        >
+                          {translate('history.retry')}
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                  {galleryError && isLoadingGallery ? (
+                    <p
+                      aria-live="polite"
+                      className="text-sm text-muted-foreground"
+                      role="status"
+                    >
+                      {translate('history.retrying')}
+                    </p>
+                  ) : null}
+                  {!showEmptyState &&
+                  (!galleryError || visibleJobs.length > 0) ? (
+                    <StudioPlaygroundResults
+                      assetActions={{
+                        ...assetActions,
+                        onCancelGeneration: cancelJob,
+                      }}
+                      isLoading={isLoadingGallery}
+                      jobs={recoveredJobs}
+                      isUseAsReferenceEnabled={canUseGeneratedReference}
+                      onReprompt={handleVaryRecipe}
+                      onSelect={handleSelectJob}
+                      onUseAsReference={handleUseGeneratedReference}
+                      previewRevisions={previewRevisions}
+                      selectedJobId={selectedJobId}
+                      view={resultsView}
+                    />
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
+          {showEmptyState && !isFocusedPreview ? (
+            <StudioPlaygroundEmptyState
+              brandId={brandId || undefined}
+              character={pickStarterCharacter(characterMentions)}
+              offeringKind={starterOffering}
+              onSelect={handleStarterIdea}
+              productReference={pickStarterProductReference(
+                selectedBrand?.references,
+              )}
+              type={type}
+            />
+          ) : null}
+          <PromptBarContainer
+            className="px-5 pb-5"
+            layoutMode="surface-fixed"
+            maxWidth="4xl"
+            zIndex={40}
+          >
+            <div
+              ref={composerDockRef}
+              {...(capabilities.hasReferences ? dragHandlers : {})}
+            >
+              <StudioPlaygroundComposer
+                notice={
+                  referenceValidation.errors.length > 0 ||
+                  (prompt.trim() &&
+                    referenceValidation.unusedTokens.length > 0) ||
+                  draftSaveStatus === 'error' ||
+                  draftSaveStatus === 'failed' ||
+                  crunRestoreStatus === 'failed' ||
+                  remixableVideos.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2 px-3.5 py-2">
+                      {referenceValidation.errors.map((error) => (
+                        <p
+                          key={error}
+                          role="alert"
+                          className="text-xs text-destructive"
+                          data-testid="studio-reference-mention-error"
+                        >
+                          {error}
+                        </p>
+                      ))}
+                      {prompt.trim() &&
+                      referenceValidation.unusedTokens.length > 0 ? (
+                        <p
+                          role="status"
+                          className="text-xs text-muted-foreground"
+                          data-testid="studio-reference-mention-notice"
+                        >
+                          {translate('referenceMentionNotice', {
+                            tokens: referenceValidation.unusedTokens.join(', '),
+                          })}
+                        </p>
+                      ) : null}
+                      {draftSaveStatus === 'error' ||
+                      draftSaveStatus === 'failed' ? (
+                        <p
+                          aria-live="polite"
+                          className="text-xs text-destructive"
+                          data-draft-status={draftSaveStatus}
+                          data-testid="studio-draft-status"
+                          role="status"
+                        >
+                          {draftSaveStatus === 'error'
+                            ? translate('draft.saveFailed')
+                            : translate('draft.saveRejected')}
+                        </p>
+                      ) : null}
+                      {crunRestoreStatus === 'failed' ? (
+                        <Label role="alert">
+                          {translate('crun.referenceUnavailable')}
+                        </Label>
+                      ) : null}
+                      {remixableVideos.map((attachment: AttachmentItem) => (
+                        <Button
+                          ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
+                          key={attachment.id}
+                          label={translateActions('remixThisVideo')}
+                          onClick={() => {
+                            if (attachment.ingredientId)
+                              void storyboardEntry.createFromUploadAssetId(
+                                attachment.ingredientId,
+                              );
+                          }}
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                          withWrapper={false}
+                        />
+                      ))}
+                    </div>
+                  ) : null
+                }
+                attachedAssets={attachedAssets}
+                contextGroups={composerContextGroups}
+                crunQuote={crunModel ? crunQuote : undefined}
+                isCrunRestoreBlocked={Boolean(crunRestoreStatus)}
+                isPromptInvalid={referenceValidation.errors.length > 0}
+                crunReferenceCount={crunPreparedIntent.referenceIds.length}
+                crunStartFrameId={crunPreparedIntent.referenceIds[0]}
+                crunEndFrameId={resolvedReferences.endFrameId}
+                documentSeed={documentSeed}
+                extraExtensions={composerExtensions}
+                isDragActive={capabilities.hasReferences && dragState.isActive}
+                isListening={isListening}
+                isResting={composerResting.isResting}
+                onExpand={composerResting.expand}
+                isLoadingModels={isLoadingModels}
+                isTranscribing={isTranscribing}
+                isUploading={isUploading}
+                models={models}
+                onAddFiles={handleAddFiles}
+                onOpenLibrary={handleOpenLibrary}
+                onPromptCommandContextChange={setPromptCommandContext}
+                onPromptChange={(value) => {
+                  clearCrunRestore();
+                  setPrompt(value);
+                }}
+                onPromptDocumentChange={(document) => {
+                  promptDocumentRef.current = document;
+                  setQuoteDocumentRevision((value) => value + 1);
+                }}
+                onRemoveAttachedAsset={handleRemoveAttachedAsset}
+                onResetSettings={() => {
+                  clearCrunRestore();
+                  resetSettings();
+                }}
+                onSettingsChange={(patch) => {
+                  if (
+                    patch.modelKey !== undefined &&
+                    patch.modelKey !== settings.modelKey
+                  )
+                    clearCrunRestore();
+                  updateSettings(patch);
+                }}
+                isStopAvailable={stoppableJobs.length > 0}
+                isSubmitting={isSubmitting}
+                onStartListening={startListening}
+                onStopGeneration={handleStopGeneration}
+                onStopListening={stopListening}
+                onSubmit={handleSubmit}
+                onTypeChange={(value) => {
+                  clearCrunRestore();
+                  setType(value);
+                }}
+                prompt={prompt}
+                settings={settings}
+                isVoiceInputAvailable={isVoiceInputAvailable}
+                type={type}
+              />
+            </div>
+          </PromptBarContainer>
+        </div>
+      </div>
+
+      <ContextSidebarPanel
+        onClose={handleCloseInspector}
+        selection={
+          selectedJob && !isFocusedPreview
+            ? {
+                id: selectedJob.id,
+                kind: 'asset',
+                // Card clicks, See Details and run-sibling picks select a job.
+                origin: 'user',
+                subtitle:
+                  selectedJob.modelKey || translate('inspector.autoModel'),
+                title: getStudioPlaygroundTypeConfig(selectedJob.type).label,
+              }
+            : null
+        }
+      >
+        {selectedJob && !isFocusedPreview ? (
+          <StudioPlaygroundInspector
+            job={selectedJob}
+            onOpenPreview={handleOpenFocusedPreview}
+            onPreviewRecovered={recoverPreview}
+            onRemove={assetActions.onRemoveGeneration}
+            onRemix={handleRemixJob}
+            onEdit={handleEditJob}
+            onAnimate={assetActions.onConvertToVideo}
+            onOpenInEditor={assetActions.onOpenInEditor}
+            transformActions={transformActions}
+            isUseAsReferenceEnabled={canUseGeneratedReference(selectedJob)}
+            onSelect={handleSelectJob}
+            onUseAsReference={handleUseGeneratedReference}
+            onUseInPost={assetActions.onPublishIngredient}
+            onVary={handleVaryRecipe}
+            parentJob={selectedParentJob}
+            runJobs={selectedRunJobs}
+          />
+        ) : null}
+      </ContextSidebarPanel>
+
       <ContentLibraryPicker
         description={
           contentLibraryRole === 'audioReference'
