@@ -267,6 +267,35 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
+  it('ends the table on Scheduled and leaves Content unsortable', () => {
+    render(<PublishingContentLibrary />);
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 3)).toEqual(['Content', 'Status', 'Scheduled']);
+    expect(
+      screen.queryByRole('columnheader', { name: 'Created' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Content' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the row tinted while its detail is open in the context sidebar', () => {
+    mocks.search = 'post=post-1';
+    render(<PublishingContentLibrary />);
+
+    expect(
+      screen
+        .getByRole('link', { name: 'Open Social launch copy' })
+        .closest('tr'),
+    ).toHaveClass('bg-accent');
+    expect(
+      screen.getByRole('link', { name: 'Open Launch guide' }).closest('tr'),
+    ).not.toHaveClass('bg-accent');
+  });
+
   it('opens a release title through the release query param, not the post editor route', () => {
     mocks.queryData = {
       ...collections,

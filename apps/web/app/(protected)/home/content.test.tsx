@@ -637,7 +637,35 @@ describe('OperationalHomeContent', () => {
     ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
   });
 
-  it('opens publication details from a publishing row', () => {
+  it('opens the post editor from a publishing row and leads it with the account avatar', () => {
+    mocks.publications = [
+      {
+        id: 'release_1',
+        status: ReleaseStatus.PUBLISHED,
+        targets: [
+          {
+            credential: {
+              externalHandle: 'acme_x',
+              id: 'cred_x',
+              platform: 'twitter',
+            },
+            id: 'post_1',
+            platform: 'twitter',
+          },
+        ],
+        title: 'Launch announcement',
+        updatedAt: '2026-09-24T12:00:00Z',
+      },
+    ] as unknown as IReleaseGroup[];
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).getByRole('link', { name: /Launch announcement/ }),
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/post_1');
+    expect(within(publishing).getByTitle('acme_x')).toBeInTheDocument();
+  });
+
+  it('opens publication details from a publishing row without targets', () => {
     mocks.publications = [
       {
         id: 'release_1',

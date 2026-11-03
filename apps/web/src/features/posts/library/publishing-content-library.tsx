@@ -374,6 +374,8 @@ export default function PublishingContentLibrary() {
     [getDetailHref, replaceQueryParam, router],
   );
 
+  const activeRowId =
+    parsedSearchParams.get('release') ?? parsedSearchParams.get('post');
   const selectedRelease =
     collections.releases?.find(
       (release) => release.id === parsedSearchParams.get('release'),
@@ -541,6 +543,7 @@ export default function PublishingContentLibrary() {
       className: 'w-full md:w-auto',
       header: 'Content',
       key: 'title',
+      sortable: false,
       render: (item) => (
         <PublishingPostHoverPreview
           post={postsById.get(item.id)}
@@ -580,12 +583,6 @@ export default function PublishingContentLibrary() {
       header: 'Scheduled',
       key: 'scheduledAt',
       render: (item) => <TableDateCell value={item.scheduledAt} />,
-    },
-    {
-      className: 'hidden md:table-cell',
-      header: 'Created',
-      key: 'createdAt',
-      render: (item) => <TableDateCell value={item.createdAt} />,
     },
   ];
 
@@ -740,7 +737,9 @@ export default function PublishingContentLibrary() {
           columns={columns}
           items={attentionItems}
           renderRowActions={renderRowActions}
+          getItemId={(item) => item.id}
           getRowKey={(item) => `${item.type}:${item.id}`}
+          activeRowId={activeRowId}
           onRowClick={openRowOverlay}
         />
       </CollectionSection>
@@ -784,7 +783,9 @@ export default function PublishingContentLibrary() {
             columns={columns}
             emptyLabel="No posts found"
             emptyState={emptyState}
+            getItemId={(item) => item.id}
             getRowKey={(item) => `${item.type}:${item.id}`}
+            activeRowId={activeRowId}
             isLoading={isLoading}
             items={pageItems}
             onRowClick={openRowOverlay}

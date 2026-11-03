@@ -17,7 +17,7 @@ import { TableRowActionsCell } from '@ui/display/table/TableRowActionsCell';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -133,6 +133,7 @@ export default function AppTable<T>({
   getRowLink,
   rowSidebar,
   onRowClick,
+  activeRowId,
   renderExpandedRow,
   hideHeader = false,
   isHeaderPinned = false,
@@ -566,8 +567,8 @@ export default function AppTable<T>({
                   const isActiveSort = activeSortKey === columnKey;
                   const SortIcon = isActiveSort
                     ? activeSortDirection === 'asc'
-                      ? ArrowUp
-                      : ArrowDown
+                      ? ChevronUp
+                      : ChevronDown
                     : ChevronsUpDown;
 
                   return (
@@ -581,17 +582,26 @@ export default function AppTable<T>({
                           : undefined
                       }
                       className={cn(
-                        'h-10 select-none text-left align-middle text-xs font-medium text-muted-foreground',
-                        isCompact ? 'px-2' : 'px-4',
+                        'h-10 select-none text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
+                        // A sortable header hands its padding to the button so
+                        // the click target and focus ring span the whole cell.
+                        isColumnSortableNow
+                          ? 'p-0'
+                          : isCompact
+                            ? 'px-2'
+                            : 'px-4',
                         column.className,
                       )}
                     >
                       {isColumnSortableNow ? (
                         <Button
                           ariaLabel={column.sortLabel}
-                          className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+                          className={cn(
+                            'group flex h-10 w-full items-center gap-1 text-left text-xs font-medium tracking-wide text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                            isCompact ? 'px-2' : 'px-4',
+                          )}
                           onClick={() => handleSort(columnKey)}
-                          textTransform="none"
+                          textTransform="uppercase"
                           variant={ButtonVariant.UNSTYLED}
                           withWrapper={false}
                         >
@@ -629,9 +639,12 @@ export default function AppTable<T>({
                 const coverLink = rowSidebar ? undefined : rowLink;
                 const nameLink = rowSidebar ? rowLink : undefined;
                 const isSidebarRow =
-                  rowSidebar !== undefined &&
-                  isSidebarOpen &&
-                  sidebarRowId === rowSidebar.getId(item);
+                  (rowSidebar !== undefined &&
+                    isSidebarOpen &&
+                    sidebarRowId === rowSidebar.getId(item)) ||
+                  (activeRowId != null &&
+                    getItemId !== undefined &&
+                    getItemId(item) === activeRowId);
                 const rowKey = getRowKey ? getRowKey(item, index) : index;
                 const expandedContent = renderExpandedRow?.(item);
                 const groupHeading = getGroupHeading?.(item) ?? null;
@@ -659,7 +672,10 @@ export default function AppTable<T>({
                     <tr
                       className={cn(
                         'group transition-colors duration-200 odd:bg-card/50 hover:bg-accent/60',
-                        (isSelected || isSidebarRow) && 'bg-accent',
+                        // `odd:bg-card/50` outranks a bare `bg-accent`, so the tint is
+                        // repeated on odd rows or the first row never shows it.
+                        (isSelected || isSidebarRow) &&
+                          'bg-accent odd:bg-accent',
                         // A linked row positions the overlay anchor below; the
                         // click affordance comes from the anchor, not the row.
                         coverLink && 'relative cursor-pointer',
