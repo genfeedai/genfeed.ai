@@ -135,6 +135,7 @@ export default function AgentOutputLayout({
             isOutputCollapsed && 'hidden',
           )}
           data-testid="agent-output-output-pane"
+          hidden={isOutputCollapsed}
         >
           {hasOutputHeader ? (
             <header className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-b border-border px-4 py-2">

@@ -45,7 +45,7 @@ describe('Clips theme contract', () => {
     );
 
     expect(source).toContain(
-      "from '@ui/prompt-bars/components/shell/PromptBarComposer'",
+      "from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar'",
     );
     expect(source).not.toContain("from '@ui/card/Card'");
     expect(source).not.toContain('max-w-3xl');
