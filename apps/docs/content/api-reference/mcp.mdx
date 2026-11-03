@@ -162,6 +162,63 @@ What a spec-compliant client can rely on:
 - **Revocation (RFC 7009).** `POST /v1/oauth/revoke` with the refresh token
   ends the connection. Revoking the key from your instance's API key settings
   has the same effect.
+- **Enterprise-managed authorization (jwt-bearer).** An organization owner can
+  let their identity provider, or Claude itself, sign members in without a
+  consent screen. Discovery lists
+  `urn:ietf:params:oauth:grant-type:jwt-bearer` in `grant_types_supported`. See
+  [Enterprise-managed authorization](#enterprise-managed-authorization).
+
+
+### Enterprise-managed authorization
+
+Enterprise-managed authorization lets a member of your organization use the
+Genfeed connector without a consent screen. The client sends a signed identity
+assertion (an ID-JAG, `typ` `oauth-id-jag+jwt`) to the token endpoint with the
+RFC 7523 `jwt-bearer` grant and gets an access token back. It is available
+only to clients whose metadata document declares the `jwt-bearer` grant, such
+as the Claude connector; dynamically registered clients cannot use it.
+
+Set it up as the organization owner:
+
+1. Read your values: `GET /v1/organizations/{organizationId}/settings/mcp-enterprise-auth`
+   returns the `tenantId` (your organization id), the `audience` (the issuer
+   the assertion must be addressed to), the `resource` and the `tokenEndpoint`.
+2. Register the issuer that signs your assertions: `PUT` the same path with
+   `{ "isEnabled": true, "trustedIssuer": "<issuer URL>" }`. For an identity
+   provider this is its issuer URL; for assertions signed by Claude it is
+   `https://identity.anthropic.com/issuers/<issuer-id>`. Enter the issuer
+   exactly as it signs, trailing slash included.
+3. Enter the `tenantId` as the tenant id in the connector settings so the
+   assertion names your organization (`aud_tenant`). Without it the issuer
+   must belong to exactly one Genfeed organization.
+
+`DELETE` on the same path removes the setup. Only organization owners (and
+platform superadmins) can read or change it, because whoever controls the
+trusted issuer can sign in as any member of the organization.
+
+What the token endpoint checks, in order, refusing anything else with
+`invalid_grant`:
+
+- the issuer is registered and enabled for one organization (or `aud_tenant`
+  names the organization registered for it);
+- the signature verifies against keys published at the issuer's
+  `/.well-known/openid-configuration` `jwks_uri` (ES256 or RS256 only, never
+  keys named in the assertion itself) and `typ` is `oauth-id-jag+jwt`;
+- `aud` is exactly this server's issuer, and `client_id` matches the request;
+- `exp`, `iat` and `nbf` hold within 60 seconds of skew, and the assertion
+  does not outlive an hour;
+- the assertion carries `sub`, `jti` and `email`, and has no `cnf` claim
+  (sender-constrained assertions are not supported);
+- the `email` belongs to an active, verified member of that organization. No
+  account is created and `sub` is not used to find the member;
+- the `jti` has not been used before for that issuer.
+
+The access token is bound to that member and organization, uses the member's
+current brand as its default, and lasts one hour. No refresh token is issued:
+the client sends a fresh assertion when the token expires, so removing a member
+from the organization or the identity provider takes effect within the hour.
+Scopes are the requested (or asserted) scopes that fit the connector's ceiling,
+and `invalid_scope` is returned when none do.
 
 The OAuth issuer and redirect URLs are derived from your public URL
 configuration, so they must be reachable from the browser doing the sign-in.

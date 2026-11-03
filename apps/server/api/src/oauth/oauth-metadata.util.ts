@@ -1,3 +1,4 @@
+import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import {
   deriveClaudeMcpResourceIdentifier,
@@ -92,6 +93,22 @@ export function canonicalizeRequestedMcpResource(resource: string): string {
   return trimTrailingSlash(`${url.origin}${url.pathname}`);
 }
 
+/**
+ * The canonical MCP resource a client named, or `undefined` when it is not one
+ * this server protects (the standard MCP endpoint or its Claude variant).
+ */
+export function resolveAdvertisedMcpResource(
+  configService: Pick<ConfigService, 'get'>,
+  requested: string,
+): string | undefined {
+  const resource = canonicalizeRequestedMcpResource(requested);
+  const standard = resolveMcpResourceUrl(configService);
+  return resource === standard ||
+    resource === deriveClaudeMcpResourceIdentifier(standard)
+    ? resource
+    : undefined;
+}
+
 export function buildOAuthAuthorizationServerMetadata(
   configService: Pick<ConfigService, 'get'>,
 ) {
@@ -137,7 +154,11 @@ export function buildOAuthAuthorizationServerMetadata(
     client_id_metadata_document_supported: true,
     authorization_endpoint: `${issuer}/v1/oauth/authorize`,
     code_challenge_methods_supported: ['S256'],
-    grant_types_supported: ['authorization_code', 'refresh_token'],
+    grant_types_supported: [
+      'authorization_code',
+      'refresh_token',
+      JWT_BEARER_GRANT_TYPE,
+    ],
     issuer,
     op_policy_uri: `${websiteUrl}/privacy`,
     op_tos_uri: `${websiteUrl}/terms`,

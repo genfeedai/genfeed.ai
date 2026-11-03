@@ -1,3 +1,4 @@
+import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import {
   IsOptional,
   IsString,
@@ -13,6 +14,10 @@ function requiresAuthorizationCode(dto: OAuthTokenExchangeDto): boolean {
 
 function requiresRefreshToken(dto: OAuthTokenExchangeDto): boolean {
   return dto.grant_type === 'refresh_token';
+}
+
+function requiresAssertion(dto: OAuthTokenExchangeDto): boolean {
+  return dto.grant_type === JWT_BEARER_GRANT_TYPE;
 }
 
 export class OAuthTokenExchangeDto {
@@ -61,6 +66,13 @@ export class OAuthTokenExchangeDto {
   @MaxLength(512)
   refresh_token?: string;
 
+  /** RFC 7523 signed assertion for the enterprise-managed (jwt-bearer) grant. */
+  @ValidateIf(requiresAssertion)
+  @IsString()
+  @MinLength(16)
+  @MaxLength(16_384)
+  assertion?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(1024)
@@ -79,6 +91,20 @@ export type OAuthRefreshTokenGrant = OAuthTokenExchangeDto & {
   grant_type: 'refresh_token';
   refresh_token: string;
 };
+
+export type OAuthJwtBearerGrant = OAuthTokenExchangeDto & {
+  assertion: string;
+  grant_type: typeof JWT_BEARER_GRANT_TYPE;
+};
+
+export function isJwtBearerGrant(
+  dto: OAuthTokenExchangeDto,
+): dto is OAuthJwtBearerGrant {
+  return (
+    dto.grant_type === JWT_BEARER_GRANT_TYPE &&
+    typeof dto.assertion === 'string'
+  );
+}
 
 export function isAuthorizationCodeGrant(
   dto: OAuthTokenExchangeDto,

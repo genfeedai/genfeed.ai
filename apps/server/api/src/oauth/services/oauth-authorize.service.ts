@@ -9,11 +9,11 @@ import {
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { buildMcpOAuthSessionMetadata } from '@api/oauth/mcp-oauth-session-metadata.util';
 import {
-  canonicalizeRequestedMcpResource,
-  resolveMcpResourceUrl,
+  resolveAdvertisedMcpResource,
   resolveOAuthAppUrl,
   resolveOAuthIssuerUrl,
 } from '@api/oauth/oauth-metadata.util';
+import { clampMcpScopes } from '@api/oauth/oauth-scope.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActionOrigin,
@@ -21,14 +21,8 @@ import {
   ApiKeyScope,
   MemberRole,
 } from '@genfeedai/contracts';
-import {
-  API_KEY_SCOPE_PRESETS,
-  MCP_CLAUDE_SCOPE_CEILING,
-} from '@genfeedai/contracts/constants';
-import {
-  deriveClaudeMcpResourceIdentifier,
-  resolveMcpAccessModeForResource,
-} from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,
@@ -345,12 +339,11 @@ export class OAuthAuthorizeService {
 
   /** Returns the canonical resource the grant is bound to. */
   private assertResource(requested: string): string {
-    const resource = canonicalizeRequestedMcpResource(requested);
-    const standard = resolveMcpResourceUrl(this.configService);
-    if (
-      resource !== standard &&
-      resource !== deriveClaudeMcpResourceIdentifier(standard)
-    ) {
+    const resource = resolveAdvertisedMcpResource(
+      this.configService,
+      requested,
+    );
+    if (!resource) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
     return resource;
@@ -385,16 +378,7 @@ export class OAuthAuthorizeService {
   }
 
   private clampScopes(scope: string | undefined, resource: string): string[] {
-    const ceiling =
-      resolveMcpAccessModeForResource(resource) === 'claude'
-        ? MCP_CLAUDE_SCOPE_CEILING
-        : API_KEY_SCOPE_PRESETS.mcp;
-    const requested = scope
-      ? Array.from(new Set(scope.split(/\s+/).filter(Boolean)))
-      : [...ceiling];
-    const granted = requested.filter((candidate) =>
-      ceiling.includes(candidate),
-    );
+    const granted = clampMcpScopes(scope, resource);
     if (granted.length === 0) {
       throw oauthError('invalid_scope', 'No supported scopes were requested');
     }

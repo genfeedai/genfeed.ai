@@ -198,7 +198,7 @@ describe('OAuth CIMD clients', () => {
     ).rejects.toMatchObject({ response: { error: 'invalid_request' } });
   });
 
-  it('accepts the real Claude metadata document and drops unsupported grant types', async () => {
+  it('accepts the real Claude metadata document and keeps its jwt-bearer grant', async () => {
     const claudeId = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
     const claudeDocument = {
       client_id: claudeId,
@@ -219,8 +219,24 @@ describe('OAuth CIMD clients', () => {
     ).resolves.toMatchObject({
       clientId: claudeId,
       clientName: 'Claude',
-      grantTypes: ['authorization_code', 'refresh_token'],
+      grantTypes: [
+        'authorization_code',
+        'refresh_token',
+        'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      ],
     });
+  });
+
+  it('drops grant types this server does not implement', async () => {
+    vi.mocked(safeFetch).mockResolvedValue(
+      documentResponse({
+        ...metadata,
+        grant_types: ['authorization_code', 'implicit'],
+      }),
+    );
+    await expect(buildService().requireClient(clientId)).resolves.toMatchObject(
+      { grantTypes: ['authorization_code'] },
+    );
   });
 
   it('rejects a document that does not offer the authorization_code grant', async () => {

@@ -1,6 +1,7 @@
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { OrganizationsLogoController } from '@api/collections/organizations/controllers/organizations-logo.controller';
+import { OrganizationsMcpEnterpriseAuthController } from '@api/collections/organizations/controllers/organizations-mcp-enterprise-auth.controller';
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
 import { OrganizationsOperationsController } from '@api/collections/organizations/controllers/organizations-operations.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
@@ -78,6 +79,7 @@ describe('Organizations split controllers', () => {
     ).toEqual([
       OrganizationsIntegrationsController,
       OrganizationsLogoController,
+      OrganizationsMcpEnterpriseAuthController,
       OrganizationsMembersController,
       OrganizationsOperationsController,
       OrganizationsRelationshipsController,

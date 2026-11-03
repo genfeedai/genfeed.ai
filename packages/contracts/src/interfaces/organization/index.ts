@@ -9,6 +9,7 @@ export * from './byok-provider-status.interface';
 export * from './byok-resolution-result.interface';
 export * from './conversation.interface';
 export * from './credential.interface';
+export * from './mcp-enterprise-auth.interface';
 export * from './member.interface';
 export * from './organization.interface';
 export * from './organization-category-seed.interface';

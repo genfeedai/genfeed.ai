@@ -37,6 +37,7 @@ describe('OAuth metadata', () => {
     expect(metadata.grant_types_supported).toEqual([
       'authorization_code',
       'refresh_token',
+      'urn:ietf:params:oauth:grant-type:jwt-bearer',
     ]);
     expect(metadata.token_endpoint_auth_methods_supported).toEqual(['none']);
     expect(metadata.revocation_endpoint).toBe(
