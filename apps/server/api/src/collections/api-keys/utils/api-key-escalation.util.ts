@@ -20,9 +20,11 @@ function deny(detail: string): never {
  * never with more reach than it has itself: scopes must be a subset of its
  * own, and an IP allowlist or expiry on the caller must carry over.
  *
- * The DTOs are `@IsOptional()`, which lets JSON `null` through. On create
- * `null` means "omitted" (the service falls back to its defaults); on update
- * `undefined` is "unchanged" and `null` is an explicit clear.
+ * The DTOs reject JSON `null` on these fields (`@IsOmittable()`, #7137), so a
+ * request normally arrives with a value or `undefined`. The `null` handling
+ * below stays as a fail-closed backstop for callers that skip the DTO pipe:
+ * on create `null` means "omitted" (the service falls back to its defaults); on
+ * update `undefined` is "unchanged" and `null` is an attempt to clear.
  */
 export function assertKeyWithinCaller(
   callerKey: Pick<ApiKeyDocument, 'allowedIps' | 'expiresAt' | 'scopes'> | null,

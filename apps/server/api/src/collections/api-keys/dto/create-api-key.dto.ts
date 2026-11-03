@@ -1,12 +1,14 @@
+import {
+  ApiKeyAllowedIpsField,
+  ApiKeyExpiresAtField,
+  ApiKeyScopesField,
+} from '@api/collections/api-keys/dto/api-key-reach.decorators';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiKeyCategory } from '@genfeedai/contracts';
 import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsArray,
-  IsDateString,
   IsEnum,
-  IsIn,
   IsNumber,
   IsObject,
   IsOptional,
@@ -54,10 +56,7 @@ export class CreateApiKeyDto {
     isArray: true,
     required: false,
   })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @IsIn([...SELF_SERVICE_API_KEY_SCOPES], { each: true })
+  @ApiKeyScopesField()
   readonly scopes?: string[];
 
   @ApiProperty({
@@ -65,8 +64,7 @@ export class CreateApiKeyDto {
     example: '2025-12-31T23:59:59Z',
     required: false,
   })
-  @IsOptional()
-  @IsDateString()
+  @ApiKeyExpiresAtField()
   readonly expiresAt?: string;
 
   @ApiProperty({
@@ -84,9 +82,7 @@ export class CreateApiKeyDto {
     example: ['192.168.1.1'],
     required: false,
   })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
+  @ApiKeyAllowedIpsField()
   readonly allowedIps?: string[];
 
   @ApiProperty({
