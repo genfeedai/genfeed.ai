@@ -414,6 +414,7 @@ function SummaryCard({
     <article className="content-card min-w-0">
       <Card
         data-testid="preview-card"
+        isHeaderInside
         className="h-full"
         bodyClassName="h-full"
         icon={
@@ -675,6 +676,7 @@ function CardPreview({
         label={title}
         labelAs="h2"
         isLabelWrapped
+        isHeaderInside
         headerAction={
           !isMedia && current.status ? (
             <Badge variant="outline" className="status">
@@ -1104,6 +1106,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                   <Card
                     labelAs="h2"
                     isLabelWrapped
+                    isHeaderInside
                     isSelected={day.date === localDayKey(new Date())}
                     className={
                       day.date !== localDayKey(new Date()) && !day.posts.length

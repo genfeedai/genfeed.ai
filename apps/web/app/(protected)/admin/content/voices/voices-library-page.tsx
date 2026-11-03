@@ -210,7 +210,7 @@ function VoicesLibraryPageContent() {
           }
         />
       }
-      dropdowns={
+      secondaryActions={
         <VoicesSyncMenu
           isSyncingAll={isSyncingAll}
           syncingProvider={syncingProvider}

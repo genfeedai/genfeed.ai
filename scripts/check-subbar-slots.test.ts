@@ -48,6 +48,44 @@ describe('findSubbarSlotViolations', () => {
     ).toEqual([]);
   });
 
+  it('flags a date range picker in the Filters menu or the free-form controls', () => {
+    expect(
+      findSubbarSlotViolations(
+        FILE,
+        'export const a = <AdminPageShell filters={<><FilterMenu facets={[]} /><DateRangePicker /></>} />;',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        message: expect.stringContaining('`dateRange` slot'),
+      }),
+    ]);
+    expect(
+      findSubbarSlotViolations(
+        FILE,
+        'export const a = <Container right={<FormDateRangePicker />} />;',
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        message: expect.stringContaining('`dateRange` slot'),
+      }),
+    ]);
+  });
+
+  it('accepts a date range picker in the dateRange slot', () => {
+    expect(
+      findSubbarSlotViolations(
+        FILE,
+        'export const a = <AdminPageShell dateRange={<DateRangePicker />} />;',
+      ),
+    ).toEqual([]);
+    expect(
+      findSubbarSlotViolations(
+        FILE,
+        'export const a = <Container right={<SubbarControls dateRange={<DateRangePicker />} />} />;',
+      ),
+    ).toEqual([]);
+  });
+
   it('ignores controls on components that are not subbars', () => {
     expect(
       findSubbarSlotViolations(

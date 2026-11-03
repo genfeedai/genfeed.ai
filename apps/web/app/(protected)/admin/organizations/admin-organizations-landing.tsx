@@ -35,7 +35,7 @@ function AdminOrganizationsLandingContent() {
         onRefresh={triggerRefresh}
         isRefreshing={isRefreshing}
         search={searchNode}
-        dropdowns={
+        dateRange={
           <DateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

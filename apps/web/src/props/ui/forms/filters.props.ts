@@ -10,6 +10,8 @@ export interface FiltersBarProps {
   className?: string;
   /** Sits inside a search field's trailing edge: a compact trigger, no own wrapper spacing. */
   isAttached?: boolean;
+  /** Adds the admin organization and brand facets to the Filters menu (see `FilterMenuProps`). */
+  hasAdminScope?: boolean;
   visibleFilters?: {
     /** Read by pages to decide whether to render `FiltersSearch`, which carries the Filters menu inside its field; the menu alone has no search. */
     search?: boolean;

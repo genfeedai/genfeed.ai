@@ -113,13 +113,18 @@ function OrganizationDetailPageContent({
             value={spendingPeriodDays}
           />
         ) : (
-          <>
-            {toolbarNode}
-            <DateRangePicker
-              onChange={setDateRange}
-              defaultPreset={Timeframe.D7}
-            />
-          </>
+          toolbarNode
+        )
+      }
+      dateRange={
+        isSettingsTab ||
+        isLearningTab ||
+        isLibraryTab ||
+        isSpendingTab ? undefined : (
+          <DateRangePicker
+            onChange={setDateRange}
+            defaultPreset={Timeframe.D7}
+          />
         )
       }
     >

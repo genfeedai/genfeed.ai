@@ -181,9 +181,12 @@ describe('SettingsSubscriptionPage', () => {
       portal.compareDocumentPosition(upgrade) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      screen.getByText('Current Plan').closest('[class*="border"]'),
-    ).toContainElement(upgrade);
+    // The title sits above the card surface, in the same section.
+    const surface = upgrade.closest('.rounded-card');
+    expect(surface).not.toBeNull();
+    expect(surface?.parentElement).toContainElement(
+      screen.getByText('Current Plan'),
+    );
     expect(
       screen.queryByRole('heading', { name: 'Plans' }),
     ).not.toBeInTheDocument();

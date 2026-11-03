@@ -219,6 +219,7 @@ export default function LibraryFiltersMenu({
       clearLabel={translate('clearAllFilters')}
       facets={facets}
       getActiveCountLabel={(count) => translate('activeFilterCount', { count })}
+      hasAdminScope={isAdminScope}
       isAttached={isAttached}
       label={translate('filters')}
       onClear={onClearAllFilters}

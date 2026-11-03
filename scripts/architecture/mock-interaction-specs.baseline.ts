@@ -755,7 +755,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'packages/services/social/messages.service.test.ts',
   'packages/services/turbo/turbo-runs.service.spec.ts',
   'packages/storage/src/local-storage.provider.spec.ts',
-  'apps/web/src/components/content/admin-filters/AdminOrgBrandUrlFilter.test.tsx',
   'apps/web/src/components/guards/onboarding/OnboardingGuard.test.tsx',
   'apps/web/src/components/guards/organization-module/OrganizationModulePreferenceGate.test.tsx',
   'apps/web/src/features/ingredients/components/ingredients/list/selection-actions-bar/SelectionTagAction.test.tsx',

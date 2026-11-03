@@ -12,7 +12,8 @@ import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
  *   no header is drawn inside the content.
  * - Filters live in the subbar, never in the content.
  * - Controls keep one order: the "..." menu, refresh, then
- *   {@link SubbarControls} (dropdowns, Filters menu, views, primary CTA).
+ *   {@link SubbarControls} (secondary actions, Filters menu, views, date
+ *   range, primary CTA).
  *   Search is the persistent search field on the left, with the page's
  *   Filters menu inside it.
  */
@@ -25,15 +26,17 @@ export default function AdminPageShell({
   onRefresh,
   isRefreshing = false,
   overflow,
-  dropdowns,
+  secondaryActions,
   views,
+  dateRange,
   primaryAction,
   children,
 }: AdminPageShellProps) {
   const hasRight =
-    Boolean(dropdowns) ||
+    Boolean(secondaryActions) ||
     Boolean(filters) ||
     Boolean(views) ||
+    Boolean(dateRange) ||
     Boolean(primaryAction);
 
   return (
@@ -54,9 +57,10 @@ export default function AdminPageShell({
       right={
         hasRight ? (
           <SubbarControls
-            dropdowns={dropdowns}
+            secondaryActions={secondaryActions}
             filters={filters}
             views={views}
+            dateRange={dateRange}
             primaryAction={primaryAction}
           />
         ) : undefined

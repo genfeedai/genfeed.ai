@@ -26,14 +26,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       onRefresh={triggerRefresh}
       isRefreshing={isRefreshing}
       search={searchNode}
-      filters={
-        <>
-          {toolbarNode}
-          <DateRangePicker
-            onChange={setDateRange}
-            defaultPreset={Timeframe.D7}
-          />
-        </>
+      filters={toolbarNode}
+      dateRange={
+        <DateRangePicker onChange={setDateRange} defaultPreset={Timeframe.D7} />
       }
     >
       {children}

@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
 /**
  * Admin page chrome. Every admin page puts its title in the shell breadcrumb
  * and its controls in the subbar, in one fixed order: the "..." menu, refresh,
- * then the `SubbarControls` cluster (the dropdowns, org filter first, the one
- * Filters menu, the view switcher, the primary CTA last). Slots instead of a
+ * then the `SubbarControls` cluster (secondary actions, the one Filters menu,
+ * the view switcher, the date range, the primary CTA last). Slots instead of a
  * free-form `right` node, so a page cannot reorder them.
  */
 export interface AdminPageShellProps {
@@ -23,10 +23,12 @@ export interface AdminPageShellProps {
   isRefreshing?: boolean;
   /** The "..." menu (`SubbarOverflowMenu`) with the page's download, export and import; the first control. */
   overflow?: ReactNode;
-  /** Dropdown filters such as the organization picker. */
-  dropdowns?: ReactNode;
-  /** List/grid view toggle, after the dropdowns and before the primary action. */
+  /** Actions that are not the primary one (a sync menu, a bulk move). Filters never go here: they are facets of the Filters menu. */
+  secondaryActions?: ReactNode;
+  /** List/grid view toggle, after the Filters menu. */
   views?: ReactNode;
+  /** The page's date range picker, after the views and before the primary action. */
+  dateRange?: ReactNode;
   /** The page's single primary action; always the last control. */
   primaryAction?: ReactNode;
   children: ReactNode;

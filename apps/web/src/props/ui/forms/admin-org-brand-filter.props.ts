@@ -6,9 +6,6 @@ export interface AdminOrgBrandFilterProps {
 }
 
 export interface AdminScopeFilterProps {
-  label: string;
-  value: string;
-  isLoading: boolean;
-  options: { id: string; label: string; logoUrl?: string | null }[];
-  onChange: (id: string) => void;
+  /** Sits inside a `SearchField`'s trailing edge: a compact trigger. */
+  isAttached?: boolean;
 }

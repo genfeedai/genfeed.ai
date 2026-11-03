@@ -96,29 +96,8 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@/components/content/admin-filters/AdminOrgBrandFilter', () => ({
-  default: ({
-    brand,
-    onBrandChange,
-    onOrganizationChange,
-    organization,
-  }: {
-    brand: string;
-    onBrandChange: (value: string) => void;
-    onOrganizationChange: (value: string) => void;
-    organization: string;
-  }) => (
-    <section>
-      <div>Admin org: {organization || 'none'}</div>
-      <div>Admin brand: {brand || 'none'}</div>
-      <button type="button" onClick={() => onOrganizationChange('org-2')}>
-        Pick Org
-      </button>
-      <button type="button" onClick={() => onBrandChange('brand-2')}>
-        Pick Brand
-      </button>
-    </section>
-  ),
+vi.mock('@/components/content/admin-filters/AdminScopeFilter', () => ({
+  default: () => <div>Admin scope in the Filters menu</div>,
 }));
 
 vi.mock('@ui/display/table/Table', () => ({
@@ -185,12 +164,15 @@ vi.mock('@ui/display/table/Table', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
     right,
   }: {
     children: ReactNode;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
+      <div>{leading}</div>
       <div>{right}</div>
       {children}
     </section>
@@ -281,7 +263,7 @@ describe('FontFamiliesList', () => {
     mockFontFamilies();
   });
 
-  it('loads superadmin font families and syncs admin filters to the URL', async () => {
+  it('loads superadmin font families for the organization and brand in the URL', async () => {
     render(<FontFamiliesList scope={PageScope.SUPERADMIN} />, {
       wrapper: queryClientWrapper(),
     });
@@ -289,8 +271,9 @@ describe('FontFamiliesList', () => {
     expect(screen.getByText('Loading font families')).toBeInTheDocument();
     expect(await screen.findByText('Inter')).toBeInTheDocument();
     expect(screen.getByText('Geist')).toBeInTheDocument();
-    expect(screen.getByText('Admin org: org-1')).toBeInTheDocument();
-    expect(screen.getByText('Admin brand: brand-1')).toBeInTheDocument();
+    expect(
+      screen.getByText('Admin scope in the Filters menu'),
+    ).toBeInTheDocument();
 
     expect(mocks.findAllPage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -299,18 +282,6 @@ describe('FontFamiliesList', () => {
         page: 2,
       }),
       expect.any(AbortSignal),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Org' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/font-families?organization=org-2',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Pick Brand' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/admin/configuration/font-families?organization=org-1&brand=brand-2',
-      { scroll: false },
     );
   });
 
@@ -441,7 +412,9 @@ describe('FontFamiliesList', () => {
     });
 
     await screen.findByText('Inter');
-    expect(screen.queryByText('Admin org: org-1')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Admin scope in the Filters menu'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Add Font Family' }),
     ).toBeNull();

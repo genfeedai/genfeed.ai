@@ -128,7 +128,7 @@ export default function SystemEmailsPage() {
       }
       onRefresh={handleRefresh}
       isRefreshing={isRefreshing}
-      dropdowns={<SystemEmailRangeFilter range={range} />}
+      dateRange={<SystemEmailRangeFilter range={range} />}
     >
       <SystemEmailPerformance query={range.query} />
       {isLoading ? (

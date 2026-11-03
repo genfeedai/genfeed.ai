@@ -43,6 +43,7 @@ export default function PreviewShell({
         label={isAccountHeader ? undefined : target.platformLabel}
         labelAs="h2"
         isLabelWrapped
+        isHeaderInside
         icon={isAccountHeader ? undefined : <Icon className="size-4" />}
         description={
           isAccountHeader

@@ -5,9 +5,8 @@ import { Cog } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import LearningReportPanel from '@/features/admin/learning/learning-report-panel';
 import { useLearningReport } from '@/features/admin/learning/use-learning-report';
 
@@ -56,7 +55,7 @@ export default function LearningPage() {
     <AdminPageShell
       title={translate('title')}
       icon={Cog}
-      dropdowns={<AdminOrgBrandUrlFilter />}
+      filters={<AdminScopeFilter />}
       onRefresh={organization ? reload : undefined}
       isRefreshing={isFetching}
     >

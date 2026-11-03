@@ -5,7 +5,7 @@ import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { GraduationCap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
-import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 import TrainingsList from '@/features/trainings/list/trainings-list';
@@ -50,13 +50,14 @@ export default function AdminTrainingsPage() {
           onSearch={setSearch}
           placeholder={searchT('trainings')}
           value={search}
-        />
+        >
+          <AdminScopeFilter isAttached />
+        </SearchField>
       }
       onRefresh={() => {
         void handleRefresh();
       }}
       isRefreshing={isRefreshing}
-      dropdowns={<AdminOrgBrandUrlFilter />}
     >
       <TrainingsList
         scope={PageScope.SUPERADMIN}

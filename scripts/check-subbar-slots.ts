@@ -10,11 +10,12 @@ import {
 /**
  * Every subbar has one slot contract. `Container`, `SectionTopbar`,
  * `AdminPageShell` and `ListPageLayout` each take refresh in `refresh`, and
- * their controls in the order `SubbarControls` owns: dropdowns, Filters,
- * views, primary action. The "..." menu goes in `overflow`, the first control
- * of the bar's right cluster. So a page that hands one of them a refresh button or
- * a Filters menu in a free-form controls prop (`right`, `actions`, ...) has
- * drifted from the shared design.
+ * their controls in the order `SubbarControls` owns: secondary actions,
+ * Filters, views, date range, primary action. The "..." menu goes in
+ * `overflow`, the first control of the bar's right cluster. So a page that
+ * hands one of them a refresh button, a Filters menu or a date range picker in
+ * a free-form controls prop (`right`, `actions`, ...) has drifted from the
+ * shared design.
  */
 
 const INCLUDE_GLOBS = [
@@ -44,14 +45,23 @@ const BAR_COMPONENTS = new Set([
 /** Free-form control props: anything placed here lands in the controls cluster. */
 const CONTROL_PROPS = new Set([
   'actions',
-  'dropdowns',
   'overflow',
   'primaryAction',
   'right',
+  'secondaryActions',
   'views',
 ]);
 
+/** A date range has the `dateRange` slot; the Filters menu is not its home. */
+const DATE_RANGE_FORBIDDEN_PROPS = new Set([...CONTROL_PROPS, 'filters']);
+
 const FILTER_COMPONENTS = new Set(['FilterMenu', 'FiltersButton']);
+
+/** `FormDateRangePicker` is the alias some layouts import the picker under. */
+const DATE_RANGE_COMPONENTS = new Set([
+  'DateRangePicker',
+  'FormDateRangePicker',
+]);
 
 export interface SubbarSlotViolation {
   file: string;
@@ -92,10 +102,13 @@ export function findSubbarSlotViolations(
       (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
     ) {
       for (const attribute of node.attributes.properties) {
+        const propName = ts.isJsxAttribute(attribute)
+          ? attribute.name.getText()
+          : '';
         if (
           !ts.isJsxAttribute(attribute) ||
           !attribute.initializer ||
-          !CONTROL_PROPS.has(attribute.name.getText())
+          !DATE_RANGE_FORBIDDEN_PROPS.has(propName)
         ) {
           continue;
         }
@@ -106,6 +119,16 @@ export function findSubbarSlotViolations(
           sourceFile.getLineAndCharacterOfPosition(attribute.getStart()).line +
           1;
 
+        if (tags.some((tag) => DATE_RANGE_COMPONENTS.has(tag))) {
+          violations.push({
+            file,
+            line,
+            message: `<${barName} ${propName}> holds a date range picker. Pass it in the \`dateRange\` slot.`,
+          });
+        }
+        if (!CONTROL_PROPS.has(propName)) {
+          continue;
+        }
         if (tags.includes('ButtonRefresh')) {
           violations.push({
             file,

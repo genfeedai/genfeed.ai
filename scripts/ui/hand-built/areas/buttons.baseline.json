@@ -213,9 +213,6 @@
     "apps/web/src/components/command-palette/command-palette-item/CommandPaletteItem.tsx": {
       "unstyled-look": 1
     },
-    "apps/web/src/components/content/admin-filters/AdminOrgBrandFilter.tsx": {
-      "button-restyle": 1
-    },
     "apps/web/src/components/content/filter-menu/FilterMenu.tsx": {
       "button-restyle": 1
     },

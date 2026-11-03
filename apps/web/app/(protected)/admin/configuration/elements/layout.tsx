@@ -17,7 +17,6 @@ import { ELEMENT_LABELS } from '@ui-constants/element.constant';
 import { Plus, Tag } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
-import AdminOrgBrandUrlFilter from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
 import FiltersButton from '@/components/content/filters-button/FiltersButton';
 import FiltersSearch from '@/components/content/filters-button/FiltersSearch';
 
@@ -165,6 +164,7 @@ function ElementsLayoutContent({ children }: LayoutProps) {
           <FiltersSearch
             filterOptions={filterConfig.filterOptions}
             filters={filters}
+            hasAdminScope
             onFiltersChange={handleFiltersChange}
             visibleFilters={filterConfig.visibleFilters}
           />
@@ -174,13 +174,13 @@ function ElementsLayoutContent({ children }: LayoutProps) {
         filterConfig.visibleFilters.search ? undefined : (
           <FiltersButton
             filters={filters}
+            hasAdminScope
             visibleFilters={filterConfig.visibleFilters}
             filterOptions={filterConfig.filterOptions}
             onFiltersChange={handleFiltersChange}
           />
         )
       }
-      dropdowns={<AdminOrgBrandUrlFilter />}
       primaryAction={
         filterConfig.addButtonLabel && filterConfig.modalId ? (
           <Button

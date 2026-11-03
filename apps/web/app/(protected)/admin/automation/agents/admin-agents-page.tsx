@@ -18,9 +18,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { BrainCircuit } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
-import AdminOrgBrandUrlFilter, {
-  useAdminOrgBrandParams,
-} from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import { useAdminOrgBrandParams } from '@/components/content/admin-filters/AdminOrgBrandUrlFilter';
+import AdminScopeFilter from '@/components/content/admin-filters/AdminScopeFilter';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
 import SearchField from '@/components/content/search-field/SearchField';
 
@@ -147,9 +146,10 @@ export default function AdminAgentsPage() {
           onSearch={setSearch}
           placeholder={translate('searchAgents')}
           value={search}
-        />
+        >
+          <AdminScopeFilter isAttached />
+        </SearchField>
       }
-      dropdowns={<AdminOrgBrandUrlFilter />}
     >
       <AppTable<AgentStrategy>
         items={visibleStrategies}

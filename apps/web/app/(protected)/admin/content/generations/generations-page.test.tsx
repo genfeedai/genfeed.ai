@@ -22,7 +22,6 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   default: ({
     children,
     overflow,
-    dropdowns,
     filters,
     onRefresh,
     search,
@@ -30,7 +29,6 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
   }: {
     children: ReactNode;
     overflow?: ReactNode;
-    dropdowns?: ReactNode;
     filters?: ReactNode;
     onRefresh?: () => void;
     search?: ReactNode;
@@ -45,7 +43,6 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
         <button aria-label="Refresh" onClick={onRefresh} type="button">
           Refresh
         </button>
-        {dropdowns}
       </div>
       <div data-testid="content">{children}</div>
     </main>
@@ -53,7 +50,20 @@ vi.mock('@ui/layout/admin-page-shell/AdminPageShell', () => ({
 }));
 
 vi.mock('@/components/content/admin-filters/AdminOrgBrandUrlFilter', () => ({
-  default: () => <div data-testid="org-filter" />,
+  useAdminOrgBrandUrlFacets: () => ({
+    clearAfterPageClear: vi.fn(),
+    facets: [
+      {
+        defaultValue: '',
+        key: 'organization',
+        label: 'Organization',
+        onChange: vi.fn(),
+        options: [{ label: 'Alpha', value: 'org-1' }],
+        selection: 'single',
+        value: '',
+      },
+    ],
+  }),
   useAdminOrgBrandParams: () => ({
     brand: mocks.brand,
     organization: mocks.organization,
@@ -183,6 +193,10 @@ describe('admin Generations page', () => {
     expect(
       screen.getByRole('menuitem', { name: /filterModel/ }),
     ).toBeInTheDocument();
+    // The organization is a facet of the same menu, not a dropdown of its own.
+    expect(
+      screen.getByRole('menuitem', { name: /Organization/ }),
+    ).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(subbar.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     // Download is a secondary action, so it lives in the "..." menu.
@@ -191,7 +205,6 @@ describe('admin Generations page', () => {
       await screen.findByRole('menuitem', { name: 'download' }),
     ).toHaveAttribute('aria-disabled', 'true');
     await userEvent.keyboard('{Escape}');
-    expect(subbar.getByTestId('org-filter')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('content')).queryByRole('heading', {
         name: 'title',
