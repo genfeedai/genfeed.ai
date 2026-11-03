@@ -2,6 +2,8 @@ import {
   ingestOwnedYoutubeComments,
   type OwnedYoutubeCommentIngestPorts,
 } from '@api/collections/social-inbox/services/youtube-comment-ingestion';
+import { getActionDefinition } from '@genfeedai/actions';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 const scope = { organizationId: 'org-1' };
@@ -174,5 +176,50 @@ describe('ingestOwnedYoutubeComments', () => {
 
     expect(listVideoComments).toHaveBeenCalledTimes(4);
     expect(result.postFailures).toHaveLength(1);
+  });
+});
+
+describe('ingestOwnedYoutubeComments result vs the registered action contract', () => {
+  const actionId = 'social.inbox.sync.youtube-comments';
+  const provenance = {
+    nodeId: 'ingest-sync',
+    runId: 'run-1',
+    workflowId: 'wf-1',
+    workflowVersionId: 'v1',
+  };
+
+  function validateOutput(output: unknown): void {
+    const action = getActionDefinition(actionId);
+    if (!action) throw new Error(`Missing action ${actionId}`);
+    compileActionContract(actionId, {
+      inputSchema: action.inputSchema as Readonly<Record<string, unknown>>,
+      outputSchema: action.outputSchema as Readonly<Record<string, unknown>>,
+    }).validateOutput(output, provenance);
+  }
+
+  it('is accepted when nothing qualified', async () => {
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({ findOwnedPosts: vi.fn(async () => []) }),
+    );
+
+    expect(() => validateOutput(result)).not.toThrow();
+  });
+
+  it('is accepted when a post failed alongside scanned ones', async () => {
+    const result = await ingestOwnedYoutubeComments(
+      scope,
+      {},
+      createPorts({
+        listVideoComments: vi.fn(async (_org, _brand, videoId: string) => {
+          if (videoId === 'video-p2') throw new Error('comments disabled');
+          return [];
+        }),
+      }),
+    );
+
+    expect(result.postFailures).toHaveLength(1);
+    expect(() => validateOutput(result)).not.toThrow();
   });
 });

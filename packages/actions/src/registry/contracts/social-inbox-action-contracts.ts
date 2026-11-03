@@ -153,8 +153,11 @@ const VALIDATED_SYNC = closedObjectSchema(
 );
 const SYNC_RESULT = closedObjectSchema(
   {
+    commentsSeen: INTEGER_SCHEMA,
     conversationsCreated: INTEGER_SCHEMA,
+    credentialsScanned: INTEGER_SCHEMA,
     messagesCreated: INTEGER_SCHEMA,
+    postsScanned: INTEGER_SCHEMA,
     postFailures: arraySchema(
       closedObjectSchema(
         {
