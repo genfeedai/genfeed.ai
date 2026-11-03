@@ -13,7 +13,12 @@ import type { IBetterAuthUserCreatedEvent } from '../better-auth.types';
 
 /** The card thumbnail must be a public https URL Discord can fetch. */
 function readHttpsUrl(value: string | null | undefined): string | undefined {
-  return value?.startsWith('https://') ? value : undefined;
+  if (!value) return undefined;
+  try {
+    return new URL(value).protocol === 'https:' ? value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
