@@ -1,6 +1,7 @@
 'use client';
 
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
+import { starterThumbnail } from '@helpers/media/starter/starter-thumbnail.helper';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -25,6 +26,7 @@ export default function TurboPromptCards({
       id: preset.id,
       label: translate(`${preset.id}.title`),
       prompt: preset.angle,
+      thumbnailUrl: starterThumbnail('turbo', preset.id),
     };
   });
 

@@ -140,9 +140,7 @@ describe('StoryboardNewPane', () => {
   });
   it('prefills the brief, format and runtime from a preset without submitting', () => {
     render(<StoryboardNewPane />);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
     expect(
       (screen.getByLabelText('Brief') as HTMLTextAreaElement).value,
     ).toContain('how-to tutorial');
@@ -191,9 +189,7 @@ describe('StoryboardNewPane', () => {
         }),
       ),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use the How-to tutorial preset' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'How-to tutorial' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save storyboard' }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
     expect(mocks.create.mock.calls[1][0].source).not.toHaveProperty('author');

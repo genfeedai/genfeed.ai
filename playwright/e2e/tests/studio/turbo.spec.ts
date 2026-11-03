@@ -3,6 +3,7 @@ import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockTurboProject } from '../../fixtures/turbo-projects.fixture';
 import { expectOpenProjectLayout } from '../../utils/agent-output-layout';
+import { expectStarterThumbnails } from '../../utils/starter-cards';
 
 const base = '/test-org/brand-1/turbo';
 test.describe('Persisted Turbo projects', () => {
@@ -168,6 +169,7 @@ test.describe('Persisted Turbo projects', () => {
     await mockTurboProject(page, TurboProjectKind.IDEAS);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(base);
+    await expectStarterThumbnails(page, 6);
     await page.getByRole('button', { name: /Weekly content mix/ }).click();
     await expect(
       page.getByRole('textbox', { name: 'Creative angle' }),

@@ -1,6 +1,7 @@
 'use client';
 
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
+import { starterThumbnail } from '@helpers/media/starter/starter-thumbnail.helper';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -26,6 +27,7 @@ export default function StoryboardPitchCards({
       id: pitch.id,
       label: translate(`items.${pitch.id}.title`),
       prompt: pitch.brief,
+      thumbnailUrl: starterThumbnail('storyboard', pitch.id),
     };
   });
 

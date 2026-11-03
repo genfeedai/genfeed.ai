@@ -240,7 +240,6 @@
     }
   },
   "presets": {
-    "chipsAria": "Storyboard presets",
     "items": {
       "beforeAfter": {
         "description": "Show the starting point and the finished result side by side.",
@@ -275,7 +274,6 @@
         "title": "3-step explainer"
       }
     },
-    "prefillAria": "Use the {title} preset",
     "runtime": "{seconds}s"
   },
   "recipe": {

@@ -173,6 +173,7 @@ export default function StudioPlaygroundEmptyState({
           id: idea.id,
           label: translate(`starterIdeas.${idea.id}.label`),
           prompt: preview,
+          thumbnailUrl: idea.thumbnailUrl,
         },
         select: () => ({
           aspectRatio: idea.aspectRatio,

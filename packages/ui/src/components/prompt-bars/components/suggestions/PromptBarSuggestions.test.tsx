@@ -137,4 +137,118 @@ describe('PromptBarSuggestions', () => {
     expect(button.className).toContain('rounded-2xl');
     expect(button.className).toContain('flex-col');
   });
+
+  it('shows a thumbnail on a card tile and drops its icon', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            description: 'A short reel',
+            icon: <svg data-testid="tile-icon" />,
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+          {
+            icon: <svg data-testid="tile-icon" />,
+            id: 'plain',
+            label: 'Plain',
+            prompt: 'Make something',
+          },
+        ]}
+        variant="cards"
+      />,
+    );
+
+    const images = container.querySelectorAll('img');
+    expect(images).toHaveLength(1);
+    expect(images[0]?.getAttribute('src')).toContain('videoShorts.webp');
+    // Only the tile without a thumbnail keeps its icon.
+    expect(screen.getAllByTestId('tile-icon')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Reel' })).toHaveTextContent(
+      'A short reel',
+    );
+  });
+
+  it('falls back to the icon when a thumbnail fails to load', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            icon: <svg data-testid="tile-icon" />,
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+        ]}
+        variant="cards"
+      />,
+    );
+
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+    expect(screen.getByTestId('tile-icon')).toBeInTheDocument();
+  });
+
+  it('ignores a thumbnail in the chip variant', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+  });
+
+  it('marks only the active suggestion as pressed', () => {
+    render(
+      <PromptBarSuggestions
+        activeId="two"
+        onSuggestionSelect={vi.fn()}
+        suggestions={suggestions}
+        variant="cards"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Use plan mode' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Review' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Use plan mode' })).toHaveClass(
+      'ring-2',
+      'ring-primary',
+    );
+    expect(screen.getByRole('button', { name: 'Review' })).not.toHaveClass(
+      'ring-primary',
+    );
+  });
+
+  it('leaves aria-pressed off when no active suggestion is tracked', () => {
+    render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={suggestions}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Review' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
+  });
 });
