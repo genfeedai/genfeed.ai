@@ -165,12 +165,21 @@ export function runAuthorityFieldOptionalCheck(
         compareText(left.property, right.property),
     );
 
-  const baselineKeys = new Set(baseline.map(entryKey));
-  const occurrenceKeys = new Set(occurrences.map(entryKey));
+  // Each baseline entry covers one declaration, so a second `@IsOptional()`
+  // on the same property of a baselined file is a new violation.
+  const remaining = new Map<string, number>();
+  for (const entry of baseline) {
+    remaining.set(entryKey(entry), (remaining.get(entryKey(entry)) ?? 0) + 1);
+  }
+
   const violations: AuthorityFieldViolation[] = [];
 
   for (const occurrence of occurrences) {
-    if (baselineKeys.has(entryKey(occurrence))) {
+    const key = entryKey(occurrence);
+    const covered = remaining.get(key) ?? 0;
+
+    if (covered > 0) {
+      remaining.set(key, covered - 1);
       continue;
     }
 
@@ -182,10 +191,14 @@ export function runAuthorityFieldOptionalCheck(
   }
 
   for (const entry of baseline) {
-    if (occurrenceKeys.has(entryKey(entry))) {
+    const key = entryKey(entry);
+    const unmatched = remaining.get(key) ?? 0;
+
+    if (unmatched === 0) {
       continue;
     }
 
+    remaining.set(key, unmatched - 1);
     violations.push({
       entry,
       kind: 'stale-baseline-entry',

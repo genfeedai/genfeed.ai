@@ -91,6 +91,41 @@ describe('authority-field @IsOptional() ratchet', () => {
     ).toEqual(['stale-baseline-entry']);
   });
 
+  it('flags a second declaration of a baselined property in the same file', () => {
+    const rootDir = fixture({
+      [KEY_DTO]: `
+        class A { @IsOptional() readonly scopes?: string[]; }
+        class B { @IsOptional() readonly scopes?: string[]; }
+      `,
+    });
+
+    expect(
+      runAuthorityFieldOptionalCheck({
+        baseline: [{ file: KEY_DTO, property: 'scopes' }],
+        rootDir,
+      }).violations.map((violation) => violation.kind),
+    ).toEqual(['new-optional-field']);
+  });
+
+  it('accepts two baselined declarations of the same property in one file', () => {
+    const rootDir = fixture({
+      [KEY_DTO]: `
+        class A { @IsOptional() readonly scopes?: string[]; }
+        class B { @IsOptional() readonly scopes?: string[]; }
+      `,
+    });
+
+    expect(
+      runAuthorityFieldOptionalCheck({
+        baseline: [
+          { file: KEY_DTO, property: 'scopes' },
+          { file: KEY_DTO, property: 'scopes' },
+        ],
+        rootDir,
+      }).violations,
+    ).toEqual([]);
+  });
+
   it('ignores specs and files outside server DTOs', () => {
     const rootDir = fixture({
       'apps/server/api/src/keys/dto/create-key.dto.spec.ts':

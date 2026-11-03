@@ -134,4 +134,8 @@ export const AUTHORITY_FIELD_OPTIONAL_BASELINE: readonly AuthorityFieldOptionalB
       file: 'apps/server/api/src/shared/dto/base/base.dto.ts',
       property: 'organizationId',
     },
+    {
+      file: 'apps/server/api/src/shared/dto/base/base.dto.ts',
+      property: 'organizationId',
+    },
   ];

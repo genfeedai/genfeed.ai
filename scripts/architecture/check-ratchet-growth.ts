@@ -16,6 +16,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 export type RatchetSource = {
   /** Key for every baseline entry. Equal keys are the same exception. */
@@ -42,17 +43,51 @@ type TenantScopeBaselineFile = {
   }>;
 };
 
-const FILE_PROPERTY_PATTERN = /\bfile:\s*(['"])(.+?)\1/g;
+/** String-literal properties of every object literal in a baseline module. */
+function objectLiteralStrings(content: string): Array<Map<string, string>> {
+  const sourceFile = ts.createSourceFile(
+    'baseline.ts',
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const literals: Array<Map<string, string>> = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isObjectLiteralExpression(node)) {
+      const strings = new Map<string, string>();
+
+      for (const property of node.properties) {
+        if (
+          ts.isPropertyAssignment(property) &&
+          ts.isIdentifier(property.name) &&
+          ts.isStringLiteralLike(property.initializer)
+        ) {
+          strings.set(property.name.text, property.initializer.text);
+        }
+      }
+
+      literals.push(strings);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return literals;
+}
 
 /**
  * The cross-org baseline is a TypeScript module of `{ file, line }` entries.
  * The line moves whenever the file is edited, so the file alone is the key.
+ * Read from the syntax tree, so a `file: '...'` inside a comment is not an entry.
  */
 export function crossOrgEntryKeys(content: string): string[] {
-  return Array.from(
-    content.matchAll(FILE_PROPERTY_PATTERN),
-    (match) => match[2] ?? '',
-  );
+  return objectLiteralStrings(content).flatMap((strings) => {
+    const file = strings.get('file');
+
+    return file === undefined ? [] : [file];
+  });
 }
 
 /**
@@ -69,14 +104,16 @@ export function tenantScopeEntryKeys(content: string): string[] {
   );
 }
 
-/** One entry per baselined DTO property; the file and property are the key. */
+/** One entry per baselined DTO property, in either property order. */
 export function authorityFieldEntryKeys(content: string): string[] {
-  return Array.from(
-    content.matchAll(
-      /\{\s*file:\s*(['"])(.+?)\1,\s*property:\s*(['"])(.+?)\3\s*,?\s*\}/g,
-    ),
-    (match) => `${match[2]}|${match[4]}`,
-  );
+  return objectLiteralStrings(content).flatMap((strings) => {
+    const file = strings.get('file');
+    const property = strings.get('property');
+
+    return file === undefined || property === undefined
+      ? []
+      : [`${file}|${property}`];
+  });
 }
 
 export const RATCHET_SOURCES: readonly RatchetSource[] = [

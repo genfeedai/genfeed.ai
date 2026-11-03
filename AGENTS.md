@@ -58,7 +58,7 @@ When a check below fails, fix the code it names. Never edit a baseline to make i
 | Baselines only shrink | `check:ratchet-growth` (CI Static Checks) | Fix the finding in code. Do not append to `cross-org-unsafe.baseline.ts`, `tenant-scope-baseline.json` or `authority-field-optional.baseline.ts`. |
 | Tenant queries carry `organizationId` and `isDeleted: false` | `check:tenant-scope` | Scope the query. Do not add a baseline entry. |
 | `crossOrgUnsafe()` call sites do not grow | `check:cross-org-unsafe` | Scope the query with `organizationId`. |
-| JSON `null` is rejected on `scopes`, `expiresAt`, `allowedIps`, `role`, `organizationId` | `check:authority-field-optional` | Use `@IsOmittable()` from `@api/helpers/validation/is-omittable.validator`, not `@IsOptional()`. |
+| JSON `null` is rejected on `scopes`, `expiresAt`, `allowedIps`, `role`, `organizationId` in new declarations; baselined `@IsOptional()` declarations still accept it until removed from the baseline | `check:authority-field-optional` | Use `@IsOmittable()` from `@api/helpers/validation/is-omittable.validator`, not `@IsOptional()`. |
 
 Judgment, no check: one PR per change, no new env vars, name the root cause, CI green before merge.
 

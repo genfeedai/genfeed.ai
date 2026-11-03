@@ -4,6 +4,7 @@ import {
   ApiKeyScopesField,
 } from '@api/collections/api-keys/dto/api-key-reach.decorators';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
+import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
@@ -30,6 +31,7 @@ export class UpdateApiKeyDto extends PartialType(
   @ApiProperty({
     description:
       'Scopes/permissions for this key. Must be a subset of the self-service scope presets.',
+    enum: SELF_SERVICE_API_KEY_SCOPES,
     isArray: true,
     required: false,
     type: String,

@@ -57,6 +57,14 @@ describe('baseline entry keys', () => {
     ]);
   });
 
+  it('ignores file strings that sit in comments', () => {
+    expect(
+      crossOrgEntryKeys(
+        `// file: 'apps/server/api/src/commented.ts'\n${crossOrgBaseline([['apps/server/api/src/a.ts', 1]])}`,
+      ),
+    ).toEqual(['apps/server/api/src/a.ts']);
+  });
+
   it('keys tenant-scope entries without the fingerprint', () => {
     expect(
       tenantScopeEntryKeys(
@@ -78,6 +86,12 @@ describe('authority-field baseline', () => {
         `[\n${entry('a.dto.ts', 'scopes')}\n${entry('a.dto.ts', 'role')}\n]`,
       ),
     ).toEqual(['a.dto.ts|scopes', 'a.dto.ts|role']);
+  });
+
+  it('keys entries written with property before file', () => {
+    expect(
+      authorityFieldEntryKeys(`[{ property: 'role', file: 'a.dto.ts' }]`),
+    ).toEqual(['a.dto.ts|role']);
   });
 
   it('rejects an entry the base did not carry', () => {
