@@ -11,6 +11,12 @@ import { Badge } from '@ui/primitives/badge';
 import { Kbd } from '@ui/primitives/kbd';
 import { Separator } from '@ui/primitives/separator';
 import {
+  SIDEBAR_ROW_HOVER_FILL_CLASS_NAME,
+  SidebarActiveHighlight,
+  SidebarHighlightGroup,
+  SidebarPendingHighlight,
+} from '@ui/primitives/sidebar-active-highlight';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -78,16 +84,19 @@ function AppRailItem({
   const itemClassName = cn(
     'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
-    // Codex-style selection: a filled tile two steps above the rail,
-    // hover one step. The icon is the only foreground either way.
+    // Same motion and fills as the sidebar menu rows: the active fill is the
+    // sliding SidebarActiveHighlight, an inactive row only gets the hover fill.
     isActive
-      ? 'bg-foreground/10 text-foreground'
-      : 'text-foreground/50 hover:bg-foreground/5 hover:text-foreground',
+      ? 'text-foreground'
+      : `text-foreground/50 ${SIDEBAR_ROW_HOVER_FILL_CLASS_NAME} hover:text-foreground`,
     isLocked && 'opacity-60',
   );
   const itemBody = (
     <>
-      {hoverIcon}
+      {isActive ? <SidebarActiveHighlight /> : <SidebarPendingHighlight />}
+      <span className="relative flex items-center justify-center">
+        {hoverIcon}
+      </span>
       {isLocked ? (
         <Badge
           className="absolute -right-0.5 -top-0.5"
@@ -519,58 +528,60 @@ export function AppRail({
   const admin = items.find((item) => item.app.group === 'admin');
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
-      <nav
-        ref={navRef}
-        aria-label={t('apps')}
-        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
-        // Page menu: the one surface exempt from the product motion policy.
-        data-motion="allow"
-        data-testid="app-rail"
-      >
-        {header ? (
-          <div
-            className="flex flex-col items-center gap-1 pb-1"
-            data-testid="app-rail-header"
-          >
-            {header}
-            <Separator className="mt-1 w-5" />
-          </div>
-        ) : null}
-        {railItems.length > 0 || showMore ? (
-          <div className="flex flex-col items-center gap-1">
-            {railItems.map(renderRailItem)}
-            {showMore ? (
-              <AppRailMore
-                items={moreItems}
-                onOpen={(item) => handleNavigate(item, 'click')}
-                onTogglePin={onTogglePin}
-              />
-            ) : null}
-          </div>
-        ) : null}
-        {adminCategoryItems.length > 0 ? (
-          <div
-            className="flex flex-col items-center gap-1"
-            data-testid="app-rail-admin-categories"
-          >
-            {adminCategoryItems.map(renderItem)}
-          </div>
-        ) : null}
-        {admin || adminExitItem || footer ? (
-          <div
-            className="mt-auto flex flex-col items-center gap-1 pt-2"
-            data-testid="app-rail-bottom"
-          >
-            {admin ? renderItem(admin) : null}
-            {adminExitItem ? (
-              <div data-testid="app-rail-admin-exit">
-                {renderItem(adminExitItem)}
-              </div>
-            ) : null}
-            {footer ? <div>{footer}</div> : null}
-          </div>
-        ) : null}
-      </nav>
+      <SidebarHighlightGroup>
+        <nav
+          ref={navRef}
+          aria-label={t('apps')}
+          className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto p-2 [scrollbar-width:none]! [&::-webkit-scrollbar]:hidden"
+          // Page menu: the one surface exempt from the product motion policy.
+          data-motion="allow"
+          data-testid="app-rail"
+        >
+          {header ? (
+            <div
+              className="flex flex-col items-center gap-1 pb-1"
+              data-testid="app-rail-header"
+            >
+              {header}
+              <Separator className="mt-1 w-5" />
+            </div>
+          ) : null}
+          {railItems.length > 0 || showMore ? (
+            <div className="flex flex-col items-center gap-1">
+              {railItems.map(renderRailItem)}
+              {showMore ? (
+                <AppRailMore
+                  items={moreItems}
+                  onOpen={(item) => handleNavigate(item, 'click')}
+                  onTogglePin={onTogglePin}
+                />
+              ) : null}
+            </div>
+          ) : null}
+          {adminCategoryItems.length > 0 ? (
+            <div
+              className="flex flex-col items-center gap-1"
+              data-testid="app-rail-admin-categories"
+            >
+              {adminCategoryItems.map(renderItem)}
+            </div>
+          ) : null}
+          {admin || adminExitItem || footer ? (
+            <div
+              className="mt-auto flex flex-col items-center gap-1 pt-2"
+              data-testid="app-rail-bottom"
+            >
+              {admin ? renderItem(admin) : null}
+              {adminExitItem ? (
+                <div data-testid="app-rail-admin-exit">
+                  {renderItem(adminExitItem)}
+                </div>
+              ) : null}
+              {footer ? <div>{footer}</div> : null}
+            </div>
+          ) : null}
+        </nav>
+      </SidebarHighlightGroup>
       <AppRailItemMenu
         index={menuTarget ? railItemIds.indexOf(menuTarget.item.app.id) : -1}
         isReorderable={isReorderable}

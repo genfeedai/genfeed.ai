@@ -242,6 +242,38 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('app rail keeps one active highlight that follows the clicked app', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    const rail = authenticatedPage
+      .getByTestId('desktop-app-rail')
+      .getByRole('navigation', { name: 'Apps' });
+    const highlight = rail.locator('[data-sidebar-active-highlight]');
+    await expect(highlight).toHaveCount(1);
+    await expect(
+      rail
+        .getByRole('link', { name: /^Workspace/ })
+        .locator('[data-sidebar-active-highlight]'),
+    ).toHaveCount(1);
+
+    await rail.getByRole('link', { name: /^Library/ }).click();
+    await authenticatedPage.waitForURL(/\/library\//, { timeout: 30_000 });
+
+    await expect(highlight).toHaveCount(1);
+    await expect(
+      rail
+        .getByRole('link', { name: /^Library/ })
+        .locator('[data-sidebar-active-highlight]'),
+    ).toHaveCount(1);
+
+    await assertHealthy(authenticatedPage);
+  });
+
   test('mobile drawer exposes the app rail below the topbar', async ({
     authenticatedPage,
   }) => {

@@ -6,22 +6,15 @@ import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-animated-icon';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
+import {
+  SIDEBAR_ROW_HOVER_FILL_CLASS_NAME,
+  SidebarActiveHighlight,
+  SidebarPendingHighlight,
+} from '@ui/primitives/sidebar-active-highlight';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import Link, { useLinkStatus } from 'next/link';
+import Link from 'next/link';
 import type { ReactElement } from 'react';
 import type { MenuItemProps } from '@/props/navigation/menu.props';
-
-/**
- * Lives inside the row's Link: while that link's navigation is in flight the
- * highlight already moves here, so the row answers the click instead of
- * waiting for the next route to load.
- */
-function PendingHighlight() {
-  const { pending } = useLinkStatus();
-
-  return pending ? <SidebarActiveHighlight /> : null;
-}
 
 export default function MenuItem({
   badgeCount,
@@ -107,7 +100,7 @@ export default function MenuItem({
       ? // The active fill is the sliding SidebarActiveHighlight, not a class here.
         isActive
         ? 'text-foreground'
-        : 'hover:bg-foreground/5 hover:text-foreground'
+        : `${SIDEBAR_ROW_HOVER_FILL_CLASS_NAME} hover:text-foreground`
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
       ? 'bg-foreground/5 text-foreground font-semibold'
@@ -225,7 +218,7 @@ export default function MenuItem({
         aria-label={accessibleLabel}
       >
         {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
-        {isHorizontalLayout && !isActive ? <PendingHighlight /> : null}
+        {isHorizontalLayout && !isActive ? <SidebarPendingHighlight /> : null}
         {contentBody}
       </Link>
     ) : (
