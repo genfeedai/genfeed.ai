@@ -6,7 +6,7 @@ import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/promp
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
-import { Fragment, memo, type ReactElement } from 'react';
+import { Fragment, memo, type ReactElement, useState } from 'react';
 
 interface PromptBarSuggestionsProps {
   suggestions: PromptBarSuggestionItem[];
@@ -63,6 +63,9 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   activeId,
   variant = 'chips',
 }: PromptBarSuggestionsProps): ReactElement | null {
+  const [failedThumbnailIds, setFailedThumbnailIds] = useState<
+    ReadonlySet<string>
+  >(new Set());
   const visibleSuggestions = suggestions.slice(0, maxSuggestions);
 
   if (visibleSuggestions.length === 0) {
@@ -85,6 +88,10 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
     >
       {visibleSuggestions.map((suggestion) => {
         const tooltip = resolveSuggestionTooltip(suggestion, isCards);
+        // A thumbnail that fails to load falls back to the icon tile.
+        const thumbnailUrl = failedThumbnailIds.has(suggestion.id)
+          ? undefined
+          : suggestion.thumbnailUrl;
         const button = (
           <Button
             key={suggestion.id}
@@ -98,7 +105,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
               isCards
                 ? cn(
                     'flex min-h-[5.5rem] w-full flex-col items-start rounded-2xl border border-border bg-background text-foreground/90 shadow-md shadow-black/20 transition-colors hover:border-border/80 hover:bg-card',
-                    suggestion.thumbnailUrl
+                    thumbnailUrl
                       ? 'gap-0 overflow-hidden'
                       : 'gap-2.5 px-3.5 py-3.5',
                   )
@@ -118,10 +125,10 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
               <span
                 className={cn(
                   'flex w-full min-w-0 flex-col items-start',
-                  suggestion.thumbnailUrl ? 'gap-0' : 'gap-2.5',
+                  thumbnailUrl ? 'gap-0' : 'gap-2.5',
                 )}
               >
-                {suggestion.thumbnailUrl ? (
+                {thumbnailUrl ? (
                   <span
                     aria-hidden="true"
                     className="relative aspect-[3/2] w-full overflow-hidden bg-muted/40"
@@ -131,8 +138,13 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                       className="object-cover"
                       fill
                       loading="lazy"
+                      onError={() => {
+                        setFailedThumbnailIds((current) =>
+                          new Set(current).add(suggestion.id),
+                        );
+                      }}
                       sizes="(min-width: 640px) 14rem, 100vw"
-                      src={suggestion.thumbnailUrl}
+                      src={thumbnailUrl}
                     />
                   </span>
                 ) : suggestion.icon ? (
@@ -143,7 +155,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                 <span
                   className={cn(
                     'flex w-full min-w-0 flex-col items-start gap-2.5',
-                    suggestion.thumbnailUrl && 'gap-1 px-3.5 pb-3.5 pt-3',
+                    thumbnailUrl && 'gap-1 px-3.5 pb-3.5 pt-3',
                   )}
                 >
                   <span className="break-words text-left text-sm font-medium leading-snug text-foreground/90">

@@ -172,6 +172,29 @@ describe('PromptBarSuggestions', () => {
     );
   });
 
+  it('falls back to the icon when a thumbnail fails to load', () => {
+    const { container } = render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={[
+          {
+            icon: <svg data-testid="tile-icon" />,
+            id: 'reel',
+            label: 'Reel',
+            prompt: 'Make a reel',
+            thumbnailUrl: '/starters/turbo/videoShorts.webp',
+          },
+        ]}
+        variant="cards"
+      />,
+    );
+
+    fireEvent.error(container.querySelector('img') as HTMLImageElement);
+
+    expect(container.querySelectorAll('img')).toHaveLength(0);
+    expect(screen.getByTestId('tile-icon')).toBeInTheDocument();
+  });
+
   it('ignores a thumbnail in the chip variant', () => {
     const { container } = render(
       <PromptBarSuggestions
