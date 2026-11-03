@@ -1,4 +1,5 @@
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
+import type { WorkspacePanelTab } from '@props/ui/workspace-panel.props';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -45,7 +46,6 @@ function renderDock(
         <WorkspacePanelHeader
           activeView="agent"
           hasAgent
-          onClose={dock.close}
           onNewThread={vi.fn()}
           onOpenFullPage={onOpenFullPage}
           onSelectView={vi.fn()}
@@ -92,7 +92,7 @@ function renderStateful(dock: AgentDockContextValue, isCompact: boolean) {
 }
 
 function CompactViews({ dock }: { dock: AgentDockContextValue }) {
-  const [tab, setTab] = useState<'agent' | 'details' | 'history'>('agent');
+  const [tab, setTab] = useState<WorkspacePanelTab>('agent');
   return (
     <AgentDock
       dock={dock}
@@ -103,7 +103,6 @@ function CompactViews({ dock }: { dock: AgentDockContextValue }) {
           <WorkspacePanelHeader
             activeView={tab}
             hasAgent
-            onClose={dock.close}
             onNewThread={vi.fn()}
             onOpenFullPage={vi.fn()}
             onSelectView={setTab}
