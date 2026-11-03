@@ -757,6 +757,63 @@ export class AuthorizedMediaUrlService implements OnModuleInit {
   ): MediaDeliveryGrant {
     return { expiresAt: null, id, purpose, state, url: null };
   }
+  /**
+   * Preview grants for a platform operator reading across organizations.
+   *
+   * `projectIngredients` only sees the pinned organization, so in the admin
+   * "All Organizations" views every other tenant's asset came back with no URL
+   * and rendered "Preview unavailable". Ids it did not resolve are read across
+   * organizations and granted here, with no record-level gate: a platform
+   * operator is not scoped to an owner, brand or visibility.
+   *
+   * The caller MUST have verified the platform-admin role; this method does
+   * not and never receives a client-supplied organization.
+   */
+  async projectIngredientsForPlatformAdmin(
+    scope: MediaDeliveryScope,
+    ingredientIds: readonly string[],
+  ): Promise<MediaResourceProjection[]> {
+    const own = await this.projectIngredients(scope, ingredientIds);
+    const resolved = new Set(own.map((projection) => projection.ingredientId));
+    const unresolved = [...new Set(ingredientIds)].filter(
+      (id) => !resolved.has(id),
+    );
+    if (unresolved.length === 0) return own;
+    const foreign = await this.readSourcesAcrossOrganizations(unresolved);
+    return [
+      ...own,
+      ...foreign.map((source) => ({
+        grant: this.safeGrant(
+          source,
+          () => requireStoredMediaKey(source),
+          'preview',
+        ),
+        ingredientId: source.id,
+        metadataId: source.metadataId,
+      })),
+    ];
+  }
+
+  private async readSourcesAcrossOrganizations(
+    ingredientIds: readonly string[],
+  ): Promise<MediaDeliverySource[]> {
+    const sources: MediaDeliverySource[] = [];
+    for (let index = 0; index < ingredientIds.length; index += 500) {
+      sources.push(
+        ...(await crossOrgUnsafe(() =>
+          // tenant-scope-ignore: platform-admin operator view; callers verify the platform-admin role and only ids already in the response are read.
+          this.prisma.ingredient.findMany({
+            select: MEDIA_DELIVERY_SOURCE_SELECT,
+            where: {
+              id: { in: ingredientIds.slice(index, index + 500) },
+              isDeleted: false,
+            },
+          }),
+        )),
+      );
+    }
+    return sources;
+  }
 }
 
 /** Brand kit assets that identify a brand rather than carry generated media. */

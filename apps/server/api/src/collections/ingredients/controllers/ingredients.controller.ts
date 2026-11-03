@@ -332,10 +332,34 @@ export class IngredientsController {
       throw new BadRequestException('At least one valid ID is required');
     }
 
-    const ingredients = await this.ingredientsService.findByIds(
+    const inOrganization = await this.ingredientsService.findByIds(
       ids,
       readScope.organizationId,
     );
+    // A platform admin's cross-organization views refresh other tenants'
+    // preview grants here, so ids outside the request organization resolve too.
+    const found = new Set(inOrganization.map((ingredient) => ingredient.id));
+    const missing = ids.filter((id) => !found.has(id));
+    const ingredients =
+      missing.length > 0 && getIsSuperAdmin(user, request)
+        ? [
+            ...inOrganization,
+            ...(
+              await crossOrgUnsafe(
+                async () =>
+                  // tenant-scope-ignore: platform-admin operator view; the role is verified above and only ids the client already holds are read.
+                  await this.ingredientsService.findAll(
+                    {
+                      include: { metadata: { select: { result: true } } },
+                      where: { id: { in: missing } },
+                    },
+                    { pagination: false },
+                    false,
+                  ),
+              )
+            ).docs,
+          ]
+        : inOrganization;
     const cdnOrigin = this.configService.ingredientsEndpoint.replace(
       /\/ingredients\/?$/,
       '',

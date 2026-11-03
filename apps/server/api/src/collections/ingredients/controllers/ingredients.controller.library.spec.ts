@@ -877,5 +877,69 @@ describe('IngredientsController — Library axes', () => {
         },
       });
     });
+
+    describe('assets of another organization', () => {
+      const otherOrgAsset = {
+        cdnUrl: null,
+        id: 'image-other-org',
+        s3Key: 'ingredients/images/image-other-org.png',
+      };
+
+      it('returns them to a platform admin refreshing admin previews', async () => {
+        ingredientsService.findByIds.mockResolvedValue([]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
+
+        await expect(
+          controller.getBatch(mockRequest, 'image-other-org', {
+            ...mockUser,
+            isSuperAdmin: true,
+          }),
+        ).resolves.toEqual({
+          data: {
+            docs: [
+              expect.objectContaining({
+                cdnUrl:
+                  'https://cdn.genfeed.ai/ingredients/images/image-other-org.png',
+                id: 'image-other-org',
+              }),
+            ],
+          },
+        });
+      });
+
+      it('keeps the request-organization assets next to the other-organization ones', async () => {
+        ingredientsService.findByIds.mockResolvedValue([
+          {
+            cdnUrl: null,
+            id: 'image-own',
+            s3Key: 'ingredients/images/image-own.png',
+          },
+        ]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
+
+        await expect(
+          controller.getBatch(mockRequest, 'image-own,image-other-org', {
+            ...mockUser,
+            isSuperAdmin: true,
+          }),
+        ).resolves.toEqual({
+          data: {
+            docs: [
+              expect.objectContaining({ id: 'image-own' }),
+              expect.objectContaining({ id: 'image-other-org' }),
+            ],
+          },
+        });
+      });
+
+      it('never returns them to an ordinary member', async () => {
+        ingredientsService.findByIds.mockResolvedValue([]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
+
+        await expect(
+          controller.getBatch(mockRequest, 'image-other-org', mockUser),
+        ).resolves.toEqual({ data: { docs: [] } });
+      });
+    });
   });
 });

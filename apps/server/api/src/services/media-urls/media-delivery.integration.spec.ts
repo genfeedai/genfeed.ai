@@ -237,7 +237,12 @@ describe('media issuer production module HTTP boundary', () => {
       .query({ organizationId: testId('foreignorg') })
       .set('Authorization', 'Bearer admin')
       .expect(200);
-    expect(ingredientReads).toEqual([testId('foreignorg')]);
+    // The organization read, then the platform-admin fallback for the id that
+    // organization does not own; both run under the override tenant.
+    expect(ingredientReads).toEqual([
+      testId('foreignorg'),
+      testId('foreignorg'),
+    ]);
   });
 
   it('requires real global authentication on the original-grant route', async () => {
