@@ -55,6 +55,7 @@ describe('subscription.created credit grant (#4824)', () => {
     recordCreditsActivity: vi.fn(),
     softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
+    notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn(() => null),
     setHasEverHadCredits: vi.fn(),
     updateOrganizationTierAndModels: vi.fn(),

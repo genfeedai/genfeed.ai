@@ -54,6 +54,7 @@ describe('StripeWebhookSupportService', () => {
   };
   const activityRecorder = {
     afterCommit: vi.fn(),
+    dispatch: vi.fn().mockResolvedValue(undefined),
     dispatchInTransaction: vi.fn().mockResolvedValue(revenueCommit),
     record: vi.fn(),
   };
@@ -829,6 +830,144 @@ describe('StripeWebhookSupportService', () => {
 
       expect(prisma.billingRevenueEvent.createMany).not.toHaveBeenCalled();
       expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('notifyOperatorOfBillingEvent', () => {
+    const subscriptionCreated = {
+      kind: 'subscription_created' as const,
+      organizationId: 'org_1',
+      planLabel: 'Scale',
+      stripeObjectId: 'sub_1',
+    };
+
+    it('queues a billing card that names the organization', async () => {
+      await service.notifyOperatorOfBillingEvent(subscriptionCreated);
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith({
+        deduplicationKey: 'message.billing/subscription_created/sub_1',
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'billing_event',
+              payload: {
+                kind: 'subscription_created',
+                organizationId: 'org_1',
+                organizationLabel: 'Acme Studio',
+                planLabel: 'Scale',
+              },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: 'org_1',
+        source: { id: 'sub_1', type: 'stripe_billing_event' },
+        topic: 'operator.alerts',
+      });
+    });
+
+    it('still queues the card when the organization name cannot be read', async () => {
+      prisma.organization.findFirst.mockRejectedValue(new Error('db blip'));
+
+      await service.notifyOperatorOfBillingEvent(subscriptionCreated);
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                payload: expect.not.objectContaining({
+                  organizationLabel: expect.anything(),
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
+    });
+
+    it('never throws when the outbox write fails', async () => {
+      activityRecorder.dispatch.mockRejectedValue(new Error('outbox down'));
+
+      await expect(
+        service.notifyOperatorOfBillingEvent(subscriptionCreated),
+      ).resolves.toBeUndefined();
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('recordRevenueAdjustment alerts', () => {
+    const refund = {
+      adjustedGrossMinor: 1_000,
+      adjustmentId: 're_1',
+      occurredAt: new Date('2026-11-03T00:00:00.000Z'),
+      originalGrossMinor: 4_900,
+      originalStripeObjectId: 'cs_test_1',
+      source: BillingRevenueSource.REFUND as
+        | BillingRevenueSource.REFUND
+        | BillingRevenueSource.DISPUTE,
+    };
+
+    beforeEach(() => {
+      prisma.billingRevenueEvent.findFirst = vi.fn().mockResolvedValue({
+        amountMinor: 4_000,
+        currency: 'usd',
+        organizationId: 'org_1',
+      });
+      prisma.billingRevenueEvent.aggregate = vi
+        .fn()
+        .mockResolvedValue({ _sum: { amountMinor: 0 } });
+      prisma.$queryRaw = vi.fn().mockResolvedValue([]);
+      prisma.$executeRaw = vi.fn().mockResolvedValue(0);
+    });
+
+    it('announces a refund once the negative ledger row is written', async () => {
+      await service.recordRevenueAdjustment(refund);
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringMatching(
+            /^message\.billing\/refund\/re_1/,
+          ),
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                payload: expect.objectContaining({
+                  amountMinor: 1_000,
+                  currency: 'usd',
+                  kind: 'refund',
+                  organizationId: 'org_1',
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
+    });
+
+    it('announces a dispute as a dispute', async () => {
+      await service.recordRevenueAdjustment({
+        ...refund,
+        adjustmentId: 'dp_1',
+        source: BillingRevenueSource.DISPUTE,
+      });
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringMatching(
+            /^message\.billing\/dispute\/dp_1/,
+          ),
+        }),
+      );
+    });
+
+    it('stays quiet on a webhook replay that writes no new row', async () => {
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 0 });
+
+      await service.recordRevenueAdjustment(refund);
+
+      expect(activityRecorder.dispatch).not.toHaveBeenCalled();
     });
   });
 });

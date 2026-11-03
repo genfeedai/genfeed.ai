@@ -36,6 +36,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
     invalidateUserCaches: vi.fn(),
     softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn().mockReturnValue(SubscriptionPlan.MONTHLY),
+    notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     updateOrganizationTierAndModels: vi.fn(),
   };
@@ -167,6 +168,25 @@ describe('StripeSubscriptionWebhookHandler', () => {
       expect(
         supportService.updateOrganizationTierAndModels,
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.SCALE, 'test');
+    });
+
+    it('announces the new subscription with its plan name', async () => {
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        dbSubscription,
+      );
+      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.SCALE,
+      );
+
+      await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
+
+      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
+        kind: 'subscription_created',
+        organizationId: 'org_1',
+        planLabel: 'Scale',
+        stripeObjectId: 'sub_stripe_1',
+      });
     });
 
     it('propagates classified identity errors without nested logs or side effects', async () => {
@@ -379,6 +399,24 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).toBeLessThan(
         supportService.invalidateUserCaches.mock.invocationCallOrder[0],
       );
+    });
+
+    it('announces the canceled subscription with the plan it was on', async () => {
+      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
+      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.SCALE,
+      );
+
+      await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
+
+      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
+        kind: 'subscription_canceled',
+        organizationId: 'org_1',
+        planLabel: 'Scale',
+        stripeObjectId: 'sub_stripe_1',
+      });
     });
 
     it('keeps deletion successful when lifecycle recording fails', async () => {

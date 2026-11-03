@@ -64,6 +64,7 @@ describe('Stripe billing HTTP composition', () => {
     recordRevenueEvent: vi.fn(),
     softwareItem: selectSoftwareSubscriptionItem,
     resolveSubscriptionPlan: vi.fn(() => 'monthly'),
+    notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn(() => null),
     updateOrganizationTierAndModels: vi.fn(),
   };

@@ -246,6 +246,19 @@ export class StripeInvoiceWebhookHandler {
         this.loggerService.log(`${url} subscription marked as PAST_DUE`, {
           subscriptionId: subscription.id,
         });
+
+        if (subscription.organizationId) {
+          const attemptCount = invoice.attempt_count || 1;
+          await this.supportService.notifyOperatorOfBillingEvent({
+            amountMinor: invoice.amount_due,
+            attemptCount,
+            currency: invoice.currency,
+            kind: 'payment_failed',
+            organizationId: subscription.organizationId,
+            // Each Stripe retry of one invoice is its own failure to announce.
+            stripeObjectId: `${invoice.id}:${attemptCount}`,
+          });
+        }
       }
     } catch (error: unknown) {
       this.loggerService.error(

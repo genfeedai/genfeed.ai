@@ -5,6 +5,7 @@ import type {
   IIngredientNotificationOwner,
   IReviewGatePendingEmailPayload,
 } from '@genfeedai/contracts/interfaces';
+import { BILLING_EVENT_KINDS } from '@genfeedai/contracts/interfaces';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
@@ -193,8 +194,21 @@ export class ChannelMessageDispatcherService {
         }
         break;
       case 'revenue_notification':
-        if ('organizationId' in payload && 'amountMinor' in payload) {
+        if (
+          'organizationId' in payload &&
+          'amountMinor' in payload &&
+          'source' in payload
+        ) {
           return this.discordService.sendRevenueNotification(payload);
+        }
+        break;
+      case 'billing_event':
+        if (
+          'kind' in payload &&
+          'organizationId' in payload &&
+          BILLING_EVENT_KINDS.some((kind) => kind === payload.kind)
+        ) {
+          return this.discordService.sendBillingEventNotification(payload);
         }
         break;
       case 'model_discovery':
