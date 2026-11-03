@@ -917,16 +917,19 @@ describe('IngredientsController — Library axes', () => {
         ]);
         ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
 
-        const result = (await controller.getBatch(
-          mockRequest,
-          'image-own,image-other-org',
-          { ...mockUser, isSuperAdmin: true },
-        )) as { data: { docs: { id: string }[] } };
-
-        expect(result.data.docs.map((doc) => doc.id)).toEqual([
-          'image-own',
-          'image-other-org',
-        ]);
+        await expect(
+          controller.getBatch(mockRequest, 'image-own,image-other-org', {
+            ...mockUser,
+            isSuperAdmin: true,
+          }),
+        ).resolves.toEqual({
+          data: {
+            docs: [
+              expect.objectContaining({ id: 'image-own' }),
+              expect.objectContaining({ id: 'image-other-org' }),
+            ],
+          },
+        });
       });
 
       it('never returns them to an ordinary member', async () => {
