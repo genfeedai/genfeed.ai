@@ -141,7 +141,7 @@ export default function TurboProjectsList() {
   const isSearching = search.trim() !== '';
   const isEmpty = !loading && !projects.length && !error;
   useCreativeProjectsPresence(
-    projects.length > 0
+    projects.length > 0 || hasMore
       ? 'populated'
       : isEmpty && !isSearching && !isSubscriptionRequired
         ? 'empty'

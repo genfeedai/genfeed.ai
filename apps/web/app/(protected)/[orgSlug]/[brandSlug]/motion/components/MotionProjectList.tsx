@@ -36,7 +36,7 @@ export default function MotionProjectList(): ReactElement {
     ? loaded.filter((item) => item.label.toLowerCase().includes(query))
     : loaded;
   const isEmpty = !projects.isLoading && !projects.error && !visible.length;
-  const isLoaded = !projects.isLoading && !projects.error;
+  const isLoaded = projects.isSuccess;
   // The list filters on the client, so what loaded is every project there is.
   useCreativeProjectsPresence(
     loaded.length > 0 ? 'populated' : isLoaded ? 'empty' : 'unknown',

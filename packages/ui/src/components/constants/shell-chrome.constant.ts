@@ -35,7 +35,7 @@ export const PROMPT_BAR_CHIP_CLASS =
  * on one toolbar never differ.
  */
 export const PROMPT_BAR_CHIP_SELECT_CLASS =
-  'h-8 w-auto shrink-0 gap-1.5 rounded-md border-0 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-hover data-[state=open]:bg-hover';
+  'h-8 w-auto gap-1.5 rounded-md border-0 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-hover data-[state=open]:bg-hover';
 
 /**
  * Every prompt-bar control is a 32px box with a 14px (chrome tier) glyph. A

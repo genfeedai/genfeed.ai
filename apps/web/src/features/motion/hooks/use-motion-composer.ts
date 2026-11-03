@@ -156,7 +156,11 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
             .find((line) => line.trim())
             ?.trim() ?? '')
         : '';
-    return (firstLine || t('newProject')).slice(0, MAX_LABEL_LENGTH);
+    const truncated = (firstLine || t('newProject')).slice(0, MAX_LABEL_LENGTH);
+    // A cut through an emoji leaves half a surrogate pair; drop it.
+    return /[\uD800-\uDBFF]$/.test(truncated)
+      ? truncated.slice(0, -1)
+      : truncated;
   }
   function invalidateQuote() {
     quoteEpoch.current++;

@@ -183,6 +183,7 @@ export default function EditorProjectsList() {
             ? {
                 ...current,
                 items: current.items.filter((p) => p.id !== projectId),
+                total: Math.max(0, current.total - 1),
               }
             : current,
         );
