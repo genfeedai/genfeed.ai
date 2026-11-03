@@ -344,9 +344,20 @@ export class IngredientsController {
       missing.length > 0 && getIsSuperAdmin(user, request)
         ? [
             ...inOrganization,
-            ...(await this.ingredientsService.findByIdsAcrossOrganizations(
-              missing,
-            )),
+            ...(
+              await crossOrgUnsafe(
+                async () =>
+                  // tenant-scope-ignore: platform-admin operator view; the role is verified above and only ids the client already holds are read.
+                  await this.ingredientsService.findAll(
+                    {
+                      include: { metadata: { select: { result: true } } },
+                      where: { id: { in: missing } },
+                    },
+                    { pagination: false },
+                    false,
+                  ),
+              )
+            ).docs,
           ]
         : inOrganization;
     const cdnOrigin = this.configService.ingredientsEndpoint.replace(

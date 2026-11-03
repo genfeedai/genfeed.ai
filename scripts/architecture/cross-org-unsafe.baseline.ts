@@ -94,8 +94,8 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // Platform-admin batch refresh of those previews: the batch route verifies
     // the platform-admin role and reads only the ids the client already holds.
     {
-      file: 'apps/server/api/src/collections/ingredients/services/ingredients.service.ts',
-      line: 254,
+      file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
+      line: 348,
     },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and

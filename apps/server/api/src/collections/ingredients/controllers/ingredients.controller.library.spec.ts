@@ -66,7 +66,6 @@ describe('IngredientsController — Library axes', () => {
       nextCursor: null,
     }),
     findByIds: vi.fn().mockResolvedValue([]),
-    findByIdsAcrossOrganizations: vi.fn().mockResolvedValue([]),
     getLibrarySummary: vi.fn().mockResolvedValue({
       byCategory: {},
       byShelf: {},
@@ -888,9 +887,7 @@ describe('IngredientsController — Library axes', () => {
 
       it('returns them to a platform admin refreshing admin previews', async () => {
         ingredientsService.findByIds.mockResolvedValue([]);
-        ingredientsService.findByIdsAcrossOrganizations.mockResolvedValue([
-          otherOrgAsset,
-        ]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
 
         await expect(
           controller.getBatch(mockRequest, 'image-other-org', {
@@ -910,11 +907,31 @@ describe('IngredientsController — Library axes', () => {
         });
       });
 
+      it('keeps the request-organization assets next to the other-organization ones', async () => {
+        ingredientsService.findByIds.mockResolvedValue([
+          {
+            cdnUrl: null,
+            id: 'image-own',
+            s3Key: 'ingredients/images/image-own.png',
+          },
+        ]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
+
+        const result = (await controller.getBatch(
+          mockRequest,
+          'image-own,image-other-org',
+          { ...mockUser, isSuperAdmin: true },
+        )) as { data: { docs: { id: string }[] } };
+
+        expect(result.data.docs.map((doc) => doc.id)).toEqual([
+          'image-own',
+          'image-other-org',
+        ]);
+      });
+
       it('never returns them to an ordinary member', async () => {
         ingredientsService.findByIds.mockResolvedValue([]);
-        ingredientsService.findByIdsAcrossOrganizations.mockResolvedValue([
-          otherOrgAsset,
-        ]);
+        ingredientsService.findAll.mockResolvedValue({ docs: [otherOrgAsset] });
 
         await expect(
           controller.getBatch(mockRequest, 'image-other-org', mockUser),

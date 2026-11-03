@@ -54,7 +54,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import {
-  crossOrgUnsafe,
   getTenantContext,
   isCrossOrgUnsafe,
 } from '@libs/prisma/tenant-context';
@@ -236,30 +235,6 @@ export class IngredientsService extends BaseService<
       });
       throw error;
     }
-  }
-
-  /**
-   * Platform-admin batch read across organizations, for ids `findByIds` could
-   * not resolve in the request organization (the admin views refresh preview
-   * grants of other tenants' assets through the batch route). Callers MUST
-   * have verified the platform-admin role.
-   */
-  async findByIdsAcrossOrganizations(
-    ids: string[],
-  ): Promise<IngredientDocument[]> {
-    if (ids.length === 0) {
-      return [];
-    }
-
-    const result = await crossOrgUnsafe(() =>
-      // tenant-scope-ignore: platform-admin operator view; the batch route verifies the platform-admin role and reads only ids the client already holds.
-      this.prisma.ingredient.findMany({
-        include: { metadata: { select: { result: true } } },
-        where: { id: { in: ids }, isDeleted: false },
-      }),
-    );
-
-    return result.map((row) => this.normalizeDocument(row));
   }
 
   /**
