@@ -37,8 +37,11 @@ describe('StripeWebhookSupportService', () => {
     $transaction: vi.fn(async (callback: (client: unknown) => unknown) =>
       callback(prisma),
     ),
+    $executeRaw: vi.fn().mockResolvedValue(0),
     billingRevenueEvent: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { amountMinor: 0 } }),
       createMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     creditTransaction: {
       findFirst: vi.fn(),
@@ -910,16 +913,14 @@ describe('StripeWebhookSupportService', () => {
     };
 
     beforeEach(() => {
-      prisma.billingRevenueEvent.findFirst = vi.fn().mockResolvedValue({
+      prisma.billingRevenueEvent.findFirst.mockResolvedValue({
         amountMinor: 4_000,
         currency: 'usd',
         organizationId: 'org_1',
       });
-      prisma.billingRevenueEvent.aggregate = vi
-        .fn()
-        .mockResolvedValue({ _sum: { amountMinor: 0 } });
-      prisma.$queryRaw = vi.fn().mockResolvedValue([]);
-      prisma.$executeRaw = vi.fn().mockResolvedValue(0);
+      prisma.billingRevenueEvent.aggregate.mockResolvedValue({
+        _sum: { amountMinor: 0 },
+      });
     });
 
     it('announces a refund once the negative ledger row is written', async () => {
