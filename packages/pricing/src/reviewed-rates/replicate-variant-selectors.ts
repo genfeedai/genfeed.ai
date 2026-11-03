@@ -53,6 +53,7 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
   'google/veo-3.1-fast': veo,
   'openai/gpt-image-1.5': gpt,
   'openai/gpt-image-2': gpt,
+  'xai/grok-imagine-image-2': [field('quality', identity('low', 'medium'))],
   'openai/sora-2-pro': [
     field('resolution', {
       standard: 'sora-2-pro-standard',
