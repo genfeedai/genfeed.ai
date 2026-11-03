@@ -75,4 +75,12 @@ describe('Table variants', () => {
       'cursor-pointer',
     );
   });
+
+  it('sets column headers in uppercase', () => {
+    renderTable();
+
+    expect(screen.getByRole('columnheader', { name: 'Plan' })).toHaveClass(
+      'uppercase',
+    );
+  });
 });

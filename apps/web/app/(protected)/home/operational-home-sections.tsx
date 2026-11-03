@@ -21,7 +21,10 @@ import type {
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
-import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
+import {
+  getPublishingPostHref,
+  getPublishingReleaseHref,
+} from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
@@ -62,6 +65,8 @@ import type {
   PublishingSurfaceProps,
   ReviewInboxItem,
 } from '@/features/home/props/operational-home-sections.props';
+import PublishingContentChannels from '@/features/posts/library/publishing-content-channels';
+import { createPublishingContentAccounts } from '@/features/posts/library/publishing-content-library.helpers';
 import PublishingPostHoverPreview from '@/features/posts/library/publishing-post-hover-preview';
 import {
   badgeVariantForTone,
@@ -680,6 +685,13 @@ function PublishingSurface({
             <div>
               {publications.map((publication) => {
                 const badge = releaseStatusBadge(publication);
+                const targets = Array.isArray(publication.targets)
+                  ? publication.targets
+                  : [];
+                const firstTarget = targets[0];
+                const accounts = createPublishingContentAccounts(
+                  targets.map((target) => target.credential),
+                );
                 return (
                   <ListRow
                     density="compact"
@@ -687,8 +699,16 @@ function PublishingSurface({
                     href={createBrandAppRoute(
                       orgSlug,
                       brandSlug,
-                      getPublishingReleaseHref(publication.id),
+                      firstTarget
+                        ? getPublishingPostHref(firstTarget.id)
+                        : getPublishingReleaseHref(publication.id),
                     )}
+                    leading={
+                      <PublishingContentChannels
+                        accounts={accounts}
+                        channels={targets.map((target) => target.platform)}
+                      />
+                    }
                     meta={
                       <ClientFormattedDate
                         fallback="Time unavailable"

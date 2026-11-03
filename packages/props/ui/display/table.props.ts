@@ -124,6 +124,14 @@ interface TableBaseProps<T> {
   onRowClick?: (item: T) => void;
 
   /**
+   * Id (see `getItemId`) of the row whose detail the parent shows in the
+   * context sidebar. That row keeps the soft selected tint while the sidebar
+   * is open. Use with `onRowClick` when the parent owns the sidebar; `rowSidebar`
+   * tracks its own selection.
+   */
+  activeRowId?: string | null;
+
+  /**
    * Detail panel for a row, rendered as a full-width row directly beneath it.
    * Return `undefined` for a row that is not expanded — the extra row is only
    * emitted when this returns content, so a table that never expands is

@@ -40,6 +40,38 @@ test.describe('Posts — Management', () => {
     await expect(postsPage.statusFilterTrigger).toBeVisible();
   });
 
+  test('should render the posts table with uppercase headers, no Created column and a tinted open row', async ({
+    authenticatedPage,
+  }) => {
+    const postsPage = new PostsPage(authenticatedPage);
+
+    await mockPostsList(authenticatedPage, [
+      generateMockPost({
+        id: 'table-draft-001',
+        label: 'Table Draft Post',
+        status: PostStatus.DRAFT,
+      }),
+    ]);
+    await postsPage.gotoNotPosted();
+
+    const table = authenticatedPage.getByRole('table').first();
+    await expect(
+      table.getByRole('columnheader', { name: 'Content' }),
+    ).toHaveCSS('text-transform', 'uppercase');
+    await expect(
+      table.getByRole('columnheader', { name: 'Created' }),
+    ).toHaveCount(0);
+    await expect(table.getByRole('button', { name: 'Content' })).toHaveCount(0);
+    await expect(table.getByRole('button', { name: 'Status' })).toBeVisible();
+
+    // Click the status cell: the title is a link to the editor, the rest of
+    // the row opens the context sidebar.
+    const row = table.getByRole('row', { name: /Table Draft Post/ });
+    await row.getByRole('cell').nth(1).click();
+    await expect(authenticatedPage).toHaveURL(/post=table-draft-001/);
+    await expect(row).toHaveClass(/odd:bg-accent/);
+  });
+
   test('should show not-posted posts by default', async ({
     authenticatedPage,
   }) => {

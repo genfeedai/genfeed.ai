@@ -619,6 +619,7 @@ export default function ReleasePostsList({
             {
               key: 'title',
               header: 'Content',
+              sortable: false,
               render: (release) => (
                 <div
                   ref={registerItem(data.releases.indexOf(release))}

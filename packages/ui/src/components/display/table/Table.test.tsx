@@ -381,6 +381,108 @@ describe('Table', () => {
     );
   });
 
+  it('sets headers in uppercase and lets the sort button fill the cell', () => {
+    render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: /name/i })).toHaveClass(
+      'uppercase',
+      'p-0',
+    );
+    expect(screen.getByRole('button', { name: 'Name' })).toHaveClass(
+      'w-full',
+      'uppercase',
+    );
+  });
+
+  it('shows a chevron for the active sort direction', async () => {
+    const user = userEvent.setup();
+    render(
+      <Table
+        items={[
+          { id: 'a', name: 'alpha' },
+          { id: 'b', name: 'Bravo' },
+        ]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+    const button = screen.getByRole('button', { name: 'Name' });
+
+    expect(button.querySelector('.lucide-chevrons-up-down')).not.toBeNull();
+    await user.click(button);
+    expect(button.querySelector('.lucide-chevron-up')).not.toBeNull();
+    await user.click(button);
+    expect(button.querySelector('.lucide-chevron-down')).not.toBeNull();
+    expect(button.querySelector('.lucide-arrow-up')).toBeNull();
+    expect(button.querySelector('.lucide-arrow-down')).toBeNull();
+  });
+
+  it('keeps a column unsortable when it opts out', () => {
+    render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item', status: 'ok' }]}
+        columns={[
+          { header: 'Content', key: 'name', sortable: false },
+          { header: 'Status', key: 'status' },
+        ]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Content' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Status' })).toBeInTheDocument();
+  });
+
+  it('tints the row whose detail the parent has open', () => {
+    render(
+      <Table
+        activeRowId="b"
+        items={[
+          { id: 'a', name: 'Alpha' },
+          { id: 'b', name: 'Bravo' },
+        ]}
+        columns={[{ header: 'Name', key: 'name', sortable: false }]}
+        getItemId={(item) => item.id}
+        getRowKey={(item) => item.id}
+        onRowClick={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Bravo').closest('tr')).toHaveClass('bg-accent');
+    expect(screen.getByText('Alpha').closest('tr')).not.toHaveClass(
+      'bg-accent',
+    );
+  });
+
+  it('tints an odd row too, past the zebra stripe', () => {
+    render(
+      <Table
+        activeRowId="a"
+        items={[
+          { id: 'a', name: 'Alpha' },
+          { id: 'b', name: 'Bravo' },
+        ]}
+        columns={[{ header: 'Name', key: 'name', sortable: false }]}
+        getItemId={(item) => item.id}
+        getRowKey={(item) => item.id}
+        onRowClick={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Alpha').closest('tr')).toHaveClass(
+      'bg-accent',
+      'odd:bg-accent',
+    );
+  });
+
   describe('default sorting', () => {
     const rows = [
       { id: 'b', name: 'Bravo', posts: 10 },
