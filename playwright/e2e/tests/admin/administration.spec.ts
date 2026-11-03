@@ -15,7 +15,7 @@ test.describe('Admin Administration', () => {
   const routes = [
     APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
     APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS,
-    APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+    APP_ROUTES.ADMIN.USERS,
     APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
     APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS,
     APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS,
@@ -51,10 +51,7 @@ test.describe('Admin Administration', () => {
           }),
     );
 
-    await assertRouteRenders(
-      adminPage,
-      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-e2e-1`,
-    );
+    await assertRouteRenders(adminPage, `${APP_ROUTES.ADMIN.USERS}/user-e2e-1`);
 
     const status = adminPage.getByRole('main').getByText('In progress');
     await expect(status).toBeVisible();

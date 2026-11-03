@@ -408,7 +408,7 @@ export default function AnalyticsOrganizationsList({
             <TableUserCell
               avatar={org.owner.avatar}
               email={org.owner.email}
-              href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+              href={`${APP_ROUTES.ADMIN.USERS}/${org.owner.id}`}
               linkLabel={translate('ownerLinkLabel', { name: org.owner.name })}
               name={org.owner.name}
             />
@@ -597,7 +597,7 @@ export default function AnalyticsOrganizationsList({
                   value: org.owner ? (
                     <Link
                       className="hover:text-primary"
-                      href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+                      href={`${APP_ROUTES.ADMIN.USERS}/${org.owner.id}`}
                     >
                       {org.owner.name}
                     </Link>
@@ -676,7 +676,7 @@ export default function AnalyticsOrganizationsList({
                     variant={ButtonVariant.SECONDARY}
                   >
                     <Link
-                      href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${org.owner.id}`}
+                      href={`${APP_ROUTES.ADMIN.USERS}/${org.owner.id}`}
                     >
                       {translate('openOwner')}
                     </Link>

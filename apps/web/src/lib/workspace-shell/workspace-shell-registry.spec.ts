@@ -195,7 +195,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
     ['/:orgSlug/:brandSlug/platforms/:platform', 'canvas'],
     ['/:orgSlug/~/settings/subscription', 'canvas'],
-    ['/admin/administration/users', 'canvas'],
+    ['/admin/users', 'canvas'],
   ] as const)('classifies %s as %s', (pattern, mode) => {
     expect(
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,

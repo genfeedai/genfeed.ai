@@ -254,7 +254,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
     ).toBeVisible();
     expect(
       screen.getByRole('link', { name: 'Open user Ada Lovelace' }),
-    ).toHaveAttribute('href', '/admin/administration/users/user-9');
+    ).toHaveAttribute('href', '/admin/users/user-9');
     expect(screen.getAllByRole('link', { name: /Open user/ })).toHaveLength(1);
     expect(screen.getByText('ada@example.com')).toBeVisible();
   });
@@ -475,7 +475,7 @@ describe('AnalyticsOrganizationsList shell-first loading', () => {
       ).toBeVisible();
       expect(
         within(sidebar).getByRole('link', { name: 'Open owner' }),
-      ).toHaveAttribute('href', '/admin/administration/users/user-3');
+      ).toHaveAttribute('href', '/admin/users/user-3');
       expect(
         within(sidebar).getByRole('link', { name: 'Release access' }),
       ).toHaveAttribute('href', '/admin/organizations/org-concierge/settings');

@@ -76,7 +76,7 @@ export function adminUserUrl(
   userId: string,
 ): string | null {
   return appUrl
-    ? `${appUrl}${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${encodeURIComponent(userId)}`
+    ? `${appUrl}${APP_ROUTES.ADMIN.USERS}/${encodeURIComponent(userId)}`
     : null;
 }
 

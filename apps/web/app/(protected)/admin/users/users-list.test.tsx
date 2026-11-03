@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/admin/administration/users',
+  usePathname: () => '/admin/users',
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => new URLSearchParams(mocks.query.value),
 }));
@@ -37,7 +37,7 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
+    '../../../../tests/next-intl.stub'
   );
   return { useTranslations: translateFromCatalog };
 });
@@ -386,7 +386,7 @@ describe('UsersList', () => {
 
     expect(screen.getByRole('link', { name: 'Jane Doe' })).toHaveAttribute(
       'href',
-      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-1`,
+      `${APP_ROUTES.ADMIN.USERS}/user-1`,
     );
     expect(
       screen.getByRole('link', { name: 'jane@example.com' }),
@@ -418,10 +418,7 @@ describe('UsersList', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open full profile' }),
-    ).toHaveAttribute(
-      'href',
-      `${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/user-1`,
-    );
+    ).toHaveAttribute('href', `${APP_ROUTES.ADMIN.USERS}/user-1`);
   });
 
   it('impersonates the user and reloads into their account', async () => {

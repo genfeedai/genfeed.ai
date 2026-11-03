@@ -49,7 +49,7 @@ describe('Admin overview page', () => {
 
     expect(
       within(quickActions).getByRole('link', { name: 'Manage Users' }),
-    ).toHaveAttribute('href', '/admin/administration/users');
+    ).toHaveAttribute('href', '/admin/users');
     expect(
       within(quickActions).getByRole('link', { name: 'View Posts' }),
     ).toHaveAttribute('href', '/admin/content/posts');

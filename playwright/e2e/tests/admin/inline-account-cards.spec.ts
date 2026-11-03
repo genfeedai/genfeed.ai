@@ -78,7 +78,7 @@ test.describe('Inline account cards', () => {
       },
     );
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto(`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/qa-inline-user`);
+    await page.goto(`${APP_ROUTES.ADMIN.USERS}/qa-inline-user`);
     await page
       .getByRole('button', { name: 'Edit profile', exact: true })
       .click();

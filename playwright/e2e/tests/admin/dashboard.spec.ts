@@ -49,7 +49,7 @@ test.describe('Admin Dashboard', () => {
     await expect(quickActions).toBeVisible();
     await expect(
       quickActions.getByRole('link', { name: 'Manage Users' }),
-    ).toHaveAttribute('href', /\/admin\/administration\/users/);
+    ).toHaveAttribute('href', /\/admin\/users/);
     await expect(
       quickActions.getByRole('link', { name: 'View Elements' }),
     ).toBeVisible();

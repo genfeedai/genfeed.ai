@@ -354,7 +354,7 @@ test.describe('Admin Organization', () => {
     ).toBeVisible();
     await expect(
       sidebar.getByRole('link', { name: 'Open owner' }),
-    ).toHaveAttribute('href', /\/admin\/administration\/users\/user-e2e-3$/);
+    ).toHaveAttribute('href', /\/admin\/users\/user-e2e-3$/);
   });
 
   test('flags releases card points to per-organization release access', async ({

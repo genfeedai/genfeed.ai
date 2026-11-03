@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import UsersList from '@protected/administration/users/users-list';
+import UsersList from '@protected/users/users-list';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Users');

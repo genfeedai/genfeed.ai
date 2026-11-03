@@ -29,7 +29,7 @@ It does not forbid query filters.
 | --- | --- | --- |
 | `/admin/organizations` | `/admin/organizations/:id` | Analytics tab (default) and `?tab=settings` |
 | `/admin/brands` | `/admin/brands/:id` | Platform view at `/admin/brands/:id/platforms/:platform` |
-| `/admin/administration/users` | `/admin/administration/users/:id` | |
+| `/admin/users` | `/admin/users/:id` | |
 | `/admin/content/posts` | `/admin/content/posts/:id` | |
 | `/admin/content/templates` | `/admin/content/templates/:id` | |
 | `/admin/content/ingredients` | `/admin/content/ingredients/:type/:id` | The in-app `LibraryBrowser` across all organizations; `:type` is `images`, `videos`, `gifs`, `music` or `avatars`. Detail exists for `images` and `videos`. |

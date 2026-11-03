@@ -7,7 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { VenetianMask } from 'lucide-react';
 import { useState } from 'react';
 
-const ADMIN_USERS_PATH = '/admin/administration/users';
+const ADMIN_USERS_PATH = '/admin/users';
 
 /**
  * App-shell-wide banner shown while a superadmin impersonates a user via the
