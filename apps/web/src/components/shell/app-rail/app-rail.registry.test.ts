@@ -214,9 +214,9 @@ describe('app rail registry', () => {
     expect(
       getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/learning'),
     ).toBe('admin-automation');
-    expect(
-      getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/administration/users/u1'),
-    ).toBe('admin-customers');
+    expect(getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/users/u1')).toBe(
+      'admin-customers',
+    );
     expect(
       getActiveAppId(ADMIN_RAIL_CATEGORIES, '/admin/organizations/org-1'),
     ).toBe('admin-customers');

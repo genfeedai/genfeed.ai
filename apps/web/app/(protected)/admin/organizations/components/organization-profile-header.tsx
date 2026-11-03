@@ -57,7 +57,7 @@ export default function OrganizationProfileHeader({
               {translate('ownerLabel')}:{' '}
               <Link
                 className="text-foreground hover:text-primary"
-                href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${profile.owner.id}`}
+                href={`${APP_ROUTES.ADMIN.USERS}/${profile.owner.id}`}
               >
                 {profile.owner.name}
               </Link>

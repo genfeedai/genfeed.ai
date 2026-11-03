@@ -115,9 +115,7 @@ describe('ImpersonationBanner', () => {
 
     await waitFor(() => {
       expect(mocks.stopImpersonating).toHaveBeenCalledTimes(1);
-      expect(locationAssign).toHaveBeenCalledWith(
-        '/admin/administration/users',
-      );
+      expect(locationAssign).toHaveBeenCalledWith('/admin/users');
     });
   });
 

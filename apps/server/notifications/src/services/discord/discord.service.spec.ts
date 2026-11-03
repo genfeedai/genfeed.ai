@@ -1028,11 +1028,11 @@ describe('DiscordService', () => {
         ],
         thumbnail: { url: 'https://cdn/avatar-user.png' },
         title: 'New User Signed Up',
-        url: 'https://app.genfeed.ai/admin/administration/users/u-1',
+        url: 'https://app.genfeed.ai/admin/users/u-1',
       });
       expect(buttonOf(payload)).toMatchObject({
         label: 'View in Admin',
-        url: 'https://app.genfeed.ai/admin/administration/users/u-1',
+        url: 'https://app.genfeed.ai/admin/users/u-1',
       });
     });
 

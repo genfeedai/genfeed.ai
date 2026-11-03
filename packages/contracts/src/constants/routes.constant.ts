@@ -30,7 +30,6 @@ export const APP_ROUTES = {
       ROLES: '/admin/administration/roles',
       SUBSCRIPTIONS: '/admin/administration/subscriptions',
       SYSTEM_EMAILS: '/admin/administration/system-emails',
-      USERS: '/admin/administration/users',
     },
     AUTOMATION: {
       AGENTS: '/admin/automation/agents',
@@ -81,6 +80,8 @@ export const APP_ROUTES = {
       ANALYTICS_BUSINESS: '/admin/overview/analytics/business',
       ROOT: '/admin/overview',
     },
+    /** List at `/admin/users`; detail at `/admin/users/:id`. */
+    USERS: '/admin/users',
   },
   ANALYTICS: {
     ROOT: '/analytics',

@@ -185,7 +185,7 @@ function QuickActionsGrid() {
       color: 'bg-muted/50 text-foreground',
       cta: translate('adminDashboard.quickActions.users.cta'),
       description: translate('adminDashboard.quickActions.users.description'),
-      href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+      href: APP_ROUTES.ADMIN.USERS,
       icon: Users,
       id: 'users',
       label: translate('adminDashboard.quickActions.users.label'),

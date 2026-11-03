@@ -21,9 +21,7 @@ export default function UserDetailPanel({
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <NextLink
-            href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${user.id}`}
-          >
+          <NextLink href={`${APP_ROUTES.ADMIN.USERS}/${user.id}`}>
             {translate('openProfile')}
           </NextLink>
         </Button>

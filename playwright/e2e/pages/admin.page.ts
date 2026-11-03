@@ -58,7 +58,7 @@ export class AdminPage {
     );
     this.quickActionCards = page.locator(
       '[data-testid="quick-action"], .quick-action, ' +
-        'a[href="/admin/administration/users"], a[href="/admin/content/templates"]',
+        'a[href="/admin/users"], a[href="/admin/content/templates"]',
     );
     this.activityChart = page.locator(
       '[data-testid="activity-chart"], .recharts-wrapper, ' +
@@ -113,7 +113,7 @@ export class AdminPage {
   }
 
   async gotoUsers(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.ADMINISTRATION.USERS, {
+    await this.page.goto(APP_ROUTES.ADMIN.USERS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

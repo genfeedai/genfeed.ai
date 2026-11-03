@@ -7,7 +7,7 @@ import UserDetails from './user-details';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../tests/next-intl.stub'
+    '../../../../tests/next-intl.stub'
   );
   return { useTranslations: translateFromCatalog };
 });

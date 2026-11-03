@@ -12,7 +12,7 @@ test.describe('Admin navigation', () => {
     { id: 'admin-overview', path: APP_ROUTES.ADMIN.OVERVIEW.ROOT },
     {
       id: 'admin-customers',
-      path: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
+      path: APP_ROUTES.ADMIN.USERS,
     },
     { id: 'admin-content', path: APP_ROUTES.ADMIN.CONTENT.POSTS },
     { id: 'admin-automation', path: APP_ROUTES.ADMIN.AUTOMATION.MODELS },

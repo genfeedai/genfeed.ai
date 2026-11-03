@@ -92,7 +92,7 @@ export default function UsersList() {
         <NextLink
           aria-label={getUserDisplayName(u) ?? u.email}
           className="flex min-w-0 items-center gap-2.5 hover:underline"
-          href={`${APP_ROUTES.ADMIN.ADMINISTRATION.USERS}/${u.id}`}
+          href={`${APP_ROUTES.ADMIN.USERS}/${u.id}`}
         >
           <Avatar
             alt={getUserDisplayName(u) ?? u.email}

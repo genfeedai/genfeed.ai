@@ -28,7 +28,7 @@ describe('TableUserCell', () => {
     render(
       <TableUserCell
         email="ada@example.com"
-        href="/admin/administration/users/user-1"
+        href="/admin/users/user-1"
         linkLabel="Open user Ada Lovelace"
         name="Ada Lovelace"
       />,
@@ -36,7 +36,7 @@ describe('TableUserCell', () => {
 
     expect(
       screen.getByRole('link', { name: 'Open user Ada Lovelace' }),
-    ).toHaveAttribute('href', '/admin/administration/users/user-1');
+    ).toHaveAttribute('href', '/admin/users/user-1');
   });
 
   it('reads as empty with neither name nor email', () => {
