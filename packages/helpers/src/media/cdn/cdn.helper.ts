@@ -15,7 +15,7 @@ export const CDN_BASE_URL = 'https://cdn.genfeed.ai';
  *   cards/default.jpg        default card for apps and the console
  *   cards/articles/*         article card art (URLs are stored on article rows)
  *   placeholders/*           empty-state images
- *   starters/<app>/<name>.webp  starter-card thumbnails, one folder per app (playground/)
+ *   starters/<app>/<name>.webp  starter-card thumbnails, one folder per app (playground/, turbo/, clipper/, motion/, editor/, storyboard/)
  *   site/pages/<slug>.webp   landing page heroes (+ <slug>.jpg for social OG art)
  *   site/shared/<name>.webp  heroes shared by several pages
  *   site/home/**             homepage hero and output-carousel video + posters
