@@ -281,12 +281,6 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     page: Page,
     childId: string,
   ): Promise<void> {
-    // An open generation hides the list; go back to the generations first.
-    const back = page.getByRole('button', {
-      exact: true,
-      name: 'Back to gallery',
-    });
-    if (await back.isVisible()) await back.click();
     const childCard = page.getByTestId(`studio-asset-${childId}`);
     await expect(childCard).toBeVisible();
     await childCard.click();
@@ -299,8 +293,10 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await expect(sourceLink).toBeVisible();
     await sourceLink.focus();
     await page.keyboard.press('Enter');
-    // The source opens on its own URL.
-    await expect(page).toHaveURL(new RegExp(`/playground/${SOURCE_ID}$`));
+    await expect(page.getByTestId(`studio-asset-${SOURCE_ID}`)).toHaveAttribute(
+      'data-selected',
+      'true',
+    );
   }
 
   test('offers the Library video actions on a Generate video result', async ({
@@ -414,11 +410,7 @@ test.describe('Studio Generate — video results and composer drafts', () => {
     await dialog.getByRole('button', { name: EXTEND_BUTTON_NAME }).click();
     await expect.poll(() => extendBodies.length).toBe(1);
     await expectLinkedToSource(authenticatedPage, EXTENDED_ID);
-    // The source stays open at its URL after a reload; the list is one Back away.
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
-    await authenticatedPage
-      .getByRole('button', { exact: true, name: 'Back to gallery' })
-      .click();
     await expect(
       authenticatedPage.getByTestId(`studio-asset-${SOURCE_ID}`),
     ).toBeVisible();

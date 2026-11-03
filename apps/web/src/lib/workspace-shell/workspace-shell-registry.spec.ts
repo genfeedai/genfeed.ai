@@ -93,7 +93,6 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/playground', 'Playground', 'Canvas'],
-    ['/acme/moonrise/playground/job-1', 'Playground', 'Generation'],
     ['/acme/moonrise/motion', 'Motion', 'Projects'],
     ['/acme/moonrise/motion/project-1', 'Motion', 'Project'],
     ['/acme/moonrise/turbo', 'Turbo', 'Projects'],
@@ -256,7 +255,6 @@ describe('workspace shell trusted registry', () => {
       'storyboard',
       'turbo',
       'turbo/project-1',
-      'playground/job-1',
     ]) {
       expect(
         resolveWorkspaceShellRoute(`/acme/moonrise/${surface}`),

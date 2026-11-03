@@ -7,7 +7,6 @@ import {
 import type { Locator, Page, Request } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { showOutputPane } from '../../utils/agent-output-layout';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import {
   mockGenerationQuote,
@@ -201,8 +200,6 @@ async function mountPlayground(page: Page) {
   await page.goto(brandPath(APP_ROUTES.STUDIO.PLAYGROUND), {
     waitUntil: 'domcontentloaded',
   });
-  // Below xl the generations sit behind the Output view.
-  await showOutputPane(page);
   return { generationWrites, media };
 }
 
@@ -331,10 +328,6 @@ test('an unavailable saved preview recovers through Retry preview without genera
   await expect(
     inspector.locator(`img[src*="/mock/${brokenId}.png"]`),
   ).toBeVisible();
-  // The card is only in the list, so go back to the generations to check it.
-  await page
-    .getByRole('button', { name: 'Back to gallery', exact: true })
-    .click();
   await expect(card).toHaveAttribute('data-asset-media-state', 'ready');
   await expect(cardStatus).toBeHidden();
   expect(generationWrites).toEqual([]);
