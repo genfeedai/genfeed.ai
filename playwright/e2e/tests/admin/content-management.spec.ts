@@ -58,13 +58,18 @@ test.describe('Admin Content Management', () => {
       await expect(
         voicesList.getByRole('table').or(voicesList.getByTestId('table-empty')),
       ).toBeVisible();
-      // Column headers are plain text, never uppercase eyebrows.
+      // Column headers are uppercase app-wide (shared TableHead).
+      // The row-actions header has no visible label, so it is left out.
       const headerTransforms = await voicesList
         .getByRole('columnheader')
+        .filter({ hasText: /\S/ })
         .evaluateAll((headers) =>
           headers.map((header) => getComputedStyle(header).textTransform),
         );
-      expect(headerTransforms.every((value) => value === 'none')).toBe(true);
+      expect(headerTransforms.length).toBeGreaterThan(0);
+      expect(headerTransforms.every((value) => value === 'uppercase')).toBe(
+        true,
+      );
     });
   });
 });
