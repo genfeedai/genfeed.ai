@@ -3,9 +3,8 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
-import { UnauthorizedException } from '@nestjs/common';
+import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { createMockExecutionContext } from '@test/mocks/controller.mocks';
 
 function keyWithScopes(scopes: string[]): ApiKeyDocument {
   return {
@@ -49,17 +48,22 @@ function buildGuard(apiKey: ApiKeyDocument): ApiKeyAuthGuard {
 
 type ImageRoute = 'create' | 'edit' | 'splitContactSheet';
 
-function imageGenerationContext(route: ImageRoute) {
-  const context = createMockExecutionContext({
-    request: {
-      connection: { remoteAddress: '203.0.113.7' },
-      headers: { authorization: 'Bearer gf_test_key' },
-      ip: '203.0.113.7',
-      user: null,
-    },
-  });
-  context.getHandler = () => ImagesOperationsController.prototype[route];
-  return context;
+function imageGenerationContext(route: ImageRoute): ExecutionContext {
+  const request = {
+    connection: { remoteAddress: '203.0.113.7' },
+    headers: { authorization: 'Bearer gf_test_key' },
+    ip: '203.0.113.7',
+    user: null,
+  };
+
+  return {
+    getClass: () => ImagesOperationsController,
+    getHandler: () => ImagesOperationsController.prototype[route],
+    switchToHttp: () => ({
+      getRequest: () => request,
+      getResponse: () => ({ setHeader: () => undefined }),
+    }),
+  } as unknown as ExecutionContext;
 }
 
 describe.each([
