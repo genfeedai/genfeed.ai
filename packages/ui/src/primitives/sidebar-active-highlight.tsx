@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn';
+import { useLinkStatus } from 'next/link';
 import {
   createContext,
   type MutableRefObject,
@@ -18,6 +19,8 @@ const PREVIOUS_RECT_MAX_AGE_MS = 300;
 
 /** The one fill shared by the active highlight and the row hover state. */
 export const SIDEBAR_ROW_FILL_CLASS_NAME = 'bg-foreground/5';
+/** The hover fill of a row that is not active; same token as the highlight. */
+export const SIDEBAR_ROW_HOVER_FILL_CLASS_NAME = 'hover:bg-foreground/5';
 
 interface HighlightMemory {
   /** The highlight currently on screen, if any. */
@@ -155,4 +158,15 @@ export function SidebarActiveHighlight({
       ref={elementRef}
     />
   );
+}
+
+/**
+ * Lives inside a row's Link: while that link's navigation is in flight the
+ * highlight already moves here, so the row answers the click instead of
+ * waiting for the next route to load.
+ */
+export function SidebarPendingHighlight() {
+  const { pending } = useLinkStatus();
+
+  return pending ? <SidebarActiveHighlight /> : null;
 }

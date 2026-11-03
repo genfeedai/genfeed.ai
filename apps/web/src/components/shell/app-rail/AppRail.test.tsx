@@ -85,6 +85,7 @@ vi.mock('next/link', () => ({
       {children}
     </a>
   ),
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 // Tooltip content only mounts on hover in Radix; the rail's accessible
@@ -659,15 +660,42 @@ describe('AppRail', () => {
       'focus-visible:ring-ring/60',
       'focus-visible:ring-offset-gray-100',
       'rounded-lg',
-      'bg-foreground/10',
       'text-foreground',
     );
-    expect(analytics).not.toHaveClass('bg-foreground/10');
+    expect(workspace).not.toHaveClass('bg-foreground/10', 'bg-foreground/5');
+    // The active fill is the sidebar's sliding highlight, with the same token
+    // the hover fill uses.
+    expect(
+      workspace.querySelector('[data-sidebar-active-highlight]'),
+    ).toHaveClass('bg-foreground/5');
+    expect(
+      analytics.querySelector('[data-sidebar-active-highlight]'),
+    ).toBeNull();
     expect(analytics).toHaveClass(
       'text-foreground/50',
       'hover:bg-foreground/5',
       'hover:text-foreground',
     );
+  });
+
+  it('moves the highlight to the app that becomes active', () => {
+    const props = { orgSlug: 'acme', brandSlug: 'my-brand' };
+    const { rerender } = render(
+      <AppRail {...props} currentPath="/acme/my-brand/workspace" />,
+    );
+
+    rerender(<AppRail {...props} currentPath="/acme/my-brand/analytics" />);
+
+    expect(
+      screen
+        .getByRole('link', { name: 'Workspace' })
+        .querySelector('[data-sidebar-active-highlight]'),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole('link', { name: 'Analytics' })
+        .querySelector('[data-sidebar-active-highlight]'),
+    ).not.toBeNull();
   });
 
   it('pins the header slot above the apps', () => {
@@ -1508,7 +1536,10 @@ describe('AppRail', () => {
         view.rerender(<AppRail {...props} pinnedAppIds={[appId]} />);
         const pinned = screen.getByTestId(`app-rail-item-${appId}`);
         expect(pinned).toHaveAttribute('aria-current', 'page');
-        expect(pinned).toHaveClass('bg-foreground/10', 'text-foreground');
+        expect(pinned).toHaveClass('text-foreground');
+        expect(
+          pinned.querySelector('[data-sidebar-active-highlight]'),
+        ).not.toBeNull();
         expect(
           view.container.querySelectorAll('[aria-current="page"]'),
         ).toHaveLength(1);
