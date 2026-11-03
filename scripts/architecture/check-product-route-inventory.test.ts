@@ -197,13 +197,13 @@ describe('compareProductRouteInventories', () => {
 
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
-    // Four creation routes moved into their app workspaces; Motion and
-    // Playground gained detail routes. The registry also drops /~/editor/new.
+    // Four creation routes moved into their app workspaces; Motion gained a
+    // detail route. The registry also drops /~/editor/new.
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 26,
       issues: [],
-      protectedPageCount: 247,
-      protectedRouteCount: 269,
+      protectedPageCount: 246,
+      protectedRouteCount: 268,
       publicRouteCount: 112,
       websitePublicRouteCount: 86,
     });
