@@ -31,9 +31,43 @@ export interface IPublishPipelineCounts {
 }
 
 /**
+ * A post approved through the review queue. Approving an item with a schedule
+ * date also creates a publish approval; an item without one only pins a
+ * version and moves the post on, so those posts appear here and nowhere else.
+ */
+export interface IPublishPipelineReviewedPost {
+  brandId: string;
+  executionState: string;
+  organizationId: string;
+  platform: string | null;
+  postId: string;
+  postStatus: string | null;
+  reviewedAt: string;
+  scheduledDate: string | null;
+}
+
+export interface IPublishPipelineReviewQueueCounts {
+  /** Posts by their target execution state (draft, scheduled, published, ...). */
+  byExecutionState: Record<string, number>;
+  /** Scheduled for a past date and not yet published, failed or skipped. */
+  overdue: number;
+  total: number;
+  withoutScheduleDate: number;
+  withScheduleDate: number;
+}
+
+export interface IPublishPipelineReviewQueue {
+  counts: IPublishPipelineReviewQueueCounts;
+  /** Newest reviews first, capped at the report's `itemLimit`. */
+  items: IPublishPipelineReviewedPost[];
+}
+
+/**
  * Platform-admin read of what happened after items were approved for
  * publishing: publish approvals created in the window, and the posts they
- * approved, across organizations. Read-only.
+ * approved, across organizations. `reviewQueue` covers posts approved through
+ * the review queue in the same window, with or without a publish approval.
+ * Read-only.
  */
 export interface IPublishPipelineReport {
   counts: IPublishPipelineCounts;
@@ -41,6 +75,7 @@ export interface IPublishPipelineReport {
   /** Newest approvals first, capped at `itemLimit`. */
   itemLimit: number;
   items: IPublishPipelineItem[];
+  reviewQueue: IPublishPipelineReviewQueue;
   since: string;
   windowDays: number;
 }

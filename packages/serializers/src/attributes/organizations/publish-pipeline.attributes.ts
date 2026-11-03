@@ -5,6 +5,7 @@ export const publishPipelineAttributes = createEntityAttributes([
   'generatedAt',
   'itemLimit',
   'items',
+  'reviewQueue',
   'since',
   'windowDays',
 ]);

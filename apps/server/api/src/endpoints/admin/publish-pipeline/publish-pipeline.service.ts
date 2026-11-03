@@ -1,9 +1,13 @@
 import {
   type PublishPipelineApprovalRow,
+  type PublishPipelineReviewedPostRow,
   summarizePublishPipeline,
+  summarizeReviewQueue,
   toPublishPipelineItem,
+  toReviewedPostItem,
 } from '@api/endpoints/admin/publish-pipeline/publish-pipeline.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PersistedReviewDecision } from '@genfeedai/contracts';
 import type { IPublishPipelineReport } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
@@ -12,6 +16,7 @@ const DEFAULT_WINDOW_DAYS = 3;
 const ITEM_LIMIT = 100;
 /** Per organization, so one busy organization cannot hide the others. */
 const APPROVALS_PER_ORGANIZATION = 500;
+const REVIEWED_POSTS_PER_ORGANIZATION = 500;
 
 @Injectable()
 export class PublishPipelineService {
@@ -20,7 +25,9 @@ export class PublishPipelineService {
   /**
    * What became of items approved for publishing in the window: the publish
    * approvals and the posts they approved, read through each organization so
-   * every row stays scoped to the organization that owns it. Read-only.
+   * every row stays scoped to the organization that owns it. The review queue
+   * section covers posts approved there in the same window, including those
+   * approved without a schedule date, which get no publish approval. Read-only.
    */
   async getReport(
     windowDays = DEFAULT_WINDOW_DAYS,
@@ -61,13 +68,61 @@ export class PublishPipelineService {
       .flatMap((organization) => organization.publishApprovals)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
+    const reviewedPosts = await this.getReviewedPosts(since);
+
     return {
       counts: summarizePublishPipeline(rows, now),
       generatedAt: now.toISOString(),
       itemLimit: ITEM_LIMIT,
       items: rows.slice(0, ITEM_LIMIT).map(toPublishPipelineItem),
+      reviewQueue: {
+        counts: summarizeReviewQueue(reviewedPosts, now),
+        items: reviewedPosts.slice(0, ITEM_LIMIT).map(toReviewedPostItem),
+      },
       since: since.toISOString(),
       windowDays,
     };
+  }
+
+  private async getReviewedPosts(
+    since: Date,
+  ): Promise<PublishPipelineReviewedPostRow[]> {
+    const reviewedInWindow = {
+      isDeleted: false,
+      reviewDecision: PersistedReviewDecision.APPROVED,
+      reviewedAt: { gte: since },
+    };
+    const organizations = await this.prisma.organization.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        posts: {
+          orderBy: { reviewedAt: 'desc' },
+          select: {
+            brandId: true,
+            id: true,
+            organizationId: true,
+            platform: true,
+            reviewedAt: true,
+            scheduledDate: true,
+            status: true,
+            targetExecutionState: true,
+          },
+          take: REVIEWED_POSTS_PER_ORGANIZATION,
+          where: reviewedInWindow,
+        },
+      },
+      where: { isDeleted: false, posts: { some: reviewedInWindow } },
+    });
+
+    const rows: PublishPipelineReviewedPostRow[] = [];
+    for (const organization of organizations) {
+      for (const post of organization.posts) {
+        if (post.reviewedAt) {
+          rows.push({ ...post, reviewedAt: post.reviewedAt });
+        }
+      }
+    }
+    return rows.sort((a, b) => b.reviewedAt.getTime() - a.reviewedAt.getTime());
   }
 }

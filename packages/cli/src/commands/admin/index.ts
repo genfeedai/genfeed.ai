@@ -569,6 +569,14 @@ async function runPublishPipeline(options: { days: number; isJson: boolean }): P
       `\nShowing the ${report.items.length} newest of ${counts.total}; use --json for the rows.`
     )
   );
+
+  const review = report.reviewQueue.counts;
+  print(formatHeader('\nApproved in the review queue\n'));
+  print(formatLabel('Posts', String(review.total)));
+  print(formatLabel('By execution state', formatCounts(review.byExecutionState)));
+  print(formatLabel('With a schedule date', String(review.withScheduleDate)));
+  print(formatLabel('Without a schedule date', String(review.withoutScheduleDate)));
+  print(formatLabel('Overdue, not published', String(review.overdue)));
 }
 
 async function runHarnessActivation(options: {
