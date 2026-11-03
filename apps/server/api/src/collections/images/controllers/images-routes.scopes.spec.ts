@@ -173,6 +173,15 @@ describe.each(IMAGE_ROUTES)(
       ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
     });
 
+    it('refuses a key that only holds another image scope', async () => {
+      // No image route requires images:update, so it never satisfies one.
+      const guard = buildGuard(keyWithScopes(['images:update']));
+
+      await expect(
+        guard.canActivate(imageRouteContext(controller, handler)),
+      ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
+    });
+
     it(`allows a key with ${scope}`, async () => {
       const guard = buildGuard(keyWithScopes([scope]));
 

@@ -353,6 +353,12 @@ export class ImagesUploadsController {
     @CurrentUser() user: User,
     @Body() body: PresignedUploadDto,
   ): Promise<JsonApiSingleResponse> {
+    // This route is gated by images:create, so it only issues image uploads.
+    // Other categories go through their own routes and scopes.
+    if (body.category && body.category !== IngredientCategory.IMAGE) {
+      throw createBadRequest('This route only accepts image uploads');
+    }
+
     const result = await this.presignedUploadService.getPresignedUploadUrl(
       user,
       body,
