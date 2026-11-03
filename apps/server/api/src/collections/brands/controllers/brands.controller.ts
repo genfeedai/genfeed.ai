@@ -27,6 +27,7 @@ import { AnalyticsAggregationService } from '@api/collections/posts/services/ana
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -44,6 +45,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -173,6 +175,7 @@ export class BrandsController extends BaseCRUDController<
    * other updates fall through to the default CRUD patch unchanged.
    */
   @Patch(':id')
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -327,6 +330,7 @@ export class BrandsController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(ApiKeyScope.BRANDS_WRITE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
