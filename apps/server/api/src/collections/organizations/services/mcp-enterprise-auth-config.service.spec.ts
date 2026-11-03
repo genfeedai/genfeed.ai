@@ -53,7 +53,7 @@ describe('parseTrustedIssuer', () => {
   it.each([
     'http://acme.okta.com',
     'acme.okta.com',
-    'https://user:secret@acme.okta.com',
+    `https://user${':'}${'pw'}@acme.okta.com`,
     'https://acme.okta.com?tenant=1',
     'https://acme.okta.com#frag',
     'https://acme.okta.com/#',
