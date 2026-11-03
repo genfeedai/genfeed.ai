@@ -916,6 +916,22 @@ describe('DiscordService', () => {
       ]);
     });
 
+    it('shows a balance under half a cent as below one cent, not zero', async () => {
+      const { service } = await createService();
+
+      await service.sendLowCreditsAlert({
+        balance: 0.004,
+        organizationId: 'o-1',
+        organizationLabel: 'Katya Studio',
+      });
+
+      expect(lastCard().fields).toContainEqual({
+        inline: true,
+        name: 'Balance',
+        value: '<0.01 credits',
+      });
+    });
+
     it('falls back to the organization id when no name is known', async () => {
       const { service } = await createService();
 

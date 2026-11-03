@@ -146,6 +146,17 @@ describe('UserProvisioningListener', () => {
     expect(dispatched.messages[0].message.payload.avatar).toBeUndefined();
   });
 
+  it('leaves a picture without a host out of the operator alert', async () => {
+    await listener.handleUserCreated({
+      avatar: 'https://',
+      email: 'new@genfeed.ai',
+      userId: 'u_1',
+    });
+
+    const dispatched = notificationsService.dispatch.mock.calls[0][0];
+    expect(dispatched.messages[0].message.payload.avatar).toBeUndefined();
+  });
+
   it('schedules the background brand prefill with the signup email', async () => {
     await listener.handleUserCreated({
       email: 'vincent@acme.com',

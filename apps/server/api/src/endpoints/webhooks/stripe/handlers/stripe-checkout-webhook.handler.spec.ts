@@ -984,7 +984,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       });
       expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         BETTER_AUTH_USER_CREATED_EVENT,
-        { email, userId: 'user_new_1' },
+        { email, name: 'Ada Lovelace', userId: 'user_new_1' },
       );
       expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
     });

@@ -65,6 +65,8 @@ export function buildOperatorCard(
 
 /** Credits are fractional internally; the cards show at most two decimals. */
 export function formatCredits(value: number): string {
+  // A positive balance that rounds to 0 would read as depleted.
+  if (Number.isFinite(value) && value > 0 && value < 0.005) return '<0.01';
   return Number.isFinite(value)
     ? value.toLocaleString('en-US', { maximumFractionDigits: 2 })
     : String(value);

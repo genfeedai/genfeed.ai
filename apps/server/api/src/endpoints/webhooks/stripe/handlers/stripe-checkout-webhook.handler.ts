@@ -666,6 +666,7 @@ export class StripeCheckoutWebhookHandler {
     if (isNewUser) {
       const userCreatedEvent: IBetterAuthUserCreatedEvent = {
         email,
+        name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
         userId: String(dbUser.id),
       };
       await this.eventEmitter.emitAsync(

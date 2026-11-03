@@ -134,7 +134,7 @@
     },
     "discord": {
       "channelsHeading": "Discord channels",
-      "channelsHelp": "Channel IDs for operator updates. Leave one empty to skip it.",
+      "channelsHelp": "Channel IDs for operator updates. Leave one empty to skip it. An empty Billing channel sends credit and revenue alerts to the Users channel.",
       "webhooksHeading": "Discord webhooks"
     }
   },
