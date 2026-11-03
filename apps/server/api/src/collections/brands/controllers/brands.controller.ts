@@ -349,7 +349,6 @@ export class BrandsController extends BaseCRUDController<
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
-
     const isDeleted = query.isDeleted ?? false;
 
     if (adminFilter) {
@@ -367,7 +366,6 @@ export class BrandsController extends BaseCRUDController<
       false,
     );
     const organizationId = scope.organizationId ?? user.organizationId;
-
     if (!organizationId) {
       throw new ForbiddenException('Organization not found in session');
     }
