@@ -1,7 +1,6 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
-import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
