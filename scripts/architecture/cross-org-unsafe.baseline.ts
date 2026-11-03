@@ -82,6 +82,21 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
       line: 260,
     },
+    // Platform-admin cross-organization media: the admin Library and Generations
+    // list other tenants' assets, so preview grants for ids the organization
+    // read did not resolve are issued after a platform-admin check in the
+    // response interceptor. Only ids already present in the response are read,
+    // and only a signed preview URL leaves the service.
+    {
+      file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
+      line: 803,
+    },
+    // Platform-admin batch refresh of those previews: the batch route verifies
+    // the platform-admin role and reads only the ids the client already holds.
+    {
+      file: 'apps/server/api/src/collections/ingredients/services/ingredients.service.ts',
+      line: 254,
+    },
     // Public brand pictures: the anonymous public profile (/u/<handle>) has no
     // organization to scope by. projectPublicBrandAssets reads only LOGO and
     // BANNER assets whose parent brand is non-deleted with scope PUBLIC, and

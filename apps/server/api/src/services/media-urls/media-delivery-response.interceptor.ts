@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
@@ -16,6 +17,7 @@ import {
   Injectable,
   type NestInterceptor,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import type { Observable } from 'rxjs';
 import { mergeMap } from 'rxjs';
 
@@ -30,15 +32,17 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (!isCloudDeployment() || !this.config.isAuthorizedMediaDeliveryEnabled)
       return next.handle();
-    const user = context
+    const request = context
       .switchToHttp()
-      .getRequest<{ user?: AuthenticatedUser }>().user;
+      .getRequest<Request & { user?: AuthenticatedUser }>();
+    const user = request.user;
+    const isPlatformAdmin = Boolean(user) && getIsSuperAdmin(user, request);
     return next
       .handle()
       .pipe(
         mergeMap(async (response: unknown) =>
           projectSocialAvatarUrls(
-            await this.projectMedia(response, user),
+            await this.projectMedia(response, user, isPlatformAdmin),
             (url) => signCdnUrl(url, this.config.mediaUrlConfig),
           ),
         ),
@@ -48,6 +52,7 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
   private async projectMedia(
     response: unknown,
     user: AuthenticatedUser | undefined,
+    isPlatformAdmin: boolean,
   ): Promise<unknown> {
     const ids = ingredientResponseIds(response);
     // Unauthenticated/public resources never receive an original grant.
@@ -71,8 +76,12 @@ export class MediaDeliveryResponseInterceptor implements NestInterceptor {
       organizationId,
       userId: user.userId || user.id,
     };
+    // A platform admin's cross-organization views (admin Library and
+    // Generations) list other tenants' assets; those need grants too.
     const [projections, assets] = await Promise.all([
-      this.issuer.projectIngredients(scope, ids),
+      isPlatformAdmin
+        ? this.issuer.projectIngredientsForPlatformAdmin(scope, ids)
+        : this.issuer.projectIngredients(scope, ids),
       this.issuer.projectAssets(scope, assetResponseIds(response)),
     ]);
     return projectMediaResponse(response, projections, true, assets);

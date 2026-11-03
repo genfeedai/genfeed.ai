@@ -66,6 +66,7 @@ describe('IngredientsController — Library axes', () => {
       nextCursor: null,
     }),
     findByIds: vi.fn().mockResolvedValue([]),
+    findByIdsAcrossOrganizations: vi.fn().mockResolvedValue([]),
     getLibrarySummary: vi.fn().mockResolvedValue({
       byCategory: {},
       byShelf: {},
@@ -875,6 +876,49 @@ describe('IngredientsController — Library axes', () => {
         data: {
           docs: [expect.objectContaining({ cdnUrl: null, id: 'image-empty' })],
         },
+      });
+    });
+
+    describe('assets of another organization', () => {
+      const otherOrgAsset = {
+        cdnUrl: null,
+        id: 'image-other-org',
+        s3Key: 'ingredients/images/image-other-org.png',
+      };
+
+      it('returns them to a platform admin refreshing admin previews', async () => {
+        ingredientsService.findByIds.mockResolvedValue([]);
+        ingredientsService.findByIdsAcrossOrganizations.mockResolvedValue([
+          otherOrgAsset,
+        ]);
+
+        await expect(
+          controller.getBatch(mockRequest, 'image-other-org', {
+            ...mockUser,
+            isSuperAdmin: true,
+          }),
+        ).resolves.toEqual({
+          data: {
+            docs: [
+              expect.objectContaining({
+                cdnUrl:
+                  'https://cdn.genfeed.ai/ingredients/images/image-other-org.png',
+                id: 'image-other-org',
+              }),
+            ],
+          },
+        });
+      });
+
+      it('never returns them to an ordinary member', async () => {
+        ingredientsService.findByIds.mockResolvedValue([]);
+        ingredientsService.findByIdsAcrossOrganizations.mockResolvedValue([
+          otherOrgAsset,
+        ]);
+
+        await expect(
+          controller.getBatch(mockRequest, 'image-other-org', mockUser),
+        ).resolves.toEqual({ data: { docs: [] } });
       });
     });
   });

@@ -124,3 +124,67 @@ describe('MediaDeliveryResponseInterceptor public brand profile', () => {
     expect(result.included[0].attributes.cdnUrl).toBeNull();
   });
 });
+
+describe('MediaDeliveryResponseInterceptor cross-organization previews', () => {
+  const READY_GRANT = {
+    expiresAt: '2026-11-03T17:00:00.000Z',
+    id: 'asset-other-org',
+    purpose: 'preview' as const,
+    state: 'READY' as const,
+    url: 'https://cdn.genfeed.ai/ingredients/images/asset-other-org?Signature=s',
+  };
+  // The organization read resolves nothing: the asset belongs to another tenant.
+  const issuer = {
+    projectAssets: async () => [],
+    projectIngredients: async () => [],
+    projectIngredientsForPlatformAdmin: async () => [
+      { grant: READY_GRANT, ingredientId: 'asset-other-org', metadataId: null },
+    ],
+    projectPublicBrandAssets: async () => [],
+    projectPublicIngredients: async () => [],
+  } as unknown as AuthorizedMediaUrlService;
+  const config = {
+    isAuthorizedMediaDeliveryEnabled: true,
+    mediaUrlConfig: {
+      cdnUrl: 'https://cdn.genfeed.ai',
+      signing: { keyPairId: 'KEYPAIR', privateKey, ttlSeconds: 900 },
+    },
+  } as unknown as ConfigService;
+  const listing = [
+    { category: 'IMAGE', cdnUrl: null, id: 'asset-other-org', s3Key: null },
+  ];
+
+  async function list(user: Partial<AuthenticatedUser>) {
+    const context = {
+      switchToHttp: () => ({ getRequest: () => ({ user }) }),
+    } as unknown as ExecutionContext;
+    const next: CallHandler = { handle: () => of(listing) };
+    return (await lastValueFrom(
+      new MediaDeliveryResponseInterceptor(issuer, config).intercept(
+        context,
+        next,
+      ),
+    )) as { cdnUrl: string | null; mediaDelivery: { state: string } }[];
+  }
+
+  it('gives a platform admin a preview URL for an asset of another organization', async () => {
+    const [asset] = await list({
+      id: 'admin-1',
+      isSuperAdmin: true,
+      organizationId: 'org-admin',
+    });
+
+    expect(asset.mediaDelivery.state).toBe('READY');
+    expect(asset.cdnUrl).toBe(READY_GRANT.url);
+  });
+
+  it('leaves an ordinary member with no preview for an asset outside their organization', async () => {
+    const [asset] = await list({
+      id: 'member-1',
+      organizationId: 'org-member',
+    });
+
+    expect(asset.mediaDelivery.state).toBe('UNSUPPORTED');
+    expect(asset.cdnUrl).toBeNull();
+  });
+});

@@ -590,3 +590,66 @@ describe('AuthorizedMediaUrlService', () => {
     });
   });
 });
+
+describe('AuthorizedMediaUrlService platform-admin projection', () => {
+  const foreign: MediaDeliverySource = {
+    ...source,
+    id: testId('ingredient', 2),
+    organizationId: testId('org', 2),
+    s3Key: 'ingredients/images/foreign.png',
+    scope: 'USER',
+    userId: testId('user', 2),
+  };
+
+  it('grants previews for assets of other organizations next to the pinned organization', async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany
+      .mockResolvedValueOnce([source])
+      .mockResolvedValueOnce([foreign]);
+
+    const projections = await service.projectIngredientsForPlatformAdmin(
+      scope,
+      [source.id, foreign.id],
+    );
+
+    expect(
+      projections.map(({ grant, ingredientId }) => [
+        ingredientId,
+        grant.state,
+        grant.url,
+      ]),
+    ).toEqual([
+      [source.id, 'READY', expect.stringContaining('a%3Fb%23c%252F.png')],
+      [foreign.id, 'READY', expect.stringContaining('foreign.png')],
+    ]);
+  });
+
+  it('never grants an asset of another organization through the member projection', async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany.mockResolvedValue([foreign]);
+
+    expect(await service.projectIngredients(scope, [foreign.id])).toEqual([]);
+  });
+
+  it('degrades one unsigned asset to FAILED without failing its neighbours', async () => {
+    const { service, prisma } = await setup();
+    prisma.ingredient.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        foreign,
+        { ...foreign, id: 'broken', s3Key: '' },
+      ]);
+
+    const projections = await service.projectIngredientsForPlatformAdmin(
+      scope,
+      [foreign.id, 'broken'],
+    );
+
+    expect(
+      projections.map(({ grant, ingredientId }) => [ingredientId, grant.state]),
+    ).toEqual([
+      [foreign.id, 'READY'],
+      ['broken', 'FAILED'],
+    ]);
+  });
+});
