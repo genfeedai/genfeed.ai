@@ -175,7 +175,10 @@ for (const fixture of [
     await expect(trigger).toBeVisible();
     await trigger.focus();
     await page.keyboard.press('Enter');
-    const inbox = page.getByRole('region', { name: 'Notifications' });
+    const inbox = page.getByRole('region', {
+      exact: true,
+      name: 'Notifications',
+    });
     await expect(inbox).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Close notifications, 1 unread' }),

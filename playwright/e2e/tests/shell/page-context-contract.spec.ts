@@ -17,6 +17,8 @@ type PageContextContract = {
     | 'workspace';
   sectionLabel?: string;
   canvasHeading?: string;
+  /** Defaults to 1; a prompt-first New pane titles itself with an h2. */
+  canvasHeadingLevel?: number;
   /**
    * A single-page Studio app has nothing to navigate between, so it drops the
    * secondary nav column and uses the full width (#6693). The page identity
@@ -58,10 +60,12 @@ const CONTRACTS: PageContextContract[] = [
     currentApp: 'editor',
     hasSecondaryNav: false,
     sectionLabel: 'Editor',
-    canvasHeading: 'Projects',
+    // With no project yet the New pane has the page to itself (#9160), so
+    // the canvas shows the prompt hero, not a projects list.
+    canvasHeading: 'What are we editing?',
+    canvasHeadingLevel: 2,
     breadcrumbLabels: ['Editor'],
     pageButtons: ['Create project'],
-    pageLabels: ['No projects yet'],
   },
   {
     route: `${BRAND_BASE}/publishing`,
@@ -138,7 +142,7 @@ test.describe('Shell page context contract', () => {
           authenticatedPage
             .getByRole('region', { name: 'Primary workspace canvas' })
             .getByRole('heading', {
-              level: 1,
+              level: contract.canvasHeadingLevel ?? 1,
               name: contract.canvasHeading ?? contract.sectionLabel,
             }),
         ).toBeVisible();
