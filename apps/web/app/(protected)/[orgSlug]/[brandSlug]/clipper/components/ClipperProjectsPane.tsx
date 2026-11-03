@@ -2,9 +2,11 @@
 
 import type { CreativeAppAgentContext } from '@genfeedai/contracts/interfaces';
 import Container from '@ui/layout/container/Container';
+import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Alert } from '@ui/primitives/alert';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { GalleryHorizontalStart } from '@ui/primitives/animated-icons/custom-lucide';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { useAdminSearchParam } from '@/components/content/admin-filters/useAdminSearchParam';
@@ -48,6 +50,9 @@ export default function ClipperProjectsPane() {
   const isSearching = search !== '';
   const hasProjects = projects.length > 0;
   const isEmpty = !isLoading && !hasProjects && !error;
+  useCreativeProjectsPresence(
+    hasProjects ? 'populated' : isEmpty && !isSearching ? 'empty' : 'unknown',
+  );
 
   return (
     <Container
@@ -66,11 +71,15 @@ export default function ClipperProjectsPane() {
       <div className="flex w-full flex-col gap-4">
         {error ? <Alert variant="destructive">{error}</Alert> : null}
         {isEmpty && isSearching ? (
-          <p className="text-sm text-muted-foreground">{t('emptySearch')}</p>
+          <CreativeProjectsEmptyState
+            icon={GalleryHorizontalStart}
+            title={t('emptySearch')}
+          />
         ) : null}
         {isEmpty && !isSearching ? (
-          <EmptyState
+          <CreativeProjectsEmptyState
             description={t('noProjectsDescription')}
+            icon={GalleryHorizontalStart}
             title={t('noProjectsYet')}
           />
         ) : null}

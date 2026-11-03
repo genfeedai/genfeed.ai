@@ -8,6 +8,13 @@ interface PromptEmptyStateProps {
   children?: ReactNode;
   /** Wider cap for three-up suggestion cards (agent full page, playground). */
   isWide?: boolean;
+  /**
+   * Lays out in the flow of a flex column instead of over it: the state takes
+   * the space its siblings leave (a prompt bar below it) and scrolls only when
+   * that space is truly too short. For panes that put a bar of their own height
+   * under it, where the overlay's fixed clearance would clip or scroll.
+   */
+  isInFlow?: boolean;
   className?: string;
 }
 
@@ -26,19 +33,25 @@ export default function PromptEmptyState({
   description,
   children,
   isWide = false,
+  isInFlow = false,
   className,
 }: PromptEmptyStateProps): ReactElement {
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6',
+        isInFlow
+          ? 'flex min-h-0 flex-1 flex-col overflow-y-auto px-4 md:px-6'
+          : 'pointer-events-none absolute inset-0 flex items-center justify-center px-4 md:px-6',
         className,
       )}
       data-testid="prompt-empty-state"
     >
       <div
         className={cn(
-          'pointer-events-auto flex max-h-[calc(100%-10rem)] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto',
+          'flex w-full max-w-2xl flex-col items-center gap-5',
+          isInFlow
+            ? 'm-auto py-6'
+            : 'pointer-events-auto max-h-[calc(100%-10rem)] overflow-y-auto',
           isWide && 'md:max-w-3xl',
         )}
       >

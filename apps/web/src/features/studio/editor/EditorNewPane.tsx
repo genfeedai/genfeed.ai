@@ -6,9 +6,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
-import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
+import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
+import PromptBarNotice from '@ui/prompt-bars/components/shell/PromptBarNotice';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
@@ -98,79 +98,67 @@ export default function EditorNewPane() {
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <PromptEmptyState
-        description={
-          sourceVideoIds.length > 0
-            ? t('sourceVideos', { count: sourceVideoIds.length })
-            : t('heroDescription')
-        }
-        title={t('heroTitle')}
-      >
-        <EditorPromptCards isDisabled={isBusy} onSelect={applyStarter} />
-      </PromptEmptyState>
-      <div className="mt-auto shrink-0 px-3 pb-3">
-        <PromptBarContainer
-          className="mx-auto w-full max-w-2xl"
-          layoutMode="inflow"
-          maxWidth="full"
-          zIndex={60}
+    <CreativeAppNewPane
+      description={
+        sourceVideoIds.length > 0
+          ? t('sourceVideos', { count: sourceVideoIds.length })
+          : t('heroDescription')
+      }
+      promptBar={
+        <CreativeAppPromptBar
+          banner={
+            error ? (
+              <PromptBarNotice>{error}</PromptBarNotice>
+            ) : isNameTooLong ? (
+              <PromptBarNotice>
+                {t('nameTooLong', { max: MAX_NAME_LENGTH })}
+              </PromptBarNotice>
+            ) : undefined
+          }
+          testId="editor-composer"
         >
-          <PromptBarComposer
-            banner={
-              error ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {error}
-                </p>
-              ) : isNameTooLong ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {t('nameTooLong', { max: MAX_NAME_LENGTH })}
-                </p>
-              ) : undefined
+          <PromptEditor
+            ariaLabel={t('projectName')}
+            className="min-h-16"
+            isDisabled={isBusy}
+            onSubmit={() => void create()}
+            onValueChange={setName}
+            placeholder={t('namePlaceholder')}
+            value={name}
+          />
+          <PromptBarToolbar
+            leading={
+              <PromptBarCompactSelect
+                ariaLabel={t('format')}
+                isDisabled={isBusy}
+                onChange={(next) => {
+                  const option = EDITOR_FORMAT_OPTIONS.find(
+                    (candidate) => candidate.value === next,
+                  );
+                  if (option) setFormat(option.value);
+                }}
+                options={EDITOR_FORMAT_OPTIONS.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                }))}
+                value={format}
+              />
             }
-            data-testid="editor-composer"
-            density="compact"
-          >
-            <PromptEditor
-              ariaLabel={t('projectName')}
-              className="min-h-16"
-              isDisabled={isBusy}
-              onSubmit={() => void create()}
-              onValueChange={setName}
-              placeholder={t('namePlaceholder')}
-              value={name}
-            />
-            <PromptBarToolbar
-              leading={
-                <PromptBarCompactSelect
-                  ariaLabel={t('format')}
-                  isDisabled={isBusy}
-                  onChange={(next) => {
-                    const option = EDITOR_FORMAT_OPTIONS.find(
-                      (candidate) => candidate.value === next,
-                    );
-                    if (option) setFormat(option.value);
-                  }}
-                  options={EDITOR_FORMAT_OPTIONS.map((option) => ({
-                    label: option.label,
-                    value: option.value,
-                  }))}
-                  value={format}
-                />
-              }
-              trailing={
-                <PromptBarSendButton
-                  ariaLabel={t('createProject')}
-                  isDisabled={isBusy || !canCreate}
-                  isLoading={isBusy}
-                  onClick={() => void create()}
-                  tooltip={t('createProject')}
-                />
-              }
-            />
-          </PromptBarComposer>
-        </PromptBarContainer>
-      </div>
-    </div>
+            trailing={
+              <PromptBarSendButton
+                ariaLabel={t('createProject')}
+                isDisabled={isBusy || !canCreate}
+                isLoading={isBusy}
+                onClick={() => void create()}
+                tooltip={t('createProject')}
+              />
+            }
+          />
+        </CreativeAppPromptBar>
+      }
+      title={t('heroTitle')}
+    >
+      <EditorPromptCards isDisabled={isBusy} onSelect={applyStarter} />
+    </CreativeAppNewPane>
   );
 }

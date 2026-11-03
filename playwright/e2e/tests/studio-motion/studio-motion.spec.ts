@@ -87,10 +87,11 @@ test('Motion reviews exact output cost and retains source on a revision conflict
   await expect(
     page.getByRole('heading', { name: 'What should Motion make?' }),
   ).toBeVisible();
-  await expect(page.getByText('No Motion projects yet')).toBeVisible();
-  await page
-    .getByLabel('Project name', { exact: true })
-    .fill('Motion acceptance');
+  // A brand with no projects has nothing to list: the prompt has the page.
+  await expect(page.getByTestId('agent-output-output-pane')).toBeHidden();
+  await expect(
+    page.getByRole('textbox', { name: 'Project name', exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole('textbox', { name: 'Prompt', exact: true })
     .fill('Animate a title');
@@ -181,10 +182,9 @@ test('Motion lists saved projects beside the prompt and fills the form from a st
   await expect(
     page.getByRole('link', { name: /Saved motion/ }),
   ).toHaveAttribute('href', /\/motion\/saved-motion$/);
+  // With a project saved, the list takes the second column.
+  await expect(page.getByTestId('agent-output-output-pane')).toBeVisible();
   await page.getByRole('button', { name: /Kinetic quote card/ }).click();
-  await expect(page.getByLabel('Project name', { exact: true })).toHaveValue(
-    'Kinetic quote card',
-  );
   await expect(
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
   ).toContainText('A vertical kinetic typography animation');

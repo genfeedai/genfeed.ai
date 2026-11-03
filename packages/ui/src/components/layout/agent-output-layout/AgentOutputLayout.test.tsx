@@ -26,11 +26,13 @@ function Harness({
   activeTabId = 'board',
   hasAgentHeader = true,
   isOutputExpandable,
+  isOutputHidden,
   mode,
 }: {
   activeTabId?: string;
   hasAgentHeader?: boolean;
   isOutputExpandable?: boolean;
+  isOutputHidden?: boolean;
   mode?: 'rail' | 'split';
 }) {
   return (
@@ -40,6 +42,7 @@ function Harness({
       agentHeader={hasAgentHeader ? <span>Run thread</span> : undefined}
       headerActions={<span>Page action</span>}
       isOutputExpandable={isOutputExpandable}
+      isOutputHidden={isOutputHidden}
       labels={labels}
       mode={mode}
       tabs={[
@@ -51,6 +54,16 @@ function Harness({
 }
 
 describe('AgentOutputLayout', () => {
+  it('gives the agent the whole page while the output is hidden', () => {
+    render(<Harness isOutputHidden />);
+
+    expect(screen.getByTestId('agent-output-agent-pane')).toBeVisible();
+    expect(screen.getByTestId('agent-output-output-pane')).not.toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /View: / }),
+    ).not.toBeInTheDocument();
+  });
+
   it('puts the agent on the left and the output on the right', () => {
     render(<Harness />);
 

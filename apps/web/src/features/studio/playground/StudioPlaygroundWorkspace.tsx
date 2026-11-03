@@ -74,6 +74,7 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
@@ -2650,20 +2651,22 @@ export default function StudioPlaygroundWorkspace({
   );
 
   const newPane = (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <StudioPlaygroundEmptyState
-        brandId={brandId || undefined}
-        character={pickStarterCharacter(characterMentions)}
-        offeringKind={starterOffering}
-        onSelect={handleStarterIdea}
-        productReference={pickStarterProductReference(
-          selectedBrand?.references,
-        )}
-        type={type}
-      />
-      <div className="mt-auto shrink-0 px-3 pb-3">
+    <CreativeAppNewPane
+      body={
+        <StudioPlaygroundEmptyState
+          brandId={brandId || undefined}
+          character={pickStarterCharacter(characterMentions)}
+          offeringKind={starterOffering}
+          onSelect={handleStarterIdea}
+          productReference={pickStarterProductReference(
+            selectedBrand?.references,
+          )}
+          type={type}
+        />
+      }
+      promptBar={
         <PromptBarContainer
-          className="mx-auto w-full max-w-2xl"
+          className="w-full"
           layoutMode="inflow"
           maxWidth="full"
           zIndex={60}
@@ -2799,8 +2802,8 @@ export default function StudioPlaygroundWorkspace({
             />
           </div>
         </PromptBarContainer>
-      </div>
-    </div>
+      }
+    />
   );
 
   const outputPane = (

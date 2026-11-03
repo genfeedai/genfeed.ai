@@ -218,7 +218,7 @@ test.describe('Studio Editor', () => {
       ).toBeVisible();
     });
 
-    test('says there are no projects yet when the list is empty', async ({
+    test('gives the prompt the whole page while there are no projects', async ({
       authenticatedPage,
     }) => {
       await mockEditorProjects(authenticatedPage);
@@ -226,8 +226,8 @@ test.describe('Studio Editor', () => {
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'No projects yet' }),
-      ).toBeVisible();
+        authenticatedPage.getByTestId('agent-output-output-pane'),
+      ).toBeHidden();
       await expect(createProjectButton(authenticatedPage)).toBeVisible();
     });
 
@@ -413,8 +413,8 @@ test.describe('Studio Editor', () => {
       // "Try again" (resetErrorBoundary → loadProjects) actually recovers.
       await errorAlert.getByRole('button', { name: 'Try again' }).click();
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'No projects yet' }),
-      ).toBeVisible();
+        authenticatedPage.getByTestId('agent-output-output-pane'),
+      ).toBeHidden();
       await expect(errorAlert).toHaveCount(0);
     });
   });

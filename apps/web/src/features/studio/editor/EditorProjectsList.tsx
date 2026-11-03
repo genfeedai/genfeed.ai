@@ -20,6 +20,8 @@ import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
+import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -33,7 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { EmptyState } from '@ui/primitives/empty-state';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
@@ -120,6 +121,15 @@ export default function EditorProjectsList() {
   );
   useCreativeAppAgentContext(creativeApp);
   const hasProjects = projects !== null && projects.length > 0;
+  useCreativeProjectsPresence(
+    !projectsPage || hasError
+      ? 'unknown'
+      : projectsPage.total > 0 || hasProjects
+        ? 'populated'
+        : search
+          ? 'unknown'
+          : 'empty',
+  );
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
@@ -329,17 +339,15 @@ export default function EditorProjectsList() {
           <AutoPagination showTotal totalLabel="projects" totals={pageTotals} />
         </div>
       ) : search ? (
-        <EmptyState
-          surface="card"
+        <CreativeProjectsEmptyState
           icon={Film}
           title={translate('emptySearch')}
         />
       ) : (
-        <EmptyState
-          surface="card"
+        <CreativeProjectsEmptyState
+          description={translate('emptyDescription')}
           icon={Film}
           title={translate('emptyTitle')}
-          description={translate('emptyDescription')}
         />
       )}
 

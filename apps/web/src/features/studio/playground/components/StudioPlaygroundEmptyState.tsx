@@ -199,6 +199,7 @@ export default function StudioPlaygroundEmptyState({
   return (
     <PromptEmptyState
       description={translate('start.description')}
+      isInFlow
       isWide
       title={translate('start.title')}
     >

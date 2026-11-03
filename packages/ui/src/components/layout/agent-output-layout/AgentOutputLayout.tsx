@@ -25,6 +25,7 @@ export default function AgentOutputLayout({
   className,
   headerActions,
   isOutputExpandable = false,
+  isOutputHidden = false,
   labels,
   mode = 'split',
   preview,
@@ -35,6 +36,7 @@ export default function AgentOutputLayout({
   const [isOutputExpanded, setIsOutputExpanded] = useState(false);
   const isRail = mode === 'rail' && !isRailExpanded;
   const isAgentHidden = isOutputExpandable && isOutputExpanded;
+  const isOutputCollapsed = isOutputHidden && !isAgentHidden;
   const hasAgentHeader = agentHeader !== undefined || mode === 'rail';
   const hasOutputHeader = Boolean(headerActions) || isOutputExpandable;
 
@@ -48,7 +50,10 @@ export default function AgentOutputLayout({
       data-mobile-view={mobileView}
       data-testid="agent-output-layout"
     >
-      <div className="shrink-0 border-b border-border px-3 py-2 xl:hidden">
+      <div
+        className="shrink-0 border-b border-border px-3 py-2 xl:hidden"
+        hidden={isOutputCollapsed}
+      >
         <ViewMenu
           activeView={mobileView}
           onChange={setMobileView}
@@ -63,8 +68,10 @@ export default function AgentOutputLayout({
       <div
         className={cn(
           'grid min-h-0 flex-1 grid-cols-1',
-          isAgentHidden && 'xl:grid-cols-[minmax(0,1fr)]',
+          (isAgentHidden || isOutputCollapsed) &&
+            'xl:grid-cols-[minmax(0,1fr)]',
           !isAgentHidden &&
+            !isOutputCollapsed &&
             (isRail
               ? 'xl:grid-cols-[22.5rem_minmax(0,1fr)]'
               : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'),
@@ -80,8 +87,9 @@ export default function AgentOutputLayout({
         <section
           aria-label={labels.agent}
           className={cn(
-            'flex min-h-0 min-w-0 flex-col border-border xl:border-r',
-            mobileView === 'output' && 'max-xl:hidden',
+            'flex min-h-0 min-w-0 flex-col border-border',
+            !isOutputCollapsed && 'xl:border-r',
+            mobileView === 'output' && !isOutputCollapsed && 'max-xl:hidden',
             isAgentHidden && 'xl:hidden',
           )}
           data-testid="agent-output-agent-pane"
@@ -124,6 +132,7 @@ export default function AgentOutputLayout({
           className={cn(
             'flex min-h-0 min-w-0 flex-col',
             mobileView === 'agent' && 'max-xl:hidden',
+            isOutputCollapsed && 'hidden',
           )}
           data-testid="agent-output-output-pane"
         >

@@ -12,6 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import AgentOutputShell from '@ui/layout/agent-output-layout/AgentOutputShell';
 import Container from '@ui/layout/container/Container';
+import CreativeAppWorkspace from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -78,13 +79,13 @@ function ClipperHome() {
   const t = useTranslations('pages.studioClipper');
 
   return (
-    <AgentOutputShell
+    <CreativeAppWorkspace
       agent={<ClipperNewPane />}
       agentTitle={t('newProject')}
       outputLabel={t('allProjects')}
     >
       <ClipperProjectsPane />
-    </AgentOutputShell>
+    </CreativeAppWorkspace>
   );
 }
 

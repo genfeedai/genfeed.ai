@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import PromptBarNotice from '@ui/prompt-bars/components/shell/PromptBarNotice';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import type { MotionControllerProps } from '@/features/motion/props/motion-workspace.props';
@@ -14,18 +15,15 @@ export default function MotionNotice({
   const { catalog, error, isStaleRevision, reloadLatestRevision } = controller;
   if (!error && !(catalog && !catalog.isAvailable)) return null;
   return (
-    <div className="grid gap-3 text-sm">
+    <div className="grid">
       {catalog && !catalog.isAvailable && (
-        <p role="status">
+        <PromptBarNotice tone="info">
           {t('unavailable')} {catalog.unavailableReason}
-        </p>
+        </PromptBarNotice>
       )}
       {error && (
-        <div
-          role="alert"
-          className="flex flex-wrap items-center gap-3 text-destructive"
-        >
-          <p>{error}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <PromptBarNotice>{error}</PromptBarNotice>
           {isStaleRevision ? (
             <Button
               variant={ButtonVariant.GHOST}

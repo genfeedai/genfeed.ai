@@ -13,10 +13,12 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionList from '@ui/collection/CollectionList';
 import Container from '@ui/layout/container/Container';
+import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { Rocket } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -137,6 +139,14 @@ export default function TurboProjectsList() {
     );
   }
   const isSearching = search.trim() !== '';
+  const isEmpty = !loading && !projects.length && !error;
+  useCreativeProjectsPresence(
+    projects.length > 0
+      ? 'populated'
+      : isEmpty && !isSearching && !isSubscriptionRequired
+        ? 'empty'
+        : 'unknown',
+  );
   if (isSubscriptionRequired) {
     return (
       <Container label={t('title')} moduleChrome>
@@ -148,7 +158,6 @@ export default function TurboProjectsList() {
       </Container>
     );
   }
-  const isEmpty = !loading && !projects.length && !error;
   return (
     <Container
       label={t('title')}
@@ -174,10 +183,13 @@ export default function TurboProjectsList() {
     >
       <div className="flex flex-col gap-4">
         {error && <p role="alert">{error}</p>}
-        {isEmpty && isSearching ? <p>{t('emptySearch')}</p> : null}
+        {isEmpty && isSearching ? (
+          <CreativeProjectsEmptyState icon={Rocket} title={t('emptySearch')} />
+        ) : null}
         {isEmpty && !isSearching ? (
-          <EmptyState
+          <CreativeProjectsEmptyState
             description={t('emptyDescription')}
+            icon={Rocket}
             title={t('emptyTitle')}
           />
         ) : null}

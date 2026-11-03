@@ -17,19 +17,11 @@ import {
   getJsonApiErrorMember,
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
+import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
 import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
-import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { Button } from '@ui/primitives/button';
-import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarNotice from '@ui/prompt-bars/components/shell/PromptBarNotice';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
@@ -347,198 +339,179 @@ export default function TurboNewPane() {
     !isIdeas && isWorkflowEnabled && !loading && workflows.length === 0;
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      {projectChoice && projects ? (
-        <ProjectChoicePrompt
-          isDisabled={busy}
-          newProjectLabel={t('projectChoiceNew')}
-          onChoose={chooseProject}
-          onCreateNew={() => void create(true)}
-          projects={projects}
-          question={t('projectChoiceQuestion')}
-          request={projectChoice}
-        />
-      ) : (
-        <PromptEmptyState
-          description={t(isIdeas ? 'ideasDescription' : 'workflowDescription')}
-          title={t('heroTitle')}
+    <CreativeAppNewPane
+      body={
+        projectChoice && projects ? (
+          <ProjectChoicePrompt
+            isDisabled={busy}
+            newProjectLabel={t('projectChoiceNew')}
+            onChoose={chooseProject}
+            onCreateNew={() => void create(true)}
+            projects={projects}
+            question={t('projectChoiceQuestion')}
+            request={projectChoice}
+          />
+        ) : undefined
+      }
+      description={t(isIdeas ? 'ideasDescription' : 'workflowDescription')}
+      promptBar={
+        <CreativeAppPromptBar
+          banner={
+            error ? (
+              <PromptBarNotice>{error}</PromptBarNotice>
+            ) : trimmedPrompt.length > MAX_ANGLE_LENGTH && isIdeas ? (
+              <PromptBarNotice>
+                {t('promptTooLong', { max: MAX_ANGLE_LENGTH })}
+              </PromptBarNotice>
+            ) : undefined
+          }
+          testId="turbo-composer"
         >
-          <div className="flex flex-col gap-4">
-            {isIdeas ? (
-              <TurboPromptCards
-                isDisabled={busy || !isIdeasEnabled}
-                onSelect={applyPreset}
-              />
-            ) : null}
-            {isIdeasEnabled ? null : (
-              <p className="text-center text-sm text-muted-foreground">
-                {t('ideasDisabled')}
-              </p>
-            )}
-            {workflowNotice && !isIdeas ? (
-              <p className="text-center text-sm text-muted-foreground">
-                {workflowNotice}{' '}
-                <Link
-                  href={orgHref(workflowNoticeLink.href)}
-                  className="underline underline-offset-4"
-                >
-                  {workflowNoticeLink.label}
-                </Link>
-              </p>
-            ) : null}
-            {!isIdeas && isWorkflowEnabled && loading ? (
-              <p className="text-center text-sm text-muted-foreground">
-                {t('loading')}
-              </p>
-            ) : null}
-            {hasNoWorkflows ? (
-              <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
-                <p>{t('noWorkflows')}</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button asChild variant={ButtonVariant.LINK}>
-                    <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}>
-                      {t('createWorkflow')}
-                    </Link>
-                  </Button>
-                  {isIdeasEnabled ? (
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      onClick={() => setKind(TurboProjectKind.IDEAS)}
-                    >
-                      {t('fromIdeas')}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </PromptEmptyState>
-      )}
-      <div className="mt-auto shrink-0 px-3 pb-3">
-        <PromptBarContainer
-          className="mx-auto w-full max-w-2xl"
-          layoutMode="inflow"
-          maxWidth="full"
-          zIndex={60}
-        >
-          <PromptBarComposer
-            banner={
-              error ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {error}
-                </p>
-              ) : trimmedPrompt.length > MAX_ANGLE_LENGTH && isIdeas ? (
-                <p role="alert" className="p-3 text-sm text-destructive">
-                  {t('promptTooLong', { max: MAX_ANGLE_LENGTH })}
-                </p>
-              ) : undefined
-            }
-            data-testid="turbo-composer"
-            density="compact"
-          >
-            {isIdeas ? (
-              <PromptEditor
-                ariaLabel={t('angle')}
-                className="min-h-16"
-                isDisabled={busy}
-                onSubmit={() => void create()}
-                onValueChange={setPrompt}
-                placeholder={t('promptPlaceholder')}
-                value={prompt}
-              />
-            ) : null}
-            <PromptBarToolbar
-              leading={
-                <>
-                  <PromptBarCompactSelect
-                    ariaLabel={t('sourceAria')}
-                    isDisabled={busy}
-                    onChange={(next) => {
-                      setKind(
-                        next === TurboProjectKind.WORKFLOW
-                          ? TurboProjectKind.WORKFLOW
-                          : TurboProjectKind.IDEAS,
-                      );
-                      setError(null);
-                    }}
-                    options={[
-                      {
-                        isDisabled: !isIdeasEnabled,
-                        label: t('fromIdeas'),
-                        value: TurboProjectKind.IDEAS,
-                      },
-                      {
-                        isDisabled: !isWorkflowEnabled,
-                        label: t('fromWorkflow'),
-                        value: TurboProjectKind.WORKFLOW,
-                      },
-                    ]}
-                    value={kind}
-                  />
-                  {isIdeas ? (
-                    <>
-                      <PromptBarCompactSelect
-                        ariaLabel={t('formats')}
-                        isDisabled={busy}
-                        onChange={(next) => {
-                          const option = FORMAT_OPTIONS.find(
-                            (candidate) => formatsKey(candidate) === next,
-                          );
-                          if (option) setFormats(option);
-                        }}
-                        options={FORMAT_OPTIONS.map((option) => ({
-                          label: option.map((format) => t(format)).join(' + '),
-                          value: formatsKey(option),
-                        }))}
-                        value={formatsKey(formats)}
-                      />
-                      <PromptBarCompactSelect
-                        ariaLabel={t('ideaCount')}
-                        isDisabled={busy}
-                        onChange={(next) => setCount(Number(next))}
-                        options={COUNT_OPTIONS.map((option) => ({
-                          label: t('presets.ideas', { count: option }),
-                          value: String(option),
-                        }))}
-                        value={String(count)}
-                      />
-                    </>
-                  ) : isWorkflowEnabled && workflows.length > 0 ? (
-                    <Select
-                      disabled={busy}
-                      onValueChange={setWorkflowId}
-                      value={workflowId}
-                    >
-                      <SelectTrigger
-                        aria-label={t('workflow')}
-                        className={ghostSelectTriggerClassName}
-                      >
-                        <SelectValue placeholder={t('chooseWorkflow')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {workflows.map((workflow) => (
-                          <SelectItem key={workflow.id} value={workflow.id}>
-                            {workflow.label || workflow.id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
-                </>
-              }
-              trailing={
-                <PromptBarSendButton
-                  ariaLabel={t('create')}
-                  isDisabled={busy || !canCreate}
-                  isLoading={busy}
-                  onClick={() => void create()}
-                  tooltip={t('create')}
-                />
-              }
+          {isIdeas ? (
+            <PromptEditor
+              ariaLabel={t('angle')}
+              className="min-h-16"
+              isDisabled={busy}
+              onSubmit={() => void create()}
+              onValueChange={setPrompt}
+              placeholder={t('promptPlaceholder')}
+              value={prompt}
             />
-          </PromptBarComposer>
-        </PromptBarContainer>
+          ) : null}
+          <PromptBarToolbar
+            leading={
+              <>
+                <PromptBarCompactSelect
+                  ariaLabel={t('sourceAria')}
+                  isDisabled={busy}
+                  onChange={(next) => {
+                    setKind(
+                      next === TurboProjectKind.WORKFLOW
+                        ? TurboProjectKind.WORKFLOW
+                        : TurboProjectKind.IDEAS,
+                    );
+                    setError(null);
+                  }}
+                  options={[
+                    {
+                      isDisabled: !isIdeasEnabled,
+                      label: t('fromIdeas'),
+                      value: TurboProjectKind.IDEAS,
+                    },
+                    {
+                      isDisabled: !isWorkflowEnabled,
+                      label: t('fromWorkflow'),
+                      value: TurboProjectKind.WORKFLOW,
+                    },
+                  ]}
+                  value={kind}
+                />
+                {isIdeas ? (
+                  <>
+                    <PromptBarCompactSelect
+                      ariaLabel={t('formats')}
+                      isDisabled={busy}
+                      onChange={(next) => {
+                        const option = FORMAT_OPTIONS.find(
+                          (candidate) => formatsKey(candidate) === next,
+                        );
+                        if (option) setFormats(option);
+                      }}
+                      options={FORMAT_OPTIONS.map((option) => ({
+                        label: option.map((format) => t(format)).join(' + '),
+                        value: formatsKey(option),
+                      }))}
+                      value={formatsKey(formats)}
+                    />
+                    <PromptBarCompactSelect
+                      ariaLabel={t('ideaCount')}
+                      isDisabled={busy}
+                      onChange={(next) => setCount(Number(next))}
+                      options={COUNT_OPTIONS.map((option) => ({
+                        label: t('presets.ideas', { count: option }),
+                        value: String(option),
+                      }))}
+                      value={String(count)}
+                    />
+                  </>
+                ) : isWorkflowEnabled && workflows.length > 0 ? (
+                  <PromptBarCompactSelect
+                    ariaLabel={t('workflow')}
+                    isDisabled={busy}
+                    onChange={setWorkflowId}
+                    options={workflows.map((workflow) => ({
+                      label: workflow.label || workflow.id,
+                      value: workflow.id,
+                    }))}
+                    placeholder={t('chooseWorkflow')}
+                    value={workflowId}
+                  />
+                ) : null}
+              </>
+            }
+            trailing={
+              <PromptBarSendButton
+                ariaLabel={t('create')}
+                isDisabled={busy || !canCreate}
+                isLoading={busy}
+                onClick={() => void create()}
+                tooltip={t('create')}
+              />
+            }
+          />
+        </CreativeAppPromptBar>
+      }
+      title={t('heroTitle')}
+    >
+      <div className="flex flex-col gap-4">
+        {isIdeas ? (
+          <TurboPromptCards
+            isDisabled={busy || !isIdeasEnabled}
+            onSelect={applyPreset}
+          />
+        ) : null}
+        {isIdeasEnabled ? null : (
+          <p className="text-center text-sm text-muted-foreground">
+            {t('ideasDisabled')}
+          </p>
+        )}
+        {workflowNotice && !isIdeas ? (
+          <p className="text-center text-sm text-muted-foreground">
+            {workflowNotice}{' '}
+            <Link
+              href={orgHref(workflowNoticeLink.href)}
+              className="underline underline-offset-4"
+            >
+              {workflowNoticeLink.label}
+            </Link>
+          </p>
+        ) : null}
+        {!isIdeas && isWorkflowEnabled && loading ? (
+          <p className="text-center text-sm text-muted-foreground">
+            {t('loading')}
+          </p>
+        ) : null}
+        {hasNoWorkflows ? (
+          <div className="flex flex-col items-center gap-2 text-center text-sm text-muted-foreground">
+            <p>{t('noWorkflows')}</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild variant={ButtonVariant.LINK}>
+                <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}>
+                  {t('createWorkflow')}
+                </Link>
+              </Button>
+              {isIdeasEnabled ? (
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={() => setKind(TurboProjectKind.IDEAS)}
+                >
+                  {t('fromIdeas')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
-    </div>
+    </CreativeAppNewPane>
   );
 }

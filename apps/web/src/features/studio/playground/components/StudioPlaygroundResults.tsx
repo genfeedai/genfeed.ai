@@ -1,8 +1,9 @@
 'use client';
 import { ViewType } from '@genfeedai/contracts';
 import OrderedMasonry from '@ui/display/masonry/OrderedMasonry';
-import { EmptyState } from '@ui/primitives/empty-state';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
 import StudioPlaygroundCard from '@/features/studio/playground/components/StudioPlaygroundCard';
@@ -119,9 +120,10 @@ export default function StudioPlaygroundResults({
         isLoading ? (
           <ResultsSkeleton />
         ) : (
-          <EmptyState
-            title={translate('emptyTitle')}
+          <CreativeProjectsEmptyState
             description={translate('emptyDescription')}
+            icon={Sparkles}
+            title={translate('emptyTitle')}
           />
         )
       ) : view === ViewType.GRID ? (
