@@ -675,9 +675,7 @@ export default function AnalyticsOrganizationsList({
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                   >
-                    <Link
-                      href={`${APP_ROUTES.ADMIN.USERS}/${org.owner.id}`}
-                    >
+                    <Link href={`${APP_ROUTES.ADMIN.USERS}/${org.owner.id}`}>
                       {translate('openOwner')}
                     </Link>
                   </Button>
