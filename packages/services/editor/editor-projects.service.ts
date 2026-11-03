@@ -17,15 +17,17 @@ import {
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 import { toPaginatedResponse } from '@services/core/paginated-response';
+import type { AxiosRequestConfig } from 'axios';
 
 const DEFAULT_FPS = 30;
 
 // The workspace renders its own error state for these (a create alert and the
 // list's retryable ErrorFallback), so the dev-only Error Debug modal must not
 // cover it.
-const SURFACE_HANDLED_SERVER_ERRORS: IHttpRequestOptions = {
-  handledErrorStatuses: [500, 502, 503, 504],
-};
+const SURFACE_HANDLED_SERVER_ERRORS: AxiosRequestConfig & IHttpRequestOptions =
+  {
+    handledErrorStatuses: [500, 502, 503, 504],
+  };
 
 /**
  * Service for editor project persistence.

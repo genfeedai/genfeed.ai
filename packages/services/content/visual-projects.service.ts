@@ -17,8 +17,11 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import type { AxiosRequestConfig } from 'axios';
 
-const WRITE_OPTIONS: IHttpRequestOptions = { handledErrorStatuses: [409] };
+const WRITE_OPTIONS: AxiosRequestConfig & IHttpRequestOptions = {
+  handledErrorStatuses: [409],
+};
 
 export class VisualProjectsService extends HTTPBaseService {
   constructor(token: string) {
