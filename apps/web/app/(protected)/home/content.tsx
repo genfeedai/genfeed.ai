@@ -14,10 +14,10 @@ import {
   AlertTitle,
 } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { Skeleton } from '@ui/primitives/skeleton';
 import { ArrowRight, Plug, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { resolveOperationalHomeScope } from './operational-home.helpers';
@@ -28,6 +28,21 @@ import {
   useConnectGenfeedStatus,
 } from './use-connect-genfeed-status';
 
+/**
+ * The connection state is unknown until the query and the dismissal read
+ * settle, so nothing is reserved for it up front. When it does have something
+ * to show it grows in with a fade, instead of the page jumping. The bottom
+ * padding is the gap to the sections below and animates with the row, so no
+ * space is left behind while it is hidden.
+ */
+function ConnectionStatusReveal({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out starting:grid-rows-[0fr] starting:opacity-0 motion-reduce:transition-none">
+      <div className="min-h-0 overflow-hidden pb-5">{children}</div>
+    </div>
+  );
+}
+
 function ConnectionStatusLine({
   connectHref,
   connection,
@@ -37,6 +52,38 @@ function ConnectionStatusLine({
   connectHref: string;
   connection: UseConnectGenfeedStatusResult;
   isDismissed: boolean | null;
+  onDismiss: () => void;
+}) {
+  if (connection.status === 'loading') {
+    return (
+      <span aria-live="polite" className="sr-only" role="status">
+        Checking MCP connection state...
+      </span>
+    );
+  }
+
+  if (connection.status === 'unconfigured' && isDismissed !== false) {
+    return null;
+  }
+
+  return (
+    <ConnectionStatusReveal>
+      <ConnectionStatusBody
+        connectHref={connectHref}
+        connection={connection}
+        onDismiss={onDismiss}
+      />
+    </ConnectionStatusReveal>
+  );
+}
+
+function ConnectionStatusBody({
+  connectHref,
+  connection,
+  onDismiss,
+}: {
+  connectHref: string;
+  connection: UseConnectGenfeedStatusResult;
   onDismiss: () => void;
 }) {
   const translate = useTranslations('common');
@@ -55,19 +102,6 @@ function ConnectionStatusLine({
           format="relative"
           value={connection.verifiedAt}
         />
-      </div>
-    );
-  }
-
-  if (connection.status === 'loading') {
-    return (
-      <div
-        aria-live="polite"
-        className="flex items-center justify-end gap-2 text-xs text-muted-foreground"
-        role="status"
-      >
-        <Skeleton height={12} variant="text" width={160} />
-        <span className="sr-only">Checking MCP connection state...</span>
       </div>
     );
   }
@@ -99,10 +133,6 @@ function ConnectionStatusLine({
         </Button>
       </div>
     );
-  }
-
-  if (isDismissed !== false) {
-    return null;
   }
 
   return (
@@ -172,7 +202,7 @@ export default function OperationalHomeContent() {
 
   // Shell Container owns equal page insets — do not re-apply px/py here.
   return (
-    <div className="flex w-full flex-col gap-5">
+    <div className="flex w-full flex-col">
       <h1 className="sr-only">Operational home</h1>
 
       <ConnectionStatusLine

@@ -43,7 +43,7 @@ function ListRowContent({
         ) : null}
       </div>
 
-      {trailing ? <div className="shrink-0">{trailing}</div> : null}
+      {trailing ? <div className="shrink-0 self-center">{trailing}</div> : null}
     </div>
   );
 }

@@ -764,6 +764,13 @@ describe('OperationalHomeContent', () => {
         announcement.textContent?.includes('Checking MCP connection state'),
       ),
     ).toBe(true);
+    // Nothing visible is reserved while the state is unknown.
+    expect(screen.getByText('Checking MCP connection state...')).toHaveClass(
+      'sr-only',
+    );
+    expect(
+      screen.queryByTestId('operational-home-unconfigured'),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 
