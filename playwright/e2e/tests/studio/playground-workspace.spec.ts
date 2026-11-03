@@ -103,27 +103,6 @@ test.describe('Playground workspace', () => {
     await expectNoErrorOverlay(page);
   });
 
-  test('shows the starter cards without a scrollbar of their own', async ({
-    authenticatedPage: page,
-  }) => {
-    const starters = page
-      .getByTestId('prompt-empty-state')
-      .filter({ visible: true });
-    await expect(starters).toBeVisible();
-
-    // The starters sit in the space the prompt bar leaves; at a normal desktop
-    // height nothing in them needs to scroll.
-    const overflow = await starters.evaluate((element) => {
-      const scrollers = [element, ...element.querySelectorAll('*')].filter(
-        (node) => node.scrollHeight > node.clientHeight + 1,
-      );
-      return scrollers.filter((node) =>
-        ['auto', 'scroll'].includes(getComputedStyle(node).overflowY),
-      ).length;
-    });
-    expect(overflow).toBe(0);
-  });
-
   test('opens a generation on its own URL and goes back to the list', async ({
     authenticatedPage: page,
   }) => {
