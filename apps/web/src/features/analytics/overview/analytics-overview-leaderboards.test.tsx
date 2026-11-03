@@ -20,6 +20,26 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+// The brand sidebar loads its trend and posts for the selected range; stable
+// references keep its fetch effects from re-running on every render.
+const stableDateRange = {
+  endDate: new Date('2026-03-12T00:00:00.000Z'),
+  startDate: new Date('2026-03-01T00:00:00.000Z'),
+};
+
+vi.mock('@contexts/analytics/analytics-context', () => ({
+  useAnalyticsContext: () => ({ dateRange: stableDateRange }),
+}));
+
+const getBrandsServiceMock = async () => ({
+  findBrandAnalyticsTimeSeries: async () => [],
+  findBrandPosts: async () => [],
+});
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getBrandsServiceMock,
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/moonrise${path}` }),
 }));

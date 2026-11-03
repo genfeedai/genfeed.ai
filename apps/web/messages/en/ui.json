@@ -882,7 +882,16 @@
       "openBrand": "Open analytics",
       "openOrganization": "Open organization analytics",
       "brandCount": "{count, plural, one {# brand} other {# brands}}",
-      "rankLabel": "Rank {rank}"
+      "rankLabel": "Rank {rank}",
+      "engagementTitle": "Engagement",
+      "engagementPerDay": "Engagement per day",
+      "noEngagement": "No engagement in this period",
+      "platformsTitle": "Platforms",
+      "noPlatforms": "No platform activity in this period",
+      "topPostsTitle": "Top posts",
+      "noPosts": "No published posts yet",
+      "postViews": "{count} views",
+      "untitledPost": "Untitled post"
     },
     "caption": {
       "fallbackTitle": "Caption"
