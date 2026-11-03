@@ -171,10 +171,10 @@ describe('Alert', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Reconnecting');
   });
 
-  it('renders actions under the text and keeps them clickable', () => {
+  it('puts actions in their own slot beside the text and keeps them clickable', () => {
     const handleRetry = vi.fn();
 
-    render(
+    const { container } = render(
       <Alert variant="destructive">
         <AlertTitle>Upload failed</AlertTitle>
         <AlertDescription>The file was too large.</AlertDescription>
@@ -188,7 +188,63 @@ describe('Alert', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
+    const slot = container.querySelector('[data-slot="alert-actions-slot"]');
+    const body = container.querySelector('[data-slot="alert-body"]');
+
     expect(handleRetry).toHaveBeenCalledOnce();
     expect(screen.getByRole('alert')).toHaveTextContent('Upload failed');
+    expect(screen.getByRole('alert')).toHaveClass('items-center');
+    expect(body).toContainElement(slot as HTMLElement);
+    expect(slot).toContainElement(
+      screen.getByRole('button', { name: 'Retry' }),
+    );
+    expect(slot).not.toContainElement(screen.getByText('Upload failed'));
+  });
+
+  it('lays out actions the same way when the content comes from a fragment', () => {
+    const content = (
+      <>
+        <AlertTitle>Credits are low</AlertTitle>
+        <AlertActions>
+          <button type="button">Top up</button>
+        </AlertActions>
+      </>
+    );
+
+    const { container } = render(
+      <Alert closeLabel="Dismiss" onClose={vi.fn()} variant="warning">
+        {content}
+      </Alert>,
+    );
+
+    expect(
+      container.querySelector('[data-slot="alert-actions-slot"]'),
+    ).toContainElement(screen.getByRole('button', { name: 'Top up' }));
+  });
+
+  it('keeps the dismiss button last, after the actions', () => {
+    render(
+      <Alert closeLabel="Dismiss" onClose={vi.fn()} variant="info">
+        <AlertTitle>Connect a client</AlertTitle>
+        <AlertActions>
+          <button type="button">Connect</button>
+        </AlertActions>
+      </Alert>,
+    );
+
+    const connect = screen.getByRole('button', { name: 'Connect' });
+    const dismiss = screen.getByRole('button', { name: 'Dismiss' });
+
+    expect(
+      connect.compareDocumentPosition(dismiss) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps the plain layout when there are no actions', () => {
+    const { container } = render(<Alert>Just text</Alert>);
+
+    expect(container.querySelector('[data-slot="alert-body"]')).toBeNull();
+    expect(screen.getByRole('status')).not.toHaveClass('items-center');
   });
 });

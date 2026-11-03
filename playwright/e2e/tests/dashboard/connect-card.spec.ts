@@ -55,7 +55,38 @@ test.describe('Dashboard connect card', () => {
       card.getByRole('link', { name: 'Connect Genfeed' }),
     ).toHaveAttribute('href', CONNECT_HREF);
 
-    await card.getByRole('button', { name: 'Dismiss connect card' }).click();
+    // One row: title on the left, the action on the right, dismiss last.
+    const title = card.getByText(
+      'Connect Claude Code, Codex, or another AI client',
+    );
+    const action = card.getByRole('link', { name: 'Connect Genfeed' });
+    const dismiss = card.getByRole('button', { name: 'Dismiss connect card' });
+    const [titleBox, actionBox, dismissBox, cardBox] = await Promise.all([
+      title.boundingBox(),
+      action.boundingBox(),
+      dismiss.boundingBox(),
+      card.boundingBox(),
+    ]);
+
+    expect(titleBox).not.toBeNull();
+    expect(actionBox).not.toBeNull();
+    expect(dismissBox).not.toBeNull();
+    expect(cardBox).not.toBeNull();
+    if (!titleBox || !actionBox || !dismissBox || !cardBox) {
+      return;
+    }
+
+    // Same row as the title, not stacked under it.
+    expect(actionBox.y).toBeLessThan(titleBox.y + titleBox.height);
+    // To the right of the title and to the left of the dismiss X.
+    expect(actionBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
+    expect(dismissBox.x).toBeGreaterThan(actionBox.x + actionBox.width);
+    // The dismiss X sits at the far right edge of the card.
+    expect(
+      cardBox.x + cardBox.width - (dismissBox.x + dismissBox.width),
+    ).toBeLessThan(24);
+
+    await dismiss.click();
     await expect(card).toBeHidden();
 
     const apiKeysLoaded = authenticatedPage.waitForResponse(API_KEYS);
