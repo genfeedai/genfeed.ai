@@ -6,6 +6,7 @@ import type {
   IPaginatedResponse,
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -18,6 +19,13 @@ import { logger } from '@services/core/logger.service';
 import { toPaginatedResponse } from '@services/core/paginated-response';
 
 const DEFAULT_FPS = 30;
+
+// The workspace renders its own error state for these (a create alert and the
+// list's retryable ErrorFallback), so the dev-only Error Debug modal must not
+// cover it.
+const SURFACE_HANDLED_SERVER_ERRORS: IHttpRequestOptions = {
+  handledErrorStatuses: [500, 502, 503, 504],
+};
 
 /**
  * Service for editor project persistence.
@@ -106,7 +114,7 @@ export class EditorProjectsService extends HTTPBaseService {
 
     try {
       const response = await this.instance
-        .post<JsonApiResponseDocument>('', body)
+        .post<JsonApiResponseDocument>('', body, SURFACE_HANDLED_SERVER_ERRORS)
         .then((res) => res.data);
 
       const project = this.mapOne(response);
@@ -168,6 +176,7 @@ export class EditorProjectsService extends HTTPBaseService {
   ): Promise<IPaginatedResponse<IEditorProject>> {
     const response = await this.instance
       .get<JsonApiResponseDocument>('', {
+        ...SURFACE_HANDLED_SERVER_ERRORS,
         params: {
           ...(query.limit ? { limit: query.limit } : {}),
           ...(query.page ? { page: query.page } : {}),

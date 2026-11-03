@@ -2,6 +2,7 @@ import { EditorProjectStatus, IngredientFormat } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
+import { createPlaywrightMockApiRoutePattern } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { StudioPage } from '../../pages/studio.page';
@@ -30,7 +31,8 @@ import {
 const EDIT_ROUTE = brandPath(APP_ROUTES.STUDIO.EDITOR);
 const PROJECT_ID = 'editor-project-1';
 const PROJECT_ROUTE = brandPath(`${APP_ROUTES.STUDIO.EDITOR}/${PROJECT_ID}`);
-const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
+const EDITOR_PROJECTS_PATTERN =
+  createPlaywrightMockApiRoutePattern('editor-projects');
 // EditorToolbar's FORMAT_OPTIONS label for IngredientFormat.LANDSCAPE.
 const LANDSCAPE_FORMAT_LABEL = '16:9';
 
