@@ -59,8 +59,10 @@ test.describe('Admin Content Management', () => {
         voicesList.getByRole('table').or(voicesList.getByTestId('table-empty')),
       ).toBeVisible();
       // Column headers are uppercase app-wide (shared TableHead).
+      // The row-actions header has no visible label, so it is left out.
       const headerTransforms = await voicesList
         .getByRole('columnheader')
+        .filter({ hasText: /\S/ })
         .evaluateAll((headers) =>
           headers.map((header) => getComputedStyle(header).textTransform),
         );
