@@ -94,7 +94,9 @@ export default function useAdminOrgBrandFacets({
     },
   ];
 
-  if (organization) {
+  // A brand already in the URL stays visible (and clearable) even without an
+  // organization, because it still filters the list.
+  if (organization || brand) {
     facets.push({
       defaultValue: '',
       emptyLabel: isBrandsLoading
