@@ -47,7 +47,9 @@ function buildGuard(apiKey: ApiKeyDocument): ApiKeyAuthGuard {
   return new ApiKeyAuthGuard(apiKeysService, new Reflector());
 }
 
-function imageGenerationContext() {
+type ImageRoute = 'create' | 'edit' | 'splitContactSheet';
+
+function imageGenerationContext(route: ImageRoute) {
   const context = createMockExecutionContext({
     request: {
       connection: { remoteAddress: '203.0.113.7' },
@@ -56,24 +58,28 @@ function imageGenerationContext() {
       user: null,
     },
   });
-  context.getHandler = () => ImagesOperationsController.prototype.create;
+  context.getHandler = () => ImagesOperationsController.prototype[route];
   return context;
 }
 
-describe('POST /images API key scope', () => {
+describe.each([
+  ['POST /images', 'create'],
+  ['POST /images/:id/edit', 'edit'],
+  ['POST /images/:id/split', 'splitContactSheet'],
+] as const)('%s API key scope', (_label, route) => {
   it('refuses a key that cannot create images', async () => {
     const guard = buildGuard(keyWithScopes(['brands:read', 'images:read']));
 
-    await expect(guard.canActivate(imageGenerationContext())).rejects.toThrow(
-      new UnauthorizedException('Insufficient permissions'),
-    );
+    await expect(
+      guard.canActivate(imageGenerationContext(route)),
+    ).rejects.toThrow(new UnauthorizedException('Insufficient permissions'));
   });
 
   it('allows a key with images:create', async () => {
     const guard = buildGuard(keyWithScopes(['images:create']));
 
-    await expect(guard.canActivate(imageGenerationContext())).resolves.toBe(
-      true,
-    );
+    await expect(
+      guard.canActivate(imageGenerationContext(route)),
+    ).resolves.toBe(true);
   });
 });

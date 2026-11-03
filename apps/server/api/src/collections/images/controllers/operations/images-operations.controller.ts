@@ -115,6 +115,7 @@ export class ImagesOperationsController {
   }
 
   @Post(':id/edit')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -144,6 +145,7 @@ export class ImagesOperationsController {
    * Split a contact sheet image into individual frames and save them as ingredients
    */
   @Post(':id/split')
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
