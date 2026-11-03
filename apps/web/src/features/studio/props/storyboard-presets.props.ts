@@ -35,11 +35,6 @@ export interface StoryboardPresetCardsProps {
   onSelect: (preset: StoryboardPreset) => void;
 }
 
-export interface StoryboardPresetThumbnailProps {
-  src: string;
-  className?: string;
-}
-
 /** Agent-written storyboard briefs shown above the presets (#7341). */
 export interface StoryboardAgentBriefsProps {
   brandId?: string;

@@ -1,64 +1,49 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
+import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
+import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import type { StoryboardPresetCardsProps } from '@/features/studio/props/storyboard-presets.props';
-import StoryboardPresetThumbnail from '@/features/studio/storyboard/components/StoryboardPresetThumbnail';
 import { STORYBOARD_PRESETS } from '@/features/studio/storyboard/data/storyboard-presets';
 
-/** Compact preset cards for the create page: a click prefills, never submits. */
+/**
+ * The storyboard presets as prompt cards, in the same tiles as the other
+ * creative apps. A click prefills the brief, format and runtime; it never
+ * submits. They scroll sideways so eight of them stay one row tall.
+ */
 export default function StoryboardPresetCards({
   activePresetId,
   isDisabled = false,
   onSelect,
 }: StoryboardPresetCardsProps): ReactElement {
-  const translate = useTranslations('pages.studioStoryboard.presets');
+  const translate = useTranslations('pages.studioStoryboard.presets.items');
+  const suggestions: PromptBarSuggestionItem[] = STORYBOARD_PRESETS.map(
+    (preset) => ({
+      description: translate(`${preset.id}.description`),
+      id: preset.id,
+      label: translate(`${preset.id}.title`),
+      prompt: preset.brief,
+      thumbnailUrl: preset.thumbnailSrc,
+    }),
+  );
 
   return (
-    <div
-      aria-label={translate('chipsAria')}
-      className="flex flex-col gap-1.5"
-      data-testid="storyboard-preset-cards"
-      role="group"
-    >
-      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {STORYBOARD_PRESETS.map((preset) => {
-          const title = translate(`items.${preset.id}.title`);
-          const isActive = activePresetId === preset.id;
-          return (
-            <Button
-              aria-pressed={isActive}
-              ariaLabel={translate('prefillAria', { title })}
-              className={cn(
-                'w-44 shrink-0 normal-case snap-start flex-col items-stretch gap-0 overflow-hidden rounded-card bg-card text-left text-card-foreground shadow-border transition-[box-shadow] duration-150 hover:shadow-border-strong sm:w-52',
-                isActive && 'ring-2 ring-primary',
-                isDisabled && 'cursor-not-allowed opacity-60',
-              )}
-              data-testid="storyboard-preset-card"
-              isDisabled={isDisabled}
-              key={preset.id}
-              onClick={() => onSelect(preset)}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              <StoryboardPresetThumbnail src={preset.thumbnailSrc} />
-              <span className="flex flex-col gap-0.5 p-2.5">
-                <span className="truncate text-sm font-medium">{title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {preset.format}
-                  {' · '}
-                  {translate('runtime', {
-                    seconds: preset.runtimeBudgetSeconds,
-                  })}
-                </span>
-              </span>
-            </Button>
+    <div className="w-full min-w-0" data-testid="storyboard-preset-cards">
+      <PromptBarSuggestions
+        activeId={activePresetId ?? ''}
+        className="-mx-1 flex snap-x overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:w-44 [&>button]:max-w-none [&>button]:shrink-0 [&>button]:snap-start sm:[&>button]:w-52"
+        isDisabled={isDisabled}
+        maxSuggestions={STORYBOARD_PRESETS.length}
+        onSuggestionSelect={(suggestion) => {
+          const preset = STORYBOARD_PRESETS.find(
+            (candidate) => candidate.id === suggestion.id,
           );
-        })}
-      </div>
+          if (preset) onSelect(preset);
+        }}
+        suggestions={suggestions}
+        variant="cards"
+      />
     </div>
   );
 }

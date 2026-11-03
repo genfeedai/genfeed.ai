@@ -14,6 +14,8 @@ interface PromptBarSuggestionsProps {
   isDisabled?: boolean;
   maxSuggestions?: number;
   className?: string;
+  /** The suggestion shown as chosen (a ring, `aria-pressed`). Leave out when picking never sticks. */
+  activeId?: string;
   /** `cards` = Codex-style tiles; `chips` = compact pills. */
   variant?: 'cards' | 'chips';
 }
@@ -58,6 +60,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   isDisabled = false,
   maxSuggestions = 3,
   className,
+  activeId,
   variant = 'chips',
 }: PromptBarSuggestionsProps): ReactElement | null {
   const visibleSuggestions = suggestions.slice(0, maxSuggestions);
@@ -87,6 +90,9 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
             key={suggestion.id}
             variant={ButtonVariant.UNSTYLED}
             ariaLabel={suggestion.label}
+            aria-pressed={
+              activeId === undefined ? undefined : activeId === suggestion.id
+            }
             className={cn(
               'h-auto min-w-0 max-w-full text-left normal-case tracking-normal',
               isCards
@@ -99,6 +105,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                 : // Elevated pills so transcript CTAs fade under them cleanly
                   // without a tall opaque composer slab behind the row.
                   'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/20 ring-1 ring-black/20 hover:border-border hover:bg-card',
+              activeId === suggestion.id && 'ring-2 ring-primary',
               isDisabled && 'pointer-events-none opacity-50',
             )}
             isDisabled={isDisabled}

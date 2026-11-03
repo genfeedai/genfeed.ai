@@ -189,4 +189,36 @@ describe('PromptBarSuggestions', () => {
 
     expect(container.querySelectorAll('img')).toHaveLength(0);
   });
+
+  it('marks only the active suggestion as pressed', () => {
+    render(
+      <PromptBarSuggestions
+        activeId="two"
+        onSuggestionSelect={vi.fn()}
+        suggestions={suggestions}
+        variant="cards"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Use plan mode' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Review' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('leaves aria-pressed off when no active suggestion is tracked', () => {
+    render(
+      <PromptBarSuggestions
+        onSuggestionSelect={vi.fn()}
+        suggestions={suggestions}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Review' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
+  });
 });
