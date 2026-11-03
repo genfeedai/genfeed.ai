@@ -17,6 +17,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -36,6 +37,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   FileInputType,
   IngredientCategory,
   IngredientOrigin,
@@ -82,6 +84,7 @@ export class ImagesOperationsController {
   ) {}
 
   @Post()
+  @RequiredScopes(ApiKeyScope.IMAGES_CREATE)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,

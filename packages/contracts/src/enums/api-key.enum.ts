@@ -26,6 +26,8 @@ export enum ApiKeyScope {
   ARTICLES_READ = 'articles:read',
   ARTICLES_CREATE = 'articles:create',
   BRANDS_READ = 'brands:read',
+  /** Create and edit brands and their context. Admin-minted keys only. */
+  BRANDS_WRITE = 'brands:write',
   CREDITS_READ = 'credits:read',
   CREDITS_PROVISION = 'credits:provision',
   MANAGED_INFERENCE_EXECUTE = 'managed-inference:execute',
