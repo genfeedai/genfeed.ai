@@ -19,7 +19,8 @@ export type INotificationPayloadTypes =
   | IModelPricingUnavailablePayload
   | IReviewGatePendingEmailPayload
   | ILowCreditsAlertPayload
-  | IRevenueNotificationPayload;
+  | IRevenueNotificationPayload
+  | IBillingEventNotificationPayload;
 
 /** Channels a rendered message is delivered on through the outbox (#5197). */
 export const CHANNEL_MESSAGE_TYPES = [
@@ -258,4 +259,28 @@ export interface IRevenueNotificationPayload {
   amountMinor: number;
   currency: string;
   userId?: string | null;
+}
+
+/** Subscription and payment events the operator Discord billing channel announces. */
+export const BILLING_EVENT_KINDS = [
+  'subscription_created',
+  'subscription_canceled',
+  'payment_failed',
+  'refund',
+  'dispute',
+] as const;
+export type BillingEventKind = (typeof BILLING_EVENT_KINDS)[number];
+
+export interface IBillingEventNotificationPayload {
+  kind: BillingEventKind;
+  organizationId: string;
+  /** Shown instead of the id when known. */
+  organizationLabel?: string;
+  /** Product tier, e.g. `Scale`, when known. */
+  planLabel?: string;
+  /** Minor currency units: what failed, was refunded or was disputed. */
+  amountMinor?: number;
+  currency?: string;
+  /** Failed payments: which Stripe attempt this was. */
+  attemptCount?: number;
 }

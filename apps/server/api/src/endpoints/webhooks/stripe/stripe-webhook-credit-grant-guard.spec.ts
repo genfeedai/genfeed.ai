@@ -90,6 +90,7 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
     recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveSubscriptionPlan: vi.fn(() => SubscriptionPlan.MONTHLY),
+    notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn(() => null),
     setHasEverHadCredits: vi.fn(),
     updateOrganizationTierAndModels: vi.fn(),

@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   DiscordTestChannel,
+  IBillingEventNotificationPayload,
   IDiscordChannelTestResult,
   IDiscordEmbed,
   IDiscordTransportStatus,
@@ -30,6 +31,7 @@ import {
   adminOrganizationUrl,
   adminUserUrl,
   buildOperatorCard,
+  describeBillingEvent,
   formatCredits,
 } from '@notifications/services/discord/operator-card.util';
 import { discordMessage } from '@notifications/services/discord/system-notification.util';
@@ -800,6 +802,55 @@ export class DiscordService {
           amountMinor: revenue.amountMinor,
           organizationId: revenue.organizationId,
           source: revenue.source,
+        });
+      },
+    );
+  }
+
+  /** Subscription and payment events for the billing channel. */
+  async sendBillingEventNotification(
+    event: IBillingEventNotificationPayload,
+  ): Promise<boolean> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getBillingWebhook(),
+      url,
+      async (webhookClient) => {
+        const organization = event.organizationLabel || event.organizationId;
+        const amount =
+          typeof event.amountMinor === 'number' && event.currency
+            ? this.formatRevenueAmount(event.amountMinor, event.currency)
+            : '';
+        const organizationUrl = adminOrganizationUrl(
+          this.configService.get('GENFEEDAI_APP_URL'),
+          event.organizationId,
+        );
+        const { color, summary, title } = describeBillingEvent(event, {
+          amount,
+          organization,
+        });
+
+        await this.sendOperatorCard(webhookClient, {
+          action: organizationUrl
+            ? { label: 'View in Admin', url: organizationUrl }
+            : undefined,
+          color,
+          fields: [
+            { name: 'Organization', value: organization },
+            { name: 'Plan', value: event.planLabel ?? '' },
+            { name: 'Amount', value: amount },
+            {
+              name: 'Attempt',
+              value: event.attemptCount ? String(event.attemptCount) : '',
+            },
+          ],
+          summary,
+          title,
+        });
+
+        this.loggerService.log(`${url} succeeded`, {
+          kind: event.kind,
+          organizationId: event.organizationId,
         });
       },
     );

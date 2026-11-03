@@ -8,6 +8,7 @@ import {
 function makeDispatcher() {
   const discord = {
     sendArticleNotification: vi.fn().mockResolvedValue(true),
+    sendBillingEventNotification: vi.fn().mockResolvedValue(true),
     sendIngredientNotification: vi.fn().mockResolvedValue(true),
     sendLowCreditsAlert: vi.fn().mockResolvedValue(true),
     sendModelDiscoveryNotification: vi.fn().mockResolvedValue(true),
@@ -78,6 +79,40 @@ describe('ChannelMessageDispatcherService', () => {
     expect(discord.sendRevenueNotification).toHaveBeenCalledWith(
       expect.objectContaining({ amountMinor: 4900 }),
     );
+  });
+
+  it('renders a billing event as a billing card', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+
+    await expect(
+      dispatcher.dispatch(
+        request({
+          action: 'billing_event',
+          payload: {
+            kind: 'payment_failed',
+            organizationId: 'org-1',
+          },
+          type: 'discord',
+        }),
+      ),
+    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
+    expect(discord.sendBillingEventNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'payment_failed' }),
+    );
+  });
+
+  it('rejects a billing event of a kind it cannot render', async () => {
+    const { dispatcher } = makeDispatcher();
+
+    await expect(
+      dispatcher.dispatch(
+        request({
+          action: 'billing_event',
+          payload: { kind: 'upgrade', organizationId: 'org-1' } as never,
+          type: 'discord',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvalidChannelMessageError);
   });
 
   it('routes provider price changes and pricing outages to the operator models channel', async () => {

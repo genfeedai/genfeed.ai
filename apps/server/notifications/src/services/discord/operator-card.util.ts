@@ -1,5 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
+  BillingEventKind,
+  IBillingEventNotificationPayload,
   IDiscordEmbed,
   IOperatorCardInput,
 } from '@genfeedai/contracts/interfaces';
@@ -90,4 +92,53 @@ export function adminOrganizationUrl(
   return appUrl
     ? `${appUrl}${APP_ROUTES.ADMIN.ORGANIZATIONS}/${encodeURIComponent(organizationId)}`
     : null;
+}
+
+interface IBillingEventCopy {
+  color: number;
+  summary: string;
+  title: string;
+}
+
+const BILLING_EVENT_COLORS: Record<BillingEventKind, number> = {
+  dispute: 0xff0000,
+  payment_failed: 0xff0000,
+  refund: 0xffa500,
+  subscription_canceled: 0xffa500,
+  subscription_created: 0x2ecc71,
+};
+
+const BILLING_EVENT_TITLES: Record<BillingEventKind, string> = {
+  dispute: 'Dispute Opened',
+  payment_failed: 'Payment Failed',
+  refund: 'Refund Issued',
+  subscription_canceled: 'Subscription Canceled',
+  subscription_created: 'New Subscription',
+};
+
+/** The title, colour and one-line summary of a subscription or payment card. */
+export function describeBillingEvent(
+  event: IBillingEventNotificationPayload,
+  names: { amount: string; organization: string },
+): IBillingEventCopy {
+  const { amount, organization } = names;
+  const plan = event.planLabel ? ` to ${event.planLabel}` : '';
+  const summaries: Record<BillingEventKind, string> = {
+    dispute: amount
+      ? `${organization} disputed a ${amount} payment.`
+      : `${organization} disputed a payment.`,
+    payment_failed: amount
+      ? `A ${amount} payment from ${organization} failed.`
+      : `A payment from ${organization} failed.`,
+    refund: amount
+      ? `${amount} was refunded to ${organization}.`
+      : `A payment was refunded to ${organization}.`,
+    subscription_canceled: `${organization} canceled their subscription${event.planLabel ? ` (${event.planLabel})` : ''}.`,
+    subscription_created: `${organization} subscribed${plan}.`,
+  };
+  return {
+    color: BILLING_EVENT_COLORS[event.kind],
+    summary: summaries[event.kind],
+    title: BILLING_EVENT_TITLES[event.kind],
+  };
 }

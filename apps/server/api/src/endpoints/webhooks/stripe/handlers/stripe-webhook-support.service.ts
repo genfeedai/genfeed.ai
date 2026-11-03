@@ -33,6 +33,7 @@ import {
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/contracts';
+import type { IBillingEventNotificationPayload } from '@genfeedai/contracts/interfaces';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -420,6 +421,63 @@ export class StripeWebhookSupportService {
     }
   }
 
+  /** The organization's name for an operator card; null when it cannot be read. */
+  private async findOrganizationLabel(
+    organizationId: string,
+  ): Promise<string | null> {
+    const organization = await this.prisma.organization
+      .findFirst({
+        select: { label: true },
+        where: { id: organizationId, isDeleted: false },
+      })
+      .catch(() => null);
+    return organization?.label || null;
+  }
+
+  /**
+   * Announces a subscription or payment event in the operator Discord billing
+   * channel. Best-effort: the billing change is already applied, so a failed
+   * lookup or outbox write is logged, never thrown. The Stripe object id keys
+   * the message, so a webhook replay never posts twice.
+   */
+  async notifyOperatorOfBillingEvent(
+    input: Omit<IBillingEventNotificationPayload, 'organizationLabel'> & {
+      /** Stripe id (plus attempt, where one object repeats) that keys the message. */
+      stripeObjectId: string;
+    },
+  ): Promise<void> {
+    const { stripeObjectId, ...event } = input;
+    try {
+      const organizationLabel = await this.findOrganizationLabel(
+        event.organizationId,
+      );
+      await this.activityRecorder.dispatch({
+        deduplicationKey: `message.billing/${event.kind}/${stripeObjectId}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'billing_event',
+              payload: {
+                ...event,
+                organizationLabel: organizationLabel ?? undefined,
+              },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: event.organizationId,
+        source: { id: stripeObjectId, type: 'stripe_billing_event' },
+        topic: 'operator.alerts',
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to queue billing event alert`,
+        { error, kind: event.kind, organizationId: event.organizationId },
+      );
+    }
+  }
+
   /**
    * Takes the net-of-tax share of a refund or dispute back out of revenue as
    * a negative ledger row on the original payment's organization. Refund
@@ -456,6 +514,8 @@ export class StripeWebhookSupportService {
         originalNetMinor: original.amountMinor,
       });
 
+      // Filled inside the transaction when this call wrote the row (not a replay).
+      const booked: Array<{ currency: string; organizationId: string }> = [];
       await this.prisma.$transaction(async (transaction) => {
         // Two events for one charge can race; serialize them so each sees the
         // other's row before computing what is still owed.
@@ -471,7 +531,7 @@ export class StripeWebhookSupportService {
         const amountMinor = -targetNetMinor - (taken._sum.amountMinor ?? 0);
         if (amountMinor >= 0) return;
 
-        await transaction.billingRevenueEvent.createMany({
+        const { count } = await transaction.billingRevenueEvent.createMany({
           data: [
             {
               amountMinor,
@@ -488,7 +548,23 @@ export class StripeWebhookSupportService {
           ],
           skipDuplicates: true,
         });
+        if (count > 0) booked.push(original);
       });
+      for (const adjustment of booked) {
+        await this.notifyOperatorOfBillingEvent({
+          amountMinor: input.adjustedGrossMinor,
+          currency: adjustment.currency,
+          kind:
+            input.source === BillingRevenueSource.DISPUTE
+              ? 'dispute'
+              : 'refund',
+          organizationId: adjustment.organizationId,
+          stripeObjectId: revenueAdjustmentKey(
+            input.adjustmentId,
+            input.adjustedGrossMinor,
+          ),
+        });
+      }
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} failed to record revenue adjustment`,

@@ -1226,6 +1226,134 @@ describe('DiscordService', () => {
     });
   });
 
+  describe('sendBillingEventNotification', () => {
+    function lastCard(): IDiscordEmbed {
+      return lastSendPayload().embeds?.[0] as IDiscordEmbed;
+    }
+
+    it.each([
+      {
+        color: 0x2ecc71,
+        description: 'Katya Studio subscribed to Scale.',
+        event: { kind: 'subscription_created' as const, planLabel: 'Scale' },
+        fields: [
+          { inline: true, name: 'Organization', value: 'Katya Studio' },
+          { inline: true, name: 'Plan', value: 'Scale' },
+        ],
+        title: 'New Subscription',
+      },
+      {
+        color: 0xffa500,
+        description: 'Katya Studio canceled their subscription (Scale).',
+        event: { kind: 'subscription_canceled' as const, planLabel: 'Scale' },
+        fields: [
+          { inline: true, name: 'Organization', value: 'Katya Studio' },
+          { inline: true, name: 'Plan', value: 'Scale' },
+        ],
+        title: 'Subscription Canceled',
+      },
+      {
+        color: 0xff0000,
+        description: 'A $499.00 payment from Katya Studio failed.',
+        event: {
+          amountMinor: 49_900,
+          attemptCount: 2,
+          currency: 'usd',
+          kind: 'payment_failed' as const,
+        },
+        fields: [
+          { inline: true, name: 'Organization', value: 'Katya Studio' },
+          { inline: true, name: 'Amount', value: '$499.00' },
+          { inline: true, name: 'Attempt', value: '2' },
+        ],
+        title: 'Payment Failed',
+      },
+      {
+        color: 0xffa500,
+        description: '$59.00 was refunded to Katya Studio.',
+        event: {
+          amountMinor: 5_900,
+          currency: 'usd',
+          kind: 'refund' as const,
+        },
+        fields: [
+          { inline: true, name: 'Organization', value: 'Katya Studio' },
+          { inline: true, name: 'Amount', value: '$59.00' },
+        ],
+        title: 'Refund Issued',
+      },
+      {
+        color: 0xff0000,
+        description: 'Katya Studio disputed a $59.00 payment.',
+        event: {
+          amountMinor: 5_900,
+          currency: 'usd',
+          kind: 'dispute' as const,
+        },
+        fields: [
+          { inline: true, name: 'Organization', value: 'Katya Studio' },
+          { inline: true, name: 'Amount', value: '$59.00' },
+        ],
+        title: 'Dispute Opened',
+      },
+    ])('posts the $title card', async (scenario) => {
+      const { service } = await createService();
+
+      await service.sendBillingEventNotification({
+        ...scenario.event,
+        organizationId: 'org-1',
+        organizationLabel: 'Katya Studio',
+      });
+
+      expect(lastCard()).toMatchObject({
+        color: scenario.color,
+        description: scenario.description,
+        fields: scenario.fields,
+        title: scenario.title,
+      });
+    });
+
+    it('names the organization by id when no name is known', async () => {
+      const { service } = await createService();
+
+      await service.sendBillingEventNotification({
+        kind: 'subscription_created',
+        organizationId: 'org-1',
+      });
+
+      expect(lastCard().description).toBe('org-1 subscribed.');
+    });
+
+    it('links the button to the admin organization page', async () => {
+      const { service } = await createService();
+
+      await service.sendBillingEventNotification({
+        kind: 'subscription_created',
+        organizationId: 'org-1',
+      });
+
+      const row = lastSendPayload().components?.[0] as unknown as {
+        toJSON: () => { components: Array<{ label: string; url: string }> };
+      };
+      expect(row.toJSON().components[0]).toMatchObject({
+        label: 'View in Admin',
+        url: 'https://app.genfeed.ai/admin/organizations/org-1',
+      });
+    });
+
+    it('skips when the billing webhook is unavailable', async () => {
+      mockDiscordBotService.getBillingWebhook.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await service.sendBillingEventNotification({
+        kind: 'refund',
+        organizationId: 'org-1',
+      });
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sendChannelTest billing', () => {
     it('tests the billing channel through the billing webhook', async () => {
       mockConfigService.get.mockImplementation((key: string) =>

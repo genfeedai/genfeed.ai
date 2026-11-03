@@ -49,6 +49,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     recordCreditsActivity: vi.fn(),
     recordProcessingFee: vi.fn(),
     recordRevenueEvent: vi.fn(),
+    notifyOperatorOfBillingEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     setHasEverHadCredits: vi.fn(),
   };
@@ -741,6 +742,29 @@ describe('StripeInvoiceWebhookHandler', () => {
       await handler.handleInvoicePaymentFailed(invoiceWith({}), 'test');
 
       expect(subscriptionsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('announces the failed payment with the amount and which attempt it was', async () => {
+      await handler.handleInvoicePaymentFailed(
+        invoiceWith({
+          amount_due: 49_900,
+          attempt_count: 2,
+          currency: 'usd',
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(supportService.notifyOperatorOfBillingEvent).toHaveBeenCalledWith({
+        amountMinor: 49_900,
+        attemptCount: 2,
+        currency: 'usd',
+        kind: 'payment_failed',
+        organizationId: 'org_1',
+        stripeObjectId: 'in_123:2',
+      });
     });
   });
 });

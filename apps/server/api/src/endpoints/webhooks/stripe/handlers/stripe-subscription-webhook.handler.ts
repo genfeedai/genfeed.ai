@@ -10,6 +10,7 @@ import {
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
+  formatEnumLabel,
   SubscriptionStatus,
   SubscriptionTier,
   toPrismaSubscriptionStatus,
@@ -121,6 +122,15 @@ export class StripeSubscriptionWebhookHandler {
         trigger: 'customer.subscription.created',
         url,
       });
+
+      if (organizationId) {
+        await this.supportService.notifyOperatorOfBillingEvent({
+          kind: 'subscription_created',
+          organizationId,
+          planLabel: tier ? (formatEnumLabel(tier) ?? undefined) : undefined,
+          stripeObjectId: subscription.id,
+        });
+      }
 
       this.loggerService.log(`${url} subscription created successfully`, {
         organizationId,
@@ -379,6 +389,22 @@ export class StripeSubscriptionWebhookHandler {
             },
           );
         }
+      }
+
+      if (organizationId) {
+        const canceledTier = existingSubscription.stripePriceId
+          ? this.supportService.resolveTierFromPriceId(
+              existingSubscription.stripePriceId,
+            )
+          : null;
+        await this.supportService.notifyOperatorOfBillingEvent({
+          kind: 'subscription_canceled',
+          organizationId,
+          planLabel: canceledTier
+            ? (formatEnumLabel(canceledTier) ?? undefined)
+            : undefined,
+          stripeObjectId: subscription.id,
+        });
       }
 
       this.loggerService.log(`${url} subscription deleted successfully`, {
