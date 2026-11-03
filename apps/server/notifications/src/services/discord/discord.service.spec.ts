@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -899,7 +900,7 @@ describe('DiscordService', () => {
 
       await service.sendLowCreditsAlert({
         balance: 0.03400999999999854,
-        organizationId: 'cmvz15thi003r0enwq1cocedg',
+        organizationId: testId('org'),
         organizationLabel: 'Katya Studio',
       });
 
