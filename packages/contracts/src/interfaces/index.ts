@@ -310,6 +310,7 @@ export * from './organization/byok-provider-status.interface';
 export * from './organization/byok-resolution-result.interface';
 export * from './organization/conversation.interface';
 export * from './organization/credential.interface';
+export * from './organization/mcp-enterprise-auth.interface';
 export * from './organization/member.interface';
 export * from './organization/organization.interface';
 export * from './organization/organization-category-seed.interface';

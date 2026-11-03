@@ -2348,6 +2348,37 @@ model McpOAuthRefreshToken {
   @@map("mcp_oauth_refresh_tokens")
 }
 
+// Enterprise-managed authorization for the MCP connector (ID-JAG, jwt-bearer
+// grant). One trusted issuer per organization: the customer's IdP issuer URL,
+// or the organization's Claude issuer URL. The organization id is the tenant id
+// admins paste into the connector (it arrives as the `aud_tenant` claim).
+model McpEnterpriseAuthConfig {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  trustedIssuer   String
+  isEnabled       Boolean  @default(false)
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([trustedIssuer, isEnabled])
+  @@map("mcp_enterprise_auth_configs")
+}
+
+// Replay guard: each assertion `jti` is accepted once per issuer until it
+// expires (plus clock skew).
+model McpEnterpriseAuthAssertion {
+  id        String   @id @default(cuid())
+  issuer    String
+  jtiHash   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([issuer, jtiHash])
+  @@index([expiresAt])
+  @@map("mcp_enterprise_auth_assertions")
+}
+
 model OrgIntegration {
   id               String              @id @default(cuid())
   organizationId   String

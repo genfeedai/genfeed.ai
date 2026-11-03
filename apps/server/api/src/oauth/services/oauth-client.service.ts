@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { JWT_BEARER_GRANT_TYPE } from '@api/oauth/enterprise-managed-auth.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -19,14 +20,16 @@ const CLIENT_METADATA_MAX_BYTES = 64 * 1024;
 const SUPPORTED_CLIENT_GRANT_TYPES: ReadonlySet<string> = new Set([
   'authorization_code',
   'refresh_token',
+  JWT_BEARER_GRANT_TYPE,
 ]);
 const clientMetadataSchema = z.object({
   client_id: z.string().max(2048),
   client_name: z.string().min(1).max(200),
   redirect_uris: z.array(z.string().max(2048)).min(1).max(20),
-  // A client document may list grant types this server does not implement
-  // (Claude also advertises the jwt-bearer grant). Keep the supported ones
-  // rather than rejecting the whole document; authorization_code is required.
+  // A client document may list grant types this server does not implement.
+  // Keep the supported ones rather than rejecting the whole document;
+  // authorization_code is required. jwt-bearer is what a client must declare
+  // to use enterprise-managed authorization.
   grant_types: z
     .array(z.string())
     .default(['authorization_code'])

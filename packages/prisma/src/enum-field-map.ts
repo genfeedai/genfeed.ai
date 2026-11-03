@@ -4739,6 +4739,26 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  McpEnterpriseAuthAssertion: {
+    allFields: ['createdAt', 'expiresAt', 'id', 'issuer', 'jtiHash'],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
+  McpEnterpriseAuthConfig: {
+    allFields: [
+      'createdAt',
+      'id',
+      'isEnabled',
+      'organizationId',
+      'trustedIssuer',
+      'updatedAt',
+      'updatedByUserId',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   McpOAuthAuthCode: {
     allFields: [
       'canSwitchOrganizations',

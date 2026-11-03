@@ -9,6 +9,7 @@ import { OAuthTokenController } from '@api/oauth/controllers/oauth-token.control
 import { buildApiCorsOptionsDelegate } from '@api/oauth/oauth-cors.util';
 import { OAuthAuthorizeService } from '@api/oauth/services/oauth-authorize.service';
 import { OAuthClientService } from '@api/oauth/services/oauth-client.service';
+import { OAuthEnterpriseAuthService } from '@api/oauth/services/oauth-enterprise-auth.service';
 import { OAuthRefreshTokenService } from '@api/oauth/services/oauth-refresh-token.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
@@ -67,6 +68,7 @@ describe('OAuth endpoints real HTTP pipeline', () => {
     decideAuthorization: vi.fn(),
     exchangeToken: vi.fn(),
   };
+  const enterpriseAuthService = { exchange: vi.fn() };
   const refreshTokenService = {
     refresh: vi.fn(),
     revoke: vi.fn().mockResolvedValue(undefined),
@@ -88,6 +90,10 @@ describe('OAuth endpoints real HTTP pipeline', () => {
           useValue: new OAuthClientService(prisma as unknown as PrismaService),
         },
         { provide: OAuthAuthorizeService, useValue: authorizeService },
+        {
+          provide: OAuthEnterpriseAuthService,
+          useValue: enterpriseAuthService,
+        },
         { provide: OAuthRefreshTokenService, useValue: refreshTokenService },
         { provide: LoggerService, useValue: logger },
         { provide: ConfigService, useValue: configService },
@@ -223,6 +229,48 @@ describe('OAuth endpoints real HTTP pipeline', () => {
         error: 'unsupported_grant_type',
         error_description: 'Unsupported grant type',
       });
+    });
+
+    it('answers the jwt-bearer grant with a token that has no refresh token', async () => {
+      enterpriseAuthService.exchange.mockResolvedValue({
+        access_token: 'gf_live_enterprise',
+        expires_in: 3600,
+        scope: 'brands:read',
+        token_type: 'Bearer',
+      });
+
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/token')
+        .type('form')
+        .send({
+          assertion: 'header.payload.signature-signature',
+          client_id: 'https://claude.ai/oauth/mcp-oauth-client-metadata',
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          resource: 'https://mcp.genfeed.ai/mcp',
+        })
+        .expect(200);
+
+      expect(result.body).toEqual({
+        access_token: 'gf_live_enterprise',
+        expires_in: 3600,
+        scope: 'brands:read',
+        token_type: 'Bearer',
+      });
+      expect(result.headers['cache-control']).toBe('no-store');
+    });
+
+    it('answers a jwt-bearer grant without an assertion with invalid_request', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/token')
+        .type('form')
+        .send({
+          client_id: 'https://claude.ai/oauth/mcp-oauth-client-metadata',
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        })
+        .expect(400);
+
+      expect(result.body.error).toBe('invalid_request');
+      expect(result.body.error_description).toContain('assertion');
     });
 
     it('answers missing PKCE fields with invalid_request', async () => {

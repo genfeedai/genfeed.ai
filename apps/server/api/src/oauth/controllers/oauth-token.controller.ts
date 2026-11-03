@@ -14,10 +14,12 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   isAuthorizationCodeGrant,
+  isJwtBearerGrant,
   isRefreshTokenGrant,
   OAuthTokenExchangeDto,
 } from '../dto/token-exchange.dto';
 import { OAuthAuthorizeService } from '../services/oauth-authorize.service';
+import { OAuthEnterpriseAuthService } from '../services/oauth-enterprise-auth.service';
 import { OAuthRefreshTokenService } from '../services/oauth-refresh-token.service';
 
 @ApiTags('OAuth')
@@ -26,6 +28,7 @@ import { OAuthRefreshTokenService } from '../services/oauth-refresh-token.servic
 export class OAuthTokenController {
   constructor(
     private readonly authorizeService: OAuthAuthorizeService,
+    private readonly enterpriseAuthService: OAuthEnterpriseAuthService,
     private readonly refreshTokenService: OAuthRefreshTokenService,
   ) {}
 
@@ -39,12 +42,15 @@ export class OAuthTokenController {
   @RateLimit({ limit: 60, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({
     summary:
-      'Exchange an OAuth code, or rotate a refresh token, for an MCP access token',
+      'Exchange an OAuth code, a refresh token, or an enterprise-managed identity assertion for an MCP access token',
   })
   @ApiResponse({ status: HttpStatus.OK })
   exchange(@Body() dto: OAuthTokenExchangeDto) {
     if (isRefreshTokenGrant(dto)) {
       return this.refreshTokenService.refresh(dto);
+    }
+    if (isJwtBearerGrant(dto)) {
+      return this.enterpriseAuthService.exchange(dto);
     }
     if (isAuthorizationCodeGrant(dto)) {
       return this.authorizeService.exchangeToken(dto);
