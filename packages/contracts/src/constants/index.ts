@@ -7,6 +7,7 @@ export * from './agent-program-templates.constant';
 export * from './agent-task-list.constant';
 export * from './agent-thread-status-event.constant';
 export * from './api.constant';
+export * from './api-key-permissions.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
 export * from './app-display.constant';
