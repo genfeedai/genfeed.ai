@@ -284,9 +284,6 @@ describe('Motion quote review', () => {
 
   it('requires explicit cost acknowledgment before submission and clears it when input changes', async () => {
     render(<MotionNewPane />);
-    fireEvent.change(screen.getByLabelText('label'), {
-      target: { value: 'Visual' },
-    });
     fireEvent.change(screen.getByLabelText('prompt'), {
       target: { value: 'Animate a title' },
     });
@@ -371,7 +368,8 @@ describe('Motion quote review', () => {
     const bar = screen.getByTestId('motion-prompt-bar');
     expect(bar).toHaveAttribute('data-prompt-bar-composer');
     expect(within(bar).getByLabelText('prompt')).toBeInTheDocument();
-    expect(within(bar).getByLabelText('label')).toBeInTheDocument();
+    // The prompt is the only field: the project is named from it.
+    expect(screen.queryByLabelText('label')).not.toBeInTheDocument();
     expect(
       within(bar).getByRole('button', { name: 'getQuote' }),
     ).toBeInTheDocument();
@@ -411,11 +409,8 @@ describe('Motion quote review', () => {
   });
   it('opens the new project at its own page after the quote is approved', async () => {
     render(<MotionNewPane />);
-    fireEvent.change(screen.getByLabelText('label'), {
-      target: { value: 'Visual' },
-    });
     fireEvent.change(screen.getByLabelText('prompt'), {
-      target: { value: 'Animate a title' },
+      target: { value: 'Animate a title\nwith a long second line' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
     await screen.findByRole('button', { name: 'confirm' });
@@ -428,14 +423,17 @@ describe('Motion quote review', () => {
       expect.objectContaining({ operation: 'create' }),
       3,
     );
+    // The project is named after the first line of the prompt.
+    expect(mocks.quote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ label: 'Animate a title' }),
+      }),
+    );
   });
   it('fills the form from a starter card without asking for a quote', () => {
     render(<MotionNewPane />);
     fireEvent.click(
       screen.getByRole('button', { name: /kineticQuote\.title/ }),
-    );
-    expect(screen.getByLabelText('label')).toHaveValue(
-      'presets.items.kineticQuote.title',
     );
     expect(
       (screen.getByLabelText('prompt') as HTMLTextAreaElement).value,
@@ -444,6 +442,31 @@ describe('Motion quote review', () => {
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
     ).not.toBeInTheDocument();
+  });
+  it('names the project after the starter until the prompt is edited', async () => {
+    render(<MotionNewPane />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /kineticQuote\.title/ }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    await screen.findByRole('button', { name: 'confirm' });
+    expect(mocks.quote).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          label: 'presets.items.kineticQuote.title',
+        }),
+      }),
+    );
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Something else entirely' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    await screen.findByRole('button', { name: 'confirm' });
+    expect(mocks.quote).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ label: 'Something else entirely' }),
+      }),
+    );
   });
 
   describe('which project', () => {

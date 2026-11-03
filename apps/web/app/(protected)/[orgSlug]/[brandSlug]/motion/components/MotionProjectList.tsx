@@ -7,10 +7,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionList from '@ui/collection/CollectionList';
 import Container from '@ui/layout/container/Container';
+import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { SquarePlay } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -34,6 +36,11 @@ export default function MotionProjectList(): ReactElement {
     ? loaded.filter((item) => item.label.toLowerCase().includes(query))
     : loaded;
   const isEmpty = !projects.isLoading && !projects.error && !visible.length;
+  const isLoaded = projects.isSuccess;
+  // The list filters on the client, so what loaded is every project there is.
+  useCreativeProjectsPresence(
+    loaded.length > 0 ? 'populated' : isLoaded ? 'empty' : 'unknown',
+  );
 
   return (
     <Container
@@ -58,10 +65,16 @@ export default function MotionProjectList(): ReactElement {
       <div className="flex flex-col gap-4">
         {projects.error ? <p role="alert">{projects.error.message}</p> : null}
         {projects.isLoading ? <p role="status">{t('loading')}</p> : null}
-        {isEmpty && query ? <p>{t('emptySearch')}</p> : null}
+        {isEmpty && query ? (
+          <CreativeProjectsEmptyState
+            icon={SquarePlay}
+            title={t('emptySearch')}
+          />
+        ) : null}
         {isEmpty && !query ? (
-          <EmptyState
+          <CreativeProjectsEmptyState
             description={t('emptyDescription')}
+            icon={SquarePlay}
             title={t('emptyTitle')}
           />
         ) : null}

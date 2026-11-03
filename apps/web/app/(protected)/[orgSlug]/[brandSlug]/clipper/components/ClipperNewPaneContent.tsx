@@ -1,6 +1,6 @@
 'use client';
 
-import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { ClipperPreset } from '@/features/clipper/props/clipper-presets.props';
@@ -28,31 +28,9 @@ export default function ClipperNewPaneContent() {
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
-      <PromptEmptyState
-        description={t('importSourceDescription')}
-        title={t('heroTitle')}
-      >
-        <div className="flex flex-col gap-4">
-          <ClipperPromptCards
-            isDisabled={clips.isSubmitting}
-            onSelect={applyPreset}
-          />
-          {preset ? (
-            <p
-              className="text-center text-sm text-muted-foreground"
-              role="status"
-            >
-              {t('presets.appliedStatus', {
-                count: preset.maxClips,
-                score: preset.minViralityScore,
-                title: t(`presets.items.${preset.id}.title`),
-              })}
-            </p>
-          ) : null}
-        </div>
-      </PromptEmptyState>
-      <div className="mt-auto mx-auto w-full max-w-2xl shrink-0 px-3 pb-3">
+    <CreativeAppNewPane
+      description={t('importSourceDescription')}
+      promptBar={
         <ClipperInputForm
           sourceOnly
           draftSaveState={clips.draftSaveState}
@@ -75,7 +53,27 @@ export default function ClipperNewPaneContent() {
           uploadProgress={clips.uploadProgress}
           youtubeUrl={clips.youtubeUrl}
         />
+      }
+      title={t('heroTitle')}
+    >
+      <div className="flex flex-col gap-4">
+        <ClipperPromptCards
+          isDisabled={clips.isSubmitting}
+          onSelect={applyPreset}
+        />
+        {preset ? (
+          <p
+            className="text-center text-sm text-muted-foreground"
+            role="status"
+          >
+            {t('presets.appliedStatus', {
+              count: preset.maxClips,
+              score: preset.minViralityScore,
+              title: t(`presets.items.${preset.id}.title`),
+            })}
+          </p>
+        ) : null}
       </div>
-    </div>
+    </CreativeAppNewPane>
   );
 }

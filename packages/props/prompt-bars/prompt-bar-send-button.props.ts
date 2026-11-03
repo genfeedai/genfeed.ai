@@ -36,5 +36,7 @@ export interface PromptBarCompactSelectProps {
   isDisabled?: boolean;
   onChange: (value: string) => void;
   options: ReadonlyArray<PromptBarCompactSelectOption>;
+  /** Shown while `value` matches no option (a choice not made yet). */
+  placeholder?: string;
   value: string;
 }

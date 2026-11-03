@@ -29,6 +29,15 @@ export const PROMPT_BAR_CHIP_CLASS =
   'h-8 shrink-0 gap-1.5 px-2 text-xs text-foreground';
 
 /**
+ * The prompt-bar chip as a dropdown trigger (Radix Select): the chip box with
+ * the ghost reset a select needs (no border, no fill until hover or open). The
+ * look is the same as `PROMPT_BAR_CHIP_CLASS`, so a Select chip and a menu chip
+ * on one toolbar never differ.
+ */
+export const PROMPT_BAR_CHIP_SELECT_CLASS =
+  'h-8 w-auto gap-1.5 rounded-md border-0 bg-transparent px-2 text-xs font-medium text-foreground shadow-none hover:bg-hover data-[state=open]:bg-hover';
+
+/**
  * Every prompt-bar control is a 32px box with a 14px (chrome tier) glyph. A
  * square icon-only button (mic, send, stop, harness settings) uses this so the
  * glyph sits dead centre: the button primitive adds nothing the box does not

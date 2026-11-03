@@ -5,20 +5,18 @@ import {
   useGalleryModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
-import {
-  ButtonSize,
-  ButtonVariant,
-  IngredientCategory,
-} from '@genfeedai/contracts';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import type { StudioStoryboardProposal } from '@genfeedai/contracts/api-types/contracts';
 import { STORYBOARD_LONG_BRIEF_MAX_CHARACTERS } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
-import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
+import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
+import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
 import { Button } from '@ui/primitives/button';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptBarNotice from '@ui/prompt-bars/components/shell/PromptBarNotice';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarIconButton from '@ui/prompt-bars/components/toolbar/PromptBarIconButton';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
@@ -325,122 +323,98 @@ export default function StoryboardNewPane() {
     />
   );
   const composer = (
-    <PromptBarContainer
-      className="mx-auto w-full max-w-2xl"
-      layoutMode="inflow"
-      maxWidth="full"
-      zIndex={60}
+    <CreativeAppPromptBar
+      banner={error ? <PromptBarNotice>{error}</PromptBarNotice> : undefined}
+      testId="storyboard-composer"
     >
-      <PromptBarComposer
-        data-testid="storyboard-composer"
-        density="compact"
-        banner={
-          error ? (
-            <p role="alert" className="p-3 text-sm text-destructive">
-              {error}
-            </p>
-          ) : undefined
-        }
-      >
-        {mode !== 'video' ? (
-          <PromptEditor
-            ariaLabel={translate('brief')}
-            value={brief}
-            isDisabled={isCreating}
-            placeholder={translate(
-              isLongForm
-                ? 'longFormPlaceholder'
-                : isSlideshow
-                  ? 'slideshowPlaceholder'
-                  : 'briefPlaceholder',
-            )}
-            onValueChange={setBrief}
-            onSubmit={() => void submit()}
-            className="min-h-16"
-          />
-        ) : null}
-        <PromptBarToolbar
-          leading={
-            <>
-              {modeSelect}
-              {mode !== 'video' ? (
-                <>
-                  <PromptBarCompactSelect
-                    ariaLabel={translate('formatAria')}
-                    isDisabled={isCreating}
-                    options={formatOptions(formats)}
-                    value={format}
-                    onChange={(value) => {
-                      if (isFormatIn(formats, value)) setFormat(value);
-                    }}
-                  />
-                  {isLongForm || isSlideshow ? null : (
-                    <PromptBarCompactSelect
-                      ariaLabel={translate('runtimeBudget')}
-                      isDisabled={isCreating}
-                      options={budgetOptions}
-                      value={budget}
-                      onChange={setBudget}
-                    />
-                  )}
-                </>
-              ) : null}
-            </>
-          }
-          reference={
-            mode === 'brief' || isSlideshow ? (
-              <>
-                {mode === 'brief' ? (
-                  <Button
-                    ariaLabel={translate('chooseStartingImage')}
-                    icon={<Paperclip className="size-3.5" />}
-                    isDisabled={isCreating}
-                    onClick={chooseStartingImage}
-                    size={ButtonSize.ICON}
-                    tooltip={translate('chooseStartingImage')}
-                    tooltipPosition="top"
-                    variant={ButtonVariant.GHOST}
-                    withWrapper={false}
-                  />
-                ) : null}
-                <Button
-                  ariaLabel={translatePlan('addStyleReferences')}
-                  icon={<Palette className="size-3.5" />}
-                  isDisabled={isCreating || styles.length >= 20}
-                  onClick={chooseStyleReferences}
-                  size={ButtonSize.ICON}
-                  tooltip={translatePlan('addStyleReferences')}
-                  tooltipPosition="top"
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              </>
-            ) : null
-          }
-          trailing={
-            <PromptBarSendButton
-              ariaLabel={saveLabel}
-              isDisabled={isCreating || !valid}
-              isLoading={isCreating}
-              onClick={() => void submit()}
-              tooltip={saveLabel}
-            />
-          }
+      {mode !== 'video' ? (
+        <PromptEditor
+          ariaLabel={translate('brief')}
+          value={brief}
+          isDisabled={isCreating}
+          placeholder={translate(
+            isLongForm
+              ? 'longFormPlaceholder'
+              : isSlideshow
+                ? 'slideshowPlaceholder'
+                : 'briefPlaceholder',
+          )}
+          onValueChange={setBrief}
+          onSubmit={() => void submit()}
+          className="min-h-16"
         />
-        {mode !== 'video' &&
-        brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
-          <p
-            className={
-              brief.length > maxBriefLength
-                ? 'mt-2 text-xs text-destructive'
-                : 'mt-2 text-xs text-muted-foreground'
-            }
-          >
-            {translate('characterCount', { count: brief.length })}
-          </p>
-        ) : null}
-      </PromptBarComposer>
-    </PromptBarContainer>
+      ) : null}
+      <PromptBarToolbar
+        leading={
+          <>
+            {modeSelect}
+            {mode !== 'video' ? (
+              <>
+                <PromptBarCompactSelect
+                  ariaLabel={translate('formatAria')}
+                  isDisabled={isCreating}
+                  options={formatOptions(formats)}
+                  value={format}
+                  onChange={(value) => {
+                    if (isFormatIn(formats, value)) setFormat(value);
+                  }}
+                />
+                {isLongForm || isSlideshow ? null : (
+                  <PromptBarCompactSelect
+                    ariaLabel={translate('runtimeBudget')}
+                    isDisabled={isCreating}
+                    options={budgetOptions}
+                    value={budget}
+                    onChange={setBudget}
+                  />
+                )}
+              </>
+            ) : null}
+          </>
+        }
+        reference={
+          mode === 'brief' || isSlideshow ? (
+            <>
+              {mode === 'brief' ? (
+                <PromptBarIconButton
+                  ariaLabel={translate('chooseStartingImage')}
+                  icon={<Paperclip className={SHELL_ICON_CLASS} />}
+                  isDisabled={isCreating}
+                  onClick={chooseStartingImage}
+                />
+              ) : null}
+              <PromptBarIconButton
+                ariaLabel={translatePlan('addStyleReferences')}
+                icon={<Palette className={SHELL_ICON_CLASS} />}
+                isDisabled={isCreating || styles.length >= 20}
+                onClick={chooseStyleReferences}
+              />
+            </>
+          ) : null
+        }
+        trailing={
+          <PromptBarSendButton
+            ariaLabel={saveLabel}
+            isDisabled={isCreating || !valid}
+            isLoading={isCreating}
+            onClick={() => void submit()}
+            tooltip={saveLabel}
+          />
+        }
+      />
+      {mode !== 'video' &&
+      brief.length >= maxBriefLength * COUNTER_THRESHOLD ? (
+        <p
+          className={
+            brief.length > maxBriefLength
+              ? 'mt-2 text-xs text-destructive'
+              : 'mt-2 text-xs text-muted-foreground'
+          }
+        >
+          {translate('characterCount', { count: brief.length })}
+        </p>
+      ) : null}
+    </CreativeAppPromptBar>
   );
   const modeHint = isSlideshow
     ? translate('slideshowHint')
@@ -597,20 +571,16 @@ export default function StoryboardNewPane() {
       />
     ) : null;
   return (
-    <div
-      className="relative flex min-h-0 flex-1 flex-col"
-      data-testid="storyboard-agent"
+    <CreativeAppNewPane
+      description={mode === 'video' ? undefined : modeHint}
+      promptBar={composer}
+      testId="storyboard-agent"
+      title={translate('heroTitle')}
     >
-      <PromptEmptyState
-        description={mode === 'video' ? undefined : modeHint}
-        title={translate('heroTitle')}
-      >
-        <div className="flex flex-col gap-4">
-          {guidance}
-          {referencesPanel}
-        </div>
-      </PromptEmptyState>
-      <div className="mt-auto shrink-0 px-3 pb-3">{composer}</div>
-    </div>
+      <div className="flex flex-col gap-4">
+        {guidance}
+        {referencesPanel}
+      </div>
+    </CreativeAppNewPane>
   );
 }

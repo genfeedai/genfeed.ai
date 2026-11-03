@@ -54,6 +54,12 @@ export interface AgentOutputLayoutProps {
    * brings it back. The agent stays mounted, so a draft or stream survives.
    */
   readonly isOutputExpandable?: boolean;
+  /**
+   * Collapses to the agent alone, full width, with no Agent / Output switch.
+   * The output stays mounted so it keeps loading and can bring the layout
+   * back; only the page chooses when.
+   */
+  readonly isOutputHidden?: boolean;
   readonly labels: AgentOutputLayoutLabels;
   readonly mode?: AgentOutputLayoutMode;
   /** Docked third pane, shown from the `2xl` breakpoint. */
@@ -95,6 +101,8 @@ export interface AgentOutputShellProps {
   readonly headerActions?: ReactNode;
   /** Lets the operator hide the agent to see the output full size. */
   readonly isOutputExpandable?: boolean;
+  /** The page output has nothing to show yet: the agent takes the page alone. */
+  readonly isOutputHidden?: boolean;
   readonly mode?: AgentOutputLayoutMode;
   /** Tab label for the page output. Defaults to "Output". */
   readonly outputLabel?: string;

@@ -2,8 +2,8 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import CreativeAppNewPane from '@ui/layout/creative-app-new-pane/CreativeAppNewPane';
 import ProjectChoicePrompt from '@ui/layout/project-choice-prompt/ProjectChoicePrompt';
-import PromptEmptyState from '@ui/layout/prompt-empty-state/PromptEmptyState';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import OrganizationModulePreferenceGate from '@/components/guards/organization-module/OrganizationModulePreferenceGate';
@@ -33,32 +33,29 @@ function MotionNewPaneBody(): ReactElement {
 
   return (
     <OrganizationModulePreferenceGate moduleId="motion">
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        {controller.projectChoice ? (
-          <ProjectChoicePrompt
-            isDisabled={controller.isBusy}
-            newProjectLabel={t('projectChoiceNew')}
-            onChoose={controller.chooseProject}
-            onCreateNew={controller.createNewProject}
-            projects={controller.projects}
-            question={t('projectChoiceQuestion')}
-            request={controller.projectChoice}
-          />
-        ) : (
-          <PromptEmptyState
-            description={t('heroDescription')}
-            title={t('heroTitle')}
-          >
-            <MotionPromptCards
+      <CreativeAppNewPane
+        body={
+          controller.projectChoice ? (
+            <ProjectChoicePrompt
               isDisabled={controller.isBusy}
-              onSelect={controller.applyPreset}
+              newProjectLabel={t('projectChoiceNew')}
+              onChoose={controller.chooseProject}
+              onCreateNew={controller.createNewProject}
+              projects={controller.projects}
+              question={t('projectChoiceQuestion')}
+              request={controller.projectChoice}
             />
-          </PromptEmptyState>
-        )}
-        <div className="mt-auto shrink-0 px-3 pb-3">
-          <MotionComposer controller={controller} />
-        </div>
-      </div>
+          ) : undefined
+        }
+        description={t('heroDescription')}
+        promptBar={<MotionComposer controller={controller} />}
+        title={t('heroTitle')}
+      >
+        <MotionPromptCards
+          isDisabled={controller.isBusy}
+          onSelect={controller.applyPreset}
+        />
+      </CreativeAppNewPane>
     </OrganizationModulePreferenceGate>
   );
 }

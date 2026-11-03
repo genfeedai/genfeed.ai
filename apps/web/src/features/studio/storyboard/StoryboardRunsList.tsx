@@ -6,9 +6,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import Container from '@ui/layout/container/Container';
+import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
+import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
-import { EmptyState } from '@ui/primitives/empty-state';
+import { Clapperboard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, type ReactElement, useMemo, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
@@ -86,6 +88,13 @@ export default function StoryboardRunsList(): ReactElement {
   }
 
   const isEmpty = !isLoading && runs.length === 0 && !error;
+  useCreativeProjectsPresence(
+    runs.length > 0
+      ? 'populated'
+      : isEmpty && !isSearching
+        ? 'empty'
+        : 'unknown',
+  );
 
   return (
     <Container
@@ -103,10 +112,16 @@ export default function StoryboardRunsList(): ReactElement {
     >
       <div className="flex flex-col gap-8">
         {error ? <p role="alert">{error}</p> : null}
-        {isEmpty && isSearching ? <p>{translate('emptySearch')}</p> : null}
+        {isEmpty && isSearching ? (
+          <CreativeProjectsEmptyState
+            icon={Clapperboard}
+            title={translate('emptySearch')}
+          />
+        ) : null}
         {isEmpty && !isSearching ? (
-          <EmptyState
+          <CreativeProjectsEmptyState
             description={translate('emptyDescription')}
+            icon={Clapperboard}
             title={translate('emptyTitle')}
           />
         ) : null}

@@ -38,6 +38,7 @@ export default function AgentOutputShell({
   children,
   headerActions,
   isOutputExpandable,
+  isOutputHidden,
   mode,
   outputLabel,
   preview,
@@ -158,6 +159,8 @@ export default function AgentOutputShell({
       }
       headerActions={headerActions}
       isOutputExpandable={isOutputExpandable}
+      // Context opens in the output pane, so it brings the pane back.
+      isOutputHidden={isOutputHidden && !host.isContextOpen}
       labels={{
         agent: translate('agent'),
         collapseAgent: translate('collapseAgent'),

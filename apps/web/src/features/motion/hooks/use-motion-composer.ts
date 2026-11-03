@@ -33,6 +33,8 @@ import { isProjectChangeRequest } from '@/lib/creative-apps/project-change-reque
 import type { VisualCodeQuoteReview } from '@/props/studio/visual-code.props';
 
 const SETTLED_STATUSES = ['completed', 'failed', 'cancelled'];
+/** The project name takes at most this many characters. */
+const MAX_LABEL_LENGTH = 120;
 
 /**
  * Everything the Motion prompt bar and the open project share: the compose
@@ -140,6 +142,26 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
       item.key ===
       (modelKey === 'default' ? catalog?.defaultModelKey : modelKey),
   );
+  /**
+   * The new project's name: a starter's title, else the prompt's first line.
+   * The bar has no name field; the prompt is the only thing the creator types.
+   */
+  function projectLabel(): string {
+    const named = label.trim();
+    if (named) return named;
+    const firstLine =
+      mode === 'prompt'
+        ? (text
+            .split('\n')
+            .find((line) => line.trim())
+            ?.trim() ?? '')
+        : '';
+    const truncated = (firstLine || t('newProject')).slice(0, MAX_LABEL_LENGTH);
+    // A cut through an emoji leaves half a surrogate pair; drop it.
+    return /[\uD800-\uDBFF]$/.test(truncated)
+      ? truncated.slice(0, -1)
+      : truncated;
+  }
   function invalidateQuote() {
     quoteEpoch.current++;
     setReview(null);
@@ -241,7 +263,7 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
           input: {
             brandId: selectedBrand.id,
             requestId,
-            label,
+            label: projectLabel(),
             ...(mode === 'sourceCode'
               ? { sourceCode: text }
               : { prompt: text }),
@@ -345,10 +367,6 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
         `${item.format}${item.frame === undefined ? '' : ` @${item.frame}`}`,
     )
     .join(', ');
-  function updateLabel(value: string) {
-    invalidateQuote();
-    setLabel(value);
-  }
   /** The viewer picked the project the request applies to. */
   function chooseProject(chosenProjectId: string) {
     if (projectChoice) seedComposer(projectChoice);
@@ -362,6 +380,8 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
   function updateText(value: string) {
     setProjectChoice(null);
     invalidateQuote();
+    // A starter's title names the project only while its prompt is untouched.
+    setLabel('');
     setText(value);
   }
   function updateMode(value: string) {
@@ -462,7 +482,6 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     isModuleWorkEnabled,
     isQuoteBlocked,
     isStaleRevision,
-    label,
     libraryAssets,
     loadOlderRevisions,
     loadPropsForEditing,
@@ -492,7 +511,6 @@ export function useMotionComposer({ projectId }: UseMotionComposerOptions) {
     toggleAsset,
     toggleFormat,
     updateFrames,
-    updateLabel,
     updateMode,
     updateModel,
     updatePropsText,

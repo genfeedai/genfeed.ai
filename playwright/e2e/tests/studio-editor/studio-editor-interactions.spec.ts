@@ -35,10 +35,12 @@ test.describe('Studio Editor — Interactions', () => {
       }),
     ).toBeVisible({ timeout: 15_000 });
 
-    // The default mock returns no projects, so the list renders its empty state.
-    await expect(authenticatedPage.getByText('No projects yet')).toBeVisible({
-      timeout: 15_000,
-    });
+    // The default mock returns no projects, so the prompt has the page alone.
+    await expect(
+      authenticatedPage.getByTestId('agent-output-output-pane'),
+    ).toBeHidden({ timeout: 15_000 });
+    // The list stays mounted behind the hidden pane, so its card is still there.
+    await expect(authenticatedPage.getByText('No projects yet')).toBeAttached();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
+import CreativeAppPromptBar from '@ui/layout/creative-app-prompt-bar/CreativeAppPromptBar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -10,8 +11,8 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Progress } from '@ui/primitives/progress';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
+import PromptBarIconButton from '@ui/prompt-bars/components/toolbar/PromptBarIconButton';
 import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
 import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
 import { CirclePlay, Search, SlidersHorizontal, Upload } from 'lucide-react';
@@ -105,212 +106,202 @@ export default function ClipperInputForm({
 
   return (
     <div className="w-full">
-      <PromptBarContainer layoutMode="inflow" maxWidth="full">
-        <PromptBarComposer
-          banner={
-            error || isDraftSaveFailed ? (
-              <div className="grid gap-1 px-3.5 py-2.5 text-sm text-destructive">
-                {error ? <p role="alert">{error}</p> : null}
-                {isDraftSaveFailed ? (
-                  <p data-testid="clipper-draft-save-state" role="status">
-                    {t('draftSaveFailed')}
-                  </p>
-                ) : null}
-              </div>
-            ) : undefined
-          }
-          beforeBody={
-            <fieldset className="flex flex-wrap items-center gap-1 px-3 pt-3">
-              <legend className="sr-only">{t('source')}</legend>
-              {sourceKindButton(
-                'youtube',
-                t('youtubeUrl'),
-                <CirclePlay className="size-4 shrink-0" />,
-              )}
-              {sourceKindButton(
-                'upload',
-                t('uploadAudioOrVideo'),
-                <Upload className="size-4 shrink-0" />,
-              )}
-            </fieldset>
-          }
-          data-testid="clipper-prompt-bar"
-          density="compact"
-        >
-          {sourceKind === 'youtube' ? (
-            <Input
-              aria-label={t('youtubeUrl')}
-              className="border-0 bg-transparent px-0 shadow-none"
-              onChange={(event) => onSetYoutubeUrl(event.target.value)}
-              onKeyDown={handleSourceKeyDown}
-              placeholder={t('youtubeUrlPlaceholder')}
-              type="url"
-              value={youtubeUrl}
-            />
-          ) : (
-            <div className="grid gap-1.5">
-              <Input
-                accept="audio/*,video/*"
-                aria-label={t('audioOrVideoFile')}
-                className="border-0 bg-transparent px-0 shadow-none"
-                onChange={(event) =>
-                  onSetSourceFile(event.target.files?.[0] ?? null)
-                }
-                type="file"
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('sourceLimits')}
-              </p>
-              {sourceFile ? (
-                <p className="text-xs text-foreground" role="status">
-                  {t('fileSizeMegabytes', {
-                    name: sourceFile.name,
-                    size: (sourceFile.size / 1024 / 1024).toFixed(1),
-                  })}
+      <CreativeAppPromptBar
+        banner={
+          error || isDraftSaveFailed ? (
+            <div className="grid gap-1 px-3.5 py-2.5 text-sm text-destructive">
+              {error ? <p role="alert">{error}</p> : null}
+              {isDraftSaveFailed ? (
+                <p data-testid="clipper-draft-save-state" role="status">
+                  {t('draftSaveFailed')}
                 </p>
-              ) : draftFilename ? (
-                <p className="text-xs text-foreground" role="status">
-                  {t('draftRepickFile', { name: draftFilename })}
-                </p>
-              ) : null}
-              {isSubmitting && uploadProgress > 0 ? (
-                <div>
-                  <Progress
-                    aria-label={t('uploadProgressAria', {
-                      progress: uploadProgress,
-                    })}
-                    size="sm"
-                    value={uploadProgress}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t('uploadingSource', { progress: uploadProgress })}
-                  </p>
-                </div>
               ) : null}
             </div>
-          )}
-          {hint ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
-          ) : null}
-          <PromptBarToolbar
-            leading={
-              sourceOnly ? null : (
-                <>
-                  <PromptBarCompactSelect
-                    ariaLabel={t('generationMode')}
-                    onChange={(value) => {
-                      if (isClipperResultMode(value)) onModeChange(value);
-                    }}
-                    options={[
-                      { label: t('modeRawCut'), value: 'raw-cut' },
-                      { label: t('modeAvatar'), value: 'avatar' },
-                    ]}
-                    value={generationMode}
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        ariaLabel={t('clipSettings')}
-                        icon={<SlidersHorizontal className="size-4" />}
-                        size={ButtonSize.ICON}
-                        tooltip={t('clipSettings')}
-                        tooltipPosition="top"
-                        variant={ButtonVariant.GHOST}
-                        withWrapper={false}
-                      />
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="start"
-                      className="w-[min(20rem,calc(100vw-2rem))]"
-                      collisionPadding={16}
-                      side="top"
-                      sideOffset={8}
-                    >
-                      <div className="grid gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <Label
-                            htmlFor="max-clips"
-                            className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
-                          >
-                            <span>{t('maxClips')}</span>
-                            <span className="text-muted-foreground">
-                              {maxClips}
-                            </span>
-                          </Label>
-                          <Input
-                            id="max-clips"
-                            type="range"
-                            min={1}
-                            max={30}
-                            value={maxClips}
-                            onChange={(event) =>
-                              onSetMaxClips(Number(event.target.value))
-                            }
-                            className="w-full accent-primary"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label
-                            htmlFor="min-virality"
-                            className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
-                          >
-                            <span>{t('minViralityScore')}</span>
-                            <span className="text-muted-foreground">
-                              {minViralityScore}
-                            </span>
-                          </Label>
-                          <Input
-                            id="min-virality"
-                            type="range"
-                            min={0}
-                            max={100}
-                            value={minViralityScore}
-                            onChange={(event) =>
-                              onSetMinViralityScore(Number(event.target.value))
-                            }
-                            className="w-full accent-primary"
-                          />
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </>
-              )
-            }
-            trailing={
-              <>
-                {onCancel && !sourceOnly ? (
-                  <Button
-                    label={t('cancel')}
-                    onClick={onCancel}
-                    size={ButtonSize.SM}
-                    textTransform="none"
-                    variant={ButtonVariant.GHOST}
-                  />
-                ) : null}
-                {sourceOnly ? null : (
-                  <Button
-                    icon={<Search className="size-3.5" />}
-                    isDisabled={isPrimaryBlocked}
-                    label={t('reviewHighlightsFirst')}
-                    onClick={onAnalyze}
-                    size={ButtonSize.SM}
-                    textTransform="none"
-                    variant={ButtonVariant.GHOST}
-                  />
-                )}
-                <PromptBarSendButton
-                  ariaLabel={primaryLabel}
-                  isDisabled={isPrimaryBlocked}
-                  isLoading={isSubmitting}
-                  onClick={primaryAction}
-                  tooltip={primaryLabel}
-                />
-              </>
-            }
+          ) : undefined
+        }
+        beforeBody={
+          <fieldset className="flex flex-wrap items-center gap-1 px-3 pt-3">
+            <legend className="sr-only">{t('source')}</legend>
+            {sourceKindButton(
+              'youtube',
+              t('youtubeUrl'),
+              <CirclePlay className="size-4 shrink-0" />,
+            )}
+            {sourceKindButton(
+              'upload',
+              t('uploadAudioOrVideo'),
+              <Upload className="size-4 shrink-0" />,
+            )}
+          </fieldset>
+        }
+        testId="clipper-prompt-bar"
+      >
+        {sourceKind === 'youtube' ? (
+          <Input
+            aria-label={t('youtubeUrl')}
+            className="border-0 bg-transparent px-0 shadow-none"
+            onChange={(event) => onSetYoutubeUrl(event.target.value)}
+            onKeyDown={handleSourceKeyDown}
+            placeholder={t('youtubeUrlPlaceholder')}
+            type="url"
+            value={youtubeUrl}
           />
-        </PromptBarComposer>
-      </PromptBarContainer>
+        ) : (
+          <div className="grid gap-1.5">
+            <Input
+              accept="audio/*,video/*"
+              aria-label={t('audioOrVideoFile')}
+              className="border-0 bg-transparent px-0 shadow-none"
+              onChange={(event) =>
+                onSetSourceFile(event.target.files?.[0] ?? null)
+              }
+              type="file"
+            />
+            <p className="text-xs text-muted-foreground">{t('sourceLimits')}</p>
+            {sourceFile ? (
+              <p className="text-xs text-foreground" role="status">
+                {t('fileSizeMegabytes', {
+                  name: sourceFile.name,
+                  size: (sourceFile.size / 1024 / 1024).toFixed(1),
+                })}
+              </p>
+            ) : draftFilename ? (
+              <p className="text-xs text-foreground" role="status">
+                {t('draftRepickFile', { name: draftFilename })}
+              </p>
+            ) : null}
+            {isSubmitting && uploadProgress > 0 ? (
+              <div>
+                <Progress
+                  aria-label={t('uploadProgressAria', {
+                    progress: uploadProgress,
+                  })}
+                  size="sm"
+                  value={uploadProgress}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('uploadingSource', { progress: uploadProgress })}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
+        {hint ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
+        ) : null}
+        <PromptBarToolbar
+          leading={
+            sourceOnly ? null : (
+              <>
+                <PromptBarCompactSelect
+                  ariaLabel={t('generationMode')}
+                  onChange={(value) => {
+                    if (isClipperResultMode(value)) onModeChange(value);
+                  }}
+                  options={[
+                    { label: t('modeRawCut'), value: 'raw-cut' },
+                    { label: t('modeAvatar'), value: 'avatar' },
+                  ]}
+                  value={generationMode}
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <PromptBarIconButton
+                      ariaLabel={t('clipSettings')}
+                      icon={<SlidersHorizontal className={SHELL_ICON_CLASS} />}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-[min(20rem,calc(100vw-2rem))]"
+                    collisionPadding={16}
+                    side="top"
+                    sideOffset={8}
+                  >
+                    <div className="grid gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <Label
+                          htmlFor="max-clips"
+                          className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
+                        >
+                          <span>{t('maxClips')}</span>
+                          <span className="text-muted-foreground">
+                            {maxClips}
+                          </span>
+                        </Label>
+                        <Input
+                          id="max-clips"
+                          type="range"
+                          min={1}
+                          max={30}
+                          value={maxClips}
+                          onChange={(event) =>
+                            onSetMaxClips(Number(event.target.value))
+                          }
+                          className="w-full accent-primary"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label
+                          htmlFor="min-virality"
+                          className="flex items-center justify-between text-xs font-medium text-foreground leading-normal"
+                        >
+                          <span>{t('minViralityScore')}</span>
+                          <span className="text-muted-foreground">
+                            {minViralityScore}
+                          </span>
+                        </Label>
+                        <Input
+                          id="min-virality"
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={minViralityScore}
+                          onChange={(event) =>
+                            onSetMinViralityScore(Number(event.target.value))
+                          }
+                          className="w-full accent-primary"
+                        />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </>
+            )
+          }
+          trailing={
+            <>
+              {onCancel && !sourceOnly ? (
+                <Button
+                  label={t('cancel')}
+                  onClick={onCancel}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  variant={ButtonVariant.GHOST}
+                />
+              ) : null}
+              {sourceOnly ? null : (
+                <Button
+                  icon={<Search className="size-3.5" />}
+                  isDisabled={isPrimaryBlocked}
+                  label={t('reviewHighlightsFirst')}
+                  onClick={onAnalyze}
+                  size={ButtonSize.SM}
+                  textTransform="none"
+                  variant={ButtonVariant.GHOST}
+                />
+              )}
+              <PromptBarSendButton
+                ariaLabel={primaryLabel}
+                isDisabled={isPrimaryBlocked}
+                isLoading={isSubmitting}
+                onClick={primaryAction}
+                tooltip={primaryLabel}
+              />
+            </>
+          }
+        />
+      </CreativeAppPromptBar>
     </div>
   );
 }
