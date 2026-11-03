@@ -121,6 +121,8 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 // The fetch effect depends on the service getter's identity, so it must be
 // stable across renders or the list refetches forever.
 const getAnalyticsServiceMock = async () => ({
+  findBrandAnalyticsTimeSeries: async () => [],
+  findBrandPosts: async () => [],
   getBrandsWithStats: getBrandsWithStatsMock,
 });
 
@@ -252,7 +254,9 @@ describe('AnalyticsBrandsList', () => {
 
     const sidebar = await screen.findByTestId('context-sidebar');
     expect(sidebar).toHaveAttribute('data-kind', 'brand');
-    expect(within(sidebar).getByText('Acme Inc')).toBeInTheDocument();
+    expect(
+      within(sidebar).getByText('+12.00% vs last period'),
+    ).toBeInTheDocument();
     expect(
       within(sidebar).getByRole('link', { name: 'Open analytics' }),
     ).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
