@@ -65,12 +65,15 @@ describe('DiscordBotService', () => {
   let mockConfigService: Mocked<ConfigService>;
   let mockLogger: Mocked<LoggerService>;
   let mockClient: ReturnType<typeof createMockDiscordClient>;
+  let configuredBillingChannel: string | undefined;
 
   beforeEach(async () => {
+    configuredBillingChannel = undefined;
     mockConfigService = {
       get: vi.fn().mockImplementation((key: string) => {
         const config: Record<string, string> = {
           DISCORD_BOT_TOKEN: 'test-bot-token',
+          DISCORD_CHANNEL_ID_BILLING: configuredBillingChannel ?? '',
           DISCORD_CHANNEL_ID_MODELS: 'channel-models-321',
           DISCORD_CHANNEL_ID_POSTS: 'channel-posts-123',
           DISCORD_CHANNEL_ID_STUDIO: 'channel-studio-456',
@@ -113,6 +116,8 @@ describe('DiscordBotService', () => {
                 mockConfigService.get('DISCORD_CHANNEL_ID_STUDIO') || null,
               discordChannelIdUsers:
                 mockConfigService.get('DISCORD_CHANNEL_ID_USERS') || null,
+              discordChannelIdBilling:
+                mockConfigService.get('DISCORD_CHANNEL_ID_BILLING') || null,
               discordChannelIdModels:
                 mockConfigService.get('DISCORD_CHANNEL_ID_MODELS') || null,
               discordChannelIdDeployments:
@@ -630,6 +635,46 @@ describe('DiscordBotService', () => {
       await service.getUsersWebhook();
 
       expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-users-789',
+      );
+    });
+  });
+
+  describe('getBillingWebhook', () => {
+    async function openBillingWebhook(): Promise<void> {
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
+
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi
+          .fn()
+          .mockResolvedValue({ id: 'wh-1', url: 'https://discord.webhook/1' }),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+      await service.getBillingWebhook();
+    }
+
+    it('posts to the users channel while no billing channel is set', async () => {
+      await openBillingWebhook();
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-users-789',
+      );
+    });
+
+    it('posts to the billing channel once one is set', async () => {
+      configuredBillingChannel = 'channel-billing-654';
+      await openBillingWebhook();
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-billing-654',
+      );
+      expect(mockClient.channels.fetch).not.toHaveBeenCalledWith(
         'channel-users-789',
       );
     });

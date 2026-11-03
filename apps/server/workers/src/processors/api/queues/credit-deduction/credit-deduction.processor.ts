@@ -598,6 +598,14 @@ export class CreditDeductionProcessor extends WorkerHost {
         return;
       }
 
+      // The name only decorates the card, so a failed lookup never holds it back.
+      const organization = await this.prisma.organization
+        .findFirst({
+          select: { label: true },
+          where: { id: organizationId, isDeleted: false },
+        })
+        .catch(() => null);
+
       // The alert policy puts CREDITS_LOW in the owner's bell and the
       // operator Discord. The debounce window keys the alert, so a lost
       // Redis marker cannot double-alert within one window.
@@ -610,7 +618,11 @@ export class CreditDeductionProcessor extends WorkerHost {
           operatorMessages: {
             discord: {
               action: 'low_credits_alert',
-              payload: { balance, organizationId },
+              payload: {
+                balance,
+                organizationId,
+                organizationLabel: organization?.label || undefined,
+              },
               type: 'discord',
             },
           },

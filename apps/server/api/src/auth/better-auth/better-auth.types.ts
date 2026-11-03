@@ -197,6 +197,10 @@ export interface IBetterAuthRateLimitRedisClient {
 export interface IBetterAuthUserCreatedEvent {
   userId: string;
   email: string | null;
+  /** Display name the sign-in provider gave, when it gave one. */
+  name?: string | null;
+  /** Profile picture URL the sign-in provider gave, when it gave one. */
+  avatar?: string | null;
 }
 
 /** Payload emitted after Better Auth persists a session. IP is read from that row. */

@@ -131,6 +131,20 @@ export interface IDiscordEmbedField {
   inline?: boolean;
 }
 
+/** The one shape every operator Discord card is built from. */
+export interface IOperatorCardInput {
+  title: string;
+  /** One line saying what happened. */
+  summary?: string;
+  color: number;
+  fields?: IDiscordEmbedField[];
+  /** The single link button under the card, and the title link. */
+  action?: { label: string; url: string };
+  footer?: string;
+  thumbnailUrl?: string;
+  imageUrl?: string;
+}
+
 export interface IArticleNotificationPayload {
   label: string;
   slug: string;
@@ -146,6 +160,10 @@ export interface IVercelNotificationPayload {
 export interface IUserCreatedPayload {
   id: string;
   email?: string;
+  /** Full display name; wins over `firstName` and `lastName`. */
+  name?: string;
+  /** The workspace created for the user, shown instead of its id. */
+  organizationLabel?: string;
   firstName?: string;
   lastName?: string;
   avatar?: string;
@@ -223,12 +241,16 @@ export interface IModelPricingUnavailablePayload {
 
 export interface ILowCreditsAlertPayload {
   organizationId: string;
+  /** Shown instead of the id when known. */
+  organizationLabel?: string;
   balance: number;
 }
 
 /** Operator alert for a completed Stripe checkout or paid invoice. */
 export interface IRevenueNotificationPayload {
   organizationId: string;
+  /** Shown instead of the id when known. */
+  organizationLabel?: string;
   /** `BillingRevenueSource` value, e.g. `subscription_invoice`. */
   source: string;
   /** Human-readable plan/product name when known, e.g. `Scale`. */

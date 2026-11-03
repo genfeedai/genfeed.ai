@@ -32,6 +32,7 @@ const DISCORD_CHANNEL_TEST_FAILURES: Record<DiscordChannelTestFailure, string> =
   };
 
 const DISCORD_TEST_CHANNELS: readonly DiscordTestChannel[] = [
+  'billing',
   'deployments',
   'models',
   'posts',

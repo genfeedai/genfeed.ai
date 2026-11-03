@@ -3,9 +3,9 @@ import type {
   DiscordTestChannel,
   IDiscordChannelTestResult,
   IDiscordEmbed,
-  IDiscordEmbedField,
   IDiscordTransportStatus,
   IIngredientNotificationData,
+  IOperatorCardInput,
   IRevenueNotificationPayload,
   IStoryboardNotificationContext,
   IUserCreatedPayload,
@@ -26,12 +26,17 @@ import {
   buildIngredientFields,
   getIngredientEmbedColor,
 } from '@notifications/services/discord/ingredient-card.util';
+import {
+  adminOrganizationUrl,
+  adminUserUrl,
+  buildOperatorCard,
+  formatCredits,
+} from '@notifications/services/discord/operator-card.util';
 import { discordMessage } from '@notifications/services/discord/system-notification.util';
 import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import {
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
   type WebhookClient,
   type WebhookMessageCreateOptions,
 } from 'discord.js';
@@ -56,6 +61,7 @@ export class DiscordService {
 
   async status(): Promise<IDiscordTransportStatus> {
     const settings = await this.runtimeSettings.get();
+    // Billing is left out: unset, its alerts post to the users channel.
     const channels = {
       deployments: settings.discordChannelIdDeployments,
       models: settings.discordChannelIdModels,
@@ -81,6 +87,7 @@ export class DiscordService {
   ): Promise<IDiscordChannelTestResult> {
     const settings = await this.runtimeSettings.get();
     const channelIds: Record<DiscordTestChannel, string | null | undefined> = {
+      billing: settings.discordChannelIdBilling,
       deployments: settings.discordChannelIdDeployments,
       models: settings.discordChannelIdModels,
       posts: settings.discordChannelIdPosts,
@@ -98,6 +105,7 @@ export class DiscordService {
       DiscordTestChannel,
       () => Promise<WebhookClient | null>
     > = {
+      billing: () => this.discordBotService.getBillingWebhook(),
       deployments: () => this.discordBotService.getDeploymentsWebhook(),
       models: () => this.discordBotService.getModelsWebhook(),
       posts: () => this.discordBotService.getPostsWebhook(),
@@ -354,18 +362,10 @@ export class DiscordService {
       await this.discordBotService.getPostsWebhook(),
       url,
       async (webhookClient) => {
-        await webhookClient.send({
-          avatarURL:
-            (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
-          embeds: [
-            {
-              color: input.color ?? 0xf97316,
-              description: input.description,
-              timestamp: new Date().toISOString(),
-              title: input.title,
-            },
-          ],
-          username: 'Genfeed.ai',
+        await this.sendOperatorCard(webhookClient, {
+          color: input.color ?? 0xf97316,
+          summary: input.description,
+          title: input.title,
         });
       },
     );
@@ -426,53 +426,25 @@ export class DiscordService {
               )
             : 0;
 
-        const fields: Array<{ name: string; value: string; inline: boolean }> =
-          [
-            { inline: true, name: 'Category', value: payload.category },
-            { inline: true, name: 'Provider', value: providerName },
+        await this.sendOperatorCard(webhookClient, {
+          color: embedColor,
+          fields: [
+            { name: 'Category', value: payload.category },
+            { name: 'Provider', value: providerName },
             {
-              inline: true,
               name: 'Credits',
               value: `${payload.estimatedCost} ($${(payload.estimatedCost * 0.01).toFixed(2)})`,
             },
             {
-              inline: true,
               name: 'Provider Cost',
               value: `$${payload.providerCostUsd.toFixed(4)}`,
             },
-            { inline: true, name: 'Margin', value: `${margin}%` },
-          ];
-
-        if (payload.qualityTier) {
-          fields.push({
-            inline: true,
-            name: 'Quality',
-            value: payload.qualityTier,
-          });
-        }
-        if (payload.speedTier) {
-          fields.push({
-            inline: true,
-            name: 'Speed',
-            value: payload.speedTier,
-          });
-        }
-
-        const embed: Record<string, unknown> = {
-          color: embedColor,
-          fields,
-          footer: { text: 'Draft created — activate in admin panel' },
-          timestamp: new Date().toISOString(),
+            { name: 'Margin', value: `${margin}%` },
+            { name: 'Quality', value: payload.qualityTier ?? '' },
+            { name: 'Speed', value: payload.speedTier ?? '' },
+          ],
+          footer: 'Draft created — activate in admin panel',
           title: `New Model Discovered: ${payload.modelKey}`,
-        };
-
-        const avatarUrl =
-          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
-
-        await webhookClient.send({
-          avatarURL: avatarUrl,
-          embeds: [embed],
-          username: 'Genfeed.ai',
         });
 
         this.loggerService.log(`${url} succeeded`, {
@@ -517,42 +489,25 @@ export class DiscordService {
           );
         if (payload.changes.length > lines.length)
           lines.push(`and ${payload.changes.length - lines.length} more`);
-        const fields: Array<{ name: string; value: string; inline: boolean }> =
-          [
-            { inline: true, name: 'Provider', value: payload.provider },
+        await this.sendOperatorCard(webhookClient, {
+          color: 0xffa500,
+          fields: [
+            { name: 'Provider', value: payload.provider },
             {
               inline: false,
               name: ruleOnlyChange ? 'Billing rules' : 'Old → new price',
               value: ruleOnlyChange
                 ? 'Provider billing selectors or defaults changed. Review the pending contract in admin.'
-                : lines.join('\n').slice(0, 1024),
+                : lines.join('\n'),
             },
-          ];
-        if (payload.sourceUrl)
-          fields.push({
-            inline: false,
-            name: 'Source',
-            value: payload.sourceUrl,
-          });
-        const avatarUrl =
-          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
-
-        await webhookClient.send({
-          avatarURL: avatarUrl,
-          embeds: [
-            {
-              color: 0xffa500,
-              description: ruleOnlyChange
-                ? 'The approved pricing keeps charging until a superadmin approves the pending contract.'
-                : 'The approved rate keeps charging until a superadmin approves the new price.',
-              fields,
-              timestamp: new Date().toISOString(),
-              title: ruleOnlyChange
-                ? `Provider billing rules changed: ${payload.modelKey}`
-                : `Provider price changed: ${payload.modelKey}`,
-            },
+            { inline: false, name: 'Source', value: payload.sourceUrl ?? '' },
           ],
-          username: 'Genfeed.ai',
+          summary: ruleOnlyChange
+            ? 'The approved pricing keeps charging until a superadmin approves the pending contract.'
+            : 'The approved rate keeps charging until a superadmin approves the new price.',
+          title: ruleOnlyChange
+            ? `Provider billing rules changed: ${payload.modelKey}`
+            : `Provider price changed: ${payload.modelKey}`,
         });
 
         this.loggerService.log(`${url} succeeded`, {
@@ -574,23 +529,11 @@ export class DiscordService {
       await this.discordBotService.getModelsWebhook(),
       url,
       async (webhookClient) => {
-        const avatarUrl =
-          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
-
-        await webhookClient.send({
-          avatarURL: avatarUrl,
-          embeds: [
-            {
-              color: 0xef4444,
-              description: payload.reason.slice(0, 1000),
-              fields: [
-                { inline: true, name: 'Provider', value: payload.provider },
-              ],
-              timestamp: new Date().toISOString(),
-              title: `Model pricing needs attention: ${payload.modelKey}`,
-            },
-          ],
-          username: 'Genfeed.ai',
+        await this.sendOperatorCard(webhookClient, {
+          color: 0xef4444,
+          fields: [{ name: 'Provider', value: payload.provider }],
+          summary: payload.reason,
+          title: `Model pricing needs attention: ${payload.modelKey}`,
         });
 
         this.loggerService.log(`${url} succeeded`, {
@@ -617,38 +560,16 @@ export class DiscordService {
         const articleUrl =
           article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
 
-        const embed: IDiscordEmbed = {
-          color: 0xff6b00, // Orange for articles
-          timestamp: new Date().toISOString(),
-          title: article.label,
-          url: articleUrl,
-        };
-
-        if (article.summary) {
-          embed.description = article.summary.substring(0, 300);
-        }
-
-        if (article.category) {
-          embed.footer = { text: article.category };
-        }
-
-        if (article.thumbnailUrl) {
-          embed.image = { url: article.thumbnailUrl };
-        }
-
-        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setLabel('Read Article')
-            .setStyle(ButtonStyle.Link)
-            .setURL(articleUrl),
+        await webhookClient.send(
+          buildOperatorCard({
+            action: { label: 'Read Article', url: articleUrl },
+            color: 0xff6b00, // Orange for articles
+            footer: article.category,
+            imageUrl: article.thumbnailUrl,
+            summary: article.summary?.substring(0, 300),
+            title: article.label,
+          }),
         );
-
-        const messagePayload: WebhookMessageCreateOptions = {
-          components: [actionRow],
-          embeds: [embed],
-        };
-
-        await webhookClient.send(messagePayload);
 
         this.loggerService.log(`${url} succeeded`, {
           articleSlug: article.slug,
@@ -660,56 +581,39 @@ export class DiscordService {
 
   async sendLowCreditsAlert(payload: {
     organizationId: string;
+    organizationLabel?: string;
     balance: number;
   }): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
-      await this.discordBotService.getUsersWebhook(),
+      await this.discordBotService.getBillingWebhook(),
       url,
       async (webhookClient) => {
-        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-        const billingUrl = managerUrl
-          ? `${managerUrl}/settings/subscription`
-          : 'https://app.genfeed.ai/settings/subscription';
-
-        const isCritical = payload.balance === 0;
-
-        const embed: Record<string, unknown> = {
-          color: isCritical ? 0xff0000 : 0xffa500,
-          description: isCritical
-            ? 'An organization has run out of credits.'
-            : `An organization is running low on credits (**${payload.balance}** remaining).`,
-          fields: [
-            {
-              inline: true,
-              name: 'Organization',
-              value: payload.organizationId,
-            },
-            {
-              inline: true,
-              name: 'Balance',
-              value: `${payload.balance} credits`,
-            },
-          ],
-          timestamp: new Date().toISOString(),
-          title: isCritical ? 'Credits Depleted' : 'Low Credits Alert',
-        };
-
-        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setLabel('Top Up')
-            .setStyle(ButtonStyle.Link)
-            .setURL(billingUrl),
+        const appUrl =
+          this.configService.get('GENFEEDAI_APP_URL') ||
+          'https://app.genfeed.ai';
+        const isCritical = payload.balance <= 0;
+        const organization =
+          payload.organizationLabel || payload.organizationId;
+        const balance = formatCredits(payload.balance);
+        const organizationUrl = adminOrganizationUrl(
+          appUrl,
+          payload.organizationId,
         );
 
-        const avatarUrl =
-          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
-
-        await webhookClient.send({
-          avatarURL: avatarUrl,
-          components: [actionRow],
-          embeds: [embed],
-          username: 'Genfeed.ai',
+        await this.sendOperatorCard(webhookClient, {
+          action: organizationUrl
+            ? { label: 'View in Admin', url: organizationUrl }
+            : undefined,
+          color: isCritical ? 0xff0000 : 0xffa500,
+          fields: [
+            { name: 'Organization', value: organization },
+            { name: 'Balance', value: `${balance} credits` },
+          ],
+          summary: isCritical
+            ? `${organization} has run out of credits.`
+            : `${organization} is running low on credits (**${balance}** remaining).`,
+          title: isCritical ? 'Credits Depleted' : 'Low Credits Alert',
         });
 
         this.loggerService.log(`${url} succeeded`, {
@@ -728,54 +632,29 @@ export class DiscordService {
       await this.discordBotService.getUsersWebhook(),
       url,
       async (webhookClient) => {
-        const displayName =
-          [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-          user.email ||
-          'New User';
+        const name =
+          user.name ||
+          [user.firstName, user.lastName].filter(Boolean).join(' ');
+        const userUrl = adminUserUrl(
+          this.configService.get('GENFEEDAI_APP_URL'),
+          user.id,
+        );
+        const verb = user.isInvited ? 'joined a workspace' : 'signed up';
 
-        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-        const userManagerUrl = managerUrl
-          ? `${managerUrl}/admin/users/${user.id}`
-          : null;
-
-        const embed: IDiscordEmbed = {
+        await this.sendOperatorCard(webhookClient, {
+          action: userUrl
+            ? { label: 'View in Admin', url: userUrl }
+            : undefined,
           color: user.isInvited ? 0x5865f2 : 0x00ff00,
-          description: `**${displayName}**${user.email ? `\n${user.email}` : ''}`,
-          timestamp: new Date().toISOString(),
+          fields: [
+            { name: 'Name', value: name },
+            { name: 'Email', value: user.email ?? '' },
+            { name: 'Organization', value: user.organizationLabel ?? '' },
+          ],
+          summary: name ? `**${name}** ${verb}.` : `A new user ${verb}.`,
+          thumbnailUrl: user.avatar,
           title: user.isInvited ? 'Member Joined' : 'New User Signed Up',
-        };
-
-        if (user.avatar) {
-          embed.thumbnail = { url: user.avatar };
-        }
-
-        if (userManagerUrl) {
-          embed.url = userManagerUrl;
-        }
-
-        const buttons: ButtonBuilder[] = [];
-
-        if (userManagerUrl) {
-          buttons.push(
-            new ButtonBuilder()
-              .setLabel('View in Admin')
-              .setStyle(ButtonStyle.Link)
-              .setURL(userManagerUrl),
-          );
-        }
-
-        const messagePayload: WebhookMessageCreateOptions = {
-          embeds: [embed],
-        };
-
-        if (buttons.length > 0) {
-          const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            ...buttons,
-          );
-          messagePayload.components = [actionRow];
-        }
-
-        await webhookClient.send(messagePayload);
+        });
 
         this.loggerService.log(`${url} succeeded`, {
           email: user.email,
@@ -784,6 +663,19 @@ export class DiscordService {
         });
       },
     );
+  }
+
+  /** Posts a card from {@link buildOperatorCard} as the Genfeed.ai bot. */
+  private async sendOperatorCard(
+    webhookClient: WebhookClient,
+    card: IOperatorCardInput,
+  ): Promise<void> {
+    await webhookClient.send({
+      ...buildOperatorCard(card),
+      avatarURL:
+        (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
+      username: 'Genfeed.ai',
+    });
   }
 
   private static readonly REVENUE_SOURCE_LABELS: Record<string, string> = {
@@ -868,7 +760,7 @@ export class DiscordService {
   ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
-      await this.discordBotService.getUsersWebhook(),
+      await this.discordBotService.getBillingWebhook(),
       url,
       async (webhookClient) => {
         const amount = this.formatRevenueAmount(
@@ -879,41 +771,29 @@ export class DiscordService {
         // label (when known) is additive, shown in the description and its
         // own field, and must never replace Source (genfeedai/genfeed.ai#5313).
         const sourceLabel = this.formatRevenueSourceLabel(revenue.source);
-        const description = revenue.planLabel
-          ? `**${amount}** — ${revenue.planLabel} (${sourceLabel})`
-          : `**${amount}** — ${sourceLabel}`;
+        const organizationUrl = adminOrganizationUrl(
+          this.configService.get('GENFEEDAI_APP_URL'),
+          revenue.organizationId,
+        );
 
-        const fields: IDiscordEmbedField[] = [
-          {
-            inline: true,
-            name: 'Organization',
-            value: revenue.organizationId,
-          },
-          { inline: true, name: 'Amount', value: amount },
-          { inline: true, name: 'Source', value: sourceLabel },
-        ];
-
-        if (revenue.planLabel) {
-          fields.push({
-            inline: true,
-            name: 'Plan',
-            value: revenue.planLabel,
-          });
-        }
-
-        const embed: IDiscordEmbed = {
+        await this.sendOperatorCard(webhookClient, {
+          action: organizationUrl
+            ? { label: 'View in Admin', url: organizationUrl }
+            : undefined,
           color: 0x2ecc71,
-          description,
-          fields,
-          timestamp: new Date().toISOString(),
+          fields: [
+            {
+              name: 'Organization',
+              value: revenue.organizationLabel || revenue.organizationId,
+            },
+            { name: 'Amount', value: amount },
+            { name: 'Source', value: sourceLabel },
+            { name: 'Plan', value: revenue.planLabel ?? '' },
+          ],
+          summary: revenue.planLabel
+            ? `**${amount}** — ${revenue.planLabel} (${sourceLabel})`
+            : `**${amount}** — ${sourceLabel}`,
           title: 'Revenue Received',
-        };
-
-        await webhookClient.send({
-          avatarURL:
-            (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
-          embeds: [embed],
-          username: 'Genfeed.ai',
         });
 
         this.loggerService.log(`${url} succeeded`, {

@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -45,6 +46,7 @@ describe('DiscordService', () => {
 
   const mockDiscordBotService = {
     botReady: false,
+    getBillingWebhook: vi.fn(),
     getDeploymentsWebhook: vi.fn(),
     getIngredientsWebhook: vi.fn(),
     getModelsWebhook: vi.fn(),
@@ -72,6 +74,8 @@ describe('DiscordService', () => {
                 mockConfigService.get('DISCORD_CHANNEL_ID_USERS') || null,
               discordChannelIdModels:
                 mockConfigService.get('DISCORD_CHANNEL_ID_MODELS') || null,
+              discordChannelIdBilling:
+                mockConfigService.get('DISCORD_CHANNEL_ID_BILLING') || null,
               discordChannelIdDeployments:
                 mockConfigService.get('DISCORD_CHANNEL_ID_DEPLOYMENTS') || null,
               discordWebhookNamePrefix:
@@ -124,6 +128,9 @@ describe('DiscordService', () => {
     mockDiscordBotService.getModelsWebhook.mockResolvedValue(mockWebhookClient);
     mockDiscordBotService.getPostsWebhook.mockResolvedValue(mockWebhookClient);
     mockDiscordBotService.getUsersWebhook.mockResolvedValue(mockWebhookClient);
+    mockDiscordBotService.getBillingWebhook.mockResolvedValue(
+      mockWebhookClient,
+    );
   });
 
   it('should be defined and log enabled initialization', async () => {
@@ -865,8 +872,22 @@ describe('DiscordService', () => {
   });
 
   describe('sendLowCreditsAlert', () => {
+    function lastCard(): IDiscordEmbed {
+      return lastSendPayload().embeds?.[0] as IDiscordEmbed;
+    }
+
+    function buttonOf(payload: WebhookMessageCreateOptions): {
+      label: string;
+      url: string;
+    } {
+      const row = payload.components?.[0] as unknown as {
+        toJSON: () => { components: Array<{ label: string; url: string }> };
+      };
+      return row.toJSON().components[0];
+    }
+
     it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getUsersWebhook.mockResolvedValue(null);
+      mockDiscordBotService.getBillingWebhook.mockResolvedValue(null);
       const { service } = await createService();
 
       await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
@@ -874,33 +895,64 @@ describe('DiscordService', () => {
       expect(mockSend).not.toHaveBeenCalled();
     });
 
-    it('should send a warning alert when balance is low', async () => {
+    it('names the organization and rounds a fractional balance', async () => {
+      const { service } = await createService();
+
+      await service.sendLowCreditsAlert({
+        balance: 0.03400999999999854,
+        organizationId: testId('org'),
+        organizationLabel: 'Katya Studio',
+      });
+
+      const card = lastCard();
+      expect(card.color).toBe(0xffa500);
+      expect(card.title).toBe('Low Credits Alert');
+      expect(card.description).toBe(
+        'Katya Studio is running low on credits (**0.03** remaining).',
+      );
+      expect(card.fields).toEqual([
+        { inline: true, name: 'Organization', value: 'Katya Studio' },
+        { inline: true, name: 'Balance', value: '0.03 credits' },
+      ]);
+    });
+
+    it('falls back to the organization id when no name is known', async () => {
       const { service } = await createService();
 
       await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
 
-      const embed = lastSendPayload().embeds?.[0] as {
-        color: number;
-        description: string;
-        title: string;
-      };
-      expect(embed.color).toBe(0xffa500);
-      expect(embed.title).toBe('Low Credits Alert');
-      expect(embed.description).toContain('**5** remaining');
+      expect(lastCard().fields?.[0]).toEqual({
+        inline: true,
+        name: 'Organization',
+        value: 'o-1',
+      });
+    });
+
+    it('links the button to the admin organization page', async () => {
+      const { service } = await createService();
+
+      await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
+
+      expect(buttonOf(lastSendPayload())).toMatchObject({
+        label: 'View in Admin',
+        url: 'https://app.genfeed.ai/admin/organizations/o-1',
+      });
     });
 
     it('should send a critical alert when balance is zero', async () => {
       mockConfigService.get.mockReturnValue(undefined);
       const { service } = await createService();
 
-      await service.sendLowCreditsAlert({ balance: 0, organizationId: 'o-1' });
+      await service.sendLowCreditsAlert({
+        balance: 0,
+        organizationId: 'o-1',
+        organizationLabel: 'Acme',
+      });
 
-      const embed = lastSendPayload().embeds?.[0] as {
-        color: number;
-        title: string;
-      };
-      expect(embed.color).toBe(0xff0000);
-      expect(embed.title).toBe('Credits Depleted');
+      const card = lastCard();
+      expect(card.color).toBe(0xff0000);
+      expect(card.title).toBe('Credits Depleted');
+      expect(card.description).toBe('Acme has run out of credits.');
     });
 
     it('should log error when webhook send fails', async () => {
@@ -919,6 +971,16 @@ describe('DiscordService', () => {
   });
 
   describe('sendUserCreatedNotification', () => {
+    function buttonOf(payload: WebhookMessageCreateOptions): {
+      label: string;
+      url: string;
+    } {
+      const row = payload.components?.[0] as unknown as {
+        toJSON: () => { components: Array<{ label: string; url: string }> };
+      };
+      return row.toJSON().components[0];
+    }
+
     it('should skip when webhook is unavailable', async () => {
       mockDiscordBotService.getUsersWebhook.mockResolvedValue(null);
       const { service } = await createService();
@@ -928,32 +990,49 @@ describe('DiscordService', () => {
       expect(mockSend).not.toHaveBeenCalled();
     });
 
-    it('should send a signup embed with avatar and admin button', async () => {
+    it('lays the signup out as summary, labelled fields and an admin button', async () => {
       const { service } = await createService();
 
       await service.sendUserCreatedNotification({
         avatar: 'https://cdn/avatar-user.png',
         email: 'jane@example.com',
-        firstName: 'Jane',
         id: 'u-1',
-        lastName: 'Doe',
+        name: 'Jane Doe',
+        organizationLabel: 'Acme Studio',
       });
 
       const payload = lastSendPayload();
-      expect(payload.components).toHaveLength(1);
-      const embed = payload.embeds?.[0] as {
-        color: number;
-        description: string;
-        thumbnail: { url: string };
-        title: string;
-        url: string;
-      };
-      expect(embed.title).toBe('New User Signed Up');
-      expect(embed.color).toBe(0x00ff00);
-      expect(embed.description).toContain('**Jane Doe**');
-      expect(embed.description).toContain('jane@example.com');
-      expect(embed.thumbnail).toEqual({ url: 'https://cdn/avatar-user.png' });
-      expect(embed.url).toBe('https://app.genfeed.ai/admin/users/u-1');
+      expect(payload.embeds?.[0]).toMatchObject({
+        color: 0x00ff00,
+        description: '**Jane Doe** signed up.',
+        fields: [
+          { inline: true, name: 'Name', value: 'Jane Doe' },
+          { inline: true, name: 'Email', value: 'jane@example.com' },
+          { inline: true, name: 'Organization', value: 'Acme Studio' },
+        ],
+        thumbnail: { url: 'https://cdn/avatar-user.png' },
+        title: 'New User Signed Up',
+        url: 'https://app.genfeed.ai/admin/administration/users/u-1',
+      });
+      expect(buttonOf(payload)).toMatchObject({
+        label: 'View in Admin',
+        url: 'https://app.genfeed.ai/admin/administration/users/u-1',
+      });
+    });
+
+    it('shows the email once when the user has no name', async () => {
+      const { service } = await createService();
+
+      await service.sendUserCreatedNotification({
+        email: 'katyarsherkhan@gmail.com',
+        id: 'u-3',
+      });
+
+      const embed = lastSendPayload().embeds?.[0] as IDiscordEmbed;
+      expect(embed.description).toBe('A new user signed up.');
+      expect(embed.fields).toEqual([
+        { inline: true, name: 'Email', value: 'katyarsherkhan@gmail.com' },
+      ]);
     });
 
     it('should mark invited members and omit buttons without app url', async () => {
@@ -967,14 +1046,11 @@ describe('DiscordService', () => {
 
       const payload = lastSendPayload();
       expect(payload.components).toBeUndefined();
-      const embed = payload.embeds?.[0] as {
-        color: number;
-        description: string;
-        title: string;
-      };
-      expect(embed.title).toBe('Member Joined');
-      expect(embed.color).toBe(0x5865f2);
-      expect(embed.description).toContain('**New User**');
+      expect(payload.embeds?.[0]).toMatchObject({
+        color: 0x5865f2,
+        description: 'A new user joined a workspace.',
+        title: 'Member Joined',
+      });
     });
 
     it('should log error when webhook send fails', async () => {
@@ -1117,6 +1193,35 @@ describe('DiscordService', () => {
       expect(fieldValue(embed, 'Source')).toBe('Credit purchase');
       expect(fieldValue(embed, 'Plan')).toBeUndefined();
       expect(embed.description).toContain('Credit purchase');
+    });
+
+    it('names the organization instead of its id when the name is known', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_900,
+        currency: 'usd',
+        organizationId: 'org_1',
+        organizationLabel: 'Katya Studio',
+        source: 'credit_purchase',
+      });
+
+      expect(fieldValue(lastEmbed(), 'Organization')).toBe('Katya Studio');
+    });
+  });
+
+  describe('sendChannelTest billing', () => {
+    it('tests the billing channel through the billing webhook', async () => {
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'DISCORD_CHANNEL_ID_BILLING' ? 'billing-1' : undefined,
+      );
+      mockDiscordBotService.botReady = true;
+      const { service } = await createService();
+
+      await expect(service.sendChannelTest('billing')).resolves.toEqual({
+        status: 'delivered',
+      });
+      expect(mockDiscordBotService.getBillingWebhook).toHaveBeenCalled();
     });
   });
 });
