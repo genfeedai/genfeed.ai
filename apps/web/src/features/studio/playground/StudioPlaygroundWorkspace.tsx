@@ -350,8 +350,12 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   ]);
   const crunRestoreScopeRef = useRef(crunRestoreScope);
   const crunRestoreEpochRef = useRef(0);
+  // Counts scope switches only: composer edits bump the restore epoch too, and
+  // must not close an open focused preview.
+  const scopeEpochRef = useRef(0);
   if (crunRestoreScopeRef.current !== crunRestoreScope) {
     crunRestoreEpochRef.current += 1;
+    scopeEpochRef.current += 1;
     crunRestoreScopeRef.current = crunRestoreScope;
   }
   const [crunRestoreStatus, setCrunRestoreStatus] = useState<
@@ -377,10 +381,23 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
   );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [focusedScope, setFocusedScope] = useState<string | null>(null);
-  // The epoch also fences A → B → A changes without reviving the old selection.
-  const focusedScopeKey = `${crunRestoreScope}:${crunRestoreEpochRef.current}`;
+  // The scope epoch fences A → B → A changes without reviving the old selection.
+  const focusedScopeKey = `${crunRestoreScope}:${scopeEpochRef.current}`;
   const galleryScrollRef = useRef<HTMLDivElement>(null);
   const composerDockRef = useRef<HTMLDivElement>(null);
+  // The composer overlays the gallery, so the last card needs scroll room for
+  // however tall the composer currently is (it grows with attachments, notices
+  // and context rows).
+  const [composerHeight, setComposerHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const dock = composerDockRef.current;
+    if (!dock || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() =>
+      setComposerHeight(dock.offsetHeight),
+    );
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, []);
   const composerResting = usePromptBarResting({
     composerRef: composerDockRef,
     scrollRef: galleryScrollRef,
@@ -2843,6 +2860,11 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
             ref={galleryScrollRef}
             tabIndex={-1}
             className="relative z-0 h-full overflow-auto px-3 py-3 pb-40 sm:px-4 sm:py-4"
+            style={
+              composerHeight === null
+                ? undefined
+                : { paddingBottom: Math.max(160, composerHeight + 40) }
+            }
           >
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {isFocusedPreview && selectedJob ? (

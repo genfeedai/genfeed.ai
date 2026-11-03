@@ -1817,6 +1817,36 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(scrollContainer.scrollTo).toHaveBeenLastCalledWith({ top: 180 });
   });
 
+  it('keeps the focused preview open while the prompt is edited', () => {
+    const job: StudioPlaygroundJob = {
+      id: 'selected',
+      createdAt: 1,
+      prompt: 'Selected asset',
+      type: 'image',
+      status: IngredientStatus.GENERATED,
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    act(() => mocks.results.mock.calls.at(-1)?.[0].onSelect(job));
+    const scrollContainer = screen
+      .getByTestId('studio-results')
+      .closest('[tabindex="-1"]') as HTMLDivElement;
+    scrollContainer.scrollTo = vi.fn();
+    fireEvent.click(screen.getByRole('button', { name: 'Open preview' }));
+    expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A new idea'),
+    );
+
+    expect(screen.getByTestId('studio-focused-preview')).toBeVisible();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe('A new idea');
+  });
+
   it.each(['brand', 'organization', 'session'])(
     'does not revive a focused preview after switching %s away and back',
     (scope) => {
