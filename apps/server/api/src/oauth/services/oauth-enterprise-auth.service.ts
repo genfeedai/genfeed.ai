@@ -245,6 +245,19 @@ export class OAuthEnterpriseAuthService {
     organizationId: string,
     email: string,
   ): Promise<{ currentBrandId: string; userId: string } | undefined> {
+    const users = await this.prisma.user.findMany({
+      select: { id: true },
+      take: 5,
+      where: {
+        banned: false,
+        email: { equals: email, mode: 'insensitive' },
+        emailVerified: true,
+        isDeleted: false,
+      },
+    });
+    if (users.length === 0) {
+      return undefined;
+    }
     const members = await this.prisma.member.findMany({
       select: { currentBrandId: true, userId: true },
       take: 2,
@@ -252,12 +265,7 @@ export class OAuthEnterpriseAuthService {
         isActive: true,
         isDeleted: false,
         organizationId,
-        user: {
-          banned: false,
-          email: { equals: email, mode: 'insensitive' },
-          emailVerified: true,
-          isDeleted: false,
-        },
+        userId: { in: users.map((user) => user.id) },
       },
     });
     return members.length === 1 ? members[0] : undefined;

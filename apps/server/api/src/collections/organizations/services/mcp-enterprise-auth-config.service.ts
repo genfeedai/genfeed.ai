@@ -76,6 +76,7 @@ export class McpEnterpriseAuthConfigService {
   }
 
   async remove(organizationId: string): Promise<void> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- Scoped to the one organization's own config row; the table has no soft-delete column.
     await this.prisma.mcpEnterpriseAuthConfig.deleteMany({
       where: { organizationId },
     });

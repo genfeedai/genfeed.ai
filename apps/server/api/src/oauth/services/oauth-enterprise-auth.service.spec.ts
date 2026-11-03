@@ -108,11 +108,7 @@ async function buildHarness({
         where: {
           isActive: boolean;
           organizationId: string;
-          user: {
-            banned: boolean;
-            email: { equals: string };
-            emailVerified: boolean;
-          };
+          userId: { in: string[] };
         };
       }) =>
         members
@@ -120,12 +116,28 @@ async function buildHarness({
             (member) =>
               member.isActive === where.isActive &&
               member.organizationId === where.organizationId &&
-              member.banned === where.user.banned &&
-              member.emailVerified === where.user.emailVerified &&
-              member.email.toLowerCase() ===
-                where.user.email.equals.toLowerCase(),
+              where.userId.in.includes(member.userId),
           )
           .map(({ currentBrandId, userId }) => ({ currentBrandId, userId })),
+    },
+    user: {
+      findMany: async ({
+        where,
+      }: {
+        where: {
+          banned: boolean;
+          email: { equals: string };
+          emailVerified: boolean;
+        };
+      }) =>
+        members
+          .filter(
+            (member) =>
+              member.banned === where.banned &&
+              member.emailVerified === where.emailVerified &&
+              member.email.toLowerCase() === where.email.equals.toLowerCase(),
+          )
+          .map(({ userId }) => ({ id: userId })),
     },
     organization: {
       findFirst: async ({ where }: { where: { id: string } }) =>
