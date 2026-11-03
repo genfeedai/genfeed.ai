@@ -355,4 +355,15 @@ describe('Card looks', () => {
       'text-center',
     );
   });
+
+  it('puts a caller style on the bordered surface when the title sits above it', () => {
+    render(
+      <Card label="Plan" style={{ minHeight: '120px' }}>
+        Body text
+      </Card>,
+    );
+    const surface = screen.getByText('Body text').closest('.rounded-card');
+    expect(surface).toHaveStyle({ minHeight: '120px' });
+    expect(surface?.parentElement).not.toHaveStyle({ minHeight: '120px' });
+  });
 });

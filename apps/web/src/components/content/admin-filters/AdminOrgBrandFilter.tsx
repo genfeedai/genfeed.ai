@@ -26,7 +26,11 @@ export default function useAdminOrgBrandFacets({
     OrganizationsService.getInstance(token),
   );
 
-  const { data: organizations = [] } = useQuery({
+  const {
+    data: organizations = [],
+    isError: isOrganizationsError,
+    isLoading: isOrganizationsLoading,
+  } = useQuery({
     queryKey: ['admin-organizations'],
     queryFn: async () => {
       const service = await getOrganizationsService();
@@ -37,7 +41,11 @@ export default function useAdminOrgBrandFacets({
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: brands = [] } = useQuery({
+  const {
+    data: brands = [],
+    isError: isBrandsError,
+    isLoading: isBrandsLoading,
+  } = useQuery({
     queryKey: ['admin-org-brands', organization],
     queryFn: async () => {
       const service = await getOrganizationsService();
@@ -54,22 +62,32 @@ export default function useAdminOrgBrandFacets({
   const facets: FilterMenuFacet[] = [
     {
       defaultValue: '',
-      emptyLabel: translate('noOrganizations'),
+      emptyLabel: isOrganizationsLoading
+        ? translate('loading')
+        : isOrganizationsError
+          ? translate('loadFailed')
+          : translate('noOrganizations'),
       key: 'organization',
       label: translate('facets.organization'),
       onChange: onOrganizationChange,
-      options: organizations.map((org) => ({
-        icon: (
-          <BrandAvatar
-            name={org.label || org.id}
-            size="xs"
-            src={org.logoUrl ?? undefined}
-          />
-        ),
-        isLiteral: true,
-        label: org.label || org.id,
-        value: org.id,
-      })),
+      options:
+        organizations.length > 0
+          ? [
+              { label: translate('allOrganizations'), value: '' },
+              ...organizations.map((org) => ({
+                icon: (
+                  <BrandAvatar
+                    name={org.label || org.id}
+                    size="xs"
+                    src={org.logoUrl ?? undefined}
+                  />
+                ),
+                isLiteral: true,
+                label: org.label || org.id,
+                value: org.id,
+              })),
+            ]
+          : [],
       searchPlaceholder: translate('searchOrganizations'),
       selection: 'single',
       value: organization,
@@ -79,15 +97,25 @@ export default function useAdminOrgBrandFacets({
   if (organization) {
     facets.push({
       defaultValue: '',
-      emptyLabel: translate('noBrands'),
+      emptyLabel: isBrandsLoading
+        ? translate('loading')
+        : isBrandsError
+          ? translate('loadFailed')
+          : translate('noBrands'),
       key: 'adminBrand',
       label: translate('facets.brand'),
       onChange: onBrandChange,
-      options: brands.map((item) => ({
-        isLiteral: true,
-        label: item.label || item.id,
-        value: item.id,
-      })),
+      options:
+        brands.length > 0
+          ? [
+              { label: translate('allBrands'), value: '' },
+              ...brands.map((item) => ({
+                isLiteral: true,
+                label: item.label || item.id,
+                value: item.id,
+              })),
+            ]
+          : [],
       searchPlaceholder: translate('searchBrands'),
       selection: 'single',
       value: brand,

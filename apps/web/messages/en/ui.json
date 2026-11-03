@@ -766,6 +766,10 @@
     "searchBrands": "Search brands",
     "noOrganizations": "No organizations",
     "noBrands": "No brands",
+    "allOrganizations": "All organizations",
+    "allBrands": "All brands",
+    "loading": "Loading…",
+    "loadFailed": "Could not load. Try again.",
     "facets": {
       "brand": "Brand",
       "category": "Category",

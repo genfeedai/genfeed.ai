@@ -61,23 +61,42 @@ export function useAdminOrgBrandUrlFacets(): {
     [pathname, replace, searchParamsString],
   );
 
+  const handleOrganizationChangeRef = useRef<(orgId: string) => void>(
+    () => undefined,
+  );
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isScopeClearPendingRef = useRef(false);
+
+  // A scope the admin picks after "Clear filters" must survive the pending clear.
+  const cancelPendingScopeClear = useCallback(() => {
+    isScopeClearPendingRef.current = false;
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+  }, []);
+
   const handleOrganizationChange = useCallback(
-    (orgId: string) =>
+    (orgId: string) => {
+      cancelPendingScopeClear();
       updateParams((params) => {
         if (orgId) params.set('organization', orgId);
         else params.delete('organization');
         params.delete('brand');
-      }),
-    [updateParams],
+      });
+    },
+    [cancelPendingScopeClear, updateParams],
   );
 
   const handleBrandChange = useCallback(
-    (brandId: string) =>
+    (brandId: string) => {
+      cancelPendingScopeClear();
       updateParams((params) => {
         if (brandId) params.set('brand', brandId);
         else params.delete('brand');
-      }),
-    [updateParams],
+      });
+    },
+    [cancelPendingScopeClear, updateParams],
   );
 
   const facets = useAdminOrgBrandFacets({
@@ -87,10 +106,7 @@ export function useAdminOrgBrandUrlFacets(): {
     organization,
   });
 
-  const handleOrganizationChangeRef = useRef(handleOrganizationChange);
   handleOrganizationChangeRef.current = handleOrganizationChange;
-  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isScopeClearPendingRef = useRef(false);
 
   const runScopeClear = useCallback(() => {
     if (fallbackTimerRef.current) {

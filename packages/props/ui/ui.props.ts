@@ -56,9 +56,9 @@ export interface CardProps
   isLabelWrapped?: boolean;
   /**
    * Keeps `label`, `description` and `headerAction` inside the surface. A
-   * static panel with a body puts them above the surface instead, like a
-   * collection section; set this for a preview or tile whose title is part of
-   * what the card shows.
+   * static panel with a title (`label` or `headerAction`) and a body puts the
+   * header above the surface instead, like a collection section; set this for
+   * a preview or tile whose title is part of what the card shows.
    */
   isHeaderInside?: boolean;
   description?: string;

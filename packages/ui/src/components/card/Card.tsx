@@ -252,12 +252,14 @@ const Card = memo(function Card({
   }
 
   if (hasOuterHeader) {
+    // The caller's style belongs to the bordered surface, not the wrapper.
+    const { style: surfaceStyle, ...wrapperProps } = surfaceProps;
     return createElement(
       surfaceTag,
       {
-        ...surfaceProps,
+        ...wrapperProps,
         ref,
-        'aria-busy': isLoading || surfaceProps['aria-busy'] || undefined,
+        'aria-busy': isLoading || wrapperProps['aria-busy'] || undefined,
         className: cn(
           'flex min-w-0 flex-col gap-3',
           id && 'scroll-mt-20',
@@ -268,7 +270,9 @@ const Card = memo(function Card({
         id,
       },
       <div className="flex items-start gap-3">{cardHeaderContent}</div>,
-      <div className={cardClasses}>{cardContent}</div>,
+      <div className={cardClasses} style={surfaceStyle}>
+        {cardContent}
+      </div>,
     );
   }
 
