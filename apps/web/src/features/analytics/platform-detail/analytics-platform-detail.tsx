@@ -8,7 +8,7 @@ import {
   formatCompactNumberIntl,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Post } from '@models/content/post.model';
 import { logger } from '@services/core/logger.service';
@@ -33,7 +33,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 
 export interface AnalyticsPlatformDetailProps {
@@ -41,6 +41,8 @@ export interface AnalyticsPlatformDetailProps {
   platform: string;
   basePath?: string;
 }
+
+const EMPTY_POSTS: Post[] = [];
 
 export default function AnalyticsPlatformDetail({
   brandId,
@@ -50,41 +52,30 @@ export default function AnalyticsPlatformDetail({
   const router = useRouter();
   const { href } = useOrgUrl();
 
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
-  );
-
-  const [posts, setPosts] = useState<Post[]>([]);
-  // Starts loading so the first paint is a skeleton, not zeros.
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setIsLoading(true);
+  const postsQuery = useAuthedQuery({
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-
         const postsData = await service.findBrandPosts(brandId, {
           limit: ITEMS_PER_PAGE * 8,
           page: 1,
           sort: '-createdAt',
         });
-
-        const platformPosts = postsData.filter(
+        return postsData.filter(
           (post) => post.platform?.toLowerCase() === platform.toLowerCase(),
         );
-        setPosts(platformPosts);
       } catch (error) {
         logger.error('Failed to fetch platform analytics', error);
-        setPosts([]);
-      } finally {
-        setIsLoading(false);
+        throw error;
       }
-    };
-
-    fetchPosts();
-  }, [brandId, platform, getBrandsService]);
+    },
+    queryKey: ['analytics', 'platform-detail', brandId, platform],
+    service: (token: string) => BrandsService.getInstance(token),
+  });
+  const posts = postsQuery.data ?? EMPTY_POSTS;
+  // A failed read paints the same empty page as before, never a stuck skeleton.
+  const isLoading = postsQuery.isLoading;
 
   const totalViews = posts.reduce(
     (sum, post) => sum + (post.totalViews || 0),

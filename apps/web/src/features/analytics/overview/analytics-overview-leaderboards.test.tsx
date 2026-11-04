@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { PageScope } from '@genfeedai/contracts';
 import type {
   IBrandWithStats,
@@ -102,6 +106,7 @@ function renderLeaderboards(scope: PageScope) {
       scope={scope}
       topPosts={[]}
     />,
+    { wrapper: queryClientWrapper(createTestQueryClient()) },
   );
 }
 
