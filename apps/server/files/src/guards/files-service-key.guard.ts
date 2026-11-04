@@ -32,7 +32,9 @@ export const SelfHostedBrowserRoute = () =>
  * App-wide service-to-service guard for the files service. Every route requires
  * the internal service key in `x-api-key`, except `@Public()` health routes and
  * self-hosted browser routes. It fails closed: with no key configured, every
- * protected route answers 503.
+ * protected route answers 503, except under `NODE_ENV=development` (like the
+ * shared `InternalApiKeyGuard`), where `.env.example` leaves the key empty.
+ * The self-hosted image always generates a key in its entrypoint.
  */
 @Injectable()
 export class FilesServiceKeyGuard implements CanActivate {
@@ -52,6 +54,10 @@ export class FilesServiceKeyGuard implements CanActivate {
 
     const expected = readFilesServiceKey((key) => this.configService.get(key));
     if (!expected) {
+      if (this.configService.isDevelopment) {
+        return true;
+      }
+
       throw new ServiceUnavailableException(
         'Files service authentication is not configured',
       );

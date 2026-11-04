@@ -24,7 +24,10 @@ vi.mock('@genfeedai/config', async (original) => ({
 }));
 
 const SERVICE_KEY = 'files-service-key';
-const env: { serviceKey: string | undefined } = { serviceKey: SERVICE_KEY };
+const env: { isDevelopment: boolean; serviceKey: string | undefined } = {
+  isDevelopment: false,
+  serviceKey: SERVICE_KEY,
+};
 
 const DELETE_BODY = { storageKey: 'ingredients/images/a.png' };
 const UPLOAD_BODY = {
@@ -52,6 +55,9 @@ describe('FilesServiceKeyGuard over HTTP', () => {
           useValue: {
             get: (key: string) =>
               key === 'GENFEEDAI_API_KEY' ? env.serviceKey : undefined,
+            get isDevelopment() {
+              return env.isDevelopment;
+            },
           },
         },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
@@ -80,6 +86,7 @@ describe('FilesServiceKeyGuard over HTTP', () => {
 
   beforeEach(() => {
     deployment.isSelfHosted = false;
+    env.isDevelopment = false;
     env.serviceKey = SERVICE_KEY;
   });
 
@@ -168,4 +175,19 @@ describe('FilesServiceKeyGuard over HTTP', () => {
 
     expect(response.status).toBe(503);
   });
+
+  it.each([
+    ['development without a key', true, undefined, 201],
+    ['development with a key', true, SERVICE_KEY, 401],
+  ])(
+    'answers a keyless delete in %s with %i',
+    async (_label, isDevelopment, key, status) => {
+      env.isDevelopment = isDevelopment;
+      env.serviceKey = key;
+
+      const response = await send('/v1/files/delete', {}, DELETE_BODY);
+
+      expect(response.status).toBe(status);
+    },
+  );
 });
