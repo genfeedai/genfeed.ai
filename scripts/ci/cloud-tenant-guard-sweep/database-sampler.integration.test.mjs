@@ -36,14 +36,29 @@ const pool=Object.assign(new EventEmitter(),{idleCount:0,totalCount:0,end:async(
  if(query!==DATABASE_QUERY||POOL_OPTIONS.min!==1||POOL_OPTIONS.max!==1||POOL_OPTIONS.query_timeout!==750||POOL_OPTIONS.statement_timeout!==500||POOL_OPTIONS.connectionTimeoutMillis!==500)throw Error('contract');
  calls++;if(!pool.totalCount){pool.totalCount=1;pool.emit('connect');}pool.idleCount=0;
  if(scenario==='hung')return new Promise(()=>{});
- return new Promise((resolve,reject)=>{setTimeout(()=>{pool.idleCount=1;if(marker)Atomics.store(new Int32Array(marker),0,calls);if(scenario==='query-timeout'&&calls===1){pool.idleCount=0;pool.totalCount=0;reject(Error('Query read timeout'));}else if(scenario==='connection-timeout'){reject(Error('Connection terminated due to connection timeout'));}else if(scenario==='statement'){const e=Error('private SQL');e.code='57014';reject(e);}else if(scenario==='reject'){reject(Error('private token'));}else resolve({rows:scenario==='invalid'?null:[]});},scenario==='healthy-pending'?200:scenario==='query-timeout'?750:scenario==='connection-timeout'||scenario==='statement'?500:20);});
+ return new Promise((resolve,reject)=>{const settle=()=>{pool.idleCount=1;if(marker)Atomics.store(new Int32Array(marker),0,calls);if(scenario==='query-timeout'&&calls===1){pool.idleCount=0;pool.totalCount=0;reject(Error('Query read timeout'));}else if(scenario==='connection-timeout'){reject(Error('Connection terminated due to connection timeout'));}else if(scenario==='statement'){const e=Error('private SQL');e.code='57014';reject(e);}else if(scenario==='reject'){reject(Error('private token'));}else resolve({rows:scenario==='invalid'?null:[]});};if(scenario==='healthy-pending'){parentPort.once('message',settle);const started=new Int32Array(marker);Atomics.store(started,2,calls);Atomics.notify(started,2);}else setTimeout(settle,scenario==='query-timeout'?750:scenario==='connection-timeout'||scenario==='statement'?500:20);});
 }});
 if(scenario==='write-error'){fs.writeSync=()=>{throw Error('private-url-error');};syncBuiltinESMExports();}if(scenario==='pre-exit')process.exit(1);else {await runDatabaseSampler(data,pool,parentPort);if(marker){Atomics.store(new Int32Array(marker),1,Number(process.env.SAMPLER_PRIVATE===undefined&&process.execArgv.length===0));}if(scenario==='post-exit')setTimeout(()=>process.exit(1),20);}
 `;
+// Resolves 'ok' once the worker reports its first query started. The worker
+// is unref'd, so a ref'd timer keeps the event loop alive while waiting.
+async function waitForQueryStart(slots, timeoutMs = 10_000) {
+  const started = Atomics.waitAsync(slots, 2, 0, timeoutMs);
+  if (!started.async) return started.value;
+  let timer;
+  const timedOut = new Promise((resolve) => {
+    timer = setTimeout(resolve, timeoutMs, 'timed-out');
+  });
+  try {
+    return await Promise.race([started.value, timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 async function workerFixture(t, scenario = 'healthy') {
   const directory = owned(t),
     control = new SharedArrayBuffer(24),
-    marker = new SharedArrayBuffer(8),
+    marker = new SharedArrayBuffer(12),
     data = {
       version: 1,
       directory,
@@ -370,8 +385,11 @@ for (const mode of [
 
 test('stop during a healthy pending query drains exactly its one original terminal sample', async (t) => {
   const f = await workerFixture(t, 'healthy-pending');
-  await new Promise((resolve) => setTimeout(resolve, 2050));
-  assert.equal(Atomics.load(new Int32Array(f.marker), 0), 0);
+  // The worker holds the query open until it receives the stop message, so
+  // the stop always lands on a pending query regardless of scheduler latency.
+  const slots = new Int32Array(f.marker);
+  assert.equal(await waitForQueryStart(slots), 'ok');
+  assert.equal(Atomics.load(slots, 0), 0);
   const receipt = f.finish();
   assert.equal(receipt.state, 'complete');
   const samples = f.read().database.filter((r) => r.kind === 'database');
