@@ -1,4 +1,4 @@
-import { isSourcePostVariationPlatform, Platform } from '@genfeedai/contracts';
+import { isSourcePostVariationPlatform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IClipperDraftHandoff } from '@genfeedai/contracts/interfaces';
 import type {
@@ -88,23 +88,6 @@ export function buildTrendSourcePrompt(
     .join(' ');
 }
 
-export function buildTrendSourceTwitterDraftHref(
-  trend: TrendItem,
-  source: TrendSourceItem,
-  isThread: boolean = false,
-): string {
-  return `${APP_ROUTES.STUDIO.PLAYGROUND}${buildQuery({
-    mode: isThread ? 'thread' : 'tweet',
-    platform: Platform.TWITTER,
-    sourceAuthor: source.authorHandle,
-    sourceReferenceId: source.sourceReferenceId,
-    sourceText: source.text || source.title,
-    sourceUrl: source.sourceUrl,
-    topic: trend.topic,
-    trendId: trend.id,
-  })}`;
-}
-
 export function buildSourcePostVariationsHref(params: {
   platform: string;
   postId?: string;
@@ -129,15 +112,4 @@ export function buildPostAgentHref(postLabel: string): string {
   return buildAgentPromptHref(
     `Review the performance and next best action for the post "${postLabel}". If it has enough signal, suggest whether I should remix it or try a new variation.`,
   );
-}
-
-export function buildStudioAgentHref(
-  assetLabel: string,
-  promptText?: string,
-): string {
-  const prompt = promptText
-    ? `I am reviewing the asset "${assetLabel}". Here is the original prompt: "${promptText}". Summarize the best next step for this asset in the loop.`
-    : `I am reviewing the asset "${assetLabel}". Summarize the best next step for this asset in the loop.`;
-
-  return buildAgentPromptHref(prompt);
 }

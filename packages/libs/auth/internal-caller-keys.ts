@@ -33,12 +33,6 @@ const INTERNAL_CALLER_KEY_NAMES: Record<InternalCaller, InternalCallerKeyName> =
     telegram: 'GENFEEDAI_API_KEY_TELEGRAM',
   };
 
-export function internalCallerKeyName(
-  caller: InternalCaller,
-): InternalCallerKeyName {
-  return INTERNAL_CALLER_KEY_NAMES[caller];
-}
-
 /**
  * The key a caller sends, and the key the API expects from it: the caller's own
  * `GENFEEDAI_API_KEY_<CALLER>` when set, otherwise the shared

@@ -913,7 +913,3 @@ export function getAutomationActionContract(
 ): ActionContractSchemas | undefined {
   return CONTRACTS[actionId];
 }
-
-export const AUTOMATION_CONTRACT_ACTION_IDS = Object.freeze(
-  Object.keys(CONTRACTS),
-);
