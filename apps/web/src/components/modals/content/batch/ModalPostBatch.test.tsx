@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostBatch from '@/components/modals/content/batch/ModalPostBatch';
 
@@ -41,10 +42,12 @@ vi.mock('@/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
+const { mockPush } = vi.hoisted(() => ({ mockPush: vi.fn() }));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
   usePathname: () => '/acme/brand-slug/library/images',
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -116,5 +119,35 @@ describe('ModalPostBatch', () => {
     });
 
     expect(screen.queryByText('Reconnect Accounts')).not.toBeInTheDocument();
+  });
+  it('sends the reconnect action to the brand connected-accounts page', async () => {
+    const ingredient = {
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    } as unknown as IIngredient;
+    const expiredCredential = {
+      accessTokenExpiry: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      externalHandle: 'insta-handle',
+      externalId: 'external-1',
+      id: 'credential-1',
+      isConnected: true,
+      platform: CredentialPlatform.INSTAGRAM,
+    } as unknown as ICredential;
+
+    render(
+      <ModalPostBatch
+        {...defaultProps}
+        ingredient={ingredient}
+        credentials={[expiredCredential]}
+      />,
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Reconnect Account' }),
+    );
+
+    expect(mockPush).toHaveBeenCalledWith(
+      '/acme/brand-slug/settings/connected-accounts',
+    );
   });
 });

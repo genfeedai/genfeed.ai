@@ -24,9 +24,9 @@ import {
 } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
@@ -119,8 +119,10 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     openKey,
   } = props;
 
-  const { organizationId, refreshBrands } = useBrand();
+  const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { push } = useRouter();
+  const { activeHref, brandSlug, orgHref } = useOrgUrl();
+  const hasActiveBrand = Boolean(brandSlug || selectedBrand?.slug);
   const [error, setError] = useState<string | null>(null);
 
   const onConfirmRef = useRef(onConfirm);
@@ -286,9 +288,15 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     }, 300);
   }, [form]);
 
+  // Account connections live on the brand's connected-accounts settings page.
+  // Without an active brand, fall back to the org-level brands list.
   const openCredentials = useCallback(() => {
-    push(`${EnvironmentService.apps.app}/credentials`);
-  }, [push]);
+    push(
+      hasActiveBrand
+        ? activeHref('/settings/connected-accounts')
+        : orgHref('/settings/brands'),
+    );
+  }, [activeHref, hasActiveBrand, orgHref, push]);
 
   const handleSubmit = useCallback(async () => {
     if (activeTab !== 'platforms' || isPublishingRef.current) {
