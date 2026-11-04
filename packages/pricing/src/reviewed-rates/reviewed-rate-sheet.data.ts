@@ -3744,6 +3744,22 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-21T20:55:14.793Z',
   },
   {
+    // fal's pricing API (GET /v1/models/pricing, 2026-11-04) and the model page
+    // both state a flat $0.25 per image, the same as Replicate's Recraft V4 Pro.
+    endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/recraft/v4/pro/text-to-image',
+    verifiedAt: '2026-11-04T06:04:50.000Z',
+  },
+  {
     // fal's pricing API (GET /v1/models/pricing, 2026-10-25) returns a flat
     // $0.01 per megapixel. The model page still prints the old 24 MP block
     // table ($0.08 to 24 MP), which is stale. fal states no rounding, so each
