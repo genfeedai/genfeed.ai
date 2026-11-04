@@ -279,7 +279,7 @@ export default function ModalPost({
       // draft never does. The post stays as the user left it when this fails.
       if (isScheduling || intent === 'publish') {
         const requirement = getPostMediaRequirement(
-          platformsToCheck.filter((platform): platform is string =>
+          platformsToCheck.filter((platform): platform is Platform =>
             Boolean(platform),
           ),
         );
