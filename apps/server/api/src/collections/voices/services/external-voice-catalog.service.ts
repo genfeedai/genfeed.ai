@@ -328,7 +328,7 @@ interface CatalogEntry {
   name: string;
   sampleAudioUrl: string | null;
   /** Omitted when the provider has no extra fields to refresh. */
-  providerData?: Record<string, string | number>;
+  providerData?: Record<string, string | number | null>;
 }
 
 function hasCatalogChanges(
