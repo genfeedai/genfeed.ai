@@ -1,11 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type {
   IMediaProvenancePackage,
   IMediaWatermarkAttributionEvaluation,
@@ -30,6 +32,7 @@ export class VideosProvenanceController {
   @TenantReadPolicy('selected')
   @Get(':videoId/provenance')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async getProvenance(
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
@@ -50,6 +53,7 @@ export class VideosProvenanceController {
   @TenantReadPolicy('selected')
   @Get(':videoId/provenance/watermark-evaluation')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async getWatermarkEvaluation(
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,

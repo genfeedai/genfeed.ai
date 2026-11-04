@@ -5,6 +5,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -16,7 +17,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
+import {
+  ApiKeyScope,
+  IngredientCategory,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
@@ -44,6 +49,7 @@ export class VideosExtendController {
   @ValidateModel({ category: ModelCategory.VIDEO })
   @UseGuards(ModelsGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async extendVideo(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -2,10 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
@@ -35,6 +37,7 @@ export class VideosMergeController {
     operationId: 'VideosRelationshipsController.mergeVideos',
     summary: 'mergeVideos',
   })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async mergeVideos(
     @Req() request: Request,
     @CurrentUser() user: User,

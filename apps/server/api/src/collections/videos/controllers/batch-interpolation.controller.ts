@@ -30,6 +30,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -48,6 +49,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   IngredientCategory,
   IngredientFormat,
   IngredientOrigin,
@@ -111,6 +113,7 @@ export class BatchInterpolationController {
     source: ActivitySource.VIDEO_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createBatchInterpolation(
     @Req() req: Request & Pick<CreditsGuardRequest, 'creditsConfig'>,
     @Body() dto: BatchInterpolationDto,

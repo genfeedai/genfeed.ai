@@ -12,6 +12,7 @@ import { assertSupportedVideoUpscaleOptions } from '@api/collections/videos/util
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -39,6 +40,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -106,6 +108,7 @@ export class VideosUpscaleController {
   @UseInterceptors(CreditsInterceptor)
   @ValidateModel({ category: ModelCategory.VIDEO_UPSCALE })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async upscaleVideo(
     @Req() request: RequestWithSelectedModel,
     @CurrentUser() user: User,
