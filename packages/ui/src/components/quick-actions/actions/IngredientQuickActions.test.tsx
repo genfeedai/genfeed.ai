@@ -164,6 +164,29 @@ describe('IngredientQuickActions', () => {
     }
   });
 
+  it('flattens into a sidebar header without the floating shell', () => {
+    render(
+      <IngredientQuickActions
+        selectedIngredient={ingredient}
+        isHeaderEmbedded
+        onDownload={vi.fn()}
+        onCopy={vi.fn()}
+        onRefresh={vi.fn()}
+        onScopeChange={vi.fn()}
+      />,
+    );
+
+    const group = screen.getByTestId('header-embedded-actions');
+    expect(group.className).not.toContain('rounded-lg');
+    expect(screen.getByTestId('watermark-download')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('primary-actions-group'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('context-actions-group'),
+    ).not.toBeInTheDocument();
+  });
+
   it('collapses a masonry tile to the overflow menu alone', () => {
     render(
       <IngredientQuickActions

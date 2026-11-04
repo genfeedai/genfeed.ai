@@ -230,9 +230,30 @@ export default function IngredientInspectorRail({
         className,
       )}
     >
-      {/* A failed generation has nothing to preview. */}
-      {onOpenPreview && !isAudio && shelf !== LibraryShelf.FAILED ? (
-        <ContextSidebarHeaderSlot>
+      {/* The asset's actions live in the sidebar header, beside its title. A
+          failed generation has nothing to preview. */}
+      <ContextSidebarHeaderSlot>
+        <IngredientQuickActions
+          align="end"
+          isDownloading={loadingStates.isDownloading}
+          isHeaderEmbedded
+          isPublishing={loadingStates.isPublishing}
+          onDownload={async (asset) => {
+            await handlers.handleDownload(asset);
+            return undefined;
+          }}
+          onCreateVariation={
+            ingredient.category === IngredientCategory.IMAGE
+              ? handleCreateVariation
+              : undefined
+          }
+          onPublish={handlers.handlePublish}
+          onSeeDetails={detailHref ? handleSeeDetails : undefined}
+          onShare={handlers.handleShare}
+          onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
+          selectedIngredient={ingredient}
+        />
+        {onOpenPreview && !isAudio && shelf !== LibraryShelf.FAILED ? (
           <Button
             ariaLabel={translate('openPreview')}
             data-testid="library-open-preview"
@@ -243,8 +264,8 @@ export default function IngredientInspectorRail({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
-        </ContextSidebarHeaderSlot>
-      ) : null}
+        ) : null}
+      </ContextSidebarHeaderSlot>
       {isAudio && shelf !== LibraryShelf.FAILED ? (
         <MediaPlayer
           src={audioUrl}
@@ -371,26 +392,6 @@ export default function IngredientInspectorRail({
       <IngredientLineageStrip
         direction={IngredientLineageDirection.USED_IN}
         ingredientId={ingredient.id}
-      />
-
-      <IngredientQuickActions
-        align="start"
-        isDownloading={loadingStates.isDownloading}
-        isPublishing={loadingStates.isPublishing}
-        onDownload={async (asset) => {
-          await handlers.handleDownload(asset);
-          return undefined;
-        }}
-        onCreateVariation={
-          ingredient.category === IngredientCategory.IMAGE
-            ? handleCreateVariation
-            : undefined
-        }
-        onPublish={handlers.handlePublish}
-        onSeeDetails={detailHref ? handleSeeDetails : undefined}
-        onShare={handlers.handleShare}
-        onUsePrompt={ingredient.promptText ? handleUsePrompt : undefined}
-        selectedIngredient={ingredient}
       />
     </aside>
   );

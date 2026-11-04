@@ -103,7 +103,7 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('switch'));
 
     expect(togglePlatform).toHaveBeenCalledOnce();
     expect(togglePlatform).toHaveBeenCalledWith('cred-instagram');
