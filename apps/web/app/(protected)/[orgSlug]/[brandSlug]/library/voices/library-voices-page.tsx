@@ -21,7 +21,7 @@ import { VoicesService } from '@services/ingredients/voices.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -354,8 +354,8 @@ function LibraryVoicesContent() {
 
       {voicesError && !isLoadingVoices ? (
         <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{voicesError}</span>
+          <AlertDescription>{voicesError}</AlertDescription>
+          <AlertActions>
             <Button
               label="Retry"
               variant={ButtonVariant.SECONDARY}
@@ -363,7 +363,7 @@ function LibraryVoicesContent() {
                 void refreshVoices();
               }}
             />
-          </div>
+          </AlertActions>
         </Alert>
       ) : null}
 

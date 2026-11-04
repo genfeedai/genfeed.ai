@@ -1,7 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -26,32 +31,28 @@ export default function DirectMessageReconnectNotice({
 
   return (
     <Alert variant="warning">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <AlertTitle>{translate('title')}</AlertTitle>
-          <AlertDescription>
-            {translate('description', { count: accounts.length })}
-          </AlertDescription>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {accounts.map((account) => (
-            <Button
-              icon={<RefreshCw aria-hidden="true" className="size-3.5" />}
-              isDisabled={isDisabled || reconnectingCredentialId !== null}
-              isLoading={reconnectingCredentialId === account.credentialId}
-              key={account.credentialId}
-              label={
-                accounts.length === 1
-                  ? translate('action')
-                  : translate('actionForAccount', { account: account.label })
-              }
-              onClick={() => onReconnect(account.credentialId)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-          ))}
-        </div>
-      </div>
+      <AlertTitle>{translate('title')}</AlertTitle>
+      <AlertDescription>
+        {translate('description', { count: accounts.length })}
+      </AlertDescription>
+      <AlertActions>
+        {accounts.map((account) => (
+          <Button
+            icon={<RefreshCw aria-hidden="true" className="size-3.5" />}
+            isDisabled={isDisabled || reconnectingCredentialId !== null}
+            isLoading={reconnectingCredentialId === account.credentialId}
+            key={account.credentialId}
+            label={
+              accounts.length === 1
+                ? translate('action')
+                : translate('actionForAccount', { account: account.label })
+            }
+            onClick={() => onReconnect(account.credentialId)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ))}
+      </AlertActions>
     </Alert>
   );
 }

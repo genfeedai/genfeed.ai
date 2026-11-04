@@ -14,7 +14,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -142,14 +142,14 @@ function TemplatesPageContent() {
     >
       {hasError ? (
         <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{t('loadError')}</span>
+          <AlertDescription>{t('loadError')}</AlertDescription>
+          <AlertActions>
             <Button
               label={t('retry')}
               onClick={reload}
               variant={ButtonVariant.SECONDARY}
             />
-          </div>
+          </AlertActions>
         </Alert>
       ) : (
         <CollectionView

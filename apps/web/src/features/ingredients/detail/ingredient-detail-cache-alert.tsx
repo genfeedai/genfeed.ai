@@ -1,7 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import { Alert } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 
 type Props = {
@@ -15,21 +20,17 @@ export default function IngredientDetailCacheAlert({
 }: Props) {
   return (
     <Alert variant="warning" className="mb-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="font-medium">
-            Live ingredient data is unavailable.
-          </div>
-          <div className="text-xs text-foreground/70">
-            Showing cached data{cachedLabel ? ` from ${cachedLabel}` : ''}.
-          </div>
-        </div>
+      <AlertTitle>Live ingredient data is unavailable.</AlertTitle>
+      <AlertDescription>
+        Showing cached data{cachedLabel ? ` from ${cachedLabel}` : ''}.
+      </AlertDescription>
+      <AlertActions>
         <Button
           label="Retry"
           variant={ButtonVariant.SECONDARY}
           onClick={onRetry}
         />
-      </div>
+      </AlertActions>
     </Alert>
   );
 }
