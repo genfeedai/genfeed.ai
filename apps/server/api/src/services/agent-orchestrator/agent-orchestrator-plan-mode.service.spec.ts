@@ -1,4 +1,5 @@
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
+import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -239,6 +240,39 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
 
     expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves output budget for a visible plan on reasoning models', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+    llmDispatcher.chatCompletion.mockImplementation(
+      async (params: OpenRouterChatCompletionParams) => ({
+        model: 'test-model',
+        choices: [
+          {
+            finish_reason:
+              params.reasoning?.effort === 'low' ? 'stop' : 'length',
+            message:
+              params.reasoning?.effort === 'low'
+                ? {
+                    content:
+                      '{"summary":"Plan drafted","content":"Star the existing blue cube","steps":[]}',
+                  }
+                : {
+                    content: '',
+                    reasoning_content: 'Output budget consumed by reasoning',
+                  },
+          },
+        ],
+      }),
+    );
+    const result = await service.tryHandlePlanModeTurn(
+      baseParams as never,
+      host,
+    );
+    expect(result?.message.content).toBe('Plan drafted');
+    expect(result?.message.metadata?.proposedPlan).toMatchObject({
+      content: 'Star the existing blue cube',
+    });
   });
 
   it('draws the planner again when a model answers with no text first', async () => {
