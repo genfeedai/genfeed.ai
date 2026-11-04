@@ -575,7 +575,13 @@ async function runPublishPipeline(options: {
   );
 
   const review = report.reviewQueue.counts;
-  print(formatHeader(report.reviewQueue.isAnyDecision ? '\nReviewed in the review queue\n' : '\nApproved in the review queue\n'));
+  print(
+    formatHeader(
+      report.reviewQueue.isAnyDecision
+        ? '\nReviewed in the review queue\n'
+        : '\nApproved in the review queue\n'
+    )
+  );
   print(formatLabel('Posts', String(review.total)));
   print(formatLabel('By review decision', formatCounts(review.byDecision)));
   print(formatLabel('By execution state', formatCounts(review.byExecutionState)));

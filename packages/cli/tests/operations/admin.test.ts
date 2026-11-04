@@ -210,9 +210,7 @@ describe('operations/admin', () => {
 
     await readPublishPipeline(5, true);
 
-    expect(mockAdminGet).toHaveBeenCalledWith(
-      '/admin/publish-pipeline?days=5&anyDecision=true'
-    );
+    expect(mockAdminGet).toHaveBeenCalledWith('/admin/publish-pipeline?days=5&anyDecision=true');
   });
 
   it('reads the onboarding funnel for the requested window', async () => {
