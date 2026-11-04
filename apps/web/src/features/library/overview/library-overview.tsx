@@ -87,7 +87,7 @@ export default function LibraryOverview({
     ...(failed > 0
       ? [
           {
-            color: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+            color: 'bg-destructive/10 text-destructive',
             cta: translate('cards.failed.cta'),
             description: translate('cards.failed.description', {
               count: failed,
