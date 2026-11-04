@@ -8,7 +8,7 @@ import {
 } from '@helpers/formatting/format/format.helper';
 import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { Post } from '@models/content/post.model';
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
@@ -19,7 +19,7 @@ import RowSidebarStats from '@ui/display/row-sidebar/RowSidebarStats';
 import RowSidebarTrend from '@ui/display/row-sidebar/RowSidebarTrend';
 import TableRowSummary from '@ui/display/table/TableRowSummary';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   toEngagementSeries,
   toPlatformShares,
@@ -27,6 +27,8 @@ import {
 import { chartPlatformLabel } from '@/features/analytics/components/analytics/charts/chart-theme';
 import type { AnalyticsBrandSummaryProps } from '@/features/analytics/props/analytics-brand-summary.props';
 
+const EMPTY_LIST: unknown[] = [];
+const EMPTY_POSTS: Post[] = [];
 const POSTS_FETCHED = 20;
 const TOP_POSTS_SHOWN = 3;
 const PUBLISHED_STATUSES: string[] = [
@@ -53,82 +55,50 @@ export default function AnalyticsBrandSummary({
   const fieldsT = useTranslations('ui.rowSidebar.fields');
   const summaryT = useTranslations('ui.rowSidebar.analytics');
   const { dateRange } = useAnalyticsContext();
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
-  );
-
-  const [series, setSeries] = useState<unknown[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  // Both sections start loading so the sidebar never paints an empty state
-  // before its first fetch.
-  const [isLoadingSeries, setIsLoadingSeries] = useState(true);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-
   const { endDate, startDate } = dateRange;
+  const startDay = startDate ? toIsoDay(startDate) : null;
+  const endDay = endDate ? toIsoDay(endDate) : null;
 
-  useEffect(() => {
-    if (!startDate || !endDate) {
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsLoadingSeries(true);
-
-    (async () => {
+  const seriesQuery = useAuthedQuery({
+    enabled: Boolean(startDay && endDay),
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-        const data = await service.findBrandAnalyticsTimeSeries(brand.id, {
-          endDate: toIsoDay(endDate),
+        return await service.findBrandAnalyticsTimeSeries(brand.id, {
+          endDate: endDay ?? '',
           groupBy: 'day',
-          startDate: toIsoDay(startDate),
+          startDate: startDay ?? '',
         });
-        if (!controller.signal.aborted) {
-          setSeries(data);
-        }
       } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch brand sidebar time series', error);
-          setSeries([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoadingSeries(false);
-        }
+        logger.error('Failed to fetch brand sidebar time series', error);
+        throw error;
       }
-    })();
-
-    return () => controller.abort();
-  }, [brand.id, endDate, getBrandsService, startDate]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setIsLoadingPosts(true);
-
-    (async () => {
+    },
+    queryKey: ['analytics', 'brand-sidebar-series', brand.id, startDay, endDay],
+    service: (token: string) => BrandsService.getInstance(token),
+  });
+  const postsQuery = useAuthedQuery({
+    queryFn: async (service) => {
       try {
-        const service = await getBrandsService();
-        const data = await service.findBrandPosts(brand.id, {
+        return await service.findBrandPosts(brand.id, {
           limit: POSTS_FETCHED,
           page: 1,
           sort: '-createdAt',
         });
-        if (!controller.signal.aborted) {
-          setPosts(data);
-        }
       } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch brand sidebar posts', error);
-          setPosts([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoadingPosts(false);
-        }
+        logger.error('Failed to fetch brand sidebar posts', error);
+        throw error;
       }
-    })();
+    },
+    queryKey: ['analytics', 'brand-sidebar-posts', brand.id],
+    service: (token: string) => BrandsService.getInstance(token),
+  });
 
-    return () => controller.abort();
-  }, [brand.id, getBrandsService]);
+  // A section paints its skeleton only while it has nothing to show: a row
+  // opened a second time shows what it loaded before and refreshes quietly.
+  const series: unknown[] = seriesQuery.data ?? EMPTY_LIST;
+  const posts: Post[] = postsQuery.data ?? EMPTY_POSTS;
+  const isLoadingSeries = seriesQuery.isLoading || !startDay || !endDay;
+  const isLoadingPosts = postsQuery.isLoading;
 
   const engagementPoints = useMemo(() => toEngagementSeries(series), [series]);
   const platformShares = useMemo(() => toPlatformShares(series), [series]);
