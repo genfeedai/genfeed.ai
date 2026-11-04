@@ -233,6 +233,23 @@ describe('ReplicateVideoBuilder', () => {
       });
     });
 
+    it('sends Highspeed a concrete ratio and no resolution for text-to-video', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,
+        { ...baseParams, resolution: '2K' },
+        'Generate a video',
+      );
+
+      expect(result).toEqual({
+        duration: 5,
+        prompt: 'Generate a video',
+        ratio: '16:9',
+        reference_audio_urls: [],
+        reference_image_urls: [],
+        reference_video_urls: [],
+      });
+    });
+
     it('sends Highspeed no resolution and adaptive ratio next to a first frame', () => {
       const result = builder.buildPrompt(
         MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,

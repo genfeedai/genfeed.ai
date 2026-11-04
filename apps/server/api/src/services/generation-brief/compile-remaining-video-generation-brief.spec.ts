@@ -196,6 +196,47 @@ describe('compileRemainingVideoGenerationBrief', () => {
     },
   );
 
+  it.each([
+    [MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE, '480P', '480P'],
+    [MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE, undefined, '768P'],
+    [MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED, undefined, undefined],
+  ])(
+    'compiles %s at %s with resolution %s and H3 field names',
+    (modelKey, requested, expectedResolution) => {
+      const brief = videoGenerationBriefSchema.parse({
+        constraints: [],
+        fidelityMode: 'off',
+        intent: { objective: 'the product turns to camera' },
+        mediaKind: 'video',
+        output:
+          requested === undefined
+            ? { durationSeconds: 8 }
+            : { durationSeconds: 8, resolution: requested },
+        references: [
+          { assetId: 'frame-1', role: 'first_frame' },
+          { assetId: 'frame-9', role: 'last_frame' },
+          { assetId: 'look-1', role: 'style' },
+        ],
+        version: 1,
+      });
+
+      const result = compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(modelKey),
+        modelKey,
+      });
+
+      expect(result.dispatch).toMatchObject({
+        duration: 8,
+        first_frame_image: 'frame-1',
+        last_frame_image: 'frame-9',
+        ratio: '16:9',
+        reference_image_urls: ['look-1'],
+      });
+      expect(result.dispatch.resolution).toBe(expectedResolution);
+    },
+  );
+
   it('sends the Kling Avatar V2 portrait as image, with no clip-length or frame fields', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

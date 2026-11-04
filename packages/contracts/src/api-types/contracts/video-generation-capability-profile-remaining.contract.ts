@@ -78,6 +78,7 @@ const REMAINING_VIDEO_ASPECT_RATIOS = [
 ] as const;
 
 const FIRST_FRAME_NATIVE_FIELDS = new Set([
+  'first_frame_image',
   'image',
   'image_url',
   'input_reference',
@@ -104,6 +105,7 @@ export function deriveRemainingVideoReferenceRoles(
   }
   if (
     nativeFields.includes('image_urls') ||
+    nativeFields.includes('reference_image_urls') ||
     nativeFields.includes('reference_images')
   ) {
     for (const role of [
