@@ -108,7 +108,7 @@ export function isPlatformFlagOn(
   flags: Readonly<Record<string, unknown>>,
   key: PlatformFlagKey,
 ): boolean {
-  const value = Object.hasOwn(flags, key) ? flags[key] : undefined;
+  const value = flags[key];
   return typeof value === 'boolean' ? value : DEFAULT_PLATFORM_FLAGS[key];
 }
 
