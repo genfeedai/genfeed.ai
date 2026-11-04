@@ -83,10 +83,9 @@ export default function IngredientTileFrame({
         >
           <Button
             ariaLabel={`Open details for ${label}`}
-            className="size-6 rounded-full bg-background/90 shadow-border backdrop-blur"
             onClick={() => onClickIngredient(ingredient)}
             size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Maximize2 aria-hidden="true" className="size-3.5" />
