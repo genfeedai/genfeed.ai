@@ -258,6 +258,11 @@ export interface SelectFieldProps<T extends FieldValues = FieldValues> {
   isDisabled?: boolean;
   isFullWidth?: boolean;
   isRequired?: boolean;
+  /**
+   * The options are user-authored text (organization or brand names), so keep
+   * their casing instead of the product-wide Title Case of dropdowns.
+   */
+  isTextCaseKept?: boolean;
   label?: string;
   name: Path<T> | string;
   onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
@@ -336,6 +341,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
   isDisabled = false,
   isRequired = false,
   isFullWidth = true,
+  isTextCaseKept = false,
   onChange,
   children,
   fieldName,
@@ -407,6 +413,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
           className={cn(
             selectFieldVariants({ variant: error ? 'error' : 'default' }),
             isFullWidth ? 'w-full' : '',
+            isTextCaseKept && 'normal-case',
             className,
           )}
         >
@@ -418,6 +425,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
             const items = groupOptions.map((option) => (
               <SelectItem
                 key={`${groupLabel}-${option.value}`}
+                className={isTextCaseKept ? 'normal-case' : undefined}
                 disabled={option.disabled}
                 value={option.value}
               >
