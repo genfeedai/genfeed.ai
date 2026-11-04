@@ -2,6 +2,7 @@ import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ThreadResolutionApi } from '@/features/agents/props/thread-resolution.props';
 import { useThreadResolution } from './use-thread-resolution';
 
 function makeThread(
@@ -24,7 +25,10 @@ function makeApi(archived: AgentThread[] = []) {
     archiveThread: vi.fn(async (threadId: string) =>
       makeThread(threadId, { status: AgentThreadStatus.ARCHIVED }),
     ),
-    getThreads: vi.fn(async () => archived),
+    getThreads: vi.fn(
+      async (_params?: Parameters<ThreadResolutionApi['getThreads']>[0]) =>
+        archived,
+    ),
     unarchiveThread: vi.fn(async (threadId: string) =>
       makeThread(threadId, { status: AgentThreadStatus.ACTIVE }),
     ),
@@ -114,7 +118,7 @@ describe('useThreadResolution', () => {
       expect(result.current.isResolved('page-2-0')).toBe(true),
     );
     expect(result.current.resolvedThreads).toHaveLength(51);
-    expect(api.getThreads.mock.calls.map(([params]) => params.page)).toEqual([
+    expect(api.getThreads.mock.calls.map(([params]) => params?.page)).toEqual([
       1, 2,
     ]);
   });
