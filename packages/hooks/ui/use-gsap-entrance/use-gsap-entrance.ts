@@ -1,5 +1,6 @@
 'use client';
 
+import { prefersReducedMotion } from '@genfeedai/helpers/ui/prefers-reduced-motion.helper';
 import { deferredLogger } from '@services/core/deferred-logger';
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
@@ -31,19 +32,6 @@ export interface GsapAnimation {
      */
     batch?: boolean;
   };
-}
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-
-export function prefersReducedMotion(): boolean {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.matchMedia !== 'function'
-  ) {
-    return false;
-  }
-
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
 type GsapContextHandle = {
