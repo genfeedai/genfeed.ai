@@ -23,13 +23,7 @@ function SaveStatus({
 }) {
   if (isPill) {
     return (
-      <Badge
-        casing="normal"
-        icon={icon}
-        shape="pill"
-        size="lg"
-        variant={variant}
-      >
+      <Badge icon={icon} shape="pill" size="lg" variant={variant}>
         {label}
       </Badge>
     );

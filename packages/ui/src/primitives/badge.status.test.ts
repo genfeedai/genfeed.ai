@@ -40,6 +40,11 @@ describe('getBadgeStatus', () => {
     ['verified', 'Verified', 'success'],
     ['discrepant', 'Discrepant', 'destructive'],
     ['unresolved', 'Unresolved', 'warning'],
+    ['disconnected', 'Disconnected', 'destructive'],
+    ['connected', 'Connected', 'info'],
+    ['healthy', 'Healthy', 'success'],
+    ['needs_attention', 'Needs attention', 'warning'],
+    ['recorded', 'Recorded', 'info'],
   ])('maps %s to the %s label and %s variant', (status, label, variant) => {
     expect(getBadgeStatus(status)).toMatchObject({ label, variant });
   });
