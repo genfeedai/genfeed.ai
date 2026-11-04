@@ -3,7 +3,7 @@
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
-    "discord.js": "14.27.0",
+    "discord.js": "14.28.1",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/agent": "workspace:*"
