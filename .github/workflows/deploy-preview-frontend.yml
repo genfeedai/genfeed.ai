@@ -1,0 +1,180 @@
+name: Deploy preview frontend
+run-name: Deploy preview frontend | ${{ inputs.ref || github.sha }}
+
+# Branch lab / nightly build for the app frontend (apps/web).
+#
+# - Every push to master deploys a Vercel PREVIEW deployment and moves the
+#   stable preview domain (default preview.genfeed.ai) to it.
+# - Run it by hand with a branch, tag or SHA to try that code on the stable
+#   preview domain without running anything locally.
+#
+# It never touches production: no production deploy target, no production domain, and the
+# production `alias` entry in apps/web/vercel.json is stripped from the
+# ephemeral checkout before the build. The browser's /v1 calls are proxied to
+# the PREVIEW API (vars.PREVIEW_API_URL), never to api.genfeed.ai.
+#
+# Like the production lane, it builds on GitHub Actions (free public minutes)
+# and uploads a prebuilt output, so it uses no Vercel build minutes.
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "apps/docs/**"
+      - "apps/marketing/**"
+      - "apps/mobile/**"
+      - "apps/extension/**"
+      - "apps/desktop/**"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or SHA to deploy (default: the dispatched ref)"
+        required: false
+        default: ""
+        type: string
+      set_alias:
+        description: "Move the stable preview domain to this deployment"
+        required: false
+        default: true
+        type: boolean
+
+# One preview lane: a newer request supersedes an older one still building.
+concurrency:
+  group: deploy-preview-frontend
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy app preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: preview
+    env:
+      PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}
+      PREVIEW_DOMAIN: ${{ vars.PREVIEW_DOMAIN || 'preview.genfeed.ai' }}
+      SET_ALIAS: ${{ github.event_name == 'push' || inputs.set_alias }}
+      REQUESTED_REF: ${{ inputs.ref }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_APP }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    steps:
+      - name: Require preview configuration
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::error::VERCEL_TOKEN is missing."
+            exit 1
+          fi
+          if [ -z "${VERCEL_ORG_ID}" ] || [ -z "${VERCEL_PROJECT_ID}" ]; then
+            echo "::error::VERCEL_ORG_ID and VERCEL_PROJECT_APP are required on the preview environment."
+            exit 1
+          fi
+          if ! printf '%s' "${PREVIEW_API_URL}" | grep -Eq '^https://[A-Za-z0-9.-]+/?$'; then
+            echo "::error::PREVIEW_API_URL must be the https origin of the preview API."
+            exit 1
+          fi
+          # The preview must never point at, or take over, a production host.
+          if printf '%s' "${PREVIEW_API_URL}" | grep -Eq '^https://api\.genfeed\.ai/?$'; then
+            echo "::error::PREVIEW_API_URL points at the production API."
+            exit 1
+          fi
+          if ! printf '%s' "${PREVIEW_DOMAIN}" | grep -Eq '^preview(\.[a-z0-9-]+)+$'; then
+            echo "::error::PREVIEW_DOMAIN must be a preview.* host, got '${PREVIEW_DOMAIN}'."
+            exit 1
+          fi
+          if [ -n "${REQUESTED_REF}" ] && ! printf '%s' "${REQUESTED_REF}" | grep -Eq '^[A-Za-z0-9._/-]{1,200}$'; then
+            echo "::error::ref contains unsupported characters."
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-bun-env
+        with:
+          install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve build id
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # apps/web/vercel.json aliases app.genfeed.ai. Strip it from this
+      # ephemeral checkout so a preview build can never carry a production
+      # domain, whatever the Vercel CLI does with that field.
+      - name: Strip the production alias from the build config
+        run: |
+          set -euo pipefail
+          jq 'del(.alias)' apps/web/vercel.json > "${RUNNER_TEMP}/vercel.json"
+          mv "${RUNNER_TEMP}/vercel.json" apps/web/vercel.json
+          jq -e '.alias == null' apps/web/vercel.json > /dev/null
+
+      - name: Install Vercel CLI
+        run: bun add --global vercel@65.9.0
+
+      - name: Pull Vercel preview environment
+        run: vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
+
+      - name: Point the build at the preview API
+        run: |
+          set -euo pipefail
+          env_file=".vercel/.env.preview.local"
+          if [ ! -f "$env_file" ]; then
+            echo "::error::Vercel preview environment file is missing."
+            exit 1
+          fi
+          # Reserved PATH would shadow the runner's bun/sh for the local build.
+          awk '!/^(API_URL|PATH)=/' "$env_file" > "${env_file}.tmp"
+          printf 'API_URL=%s\n' "${PREVIEW_API_URL%/}" >> "${env_file}.tmp"
+          mv "${env_file}.tmp" "$env_file"
+          command -v sh
+          command -v bun
+          command -v vercel
+
+      - name: Build app preview
+        env:
+          BUILD_ID: ${{ steps.source.outputs.sha }}
+        run: vercel build --token="${VERCEL_TOKEN}"
+
+      - name: Deploy app preview
+        id: deploy
+        run: |
+          set -euo pipefail
+          url="$(vercel deploy --prebuilt --archive=tgz --token="${VERCEL_TOKEN}")"
+          echo "${url}"
+          if ! printf '%s' "${url}" | grep -Eq '^https://[A-Za-z0-9.-]+\.vercel\.app/?$'; then
+            echo "::error::Unexpected deployment URL: '${url}'"
+            exit 1
+          fi
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+      # The domain must already be added to the Vercel project (one-time).
+      - name: Move the stable preview domain
+        if: ${{ env.SET_ALIAS == 'true' }}
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: vercel alias set "${DEPLOY_URL}" "${PREVIEW_DOMAIN}" --token="${VERCEL_TOKEN}"
+
+      - name: Summary
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          {
+            echo "### Preview frontend"
+            echo ""
+            echo "- Source: \`${SOURCE_SHA}\`"
+            echo "- Deployment: ${DEPLOY_URL}"
+            if [ "${SET_ALIAS}" = "true" ]; then
+              echo "- Stable URL: https://${PREVIEW_DOMAIN}"
+            fi
+            echo "- API: ${PREVIEW_API_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
