@@ -1,7 +1,7 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import type { Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
-import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
@@ -54,7 +54,7 @@ export default function ProductFinalCTA({
             </Button>
           ) : (
             <Link
-              href={`${EnvironmentService.apps.app}/sign-up`}
+              href={getAppSignUpUrl()}
               className="text-primary hover:underline text-lg"
             >
               {cta} →

@@ -10,6 +10,7 @@ import {
   PostStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import { formatMinutesSeconds } from '@helpers/formatting/duration/duration.helper';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -43,15 +44,6 @@ function getDimensions(ingredient?: IIngredient): string {
     return '';
   }
   return `${width}×${height}`;
-}
-
-function formatDuration(seconds?: number): string {
-  if (!seconds) {
-    return '';
-  }
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 export function buildPostsTableColumns({
@@ -157,7 +149,9 @@ export function buildPostsTableColumns({
               {isVideo && ingredient?.metadataDuration && (
                 <>
                   <span>•</span>
-                  <span>{formatDuration(ingredient.metadataDuration)}</span>
+                  <span>
+                    {formatMinutesSeconds(ingredient.metadataDuration)}
+                  </span>
                 </>
               )}
             </div>

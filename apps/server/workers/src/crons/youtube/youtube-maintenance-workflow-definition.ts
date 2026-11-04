@@ -1,6 +1,6 @@
 import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const YOUTUBE_MAINTENANCE_ACTION_IDS = {
   DISCOVER_CREDENTIALS: 'youtube.comments.discover-credentials',
@@ -13,22 +13,6 @@ export const YOUTUBE_MAINTENANCE_WORKFLOW_IDS = {
   STATUS_RECONCILE: 'youtube.status.reconcile',
   STATUS_SWEEP: 'youtube.status.sweep',
 } as const;
-
-function node(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 function sweep(
   canonicalId: string,

@@ -2,8 +2,8 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TRENDS_MAINTENANCE_ACTION_IDS = {
   DISCOVER_SCOPED: 'trends.maintenance.discover-scoped',
@@ -59,22 +59,6 @@ const DATASET_TASKS: TrendDatasetTask[] = [
   { dataset: 'hashtags', platform: 'instagram' },
   { dataset: 'hashtags', platform: 'twitter' },
 ];
-
-function actionNode(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 function edge(source: string, target: string): WorkflowEdge {
   return {

@@ -9,6 +9,7 @@ import {
   normalizeIngredientTagIds,
   normalizeTagMatchMode,
 } from '@api/helpers/dto/ingredient-tags-query.transform';
+import { toBooleanDefaultFalse } from '@api/helpers/dto/optional-boolean.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
@@ -123,24 +124,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return false;
-    }
-    return Boolean(value);
-  })
+  @Transform(toBooleanDefaultFalse)
   lightweight?: boolean;
 
   @ApiProperty({
@@ -181,24 +165,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return false;
-    }
-    return Boolean(value);
-  })
+  @Transform(toBooleanDefaultFalse)
   latest?: boolean;
 
   @ApiProperty({

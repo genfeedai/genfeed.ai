@@ -1,4 +1,4 @@
-import { EnvironmentService } from '@services/core/environment.service';
+import { getAppSignUpUrl } from '@data/app-links';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
@@ -62,7 +62,7 @@ const TEAMS = [
 ];
 
 export default function CloudContent() {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const signUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance>

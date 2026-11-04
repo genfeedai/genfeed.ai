@@ -1,11 +1,11 @@
 'use client';
 
+import { getAppLoginUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IPublicYoutubeLongFormToolResult,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/contracts/interfaces';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -274,7 +274,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
-                  <Link href={`${EnvironmentService.apps.app}/login`}>
+                  <Link href={getAppLoginUrl()}>
                     Sign in to save future results
                   </Link>
                 </Button>

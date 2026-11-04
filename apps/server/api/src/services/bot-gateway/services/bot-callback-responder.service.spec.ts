@@ -171,7 +171,7 @@ describe('BotCallbackResponderService', () => {
         resultUrl,
         'video',
         "Here's your generated video!",
-        `https://app.genfeed.ai/ingredients/Video/${ingredientId}`,
+        `https://app.genfeed.ai/library/videos?asset=${ingredientId}`,
       );
       await expect(
         callbackContextService.get(ingredientId),

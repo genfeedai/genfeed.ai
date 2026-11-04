@@ -9,6 +9,12 @@ import {
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createLibraryAssetRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
+import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
@@ -99,7 +105,7 @@ export class EmailProductSignalsService implements OnModuleInit {
         const subject = isFailed
           ? 'Your generation needs attention'
           : 'Your content is ready';
-        const destinationUrl = `${this.appUrl()}/${encodeURIComponent(asset.organization.slug)}/${encodeURIComponent(asset.brand.slug)}/library/assets?asset=${encodeURIComponent(asset.id)}`;
+        const destinationUrl = `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(asset.organization.slug), encodeURIComponent(asset.brand.slug), createLibraryAssetRoute(asset.category, asset.id))}`;
         await this.emails.queueEmail({
           organizationId,
           userId: asset.userId,
@@ -327,7 +333,7 @@ export class EmailProductSignalsService implements OnModuleInit {
           topic: 'billing.receipt',
           templateKey: 'credit-purchase-confirmation',
           subject: 'Your Genfeed credits are available',
-          destinationUrl: `${this.appUrl()}/${encodeURIComponent(organization.slug ?? organizationId)}/~/settings/subscription`,
+          destinationUrl: `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organization.slug ?? organizationId), APP_ROUTES.SETTINGS.SUBSCRIPTION)}`,
           idempotencyKey: `purchase-${purchase.id}`,
           policyData: { transactionId: purchase.id },
           html: buildSystemEmailHtml({

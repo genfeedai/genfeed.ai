@@ -863,47 +863,23 @@ describe('StripeService — coverage spec', () => {
       );
     });
 
-    it('routes to success/cancel URLs correctly when origin equals GENFEEDAI_APP_URL', async () => {
-      const createSpy = vi
-        .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue(makeMockSession());
+    it.each(['http://localhost:3000', 'https://custom.example.com'])(
+      'returns to the subscription settings page on %s',
+      async (origin) => {
+        const createSpy = vi
+          .spyOn(service.stripe.checkout.sessions, 'create')
+          .mockResolvedValue(makeMockSession());
 
-      await service.createPaymentSession(
-        'cus_1',
-        'scale_id',
-        'http://localhost:3000',
-      );
+        await service.createPaymentSession('cus_1', 'scale_id', origin);
 
-      const call = createSpy.mock.calls[0][0] as {
-        cancel_url: string;
-        success_url: string;
-      };
-      expect(call.success_url).toBe(
-        'http://localhost:3000/welcome/subscribe/success',
-      );
-      expect(call.cancel_url).toBe(
-        'http://localhost:3000/welcome/subscribe/cancel',
-      );
-    });
-
-    it('routes to /billing when origin differs from GENFEEDAI_APP_URL', async () => {
-      const createSpy = vi
-        .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue(makeMockSession());
-
-      await service.createPaymentSession(
-        'cus_1',
-        'scale_id',
-        'https://custom.example.com',
-      );
-
-      const call = createSpy.mock.calls[0][0] as {
-        cancel_url: string;
-        success_url: string;
-      };
-      expect(call.success_url).toBe('https://custom.example.com/billing');
-      expect(call.cancel_url).toBe('https://custom.example.com/billing');
-    });
+        const call = createSpy.mock.calls[0][0] as {
+          cancel_url: string;
+          success_url: string;
+        };
+        expect(call.success_url).toBe(`${origin}/settings/subscription`);
+        expect(call.cancel_url).toBe(`${origin}/settings/subscription`);
+      },
+    );
 
     it('respects custom redirectUrls override', async () => {
       const createSpy = vi

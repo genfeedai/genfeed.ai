@@ -13,6 +13,7 @@ import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,
@@ -200,7 +201,7 @@ export class FacebookController {
   @Get('callback')
   handleCallback() {
     return {
-      url: `${this.configService.get('GENFEEDAI_APP_URL')}/accounts?facebook=connected`,
+      url: `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?facebook=connected`,
     };
   }
 
