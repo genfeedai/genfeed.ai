@@ -18,6 +18,7 @@
     "node_modules",
     "dist",
     "src/ui/preview-client.tsx",
+    "src/ui/card-parts.tsx",
     "src/ui/next-image.tsx"
   ],
   "extends": "../tsconfig.json",

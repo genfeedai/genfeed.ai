@@ -25,6 +25,7 @@ import { DiscordBotService } from '@notifications/services/discord/discord-bot.s
 import {
   buildIngredientButtons,
   buildIngredientFields,
+  buildIngredientManagerUrl,
   getIngredientEmbedColor,
 } from '@notifications/services/discord/ingredient-card.util';
 import {
@@ -193,14 +194,13 @@ export class DiscordService {
 
         const embedTitle = `New ${categoryString} Generated`;
 
-        const fields = buildIngredientFields(ingredient);
-
-        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-        const ingredientManagerUrl = managerUrl
-          ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
-          : null;
-
         const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const fields = buildIngredientFields(ingredient, appUrl);
+        const ingredientManagerUrl = buildIngredientManagerUrl(
+          appUrl,
+          category,
+          ingredient,
+        );
         const layoutUrl =
           storyboard?.layoutPath && appUrl
             ? `${appUrl}${storyboard.layoutPath}`

@@ -4,6 +4,7 @@ import {
   MODEL_PROVIDERS_WITHOUT_BYOK,
   modelKeyToByokProvider,
   modelProviderToByokProvider,
+  resolveModelByokKey,
   resolveModelByokProvider,
 } from '@api/services/byok/byok-provider-map.util';
 import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
@@ -239,6 +240,31 @@ describe('byok-provider-map.util', () => {
           );
         }
       }
+    });
+  });
+
+  describe('resolveModelByokKey', () => {
+    const byokService = {
+      resolveApiKey: async (_organizationId: string, provider: ByokProvider) =>
+        provider === ByokProvider.FAL
+          ? { apiKey: 'fal-key', apiSecret: 'fal-secret' }
+          : undefined,
+    };
+
+    it('returns the org key for the provider that serves the model', async () => {
+      await expect(
+        resolveModelByokKey(byokService, 'org-1', 'fal-ai/flux', 'fal'),
+      ).resolves.toEqual({
+        apiKey: 'fal-key',
+        apiSecret: 'fal-secret',
+        provider: ByokProvider.FAL,
+      });
+    });
+
+    it('returns undefined when the org has no key for that provider', async () => {
+      await expect(
+        resolveModelByokKey(byokService, 'org-1', 'replicate/x', 'replicate'),
+      ).resolves.toBeUndefined();
     });
   });
 });

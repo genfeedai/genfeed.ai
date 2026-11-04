@@ -2,7 +2,7 @@
 import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { EmptyState } from '@ui/primitives/empty-state';
 
 export interface PostDetailAnalyticsProps {

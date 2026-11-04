@@ -1,6 +1,8 @@
-import type { WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
+import {
+  actionNode,
+  conditionNode,
+} from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const RSS_SWEEP_ACTION_IDS = {
   CLAIM_ITEM: 'rss.item.claim',
@@ -17,39 +19,6 @@ export const RSS_SWEEP_WORKFLOW_IDS = {
   SOURCE: 'rss.source.process',
   SWEEP: 'rss.sweep',
 } as const;
-
-function actionNode(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
-
-function conditionNode(
-  id: string,
-  label: string,
-  field: string,
-  y: number,
-): WorkflowVisualNode {
-  return {
-    data: {
-      config: { customField: field, field: 'custom', operator: 'isTrue' },
-      label,
-    },
-    id,
-    position: { x: 0, y },
-    type: 'condition',
-  };
-}
 
 export function buildRssSweepWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {

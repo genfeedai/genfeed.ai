@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { Post } from '@models/content/post.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsPlatformDetail from '@/features/analytics/platform-detail/analytics-platform-detail';
 
@@ -45,6 +55,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 // function per render re-fires consumer effects on every commit.
 const resolveBrandsService = async () => brandsServiceMock;
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => resolveBrandsService,
 }));
@@ -86,8 +101,16 @@ vi.mock('@ui/display/table/Table', () => ({
     ) : null,
 }));
 
+/** Every render in a test shares one cache, as the app's provider does. */
+const queryClient = createTestQueryClient();
+
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
+
 describe('AnalyticsPlatformDetail', () => {
   beforeEach(() => {
+    queryClient.clear();
     pushMock.mockReset();
     brandsServiceMock.findBrandPosts.mockClear();
     brandsServiceMock.findOne.mockClear();
@@ -109,6 +132,20 @@ describe('AnalyticsPlatformDetail', () => {
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-1',
     );
+  });
+
+  it('paints the loaded posts straight away when you come back', async () => {
+    const first = render(
+      <AnalyticsPlatformDetail brandId="brand-1" platform="twitter" />,
+    );
+    await screen.findByRole('link', { name: 'Platform detail post' });
+    first.unmount();
+
+    render(<AnalyticsPlatformDetail brandId="brand-1" platform="twitter" />);
+
+    expect(
+      screen.getByRole('link', { name: 'Platform detail post' }),
+    ).toBeInTheDocument();
   });
 
   it('links the post caption to the post page', async () => {

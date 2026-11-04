@@ -74,13 +74,7 @@ function getStatusBadge(
   };
   const badge = badges[status];
   return (
-    <Badge
-      casing="normal"
-      icon={badge.icon}
-      shape="pill"
-      size="lg"
-      variant={badge.variant}
-    >
+    <Badge icon={badge.icon} shape="pill" size="lg" variant={badge.variant}>
       {badge.label}
     </Badge>
   );
@@ -362,7 +356,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {isRejected && (
-        <div className="text-xs text-red-500">
+        <div className="text-xs text-destructive">
           {data.rejectionReason || 'No reason provided'}
         </div>
       )}

@@ -34,7 +34,6 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
-import TableRowSummary from '@ui/display/table/TableRowSummary';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Badge } from '@ui/primitives/badge';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
@@ -44,6 +43,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FilterMenu from '@/components/content/filter-menu/FilterMenu';
 import SearchField from '@/components/content/search-field/SearchField';
+import AnalyticsAccountSummary from '@/features/analytics/accounts/analytics-account-summary';
 import AccountCell from '@/features/brands/components/integrations/AccountCell';
 
 type HealthBadgeLabelKey =
@@ -465,7 +465,8 @@ export default function AnalyticsAccounts() {
           getTitle: getAccountName,
           kind: 'account',
           render: (row) => (
-            <TableRowSummary
+            <AnalyticsAccountSummary
+              account={row}
               facts={[
                 {
                   id: 'handle',
@@ -499,7 +500,6 @@ export default function AnalyticsAccounts() {
                 },
               ]}
               openHref={`${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`}
-              openLabel={summaryT('openAccount')}
             />
           ),
         }}

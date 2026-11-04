@@ -151,6 +151,19 @@ describe('PricingContent', () => {
     expect(pro.queryByText(/EARLYGENFEED/)).not.toBeInTheDocument();
   });
 
+  it('states the 12-month term of the Pro launch price in the FAQ', () => {
+    render(<PricingContent />);
+
+    expect(
+      screen.getByText('How long does the Pro launch price last?'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Pro is $39 a month for your first 12 months, then $49 a month.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('does not strike through the Scale price', () => {
     render(<PricingContent />);
 

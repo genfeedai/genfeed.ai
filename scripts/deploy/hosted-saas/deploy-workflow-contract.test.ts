@@ -156,6 +156,47 @@ describe('hosted SaaS Vercel deployment contract', () => {
   });
 });
 
+describe('preview frontend deployment contract', () => {
+  test('never deploys to production or takes a production domain', async () => {
+    const preview = await workflow('deploy-preview-frontend.yml');
+
+    expect(preview).toContain('environment: preview');
+    expect(preview).not.toContain('--prod');
+    expect(preview).not.toContain('vercel promote');
+    expect(preview).not.toContain('environment: production');
+    // apps/web/vercel.json aliases app.genfeed.ai; the preview build drops it.
+    expect(preview).toContain("jq 'del(.alias)' apps/web/vercel.json");
+    // Only a preview.* host may be aliased.
+    expect(preview).toContain("grep -Eq '^preview(\\.[a-z0-9-]+)+$'");
+    expect(preview).toContain(
+      'vercel alias set "${DEPLOY_URL}" "${PREVIEW_DOMAIN}"',
+    );
+  });
+
+  test('builds against the preview API and refuses the production API', async () => {
+    const preview = await workflow('deploy-preview-frontend.yml');
+
+    expect(preview).toContain('PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}');
+    expect(preview).toContain(`printf 'API_URL=%s\\n' "\${PREVIEW_API_URL%/}"`);
+    expect(preview).toContain('PREVIEW_API_URL points at the production API.');
+  });
+
+  test('passes the dispatched ref through env, never into script text', async () => {
+    const preview = await workflow('deploy-preview-frontend.yml');
+
+    expect(preview).toContain('REQUESTED_REF: ${{ inputs.ref }}');
+    const interpolations = preview
+      .split('\n')
+      .filter((line) => line.includes('${{ inputs.'));
+    expect(interpolations.length).toBeGreaterThan(0);
+    for (const line of interpolations) {
+      expect(line).toMatch(
+        /^(run-name: |\s+[A-Z_]+: |\s+ref: |\s+SET_ALIAS: )/,
+      );
+    }
+  });
+});
+
 describe('hosted SaaS rollback contract', () => {
   test('rolls back only through the public deploy lane, from master', async () => {
     const rollback = await workflow('rollback-hosted-saas.yml');

@@ -20,7 +20,7 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Container from '@ui/layout/container/Container';
 import { Alert } from '@ui/primitives/alert';

@@ -28,10 +28,22 @@ export default function PreviewShell({
   className,
 }: PlatformPreviewShellProps) {
   const translate = useTranslations('ui.platformPreview');
-  const { statusLabel, headerPresentation } = useContext(PreviewPresentation);
+  const { statusLabel, headerAction, headerPresentation } =
+    useContext(PreviewPresentation);
   const isAccountHeader = headerPresentation === 'account';
   const status = getPreviewStatus(target);
   const Icon = getPlatformPreviewIcon(target.platform);
+  const statusRow = (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <Badge
+        variant="outline"
+        className={statusLabel ? 'status' : status.className}
+      >
+        {statusLabel || translate(status.messageKey)}
+      </Badge>
+      {headerAction}
+    </div>
+  );
   return (
     <article
       aria-label={translate('platformLabel', {
@@ -53,16 +65,7 @@ export default function PreviewShell({
               : eyebrow
         }
         className={className}
-        headerAction={
-          isAccountHeader ? undefined : (
-            <Badge
-              variant="outline"
-              className={statusLabel ? 'status' : status.className}
-            >
-              {statusLabel || translate(status.messageKey)}
-            </Badge>
-          )
-        }
+        headerAction={isAccountHeader ? undefined : statusRow}
       >
         {isAccountHeader ? (
           <div
@@ -70,12 +73,7 @@ export default function PreviewShell({
             data-testid="preview-account-header"
           >
             <AuthorRow target={target} showPlatformBadge />
-            <Badge
-              variant="outline"
-              className={statusLabel ? 'status' : status.className}
-            >
-              {statusLabel || translate(status.messageKey)}
-            </Badge>
+            {statusRow}
           </div>
         ) : null}
         {children}

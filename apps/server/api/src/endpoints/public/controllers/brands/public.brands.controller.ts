@@ -47,6 +47,16 @@ type BrandSingleFailure = {
   message: string;
 };
 
+/** Offset pagination for a public brand listing, capped at 50 per page. */
+function publicBrandPageOptions(page: number, limit: number) {
+  return {
+    customLabels,
+    limit: Math.min(Number(limit), 50),
+    page: Number(page),
+    pagination: true,
+  };
+}
+
 @AutoSwagger()
 @Public()
 @Controller('public/brands')
@@ -230,20 +240,13 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isEntityId(brandId)) {
-      return { data: [], message: 'Invalid brand ID format' };
-    }
+    const failure = await this.findPublicBrandFailure(brandId, url, {
+      params: { brandId },
+      query: { sort },
+    });
 
-    this.logger.log(url, { params: { brandId }, query: { sort } });
-
-    // Verify brand exists
-    const brand = await this.brandsService.findOne(
-      { id: brandId, scope: AssetScope.PUBLIC },
-      'none',
-    );
-
-    if (!brand) {
-      return { data: [], message: 'Brand not found' };
+    if (failure) {
+      return { data: [], message: failure };
     }
 
     const options = {
@@ -277,31 +280,16 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isEntityId(brandId)) {
-      return {
-        data: [],
-        message: 'Invalid brand ID format',
-        pagination: null,
-      };
+    const failure = await this.findPublicBrandFailure(brandId, url, {
+      params: { brandId },
+      query: { limit, page, sort },
+    });
+
+    if (failure) {
+      return { data: [], message: failure, pagination: null };
     }
 
-    this.logger.log(url, { params: { brandId }, query: { limit, page, sort } });
-
-    // Verify brand exists
-    const brand = await this.brandsService.findOne(
-      { id: brandId, scope: AssetScope.PUBLIC },
-      'none',
-    );
-    if (!brand) {
-      return { data: [], message: 'Brand not found', pagination: null };
-    }
-
-    const options = {
-      customLabels,
-      limit: Math.min(Number(limit), 50), // Max 50 per page
-      page: Number(page),
-      pagination: true,
-    };
+    const options = publicBrandPageOptions(page, limit);
 
     const aggregate = {
       where: {
@@ -335,32 +323,16 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isEntityId(brandId)) {
-      return {
-        data: [],
-        message: 'Invalid brand ID format',
-        pagination: null,
-      };
+    const failure = await this.findPublicBrandFailure(brandId, url, {
+      params: { brandId },
+      query: { limit, page, sort },
+    });
+
+    if (failure) {
+      return { data: [], message: failure, pagination: null };
     }
 
-    this.logger.log(url, { params: { brandId }, query: { limit, page, sort } });
-
-    // Verify brand exists
-    const brand = await this.brandsService.findOne(
-      { id: brandId, scope: AssetScope.PUBLIC },
-      'none',
-    );
-
-    if (!brand) {
-      return { data: [], message: 'Brand not found', pagination: null };
-    }
-
-    const options = {
-      customLabels,
-      limit: Math.min(Number(limit), 50), // Max 50 per page
-      page: Number(page),
-      pagination: true,
-    };
+    const options = publicBrandPageOptions(page, limit);
 
     const aggregate = {
       where: {
@@ -394,32 +366,16 @@ export class PublicBrandsController {
   ): Promise<JsonApiCollectionResponse | BrandCollectionFailure> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!isEntityId(brandId)) {
-      return {
-        data: [],
-        message: 'Invalid brand ID format',
-        pagination: null,
-      };
+    const failure = await this.findPublicBrandFailure(brandId, url, {
+      params: { brandId },
+      query: { limit, page, sort },
+    });
+
+    if (failure) {
+      return { data: [], message: failure, pagination: null };
     }
 
-    this.logger.log(url, { params: { brandId }, query: { limit, page, sort } });
-
-    // Verify brand exists
-    const brand = await this.brandsService.findOne(
-      { id: brandId, scope: AssetScope.PUBLIC },
-      'none',
-    );
-
-    if (!brand) {
-      return { data: [], message: 'Brand not found', pagination: null };
-    }
-
-    const options = {
-      customLabels,
-      limit: Math.min(Number(limit), 50), // Max 50 per page
-      page: Number(page),
-      pagination: true,
-    };
+    const options = publicBrandPageOptions(page, limit);
 
     const aggregate = {
       where: {
@@ -433,6 +389,30 @@ export class PublicBrandsController {
 
     const data = await this.articlesService.findAll(aggregate, options);
     return serializeCollection(request, ArticleSerializer, data);
+  }
+
+  /**
+   * Why a public brand listing cannot be served, or `null` when the brand id
+   * is well formed and names a PUBLIC brand. A malformed id is rejected
+   * before anything is logged or queried.
+   */
+  private async findPublicBrandFailure(
+    brandId: string,
+    url: string,
+    logContext: Record<string, unknown>,
+  ): Promise<string | null> {
+    if (!isEntityId(brandId)) {
+      return 'Invalid brand ID format';
+    }
+
+    this.logger.log(url, logContext);
+
+    const brand = await this.brandsService.findOne(
+      { id: brandId, scope: AssetScope.PUBLIC },
+      'none',
+    );
+
+    return brand ? null : 'Brand not found';
   }
 
   /**

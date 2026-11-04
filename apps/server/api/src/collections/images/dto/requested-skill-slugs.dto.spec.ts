@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { CreateAgentStudioHandoffDto } from '@api/services/agent-orchestrator/dto/create-agent-studio-handoff.dto';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 describe.each([
   CreateImageDto,
   CreateVideoDto,
+  CreateMusicDto,
+  GenerateVoiceDto,
   CreatePromptDto,
   CreateAgentStudioHandoffDto,
 ])('%s requested skills DTO', (Dto) => {

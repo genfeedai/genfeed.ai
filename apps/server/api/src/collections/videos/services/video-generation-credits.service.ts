@@ -4,9 +4,9 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { SeedanceReferenceQuoteEvidence } from '@api/collections/videos/services/seedance-reference-evidence.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { assertApprovedGenerationQuote } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
+  applyByokBypass,
   commitDeferredCredits,
   type DeferredCreditsRequest,
   isDeferredCreditsRequest,
@@ -15,11 +15,14 @@ import {
   hasGenerationSourceActionId,
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import {
+  createInsufficientCreditsException,
+  rethrowReservationFailure,
+} from '@api/helpers/utils/credits/insufficient-credits.util';
 import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
+import { resolveModelByokKey } from '@api/services/byok/byok-provider-map.util';
+import { ActivitySource } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
@@ -126,7 +129,8 @@ export class VideoGenerationCreditsService {
         providerInput,
         referenceEvidence,
       );
-    const byok = await this.resolveActiveByokKey(
+    const byok = await resolveModelByokKey(
+      this.byokService,
       organization,
       model,
       modelQuote.provider,
@@ -161,13 +165,7 @@ export class VideoGenerationCreditsService {
       modelQuote,
     };
     if (byok) {
-      reqWithCredits.creditsConfig = {
-        ...reqWithCredits.creditsConfig,
-        byokApiKeyOverride: byok.apiKey,
-        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
-        isByokBypass: true,
-        provider: byok.provider,
-      };
+      applyByokBypass(reqWithCredits, byok);
       return;
     }
     if (isReservationEnabled) {
@@ -250,7 +248,8 @@ export class VideoGenerationCreditsService {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: model,
     });
-    const byok = await this.resolveActiveByokKey(
+    const byok = await resolveModelByokKey(
+      this.byokService,
       organization,
       model,
       resolvedModelDoc?.provider,
@@ -262,13 +261,7 @@ export class VideoGenerationCreditsService {
       modelKey: model,
     };
     if (byok) {
-      reqWithCredits.creditsConfig = {
-        ...reqWithCredits.creditsConfig,
-        byokApiKeyOverride: byok.apiKey,
-        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
-        isByokBypass: true,
-        provider: byok.provider,
-      };
+      applyByokBypass(reqWithCredits, byok);
       return;
     }
     if (
@@ -335,46 +328,10 @@ export class VideoGenerationCreditsService {
         request,
       });
     } catch (error: unknown) {
-      if (
-        error instanceof BusinessLogicException &&
-        error.errorCode === 'INSUFFICIENT_CREDITS'
-      ) {
-        const balance =
-          await this.creditsUtilsService.getOrganizationCreditsBalance(
-            organizationId,
-          );
-        throw createInsufficientCreditsException(amount, balance);
-      }
-      throw error;
+      await rethrowReservationFailure(error, amount, () =>
+        this.creditsUtilsService.getOrganizationCreditsBalance(organizationId),
+      );
     }
-  }
-
-  /**
-   * The single BYOK decision point for video generation (#5294). Resolves
-   * the org's decrypted key exactly once — the returned key is both the
-   * bypass decision (defined/undefined) and the value dispatch must use, so
-   * the credit charge and the provider call can never disagree about whose
-   * key paid.
-   */
-  private async resolveActiveByokKey(
-    organizationId: string,
-    modelKey: string,
-    modelProvider?: string,
-  ): Promise<
-    { provider: ByokProvider; apiKey: string; apiSecret?: string } | undefined
-  > {
-    const provider = resolveModelByokProvider(modelKey, modelProvider);
-    if (!provider) {
-      return undefined;
-    }
-    const resolved = await this.byokService.resolveApiKey(
-      organizationId,
-      provider,
-    );
-    if (!resolved) {
-      return undefined;
-    }
-    return { provider, ...resolved };
   }
 
   private async resolveRequiredCredits(

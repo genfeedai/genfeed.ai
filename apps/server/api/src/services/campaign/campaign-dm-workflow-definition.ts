@@ -1,7 +1,5 @@
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -19,19 +17,6 @@ export const CAMPAIGN_DM_WORKFLOW_ID = 'campaign.dm.execute-target';
 export const CAMPAIGN_DM_BATCH_WORKFLOW_ID =
   'campaign.dm.process-pending-targets';
 
-function actionNode(
-  actionId: (typeof CAMPAIGN_DM_ACTION_IDS)[keyof typeof CAMPAIGN_DM_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 export function buildCampaignDmWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const sequence = [
     ['claim-target', CAMPAIGN_DM_ACTION_IDS.CLAIM],
@@ -42,7 +27,7 @@ export function buildCampaignDmWorkflowDefinition(): SystemWorkflowGraphDefiniti
     ['finalize-target', CAMPAIGN_DM_ACTION_IDS.FINALIZE],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const edges: WorkflowEdge[] = sequence.slice(1).map(([id], index) => ({
     id: `${sequence[index]?.[0]}-to-${id}`,
@@ -75,7 +60,7 @@ export function buildCampaignDmWorkflowDefinition(): SystemWorkflowGraphDefiniti
 }
 
 export function buildCampaignDmBatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const discovery = actionNode(
+  const discovery = requestActionNode(
     CAMPAIGN_DM_ACTION_IDS.DISCOVER_TARGETS,
     'discover-targets',
     0,

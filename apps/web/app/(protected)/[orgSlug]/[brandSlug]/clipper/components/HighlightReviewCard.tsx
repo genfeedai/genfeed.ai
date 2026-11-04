@@ -4,6 +4,7 @@ import {
   CardVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import type { BadgeVariant } from '@ui/primitives/badge.variants';
@@ -41,13 +42,6 @@ const TONE_OPTIONS = [
   { label: 'Controversial', value: 'controversial' },
   { label: 'Motivational', value: 'motivational' },
 ] as const;
-
-function formatDuration(startTime: number, endTime: number): string {
-  const totalSeconds = Math.round(endTime - startTime);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
 
 function getViralityVariant(score: number): BadgeVariant {
   if (score >= 80) return 'success';
@@ -92,7 +86,9 @@ export default function HighlightReviewCard({
   projectId,
   clipsService,
 }: HighlightReviewCardProps) {
-  const duration = formatDuration(highlight.start_time, highlight.end_time);
+  const duration = formatMinutesSeconds(
+    Math.round(highlight.end_time - highlight.start_time),
+  );
   const viralityVariant = getViralityVariant(highlight.virality_score);
 
   // Viral rewrite state

@@ -69,6 +69,8 @@ export type PlatformPreviewProps = {
   /** Standalone hosts can provide their existing media player. */
   renderMedia?: (media: PlatformPreviewMedia, index: number) => ReactNode;
   statusLabel?: string;
+  /** Controls beside the status badge, such as an open-link button. */
+  headerAction?: ReactNode;
   /** Disable inferred publishing diagnostics on display-only tool previews. */
   showValidation?: boolean;
 };
@@ -102,6 +104,7 @@ export type PlatformPreviewPresentation = Pick<
   PlatformPreviewProps,
   | 'renderMedia'
   | 'statusLabel'
+  | 'headerAction'
   | 'showValidation'
   | 'presentation'
   | 'headerPresentation'

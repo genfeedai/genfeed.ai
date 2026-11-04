@@ -572,6 +572,7 @@ export class WarmupPreparationService {
           articleId,
           generation: {
             ...next.generation,
+            error: undefined,
             workflowExecutionId: execution.id,
             status: 'completed',
           },
@@ -580,10 +581,17 @@ export class WarmupPreparationService {
         execution?.status === 'FAILED' ||
         execution?.status === 'CANCELLED'
       ) {
+        const failedNode = execution.nodeResults.find(
+          (node) => node.nodeId === execution.failedNodeId,
+        );
         next = {
           ...next,
           generation: {
             ...next.generation,
+            error:
+              execution.error ??
+              failedNode?.error ??
+              `Starter article workflow ${execution.status.toLowerCase()}`,
             workflowExecutionId: execution.id,
             status: 'failed',
           },
@@ -648,6 +656,13 @@ export class WarmupPreparationService {
   ): Promise<void> {
     const diagnostics = warmupDiagnostics(account);
     const event = { actorUserId, message, timestamp: new Date().toISOString() };
+    // A repair can be the first thing to notice a failed starter workflow.
+    // Keep its reason in the step history, as the read-time settle does.
+    const failure =
+      diagnostics.preparation?.generation?.status === 'running' &&
+      preparation.generation?.status === 'failed'
+        ? preparation.generation.error
+        : undefined;
     await tx.warmupAccount.update({
       where: {
         id: account.id,
@@ -663,6 +678,15 @@ export class WarmupPreparationService {
             preparation,
             steps: [
               ...(diagnostics.steps ?? []),
+              ...(failure
+                ? [
+                    {
+                      message: `Starter article generation failed: ${failure}`,
+                      timestamp: event.timestamp,
+                      status: 'failed',
+                    },
+                  ]
+                : []),
               { message, timestamp: event.timestamp, status: 'done' },
             ],
           }),

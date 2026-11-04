@@ -91,6 +91,7 @@ vi.mock('lucide-react', () => ({
   Clipboard: () => <span data-testid="hi-clipboard-document" />,
   Clock3: () => <span data-testid="hi-clock" />,
   Eye: () => <span data-testid="hi-eye" />,
+  Info: () => <span data-testid="hi-info" />,
   ListTodo: () => <span data-testid="hi-list-todo" />,
   Lock: () => <span data-testid="hi-lock" />,
   Pause: () => <span data-testid="hi-pause" />,
@@ -99,6 +100,7 @@ vi.mock('lucide-react', () => ({
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   RotateCcw: () => <span data-testid="hi-rotate" />,
   TimerOff: () => <span data-testid="hi-timer-off" />,
+  TriangleAlert: () => <span data-testid="hi-triangle-alert" />,
   Trash2: () => <span data-testid="hi-trash" />,
   X: () => <span data-testid="hi-x-mark" />,
 }));

@@ -23,17 +23,8 @@ import PromptBarGenerationMeter from '@/components/prompt-bars/components/genera
 import PromptBarModelControls from '@/components/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@/components/prompt-bars/components/quality-controls/PromptBarQualityControls';
 import PromptBarReferenceThumbnail from '@/components/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
+import { getVoiceTooltip } from '@/components/prompt-bars/components/voice-tooltip';
 import type { PromptBarEssentialsProps } from '@/props/prompt-bars/prompt-bar-tiers.props';
-
-function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
-  if (isRecording) {
-    return 'Stop recording';
-  }
-  if (isProcessing) {
-    return 'Processing…';
-  }
-  return 'Voice input (Speak to transcribe)';
-}
 
 type PromptOutputsButtonProps = Pick<
   PromptBarEssentialsProps,

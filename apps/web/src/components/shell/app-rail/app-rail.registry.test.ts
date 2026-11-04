@@ -157,13 +157,12 @@ describe('app rail registry', () => {
   it('turns an app off only when its own platform switch is off', () => {
     const clipper = APP_RAIL_REGISTRY.find((app) => app.id === 'clipper');
     if (!clipper) throw new Error('missing clipper rail app');
-    expect(isAppRailItemEnabled(clipper, { clipper: true }, true)).toBe(true);
-    expect(isAppRailItemEnabled(clipper, { clipper: false }, true)).toBe(false);
+    expect(isAppRailItemEnabled(clipper, { clipper: true })).toBe(true);
+    expect(isAppRailItemEnabled(clipper, { clipper: false })).toBe(false);
     expect(
-      isAppRailItemEnabled(clipper, { clipper: true, studio: false }, true),
+      isAppRailItemEnabled(clipper, { clipper: true, studio: false }),
     ).toBe(true);
-    expect(isAppRailItemEnabled(clipper, {}, true)).toBe(false);
-    expect(isAppRailItemEnabled(clipper, {}, false)).toBe(true);
+    expect(isAppRailItemEnabled(clipper, {})).toBe(true);
   });
 
   it('answers whether the app behind a path is on', () => {

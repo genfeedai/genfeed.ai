@@ -1,1 +1,6 @@
 @import "../../../../../packages/styles/globals.css";
+
+/* A tall image or video in a post stays a feed-sized crop, as on the platform. */
+.post [data-testid^="platform-preview-media-"] {
+  max-height: 26rem;
+}

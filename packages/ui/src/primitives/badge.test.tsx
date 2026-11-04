@@ -270,4 +270,42 @@ describe('Badge', () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     },
   );
+
+  it('keeps a status badge uppercase and iconed even when casing is normal', () => {
+    const { container } = render(
+      <Badge casing="normal" status="disconnected" />,
+    );
+
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass('uppercase');
+    expect(
+      container.querySelector('[data-slot="badge-icon"] svg'),
+    ).not.toBeNull();
+  });
+
+  it.each(['destructive', 'info', 'success', 'warning'] as const)(
+    'gives a %s label badge a tone icon by default',
+    (variant) => {
+      const { container } = render(<Badge variant={variant}>Label</Badge>);
+
+      expect(
+        container.querySelector('[data-slot="badge-icon"] svg'),
+      ).not.toBeNull();
+    },
+  );
+
+  it.each([
+    ['author casing', { casing: 'normal' }, 'Tag'],
+    ['mono', { isMono: true }, 'abc123'],
+    ['a count', {}, '12'],
+    ['a value badge', { value: 3 }, 'Posts'],
+  ] as const)('leaves %s badges without a tone icon', (_name, props, text) => {
+    const { container } = render(
+      <Badge variant="info" {...props}>
+        {text}
+      </Badge>,
+    );
+
+    expect(container.querySelector('[data-slot="badge-icon"]')).toBeNull();
+  });
 });

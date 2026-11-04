@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/contracts';
+import type { VoiceProvider } from '@genfeedai/contracts';
 import type { HeyGenConnectionRef } from '@genfeedai/contracts/interfaces';
 
 export type DefaultVoiceRefSource = 'catalog' | 'cloned';
@@ -25,67 +25,11 @@ export interface DefaultVoiceRef {
   preview?: string | null;
 }
 
-export function isCatalogVoiceRef(
-  defaultVoiceRef?: DefaultVoiceRef | null,
-): defaultVoiceRef is DefaultVoiceRef {
-  return defaultVoiceRef?.source === 'catalog';
-}
-
-export function isClonedVoiceRef(
-  defaultVoiceRef?: DefaultVoiceRef | null,
-): defaultVoiceRef is DefaultVoiceRef {
-  return defaultVoiceRef?.source === 'cloned';
-}
-
 export function encodeCatalogVoiceValue(
   provider: VoiceProvider,
   externalVoiceId: string,
 ): string {
   return `${provider}:${externalVoiceId}`;
-}
-
-export function decodeCatalogVoiceValue(value: string): {
-  provider: VoiceProvider;
-  externalVoiceId: string;
-} | null {
-  const separatorIndex = value.indexOf(':');
-
-  if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
-    return null;
-  }
-
-  const provider = value.slice(0, separatorIndex) as VoiceProvider;
-  const externalVoiceId = value.slice(separatorIndex + 1);
-
-  if (
-    provider !== VoiceProvider.ELEVENLABS &&
-    provider !== VoiceProvider.HEYGEN &&
-    provider !== VoiceProvider.GENFEED_AI
-  ) {
-    return null;
-  }
-
-  return {
-    externalVoiceId,
-    provider,
-  };
-}
-
-export function defaultVoiceRefToCatalogValue(
-  defaultVoiceRef?: DefaultVoiceRef | null,
-): string {
-  if (
-    defaultVoiceRef?.source !== 'catalog' ||
-    !defaultVoiceRef.provider ||
-    !defaultVoiceRef.externalVoiceId
-  ) {
-    return '';
-  }
-
-  return encodeCatalogVoiceValue(
-    defaultVoiceRef.provider,
-    defaultVoiceRef.externalVoiceId,
-  );
 }
 
 export function buildDefaultVoiceRefFromVoice(

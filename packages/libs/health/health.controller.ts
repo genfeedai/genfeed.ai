@@ -1,4 +1,5 @@
 import { Public } from '@libs/decorators/public.decorator';
+import { getAppVersion } from '@libs/health/app-version.util';
 import {
   HEALTH_CONTRIBUTOR,
   type HealthContributor,
@@ -23,10 +24,6 @@ export class HealthController {
     private readonly contributor?: HealthContributor,
   ) {}
 
-  private getVersion(): string {
-    return process.env.npm_package_version ?? process.env.VERSION ?? '1.0.0';
-  }
-
   private getServiceName(): string {
     return process.env.SERVICE_NAME ?? 'api';
   }
@@ -36,7 +33,7 @@ export class HealthController {
       service: this.getServiceName(),
       status,
       timestamp: new Date().toISOString(),
-      version: this.getVersion(),
+      version: getAppVersion(),
     };
   }
 
@@ -74,11 +71,17 @@ export class HealthController {
       return this.buildResponse('ready');
     }
 
-    const response = this.buildResponse(readiness.status);
+    const response: HealthResponse = this.buildResponse(readiness.status);
 
-    return readiness.degradedDependencies?.length
-      ? { ...response, degradedDependencies: readiness.degradedDependencies }
-      : response;
+    if (readiness.degradedDependencies?.length) {
+      response.degradedDependencies = readiness.degradedDependencies;
+    }
+
+    if (readiness.configurationIssues?.length) {
+      response.configurationIssues = readiness.configurationIssues;
+    }
+
+    return response;
   }
 
   @Public()

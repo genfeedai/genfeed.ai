@@ -49,6 +49,7 @@ import {
   validationBadge,
 } from '@/features/posts/shared/release-status.helpers';
 import type { ReleaseDetailDrawerProps } from '@/props/publisher/release-calendar.props';
+import { formatInstant } from './format-instant';
 
 /** Action identifier for the release-level reschedule control. */
 export const RELEASE_RESCHEDULE_ACTION = 'release:reschedule';
@@ -64,11 +65,6 @@ export function targetRetryAction(targetId: string): string {
 
 function targetLabel(target: IChannelTarget): string {
   return formatPlatformLabel(target.platform) ?? target.platform;
-}
-
-function formatInstant(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US');
 }
 
 function TargetHistory({

@@ -142,6 +142,8 @@ export interface StudioQuickActionsProps {
   align?: 'start' | 'end';
   isSelected?: boolean;
   isMasonryCompact?: boolean;
+  /** Renders flat inside a sidebar header: no floating shell, Publish labelled. */
+  isHeaderEmbedded?: boolean;
 }
 
 export interface StudioEditDetailPageProps {

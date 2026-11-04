@@ -399,9 +399,13 @@ export async function readOnboardingFunnel(days: number): Promise<IOnboardingFun
   );
 }
 
-export async function readPublishPipeline(days: number): Promise<IPublishPipelineReport> {
+export async function readPublishPipeline(
+  days: number,
+  isAnyDecision = false
+): Promise<IPublishPipelineReport> {
+  const anyDecision = isAnyDecision ? '&anyDecision=true' : '';
   return flattenSingle<IPublishPipelineReport>(
-    await adminGet<JsonApiDocument>(`/admin/publish-pipeline?days=${days}`)
+    await adminGet<JsonApiDocument>(`/admin/publish-pipeline?days=${days}${anyDecision}`)
   );
 }
 

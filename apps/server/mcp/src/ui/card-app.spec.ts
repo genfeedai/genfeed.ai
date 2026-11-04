@@ -2,7 +2,7 @@
 
 import { testId } from '@helpers/testing/test-id.helper';
 import { cardResource } from '@mcp/ui/card-app';
-import { buildCardView } from '@mcp/ui/card-data';
+import { buildCardView, withApprovalCard } from '@mcp/ui/card-data';
 
 function message(
   method: string,
@@ -149,12 +149,30 @@ it('renders the account as named facts without exposing identifiers (#7179)', ()
 
   const text = document.body.textContent ?? '';
   expect(document.querySelector('h2')?.textContent).toContain('Acme Studio');
-  expect(text).toContain('Role');
   expect(text).toContain('Admin');
+  expect(text).toContain('Acme');
   expect(text).toContain('Available');
   expect(text).toContain('88');
   expect(text).not.toMatch(/private/);
-  expect(document.querySelectorAll('dl')).toHaveLength(2);
+});
+
+it('shows credits rounded to two decimals with the trend as a badge', () => {
+  result('get_account', {
+    profile: { organizationName: 'Acme Studio', role: 'admin' },
+    usage: {
+      currentBalance: 10230.381278999994,
+      trendPercentage: -12.5,
+      usage30Days: 301.4,
+      usage7Days: 87.250000000001,
+    },
+  });
+
+  const text = document.body.textContent ?? '';
+  expect(text).toContain('10,230.38');
+  expect(text).toContain('87.25');
+  expect(text).toContain('301.4');
+  expect(text).toContain('12.5%');
+  expect(text).not.toContain('10230.381278999994');
 });
 
 it('shows every generated caption in the existing post grid as safe text', () => {
@@ -225,13 +243,17 @@ it('presents completed images without tool headings or opaque metadata', async (
   expect(document.querySelector('article')?.textContent).not.toContain(imageId);
   expect(document.querySelector('article time')).toBeNull();
   expect(document.querySelector('article .meta')).toBeNull();
-  expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
-  document.querySelector<HTMLButtonElement>('.media-actions button')?.click();
+  expect(document.querySelector('article a')?.getAttribute('aria-label')).toBe(
+    'Open image',
+  );
+  document
+    .querySelector<HTMLButtonElement>('button[aria-label="Expand Image"]')
+    ?.click();
   await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('[role="dialog"] img')).not.toBeNull();
 });
 
-it('keeps media descriptions available on demand and restores other layouts', async () => {
+it('shows a media prompt under the file and restores other layouts', () => {
   result('get_job_status', {
     category: 'IMAGE',
     description: 'A logo on a white background',
@@ -240,12 +262,6 @@ it('keeps media descriptions available on demand and restores other layouts', as
     url: 'https://cdn.genfeed.ai/logo.jpg',
   });
   expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
-  const details = document.querySelector<HTMLButtonElement>(
-    'article button[aria-expanded]',
-  );
-  expect(details?.getAttribute('aria-expanded')).toBe('false');
-  details?.click();
-  await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('article')?.textContent).toContain(
     'A logo on a white background',
   );
@@ -311,10 +327,16 @@ it('replaces content on empty, error and approval results', () => {
   expect(document.body.textContent).toContain('Approval required');
 });
 
-it('shows long article text and truncated list counts', () => {
+it('reads a long article in full and shows truncated list counts', async () => {
   result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
-  expect(document.querySelector('button[aria-expanded]')?.textContent).toBe(
-    'Read more',
+  document
+    .querySelector<HTMLButtonElement>(
+      'button[aria-label="Read the full article"]',
+    )
+    ?.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'a'.repeat(900),
   );
   result(
     'get_assets',
@@ -442,7 +464,9 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.textContent).toContain('Your Account');
-  expect(post?.querySelector('h2')?.textContent).toBe('LinkedIn');
+  expect(
+    post?.querySelector('[role="img"][aria-label="LinkedIn"]'),
+  ).not.toBeNull();
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
@@ -603,7 +627,7 @@ it('files calendar posts under the viewer-local day of their time', () => {
   );
 });
 
-it('shows post attachments and plays attached media that carries a URL', () => {
+it('lays out every post attachment and plays media that carries a URL', () => {
   result('get_posts', {
     posts: [
       {
@@ -634,11 +658,10 @@ it('shows post attachments and plays attached media that carries a URL', () => {
   const [carousel, clip] = Array.from(
     document.querySelectorAll('article.post'),
   );
+  expect(carousel?.textContent).toContain('Attachment preview unavailable');
   expect(
-    Array.from(carousel?.querySelectorAll('.attachments > span') ?? []).map(
-      (pill) => pill.textContent,
-    ),
-  ).toEqual(['Image ×2', 'Video']);
+    carousel?.querySelectorAll('[data-testid^="platform-preview-media-"]'),
+  ).toHaveLength(3);
   expect(clip?.querySelector('video')?.getAttribute('src')).toBe(
     'https://cdn.genfeed.ai/clip.mp4',
   );
@@ -835,6 +858,8 @@ describe('organization switcher', () => {
 
     const trigger = document.querySelector('[role="combobox"]');
     expect(trigger?.textContent).toContain('Acme');
+    // Organization names are user-authored: the dropdown must not Title Case them.
+    expect(trigger?.classList.contains('normal-case')).toBe(true);
     expect(document.body.textContent).toContain('Acme Main');
     expect(document.body.textContent).toContain('Acme Labs');
     expect(document.body.textContent).not.toContain(
@@ -938,10 +963,10 @@ describe('brand gallery', () => {
   it('shows the logo or initials and a Select button per brand', () => {
     result('get_brands', { brands });
 
-    const cards = document.querySelectorAll('[data-testid="preview-card"]');
-    expect(cards).toHaveLength(2);
-    expect(cards[0].textContent).toContain('@acme');
-    expect(cards[1].textContent).toContain('AL');
+    const rows = document.querySelectorAll('.brands li');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain('@acme');
+    expect(rows[1].textContent).toContain('AL');
     expect(
       [...document.querySelectorAll('button')].map((button) =>
         button.getAttribute('aria-label'),
@@ -1036,7 +1061,7 @@ describe('brand gallery', () => {
   });
 });
 
-it('shows article cards with a status badge and kind chip, not raw identifiers', () => {
+it('shows article cards with a status badge and a reader, not raw identifiers', () => {
   result('get_articles', [
     {
       articleId: 'article-123',
@@ -1047,8 +1072,12 @@ it('shows article cards with a status badge and kind chip, not raw identifiers',
   ]);
 
   const article = document.querySelector('article.content-card');
-  expect(article?.querySelector('.status')?.textContent).toBe('draft');
-  expect(article?.querySelector('.meta')?.textContent).toContain('Article');
+  expect(article?.querySelector('[data-slot="badge"]')?.textContent).toBe(
+    'Draft',
+  );
+  expect(
+    article?.querySelector('button[aria-label="Read the full article"]'),
+  ).not.toBeNull();
   expect(article?.textContent).not.toContain('article-123');
 });
 
@@ -1093,4 +1122,82 @@ it('keeps a post on screen when its video fails to load', async () => {
   expect(
     document.querySelector('article img[alt="Video unavailable"]'),
   ).not.toBeNull();
+});
+
+describe('approval card', () => {
+  const approval = {
+    content: [{ text: 'needs approval', type: 'text' }],
+    isError: true,
+    structuredContent: {
+      approvalId: 'apr-1',
+      canResolveApproval: true,
+      code: 'approval_pending',
+      estimatedCredits: 4,
+      nextStepUrl: 'https://app.genfeed.ai/publishing/approvals?approval=x',
+      toolName: 'generate',
+    },
+  };
+
+  function showApproval() {
+    message('ui/notifications/tool-result', {
+      ...approval,
+      structuredContent: {
+        ...approval.structuredContent,
+        genfeedCards:
+          withApprovalCard(approval).structuredContent?.genfeedCards,
+      },
+    });
+  }
+
+  function buttonNamed(name: string) {
+    return [...document.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes(name),
+    );
+  }
+
+  it('shows what is waiting and what it costs, even though the result is an error', () => {
+    showApproval();
+
+    const text = document.body.textContent ?? '';
+    expect(document.querySelector('h2')?.textContent).toContain('Generate');
+    expect(text).toContain('Pending Approval');
+    expect(text).toContain('4 credits');
+    expect(buttonNamed('Approve')).toBeDefined();
+    expect(buttonNamed('Decline')).toBeDefined();
+    expect(
+      document.querySelector('a[aria-label="Review in Genfeed"]'),
+    ).not.toBeNull();
+  });
+
+  it('declines in place and shows the outcome instead of the buttons', async () => {
+    showApproval();
+    buttonNamed('Decline')?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(
+        ([data]) => data as { id?: number; method?: string; params?: unknown },
+      )
+      .find((data) => data.method === 'tools/call');
+    expect(call?.params).toEqual({
+      arguments: { approvalId: 'apr-1', decision: 'decline' },
+      name: 'resolve_approval',
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: {
+          jsonrpc: '2.0',
+          id: call?.id,
+          result: { content: [{ text: 'Approval declined.', type: 'text' }] },
+        },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(document.body.textContent).toContain('Declined');
+    expect(buttonNamed('Approve')).toBeUndefined();
+  });
 });

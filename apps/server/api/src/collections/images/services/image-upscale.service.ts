@@ -1,12 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  type GenerationBillingRequest,
-  GenerationBillingService,
-} from '@api/collections/credits/services/generation-billing.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import { dispatchImageTransformation } from '@api/collections/images/services/image-transformation-dispatch.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
@@ -33,7 +30,6 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   HttpException,
@@ -182,7 +178,7 @@ export class ImageUpscaleService {
     return ingredientData;
   }
 
-  private async dispatchUpscale(
+  private dispatchUpscale(
     request: RequestWithSelectedModel,
     user: User,
     imageEditDto: ImageEditDto,
@@ -190,105 +186,51 @@ export class ImageUpscaleService {
     ingredientData: IngredientDocument,
     metadataId: string,
   ): Promise<void> {
-    const websocketUrl = `/images/${ingredientData.id}`;
-    const url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
-
-    let acceptedExternalId: string | undefined;
-    try {
-      const promptResult = await this.promptBuilderService.buildPrompt(
-        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-        {
-          modelCategory: ModelCategory.IMAGE_UPSCALE,
-          prompt: '',
-          references: [imageUrl],
-          ...({
-            enhance_model: imageEditDto.enhanceModel || 'Low Resolution V2',
-            face_enhancement: imageEditDto.faceEnhancement !== false,
-            face_enhancement_creativity:
-              imageEditDto.faceEnhancementCreativity ?? 0.5,
-            face_enhancement_strength:
-              imageEditDto.faceEnhancementStrength ?? 0.8,
-            output_format: imageEditDto.outputFormat || 'jpg',
-            subject_detection: imageEditDto.subjectDetection || 'Foreground',
-            upscale_factor: imageEditDto.upscaleFactor || '4x',
-          } as Record<string, unknown>),
-        },
-        user.organizationId,
-      );
-
-      const billingRequest = request as unknown as GenerationBillingRequest;
-      const credits = billingRequest.creditsConfig?.amount;
-      if (credits !== undefined)
-        await this.generationBilling.bindOutput(billingRequest, {
-          credits,
-          ingredientId: String(ingredientData.id),
-        });
-      const generationId = await this.replicateService.runModel(
-        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-        promptResult.input,
-      );
-
-      if (generationId) {
-        acceptedExternalId = generationId;
-        await this.metadataService.patch(
-          metadataId,
-          new MetadataEntity({
-            externalId: generationId,
-          }),
-        );
-      } else {
-        await this.generationBilling.releaseOutput(
-          String(ingredientData.id),
-          user.organizationId,
-        );
-        await this.failedGenerationService.handleFailedImageGeneration(
-          this.imagesService,
-          ingredientData.id,
-          websocketUrl,
-          user,
-          getUserRoomName(user.id),
-        );
-      }
-    } catch (error: unknown) {
-      if (acceptedExternalId) {
-        this.loggerService.error(
-          'Accepted transformation metadata persistence failed',
-          error,
-        );
-        try {
-          await this.generationBilling.rememberAcceptedOutput({
-            ingredientId: String(ingredientData.id),
-            externalId: acceptedExternalId,
-            organizationId: user.organizationId,
-            userId: user.userId,
-          });
-        } catch (recoveryError: unknown) {
-          this.loggerService.error(
-            'Accepted transformation recovery failed; retain its funding',
-            recoveryError,
+    return dispatchImageTransformation(
+      {
+        failedGenerationService: this.failedGenerationService,
+        generationBilling: this.generationBilling,
+        imagesService: this.imagesService,
+        loggerService: this.loggerService,
+        metadataService: this.metadataService,
+      },
+      {
+        buildInput: async () => {
+          const promptResult = await this.promptBuilderService.buildPrompt(
+            MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
             {
-              ingredientId: String(ingredientData.id),
-              externalId: acceptedExternalId,
+              modelCategory: ModelCategory.IMAGE_UPSCALE,
+              prompt: '',
+              references: [imageUrl],
+              ...({
+                enhance_model: imageEditDto.enhanceModel || 'Low Resolution V2',
+                face_enhancement: imageEditDto.faceEnhancement !== false,
+                face_enhancement_creativity:
+                  imageEditDto.faceEnhancementCreativity ?? 0.5,
+                face_enhancement_strength:
+                  imageEditDto.faceEnhancementStrength ?? 0.8,
+                output_format: imageEditDto.outputFormat || 'jpg',
+                subject_detection:
+                  imageEditDto.subjectDetection || 'Foreground',
+                upscale_factor: imageEditDto.upscaleFactor || '4x',
+              } as Record<string, unknown>),
             },
+            user.organizationId,
           );
-        }
-        return;
-      }
-      this.loggerService.error(`${url} failed`, error);
-      const errorMessage = getErrorMessage(error);
-      await this.generationBilling.releaseOutput(
-        String(ingredientData.id),
-        user.organizationId,
-      );
-
-      await this.failedGenerationService.handleFailedImageGeneration(
-        this.imagesService,
-        ingredientData.id,
-        websocketUrl,
+          return promptResult.input;
+        },
+        ingredientData,
+        logUrl: `${LEGACY_CONTROLLER_NAME} upscaleImage`,
+        metadataId,
+        request,
+        run: (input) =>
+          this.replicateService.runModel(
+            MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+            input,
+          ),
         user,
-        getUserRoomName(user.id),
-        errorMessage,
-      );
-    }
+        websocketUrl: `/images/${ingredientData.id}`,
+      },
+    );
   }
 }

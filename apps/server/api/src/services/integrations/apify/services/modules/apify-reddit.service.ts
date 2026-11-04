@@ -37,7 +37,7 @@ export class ApifyRedditService {
 
       return this.normalizeRedditTrends(rawPosts);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getRedditTrends failed`,
         error,
       );
@@ -63,7 +63,7 @@ export class ApifyRedditService {
 
       return this.normalizeRedditVideos(rawPosts.filter((p) => p.isVideo));
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getRedditVideos failed`,
         error,
       );
@@ -93,7 +93,7 @@ export class ApifyRedditService {
 
       return rawComments;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getRedditPostComments failed`,
         error,
       );
@@ -123,7 +123,7 @@ export class ApifyRedditService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getSubredditPosts failed for r/${subreddit}`,
         error,
       );
@@ -151,7 +151,7 @@ export class ApifyRedditService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getRedditUserPosts failed for u/${username}`,
         error,
       );
@@ -183,7 +183,7 @@ export class ApifyRedditService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchRedditPosts failed for "${query}"`,
         error,
       );

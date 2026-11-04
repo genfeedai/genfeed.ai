@@ -1,12 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import {
-  type GenerationBillingRequest,
-  GenerationBillingService,
-} from '@api/collections/credits/services/generation-billing.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { dispatchImageTransformation } from '@api/collections/images/services/image-transformation-dispatch.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -38,7 +35,6 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   HttpException,
@@ -223,7 +219,7 @@ export class ImageReframeService {
     return ingredientData;
   }
 
-  private async dispatchReframe(params: {
+  private dispatchReframe(params: {
     createImageDto: CreateImageDto;
     ingredientData: IngredientDocument;
     metadataId: string;
@@ -249,116 +245,64 @@ export class ImageReframeService {
       user,
       websocketUrl,
     } = params;
-    let acceptedExternalId: string | undefined;
-    try {
-      const parentImageUrl = await this.processingMediaUrl(
-        user.organizationId,
-        parentId,
-        'images',
-      );
-      const promptResult = await this.promptBuilderService.buildPrompt(
-        MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        {
-          brand:
-            ingredientData.brand &&
-            typeof ingredientData.brand === 'object' &&
-            'label' in ingredientData.brand &&
-            typeof ingredientData.brand.label === 'string'
-              ? {
-                  description:
-                    typeof ingredientData.brand.description === 'string'
-                      ? ingredientData.brand.description
-                      : undefined,
-                  label: ingredientData.brand.label,
-                }
-              : undefined,
-          height: targetHeight,
-          modelCategory:
-            (request.selectedModel?.category as ModelCategory) ||
-            ModelCategory.IMAGE_EDIT,
-          prompt: promptData.original,
-          references: [parentImageUrl],
-          style: createImageDto.style,
-          tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
-          width: targetWidth,
-        },
-        user.organizationId,
-      );
-
-      const billingRequest = request as unknown as GenerationBillingRequest;
-      const credits = billingRequest.creditsConfig?.amount;
-      if (credits !== undefined)
-        await this.generationBilling.bindOutput(billingRequest, {
-          credits,
-          ingredientId: String(ingredientData.id),
-        });
-      const generationId = await this.replicateService.generateTextToImage(
-        MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        promptResult.input,
-      );
-
-      if (generationId) {
-        acceptedExternalId = generationId;
-        await this.metadataService.patch(
-          metadataId,
-          new MetadataEntity({
-            externalId: generationId,
-            promptId: promptData.id,
-          }),
-        );
-      } else {
-        await this.generationBilling.releaseOutput(
-          String(ingredientData.id),
-          user.organizationId,
-        );
-        await this.failedGenerationService.handleFailedImageGeneration(
-          this.imagesService,
-          ingredientData.id,
-          websocketUrl,
-          user,
-          getUserRoomName(user.id),
-        );
-      }
-    } catch (error: unknown) {
-      if (acceptedExternalId) {
-        this.loggerService.error(
-          'Accepted transformation metadata persistence failed',
-          error,
-        );
-        try {
-          await this.generationBilling.rememberAcceptedOutput({
-            ingredientId: String(ingredientData.id),
-            externalId: acceptedExternalId,
-            organizationId: user.organizationId,
-            userId: user.userId,
-          });
-        } catch (recoveryError: unknown) {
-          this.loggerService.error(
-            'Accepted transformation recovery failed; retain its funding',
-            recoveryError,
-            {
-              ingredientId: String(ingredientData.id),
-              externalId: acceptedExternalId,
-            },
+    return dispatchImageTransformation(
+      {
+        failedGenerationService: this.failedGenerationService,
+        generationBilling: this.generationBilling,
+        imagesService: this.imagesService,
+        loggerService: this.loggerService,
+        metadataService: this.metadataService,
+      },
+      {
+        buildInput: async () => {
+          const parentImageUrl = await this.processingMediaUrl(
+            user.organizationId,
+            parentId,
+            'images',
           );
-        }
-        return;
-      }
-      this.loggerService.error(`${url} failed`, error);
-      const errorMessage = getErrorMessage(error);
-      await this.generationBilling.releaseOutput(
-        String(ingredientData.id),
-        user.organizationId,
-      );
-
-      await this.failedGenerationService.handleFailedImageGeneration(
-        this.imagesService,
-        ingredientData.id,
-        websocketUrl,
+          const promptResult = await this.promptBuilderService.buildPrompt(
+            MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+            {
+              brand:
+                ingredientData.brand &&
+                typeof ingredientData.brand === 'object' &&
+                'label' in ingredientData.brand &&
+                typeof ingredientData.brand.label === 'string'
+                  ? {
+                      description:
+                        typeof ingredientData.brand.description === 'string'
+                          ? ingredientData.brand.description
+                          : undefined,
+                      label: ingredientData.brand.label,
+                    }
+                  : undefined,
+              height: targetHeight,
+              modelCategory:
+                (request.selectedModel?.category as ModelCategory) ||
+                ModelCategory.IMAGE_EDIT,
+              prompt: promptData.original,
+              references: [parentImageUrl],
+              style: createImageDto.style,
+              tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
+              width: targetWidth,
+            },
+            user.organizationId,
+          );
+          return promptResult.input;
+        },
+        ingredientData,
+        logUrl: url,
+        metadataFields: { promptId: promptData.id },
+        metadataId,
+        request,
+        run: (input) =>
+          this.replicateService.generateTextToImage(
+            MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+            input,
+          ),
         user,
-        getUserRoomName(user.id),
-        errorMessage,
-      );
-    }
+        websocketUrl,
+      },
+    );
   }
 }

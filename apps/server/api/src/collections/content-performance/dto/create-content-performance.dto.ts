@@ -1,3 +1,4 @@
+import { ContentPerformanceCountsDto } from '@api/collections/content-performance/dto/content-performance-counts.dto';
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ContentType, CredentialPlatform } from '@genfeedai/contracts';
@@ -12,7 +13,7 @@ import {
   Min,
 } from 'class-validator';
 
-export class CreateContentPerformanceDto {
+export class CreateContentPerformanceDto extends ContentPerformanceCountsDto {
   @ApiProperty({ description: 'Brand ID', required: true })
   @IsEntityId()
   brandId!: string;
@@ -74,43 +75,7 @@ export class CreateContentPerformanceDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  views?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  likes?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  comments?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  shares?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  saves?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
   clicks?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  revenue?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()

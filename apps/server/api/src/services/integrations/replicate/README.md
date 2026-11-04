@@ -2911,9 +2911,7 @@ This structured format is then stringified and sent to models as the `prompt` pa
 ```
 services/integrations/replicate/
 ├── README.md                              # This file
-├── helpers/
-│   └── replicate.interface.ts            # TypeScript interfaces
-└── replicate.service.ts                  # Main service
+└── services/replicate.service.ts         # Main service
 
 services/prompt-builder/
 ├── builders/

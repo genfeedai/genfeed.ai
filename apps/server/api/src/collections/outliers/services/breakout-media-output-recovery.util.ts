@@ -1,7 +1,9 @@
 import { resolveBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
 import {
+  BREAKOUT_RECEIPT_ROW_SELECT,
   type BreakoutRecoveryBase,
   breakoutPublicationState,
+  breakoutReceiptExecutionState,
 } from '@api/collections/outliers/services/breakout-output-publication-state.util';
 import { breakoutVisualBrandRequestKey } from '@api/collections/outliers/services/breakout-visual-brand-key.util';
 import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
@@ -82,18 +84,7 @@ export async function readBreakoutMediaOutputRecovery(
       candidateIndex: 0,
       isDeleted: false,
     },
-    select: {
-      id: true,
-      organizationId: true,
-      brandId: true,
-      requestKey: true,
-      candidateIndex: true,
-      revision: true,
-      state: true,
-      mode: true,
-      providerAttemptRef: true,
-      projection: true,
-    },
+    select: BREAKOUT_RECEIPT_ROW_SELECT,
   });
   if (!row) {
     if (
@@ -150,41 +141,12 @@ export async function readBreakoutMediaOutputRecovery(
       reason: 'receipt_invalid',
       action: 'reconcile',
     };
-  if (receipt.execution?.result === 'indeterminate')
-    return {
-      ...base,
-      state: 'reconciliation_required',
-      reason: 'generation_outcome_indeterminate',
-      action: 'reconcile',
-    };
-  if (receipt.execution?.result === 'pending')
-    return {
-      ...base,
-      state: 'generation_in_flight',
-      reason: 'provider_pending',
-      action: 'wait',
-    };
-  if (receipt.execution?.result === 'failed')
-    return {
-      ...base,
-      state: 'failed',
-      reason: 'generation_failed',
-      action: 'none',
-    };
-  if (receipt.state === 'blocked' || receipt.state === 'cancelled')
-    return {
-      ...base,
-      state: 'awaiting_review',
-      reason: 'quality_or_brand_blocked',
-      action: 'none',
-    };
-  if (!receipt.execution && !post)
-    return {
-      ...base,
-      state: 'not_submitted',
-      reason: 'not_dispatched',
-      action: 'requires_admission',
-    };
+  const executionState = breakoutReceiptExecutionState(
+    base,
+    receipt,
+    Boolean(post),
+  );
+  if (executionState) return executionState;
   if (!receipt.artifact)
     return {
       ...base,

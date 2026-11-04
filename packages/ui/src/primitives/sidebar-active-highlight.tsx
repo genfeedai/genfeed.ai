@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn';
+import { prefersReducedMotion } from '@genfeedai/helpers/ui/prefers-reduced-motion.helper';
 import { useLinkStatus } from 'next/link';
 import {
   createContext,
@@ -56,13 +57,6 @@ export function SidebarHighlightGroup({
     <HighlightGroupContext.Provider value={memory}>
       {children}
     </HighlightGroupContext.Provider>
-  );
-}
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 }
 

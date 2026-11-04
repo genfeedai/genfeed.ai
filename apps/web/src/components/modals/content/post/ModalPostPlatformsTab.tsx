@@ -38,15 +38,14 @@ import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PostCharacterUsage from '@/components/posts/character-usage/PostCharacterUsage';
 import {
   buildPostCharacterUsageItems,
   countCaptionCharacters,
 } from '@/components/posts/character-usage/post-character-usage.util';
+import ModalPostChannelList from './ModalPostChannelList';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
-import ModalPostPlatformGrid from './ModalPostPlatformGrid';
 import {
   PLATFORM_TO_CONTENT_CATEGORY,
   PLATFORM_TO_SYSTEM_PROMPT_KEY,
@@ -64,6 +63,7 @@ export default function ModalPostPlatformsTab({
   updatePlatformConfig,
   getMinDateTime,
   scheduleTimezone,
+  onAddChannels,
 }: ModalPostPlatformsTabProps) {
   const translate = useTranslations('ui.postPlatforms');
   const { brandId, organizationId, selectedBrand, credentials } = useBrand();
@@ -76,6 +76,7 @@ export default function ModalPostPlatformsTab({
     null,
   );
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+  const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
   const {
     createSet,
@@ -285,6 +286,66 @@ export default function ModalPostPlatformsTab({
     [createSet, platformConfigs],
   );
 
+  const handleToggleAll = useCallback(
+    (isEnabled: boolean) => {
+      applyEnabledCredentialIds?.(
+        isEnabled
+          ? platformConfigs
+              .filter(
+                (config) =>
+                  config.credentialId && config.isCredentialValid !== false,
+              )
+              .map((config) => config.credentialId)
+          : [],
+      );
+    },
+    [applyEnabledCredentialIds, platformConfigs],
+  );
+
+  const handleToggleExpanded = useCallback((platform: string) => {
+    setExpandedPlatform((current) => (current === platform ? null : platform));
+  }, []);
+
+  // Per-channel overrides, revealed by the channel's Edit button.
+  const renderChannelEditor = (config: IPostPlatformConfig) => {
+    // Counts the caption this channel will actually publish: its own
+    // override when set, the shared caption otherwise.
+    const currentLength = countCaptionCharacters(
+      config.description || globalDescription,
+    );
+
+    return (
+      <div className="space-y-2">
+        <ModalPostPlatformCard
+          config={config}
+          isLoading={isLoading}
+          isEnabled={Boolean(config.credentialId) && config.enabled}
+          isTwitter={config.platform === CredentialPlatform.TWITTER}
+          isYoutube={config.platform === CredentialPlatform.YOUTUBE}
+          isInstagram={config.platform === CredentialPlatform.INSTAGRAM}
+          currentLength={currentLength}
+          charLimit={resolvePlatformCharLimit(config.platform)}
+          globalLabel={globalLabel}
+          globalDescription={globalDescription}
+          generatingTitleFor={generatingTitleFor}
+          generatingDescFor={generatingDescFor}
+          updatePlatformConfig={updatePlatformConfig}
+          getMinDateTime={getMinDateTime}
+          scheduleTimezone={scheduleTimezone}
+          handleGenerateContent={handleGenerateContent}
+        />
+        <PostingSignaturePicker
+          onChange={(signatureIds) =>
+            updatePlatformConfig(config.credentialId, { signatureIds })
+          }
+          platform={config.platform}
+          selectedIds={config.signatureIds ?? []}
+          signatures={signatures}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       <PostingSetPicker
@@ -302,84 +363,26 @@ export default function ModalPostPlatformsTab({
         selectedSetId={selectedSetId}
         sets={sets}
       />
-      <ModalPostPlatformGrid
+      <ModalPostChannelList
         platformConfigs={platformConfigs}
-        togglePlatform={togglePlatform}
+        credentials={credentials}
+        globalDescription={globalDescription ?? ''}
+        expandedPlatform={expandedPlatform}
+        isLoading={isLoading}
+        onToggle={togglePlatform}
+        onToggleAll={handleToggleAll}
+        onToggleExpanded={handleToggleExpanded}
+        onAddChannels={onAddChannels}
+        renderEditor={renderChannelEditor}
       />
+      {platformConfigs.every((config) => !config.enabled) ? (
+        <p className="text-sm text-foreground/70">{translate('empty')}</p>
+      ) : null}
 
       <PostCharacterUsage
         items={characterUsageItems}
         title={translate('charactersUsed')}
       />
-
-      {/* Platform-specific customization */}
-      <div className="border-t pt-4 space-y-4">
-        <h4 className="font-medium">{translate('settingsTitle')}</h4>
-        <p className="text-sm text-foreground/70">
-          {translate('settingsDescription')}
-        </p>
-
-        {platformConfigs.filter((config) => config.enabled).length === 0 ? (
-          <div className="bg-card/40 shadow-border p-6 text-sm text-foreground/70">
-            {translate('empty')}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {platformConfigs.reduce<ReactNode[]>((acc, config) => {
-              if (!config.enabled) return acc;
-              const hasCredential = !!config.credentialId;
-              const isCredentialValid = config.isCredentialValid !== false;
-              const isEnabled =
-                hasCredential && isCredentialValid && config.enabled;
-              const isTwitter = config.platform === CredentialPlatform.TWITTER;
-              const isYoutube = config.platform === CredentialPlatform.YOUTUBE;
-              const isInstagram =
-                config.platform === CredentialPlatform.INSTAGRAM;
-              // Counts the caption this channel will actually publish: its own
-              // override when set, the shared caption otherwise.
-              const currentLength = countCaptionCharacters(
-                config.description || globalDescription,
-              );
-              const charLimit = resolvePlatformCharLimit(config.platform);
-
-              const node = (
-                <div key={config.platform} className="space-y-2">
-                  <ModalPostPlatformCard
-                    config={config}
-                    isLoading={isLoading}
-                    isEnabled={isEnabled}
-                    isTwitter={isTwitter}
-                    isYoutube={isYoutube}
-                    isInstagram={isInstagram}
-                    currentLength={currentLength}
-                    charLimit={charLimit}
-                    globalLabel={globalLabel}
-                    globalDescription={globalDescription}
-                    generatingTitleFor={generatingTitleFor}
-                    generatingDescFor={generatingDescFor}
-                    updatePlatformConfig={updatePlatformConfig}
-                    getMinDateTime={getMinDateTime}
-                    scheduleTimezone={scheduleTimezone}
-                    handleGenerateContent={handleGenerateContent}
-                  />
-                  <PostingSignaturePicker
-                    onChange={(signatureIds) =>
-                      updatePlatformConfig(config.credentialId, {
-                        signatureIds,
-                      })
-                    }
-                    platform={config.platform}
-                    selectedIds={config.signatureIds ?? []}
-                    signatures={signatures}
-                  />
-                </div>
-              );
-              acc.push(node);
-              return acc;
-            }, [])}
-          </div>
-        )}
-      </div>
 
       {previewTargets.length > 0 ? (
         <div className="border-t pt-4 space-y-4">

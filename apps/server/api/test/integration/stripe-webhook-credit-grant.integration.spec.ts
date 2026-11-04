@@ -219,7 +219,7 @@ const buildInvoicePaidEventPayload = (params: {
   stripeSubscriptionId: string;
 }): string =>
   JSON.stringify({
-    api_version: '2026-09-30.endive',
+    api_version: '2026-10-28.endive',
     created: Math.floor(Date.now() / 1000),
     data: {
       object: {

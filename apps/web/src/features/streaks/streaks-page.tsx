@@ -8,12 +8,11 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -22,19 +21,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import CreationHeatmap from '@/components/analytics/creation-heatmap/CreationHeatmap';
 import StreakCelebrationBurst from '@/features/streaks/components/feedback/streak-celebration/StreakCelebrationBurst';
+import { rewardLabel } from '@/features/streaks/reward-label';
 import { useStreak } from '@/hooks/data/streaks/use-streak/use-streak';
-
-function rewardLabel(milestone: IStreakMilestoneState): string {
-  if (milestone.days === 7) {
-    return 'Freeze unlocked';
-  }
-
-  if (milestone.rewardCredits > 0) {
-    return `${milestone.rewardCredits} credits + badge`;
-  }
-
-  return 'Milestone reached';
-}
 
 export default function StreaksPage() {
   const { href } = useOrgUrl();

@@ -52,6 +52,7 @@ describe('ApifyPinterestService', () => {
     },
     calculateGrowthRate: vi.fn().mockReturnValue(12.5),
     calculateViralityScore: vi.fn().mockReturnValue(85),
+    logFailure: vi.fn(),
     loggerService: {
       error: vi.fn(),
     },
@@ -151,7 +152,7 @@ describe('ApifyPinterestService', () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
       await expect(service.getPinterestTrends()).rejects.toThrow('API error');
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
 
     it('should normalize metadata correctly', async () => {

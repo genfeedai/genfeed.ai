@@ -18,6 +18,7 @@ import {
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
@@ -64,10 +65,6 @@ export interface UseStudioPlaygroundIdentitiesReturn {
   isHeyGenSpeechLoaded: boolean;
   isLoadingIdentities: boolean;
   voiceOptions: readonly StudioIdentityOption[];
-}
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
 }
 
 function toIdentityLabel(name: string, source: string) {

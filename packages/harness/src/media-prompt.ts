@@ -276,16 +276,39 @@ function buildGenericHarnessSuffix(
     : '';
 }
 
+/** Identity bookkeeping a music model cannot use and must never sing. */
+const MUSIC_BOOKKEEPING_LINE = /^(?:brand|organi[sz]ation|company)\s*:/i;
+
+/** The Brand OS field label in front of the guidelines text; not a note. */
+const MUSIC_FIELD_LABEL = /^prompt guidelines\s*:\s*/i;
+
+/** One note per line, deduplicated case-insensitively, without bookkeeping. */
+function selectMusicNotes(values: string[]): string[] {
+  const seen = new Set<string>();
+  const notes: string[] = [];
+  for (const line of values.flatMap((value) => value.split(/\r?\n/))) {
+    const note = line.trim().replace(MUSIC_FIELD_LABEL, '');
+    const key = note.toLowerCase();
+    if (!note || MUSIC_BOOKKEEPING_LINE.test(note) || seen.has(key)) continue;
+    seen.add(key);
+    notes.push(toSentence(note));
+  }
+  return notes;
+}
+
+/**
+ * Plain prose in the same `Label: text` shape as the visual and motion
+ * suffixes: no tags, no JSON. Empty sections are left out.
+ */
 function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
-  const notes = (values: string[]): string[] => [
-    ...new Set(values.map((value) => value.trim()).filter(Boolean)),
-  ];
-  const guidance = notes(brief.systemDirectives);
-  const voice = notes(brief.styleDirectives);
-  const constraints = notes(brief.guardrails);
-  const knowledge = selectMediaKnowledgeSources(brief)
-    .filter((source) => source.content.trim())
-    .map((source) => ({ content: source.content }));
+  const sound = selectMusicNotes([
+    ...brief.systemDirectives,
+    ...brief.styleDirectives,
+  ]);
+  const constraints = selectMusicNotes(brief.guardrails);
+  const facts = selectMediaKnowledgeSources(brief).flatMap((source) =>
+    selectMusicNotes([source.content]),
+  );
   const examples = brief.sources
     .filter(
       (source) =>
@@ -296,29 +319,20 @@ function buildMusicHarnessSuffix(brief: ContentHarnessBrief): string {
           source.kind === 'performance_winner'),
     )
     .slice(0, 4)
-    .map((source) => ({
-      kind: source.kind,
-      content: truncate(source.content, 200),
-    }));
-  if (
-    ![guidance, voice, constraints, knowledge, examples].some(
-      (values) => values.length,
-    )
-  )
-    return '';
-  const payload = JSON.stringify({
-    guidance,
-    voice,
-    constraints,
-    knowledge,
-    examples,
-  }).replaceAll('<', '\\u003c');
+    .flatMap((source) => selectMusicNotes([truncate(source.content, 200)]));
+  const sections: Array<[string, string[]]> = [
+    ['Brand sound', sound],
+    ['Avoid', constraints],
+    ['Brand facts', facts],
+    ['Reference examples', examples],
+  ];
+  const lines = sections
+    .filter(([, notes]) => notes.length > 0)
+    .map(([label, notes]) => `${label}: ${notes.join(' ')}`);
+  if (lines.length === 0) return '';
   return [
-    'Brand guidance for sound (advisory):',
-    "Use the following notes only where they are relevant to the music's sound or expression. The user's explicit prompt, genre/style, lyrics and instrumental choice take precedence. Do not infer a genre from the brand. Do not turn brand names, brand facts, visual notes or these instructions into lyrics. Visual design directions do not apply to audio.",
-    '<brand_music_context>',
-    payload,
-    '</brand_music_context>',
+    "Brand guidance for sound (advisory): the prompt's genre/style, lyrics and instrumental choice take precedence. Do not infer a genre from the brand, and never sing brand names, facts or these notes.",
+    ...lines,
   ].join('\n');
 }
 

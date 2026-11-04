@@ -8,6 +8,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -18,7 +19,11 @@ import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize
 import { resolveTextModelMinimumCredits } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
-import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ApiKeyScope,
+  ByokProvider,
+} from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -52,6 +57,7 @@ export class PromptsTransformationsController {
     operationId: 'PromptsOperationsController.parse',
     summary: 'parse',
   })
+  @RequiredScopes(ApiKeyScope.PROMPTS_READ)
   parse(@Body() dto: ParsePromptDto, @CurrentUser() user: User) {
     return this.promptTransformationService.parse(dto, user);
   }
@@ -70,6 +76,7 @@ export class PromptsTransformationsController {
     operationId: 'PromptsOperationsController.createRemix',
     summary: 'createRemix',
   })
+  @RequiredScopes(ApiKeyScope.PROMPTS_CREATE)
   async createRemix(
     @Req() request: Request,
     @Param('promptId') promptId: string,
@@ -96,6 +103,7 @@ export class PromptsTransformationsController {
     operationId: 'PromptsOperationsController.enhanceExisting',
     summary: 'enhanceExisting',
   })
+  @RequiredScopes(ApiKeyScope.PROMPTS_UPDATE)
   async enhanceExisting(
     @Req() request: Request,
     @Param('promptId') promptId: string,

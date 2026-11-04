@@ -4,10 +4,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
 import { logger } from '@services/core/logger.service';
 import { isRecord } from '@utils/data/extract.util';
-import {
-  createScopedOutbox,
-  SCOPED_OUTBOX_IDLE_TIMEOUT_MS,
-} from '@utils/outbox/scoped-outbox.util';
+import { createScopedOutbox } from '@utils/outbox/scoped-outbox.util';
 import type {
   StudioGenerateDraftPayload,
   StudioGenerateDraftSaveStatus,
@@ -81,9 +78,6 @@ export interface StudioPlaygroundDraftOutbox {
    */
   whenIdle: (brandId: string) => Promise<void>;
 }
-
-export const STUDIO_PLAYGROUND_DRAFT_IDLE_TIMEOUT_MS =
-  SCOPED_OUTBOX_IDLE_TIMEOUT_MS;
 
 export const STUDIO_PLAYGROUND_DRAFT_OUTBOX_STORAGE_PREFIX =
   'genfeed.studio.generate.draft-outbox.v1';

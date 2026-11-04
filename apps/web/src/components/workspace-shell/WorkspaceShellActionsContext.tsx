@@ -1,7 +1,7 @@
 'use client';
 
 import type { WorkspaceShellOverlayRequest } from '@genfeedai/contracts/interfaces';
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, useMemo } from 'react';
 
 type WorkspaceShellActionsContextValue = {
   readonly openOverlay: (overlay: WorkspaceShellOverlayRequest) => boolean;
@@ -23,8 +23,4 @@ export function WorkspaceShellActionsProvider({
       {children}
     </WorkspaceShellActionsContext.Provider>
   );
-}
-
-export function useWorkspaceShellActions(): WorkspaceShellActionsContextValue | null {
-  return useContext(WorkspaceShellActionsContext);
 }

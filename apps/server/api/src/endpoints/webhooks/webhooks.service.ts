@@ -604,8 +604,8 @@ export class WebhooksService {
             'hasAudio',
           ],
         },
-        { path: 'brand', select: ['label'] },
-        { path: 'organization', select: ['label'] },
+        { path: 'brand', select: ['label', 'slug'] },
+        { path: 'organization', select: ['label', 'slug'] },
         { path: 'user', select: ['email', 'firstName', 'lastName'] },
       ],
     );
@@ -635,7 +635,9 @@ export class WebhooksService {
         }
       | undefined;
     const prompt = ingredient.prompt as { original?: string } | undefined;
-    const brand = ingredient.brand as { label?: string } | undefined;
+    const brand = ingredient.brand as
+      | { id?: string; label?: string; slug?: string }
+      | undefined;
     let thumbnailUrl: string | undefined;
 
     if (ingredientCategory === 'video') {
@@ -679,7 +681,13 @@ export class WebhooksService {
               category: String(categoryValue),
               cdnUrl,
               ingredient: {
-                brand,
+                brand: brand
+                  ? {
+                      id: brand.id ?? ingredient.brandId ?? undefined,
+                      label: brand.label,
+                      slug: brand.slug,
+                    }
+                  : undefined,
                 id: ingredient.id,
                 metadata: {
                   ...metadata,

@@ -1,9 +1,4 @@
-import {
-  Platform,
-  PostStatus,
-  PostVisibility,
-  TargetExecutionState,
-} from '@genfeedai/contracts';
+import { Platform, PostStatus, PostVisibility } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
@@ -64,8 +59,6 @@ export const POST_PLATFORM_VALUES = [
 ] as const;
 
 export type PostPlatform = (typeof POST_PLATFORM_VALUES)[number];
-
-export const POST_PLATFORMS = ['all', ...POST_PLATFORM_VALUES] as const;
 
 export type PostsPlatform = 'all' | PostPlatform;
 
@@ -257,16 +250,6 @@ export function getPostStatusOptions(
   return includeAll
     ? [{ label: 'All Statuses', value: '' }, ...options]
     : options;
-}
-
-export function getPostLifecycleOptions(): Array<{
-  label: string;
-  value: TargetExecutionState;
-}> {
-  return [
-    { label: 'Draft', value: TargetExecutionState.DRAFT },
-    { label: 'Scheduled', value: TargetExecutionState.SCHEDULED },
-  ];
 }
 
 export function getPostVisibilityOptions(): Array<{

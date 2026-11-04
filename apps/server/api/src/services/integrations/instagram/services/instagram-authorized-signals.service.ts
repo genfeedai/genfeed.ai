@@ -7,19 +7,27 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
-import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import {
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
-  parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,
@@ -31,7 +39,7 @@ import {
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
 } from '@genfeedai/integrations';
-import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
+import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -182,11 +190,17 @@ export class InstagramAuthorizedSignalsService {
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
-      credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
+    // Schedules / publishes / failures come from Genfeed posts. Draft-only
+    // activity (`genfeed-draft-activity-observed`) and first-reel-or-carousel
+    // stay enrollment attestations until a dedicated post-type projection exists.
+    const genfeedEvidence = await buildGenfeedPublishEvidence({
+      credentialId: credential.id,
+      key: 'genfeed-publish-outcomes-observed',
+      limit: INSTAGRAM_MEDIA_LIMIT,
+      observedAt: refreshAttemptedAt,
+      organizationId: params.organizationId,
+      prisma: this.prisma,
+    });
 
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
@@ -371,7 +385,10 @@ export class InstagramAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.INSTAGRAM,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-media-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -417,7 +434,7 @@ export class InstagramAuthorizedSignalsService {
         value[field] === undefined ? 'unavailable' : 'available',
       ]),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -454,7 +471,7 @@ export class InstagramAuthorizedSignalsService {
       );
     }
 
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const fieldAvailability = toFieldAvailability(
       MEDIA_FIELDS.map((field) => [
         field,
@@ -543,7 +560,7 @@ export class InstagramAuthorizedSignalsService {
       ...(professionalLimited
         ? { reason: 'professional_account_limited' as const }
         : {}),
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: professionalLimited
         ? 'permission_limited'
@@ -629,7 +646,7 @@ export class InstagramAuthorizedSignalsService {
       key: 'media-performance-snapshot',
       observedAt: ownedMedia.observedAt ?? observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: ownedMedia.staleAt,
       status:
         ownedMedia.status === 'empty'
@@ -649,7 +666,7 @@ export class InstagramAuthorizedSignalsService {
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const reason: InstagramAuthorizedSignalReason =
       isInstagramProfessionalAccountError(error)
         ? 'professional_account_limited'
@@ -714,80 +731,6 @@ export class InstagramAuthorizedSignalsService {
     return MEDIA_FIELDS;
   }
 
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
-  // Schedules / publishes / failures come from Genfeed posts. Draft-only
-  // activity (`genfeed-draft-activity-observed`) and first-reel-or-carousel
-  // stay enrollment attestations until a dedicated post-type projection exists.
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<InstagramAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: INSTAGRAM_MEDIA_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-outcomes-observed',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -810,7 +753,10 @@ export class InstagramAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.buildScope(this.requiredScopesForKey(key), grantedScopes),
+          scope: buildAuthorizedSignalsScope(
+            this.requiredScopesForKey(key),
+            grantedScopes,
+          ),
           staleAt: refreshAttemptedAt,
           status: 'revoked' as const,
         };
@@ -851,85 +797,40 @@ export class InstagramAuthorizedSignalsService {
     return [BASIC_SCOPE];
   }
 
-  private resolveSnapshotState(
-    evidence: InstagramAuthorizedSignalEvidence[],
-  ): InstagramAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedMedia = platformEvidence.find(
-      (item) => item.key === 'owned-media-snapshot',
-    );
-    if (
-      ownedMedia?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
-  }
-
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[INSTAGRAM_AUTHORIZATION_STORAGE_KEY],
-    );
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseInstagramGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[INSTAGRAM_AUTHORIZATION_STORAGE_KEY],
-    );
-
-    return (
-      (Array.isArray(credential.grantedScopes) &&
-        credential.grantedScopes.length > 0) ||
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): InstagramAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = instagramAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      instagramAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -938,43 +839,27 @@ export class InstagramAuthorizedSignalsService {
     cacheKey: string,
     snapshot: InstagramAuthorizedSignalsSnapshot,
   ): Promise<InstagramAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [INSTAGRAM_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncInstagramAuthorizedSnapshot(
-        {
-          brandId: credential.brandId,
-          credentialId: credential.id,
-          organizationId,
-          snapshot,
-        },
-      );
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.INSTAGRAM_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.INSTAGRAM_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? INSTAGRAM_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: INSTAGRAM_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncInstagramAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

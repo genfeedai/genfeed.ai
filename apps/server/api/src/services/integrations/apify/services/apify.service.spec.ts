@@ -8,7 +8,6 @@ import { ApifyTikTokService } from '@api/services/integrations/apify/services/mo
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import { Platform } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyService', () => {
@@ -69,6 +68,7 @@ describe('ApifyService', () => {
             calculateViralityScore: vi.fn(),
             extractHashtags: vi.fn(),
             getApiToken: vi.fn(),
+            logFailure: vi.fn(),
             loggerService: { error: vi.fn(), log: vi.fn() },
             parseDuration: vi.fn(),
             runActor: vi.fn(),
@@ -138,14 +138,6 @@ describe('ApifyService', () => {
           provide: ApifyLinkedInService,
           useValue: {
             getLinkedInProfilePosts: vi.fn(),
-          },
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
           },
         },
       ],

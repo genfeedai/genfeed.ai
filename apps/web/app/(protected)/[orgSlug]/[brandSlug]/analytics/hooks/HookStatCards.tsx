@@ -1,6 +1,6 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { Eye, Heart, Sparkles, TrendingUp } from 'lucide-react';
 import type { Props } from '@/features/analytics/props/hook-stat-cards.props';
 

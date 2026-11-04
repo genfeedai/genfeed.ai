@@ -1,16 +1,10 @@
+import { ContentPerformanceCountsDto } from '@api/collections/content-performance/dto/content-performance-counts.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-  ValidateIf,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, ValidateIf } from 'class-validator';
 
-export class ImportManualDto {
+export class ImportManualDto extends ContentPerformanceCountsDto {
   @ApiProperty({
     description: 'Post ID (provide this OR externalPostId)',
     required: false,
@@ -34,42 +28,6 @@ export class ImportManualDto {
   })
   @IsEnum(CredentialPlatform)
   platform!: CredentialPlatform;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  views?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  likes?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  comments?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  shares?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  saves?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  revenue?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()

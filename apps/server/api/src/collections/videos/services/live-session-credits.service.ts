@@ -14,7 +14,10 @@ import {
   UnsettleableReservationException,
 } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import {
+  createInsufficientCreditsException,
+  rethrowReservationFailure,
+} from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -302,17 +305,11 @@ export class LiveSessionCreditsService {
       };
       return reservation.id;
     } catch (error: unknown) {
-      if (
-        error instanceof BusinessLogicException &&
-        error.errorCode === 'INSUFFICIENT_CREDITS'
-      ) {
-        const balance =
-          await this.creditsUtilsService.getOrganizationCreditsBalance(
-            params.organizationId,
-          );
-        throw createInsufficientCreditsException(params.amount, balance);
-      }
-      throw error;
+      return rethrowReservationFailure(error, params.amount, () =>
+        this.creditsUtilsService.getOrganizationCreditsBalance(
+          params.organizationId,
+        ),
+      );
     }
   }
 

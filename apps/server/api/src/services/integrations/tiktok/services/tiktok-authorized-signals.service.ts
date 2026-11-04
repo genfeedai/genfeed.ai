@@ -7,25 +7,33 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
-import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
   isTikTokRateLimitError,
   isTikTokScopeError,
-  parseTikTokGrantedScopes,
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type TikTokAuthorizedSignalEvidence,
   type TikTokAuthorizedSignalReason,
   type TikTokAuthorizedSignalsSnapshot,
   tiktokAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
-import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
+import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -165,11 +173,14 @@ export class TiktokAuthorizedSignalsService {
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
-      credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
+    const genfeedEvidence = await buildGenfeedPublishEvidence({
+      credentialId: credential.id,
+      key: 'genfeed-publish-activity',
+      limit: TIKTOK_VIDEO_LIMIT,
+      observedAt: refreshAttemptedAt,
+      organizationId: params.organizationId,
+      prisma: this.prisma,
+    });
 
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
@@ -354,7 +365,10 @@ export class TiktokAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.TIKTOK,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'public-videos-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -421,7 +435,7 @@ export class TiktokAuthorizedSignalsService {
           ] as const,
       ),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -485,7 +499,7 @@ export class TiktokAuthorizedSignalsService {
           ] as const,
       ),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -522,7 +536,7 @@ export class TiktokAuthorizedSignalsService {
       );
     }
 
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const fieldAvailability = Object.fromEntries(
       VIDEO_FIELDS.map(
         (field) =>
@@ -603,7 +617,7 @@ export class TiktokAuthorizedSignalsService {
       observedAt,
       provenance: 'platform_verified',
       scope: {
-        ...this.buildScope(requiredScopes, grantedScopes),
+        ...buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
         granted: grantedScopes.filter((scope) =>
           [VIDEO_PUBLISH_SCOPE, VIDEO_UPLOAD_SCOPE].includes(scope),
         ),
@@ -657,7 +671,7 @@ export class TiktokAuthorizedSignalsService {
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const reason: TikTokAuthorizedSignalReason =
       scope.missing.length > 0 || isTikTokScopeError(error)
         ? 'missing_scope'
@@ -731,77 +745,6 @@ export class TiktokAuthorizedSignalsService {
     return VIDEO_FIELDS;
   }
 
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<TikTokAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: TIKTOK_VIDEO_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-activity',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -823,7 +766,10 @@ export class TiktokAuthorizedSignalsService {
       );
       if (previous) {
         const requiredScopes = this.requiredScopesForKey(key);
-        const scope = this.buildScope(requiredScopes, grantedScopes);
+        const scope = buildAuthorizedSignalsScope(
+          requiredScopes,
+          grantedScopes,
+        );
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
@@ -881,73 +827,38 @@ export class TiktokAuthorizedSignalsService {
     return [VIDEO_LIST_SCOPE];
   }
 
-  private resolveSnapshotState(
-    evidence: TikTokAuthorizedSignalEvidence[],
-  ): TikTokAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const publicVideos = platformEvidence.find(
-      (item) => item.key === 'public-videos-snapshot',
-    );
-    if (
-      publicVideos?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
-  }
-
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
     credential: Pick<CredentialDocument, 'warmupSignals'>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TIKTOK_AUTHORIZATION_STORAGE_KEY]);
-
-    return parseTikTokGrantedScopes(
-      explicitScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: TIKTOK_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TIKTOK_AUTHORIZATION_STORAGE_KEY]);
-
-    return (
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: TIKTOK_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): TikTokAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = tiktokAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      tiktokAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -956,44 +867,27 @@ export class TiktokAuthorizedSignalsService {
     cacheKey: string,
     snapshot: TikTokAuthorizedSignalsSnapshot,
   ): Promise<TikTokAuthorizedSignalsSnapshot> {
-    // Merge only the TikTok-owned keys atomically so concurrent warmup
-    // writers (token refresh, account-health assessments, overlapping
-    // refreshes) never lose their evidence to a stale full-object replace.
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [TIKTOK_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncTikTokAuthorizedSnapshot({
-        brandId: credential.brandId,
-        credentialId: credential.id,
-        organizationId,
-        snapshot,
-      });
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: TIKTOK_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.TIKTOK_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.TIKTOK_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? TIKTOK_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : TIKTOK_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: TIKTOK_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: TIKTOK_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncTikTokAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

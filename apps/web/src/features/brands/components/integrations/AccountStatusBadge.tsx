@@ -1,29 +1,14 @@
 'use client';
 
-import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { AccountStatusBadgeProps } from '@props/pages/brand-integrations.props';
-import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
+import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import {
   getAccountConnectionStatus,
   hasWarmupBlueprint,
   STATE_MESSAGE_KEYS,
 } from './account-connection-status.util';
-
-function getHealthBadgeVariant(
-  summary: AccountHealthSummary,
-): BadgeProps['variant'] {
-  if (summary.override.isActive) {
-    return 'info';
-  }
-
-  if (summary.holdPublishing || summary.riskLevel === 'high') {
-    return 'warning';
-  }
-
-  return 'success';
-}
 
 /**
  * Status column: "Needs reconnect" takes priority over everything else. A

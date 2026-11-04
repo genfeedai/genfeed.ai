@@ -6,8 +6,8 @@ import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-c
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import { Alert } from '@ui/primitives/alert';

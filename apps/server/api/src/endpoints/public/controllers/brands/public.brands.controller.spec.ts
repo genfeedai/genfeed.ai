@@ -370,6 +370,38 @@ describe('PublicBrandsController', () => {
     });
   });
 
+  describe('paged public brand listings', () => {
+    it.each([
+      'findBrandVideos',
+      'findBrandImages',
+      'findBrandArticles',
+    ] as const)('%s rejects a malformed brand id', async (method) => {
+      const result = await controller[method]('not-an-id', mockReq);
+
+      expect(result).toEqual({
+        data: [],
+        message: 'Invalid brand ID format',
+        pagination: null,
+      });
+    });
+
+    it.each([
+      'findBrandVideos',
+      'findBrandImages',
+      'findBrandArticles',
+    ] as const)('%s reports a brand that is not public', async (method) => {
+      brandsService.findOne.mockResolvedValue(null);
+
+      const result = await controller[method](brandId, mockReq);
+
+      expect(result).toEqual({
+        data: [],
+        message: 'Brand not found',
+        pagination: null,
+      });
+    });
+  });
+
   describe('public brand asset filters', () => {
     it('uses brandId for links, videos, images, and articles', async () => {
       brandsService.findOne.mockResolvedValue(

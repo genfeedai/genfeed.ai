@@ -5,7 +5,10 @@ import type {
   SkeletonProps,
   SkeletonTableProps,
 } from '@genfeedai/props/ui/feedback/skeleton.props';
-import { Skeleton as ShadcnSkeleton } from '@ui/primitives/skeleton';
+import {
+  formatDimension,
+  Skeleton as ShadcnSkeleton,
+} from '@ui/primitives/skeleton';
 
 type SkeletonVariant = 'circular' | 'rectangular' | 'rounded' | 'text';
 
@@ -15,15 +18,6 @@ const VARIANT_CLASSES: Record<SkeletonVariant, string> = {
   rounded: '',
   text: 'rounded',
 };
-
-function formatDimension(
-  value: number | string | undefined,
-): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return typeof value === 'number' ? `${value}px` : value;
-}
 
 interface SkeletonRenderItem {
   id: string;

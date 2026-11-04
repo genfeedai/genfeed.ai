@@ -150,7 +150,7 @@ describe('EmailProductSignalsService generation recovery', () => {
         topic: 'generation.status',
         templateKey: 'generation-ready',
         destinationUrl:
-          'https://app.example.test/creator%20workspace/brand%20name/library/assets?asset=asset%2F1',
+          'https://app.example.test/creator%20workspace/brand%20name/library/videos?asset=asset%2F1',
         idempotencyKey: 'generation-asset/1-GENERATED-2026-09-09T11:58:00.000Z',
         policyData: {
           assetId: 'asset/1',

@@ -3,11 +3,12 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
+import { isFileDrag } from '@genfeedai/helpers/ui/file-drag.helper';
 import type { UploadModalOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
 import { useCallback, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { isFileDrag, normalizeUploadedReference } from './prompt-bar.helpers';
+import { normalizeUploadedReference } from './prompt-bar.helpers';
 
 type UsePromptBarDragDropParams = {
   currentConfig: MediaConfig;

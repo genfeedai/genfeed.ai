@@ -1,5 +1,6 @@
 'use client';
 
+import { getAppLoginUrl, getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -280,7 +281,7 @@ export default function WebsiteTopbar() {
         trackingData={{ action: 'log_in_mobile_menu' }}
         trackingName="topbar_cta_click"
       >
-        <a href={`${EnvironmentService.apps.app}/login`}>Log in</a>
+        <a href={getAppLoginUrl()}>Log in</a>
       </ButtonTracked>
     </div>
   );
@@ -330,7 +331,7 @@ export default function WebsiteTopbar() {
               )}
             >
               <a
-                href={`${EnvironmentService.apps.app}/login`}
+                href={getAppLoginUrl()}
                 className="hidden text-xs font-bold uppercase tracking-[0.1em] text-foreground/60 transition-colors hover:text-foreground lg:block"
               >
                 Log in
@@ -349,9 +350,7 @@ export default function WebsiteTopbar() {
                 trackingData={{ action: 'start_free_topbar' }}
                 trackingName="topbar_cta_click"
               >
-                <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start creating
-                </a>
+                <a href={getAppSignUpUrl()}>Start creating</a>
               </ButtonTracked>
             </div>
           ) : (

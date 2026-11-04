@@ -1,4 +1,5 @@
 import { agentClients } from '@data/agent-clients.data';
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -112,7 +113,7 @@ const FAQS = [
 ];
 
 export default function DevelopersLandingPage(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
+  const signUpHref = getAppSignUpUrl();
   const githubHref = EnvironmentService.github.core;
 
   return (

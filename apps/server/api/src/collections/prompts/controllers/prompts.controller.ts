@@ -13,6 +13,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { toPromptBrandContext } from '@api/collections/prompts/utils/prompt-text.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -37,6 +38,7 @@ import { PromptEnhancementService } from '@api/services/prompt-enhancement/promp
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivitySource,
+  ApiKeyScope,
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
@@ -108,6 +110,7 @@ export class PromptsController {
     source: ActivitySource.PROMPT_CREATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_CREATE)
   async create(
     @Req() request: Request,
     @Body() createPromptDto: CreatePromptDto,
@@ -198,6 +201,7 @@ export class PromptsController {
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_READ)
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -238,6 +242,7 @@ export class PromptsController {
   @TenantReadPolicy('selected')
   @Get(':promptId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_READ)
   async findOne(
     @Req() request: Request,
     @Param('promptId') promptId: string,
@@ -273,6 +278,7 @@ export class PromptsController {
 
   @Patch(':promptId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_UPDATE)
   async update(
     @Req() request: Request,
     @Param('promptId') promptId: string,
@@ -306,6 +312,7 @@ export class PromptsController {
 
   @Post(':promptId/publish')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_UPDATE)
   async publishToMarketplace(
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,

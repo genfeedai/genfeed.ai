@@ -945,6 +945,12 @@ describe('OperationalHomeContent', () => {
       'href',
       '/acme/moonrise/settings/connected-accounts',
     );
+
+    // The status badge sits in the same cluster as the action it explains.
+    const reconnect = queue.getByRole('link', { name: 'Reconnect' });
+    expect(reconnect.parentElement).toContainElement(
+      queue.getByText('Disconnected'),
+    );
   });
 
   it('opens a failed run with its error from the attention queue', () => {

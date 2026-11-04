@@ -300,11 +300,13 @@ describe('SlackBotAdapter', () => {
         'https://cdn.example.com/vid.mp4?Signature=secret',
         'video',
         undefined,
-        'https://app.genfeed.ai/ingredients/Video/ing-1',
+        'https://app.genfeed.ai/library/videos?asset=ing-1',
       );
 
       const body = JSON.stringify(httpService.post.mock.calls[0][1]);
-      expect(body).toContain('https://app.genfeed.ai/ingredients/Video/ing-1');
+      expect(body).toContain(
+        'https://app.genfeed.ai/library/videos?asset=ing-1',
+      );
       expect(body).not.toContain('Signature');
     });
   });

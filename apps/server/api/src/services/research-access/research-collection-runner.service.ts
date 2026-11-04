@@ -180,7 +180,7 @@ export class ResearchCollectionRunner {
       );
     }
     try {
-      this.baseService.assertCollectionAdmission(scope);
+      await this.baseService.assertCollectionAdmission(scope);
     } catch (error: unknown) {
       this.baseService.recordCollectionFailure(scope, actorId, error);
       await this.stopUnsubmitted(job, 'admission_rejected');

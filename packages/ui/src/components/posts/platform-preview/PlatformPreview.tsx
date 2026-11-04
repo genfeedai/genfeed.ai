@@ -102,6 +102,7 @@ export default function PlatformPreview({
   emptyMessage,
   renderMedia,
   statusLabel,
+  headerAction,
   showValidation,
   presentation = 'full',
   headerPresentation = 'platform',
@@ -206,6 +207,7 @@ export default function PlatformPreview({
         value={{
           renderMedia,
           statusLabel,
+          headerAction,
           showValidation,
           presentation,
           headerPresentation,

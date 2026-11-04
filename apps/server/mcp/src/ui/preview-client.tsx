@@ -1,9 +1,11 @@
 import '@mcp/ui/preview-runtime';
 import {
+  ButtonSize,
   ButtonVariant,
   CardGap,
   CardPadding,
   CardVariant,
+  ComponentSize,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
 import type {
@@ -15,8 +17,10 @@ import type {
   McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 import type {
+  BrandListProps,
   CardPreviewProps,
   DescriptionProps,
+  IconActionProps,
   ImagePreview,
   MediaPreviewProps,
   OrganizationSwitcherProps,
@@ -27,6 +31,7 @@ import type {
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import { CardBoundary } from '@mcp/ui/card-boundary';
+import { FactValue, MetricList, StatusBadge } from '@mcp/ui/card-parts';
 import uiMessages from '@preview-messages/ui';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -57,6 +62,16 @@ import { Progress } from '@ui/primitives/progress';
 import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import {
+  BookOpen,
+  CalendarCheck,
+  CalendarClock,
+  CalendarOff,
+  ExternalLink,
+  FilePen,
+  Maximize2,
+  Music,
+} from 'lucide-react';
 import Image from 'next/image';
 import { NextIntlClientProvider } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -108,6 +123,7 @@ function card(value: unknown): McpCard | undefined {
     id: text(row.id),
     title: text(row.title),
     description: text(row.description),
+    body: text(row.body) || undefined,
     kind: row.kind as McpCard['kind'],
     status: text(row.status),
     platform: text(row.platform),
@@ -117,19 +133,33 @@ function card(value: unknown): McpCard | undefined {
     mediaUrl: safeUrl(row.mediaUrl),
     avatarUrl: safeUrl(row.avatarUrl),
     actions: Array.isArray(row.actions)
-      ? row.actions.slice(0, 4).flatMap((value) => {
+      ? row.actions.slice(0, 4).flatMap((value): McpCardAction[] => {
           const item = record(value);
-          return item.kind === 'select_brand' && text(item.brandId)
-            ? [
-                {
-                  kind: 'select_brand' as const,
-                  brandId: text(item.brandId),
-                  label: text(item.label) || 'Select',
-                },
-              ]
-            : [];
+          if (item.kind === 'select_brand' && text(item.brandId))
+            return [
+              {
+                kind: 'select_brand',
+                brandId: text(item.brandId),
+                label: text(item.label) || 'Select',
+              },
+            ];
+          if (
+            item.kind === 'resolve_approval' &&
+            text(item.approvalId) &&
+            (item.decision === 'approve' || item.decision === 'decline')
+          )
+            return [
+              {
+                kind: 'resolve_approval',
+                approvalId: text(item.approvalId),
+                decision: item.decision,
+                label: text(item.label) || 'Approve',
+              },
+            ];
+          return [];
         })
       : undefined,
+    linkLabel: text(row.linkLabel) || undefined,
     author: {
       name: text(record(row.author).name),
       handle: text(record(row.author).handle),
@@ -158,11 +188,57 @@ function card(value: unknown): McpCard | undefined {
           ['image', 'video', 'audio'].includes(text(kind)),
         )
       : undefined,
+    hasAvatar: row.hasAvatar === true,
     facts: Array.isArray(row.facts)
       ? row.facts.slice(0, 12).flatMap((value) => {
           const item = record(value);
           return text(item.label) && text(item.value)
-            ? [{ label: text(item.label), value: text(item.value) }]
+            ? [
+                {
+                  label: text(item.label),
+                  value: text(item.value),
+                  status: text(item.status) || undefined,
+                  items: Array.isArray(item.items)
+                    ? item.items.slice(0, 50).flatMap((entry) => {
+                        const chip = record(entry);
+                        return text(chip.label)
+                          ? [
+                              {
+                                label: text(chip.label),
+                                avatarUrl: safeUrl(chip.avatarUrl),
+                                platform: text(chip.platform) || undefined,
+                                status: text(chip.status) || undefined,
+                              },
+                            ]
+                          : [];
+                      })
+                    : undefined,
+                },
+              ]
+            : [];
+        })
+      : undefined,
+    metrics: Array.isArray(row.metrics)
+      ? row.metrics.slice(0, 6).flatMap((value) => {
+          const item = record(value);
+          const trend = record(item.trend);
+          return text(item.label) && text(item.value)
+            ? [
+                {
+                  label: text(item.label),
+                  value: text(item.value),
+                  isPrimary: item.isPrimary === true,
+                  trend: ['up', 'down', 'flat'].includes(text(trend.direction))
+                    ? {
+                        direction: text(trend.direction) as
+                          | 'up'
+                          | 'down'
+                          | 'flat',
+                        label: text(trend.label),
+                      }
+                    : undefined,
+                },
+              ]
             : [];
         })
       : undefined,
@@ -207,12 +283,16 @@ function readOrganizations(
 function readView(result: unknown): McpCardView | undefined {
   const data = record(result);
   const view = record(record(data.structuredContent).genfeedCards);
-  if (data.isError || !Array.isArray(view.cards)) return undefined;
+  // Only a queued approval attaches cards to an error result.
+  if (!Array.isArray(view.cards) || (data.isError && !view.isApproval))
+    return undefined;
   const calendar = record(view.calendar);
   return {
     organizations: readOrganizations(view.organizations),
     cards: cards(view.cards),
     title: text(view.title) || 'Genfeed content',
+    isCountHidden: view.isCountHidden === true,
+    isApproval: view.isApproval === true,
     total:
       typeof view.total === 'number' && Number.isFinite(view.total)
         ? Math.max(0, view.total)
@@ -251,6 +331,127 @@ function formatDate(
 }
 function platformName(value: string): string {
   return formatPlatformLabel(value) || 'Post';
+}
+function openExternal(bridge: PreviewBridge, url: string) {
+  bridge
+    .request('ui/open-link', { url })
+    .then((result) => {
+      if (record(result).isError) throw new Error('blocked');
+    })
+    .catch(() =>
+      bridge.notify(
+        'The host could not open the link. Copy the link address to open it in your browser.',
+      ),
+    );
+}
+/** A card's header control: an icon that opens a link or runs an action. */
+function IconAction({ label, icon, url, bridge, onClick }: IconActionProps) {
+  return url ? (
+    <Button
+      asChild
+      size={ButtonSize.ICON}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+      ariaLabel={label}
+      className="size-8 shrink-0"
+    >
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => {
+          event.preventDefault();
+          openExternal(bridge, url);
+        }}
+      >
+        {icon}
+      </a>
+    </Button>
+  ) : (
+    <Button
+      size={ButtonSize.ICON}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+      ariaLabel={label}
+      className="size-8 shrink-0"
+      onClick={(event) => onClick?.(event.currentTarget)}
+    >
+      {icon}
+    </Button>
+  );
+}
+/** Brands as one compact list: logo, name and handle, and a select button. */
+function BrandList({
+  items,
+  bridge,
+  isActionPending,
+  selectedId,
+  onAction,
+}: BrandListProps) {
+  return (
+    <Card padding={CardPadding.SM} className="brands col-span-full min-w-0">
+      <ul className="flex flex-col divide-y divide-border">
+        {items.map((item) => {
+          const avatar = safeUrl(item.avatarUrl);
+          const avatarUrl =
+            avatar &&
+            (mediaUrl(avatar, bridge.origins) ||
+              isAccountAvatarOrigin(new URL(avatar)))
+              ? avatar
+              : undefined;
+          const handle = item.facts
+            ?.find((fact) => fact.label === 'Handle')
+            ?.value.replace(/^@/, '');
+          const action = item.actions?.find(
+            (candidate) => candidate.kind === 'select_brand',
+          );
+          const isSelected = Boolean(selectedId) && item.id === selectedId;
+          return (
+            <li
+              key={item.id || item.title}
+              className="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0"
+            >
+              <Avatar
+                name={item.title}
+                onLoadingStatusChange={() => bridge.resize()}
+                shape="square"
+                size="md"
+                src={avatarUrl}
+              />
+              <div className="min-w-0 flex-1">
+                <Text as="p" size="sm" className="truncate font-medium">
+                  {item.title}
+                </Text>
+                {(handle || item.description) && (
+                  <Text as="p" size="xs" color="muted" className="truncate">
+                    {[handle && `@${handle}`, item.description]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                )}
+              </div>
+              {item.status && item.status.toLowerCase() !== 'active' ? (
+                <StatusBadge status={item.status} />
+              ) : null}
+              {action && (
+                // ui-guard-allow:selection-button -- action button showing a state, not a choice group
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                  isDisabled={isSelected || isActionPending}
+                  ariaLabel={`${action.label} ${item.title}`}
+                  onClick={() => onAction(action)}
+                >
+                  {isSelected ? 'Selected' : action.label}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
 }
 function Description({ content, bridge }: DescriptionProps) {
   if (!content) return null;
@@ -328,7 +529,13 @@ function usePendingCard(item: McpCard, bridge: PreviewBridge) {
   }, [item, bridge]);
   return { current, exhausted: exhausted || !current.id };
 }
-function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
+function MediaPreview({
+  item,
+  bridge,
+  openImage,
+  onError,
+  isFill = false,
+}: MediaPreviewProps) {
   const src =
     mediaUrl(item.url, bridge.origins) ||
     (item.kind === 'image'
@@ -340,7 +547,9 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
-        className="zoom block max-w-full"
+        className={
+          isFill ? 'zoom absolute inset-0 block size-full' : 'zoom block w-full'
+        }
         ariaLabel={`Enlarge ${item.title || 'Generated image'}`}
         onClick={(event) => openImage(src, item.title, event.currentTarget)}
       >
@@ -350,7 +559,12 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
           width={0}
           height={0}
           loading="lazy"
-          className="h-auto max-h-80 w-auto max-w-full rounded-card object-contain outline-media"
+          fill={isFill}
+          className={
+            isFill
+              ? 'object-cover'
+              : 'mx-auto h-auto max-h-96 w-auto max-w-full rounded-lg object-contain outline-media'
+          }
           onError={onError}
           onLoad={bridge.resize}
         />
@@ -375,8 +589,10 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
           autoPlay: false,
           preload: 'metadata',
         }}
-        className="max-w-full"
-        mediaClassName="max-h-80 object-contain"
+        className={isFill ? 'absolute inset-0 size-full' : 'max-w-full'}
+        mediaClassName={
+          isFill ? 'size-full object-cover' : 'max-h-96 object-contain'
+        }
       />
     );
   if (item.kind === 'audio')
@@ -386,7 +602,7 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
         stopOnUnmount
         onError={onError}
         src={src}
-        label={item.title || 'Generated audio'}
+        label={item.title || 'Audio'}
       />
     );
   return null;
@@ -397,6 +613,7 @@ function SummaryCard({
   isActionPending,
   isSelected,
   onAction,
+  resolvedDecision,
   when,
 }: SummaryCardProps) {
   const avatar = safeUrl(item.avatarUrl);
@@ -405,11 +622,26 @@ function SummaryCard({
     (mediaUrl(avatar, bridge.origins) || isAccountAvatarOrigin(new URL(avatar)))
       ? avatar
       : undefined;
-  const hasIdentity = Boolean(item.actions?.length || item.avatarUrl);
+  const hasIdentity = Boolean(
+    item.actions?.some((action) => action.kind === 'select_brand') ||
+      item.avatarUrl ||
+      item.hasAvatar,
+  );
+  const link = safeUrl(item.url);
   const handle = item.facts?.find((fact) => fact.label === 'Handle')?.value;
   const facts = (item.facts || []).filter(
     (fact) => !hasIdentity || fact.label !== 'Handle',
   );
+  const metrics = item.metrics ?? [];
+  const statusNode = resolvedDecision ? (
+    <StatusBadge
+      status={resolvedDecision === 'approve' ? 'approved' : 'rejected'}
+      label={resolvedDecision === 'approve' ? 'Approved' : 'Declined'}
+    />
+  ) : item.status ? (
+    <StatusBadge status={item.status} />
+  ) : null;
+  const actions = item.actions && !resolvedDecision ? item.actions : [];
   return (
     <article className="content-card min-w-0">
       <Card
@@ -426,6 +658,13 @@ function SummaryCard({
               size="lg"
               src={avatarUrl}
             />
+          ) : item.platform ? (
+            <PlatformBadge
+              platform={item.platform}
+              showLabel={false}
+              size={ComponentSize.LG}
+              variant="solid"
+            />
           ) : undefined
         }
         label={item.title}
@@ -435,42 +674,72 @@ function SummaryCard({
           hasIdentity && handle ? `@${handle.replace(/^@/, '')}` : undefined
         }
         headerAction={
-          item.status ? (
-            <Badge variant="outline" className="status shrink-0">
-              {item.status}
-            </Badge>
+          statusNode || (link && item.linkLabel) ? (
+            <div className="flex items-center gap-1">
+              {statusNode}
+              {link && item.linkLabel ? (
+                <IconAction
+                  bridge={bridge}
+                  icon={<ExternalLink aria-hidden="true" />}
+                  label={item.linkLabel}
+                  url={link}
+                />
+              ) : null}
+            </div>
           ) : undefined
         }
         actions={
-          item.actions?.length
-            ? item.actions.map((action) => (
-                // ui-guard-allow:selection-button -- action button showing a state, not a choice group
-                <Button
-                  key={`${action.kind}-${action.brandId}`}
-                  variant={
-                    isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-                  }
-                  withWrapper={false}
-                  isDisabled={isSelected || isActionPending}
-                  ariaLabel={`${action.label} ${item.title}`}
-                  onClick={() => onAction(action)}
-                >
-                  {isSelected ? 'Selected' : action.label}
-                </Button>
-              ))
+          actions.length
+            ? [
+                ...actions.map((action) => {
+                  const isBrand = action.kind === 'select_brand';
+                  const isDecline =
+                    action.kind === 'resolve_approval' &&
+                    action.decision === 'decline';
+                  return (
+                    // ui-guard-allow:selection-button -- action button showing a state, not a choice group
+                    <Button
+                      key={
+                        isBrand
+                          ? `${action.kind}-${action.brandId}`
+                          : `${action.kind}-${action.approvalId}-${action.decision}`
+                      }
+                      variant={
+                        (isBrand && isSelected) || isDecline
+                          ? ButtonVariant.SECONDARY
+                          : ButtonVariant.DEFAULT
+                      }
+                      withWrapper={false}
+                      isDisabled={(isBrand && isSelected) || isActionPending}
+                      ariaLabel={`${action.label} ${item.title}`}
+                      onClick={() => onAction(action)}
+                    >
+                      {isBrand && isSelected ? 'Selected' : action.label}
+                    </Button>
+                  );
+                }),
+              ]
             : undefined
         }
       >
         {item.description && (
           <Description content={item.description} bridge={bridge} />
         )}
+        {metrics.length ? <MetricList metrics={metrics} /> : null}
         {facts.length ? (
           <DefinitionList variant="compact" className="facts">
             {facts.map((fact) => (
-              <div key={fact.label} className="flex flex-wrap gap-x-2">
+              <div
+                key={fact.label}
+                className={
+                  fact.items?.length
+                    ? 'flex flex-col gap-1.5'
+                    : 'flex flex-wrap items-center gap-x-2 gap-y-1'
+                }
+              >
                 <DefinitionTerm>{fact.label}</DefinitionTerm>
-                <DefinitionDetail className="break-words">
-                  {fact.value}
+                <DefinitionDetail className="min-w-0">
+                  <FactValue fact={fact} />
                 </DefinitionDetail>
               </div>
             ))}
@@ -489,7 +758,9 @@ function CardPreview({
   item,
   bridge,
   openImage,
+  openArticle,
   selectedId,
+  resolvedApprovals,
   isActionPending = false,
   onAction,
 }: CardPreviewProps) {
@@ -497,7 +768,9 @@ function CardPreview({
   const [failed, setFailed] = useState(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
   useEffect(() => setFailed(false), [item]);
-  const isPost = current.kind === 'post';
+  const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
+    current.status.toLowerCase(),
+  );
   const isMedia = ['image', 'video', 'audio', 'media'].includes(current.kind);
   const source =
     mediaUrl(current.url, bridge.origins) ||
@@ -513,19 +786,14 @@ function CardPreview({
     dateStyle: 'medium',
     timeStyle: 'short',
   });
-  const attachments = new Map<string, number>();
-  for (const kind of current.attachments || [])
-    attachments.set(kind, (attachments.get(kind) || 0) + 1);
-  const player = (
-    <MediaPreview
-      item={current}
-      bridge={bridge}
-      openImage={openImage}
-      onError={() => {
-        setFailed(true);
-        bridge.resize();
-      }}
-    />
+  const onMediaError = () => {
+    setFailed(true);
+    bridge.resize();
+  };
+  const failedNotice = failed && (
+    <Text as="p" size="sm" color="muted" className="notice">
+      Preview unavailable. Open the media link to view it.
+    </Text>
   );
   if (current.kind === 'summary')
     return (
@@ -535,10 +803,15 @@ function CardPreview({
         isActionPending={isActionPending}
         isSelected={Boolean(selectedId) && current.id === selectedId}
         onAction={onAction}
+        resolvedDecision={
+          current.actions?.[0]?.kind === 'resolve_approval'
+            ? resolvedApprovals?.[current.actions[0].approvalId]
+            : undefined
+        }
         when={when}
       />
     );
-  if (isPost) {
+  if (current.kind === 'post') {
     const avatar = safeUrl(current.author?.avatarUrl);
     const avatarUrl =
       avatar &&
@@ -557,8 +830,20 @@ function CardPreview({
             },
           ]
         : []);
+    // A draft's date is when it was written; only a planned or live post shows it.
+    const isTimed = ['scheduled', 'published'].includes(
+      current.status.toLowerCase(),
+    );
+    const postedAt = isTimed
+      ? formatDate(current.date, {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+      : '';
     return (
-      <article className="post min-w-0 space-y-3">
+      <article className="post min-w-0 space-y-2">
         {title && (
           <Heading as="h2" size="sm">
             {title}
@@ -566,6 +851,7 @@ function CardPreview({
         )}
         <PlatformPreview
           className="min-w-0"
+          headerPresentation="account"
           target={{
             id: current.id,
             platform: current.platform || 'social',
@@ -577,13 +863,28 @@ function CardPreview({
                 item.kind !== 'audio',
             ),
           }}
-          statusLabel={current.status || 'Preview'}
+          statusLabel={
+            postedAt
+              ? `${current.status} · ${postedAt}`
+              : current.status || 'Preview'
+          }
+          headerAction={
+            link ? (
+              <IconAction
+                bridge={bridge}
+                icon={<ExternalLink aria-hidden="true" />}
+                label="Open published post"
+                url={link}
+              />
+            ) : undefined
+          }
           showValidation={false}
           renderMedia={(mediaItem) =>
             mediaUrl(mediaItem.url, bridge.origins) ||
             (mediaItem.kind === 'image' &&
               mediaUrl(mediaItem.thumbnailUrl, bridge.origins)) ? (
               <MediaPreview
+                isFill
                 item={{
                   ...current,
                   kind:
@@ -597,10 +898,7 @@ function CardPreview({
                 }}
                 bridge={bridge}
                 openImage={openImage}
-                onError={() => {
-                  setFailed(true);
-                  bridge.resize();
-                }}
+                onError={onMediaError}
               />
             ) : (
               <Text as="p" size="xs" color="muted">
@@ -617,73 +915,106 @@ function CardPreview({
               item={{ ...current, kind: 'audio', url: item.url }}
               bridge={bridge}
               openImage={openImage}
-              onError={() => setFailed(true)}
+              onError={onMediaError}
             />
           ))}
-        {attachments.size > 0 && (
-          <div className="attachments flex flex-wrap gap-2">
-            {[...attachments].map(([kind, count]) => (
-              <Badge key={kind} variant="outline">
-                {kind.charAt(0).toUpperCase() + kind.slice(1)}
-                {count > 1 ? ` ×${count}` : ''}
-              </Badge>
-            ))}
-          </div>
-        )}
-        {when && (
-          <Text size="xs" color="muted">
-            {when}
-          </Text>
-        )}
-        {failed && (
-          <Text as="p" size="sm" color="muted" className="notice">
-            Preview unavailable. Open the media link to view it.
-          </Text>
-        )}
-        {link && (
-          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(event) => {
-                event.preventDefault();
-                bridge
-                  .request('ui/open-link', { url: link })
-                  .then((result) => {
-                    if (record(result).isError) throw new Error('blocked');
-                  })
-                  .catch(() =>
-                    bridge.notify(
-                      'The host could not open the link. Copy the link address to open it in your browser.',
-                    ),
-                  );
-              }}
-            >
-              Open published post ↗
-            </a>
-          </Button>
-        )}
+        {failedNotice}
       </article>
     );
   }
+  if (current.kind === 'audio' && !current.isPending && !isJobFailed)
+    return (
+      <article className="media-card min-w-0">
+        <Card data-testid="preview-card" padding={CardPadding.NONE}>
+          <div className="relative">
+            <MediaPlayer
+              variant="tile"
+              stopOnUnmount
+              onError={onMediaError}
+              src={source}
+              label={current.title || 'Audio'}
+              title={current.title || 'Audio'}
+              meta={current.description}
+              badge={
+                <Badge icon={<Music aria-hidden="true" />} variant="secondary">
+                  Audio
+                </Badge>
+              }
+              className="w-full"
+            />
+            {link && (
+              <div className="absolute top-1.5 right-1.5">
+                <IconAction
+                  bridge={bridge}
+                  icon={<ExternalLink aria-hidden="true" />}
+                  label="Open audio"
+                  url={link}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+        {failedNotice}
+      </article>
+    );
+  const isArticle = current.kind === 'article';
+  const article = current.body || current.description;
+  const headerControls = (
+    <div className="flex items-center gap-1">
+      {current.isPending ? (
+        <StatusBadge status="processing" />
+      ) : current.status &&
+        !(isMedia && current.status.toLowerCase() === 'completed') ? (
+        <StatusBadge status={current.status} />
+      ) : null}
+      {isArticle && article ? (
+        <IconAction
+          bridge={bridge}
+          icon={<BookOpen aria-hidden="true" />}
+          label="Read the full article"
+          onClick={(trigger) =>
+            openArticle(current.title || 'Article', article, trigger)
+          }
+        />
+      ) : null}
+      {current.kind === 'image' && source && !current.isPending && !failed ? (
+        <IconAction
+          bridge={bridge}
+          icon={<Maximize2 aria-hidden="true" />}
+          label={`Expand ${current.title || 'image'}`}
+          onClick={(trigger) => openImage(source, current.title, trigger)}
+        />
+      ) : null}
+      {link ? (
+        <IconAction
+          bridge={bridge}
+          icon={<ExternalLink aria-hidden="true" />}
+          label={isMedia ? `Open ${current.kind}` : 'Open published content'}
+          url={link}
+        />
+      ) : null}
+    </div>
+  );
   return (
-    <article
-      className={`${isPost ? 'post' : isMedia ? 'media-card' : 'content-card'} min-w-0`}
-    >
+    <article className={`${isMedia ? 'media-card' : 'content-card'} min-w-0`}>
       <Card
         data-testid="preview-card"
         label={title}
         labelAs="h2"
         isLabelWrapped
         isHeaderInside
-        headerAction={
-          !isMedia && current.status ? (
-            <Badge variant="outline" className="status">
-              {current.status}
-            </Badge>
+        gap={CardGap.SM}
+        icon={
+          !isMedia && current.platform ? (
+            <PlatformBadge
+              platform={current.platform}
+              showLabel={false}
+              size={ComponentSize.LG}
+              variant="solid"
+            />
           ) : undefined
         }
+        headerAction={headerControls}
       >
         {current.isPending ? (
           <div className="pending flex flex-col gap-3">
@@ -704,125 +1035,56 @@ function CardPreview({
                 : 'This preview updates when the job finishes.'}
             </Text>
           </div>
-        ) : isMedia && !failed ? (
+        ) : isMedia && !failed && !isJobFailed ? (
           <div className="media-preview overflow-hidden rounded-lg bg-muted/40">
             {current.kind === 'media' ? (
-              <Text as="p" size="sm" color="muted">
+              <Text as="p" size="sm" color="muted" className="p-3">
                 No inline preview for this file.
               </Text>
             ) : source ? (
-              player
+              <MediaPreview
+                item={current}
+                bridge={bridge}
+                openImage={openImage}
+                onError={onMediaError}
+              />
             ) : (
-              <Text as="p" size="sm" color="muted">
+              <Text as="p" size="sm" color="muted" className="p-3">
                 Attachment preview unavailable
               </Text>
             )}
           </div>
         ) : null}
-        {failed && (
-          <Text as="p" size="sm" color="muted" className="notice">
-            Preview unavailable. Open the media link to view it.
-          </Text>
-        )}
+        {failedNotice}
         {isMedia ? (
-          current.description && (
-            <Collapsible onOpenChange={bridge.resize}>
-              <CollapsibleTrigger>Details</CollapsibleTrigger>
-              <CollapsibleContent>
-                <Description content={current.description} bridge={bridge} />
-              </CollapsibleContent>
-            </Collapsible>
+          current.description &&
+          !current.isPending && (
+            <Text as="p" size="xs" color="muted" className="line-clamp-2">
+              {current.description}
+            </Text>
           )
+        ) : isArticle ? (
+          <Text
+            as="p"
+            size="sm"
+            className="description line-clamp-4 whitespace-pre-wrap break-words"
+          >
+            {current.description}
+          </Text>
         ) : (
           <Description content={current.description} bridge={bridge} />
         )}
-        {!isPost && !isMedia && (
-          <div className="meta flex flex-wrap items-center gap-2">
-            <Badge variant="outline">
-              {current.kind.charAt(0).toUpperCase() + current.kind.slice(1)}
-            </Badge>
-            {current.platform && <PlatformBadge platform={current.platform} />}
-            {when && (
-              <Text size="xs" color="muted">
-                {when}
-              </Text>
-            )}
-          </div>
+        {!isMedia && when && (
+          <Text size="xs" color="muted">
+            {when}
+          </Text>
         )}
-        {isMedia &&
-          !current.isPending &&
-          current.status &&
-          ![
-            'generated',
-            'completed',
-            'ready',
-            'uploaded',
-            'validated',
-          ].includes(current.status.toLowerCase()) && (
-            <Text as="p" size="sm" color="muted">
-              {current.status}
-            </Text>
-          )}
-        {attachments.size > 0 && (
-          <div className="attachments flex flex-wrap gap-2">
-            {[...attachments].map(([kind, count]) => (
-              <Badge key={kind} variant="outline">
-                {kind.charAt(0).toUpperCase() + kind.slice(1)}
-                {count > 1 ? ` ×${count}` : ''}
-              </Badge>
-            ))}
-          </div>
+        {isMedia && !current.isPending && isJobFailed && (
+          <Text as="p" size="sm" color="muted" className="notice">
+            This job did not produce a file. Ask for the job status again or
+            start a new generation.
+          </Text>
         )}
-        <div className="media-actions flex flex-wrap gap-2">
-          {isMedia &&
-            current.kind === 'image' &&
-            source &&
-            !current.isPending &&
-            !failed && (
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-                ariaLabel={`Expand ${current.title}`}
-                onClick={(event) =>
-                  openImage(source, current.title, event.currentTarget)
-                }
-              >
-                Expand
-              </Button>
-            )}
-          {link && (
-            <Button
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(event) => {
-                  event.preventDefault();
-                  bridge
-                    .request('ui/open-link', { url: link })
-                    .then((result) => {
-                      if (record(result).isError) throw new Error('blocked');
-                    })
-                    .catch(() =>
-                      bridge.notify(
-                        'The host could not open the link. Copy the link address to open it in your browser.',
-                      ),
-                    );
-                }}
-              >
-                {isPost
-                  ? 'Open published post ↗'
-                  : isMedia
-                    ? `Open ${current.kind} ↗`
-                    : 'Open published content ↗'}
-              </a>
-            </Button>
-          )}
-        </div>
       </Card>
     </article>
   );
@@ -871,6 +1133,7 @@ function OrganizationSwitcher({
       {switcher.canSwitch ? (
         <SelectField
           isDisabled={isSwitching}
+          isTextCaseKept
           label="Organization"
           name="mcp-organization"
           value={switcher.activeId || undefined}
@@ -912,6 +1175,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
   const [switchError, setSwitchError] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [pendingBrandId, setPendingBrandId] = useState('');
+  const [resolvedApprovals, setResolvedApprovals] = useState<
+    Record<string, 'approve' | 'decline'>
+  >({});
   const isSelectingRef = useRef(false);
   const resultView = useMemo(() => readView(result), [result]);
   const view = switched ?? resultView;
@@ -928,6 +1194,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setSwitched(undefined);
     setSwitchError('');
     setSelectedBrandId('');
+    setResolvedApprovals({});
     bridge.resize();
   }, [result, bridge]);
   const days = localCalendarDays(view?.calendar?.days || []);
@@ -978,7 +1245,47 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         bridge.resize();
       });
   }
+  function resolveApproval(
+    action: Extract<McpCardAction, { kind: 'resolve_approval' }>,
+  ) {
+    if (isSelectingRef.current) return;
+    isSelectingRef.current = true;
+    setPendingBrandId(action.approvalId);
+    bridge
+      .request('tools/call', {
+        name: 'resolve_approval',
+        arguments: {
+          approvalId: action.approvalId,
+          decision: action.decision,
+        },
+      })
+      .then((outcome) => {
+        if (record(outcome).isError) throw new Error('blocked');
+        setResolvedApprovals((current) => ({
+          ...current,
+          [action.approvalId]: action.decision,
+        }));
+        // An approved action returns its own result: show it in place.
+        const fresh =
+          action.decision === 'approve' ? readView(outcome) : undefined;
+        if (fresh?.cards.length) setSwitched(fresh);
+      })
+      .catch(() =>
+        bridge.notify(
+          `This client could not ${action.decision} the action. Review it in Genfeed instead.`,
+        ),
+      )
+      .finally(() => {
+        isSelectingRef.current = false;
+        setPendingBrandId('');
+        bridge.resize();
+      });
+  }
   function runAction(action: McpCardAction) {
+    if (action.kind === 'resolve_approval') {
+      resolveApproval(action);
+      return;
+    }
     // One selection message per click, however fast the clicks come.
     if (isSelectingRef.current) return;
     isSelectingRef.current = true;
@@ -1012,6 +1319,14 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         .request('ui/request-display-mode', { mode: 'fullscreen' })
         .catch(() => undefined);
   }
+  function openArticle(title: string, content: string, trigger: HTMLElement) {
+    returnFocus.current = trigger;
+    setImage({ content, title, trigger });
+    if (bridge.displayModes.includes('fullscreen'))
+      bridge
+        .request('ui/request-display-mode', { mode: 'fullscreen' })
+        .catch(() => undefined);
+  }
   function closeImage() {
     setImage(null);
     if (bridge.displayModes.includes('fullscreen'))
@@ -1019,38 +1334,46 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         .request('ui/request-display-mode', { mode: 'inline' })
         .catch(() => undefined);
   }
+  // One card carries its own header, so the view's title would only nest it.
+  const isSingleCard =
+    view?.layout === 'media' ||
+    (view !== undefined &&
+      view.layout !== 'calendar' &&
+      !view.organizations &&
+      view.cards.length === 1 &&
+      view.total <= 1);
+  const isBrandList =
+    view !== undefined &&
+    view.cards.length > 0 &&
+    view.cards.every((item) =>
+      item.actions?.some((action) => action.kind === 'select_brand'),
+    );
   return (
     <>
       <div className="p-3 sm:p-4">
         <header
-          className={
-            view?.layout === 'media'
-              ? 'sr-only'
-              : 'mb-3 flex items-baseline justify-between gap-3'
-          }
+          className={isSingleCard ? 'sr-only' : 'mb-3 flex items-center gap-2'}
         >
-          <div className="flex min-w-0 items-center gap-2">
-            <Heading as="h1" size="md" id="title">
-              {view?.title || 'Genfeed content'}
-            </Heading>
-            {view &&
-              ['cards', 'organizations'].includes(view.layout) &&
-              view.total > 1 && <Badge variant="outline">{view.total}</Badge>}
-          </div>
-          <Text size="xs" color="muted">
-            GENFEED
-          </Text>
+          <Heading as="h1" size="md" id="title">
+            {view?.title || 'Genfeed content'}
+          </Heading>
+          {view &&
+            ['cards', 'organizations', 'posts'].includes(view.layout) &&
+            !view.isCountHidden &&
+            view.total > 1 && <Badge value={view.total} variant="outline" />}
         </header>
         {view?.layout === 'calendar' && (
           <div id="summary" className="mb-3 flex flex-wrap gap-2">
-            <Badge variant="outline">{view.total} scheduled</Badge>
-            <Badge variant="outline">
+            <Badge variant="info" icon={<CalendarClock />}>
+              {view.total} scheduled
+            </Badge>
+            <Badge variant="warning" icon={<CalendarOff />}>
               {days.filter((day) => !day.posts.length).length} open{' '}
               {days.filter((day) => !day.posts.length).length === 1
                 ? 'day'
                 : 'days'}
             </Badge>
-            <Badge variant="outline">
+            <Badge variant="secondary" icon={<FilePen />}>
               {view.calendar?.draftsCount || 0}{' '}
               {(view.calendar?.draftsCount || 0) === 1 ? 'draft' : 'drafts'}
             </Badge>
@@ -1091,93 +1414,107 @@ function Preview({ result, notice, bridge }: PreviewProps) {
               : `${view?.layout === 'posts' ? 'posts' : ''} grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-3`
           }
         >
-          {view?.layout === 'calendar'
-            ? days.map((day) => (
-                <section
-                  key={day.date}
-                  className="day min-w-0"
-                  aria-current={
-                    day.date === localDayKey(new Date()) ? 'date' : undefined
+          {isBrandList ? (
+            <BrandList
+              items={view?.cards ?? []}
+              bridge={bridge}
+              isActionPending={Boolean(pendingBrandId)}
+              selectedId={selectedBrandId}
+              onAction={runAction}
+            />
+          ) : view?.layout === 'calendar' ? (
+            days.map((day) => (
+              <section
+                key={day.date}
+                className="day min-w-0"
+                aria-current={
+                  day.date === localDayKey(new Date()) ? 'date' : undefined
+                }
+                aria-label={parseDay(day.date).toLocaleDateString(undefined, {
+                  dateStyle: 'full',
+                })}
+              >
+                <Card
+                  labelAs="h2"
+                  isLabelWrapped
+                  isHeaderInside
+                  isSelected={day.date === localDayKey(new Date())}
+                  className={
+                    day.date !== localDayKey(new Date()) && !day.posts.length
+                      ? 'opacity-80'
+                      : undefined
                   }
-                  aria-label={parseDay(day.date).toLocaleDateString(undefined, {
-                    dateStyle: 'full',
+                  gap={CardGap.SM}
+                  bodyClassName="min-h-24"
+                  headerAction={
+                    day.date === localDayKey(new Date()) ? (
+                      <Badge variant="info" icon={<CalendarCheck />}>
+                        Today
+                      </Badge>
+                    ) : undefined
+                  }
+                  label={parseDay(day.date).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
                   })}
                 >
-                  <Card
-                    labelAs="h2"
-                    isLabelWrapped
-                    isHeaderInside
-                    isSelected={day.date === localDayKey(new Date())}
-                    className={
-                      day.date !== localDayKey(new Date()) && !day.posts.length
-                        ? 'opacity-80'
-                        : undefined
-                    }
-                    gap={CardGap.SM}
-                    bodyClassName="min-h-24"
-                    headerAction={
-                      day.date === localDayKey(new Date()) ? (
-                        <Badge variant="outline">Today</Badge>
-                      ) : undefined
-                    }
-                    label={parseDay(day.date).toLocaleDateString(undefined, {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  >
-                    {day.posts.length ? (
-                      day.posts.map((post) => (
-                        <Card
-                          variant={CardVariant.INSET}
-                          padding={CardPadding.SM}
-                          gap={CardGap.SM}
-                          className="slot"
-                          key={post.id || `${post.date}-${post.description}`}
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            {post.platform && (
-                              <PlatformBadge platform={post.platform} />
-                            )}
-                            <Text size="xs" color="muted">
-                              {formatDate(post.date, { timeStyle: 'short' })}
-                            </Text>
-                          </div>
-                          <Text as="p" size="sm" className="line-clamp-3">
-                            {post.description || post.title}
-                          </Text>
-                        </Card>
-                      ))
-                    ) : (
-                      <Text
-                        size="xs"
-                        color="muted"
-                        className="rounded-lg border border-dashed border-border p-2 text-center"
+                  {day.posts.length ? (
+                    day.posts.map((post) => (
+                      <Card
+                        variant={CardVariant.INSET}
+                        padding={CardPadding.SM}
+                        gap={CardGap.SM}
+                        className="slot"
+                        key={post.id || `${post.date}-${post.description}`}
                       >
-                        Nothing scheduled
-                      </Text>
-                    )}
-                  </Card>
-                </section>
-              ))
-            : view?.cards.map((item) => (
-                <CardBoundary
-                  key={
-                    item.id ||
-                    `${item.kind}-${item.title}-${item.url || item.description}`
-                  }
-                  fallback={item.description || item.title}
-                >
-                  <CardPreview
-                    item={item}
-                    bridge={bridge}
-                    openImage={openImage}
-                    selectedId={selectedBrandId}
-                    isActionPending={Boolean(pendingBrandId)}
-                    onAction={runAction}
-                  />
-                </CardBoundary>
-              ))}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {post.platform && (
+                            <PlatformBadge platform={post.platform} />
+                          )}
+                          <Text size="xs" color="muted">
+                            {formatDate(post.date, { timeStyle: 'short' })}
+                          </Text>
+                        </div>
+                        <Text as="p" size="sm" className="line-clamp-3">
+                          {post.description || post.title}
+                        </Text>
+                      </Card>
+                    ))
+                  ) : (
+                    <Text
+                      size="xs"
+                      color="muted"
+                      className="rounded-lg border border-dashed border-border p-2 text-center"
+                    >
+                      Nothing scheduled
+                    </Text>
+                  )}
+                </Card>
+              </section>
+            ))
+          ) : (
+            view?.cards.map((item) => (
+              <CardBoundary
+                key={
+                  item.id ||
+                  `${item.kind}-${item.title}-${item.url || item.description}`
+                }
+                fallback={item.description || item.title}
+              >
+                <CardPreview
+                  item={item}
+                  bridge={bridge}
+                  openImage={openImage}
+                  openArticle={openArticle}
+                  selectedId={selectedBrandId}
+                  resolvedApprovals={resolvedApprovals}
+                  isActionPending={Boolean(pendingBrandId)}
+                  onAction={runAction}
+                />
+              </CardBoundary>
+            ))
+          )}
         </div>
         <Text as="footer" size="xs" color="muted" id="footer" className="mt-3">
           {view && view.layout !== 'calendar' && view.total > view.cards.length
@@ -1194,7 +1531,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         <DialogContent
           aria-modal="true"
           showCloseButton={false}
-          className="lightbox max-w-4xl"
+          className={image?.content ? 'reader max-w-3xl' : 'lightbox max-w-4xl'}
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             closeButton.current?.focus();
@@ -1205,7 +1542,15 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           }}
         >
           <DialogTitle>{image?.title || 'Generated image'}</DialogTitle>
-          {image && (
+          {image?.content ? (
+            <Text
+              as="p"
+              size="sm"
+              className="max-h-[75vh] overflow-auto whitespace-pre-wrap break-words leading-relaxed"
+            >
+              {image.content}
+            </Text>
+          ) : image?.src ? (
             <Image
               src={image.src}
               alt={image.title}
@@ -1213,7 +1558,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
               height={0}
               className="h-auto max-h-[75vh] w-auto max-w-full object-contain"
             />
-          )}
+          ) : null}
           <DialogClose asChild>
             <Button
               ref={closeButton}

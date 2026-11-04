@@ -9,9 +9,9 @@ import {
   type ModelPriority,
   selectModels,
 } from '@data/ai-model-selector';
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AiModelSelectorProps } from '@props/tools/ai-model-selector.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   Collapsible,
@@ -314,7 +314,7 @@ export default function AiModelSelectorContent({
           trackingData={{ action: 'create_content_model_selector' }}
           trackingName="ai_model_selector_cta"
         >
-          <a href={`${EnvironmentService.apps.app}/sign-up`}>
+          <a href={getAppSignUpUrl()}>
             Create content in Genfeed{' '}
             <ArrowRight aria-hidden="true" className="size-4" />
           </a>

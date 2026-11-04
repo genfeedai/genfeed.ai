@@ -10,11 +10,13 @@ import type StripeConstructor from 'stripe';
  * other price keeps it, and customer-restricted team codes (GENFEED100) are
  * still entered there. If the launch code is missing, inactive or restricted
  * to a customer, or the lookup fails, the launch price falls back to the entry
- * box rather than failing the checkout.
+ * box rather than failing the checkout. A missing or unusable code is logged at
+ * error level: the pricing page still shows the launch price, so the card and
+ * the charge disagree until the code is restored or the card is retired.
  */
 export async function applyCheckoutPromotion(
   stripe: InstanceType<typeof StripeConstructor>,
-  loggerService: Pick<LoggerService, 'warn'>,
+  loggerService: Pick<LoggerService, 'error' | 'warn'>,
   sessionConfig: StripeConstructor.Checkout.SessionCreateParams,
   isLaunchPrice: boolean,
 ): Promise<void> {
@@ -35,6 +37,11 @@ export async function applyCheckoutPromotion(
         delete sessionConfig.allow_promotion_codes;
         return;
       }
+
+      loggerService.error(
+        'Launch promotion code is not redeemable; Checkout opens at the full Pro price while the pricing page shows the launch price',
+        { code: PRO_LAUNCH_PROMOTION_CODE },
+      );
     } catch (error: unknown) {
       loggerService.warn('Launch promotion code lookup failed', {
         code: PRO_LAUNCH_PROMOTION_CODE,

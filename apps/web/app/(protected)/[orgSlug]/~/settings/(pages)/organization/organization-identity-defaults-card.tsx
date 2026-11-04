@@ -12,9 +12,9 @@ import {
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Voice } from '@models/ingredients/voice.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -39,10 +39,6 @@ import { useVoiceCatalog } from '@/features/library/voices/hooks/use-voice-catal
 import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useHeyGenCatalog } from '@/hooks/data/integrations/use-heygen-catalog';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
-}
 
 export default function OrganizationIdentityDefaultsCard() {
   const translate = useTranslations('pages.identityDefaults');

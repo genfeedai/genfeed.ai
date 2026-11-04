@@ -58,7 +58,7 @@ export class ApifyLinkedInService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getLinkedInProfilePosts failed for ${profileUrl}`,
         error,
       );

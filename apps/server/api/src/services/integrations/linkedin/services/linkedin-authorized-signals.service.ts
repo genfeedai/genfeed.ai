@@ -7,13 +7,22 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import {
   type AuthorizedSignalsSettledResult,
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import {
   getLinkedinRetryAfterMs,
@@ -21,10 +30,9 @@ import {
   isLinkedinOrganizationSelectionError,
   isLinkedinRateLimitError,
   isLinkedinScopeError,
-  parseLinkedinGrantedScopes,
 } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type LinkedinAuthorizedSignalEvidence,
   type LinkedinAuthorizedSignalsSnapshot,
@@ -32,7 +40,7 @@ import {
   type LinkedinOwnedPostSignal,
   linkedinAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
-import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -139,31 +147,6 @@ type LinkedinAuthorizedRefreshContext = {
   refreshAttemptedAt: string;
 };
 
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
-
 function organizationIdFromUrn(urn: string | undefined): string | undefined {
   if (!urn) {
     return undefined;
@@ -221,11 +204,14 @@ export class LinkedInAuthorizedSignalsService {
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
-      credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
+    const genfeedEvidence = await buildGenfeedPublishEvidence({
+      credentialId: credential.id,
+      key: 'genfeed-publish-outcomes-observed',
+      limit: LINKEDIN_POST_LIMIT,
+      observedAt: refreshAttemptedAt,
+      organizationId: params.organizationId,
+      prisma: this.prisma,
+    });
 
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
@@ -427,7 +413,10 @@ export class LinkedInAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.LINKEDIN,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-posts-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -676,69 +665,6 @@ export class LinkedInAuthorizedSignalsService {
     );
   }
 
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<LinkedinAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: LINKEDIN_POST_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-outcomes-observed',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -763,7 +689,7 @@ export class LinkedInAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.evidenceMapper.buildScope(
+          scope: buildAuthorizedSignalsScope(
             this.requiredScopesForKey(key),
             grantedScopes,
           ),
@@ -817,68 +743,28 @@ export class LinkedInAuthorizedSignalsService {
     return [LINKEDIN_OPENID_SCOPE, LINKEDIN_PROFILE_SCOPE];
   }
 
-  private resolveSnapshotState(
-    evidence: LinkedinAuthorizedSignalEvidence[],
-  ): LinkedinAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedPosts = platformEvidence.find(
-      (item) => item.key === 'owned-posts-snapshot',
-    );
-    if (
-      ownedPosts?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
-  }
-
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[LINKEDIN_AUTHORIZATION_STORAGE_KEY],
-    );
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseLinkedinGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: LINKEDIN_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): LinkedinAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = linkedinAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      linkedinAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -887,41 +773,27 @@ export class LinkedInAuthorizedSignalsService {
     cacheKey: string,
     snapshot: LinkedinAuthorizedSignalsSnapshot,
   ): Promise<LinkedinAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [LINKEDIN_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncLinkedinAuthorizedSnapshot({
-        brandId: credential.brandId,
-        credentialId: credential.id,
-        organizationId,
-        snapshot,
-      });
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: LINKEDIN_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.LINKEDIN_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.LINKEDIN_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncLinkedinAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

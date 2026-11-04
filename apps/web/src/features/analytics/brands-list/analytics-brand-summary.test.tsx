@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
-import { render, screen, within } from '@testing-library/react';
+import { render as renderView, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsBrandSummary from '@/features/analytics/brands-list/analytics-brand-summary';
 
@@ -28,6 +33,11 @@ const getBrandsServiceMock = async () => ({
   findBrandPosts: findBrandPostsMock,
 });
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getBrandsServiceMock,
 }));
@@ -49,9 +59,17 @@ function metrics(likes: number) {
   return { comments: 0, likes, saves: 0, shares: 0, views: likes * 10 };
 }
 
+/** Every render in a test shares one cache, as the app's provider does. */
+const queryClient = createTestQueryClient();
+
+function render(ui: ReactNode) {
+  return renderView(ui, { wrapper: queryClientWrapper(queryClient) });
+}
+
 describe('AnalyticsBrandSummary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient.clear();
     findBrandAnalyticsTimeSeriesMock.mockResolvedValue([
       { date: '2026-03-01', instagram: metrics(30), tiktok: metrics(10) },
       { date: '2026-03-02', instagram: metrics(50), tiktok: metrics(10) },
@@ -129,6 +147,18 @@ describe('AnalyticsBrandSummary', () => {
       screen.getByText('No platform activity in this period'),
     ).toBeInTheDocument();
     expect(screen.getByText('No published posts yet')).toBeInTheDocument();
+  });
+
+  it('shows what it loaded before when the same row is opened again', async () => {
+    const first = render(
+      <AnalyticsBrandSummary brand={brand} openHref="/brands/brand-1" />,
+    );
+    await screen.findByText('Best launch');
+    first.unmount();
+
+    render(<AnalyticsBrandSummary brand={brand} openHref="/brands/brand-1" />);
+
+    expect(screen.getByText('Best launch')).toBeInTheDocument();
   });
 
   it('falls back to empty sections when the requests fail', async () => {

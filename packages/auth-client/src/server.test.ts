@@ -204,6 +204,45 @@ describe('getBetterAuthServerToken', () => {
     ).resolves.toEqual([null, 'jwt']);
   });
 
+  it('keeps its own retry apart from a replacement request another prerender started', async () => {
+    const prerenderEnded = Object.assign(new Error('prerender complete'), {
+      digest: 'HANGING_PROMISE_REJECTION',
+    });
+    let endFirstPrerender: () => void = () => undefined;
+    let endSecondPrerender: () => void = () => undefined;
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            endFirstPrerender = () => reject(prerenderEnded);
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            endSecondPrerender = () => reject(prerenderEnded);
+          }),
+      )
+      .mockImplementationOnce(() =>
+        settleLater(Response.json({ token: 'live' })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const firstPrerender = getBetterAuthServerToken('session=abc');
+    const liveRequest = getBetterAuthServerToken('session=abc');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    endFirstPrerender();
+    const secondPrerender = getBetterAuthServerToken('session=abc');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    endSecondPrerender();
+
+    await expect(liveRequest).resolves.toBe('live');
+    await expect(firstPrerender).resolves.toBeNull();
+    await expect(secondPrerender).resolves.toBeNull();
+  });
+
   it('asks for itself when the shared request it joined failed on the network', async () => {
     const fetchMock = vi
       .fn()

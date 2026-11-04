@@ -1,3 +1,4 @@
+import { ContentPerformanceCountsDto } from '@api/collections/content-performance/dto/content-performance-counts.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
@@ -7,10 +8,8 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsNumber,
   IsOptional,
   IsString,
-  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -23,7 +22,7 @@ import {
  */
 const MAX_CSV_ENTRIES = 200;
 
-export class CsvMetricEntryDto {
+export class CsvMetricEntryDto extends ContentPerformanceCountsDto {
   @ApiProperty({
     description: 'External post ID from the platform',
     required: true,
@@ -38,42 +37,6 @@ export class CsvMetricEntryDto {
   })
   @IsEnum(CredentialPlatform)
   platform!: CredentialPlatform;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  views?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  likes?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  comments?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  shares?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  saves?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  revenue?: number;
 
   @ApiProperty({
     description: 'Date when metrics were measured',

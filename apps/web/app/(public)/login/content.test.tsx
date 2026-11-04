@@ -785,6 +785,33 @@ describe('LoginPage', () => {
     });
   });
 
+  it('sends one password sign-in and keeps the button disabled while the redirect lands', async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, assign },
+    });
+    authClientMocks.email.mockResolvedValue({ data: {} });
+
+    render(<LoginBetterAuth mode="password" />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'saved@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: 'correct horse battery staple' },
+    });
+    const signInButton = screen.getByRole('button', { name: 'Sign in' });
+    fireEvent.click(signInButton);
+    fireEvent.submit(signInButton.closest('form') as HTMLFormElement);
+
+    await waitFor(() => {
+      expect(assign).toHaveBeenCalledTimes(1);
+    });
+    expect(authClientMocks.email).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+  });
+
   it('links password sign-in users to forgot password with callbackUrl preserved', () => {
     window.history.replaceState(
       {},

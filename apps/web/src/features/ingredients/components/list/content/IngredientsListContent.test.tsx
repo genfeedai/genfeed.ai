@@ -180,6 +180,7 @@ vi.mock(
           <div data-testid="media-grid-empty">{emptyActions}</div>
         ) : null}
         <button
+          data-item-ids={items.map((item) => item.id).join(',')}
           data-testid="media-grid-item"
           onClick={() => onClickIngredient(items[0])}
           type="button"
@@ -298,6 +299,25 @@ const voiceIngredient = {
   id: 'voice-1',
   ingredientUrl: 'https://cdn.genfeed.ai/mock/narration.mp3',
   metadataLabel: 'Narration Take',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+const textIngredient = {
+  category: IngredientCategory.TEXT,
+  createdAt: new Date().toISOString(),
+  id: 'text-1',
+  metadataLabel: 'Launch caption',
+  status: 'GENERATED',
+  text: 'Ship the content, not the slide deck.',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+const sourceIngredient = {
+  category: IngredientCategory.SOURCE,
+  createdAt: new Date().toISOString(),
+  id: 'source-1',
+  metadataLabel: 'Imported brief',
   status: 'GENERATED',
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
@@ -613,20 +633,43 @@ describe('IngredientsListContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('plays a music row inside the grid view’s mixed "other assets" table', () => {
+  it.each([
+    ['music', musicIngredient],
+    ['voice', voiceIngredient],
+    ['text', textIngredient],
+  ])(
+    'hands a %s asset to the masonry grid instead of the other-assets table',
+    (_name, ingredient) => {
+      renderContent({
+        filteredIngredients: [videoIngredient, ingredient],
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+        viewMode: 'grid',
+      });
+
+      expect(screen.getByTestId('media-grid-item')).toHaveAttribute(
+        'data-item-ids',
+        `${videoIngredient.id},${ingredient.id}`,
+      );
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      expect(screen.queryByText('Other assets')).not.toBeInTheDocument();
+    },
+  );
+
+  it('keeps an asset with no tile of its own in the other-assets table', () => {
     renderContent({
-      filteredIngredients: [videoIngredient, musicIngredient],
+      filteredIngredients: [videoIngredient, sourceIngredient],
       singularType: IngredientCategory.INGREDIENT,
       type: 'ingredients',
       viewMode: 'grid',
     });
 
-    expect(screen.getByTestId('media-grid-item')).toHaveTextContent(
-      'A red apple on a table',
+    expect(screen.getByTestId('media-grid-item')).toHaveAttribute(
+      'data-item-ids',
+      videoIngredient.id,
     );
-    expect(
-      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Other assets')).toBeInTheDocument();
+    expect(screen.getByText('Imported brief')).toBeInTheDocument();
   });
 
   it('disables the music row control while the asset is still processing', () => {

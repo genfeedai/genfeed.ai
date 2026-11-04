@@ -8,6 +8,7 @@ import {
   MCP_APP_MIME_TYPE,
   MCP_CARD_RESOURCE_URI,
   safeCardUrl,
+  withApprovalCard,
   withCardMetadata,
   withCardResult,
 } from '@mcp/ui/card-data';
@@ -240,7 +241,12 @@ describe('MCP Apps card contract', () => {
       variations: [{ content: 'Unrelated caption' }],
     };
     expect(buildCardView('generate_content', data)?.cards).toMatchObject([
-      { description: 'Article body', kind: 'article', title: 'Article title' },
+      {
+        body: 'Article body',
+        description: 'Article body',
+        kind: 'article',
+        title: 'Article title',
+      },
     ]);
     expect(buildCardView('create_post', data)?.cards).toMatchObject([
       { description: 'Article body', kind: 'post', title: 'Article title' },
@@ -292,16 +298,25 @@ describe('MCP Apps card contract', () => {
       'Acme Studio',
       'Credits',
     ]);
+    expect(view?.cards[0]).toMatchObject({ hasAvatar: true, status: 'Admin' });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Role', value: 'Admin' },
       { label: 'Active brand', value: 'Beta' },
-      { label: 'Brands', value: 'Acme, Beta' },
-      { label: 'Account setup', value: 'Complete' },
+      {
+        items: [{ label: 'Acme' }, { label: 'Beta' }],
+        label: 'Brands',
+        value: 'Acme, Beta',
+      },
+      { label: 'Account setup', status: 'completed', value: 'Complete' },
     ]);
-    expect(view?.cards[1].facts).toEqual([
-      { label: 'Available', value: '88' },
-      { label: 'Used in 7 days', value: '12' },
-      { label: 'Used in 30 days', value: '40' },
+    expect(view?.cards[1].metrics).toEqual([
+      { isPrimary: true, label: 'Available', value: '88' },
+      {
+        isPrimary: false,
+        label: 'Used in 7 days',
+        trend: undefined,
+        value: '12',
+      },
+      { isPrimary: false, label: 'Used in 30 days', value: '40' },
     ]);
   });
 
@@ -444,7 +459,14 @@ describe('MCP Apps card contract', () => {
       title: 'Launch',
     });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Channels', value: 'linkedin (Queued), x' },
+      {
+        items: [
+          { label: 'linkedin', platform: 'linkedin', status: 'queued' },
+          { label: 'x', platform: 'x', status: '' },
+        ],
+        label: 'Channels',
+        value: 'linkedin, x',
+      },
       { label: 'Brand', value: 'Acme' },
       { label: 'Timezone', value: 'Europe/Amsterdam' },
     ]);
@@ -470,7 +492,11 @@ describe('MCP Apps card contract', () => {
       title: 'Launch',
     });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Channels', value: 'linkedin (Queued)' },
+      {
+        items: [{ label: 'linkedin', platform: 'linkedin', status: 'queued' }],
+        label: 'Channels',
+        value: 'linkedin',
+      },
     ]);
   });
 
@@ -480,6 +506,122 @@ describe('MCP Apps card contract', () => {
     });
 
     expect(view?.cards[0].facts).toEqual([{ label: 'Brands', value: '3' }]);
+  });
+
+  it('rounds credits to two decimals and groups thousands', () => {
+    const view = buildCardView('get_account', {
+      credits: { balance: 10230.381278999994 },
+      usage: { trendPercentage: 12.349, usage7Days: 0.1 + 0.2 },
+    });
+
+    expect(view?.cards[0].metrics).toEqual([
+      { isPrimary: true, label: 'Available', value: '10,230.38' },
+      {
+        isPrimary: false,
+        label: 'Used in 7 days',
+        trend: { direction: 'up', label: '12.35%' },
+        value: '0.3',
+      },
+    ]);
+    expect(view?.isCountHidden).toBe(true);
+  });
+
+  it('gives workspace brands the same card as the brands list', () => {
+    const view = buildCardView('get_orgs', {
+      activeOrganizationId: 'org-1',
+      brands: [
+        {
+          description: 'Truth Seeker',
+          id: 'b1',
+          isActive: true,
+          label: 'Acme',
+          slug: 'acme',
+        },
+      ],
+      organizations: [{ id: 'org-1', label: 'Acme Studio' }],
+    });
+
+    expect(view?.cards[0]).toMatchObject({
+      actions: [{ brandId: 'b1', kind: 'select_brand', label: 'Select' }],
+      description: 'Truth Seeker',
+      facts: [{ label: 'Handle', value: 'acme' }],
+      hasAvatar: true,
+      status: 'Active',
+    });
+  });
+
+  it('titles list views by what they hold, not by the tool name', () => {
+    expect(buildCardView('get_posts', { posts: [{ id: 'p1' }] })?.title).toBe(
+      'Posts',
+    );
+    expect(
+      buildCardView('get_articles', { articles: [{ id: 'a1' }] })?.title,
+    ).toBe('Articles');
+    expect(buildCardView('get_assets', { assets: [{ id: 'a1' }] })?.title).toBe(
+      'Library',
+    );
+  });
+
+  it('turns a queued write into an approval card with Approve and Decline', () => {
+    const result = withApprovalCard({
+      content: [{ text: 'needs approval', type: 'text' }],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-1',
+        canResolveApproval: true,
+        code: 'approval_pending',
+        estimatedCredits: 12.345678,
+        nextStepUrl: 'https://app.genfeed.ai/publishing/approvals?approval=x',
+        toolName: 'create_post',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(result.isError).toBe(true);
+    expect(view).toMatchObject({ isApproval: true, title: 'Approval needed' });
+    expect(view.cards[0]).toMatchObject({
+      facts: [{ label: 'Estimated cost', value: '12.35 credits' }],
+      linkLabel: 'Review in Genfeed',
+      status: 'pending_approval',
+      title: 'Create post',
+    });
+    expect(view.cards[0].actions).toEqual([
+      {
+        approvalId: 'apr-1',
+        decision: 'approve',
+        kind: 'resolve_approval',
+        label: 'Approve',
+      },
+      {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        kind: 'resolve_approval',
+        label: 'Decline',
+      },
+    ]);
+  });
+
+  it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {
+    const pending = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-2',
+        canResolveApproval: false,
+        code: 'approval_pending',
+        toolName: 'generate',
+      },
+    });
+    const view = pending.structuredContent?.genfeedCards as McpCardView;
+    expect(view.cards[0].actions).toBeUndefined();
+    expect(view.cards[0].facts).toEqual([]);
+
+    const other = {
+      content: [],
+      isError: true,
+      structuredContent: { code: 'brand_required' },
+    };
+    expect(withApprovalCard(other)).toBe(other);
   });
 
   it('retains text, resource links, and original structured data', () => {
@@ -644,6 +786,143 @@ describe('MCP Apps card contract', () => {
     expect(buildCardView('get_posts', { posts: [] })?.layout).toBe('posts');
     expect(buildCardView('get_assets', [])?.layout).toBe('media');
     expect(buildCardView('get_articles', [])?.layout).toBe('cards');
+  });
+
+  it('shows each connected channel with its readiness checks and next action', () => {
+    const view = buildCardView('get_brand_publishing_readiness', [
+      {
+        callbackUrlStatus: 'pass',
+        canSchedule: false,
+        diagnostics: [
+          {
+            code: 'token_expired',
+            correctiveAction: 'Reconnect the account.',
+            message: 'The access token expired.',
+            severity: 'error',
+          },
+        ],
+        permissionScopeStatus: 'pass',
+        providerKey: 'tiktok',
+        quotaStatus: 'unknown',
+        requiredAction: 'Reconnect TikTok in Genfeed.',
+        state: 'blocked',
+        tokenFreshness: 'fail',
+      },
+    ]);
+    expect(view).toMatchObject({ title: 'Publishing readiness', total: 1 });
+    expect(view?.cards[0]).toMatchObject({
+      description: 'Reconnect TikTok in Genfeed.',
+      status: 'blocked',
+      title: 'TikTok',
+    });
+    expect(view?.cards[0].facts).toEqual([
+      { label: 'Scheduling', status: 'blocked', value: 'Blocked' },
+      { label: 'Access token', status: 'failed', value: 'Failed' },
+      { label: 'Quota', status: 'unknown', value: 'Unknown' },
+    ]);
+  });
+
+  it('folds a channel whose checks all passed into one line', () => {
+    expect(
+      buildCardView('get_brand_publishing_readiness', [
+        {
+          appReviewStatus: 'pass',
+          callbackUrlStatus: 'pass',
+          canSchedule: true,
+          lastSuccessfulValidationAt: '2026-11-04T14:10:00.000Z',
+          permissionScopeStatus: 'pass',
+          providerKey: 'instagram',
+          quotaStatus: 'pass',
+          state: 'publish_capable',
+          tokenFreshness: 'pass',
+        },
+      ])?.cards[0].facts,
+    ).toEqual([
+      { label: 'Checks', status: 'completed', value: 'All 5 passed' },
+      { label: 'Last check', value: '2026-11-04 14:10 UTC' },
+    ]);
+  });
+
+  it('falls back to the first diagnostic when no action is required', () => {
+    expect(
+      buildCardView('get_brand_publishing_readiness', [
+        {
+          diagnostics: [
+            { message: 'Quota is almost used.', severity: 'warning' },
+          ],
+          providerKey: 'youtube',
+          state: 'degraded',
+        },
+      ])?.cards[0],
+    ).toMatchObject({
+      description: 'Quota is almost used.',
+      status: 'degraded',
+      title: 'YouTube',
+    });
+  });
+
+  it('lists what a channel accepts for a capabilities check', () => {
+    expect(
+      buildCardView('get_scheduler_capabilities', {
+        caption: { maxLength: 2200 },
+        description: 'Short vertical video.',
+        label: 'Instagram',
+        media: { kinds: ['image', 'short_video'] },
+        platform: 'instagram',
+        publishModes: ['draft', 'scheduled'],
+        status: 'supported',
+      })?.cards[0],
+    ).toMatchObject({
+      description: 'Short vertical video.',
+      facts: [
+        { label: 'Publish modes', value: 'Draft, Scheduled' },
+        { label: 'Caption limit', value: '2200 characters' },
+        { label: 'Media', value: 'Image, Short video' },
+      ],
+      status: 'supported',
+      title: 'Instagram',
+    });
+  });
+
+  it('explains why a target failed validation', () => {
+    const card = buildCardView('validate_scheduler_target', {
+      errors: [{ code: 'caption_too_long', message: 'Caption exceeds 280.' }],
+      platform: 'twitter',
+      valid: false,
+      validationState: 'invalid',
+      warnings: [{ code: 'no_media', message: 'No media attached.' }],
+    })?.cards[0];
+    expect(card).toMatchObject({
+      description: 'Error: Caption exceeds 280.\nWarning: No media attached.',
+      status: 'invalid',
+      title: 'X check',
+    });
+    expect(card?.facts).toEqual([
+      { label: 'Errors', status: 'failed', value: '1 error' },
+      { label: 'Warnings', status: 'needs_attention', value: '1 warning' },
+    ]);
+  });
+
+  it('confirms a clean validation', () => {
+    expect(
+      buildCardView('validate_scheduler_target', {
+        errors: [],
+        platform: 'linkedin',
+        valid: true,
+        validationState: 'valid',
+        warnings: [],
+      })?.cards[0],
+    ).toMatchObject({
+      description: 'Ready to schedule on this channel.',
+      status: 'valid',
+      title: 'LinkedIn check',
+    });
+  });
+
+  it('links the canonical check_channel tool to the card', () => {
+    expect(
+      withCardMetadata({ name: 'check_channel' } as never)._meta?.ui,
+    ).toEqual({ resourceUri: MCP_CARD_RESOURCE_URI });
   });
 
   it('restricts media CSP to configured origins with no API connectivity', () => {

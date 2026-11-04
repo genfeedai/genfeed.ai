@@ -5,6 +5,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -17,6 +18,7 @@ import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-m
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
+  ApiKeyScope,
   AssetScope,
   FileInputType,
   IngredientCategory,
@@ -69,6 +71,7 @@ export class VideosGifController {
 
   @Post(':videoId/gif')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createGif(
     @Req() request: Request,
     @CurrentUser() user: User,

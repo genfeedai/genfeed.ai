@@ -21,6 +21,7 @@ function row(
       platform: 'x',
       scheduledDate: new Date('2026-11-02T09:00:00.000Z'),
       status: 'scheduled',
+      targetExecutionState: 'scheduled',
     },
     postId: 'post_1',
     status: 'approved',
@@ -48,7 +49,12 @@ describe('summarizePublishPipeline', () => {
         row({ id: 'c', status: 'queued' }),
         row({
           id: 'd',
-          post: { platform: 'x', scheduledDate: null, status: 'public' },
+          post: {
+            platform: 'x',
+            scheduledDate: null,
+            status: 'public',
+            targetExecutionState: 'published',
+          },
           status: 'executed',
         }),
         row({ id: 'e', post: null }),
@@ -78,6 +84,7 @@ describe('summarizePublishPipeline', () => {
           platform: 'x',
           scheduledDate: new Date('2026-11-01T08:00:00.000Z'),
           status: 'scheduled',
+          targetExecutionState: 'scheduled',
         },
       },
     },
@@ -95,6 +102,7 @@ describe('summarizePublishPipeline', () => {
           platform: 'x',
           scheduledDate: new Date('2026-11-01T08:00:00.000Z'),
           status: 'public',
+          targetExecutionState: 'published',
         },
       },
     },
@@ -106,6 +114,7 @@ describe('summarizePublishPipeline', () => {
           platform: 'x',
           scheduledDate: new Date('2026-11-01T08:00:00.000Z'),
           status: 'failed',
+          targetExecutionState: 'failed',
         },
       },
     },
@@ -138,6 +147,7 @@ describe('toPublishPipelineItem', () => {
       approvalStatus: 'approved',
       brandId: 'brand_1',
       executedAt: null,
+      executionState: 'scheduled',
       lastError: 'Rate limited',
       organizationId: 'org_1',
       platform: 'x',
@@ -153,6 +163,7 @@ describe('toPublishPipelineItem', () => {
     );
 
     expect(item.lastError).toHaveLength(200);
+    expect(item.executionState).toBeNull();
     expect(item.platform).toBeNull();
     expect(item.postStatus).toBeNull();
     expect(item.scheduledDate).toBeNull();

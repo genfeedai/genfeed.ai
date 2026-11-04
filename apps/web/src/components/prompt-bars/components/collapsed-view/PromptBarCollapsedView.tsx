@@ -16,17 +16,8 @@ import { useWatch } from 'react-hook-form';
 import PromptBarDivider from '@/components/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarGenerationMeter from '@/components/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarReferenceThumbnail from '@/components/prompt-bars/components/reference-thumbnail/PromptBarReferenceThumbnail';
+import { getVoiceTooltip } from '@/components/prompt-bars/components/voice-tooltip';
 import type { PromptBarCollapsedViewProps } from '@/props/prompt-bars/prompt-bar-layout.props';
-
-function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
-  if (isRecording) {
-    return 'Stop recording';
-  }
-  if (isProcessing) {
-    return 'Processing…';
-  }
-  return 'Voice input (Speak to transcribe)';
-}
 
 const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   collapsedInputRef: _collapsedInputRef,

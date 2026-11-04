@@ -4,6 +4,7 @@ import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowNodeAccounting } from '@genfeedai/contracts/interfaces';
 import { Pre } from '@genfeedai/ui';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -64,7 +65,7 @@ export default function ExecutionNodeResultItem({
             })}
           </span>
           {result.retryCount > 0 && (
-            <span className="text-yellow-600">
+            <span className="text-warning">
               {translate('accounting.retries', { count: result.retryCount })}
             </span>
           )}
@@ -142,18 +143,14 @@ export default function ExecutionNodeResultItem({
             )}
           </div>
           {result.error && (
-            <div className="mt-3 border border-red-200 bg-red-100 p-3 dark:border-red-800 dark:bg-red-900">
-              <div className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">
-                {translate('accounting.error')}
-              </div>
-              <Pre
-                variant="ghost"
-                size="md"
-                className="text-red-700 dark:text-red-300"
-              >
-                {result.error}
-              </Pre>
-            </div>
+            <Alert className="mt-3" variant="destructive">
+              <AlertTitle>{translate('accounting.error')}</AlertTitle>
+              <AlertDescription>
+                <Pre variant="ghost" size="md" className="text-destructive">
+                  {result.error}
+                </Pre>
+              </AlertDescription>
+            </Alert>
           )}
           {result.output && (
             <div className="mt-3">

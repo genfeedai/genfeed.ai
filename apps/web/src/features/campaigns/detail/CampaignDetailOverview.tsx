@@ -3,21 +3,14 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
-import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { CAMPAIGN_STATUS_LABELS } from '@/features/campaigns/campaigns-status';
 import CampaignAccounts from '@/features/campaigns/detail/CampaignAccounts';
+import { formatCampaignDate } from '@/features/campaigns/format-campaign-date';
 import { useCampaign } from '@/features/campaigns/hooks/use-campaign';
-
-function formatCampaignDate(value?: string | null): string {
-  if (!value) {
-    return '—';
-  }
-  return formatDate(value, DATE_FORMATS.DISPLAY_DATE) || '—';
-}
 
 export default function CampaignDetailOverview({
   campaignId,

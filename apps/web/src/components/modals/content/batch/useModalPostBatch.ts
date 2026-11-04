@@ -67,7 +67,6 @@ export interface UseModalPostBatchReturn {
   isSubmitting: boolean;
   // tab
   activeTab: 'setup' | 'platforms' | 'results';
-  handleTabChange: (tab: 'setup' | 'platforms') => void;
   handleNextStep: () => void;
   handlePreviousStep: () => void;
   platformConfigs: IPostPlatformConfig[];
@@ -87,7 +86,6 @@ export interface UseModalPostBatchReturn {
   // derived / flags
   activeIngredients: IIngredient[];
   isCarousel: boolean;
-  enabledCount: number;
   hasYoutube: boolean;
   hasAvailableCredentials: boolean;
   hasInvalidCredentials: boolean;
@@ -96,7 +94,6 @@ export interface UseModalPostBatchReturn {
   isStep1Complete: boolean;
   isFormValid: boolean;
   aspectRatioInfo: AspectRatioInfo;
-  shouldBeFullScreen: boolean;
   // watched fields
   globalDescription: string;
   globalLabel: string;
@@ -703,13 +700,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     setActiveTab('setup');
   };
 
-  const handleTabChange = (tab: 'setup' | 'platforms') => {
-    if (tab === 'platforms' && !isStep1Complete) {
-      return;
-    }
-    setActiveTab(tab);
-  };
-
   const togglePlatform = (credentialId: string) => {
     hasUserEditedPlatforms.current = true;
     setPlatformConfigs((prev) =>
@@ -775,14 +765,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
       })
       .join(', ');
   }, [invalidCredentialConfigs]);
-
-  const enabledCount = platformConfigs.filter(
-    (config) =>
-      config.enabled &&
-      config.credentialId &&
-      config.credentialId.trim() !== '' &&
-      config.isCredentialValid !== false,
-  ).length;
 
   const hasYoutube = platformConfigs.some(
     (config) => config.platform === CredentialPlatform.YOUTUBE,
@@ -858,20 +840,12 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
 
   const aspectRatioInfo = getAspectRatioInfo();
 
-  const shouldBeFullScreen =
-    !!ingredient &&
-    credentials &&
-    credentials?.length > 0 &&
-    hasAvailableCredentials &&
-    activeTab !== 'results';
-
   return {
     form,
     formRef,
     onSubmit,
     isSubmitting,
     activeTab,
-    handleTabChange,
     handleNextStep,
     handlePreviousStep,
     platformConfigs,
@@ -885,7 +859,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     settings,
     activeIngredients,
     isCarousel,
-    enabledCount,
     hasYoutube,
     hasAvailableCredentials,
     hasInvalidCredentials,
@@ -894,7 +867,6 @@ export function useModalPostBatch(props: ModalPostBatchProps) {
     isStep1Complete,
     isFormValid,
     aspectRatioInfo,
-    shouldBeFullScreen,
     globalDescription: globalDescription ?? '',
     globalLabel: globalLabel ?? '',
     error,

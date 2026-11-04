@@ -6,7 +6,7 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import {
   MetricCardGrid,
   type MetricCardGridProps,
-} from '@ui/cards/metric-card/MetricCardGrid';
+} from '@ui/dashboard/MetricCardGrid';
 import { Alert } from '@ui/primitives/alert';
 
 interface SectionHeaderProps {

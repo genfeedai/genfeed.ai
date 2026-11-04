@@ -4,7 +4,7 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { ICampaignMetricAvailability } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';

@@ -1,6 +1,6 @@
 import { STATS } from '@public/skills/_data';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { WebSection } from '@web-components/content/NeuralGrid';
 
 export default function SkillsStatsBar(): React.ReactElement {

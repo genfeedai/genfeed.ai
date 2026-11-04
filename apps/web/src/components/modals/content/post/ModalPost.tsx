@@ -2,8 +2,15 @@ import {
   type PostModalSchema,
   postModalSchema,
 } from '@genfeedai/client/schemas';
+import {
+  useGalleryModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.hooks';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
+  formatPlatformLabel,
+  IngredientCategory,
+  isOrganicPostingPlatform,
   ModalEnum,
   Platform,
   PostFormat,
@@ -16,6 +23,7 @@ import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   ComposerDestination,
+  ModalPostMediaKind,
   ModalPostProps,
 } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
@@ -42,14 +50,17 @@ import { useModalAutoOpen } from '@/hooks/ui/use-modal-auto-open/use-modal-auto-
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
 import ModalPostSimpleHeader from './ModalPostSimpleHeader';
+import {
+  getPostCategoryForMedia,
+  getPostMediaRequirement,
+  isPostMediaRequirementMet,
+  mergePostMedia,
+} from './post-media.helper';
 
 const EMPTY_ARRAY: never[] = [];
 
 /** How a new post leaves the modal; the lifecycle follows from it, never from a field. */
 type PostSubmitIntent = 'draft' | 'publish' | 'schedule';
-
-/** Connected for livestream chat only; there is no publish path, so never offer it as a post target. */
-const NON_POSTING_PLATFORMS: ReadonlySet<string> = new Set([Platform.RESTREAM]);
 
 /** X accepts up to 280 characters per post; longer text publishes as long-form. */
 const X_STANDARD_POST_LIMIT = 280;
@@ -75,8 +86,8 @@ export default function ModalPost({
 }: ModalPostProps) {
   const credentials = useMemo(
     () =>
-      allCredentials.filter(
-        (account) => !NON_POSTING_PLATFORMS.has(account.platform.toLowerCase()),
+      allCredentials.filter((account) =>
+        isOrganicPostingPlatform(account.platform),
       ),
     [allCredentials],
   );
@@ -101,6 +112,22 @@ export default function ModalPost({
     null,
   );
   const [isThread, setIsThread] = useState(false);
+  // Library media attached to a new post, in posting order. The form keeps the
+  // ids; this keeps what the preview and the delivery checks need.
+  const [selectedMedia, setSelectedMedia] = useState<IIngredient[]>(() =>
+    ingredient ? [ingredient] : [],
+  );
+  const selectedMediaRef = useRef(selectedMedia);
+  selectedMediaRef.current = selectedMedia;
+  // A Library asset that opened the composer is attached again after a reset.
+  const initialMedia = useMemo(
+    () => (ingredient ? [ingredient] : []),
+    [ingredient],
+  );
+  const initialMediaRef = useRef(initialMedia);
+  initialMediaRef.current = initialMedia;
+  const { openGallery } = useGalleryModal();
+  const { openUpload } = useUploadModal();
   const selectedCredentials = useMemo(
     () =>
       credentials.filter((account) =>
@@ -248,17 +275,30 @@ export default function ModalPost({
           ? composerTargets.map((target) => target.platform)
           : [targetPlatform];
 
-      if (
-        isScheduling &&
-        platformsToCheck.some((platform) => !isXPlatform(platform))
-      ) {
-        if (!formData.ingredients || formData.ingredients.length === 0) {
+      // Delivering (now or later) needs the media each destination demands; a
+      // draft never does. The post stays as the user left it when this fails.
+      if (isScheduling || intent === 'publish') {
+        const requirement = getPostMediaRequirement(
+          platformsToCheck.filter((platform): platform is Platform =>
+            Boolean(platform),
+          ),
+        );
+        const hasMedia = (formData.ingredients ?? []).length > 0;
+        const hasVideo = isPostMediaRequirementMet(
+          'video',
+          selectedMediaRef.current,
+        );
+        if (requirement !== 'none' && !hasMedia) {
           notificationsService.error(
-            `${targetPlatform || 'This platform'} requires media when scheduling. Please select at least one image or video.`,
+            composerTranslate(
+              requirement === 'video' ? 'videoRequired' : 'mediaRequired',
+            ),
           );
-          throw new Error(
-            'Ingredients required when scheduling for non-Twitter platforms',
-          );
+          throw new Error('Media required to publish or schedule this post');
+        }
+        if (requirement === 'video' && !isEditMode && !hasVideo) {
+          notificationsService.error(composerTranslate('videoRequired'));
+          throw new Error('Video required to publish or schedule this post');
         }
       }
 
@@ -282,6 +322,7 @@ export default function ModalPost({
             const caption = isX
               ? stripHtmlToPlainText(formData.description)
               : formData.description;
+            const category = getPostCategoryForMedia(selectedMediaRef.current);
             const shared = {
               brandId: brandId || undefined,
               credentialId: target?.id,
@@ -298,6 +339,7 @@ export default function ModalPost({
               const thread = await postsService.createThread({
                 posts: parts.map((part, index) => ({
                   ...shared,
+                  ...(index === 0 && category ? { category } : {}),
                   description: part,
                   ingredients: index === 0 ? formData.ingredients || [] : [],
                   label: label || `Thread ${index + 1}/${parts.length}`,
@@ -308,6 +350,7 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              ...(category ? { category } : {}),
               description: caption,
               format:
                 isX && calculateTweetLength(caption) > X_STANDARD_POST_LIMIT
@@ -379,6 +422,7 @@ export default function ModalPost({
         logger.info(`${url} success`);
         return result;
       } else {
+        const mediaCategory = getPostCategoryForMedia(selectedMediaRef.current);
         const adopted = adoptedDraftRef.current;
         const canAdoptDraft =
           adopted !== null &&
@@ -402,6 +446,7 @@ export default function ModalPost({
             })
           : await postsService.post({
               brandId: brandId || undefined,
+              ...(mediaCategory ? { category: mediaCategory } : {}),
               credentialId: formData.credentialId || undefined,
               description: descriptionForSubmit,
               format: formData.format,
@@ -442,6 +487,7 @@ export default function ModalPost({
       post,
       brandId,
       publishNowOrKeepDraft,
+      composerTranslate,
     ],
   );
 
@@ -545,6 +591,7 @@ export default function ModalPost({
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
   const handleModalClosed = useCallback(() => {
     form.reset(defaultValuesRef.current);
+    setSelectedMedia(initialMediaRef.current);
     setSelectedCredentialIds([]);
     setDestination(null);
     setIsThread(false);
@@ -657,6 +704,71 @@ export default function ModalPost({
     });
   }, []);
 
+  const applyMedia = useCallback(
+    (next: IIngredient[]) => {
+      setSelectedMedia(next);
+      form.setValue(
+        'ingredients',
+        next.map((item) => item.id),
+        { shouldDirty: true, shouldValidate: true },
+      );
+    },
+    [form],
+  );
+
+  const addMedia = useCallback(
+    (picked: IIngredient[]) => {
+      applyMedia(mergePostMedia(selectedMediaRef.current, picked));
+    },
+    [applyMedia],
+  );
+
+  const handlePickFromLibrary = useCallback(
+    (kind: ModalPostMediaKind) => {
+      openGallery({
+        category:
+          kind === 'video'
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE,
+        isFormatFilterEnabled: false,
+        onSelect: (items) => addMedia(items as IIngredient[]),
+        title:
+          kind === 'video'
+            ? composerTranslate('libraryVideo')
+            : composerTranslate('libraryImage'),
+      });
+    },
+    [addMedia, composerTranslate, openGallery],
+  );
+
+  const handleUploadMedia = useCallback(
+    (kind: ModalPostMediaKind) => {
+      const category =
+        kind === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE;
+      openUpload({
+        category,
+        isMultiple: true,
+        onComplete: (uploaded) =>
+          addMedia(
+            uploaded.filter(
+              (item): item is IIngredient =>
+                'category' in item && item.category === category,
+            ),
+          ),
+      });
+    },
+    [addMedia, openUpload],
+  );
+
+  const handleRemoveMedia = useCallback(
+    (ingredientId: string) => {
+      applyMedia(
+        selectedMediaRef.current.filter((item) => item.id !== ingredientId),
+      );
+    },
+    [applyMedia],
+  );
+
   const handleSelectDestination = useCallback(
     (nextDestination: ComposerDestination) => {
       setSelectedCredentialIds([]);
@@ -684,6 +796,40 @@ export default function ModalPost({
       destination === 'article' ? ModalEnum.ARTICLE : ModalEnum.NEWSLETTER,
     );
   }, [closeModal, destination]);
+
+  // What the chosen destinations need attached before delivery, shown up front.
+  const mediaTargetPlatforms = useMemo(
+    () =>
+      isDestinationComposer
+        ? [...new Set(selectedCredentials.map((account) => account.platform))]
+        : selectedPlatform
+          ? [selectedPlatform]
+          : [],
+    [isDestinationComposer, selectedCredentials, selectedPlatform],
+  );
+  const mediaRequirementHint = useMemo(() => {
+    const namesFor = (requirement: 'media' | 'video') =>
+      mediaTargetPlatforms
+        .filter(
+          (platform) => getPostMediaRequirement([platform]) === requirement,
+        )
+        .map((platform) => formatPlatformLabel(platform))
+        .join(', ');
+    const videoNames = namesFor('video');
+    const mediaNames = namesFor('media');
+    return (
+      [
+        videoNames
+          ? composerTranslate('videoNeeded', { platforms: videoNames })
+          : '',
+        mediaNames
+          ? composerTranslate('mediaNeeded', { platforms: mediaNames })
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ') || null
+    );
+  }, [composerTranslate, mediaTargetPlatforms]);
 
   // YouTube requires a title
   const isTitleRequired = selectedPlatform === Platform.YOUTUBE;
@@ -735,6 +881,18 @@ export default function ModalPost({
         <ModalPostSimpleFields
           key={openVersion}
           form={form}
+          media={
+            isEditMode || isThreadReply
+              ? undefined
+              : {
+                  isDisabled: isSubmitting,
+                  items: selectedMedia,
+                  onPickFromLibrary: handlePickFromLibrary,
+                  onRemove: handleRemoveMedia,
+                  onUpload: handleUploadMedia,
+                  requirementHint: mediaRequirementHint,
+                }
+          }
           composer={
             isDestinationComposer
               ? {

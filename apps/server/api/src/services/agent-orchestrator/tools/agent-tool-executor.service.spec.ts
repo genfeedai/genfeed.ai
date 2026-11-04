@@ -5063,19 +5063,22 @@ describe('AgentToolExecutorService', () => {
 
   it('should return a completion summary card when get_trends finds cached trends', async () => {
     const { service, trendsService } = createService();
+    const updatedAt = new Date(Date.now() - 2 * 3_600_000);
 
     trendsService.getTrends.mockResolvedValue([
       {
         id: 'trend-1',
         platform: 'tiktok',
-        score: 91.2,
         topic: 'Founder confession hooks',
+        updatedAt,
+        viralityScore: 91.2,
       },
       {
         id: 'trend-2',
         platform: 'tiktok',
-        score: 77.8,
         topic: 'Behind-the-scenes product build',
+        updatedAt,
+        viralityScore: 77.8,
       },
     ]);
 
@@ -5098,18 +5101,22 @@ describe('AgentToolExecutorService', () => {
     expect(trendsService.getTrends).toHaveBeenCalledTimes(1);
     expect(result.data).toEqual({
       count: 2,
+      newestUpdatedAt: updatedAt.toISOString(),
+      timeframe: '24h',
       trends: [
         {
           id: 'trend-1',
           platform: 'tiktok',
           score: 91.2,
           topic: 'Founder confession hooks',
+          updatedAt: updatedAt.toISOString(),
         },
         {
           id: 'trend-2',
           platform: 'tiktok',
           score: 77.8,
           topic: 'Behind-the-scenes product build',
+          updatedAt: updatedAt.toISOString(),
         },
       ],
     });
@@ -5164,6 +5171,8 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual({
       count: 0,
+      newestUpdatedAt: null,
+      timeframe: '24h',
       trends: [],
     });
     expect(result.nextActions).toEqual([
@@ -5205,6 +5214,8 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual({
       count: 0,
+      newestUpdatedAt: null,
+      timeframe: '24h',
       trends: [],
     });
     expect(result.nextActions).toEqual([

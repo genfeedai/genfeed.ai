@@ -12,6 +12,7 @@ describe('ApifyInstagramService', () => {
     calculateGrowthRate: ReturnType<typeof vi.fn>;
     calculateViralityScore: ReturnType<typeof vi.fn>;
     getApiToken: ReturnType<typeof vi.fn>;
+    logFailure: ReturnType<typeof vi.fn>;
     loggerService: {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
@@ -60,6 +61,7 @@ describe('ApifyInstagramService', () => {
       }),
       calculateGrowthRate: vi.fn().mockReturnValue(65),
       calculateViralityScore: vi.fn().mockReturnValue(70),
+      logFailure: vi.fn(),
       loggerService: { error: vi.fn(), log: vi.fn() },
       runActor: vi.fn(),
     };

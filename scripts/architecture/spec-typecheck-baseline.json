@@ -2233,14 +2233,6 @@
       "workspace": "api"
     },
     {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/mcp/mcp.module.spec.ts",
-      "fingerprint": "ef5953d9c920d497b1e5",
-      "message": "Parameter '_ctx' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
@@ -3278,14 +3270,6 @@
       "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "a38161c0d5a808a19660",
       "message": "Type '{ create: Mock<Procedure>; }' is missing the following properties from type '{ create(model_owner: string, model_name: string, version_id: string, options: { destination: `${string}/${string}`; input: object; webhook?: string | undefined; webhook_events_filter?: WebhookEventType[] | undefined; signal?: AbortSignal | undefined; }): Promise<...>; get(training_id: string, options?: { ...; } | u...': get, cancel, list",
-      "workspace": "api"
-    },
-    {
-      "code": 2304,
-      "count": 5,
-      "file": "apps/server/api/src/services/integrations/slack/services/slack.service.spec.ts",
-      "fingerprint": "7622671817c93e733245",
-      "message": "Cannot find name 'fail'.",
       "workspace": "api"
     },
     {
@@ -4486,14 +4470,6 @@
       "file": "packages/helpers/src/deserializer.helper.test.ts",
       "fingerprint": "fb033f9c5bf1b94509c0",
       "message": "'result' is of type 'unknown'.",
-      "workspace": "helpers"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "packages/helpers/src/formatting/aspect-ratio/aspect-ratio.util.test.ts",
-      "fingerprint": "2c0652e3740930207912",
-      "message": "Type '{ height: number; width: number; }' is not assignable to type 'string | IMetadata | undefined'.   Type '{ height: number; width: number; }' is missing the following properties from type 'IMetadata': label, id, isDeleted, createdAt, updatedAt",
       "workspace": "helpers"
     },
     {
@@ -6878,22 +6854,6 @@
       "file": "apps/web/src/components/modals/content/post/ModalPostSetupTab.test.tsx",
       "fingerprint": "e83529b797ebe82f3e5e",
       "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': watch, getValues, getErrors, getFieldState, and 13 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
-      "fingerprint": "8138a4ad4654136a5a00",
-      "message": "Type '{ clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; onClose: Mock<Procedure>; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
-      "fingerprint": "a235068ee72483372124",
-      "message": "Type '{ onClose: Mock<Procedure>; clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
       "workspace": "web"
     },
     {

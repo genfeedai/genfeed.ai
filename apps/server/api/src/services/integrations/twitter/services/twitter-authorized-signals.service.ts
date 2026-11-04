@@ -7,12 +7,20 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   getTwitterRetryAfterMs,
@@ -23,7 +31,6 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
-  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
@@ -32,7 +39,6 @@ import {
   type TwitterOwnedPostSignal,
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
-import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -144,15 +150,6 @@ export type RefreshTwitterAuthorizedSignalsParams = {
   organizationId: string;
 };
 
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
 type TwitterSignalsRefreshContext = {
   cacheKey: string;
   credential: CredentialDocument;
@@ -179,22 +176,6 @@ type TwitterSignalsProviderFetch =
       tweetsResult: TwitterSettledResult<TwitterOwnedPostsFetch>;
       userInfoResult: TwitterSettledResult<Record<string, unknown>>;
     };
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
 
 @Injectable()
 export class TwitterAuthorizedSignalsService {
@@ -293,11 +274,14 @@ export class TwitterAuthorizedSignalsService {
     const context: TwitterSignalsRefreshContext = {
       cacheKey,
       credential,
-      genfeedEvidence: await this.buildGenfeedEvidence(
-        credential,
-        params.organizationId,
-        refreshAttemptedAt,
-      ),
+      genfeedEvidence: await buildGenfeedPublishEvidence({
+        credentialId: credential.id,
+        key: 'genfeed-publish-activity',
+        limit: TWITTER_POST_LIMIT,
+        observedAt: refreshAttemptedAt,
+        organizationId: params.organizationId,
+        prisma: this.prisma,
+      }),
       grantedScopes,
       organizationId: params.organizationId,
       previousSnapshot,
@@ -535,114 +519,40 @@ export class TwitterAuthorizedSignalsService {
     );
   }
 
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<TwitterAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: TWITTER_POST_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-activity',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
-  }
-
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TWITTER_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes = Array.isArray(credential.grantedScopes)
-      ? credential.grantedScopes.filter((scope) => typeof scope === 'string')
-      : [];
-
-    return parseGrantedOAuthScopes(
-      explicitScopes ??
-        (persistedScopes.length > 0 ? persistedScopes : undefined) ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: TWITTER_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TWITTER_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes = Array.isArray(credential.grantedScopes)
-      ? credential.grantedScopes
-      : [];
-
-    return (
-      persistedScopes.length > 0 ||
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: TWITTER_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): TwitterAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = twitterAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[TWITTER_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      TWITTER_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      twitterAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -651,41 +561,27 @@ export class TwitterAuthorizedSignalsService {
     cacheKey: string,
     snapshot: TwitterAuthorizedSignalsSnapshot,
   ): Promise<TwitterAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [TWITTER_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [TWITTER_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncTwitterAuthorizedSnapshot({
-        brandId: credential.brandId,
-        credentialId: credential.id,
-        organizationId,
-        snapshot,
-      });
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: TWITTER_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.TWITTER_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.TWITTER_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? TWITTER_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : TWITTER_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: TWITTER_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: TWITTER_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: TWITTER_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncTwitterAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
@@ -38,10 +39,6 @@ function getVoiceSourceLabel(voice: Voice): string {
 function getProviderMeta(voice: Voice): string | null {
   const index = voice.providerData?.index;
   return typeof index === 'number' ? `Index ${index}` : null;
-}
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
 }
 
 function getVoicePreview(voice: Voice): string | null {

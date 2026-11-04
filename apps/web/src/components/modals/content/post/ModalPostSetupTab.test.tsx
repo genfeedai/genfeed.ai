@@ -6,6 +6,11 @@ import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostSetupTab from '@/components/modals/content/post/ModalPostSetupTab';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
   useBrand: () => ({

@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { toBooleanOrUnset } from '@api/helpers/dto/optional-boolean.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
@@ -98,24 +99,7 @@ export class ModelsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @ValidateIf((o) => o.isActive !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return undefined;
-    }
-    return value ? true : undefined;
-  })
+  @Transform(toBooleanOrUnset)
   @IsBoolean()
   isActive?: boolean;
 

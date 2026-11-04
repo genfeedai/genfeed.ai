@@ -7,12 +7,18 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedGrantedScopes } from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import {
   getYoutubeRetryAfterMs,
@@ -20,10 +26,9 @@ import {
   isYoutubeChannelSelectionError,
   isYoutubeRateLimitError,
   isYoutubeScopeError,
-  parseYoutubeGrantedScopes,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalReason,
@@ -32,7 +37,7 @@ import {
   type YoutubeOwnedVideoAnalyticsSignal,
   youtubeAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
-import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -137,31 +142,6 @@ type YoutubeChannelSelection = {
   reason?: YoutubeAuthorizedSignalReason;
 };
 
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
-
 function isoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
@@ -215,11 +195,14 @@ export class YoutubeAuthorizedSignalsService {
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
-      credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
+    const genfeedEvidence = await buildGenfeedPublishEvidence({
+      credentialId: credential.id,
+      key: 'genfeed-publish-outcomes-observed',
+      limit: YOUTUBE_VIDEO_LIMIT,
+      observedAt: refreshAttemptedAt,
+      organizationId: params.organizationId,
+      prisma: this.prisma,
+    });
 
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
@@ -402,7 +385,10 @@ export class YoutubeAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.YOUTUBE,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-uploads-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -749,69 +735,6 @@ export class YoutubeAuthorizedSignalsService {
     return isYoutubeAuthorizationError(error);
   }
 
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<YoutubeAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: YOUTUBE_VIDEO_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-outcomes-observed',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -882,66 +805,28 @@ export class YoutubeAuthorizedSignalsService {
     return dataRequiredScopes(grantedScopes);
   }
 
-  private resolveSnapshotState(
-    evidence: YoutubeAuthorizedSignalEvidence[],
-  ): YoutubeAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedUploads = platformEvidence.find(
-      (item) => item.key === 'owned-uploads-snapshot',
-    );
-    if (
-      ownedUploads?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
-  }
-
   private resolveGrantedScopes(
     explicitScopes: readonly string[] | string | undefined,
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[YOUTUBE_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseYoutubeGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: YOUTUBE_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): YoutubeAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = youtubeAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[YOUTUBE_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      YOUTUBE_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      youtubeAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -950,41 +835,27 @@ export class YoutubeAuthorizedSignalsService {
     cacheKey: string,
     snapshot: YoutubeAuthorizedSignalsSnapshot,
   ): Promise<YoutubeAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [YOUTUBE_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [YOUTUBE_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncYoutubeAuthorizedSnapshot({
-        brandId: credential.brandId,
-        credentialId: credential.id,
-        organizationId,
-        snapshot,
-      });
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: YOUTUBE_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.YOUTUBE_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.YOUTUBE_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? YOUTUBE_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : YOUTUBE_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: YOUTUBE_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: YOUTUBE_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: YOUTUBE_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncYoutubeAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

@@ -8,6 +8,11 @@ export interface IPublishPipelineItem {
   approvalStatus: string;
   brandId: string;
   executedAt: string | null;
+  /**
+   * Where the post is in publishing. `postStatus` is the content status and
+   * stays `draft` through publishing, so read this one for the outcome.
+   */
+  executionState: string | null;
   lastError: string | null;
   organizationId: string;
   platform: string | null;
@@ -42,11 +47,15 @@ export interface IPublishPipelineReviewedPost {
   platform: string | null;
   postId: string;
   postStatus: string | null;
+  /** Product value: approved, rejected, request_changes or unset. */
+  reviewDecision: string;
   reviewedAt: string;
   scheduledDate: string | null;
 }
 
 export interface IPublishPipelineReviewQueueCounts {
+  /** Posts by review decision. Only `approved` unless the report asked for any decision. */
+  byDecision: Record<string, number>;
   /** Posts by their target execution state (draft, scheduled, published, ...). */
   byExecutionState: Record<string, number>;
   /** Scheduled for a past date and not yet published, failed or skipped. */
@@ -57,6 +66,8 @@ export interface IPublishPipelineReviewQueueCounts {
 }
 
 export interface IPublishPipelineReviewQueue {
+  /** True when posts with any review decision are listed, not only approved ones. */
+  isAnyDecision: boolean;
   counts: IPublishPipelineReviewQueueCounts;
   /** Newest reviews first, capped at the report's `itemLimit`. */
   items: IPublishPipelineReviewedPost[];

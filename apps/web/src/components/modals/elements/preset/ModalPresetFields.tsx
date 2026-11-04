@@ -4,6 +4,7 @@ import { ModelCategory } from '@genfeedai/contracts';
 import type { ModalPresetFieldsProps } from '@genfeedai/props/modals/modal.props';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -104,7 +105,7 @@ export default function ModalPresetFields({
           placeholder={t('promptPlaceholder')}
         />
       </FormControl>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <FormRow>
         {(
           [
             ['aspectRatio', t('aspectRatio'), t('aspectRatioPlaceholder')],
@@ -148,7 +149,7 @@ export default function ModalPresetFields({
             isDisabled={isSubmitting}
           />
         </FormControl>
-      </div>
+      </FormRow>
       <Checkbox
         name="isActive"
         label={t('active')}

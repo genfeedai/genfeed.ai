@@ -1,4 +1,3 @@
-import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
   Calendar,
   Camera,
@@ -98,19 +97,3 @@ export const STORYBOARD_PRESETS: readonly StoryboardPreset[] = [
     thumbnailSrc: '/storyboard-presets/howTo.webp',
   },
 ];
-
-/** Same input the create page builds for a brief, so presets and manual runs match. */
-export function buildStoryboardPresetInput(
-  preset: StoryboardPreset,
-): Omit<CreateStoryboardRun, 'clientRequestId'> {
-  return {
-    planSettings: {
-      cast: [],
-      format: preset.format,
-      runtimeBudgetSeconds: preset.runtimeBudgetSeconds,
-      styleReferenceAssetIds: [],
-      videoModelKey: null,
-    },
-    source: { brief: preset.brief, kind: 'brief' },
-  };
-}

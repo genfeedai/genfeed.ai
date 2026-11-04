@@ -11,6 +11,7 @@ import type {
   McpCardFact,
   McpCardKind,
   McpCardLayout,
+  McpCardMetric,
   McpCardView,
   McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
@@ -64,15 +65,19 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   generate_content: 'post',
   get_account: 'summary',
   get_articles: 'article',
+  check_channel: 'summary',
+  get_brand_publishing_readiness: 'summary',
   get_brands: 'summary',
   get_job_status: 'media',
   get_posts: 'post',
   get_scheduled_release: 'summary',
   get_assets: 'media',
   get_orgs: 'summary',
+  get_scheduler_capabilities: 'summary',
   switch_org: 'summary',
   transform_media: 'media',
   update_scheduled_release: 'summary',
+  validate_scheduler_target: 'summary',
 };
 
 /** Short host status lines shown while a tool runs and once it returns. */
@@ -224,6 +229,9 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       : {}),
     ...(isPending ? { isPending, progress: progress(row) } : {}),
     ...(isPending && stage ? { stage } : {}),
+    ...(resolvedKind === 'article' && text(row, 'content')
+      ? { body: text(row, 'content').slice(0, 60000) }
+      : {}),
     date: text(row, 'scheduledDate', 'scheduledAt', 'publishedAt', 'createdAt'),
     description: text(
       row,
@@ -309,16 +317,34 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
   };
 }
 
+const VIEW_TITLES: Readonly<Record<string, string>> = {
+  create_post: 'Draft post',
+  generate: 'Generation',
+  generate_content: 'Generated content',
+  get_articles: 'Articles',
+  get_assets: 'Library',
+  get_job_status: 'Generation',
+  get_posts: 'Posts',
+  transform_media: 'Media',
+};
+
 function layoutFor(kind: McpCardKind): McpCardLayout {
   if (kind === 'post') return 'posts';
   if (kind === 'article' || kind === 'summary') return 'cards';
   return 'media';
 }
 
+/** Credits and usage: two decimals at most, grouped by thousands. */
+export function formatAmount(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
+    value,
+  );
+}
+
 function fact(label: string, value: unknown): McpCardFact[] {
   const shown =
     typeof value === 'number' && Number.isFinite(value)
-      ? String(value)
+      ? formatAmount(value)
       : typeof value === 'string'
         ? value.trim()
         : '';
@@ -348,6 +374,16 @@ function summaryCard(
   };
 }
 
+function metric(
+  label: string,
+  value: unknown,
+  extra: Partial<McpCardMetric> = {},
+): McpCardMetric[] {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? [{ label, value: formatAmount(value), ...extra }]
+    : [];
+}
+
 /**
  * `get_account`: who is connected and what is left to spend, as people name
  * things. Identifiers stay in the structured data for the agent.
@@ -363,43 +399,73 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
     const brandNames = (Array.isArray(profile.brands) ? profile.brands : [])
       .map((brand) => text(record(brand), 'name'))
       .filter(Boolean);
+    const brandsFact: McpCardFact[] =
+      brandCount === 0
+        ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
+        : brandCount !== undefined
+          ? [
+              {
+                ...(brandNames.length
+                  ? { items: brandNames.map((label) => ({ label })) }
+                  : {}),
+                label: 'Brands',
+                value: brandNames.join(', ') || String(brandCount),
+              },
+            ]
+          : [];
     cards.push(
       summaryCard(
         text(profile, 'organizationName') || 'Genfeed account',
         [
-          ...fact('Role', words(text(profile, 'role'))),
           ...fact('Active brand', text(profile, 'brandName')),
-          ...(brandCount === 0
-            ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
-            : brandCount !== undefined
-              ? fact('Brands', brandNames.join(', ') || String(brandCount))
-              : []),
+          ...brandsFact,
           ...(typeof profile.isOnboardingCompleted === 'boolean'
-            ? fact(
-                'Account setup',
-                profile.isOnboardingCompleted ? 'Complete' : 'Incomplete',
-              )
+            ? [
+                {
+                  label: 'Account setup',
+                  status: profile.isOnboardingCompleted
+                    ? 'completed'
+                    : 'needs_attention',
+                  value: profile.isOnboardingCompleted
+                    ? 'Complete'
+                    : 'Incomplete',
+                },
+              ]
             : []),
         ],
-        { id: text(profile, 'organizationId') },
+        {
+          hasAvatar: true,
+          id: text(profile, 'organizationId'),
+          status: words(text(profile, 'role')),
+        },
       ),
     );
   }
   const balance = credits.balance ?? usage.currentBalance;
-  if (typeof balance === 'number' || Object.keys(usage).length) {
-    cards.push(
-      summaryCard('Credits', [
-        ...fact('Available', balance),
-        ...fact('Used in 7 days', usage.usage7Days),
-        ...fact('Used in 30 days', usage.usage30Days),
-        ...(typeof usage.trendPercentage === 'number'
-          ? fact('Trend', `${usage.trendPercentage}%`)
-          : []),
-      ]),
-    );
+  const trend =
+    typeof usage.trendPercentage === 'number' &&
+    Number.isFinite(usage.trendPercentage)
+      ? {
+          direction:
+            usage.trendPercentage > 0
+              ? ('up' as const)
+              : usage.trendPercentage < 0
+                ? ('down' as const)
+                : ('flat' as const),
+          label: `${formatAmount(Math.abs(usage.trendPercentage))}%`,
+        }
+      : undefined;
+  const metrics: McpCardMetric[] = [
+    ...metric('Available', balance),
+    ...metric('Used in 7 days', usage.usage7Days, { trend }),
+    ...metric('Used in 30 days', usage.usage30Days),
+  ].map((item, index) => ({ ...item, isPrimary: index === 0 }));
+  if (metrics.length) {
+    cards.push(summaryCard('Credits', [], { metrics }));
   }
   return {
     cards,
+    isCountHidden: true,
     layout: 'cards',
     title: 'Genfeed account',
     total: cards.length,
@@ -409,6 +475,25 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
 /** The brand's logo URL, when the API signed one for this caller. */
 function brandLogoUrl(row: Record<string, unknown>): string | undefined {
   return safeCardUrl(text(record(row.logo), 'cdnUrl'));
+}
+
+/** One brand: logo, handle, ACTIVE badge, description and a Select button. */
+function brandCard(row: Record<string, unknown>): McpCard {
+  const id = text(row, 'id');
+  return summaryCard(
+    text(row, 'label', 'name') || 'Brand',
+    [...fact('Handle', text(row, 'slug'))],
+    {
+      ...(id
+        ? { actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }] }
+        : {}),
+      avatarUrl: brandLogoUrl(row),
+      description: text(row, 'description', 'text').slice(0, 400),
+      hasAvatar: true,
+      id,
+      status: row.isActive === true ? 'Active' : '',
+    },
+  );
 }
 
 /**
@@ -421,20 +506,7 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
     : data.brand
       ? [data.brand]
       : [];
-  const cards = rows.slice(0, 24).map((value) => {
-    const row = record(value);
-    const id = text(row, 'id');
-    const title = text(row, 'label', 'name') || 'Brand';
-    return summaryCard(title, [...fact('Handle', text(row, 'slug'))], {
-      ...(id
-        ? { actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }] }
-        : {}),
-      avatarUrl: brandLogoUrl(row),
-      description: text(row, 'description', 'text').slice(0, 400),
-      id,
-      status: row.isActive === true ? 'Active' : '',
-    });
-  });
+  const cards = rows.slice(0, 24).map((value) => brandCard(record(value)));
   return {
     cards,
     layout: 'cards',
@@ -480,18 +552,7 @@ function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
     .filter((choice) => choice.id);
   const brands = (Array.isArray(data.brands) ? data.brands : [])
     .slice(0, 24)
-    .map((value) => {
-      const row = record(value);
-      const id = text(row, 'id');
-      return summaryCard(text(row, 'label', 'name') || 'Brand', [], {
-        ...(id
-          ? {
-              actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }],
-            }
-          : {}),
-        id,
-      });
-    });
+    .map((value) => brandCard(record(value)));
   return {
     cards: brands,
     layout: 'organizations',
@@ -505,26 +566,260 @@ function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
   };
 }
 
+const CHANNEL_LABELS: Readonly<Record<string, string>> = {
+  discord: 'Discord',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  pinterest: 'Pinterest',
+  reddit: 'Reddit',
+  telegram: 'Telegram',
+  threads: 'Threads',
+  tiktok: 'TikTok',
+  twitch: 'Twitch',
+  twitter: 'X',
+  x: 'X',
+  youtube: 'YouTube',
+};
+
+/** A channel's display name: the API's own label, else a known brand spelling. */
+function channelLabel(platform: string, label = ''): string {
+  return (
+    label ||
+    CHANNEL_LABELS[platform.toLowerCase()] ||
+    words(platform) ||
+    'Channel'
+  );
+}
+
+/** A readiness check as a status badge: tone from the result, wording its own. */
+function checkFact(label: string, result: unknown): McpCardFact[] {
+  const status = typeof result === 'string' ? result.toLowerCase() : '';
+  if (!status) return [];
+  if (status === 'pass') {
+    return [{ label, status: 'completed', value: 'Passed' }];
+  }
+  if (status === 'warn') {
+    return [{ label, status: 'needs_attention', value: 'Warning' }];
+  }
+  if (status === 'fail') {
+    return [{ label, status: 'failed', value: 'Failed' }];
+  }
+  return [{ label, status: 'unknown', value: 'Unknown' }];
+}
+
+const READINESS_LABELS: Readonly<Record<string, string>> = {
+  blocked: 'Blocked',
+  degraded: 'Degraded',
+  publish_capable: 'Ready',
+  unknown: 'Unknown',
+};
+
+function utcStamp(value: string): string {
+  const time = Date.parse(value);
+  return Number.isNaN(time)
+    ? ''
+    : `${new Date(time).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+function rows(value: unknown): Record<string, unknown>[] {
+  return (Array.isArray(value) ? value : []).map(record);
+}
+
+/** One connected channel: can it publish, and which checks hold it back. */
+function readinessCard(row: Record<string, unknown>): McpCard {
+  const diagnostics = rows(row.diagnostics);
+  const lead =
+    diagnostics.find((item) => text(item, 'severity') === 'error') ??
+    diagnostics.find((item) => text(item, 'severity') === 'warning') ??
+    diagnostics[0];
+  const providerKey = text(row, 'providerKey');
+  const checks = [
+    ...checkFact('Access token', row.tokenFreshness),
+    ...checkFact('Permissions', row.permissionScopeStatus),
+    ...checkFact('Callback URL', row.callbackUrlStatus),
+    ...checkFact('App review', row.appReviewStatus),
+    ...checkFact('Quota', row.quotaStatus),
+  ];
+  // Passed checks fold into one line; only what holds the channel back is listed.
+  const open = checks.filter((check) => check.status !== 'completed');
+  return summaryCard(
+    channelLabel(providerKey),
+    [
+      ...(row.canSchedule === false
+        ? [{ label: 'Scheduling', status: 'blocked', value: 'Blocked' }]
+        : []),
+      ...(open.length
+        ? open
+        : checks.length
+          ? [
+              {
+                label: 'Checks',
+                status: 'completed',
+                value: `All ${checks.length} passed`,
+              },
+            ]
+          : []),
+      ...fact('Last check', utcStamp(text(row, 'lastSuccessfulValidationAt'))),
+    ],
+    {
+      description:
+        text(row, 'requiredAction') ||
+        (lead ? text(lead, 'correctiveAction', 'message') : ''),
+      id: text(row, 'credentialId') || providerKey,
+      platform: providerKey,
+      status: text(row, 'state') || 'unknown',
+    },
+  );
+}
+
+/** `get_brand_publishing_readiness`: one card per connected channel. */
+function buildReadinessView(payload: unknown): McpCardView {
+  const channels = rows(
+    Array.isArray(payload) ? payload : record(payload).data,
+  );
+  return {
+    cards: channels.slice(0, 24).map(readinessCard),
+    layout: 'cards',
+    title: 'Publishing readiness',
+    total: channels.length,
+  };
+}
+
+/** What one channel accepts: modes, caption length and media kinds. */
+function capabilityCard(row: Record<string, unknown>): McpCard {
+  const platform = text(row, 'platform');
+  const modes = (Array.isArray(row.publishModes) ? row.publishModes : [])
+    .filter((mode): mode is string => typeof mode === 'string')
+    .map(words);
+  const kinds = (
+    Array.isArray(record(row.media).kinds)
+      ? (record(row.media).kinds as unknown[])
+      : []
+  )
+    .filter((kind): kind is string => typeof kind === 'string')
+    .map(words);
+  const maxLength = record(row.caption).maxLength;
+  return summaryCard(
+    channelLabel(platform, text(row, 'label')),
+    [
+      ...fact('Publish modes', modes.join(', ')),
+      ...fact(
+        'Caption limit',
+        typeof maxLength === 'number' ? `${maxLength} characters` : '',
+      ),
+      ...fact('Media', kinds.join(', ')),
+    ],
+    {
+      description: text(row, 'description'),
+      id: platform,
+      platform,
+      status: text(row, 'status'),
+    },
+  );
+}
+
+/** `check_channel` (capabilities): one channel, or every channel Genfeed supports. */
+function buildCapabilitiesView(payload: unknown): McpCardView {
+  const channels = Array.isArray(payload)
+    ? rows(payload)
+    : text(record(payload), 'platform')
+      ? [record(payload)]
+      : [];
+  return {
+    cards: channels.slice(0, 24).map(capabilityCard),
+    layout: 'cards',
+    title: 'Channels',
+    total: channels.length,
+  };
+}
+
+function issueFact(
+  label: string,
+  singular: string,
+  count: number,
+  status: string,
+): McpCardFact {
+  return count
+    ? { label, status, value: `${count} ${singular}${count === 1 ? '' : 's'}` }
+    : { label, status: 'completed', value: `No ${singular}s` };
+}
+
+/** `check_channel` (validate): can this post go to this channel, and if not why. */
+function buildValidationView(payload: unknown): McpCardView {
+  const data = record(payload);
+  const platform = text(data, 'platform');
+  const errors = rows(data.errors);
+  const warnings = rows(data.warnings);
+  const state = text(data, 'validationState');
+  const readinessState = text(record(data.readiness), 'state');
+  const issues = [
+    ...errors.map((item) => `Error: ${text(item, 'message')}`),
+    ...warnings.map((item) => `Warning: ${text(item, 'message')}`),
+  ];
+  const card = summaryCard(
+    `${channelLabel(platform, text(record(data.capability), 'label'))} check`,
+    [
+      issueFact('Errors', 'error', errors.length, 'failed'),
+      issueFact('Warnings', 'warning', warnings.length, 'needs_attention'),
+      ...(readinessState
+        ? [
+            {
+              label: 'Publishing readiness',
+              status: readinessState,
+              value: READINESS_LABELS[readinessState] ?? words(readinessState),
+            },
+          ]
+        : []),
+    ],
+    {
+      description:
+        issues.join('\n') ||
+        (data.valid === true ? 'Ready to schedule on this channel.' : ''),
+      id: platform,
+      platform,
+      status: state === 'warning' ? 'needs_attention' : state,
+    },
+  );
+  return {
+    cards: [card],
+    isCountHidden: true,
+    layout: 'cards',
+    title: 'Channel check',
+    total: 1,
+  };
+}
+
 /** Scheduled release tools: the release, its status and where it goes. */
 function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   // The release arrives as a JSON:API resource: its fields sit under
   // `attributes`, beside the top-level `id`.
   const data = { ...resource, ...record(resource.attributes) };
   const targets = (Array.isArray(data.targets) ? data.targets : []).map(record);
-  const channels = targets
-    .map((target) => {
-      const platform = text(target, 'platform');
-      const state = text(target, 'executionState', 'status');
-      return platform && state
-        ? `${platform} (${words(state)})`
-        : platform || '';
-    })
-    .filter(Boolean)
-    .join(', ');
+  const channels = targets.flatMap((target) => {
+    const platform = text(target, 'platform');
+    return platform
+      ? [
+          {
+            label: platform,
+            platform,
+            status: text(target, 'executionState', 'status'),
+          },
+        ]
+      : [];
+  });
   const card = summaryCard(
     text(data, 'title') || 'Scheduled release',
     [
-      ...fact('Channels', channels),
+      ...(channels.length
+        ? [
+            {
+              items: channels,
+              label: 'Channels',
+              value: channels.map((channel) => channel.label).join(', '),
+            },
+          ]
+        : []),
       ...fact('Brand', text(data, 'brandName')),
       ...fact('Timezone', text(data, 'timezone')),
     ],
@@ -537,10 +832,80 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   );
   return {
     cards: [card],
+    isCountHidden: true,
     layout: 'cards',
     title: 'Scheduled release',
     total: 1,
   };
+}
+
+/**
+ * A write that waits for a person: what it is, what it costs, and Approve /
+ * Decline buttons when this connection may resolve it. The result is an error
+ * so the model knows nothing ran; the card is how the person acts on it.
+ */
+function buildApprovalView(
+  data: Record<string, unknown>,
+): McpCardView | undefined {
+  const approvalId = text(data, 'approvalId');
+  if (text(data, 'code') !== 'approval_pending' || !approvalId) {
+    return undefined;
+  }
+  const credits =
+    typeof data.estimatedCredits === 'number'
+      ? data.estimatedCredits
+      : undefined;
+  const card = summaryCard(
+    words(text(data, 'toolName')) || 'Action',
+    credits === undefined
+      ? []
+      : fact('Estimated cost', `${formatAmount(credits)} credits`),
+    {
+      ...(data.canResolveApproval === true
+        ? {
+            actions: [
+              {
+                approvalId,
+                decision: 'approve' as const,
+                kind: 'resolve_approval' as const,
+                label: 'Approve',
+              },
+              {
+                approvalId,
+                decision: 'decline' as const,
+                kind: 'resolve_approval' as const,
+                label: 'Decline',
+              },
+            ],
+          }
+        : {}),
+      description: 'This action needs your approval before it runs.',
+      id: approvalId,
+      linkLabel: 'Review in Genfeed',
+      status: 'pending_approval',
+      url: safeCardUrl(text(data, 'nextStepUrl')),
+    },
+  );
+  return {
+    cards: [card],
+    isApproval: true,
+    isCountHidden: true,
+    layout: 'cards',
+    title: 'Approval needed',
+    total: 1,
+  };
+}
+
+/** Adds the approval card to a queued-write result; other errors pass through. */
+export function withApprovalCard<
+  T extends { isError?: boolean; structuredContent?: object },
+>(result: T): T & { structuredContent?: { genfeedCards?: McpCardView } } {
+  const content = result.structuredContent;
+  if (!result.isError || !content) return result;
+  const view = buildApprovalView(record(content));
+  return view
+    ? { ...result, structuredContent: { ...content, genfeedCards: view } }
+    : result;
 }
 
 export function buildCardView(
@@ -555,6 +920,13 @@ export function buildCardView(
   if (name === 'get_orgs' || name === 'switch_org') {
     return buildOrganizationsView(data);
   }
+  if (name === 'get_brand_publishing_readiness') {
+    return buildReadinessView(payload);
+  }
+  if (name === 'get_scheduler_capabilities') {
+    return buildCapabilitiesView(payload);
+  }
+  if (name === 'validate_scheduler_target') return buildValidationView(payload);
   if (baseKind === 'summary') return buildReleaseView(data);
   if (name === 'get_posts' && Array.isArray(data.gapDays)) {
     return buildCalendarView(data);
@@ -618,7 +990,7 @@ export function buildCardView(
   return {
     cards,
     layout: layoutFor(kind),
-    title: name.replace(/_/g, ' '),
+    title: VIEW_TITLES[name] ?? words(name),
     total: Math.max(count, rows.length),
   };
 }

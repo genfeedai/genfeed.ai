@@ -77,6 +77,11 @@ function moderationRow(ingredientId: string, hate: number, mode = 'shadow') {
 
 function makeHarness(options: {
   generationHarness?: unknown;
+  /** Explicit ingredient rows by id, for derived-asset chains. */
+  ingredientRows?: Record<
+    string,
+    { generationHarness?: unknown; parentId?: string | null }
+  >;
   categories?: Record<string, string>;
   textDecisions?: Record<string, unknown>[];
   config?: Record<string, unknown>;
@@ -121,11 +126,21 @@ function makeHarness(options: {
       ingredient: {
         findMany: vi.fn(
           async ({ where }: { where: { id: { in: string[] } } }) =>
-            where.id.in.map((id) => ({
-              category: categories[id] ?? 'IMAGE',
-              generationHarness: options.generationHarness ?? null,
-              id,
-            })),
+            where.id.in.flatMap((id) => {
+              const explicit = options.ingredientRows?.[id];
+              if (options.ingredientRows && !explicit) return [];
+              return [
+                {
+                  category: categories[id] ?? 'IMAGE',
+                  generationHarness:
+                    explicit?.generationHarness ??
+                    options.generationHarness ??
+                    null,
+                  id,
+                  parentId: explicit?.parentId ?? null,
+                },
+              ];
+            }),
         ),
       },
       mediaModeration: {
@@ -184,6 +199,55 @@ describe('MediaAssessmentService', () => {
       expect(policy.reason).toContain('Brand enhancement failed');
     },
   );
+
+  it('refuses auto-publish for an asset derived from a failed-enhancement original', async () => {
+    const { service } = makeHarness({
+      featureSettings: { moderationMode: 'off' },
+      ingredientRows: {
+        'asset-1': { parentId: 'resized' },
+        original: {
+          generationHarness: { isEnhancementFailed: true, status: 'skipped' },
+        },
+        resized: { parentId: 'original' },
+      },
+    });
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.reasons).toContainEqual(
+      expect.objectContaining({
+        assetId: 'asset-1',
+        code: 'generation:enhancement_failed',
+        message: expect.stringContaining('derived from'),
+      }),
+    );
+  });
+
+  it('keeps an asset derived from a successfully enhanced original publishable', async () => {
+    const { service } = makeHarness({
+      featureSettings: { moderationMode: 'off' },
+      ingredientRows: {
+        'asset-1': { parentId: 'original' },
+        original: { generationHarness: { status: 'applied' } },
+      },
+    });
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.reasons).not.toContainEqual(
+      expect.objectContaining({ code: 'generation:enhancement_failed' }),
+    );
+  });
+
+  it('terminates on a parent cycle without flagging', async () => {
+    const { service } = makeHarness({
+      featureSettings: { moderationMode: 'off' },
+      ingredientRows: {
+        'asset-1': { parentId: 'other' },
+        other: { parentId: 'asset-1' },
+      },
+    });
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.reasons).not.toContainEqual(
+      expect.objectContaining({ code: 'generation:enhancement_failed' }),
+    );
+  });
 
   it.each([
     null,

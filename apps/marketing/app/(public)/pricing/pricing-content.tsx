@@ -1,3 +1,4 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
@@ -13,13 +14,13 @@ import {
   IMAGE_CREDIT_COSTS,
   INTERNAL_CREDIT_COSTS,
   PLAN_COPY,
+  PRO_LAUNCH_DISCOUNT_MONTHS,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   type websitePlans,
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -58,6 +59,20 @@ import {
 const PLAN_ORDER: PlanTier[] = ['pro', 'scale'];
 const FEATURED_TIER: PlanTier = 'scale';
 
+const PRO_LAUNCH_PRICE = getLaunchPrice('pro');
+
+// Only offered while the launch price is on the card, so the term never
+// outlives the discount it explains.
+const LAUNCH_PRICE_FAQ_ITEMS =
+  PRO_LAUNCH_PRICE === null
+    ? []
+    : [
+        {
+          answer: `${PLAN_COPY.pro.name} is ${formatPrice(PRO_LAUNCH_PRICE)} a month for your first ${PRO_LAUNCH_DISCOUNT_MONTHS} months, then ${formatPrice(getPlanByTier('pro').price)} a month.`,
+          question: `How long does the ${PLAN_COPY.pro.name} launch price last?`,
+        },
+      ];
+
 const FAQ_ITEMS = [
   {
     answer: `You get ${ONBOARDING_STARTER_CREDITS} free credits when you finish onboarding.`,
@@ -68,6 +83,7 @@ const FAQ_ITEMS = [
       'You see the price of every job in credits before it runs. Credits come with your plan or from a pay-as-you-go top-up.',
     question: 'How do credits work?',
   },
+  ...LAUNCH_PRICE_FAQ_ITEMS,
   {
     answer: 'No. Genfeed picks the best model for every job.',
     question: 'Do I choose the AI model?',
@@ -149,7 +165,7 @@ function getCardFeatures(plan: (typeof websitePlans)[number]): string[] {
 }
 
 export default function PricingContent() {
-  const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const paygSignUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance hero={false} sections={false}>

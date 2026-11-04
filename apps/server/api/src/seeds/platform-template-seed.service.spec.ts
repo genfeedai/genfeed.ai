@@ -77,6 +77,24 @@ describe('PlatformTemplateSeedService', () => {
     expect(rendered).toContain('Return exactly 2 item(s) in "articles".');
   });
 
+  it('seeds the X Article brief that X Article generation looks up', () => {
+    const template = PLATFORM_TEMPLATES.find(
+      (t) => t.key === PromptTemplateKey.X_ARTICLE_GENERATE,
+    );
+    const rendered = Handlebars.compile(template?.content ?? '')({
+      keywords: 'AI, content',
+      prompt: 'Why "operated content" beats tools',
+      targetWordCount: 1500,
+      tone: 'authoritative',
+    });
+
+    expect(rendered).toContain('Brief: Why "operated content" beats tools');
+    expect(rendered).toContain('Tone: authoritative');
+    expect(rendered).toContain('about 1500 words');
+    expect(rendered).toContain('Keywords to work in naturally: AI, content');
+    expect(rendered).toContain('"sections"');
+  });
+
   it('leaves out the optional lines when there is no category or keywords', () => {
     const template = PLATFORM_TEMPLATES.find(
       (t) => t.key === PromptTemplateKey.ARTICLE_GENERATE,

@@ -19,7 +19,53 @@ import {
   ValidateIf,
 } from 'class-validator';
 
-export class SkillPayloadDto {
+/** Optional runtime fields that create, import and update all accept. */
+class SkillRuntimeFieldsDto {
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({ type: Object })
+  configSchema?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({ type: Object })
+  inputSchema?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({ type: Object })
+  outputSchema?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(8000)
+  @ApiPropertyOptional({ type: String })
+  defaultInstructions?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ApiPropertyOptional({ type: Object })
+  reviewDefaults?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(16000)
+  @ApiPropertyOptional({ type: String })
+  systemPromptTemplate?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ApiPropertyOptional({ type: [String] })
+  toolOverrides?: string[];
+
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEnum(SKILL_STATUSES)
+  @ApiPropertyOptional({ enum: SKILL_STATUSES })
+  status?: (typeof SKILL_STATUSES)[number];
+}
+
+export class SkillPayloadDto extends SkillRuntimeFieldsDto {
   @IsString()
   @MaxLength(140)
   @ApiProperty({ type: String })
@@ -59,52 +105,9 @@ export class SkillPayloadDto {
   requiredProviders?: ByokProvider[];
 
   @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  configSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  inputSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  outputSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(8000)
-  @ApiPropertyOptional({ type: String })
-  defaultInstructions?: string;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  reviewDefaults?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(16000)
-  @ApiPropertyOptional({ type: String })
-  systemPromptTemplate?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @ApiPropertyOptional({ type: [String] })
-  toolOverrides?: string[];
-
-  @IsOptional()
   @IsEnum(SKILL_SOURCES)
   @ApiPropertyOptional({ enum: SKILL_SOURCES })
   source?: (typeof SKILL_SOURCES)[number];
-
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsEnum(SKILL_STATUSES)
-  @ApiPropertyOptional({ enum: SKILL_STATUSES })
-  status?: (typeof SKILL_STATUSES)[number];
 
   @IsOptional()
   @IsEntityId()
@@ -150,7 +153,7 @@ export class CustomizeSkillDto {
   description?: string;
 }
 
-export class UpdateSkillDto {
+export class UpdateSkillDto extends SkillRuntimeFieldsDto {
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(140)
@@ -196,47 +199,4 @@ export class UpdateSkillDto {
   @IsEnum(ByokProvider, { each: true })
   @ApiPropertyOptional({ enum: ByokProvider, isArray: true })
   requiredProviders?: ByokProvider[];
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  configSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  inputSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  outputSchema?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(8000)
-  @ApiPropertyOptional({ type: String })
-  defaultInstructions?: string;
-
-  @IsOptional()
-  @IsObject()
-  @ApiPropertyOptional({ type: Object })
-  reviewDefaults?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(16000)
-  @ApiPropertyOptional({ type: String })
-  systemPromptTemplate?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @ApiPropertyOptional({ type: [String] })
-  toolOverrides?: string[];
-
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsEnum(SKILL_STATUSES)
-  @ApiPropertyOptional({ enum: SKILL_STATUSES })
-  status?: (typeof SKILL_STATUSES)[number];
 }
