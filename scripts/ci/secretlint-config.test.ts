@@ -47,9 +47,9 @@ describe('secretlint no-homedir rule', () => {
     // `@secretlint/secretlint-rule-no-homedir` matches the scanning process's
     // own `os.homedir()` as a literal string. Running as root makes that
     // `/root`, which then matches every `/root`-prefixed path segment in the
-    // repository: the `root-resolver-client` imports under apps/web, the
-    // `/root/.cache` volume in docker/docker-compose.llm.yml, and the generated
-    // path list in scripts/architecture/untranslated-strings.baseline.json.
+    // repository: the `root-resolver-client` imports under apps/web, container
+    // volume paths such as `/root/.cache`, and the generated path list in
+    // scripts/architecture/untranslated-strings.baseline.json.
     // That last one deadlocked contributors — the untranslated-string ratchet
     // told them to regenerate the baseline, and secretlint then rejected the
     // regenerated file in the same diff.
