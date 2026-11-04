@@ -15,6 +15,10 @@ import {
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import {
   getLinkedinRetryAfterMs,
@@ -762,12 +766,11 @@ export class LinkedInAuthorizedSignalsService {
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): LinkedinAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = linkedinAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      linkedinAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -776,41 +779,27 @@ export class LinkedInAuthorizedSignalsService {
     cacheKey: string,
     snapshot: LinkedinAuthorizedSignalsSnapshot,
   ): Promise<LinkedinAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [LINKEDIN_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncLinkedinAuthorizedSnapshot({
-        brandId: credential.brandId,
-        credentialId: credential.id,
-        organizationId,
-        snapshot,
-      });
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: LINKEDIN_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.LINKEDIN_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.LINKEDIN_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: LINKEDIN_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncLinkedinAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }

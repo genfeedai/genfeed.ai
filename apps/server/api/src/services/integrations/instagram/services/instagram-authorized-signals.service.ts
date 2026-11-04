@@ -11,6 +11,10 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
+import {
+  persistAuthorizedSnapshot,
+  readStoredAuthorizedSnapshot,
+} from '@api/services/integrations/_shared/authorized-signals-storage.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import {
   isInstagramProfessionalAccountError,
@@ -837,12 +841,11 @@ export class InstagramAuthorizedSignalsService {
   private readStoredSnapshot(
     credential: CredentialDocument,
   ): InstagramAuthorizedSignalsSnapshot | undefined {
-    const stored = readRecord(credential.warmupSignals);
-    const parsed = instagramAuthorizedSignalsSnapshotSchema.safeParse(
-      stored[INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY],
+    return readStoredAuthorizedSnapshot(
+      credential,
+      INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      instagramAuthorizedSignalsSnapshotSchema,
     );
-
-    return parsed.success ? parsed.data : undefined;
   }
 
   private async persistSnapshot(
@@ -851,43 +854,27 @@ export class InstagramAuthorizedSignalsService {
     cacheKey: string,
     snapshot: InstagramAuthorizedSignalsSnapshot,
   ): Promise<InstagramAuthorizedSignalsSnapshot> {
-    await this.credentialsService.mergeWarmupSignals(
-      credential.id,
-      organizationId,
-      {
-        [INSTAGRAM_AUTHORIZATION_STORAGE_KEY]: {
-          grantedScopes: snapshot.grantedScopes,
-          observedAt: snapshot.refreshAttemptedAt,
-        },
-        [INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY]: snapshot,
-      },
-    );
-    if (credential.brandId) {
-      await this.socialWarmupEnrollmentsService.syncInstagramAuthorizedSnapshot(
-        {
-          brandId: credential.brandId,
-          credentialId: credential.id,
-          organizationId,
-          snapshot,
-        },
-      );
-    }
-    await this.cacheService.set(cacheKey, snapshot, {
-      tags: [
+    return await persistAuthorizedSnapshot({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      cacheKey,
+      cacheService: this.cacheService,
+      cacheTags: [
         CACHE_TAGS.INSTAGRAM_AUTHORIZED_SIGNALS,
         SCOPED_CACHE_TAGS.INSTAGRAM_AUTHORIZED_SIGNALS(organizationId),
-        credential.id,
       ],
-      ttl:
-        snapshot.state === 'stale' || snapshot.state === 'revoked'
-          ? INSTAGRAM_STALE_SIGNALS_CACHE_TTL_SECONDS
-          : INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      credential,
+      credentialsService: this.credentialsService,
+      freshTtlSeconds: INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS,
+      loggerName: this.constructorName,
+      loggerService: this.loggerService,
+      organizationId,
+      signalsStorageKey: INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY,
+      snapshot,
+      staleTtlSeconds: INSTAGRAM_STALE_SIGNALS_CACHE_TTL_SECONDS,
+      syncEnrollment: (params) =>
+        this.socialWarmupEnrollmentsService.syncInstagramAuthorizedSnapshot(
+          params,
+        ),
     });
-
-    this.loggerService.log(`${this.constructorName} refresh completed`, {
-      credentialId: credential.id,
-      state: snapshot.state,
-    });
-    return snapshot;
   }
 }
