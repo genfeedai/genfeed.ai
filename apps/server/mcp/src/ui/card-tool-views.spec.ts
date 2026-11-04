@@ -412,19 +412,23 @@ describe('cards for settings, plans and receipts', () => {
             },
           ],
         },
-      }).structuredContent?.genfeedCards,
+      }),
     ).toMatchObject({
-      cards: [
-        {
-          description: 'Accounts, brands and posts.',
-          facts: [
-            { label: 'Tools', value: '14' },
-            { label: 'Loaded', status: 'active', value: 'Always on' },
+      structuredContent: {
+        genfeedCards: {
+          cards: [
+            {
+              description: 'Accounts, brands and posts.',
+              facts: [
+                { label: 'Tools', value: '14' },
+                { label: 'Loaded', status: 'active', value: 'Always on' },
+              ],
+              title: 'Core',
+            },
           ],
-          title: 'Core',
+          title: 'Toolsets',
         },
-      ],
-      title: 'Toolsets',
+      },
     });
   });
 
@@ -443,15 +447,27 @@ describe('cards for settings, plans and receipts', () => {
             },
           ],
         },
-      }).structuredContent?.genfeedCards?.cards[0],
+      }),
     ).toMatchObject({
-      description: 'Create a campaign.',
-      facts: [
-        { label: 'Toolset', value: 'Campaigns' },
-        { label: 'Cost', value: '4 credits' },
-        { label: 'Runs', status: 'pending_approval', value: 'After approval' },
-      ],
-      title: 'manage_campaign',
+      structuredContent: {
+        genfeedCards: {
+          cards: [
+            {
+              description: 'Create a campaign.',
+              facts: [
+                { label: 'Toolset', value: 'Campaigns' },
+                { label: 'Cost', value: '4 credits' },
+                {
+                  label: 'Runs',
+                  status: 'pending_approval',
+                  value: 'After approval',
+                },
+              ],
+              title: 'manage_campaign',
+            },
+          ],
+        },
+      },
     });
   });
 
@@ -472,18 +488,26 @@ describe('cards for settings, plans and receipts', () => {
             title: 'Manage Campaign',
           },
         },
-      }).structuredContent?.genfeedCards?.cards[0],
+      }),
     ).toMatchObject({
-      facts: [
-        { label: 'Name', value: 'manage_campaign' },
-        { label: 'Toolset', value: 'Campaigns' },
-        {
-          label: 'This connection',
-          status: 'needs_attention',
-          value: 'Not listed',
+      structuredContent: {
+        genfeedCards: {
+          cards: [
+            {
+              facts: [
+                { label: 'Name', value: 'manage_campaign' },
+                { label: 'Toolset', value: 'Campaigns' },
+                {
+                  label: 'This connection',
+                  status: 'needs_attention',
+                  value: 'Not listed',
+                },
+              ],
+              title: 'Manage Campaign',
+            },
+          ],
         },
-      ],
-      title: 'Manage Campaign',
+      },
     });
   });
 });
