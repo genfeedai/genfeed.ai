@@ -2,9 +2,7 @@
 
 import { IngredientCategory } from '@genfeedai/contracts';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
-import {
-  getIngredientModelLabel,
-} from '@genfeedai/utils/media/ingredient-ledger.util';
+import { getIngredientModelLabel } from '@genfeedai/utils/media/ingredient-ledger.util';
 import { getIngredientDisplayLabel } from '@genfeedai/utils/media/ingredient-type.util';
 import { getLibraryAssetTypeLabel } from '@genfeedai/utils/media/library-asset-type.util';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
