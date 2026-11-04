@@ -130,19 +130,33 @@ function card(value: unknown): McpCard | undefined {
     mediaUrl: safeUrl(row.mediaUrl),
     avatarUrl: safeUrl(row.avatarUrl),
     actions: Array.isArray(row.actions)
-      ? row.actions.slice(0, 4).flatMap((value) => {
+      ? row.actions.slice(0, 4).flatMap((value): McpCardAction[] => {
           const item = record(value);
-          return item.kind === 'select_brand' && text(item.brandId)
-            ? [
-                {
-                  kind: 'select_brand' as const,
-                  brandId: text(item.brandId),
-                  label: text(item.label) || 'Select',
-                },
-              ]
-            : [];
+          if (item.kind === 'select_brand' && text(item.brandId))
+            return [
+              {
+                kind: 'select_brand',
+                brandId: text(item.brandId),
+                label: text(item.label) || 'Select',
+              },
+            ];
+          if (
+            item.kind === 'resolve_approval' &&
+            text(item.approvalId) &&
+            (item.decision === 'approve' || item.decision === 'decline')
+          )
+            return [
+              {
+                kind: 'resolve_approval',
+                approvalId: text(item.approvalId),
+                decision: item.decision,
+                label: text(item.label) || 'Approve',
+              },
+            ];
+          return [];
         })
       : undefined,
+    linkLabel: text(row.linkLabel) || undefined,
     author: {
       name: text(record(row.author).name),
       handle: text(record(row.author).handle),
@@ -266,13 +280,16 @@ function readOrganizations(
 function readView(result: unknown): McpCardView | undefined {
   const data = record(result);
   const view = record(record(data.structuredContent).genfeedCards);
-  if (data.isError || !Array.isArray(view.cards)) return undefined;
+  // Only a queued approval attaches cards to an error result.
+  if (!Array.isArray(view.cards) || (data.isError && !view.isApproval))
+    return undefined;
   const calendar = record(view.calendar);
   return {
     organizations: readOrganizations(view.organizations),
     cards: cards(view.cards),
     title: text(view.title) || 'Genfeed content',
     isCountHidden: view.isCountHidden === true,
+    isApproval: view.isApproval === true,
     total:
       typeof view.total === 'number' && Number.isFinite(view.total)
         ? Math.max(0, view.total)
@@ -457,6 +474,7 @@ function SummaryCard({
   isActionPending,
   isSelected,
   onAction,
+  resolvedDecision,
   when,
 }: SummaryCardProps) {
   const avatar = safeUrl(item.avatarUrl);
@@ -466,13 +484,47 @@ function SummaryCard({
       ? avatar
       : undefined;
   const hasIdentity = Boolean(
-    item.actions?.length || item.avatarUrl || item.hasAvatar,
+    item.actions?.some((action) => action.kind === 'select_brand') ||
+      item.avatarUrl ||
+      item.hasAvatar,
   );
+  const link = safeUrl(item.url);
   const handle = item.facts?.find((fact) => fact.label === 'Handle')?.value;
   const facts = (item.facts || []).filter(
     (fact) => !hasIdentity || fact.label !== 'Handle',
   );
   const metrics = item.metrics ?? [];
+  const linkNode =
+    link && item.linkLabel ? (
+      <Button
+        asChild
+        key="link"
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
+        textTransform="none"
+      >
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            event.preventDefault();
+            bridge
+              .request('ui/open-link', { url: link })
+              .then((result) => {
+                if (record(result).isError) throw new Error('blocked');
+              })
+              .catch(() =>
+                bridge.notify(
+                  'The host could not open the link. Copy the link address to open it in your browser.',
+                ),
+              );
+          }}
+        >
+          {item.linkLabel} ↗
+        </a>
+      </Button>
+    ) : null;
   return (
     <article className="content-card min-w-0">
       <Card
@@ -498,25 +550,49 @@ function SummaryCard({
           hasIdentity && handle ? `@${handle.replace(/^@/, '')}` : undefined
         }
         headerAction={
-          item.status ? <StatusBadge status={item.status} /> : undefined
+          resolvedDecision ? (
+            <StatusBadge
+              status={resolvedDecision === 'approve' ? 'approved' : 'rejected'}
+              label={resolvedDecision === 'approve' ? 'Approved' : 'Declined'}
+            />
+          ) : item.status ? (
+            <StatusBadge status={item.status} />
+          ) : undefined
         }
         actions={
-          item.actions?.length
-            ? item.actions.map((action) => (
-                // ui-guard-allow:selection-button -- action button showing a state, not a choice group
-                <Button
-                  key={`${action.kind}-${action.brandId}`}
-                  variant={
-                    isSelected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-                  }
-                  withWrapper={false}
-                  isDisabled={isSelected || isActionPending}
-                  ariaLabel={`${action.label} ${item.title}`}
-                  onClick={() => onAction(action)}
-                >
-                  {isSelected ? 'Selected' : action.label}
-                </Button>
-              ))
+          (item.actions?.length && !resolvedDecision) || linkNode
+            ? [
+                ...(item.actions && !resolvedDecision ? item.actions : []).map(
+                  (action) => {
+                    const isBrand = action.kind === 'select_brand';
+                    const isDecline =
+                      action.kind === 'resolve_approval' &&
+                      action.decision === 'decline';
+                    return (
+                      // ui-guard-allow:selection-button -- action button showing a state, not a choice group
+                      <Button
+                        key={
+                          isBrand
+                            ? `${action.kind}-${action.brandId}`
+                            : `${action.kind}-${action.approvalId}-${action.decision}`
+                        }
+                        variant={
+                          (isBrand && isSelected) || isDecline
+                            ? ButtonVariant.SECONDARY
+                            : ButtonVariant.DEFAULT
+                        }
+                        withWrapper={false}
+                        isDisabled={(isBrand && isSelected) || isActionPending}
+                        ariaLabel={`${action.label} ${item.title}`}
+                        onClick={() => onAction(action)}
+                      >
+                        {isBrand && isSelected ? 'Selected' : action.label}
+                      </Button>
+                    );
+                  },
+                ),
+                linkNode,
+              ]
             : undefined
         }
       >
@@ -557,6 +633,7 @@ function CardPreview({
   bridge,
   openImage,
   selectedId,
+  resolvedApprovals,
   isActionPending = false,
   onAction,
 }: CardPreviewProps) {
@@ -605,6 +682,11 @@ function CardPreview({
         isActionPending={isActionPending}
         isSelected={Boolean(selectedId) && current.id === selectedId}
         onAction={onAction}
+        resolvedDecision={
+          current.actions?.[0]?.kind === 'resolve_approval'
+            ? resolvedApprovals?.[current.actions[0].approvalId]
+            : undefined
+        }
         when={when}
       />
     );
@@ -978,6 +1060,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
   const [switchError, setSwitchError] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [pendingBrandId, setPendingBrandId] = useState('');
+  const [resolvedApprovals, setResolvedApprovals] = useState<
+    Record<string, 'approve' | 'decline'>
+  >({});
   const isSelectingRef = useRef(false);
   const resultView = useMemo(() => readView(result), [result]);
   const view = switched ?? resultView;
@@ -994,6 +1079,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     setSwitched(undefined);
     setSwitchError('');
     setSelectedBrandId('');
+    setResolvedApprovals({});
     bridge.resize();
   }, [result, bridge]);
   const days = localCalendarDays(view?.calendar?.days || []);
@@ -1044,7 +1130,47 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         bridge.resize();
       });
   }
+  function resolveApproval(
+    action: Extract<McpCardAction, { kind: 'resolve_approval' }>,
+  ) {
+    if (isSelectingRef.current) return;
+    isSelectingRef.current = true;
+    setPendingBrandId(action.approvalId);
+    bridge
+      .request('tools/call', {
+        name: 'resolve_approval',
+        arguments: {
+          approvalId: action.approvalId,
+          decision: action.decision,
+        },
+      })
+      .then((outcome) => {
+        if (record(outcome).isError) throw new Error('blocked');
+        setResolvedApprovals((current) => ({
+          ...current,
+          [action.approvalId]: action.decision,
+        }));
+        // An approved action returns its own result: show it in place.
+        const fresh =
+          action.decision === 'approve' ? readView(outcome) : undefined;
+        if (fresh?.cards.length) setSwitched(fresh);
+      })
+      .catch(() =>
+        bridge.notify(
+          `This client could not ${action.decision} the action. Review it in Genfeed instead.`,
+        ),
+      )
+      .finally(() => {
+        isSelectingRef.current = false;
+        setPendingBrandId('');
+        bridge.resize();
+      });
+  }
   function runAction(action: McpCardAction) {
+    if (action.kind === 'resolve_approval') {
+      resolveApproval(action);
+      return;
+    }
     // One selection message per click, however fast the clicks come.
     if (isSelectingRef.current) return;
     isSelectingRef.current = true;
@@ -1244,6 +1370,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                     bridge={bridge}
                     openImage={openImage}
                     selectedId={selectedBrandId}
+                    resolvedApprovals={resolvedApprovals}
                     isActionPending={Boolean(pendingBrandId)}
                     onAction={runAction}
                   />

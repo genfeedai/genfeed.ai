@@ -2,7 +2,7 @@
 
 import { testId } from '@helpers/testing/test-id.helper';
 import { cardResource } from '@mcp/ui/card-app';
-import { buildCardView } from '@mcp/ui/card-data';
+import { buildCardView, withApprovalCard } from '@mcp/ui/card-data';
 
 function message(
   method: string,
@@ -1115,4 +1115,80 @@ it('keeps a post on screen when its video fails to load', async () => {
   expect(
     document.querySelector('article img[alt="Video unavailable"]'),
   ).not.toBeNull();
+});
+
+describe('approval card', () => {
+  const approval = {
+    content: [{ text: 'needs approval', type: 'text' }],
+    isError: true,
+    structuredContent: {
+      approvalId: 'apr-1',
+      canResolveApproval: true,
+      code: 'approval_pending',
+      estimatedCredits: 4,
+      nextStepUrl: 'https://app.genfeed.ai/publishing/approvals?approval=x',
+      toolName: 'generate',
+    },
+  };
+
+  function showApproval() {
+    message('ui/notifications/tool-result', {
+      ...approval,
+      structuredContent: {
+        ...approval.structuredContent,
+        genfeedCards:
+          withApprovalCard(approval).structuredContent?.genfeedCards,
+      },
+    });
+  }
+
+  function buttonNamed(name: string) {
+    return [...document.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes(name),
+    );
+  }
+
+  it('shows what is waiting and what it costs, even though the result is an error', () => {
+    showApproval();
+
+    const text = document.body.textContent ?? '';
+    expect(document.querySelector('h2')?.textContent).toContain('Generate');
+    expect(text).toContain('Pending Approval');
+    expect(text).toContain('4 credits');
+    expect(buttonNamed('Approve')).toBeDefined();
+    expect(buttonNamed('Decline')).toBeDefined();
+    expect(text).toContain('Review in Genfeed');
+  });
+
+  it('declines in place and shows the outcome instead of the buttons', async () => {
+    showApproval();
+    buttonNamed('Decline')?.click();
+    await vi.advanceTimersByTimeAsync(0);
+
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(
+        ([data]) => data as { id?: number; method?: string; params?: unknown },
+      )
+      .find((data) => data.method === 'tools/call');
+    expect(call?.params).toEqual({
+      arguments: { approvalId: 'apr-1', decision: 'decline' },
+      name: 'resolve_approval',
+    });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: {
+          jsonrpc: '2.0',
+          id: call?.id,
+          result: { content: [{ text: 'Approval declined.', type: 'text' }] },
+        },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(document.body.textContent).toContain('Declined');
+    expect(buttonNamed('Approve')).toBeUndefined();
+  });
 });

@@ -608,6 +608,75 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   };
 }
 
+/**
+ * A write that waits for a person: what it is, what it costs, and Approve /
+ * Decline buttons when this connection may resolve it. The result is an error
+ * so the model knows nothing ran; the card is how the person acts on it.
+ */
+function buildApprovalView(
+  data: Record<string, unknown>,
+): McpCardView | undefined {
+  const approvalId = text(data, 'approvalId');
+  if (text(data, 'code') !== 'approval_pending' || !approvalId) {
+    return undefined;
+  }
+  const credits =
+    typeof data.estimatedCredits === 'number'
+      ? data.estimatedCredits
+      : undefined;
+  const card = summaryCard(
+    words(text(data, 'toolName')) || 'Action',
+    credits === undefined
+      ? []
+      : fact('Estimated cost', `${formatAmount(credits)} credits`),
+    {
+      ...(data.canResolveApproval === true
+        ? {
+            actions: [
+              {
+                approvalId,
+                decision: 'approve' as const,
+                kind: 'resolve_approval' as const,
+                label: 'Approve',
+              },
+              {
+                approvalId,
+                decision: 'decline' as const,
+                kind: 'resolve_approval' as const,
+                label: 'Decline',
+              },
+            ],
+          }
+        : {}),
+      description: 'This action needs your approval before it runs.',
+      id: approvalId,
+      linkLabel: 'Review in Genfeed',
+      status: 'pending_approval',
+      url: safeCardUrl(text(data, 'nextStepUrl')),
+    },
+  );
+  return {
+    cards: [card],
+    isApproval: true,
+    isCountHidden: true,
+    layout: 'cards',
+    title: 'Approval needed',
+    total: 1,
+  };
+}
+
+/** Adds the approval card to a queued-write result; other errors pass through. */
+export function withApprovalCard<
+  T extends { isError?: boolean; structuredContent?: object },
+>(result: T): T & { structuredContent?: { genfeedCards?: McpCardView } } {
+  const content = result.structuredContent;
+  if (!result.isError || !content) return result;
+  const view = buildApprovalView(record(content));
+  return view
+    ? { ...result, structuredContent: { ...content, genfeedCards: view } }
+    : result;
+}
+
 export function buildCardView(
   name: string,
   payload: unknown,

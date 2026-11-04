@@ -8,6 +8,7 @@ import {
   MCP_APP_MIME_TYPE,
   MCP_CARD_RESOURCE_URI,
   safeCardUrl,
+  withApprovalCard,
   withCardMetadata,
   withCardResult,
 } from '@mcp/ui/card-data';
@@ -554,6 +555,68 @@ describe('MCP Apps card contract', () => {
     expect(buildCardView('get_assets', { assets: [{ id: 'a1' }] })?.title).toBe(
       'Library',
     );
+  });
+
+  it('turns a queued write into an approval card with Approve and Decline', () => {
+    const result = withApprovalCard({
+      content: [{ text: 'needs approval', type: 'text' }],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-1',
+        canResolveApproval: true,
+        code: 'approval_pending',
+        estimatedCredits: 12.345678,
+        nextStepUrl: 'https://app.genfeed.ai/publishing/approvals?approval=x',
+        toolName: 'create_post',
+      },
+    });
+
+    const view = result.structuredContent?.genfeedCards as McpCardView;
+    expect(result.isError).toBe(true);
+    expect(view).toMatchObject({ isApproval: true, title: 'Approval needed' });
+    expect(view.cards[0]).toMatchObject({
+      facts: [{ label: 'Estimated cost', value: '12.35 credits' }],
+      linkLabel: 'Review in Genfeed',
+      status: 'pending_approval',
+      title: 'Create post',
+    });
+    expect(view.cards[0].actions).toEqual([
+      {
+        approvalId: 'apr-1',
+        decision: 'approve',
+        kind: 'resolve_approval',
+        label: 'Approve',
+      },
+      {
+        approvalId: 'apr-1',
+        decision: 'decline',
+        kind: 'resolve_approval',
+        label: 'Decline',
+      },
+    ]);
+  });
+
+  it('leaves out the buttons when this connection cannot resolve approvals, and ignores other errors', () => {
+    const pending = withApprovalCard({
+      content: [],
+      isError: true,
+      structuredContent: {
+        approvalId: 'apr-2',
+        canResolveApproval: false,
+        code: 'approval_pending',
+        toolName: 'generate',
+      },
+    });
+    const view = pending.structuredContent?.genfeedCards as McpCardView;
+    expect(view.cards[0].actions).toBeUndefined();
+    expect(view.cards[0].facts).toEqual([]);
+
+    const other = {
+      content: [],
+      isError: true,
+      structuredContent: { code: 'brand_required' },
+    };
+    expect(withApprovalCard(other)).toBe(other);
   });
 
   it('retains text, resource links, and original structured data', () => {

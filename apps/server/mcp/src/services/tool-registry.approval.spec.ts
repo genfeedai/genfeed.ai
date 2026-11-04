@@ -490,9 +490,16 @@ describe('ToolRegistryService — approval queue', () => {
           scheduledAt: '2030-01-01',
         },
         name: 'generate_turbo_content',
-      })) as { isError?: boolean; structuredContent?: { code?: string } };
+      })) as {
+        isError?: boolean;
+        structuredContent?: {
+          code?: string;
+          genfeedCards?: { isApproval?: boolean };
+        };
+      };
 
       expect(result.structuredContent?.code).toBe('approval_pending');
+      expect(result.structuredContent?.genfeedCards?.isApproval).toBe(true);
       expect(client.executeAgentTool).not.toHaveBeenCalled();
     });
 

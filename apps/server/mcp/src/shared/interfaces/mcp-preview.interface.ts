@@ -32,6 +32,8 @@ export interface CardPreviewProps {
   openImage(src: string, title: string, trigger: HTMLElement): void;
   /** The brand the user picked in this view, if any. */
   selectedId?: string;
+  /** Decisions taken on queued approvals in this view, by approval id. */
+  resolvedApprovals?: Readonly<Record<string, 'approve' | 'decline'>>;
   /** A selection is on its way to the host; card actions wait for it. */
   isActionPending?: boolean;
   onAction(action: McpCardAction): void;
@@ -42,6 +44,8 @@ export interface SummaryCardProps {
   isActionPending: boolean;
   isSelected: boolean;
   onAction(action: McpCardAction): void;
+  /** The decision taken on a queued approval from this view, once it went through. */
+  resolvedDecision?: 'approve' | 'decline';
   when: string;
 }
 export interface ImagePreview {
