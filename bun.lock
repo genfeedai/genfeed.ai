@@ -1031,6 +1031,7 @@
         "@genfeedai/models": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/services": "workspace:*",
+        "@remotion/player": "4.0.540",
         "@tiptap/core": "3.32.2",
       },
       "devDependencies": {
