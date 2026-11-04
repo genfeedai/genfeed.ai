@@ -64,16 +64,16 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
+      # Unconfigured (no token, project or API URL yet) is a clean skip, not a
+      # red run on every master push. A configured-but-wrong value still fails.
       - name: Require preview configuration
+        id: config
         run: |
           set -euo pipefail
-          if [ -z "${VERCEL_TOKEN}" ]; then
-            echo "::error::VERCEL_TOKEN is missing."
-            exit 1
-          fi
-          if [ -z "${VERCEL_ORG_ID}" ] || [ -z "${VERCEL_PROJECT_ID}" ]; then
-            echo "::error::VERCEL_ORG_ID and VERCEL_PROJECT_APP are required on the preview environment."
-            exit 1
+          if [ -z "${VERCEL_TOKEN}" ] || [ -z "${VERCEL_ORG_ID}" ] || [ -z "${VERCEL_PROJECT_ID}" ] || [ -z "${PREVIEW_API_URL}" ]; then
+            echo "::notice::Preview environment is not configured yet (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_APP, PREVIEW_API_URL); skipping."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if ! printf '%s' "${PREVIEW_API_URL}" | grep -Eq '^https://[A-Za-z0-9.-]+/?$'; then
             echo "::error::PREVIEW_API_URL must be the https origin of the preview API."
@@ -92,18 +92,22 @@ jobs:
             echo "::error::ref contains unsupported characters."
             exit 1
           fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Checkout source
+        if: ${{ steps.config.outputs.ready == 'true' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
 
       - uses: ./.github/actions/setup-bun-env
+        if: ${{ steps.config.outputs.ready == 'true' }}
         with:
           install-command: HUSKY=0 bun install --frozen-lockfile --ignore-scripts
 
       - name: Resolve build id
+        if: ${{ steps.config.outputs.ready == 'true' }}
         id: source
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -111,6 +115,7 @@ jobs:
       # ephemeral checkout so a preview build can never carry a production
       # domain, whatever the Vercel CLI does with that field.
       - name: Strip the production alias from the build config
+        if: ${{ steps.config.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           jq 'del(.alias)' apps/web/vercel.json > "${RUNNER_TEMP}/vercel.json"
@@ -118,12 +123,15 @@ jobs:
           jq -e '.alias == null' apps/web/vercel.json > /dev/null
 
       - name: Install Vercel CLI
+        if: ${{ steps.config.outputs.ready == 'true' }}
         run: bun add --global vercel@65.9.0
 
       - name: Pull Vercel preview environment
+        if: ${{ steps.config.outputs.ready == 'true' }}
         run: vercel pull --yes --environment=preview --token="${VERCEL_TOKEN}"
 
       - name: Point the build at the preview API
+        if: ${{ steps.config.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
           env_file=".vercel/.env.preview.local"
@@ -140,11 +148,13 @@ jobs:
           command -v vercel
 
       - name: Build app preview
+        if: ${{ steps.config.outputs.ready == 'true' }}
         env:
           BUILD_ID: ${{ steps.source.outputs.sha }}
         run: vercel build --token="${VERCEL_TOKEN}"
 
       - name: Deploy app preview
+        if: ${{ steps.config.outputs.ready == 'true' }}
         id: deploy
         run: |
           set -euo pipefail
@@ -158,12 +168,13 @@ jobs:
 
       # The domain must already be added to the Vercel project (one-time).
       - name: Move the stable preview domain
-        if: ${{ env.SET_ALIAS == 'true' }}
+        if: ${{ steps.config.outputs.ready == 'true' && env.SET_ALIAS == 'true' }}
         env:
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         run: vercel alias set "${DEPLOY_URL}" "${PREVIEW_DOMAIN}" --token="${VERCEL_TOKEN}"
 
       - name: Summary
+        if: ${{ steps.config.outputs.ready == 'true' }}
         env:
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
           SOURCE_SHA: ${{ steps.source.outputs.sha }}
