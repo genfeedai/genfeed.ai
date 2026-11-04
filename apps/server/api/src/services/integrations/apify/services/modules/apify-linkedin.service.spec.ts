@@ -35,6 +35,7 @@ describe('ApifyLinkedInService', () => {
                 'curious_coder/linkedin-profile-scraper',
             },
             getApiToken: vi.fn().mockReturnValue('test-token'),
+            logFailure: vi.fn(),
             loggerService: {
               error: vi.fn(),
               log: vi.fn(),

@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
 interface ApifyApiError {
@@ -136,4 +137,16 @@ export function describeApifyError(error: unknown): string {
   }
 
   return message ? `${prefix}: ${message}` : prefix;
+}
+
+/**
+ * Thrown instead of calling Apify while an account-limit suspension is
+ * active. Callers log it as one quiet line, not as a failed request.
+ */
+export class ApifyAccountSuspendedException extends ServiceUnavailableException {
+  constructor(reason: string, suspendedUntilMs: number) {
+    super(
+      `Apify is over its account usage limit (${reason}). Calls are suspended until ${new Date(suspendedUntilMs).toISOString()}.`,
+    );
+  }
 }

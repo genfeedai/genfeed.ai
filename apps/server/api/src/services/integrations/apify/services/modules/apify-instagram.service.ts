@@ -61,7 +61,7 @@ export class ApifyInstagramService {
 
       return this.normalizeInstagramTrends(rawPosts).slice(0, requestedLimit);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getInstagramTrends failed`,
         error,
       );
@@ -87,7 +87,7 @@ export class ApifyInstagramService {
 
       return this.normalizeInstagramVideos(rawPosts);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getInstagramVideos failed`,
         error,
       );
@@ -117,7 +117,7 @@ export class ApifyInstagramService {
 
       return this.normalizeInstagramComments(rawComments);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getInstagramPostComments failed`,
         error,
       );
@@ -163,7 +163,7 @@ export class ApifyInstagramService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getInstagramUserPosts failed for @${username}`,
         error,
       );
@@ -234,7 +234,7 @@ export class ApifyInstagramService {
 
       return rawPosts;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchInstagramByHashtag failed for #${hashtag}`,
         error,
       );

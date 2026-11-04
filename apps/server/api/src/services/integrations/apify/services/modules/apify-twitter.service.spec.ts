@@ -10,6 +10,7 @@ describe('ApifyTwitterService', () => {
     ACTORS: Record<string, string>;
     calculateGrowthRate: ReturnType<typeof vi.fn>;
     getApiToken: ReturnType<typeof vi.fn>;
+    logFailure: ReturnType<typeof vi.fn>;
     loggerService: {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
@@ -59,6 +60,7 @@ describe('ApifyTwitterService', () => {
       },
       calculateGrowthRate: vi.fn().mockReturnValue(65),
       getApiToken: vi.fn().mockReturnValue('test-token'),
+      logFailure: vi.fn(),
       loggerService: { error: vi.fn(), log: vi.fn() },
       runActor: vi.fn(),
     };

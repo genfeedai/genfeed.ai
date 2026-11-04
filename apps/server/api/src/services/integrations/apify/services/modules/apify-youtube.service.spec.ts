@@ -69,6 +69,7 @@ describe('ApifyYouTubeService', () => {
               (text.match(/#\w+/g) || []).map((t) => t.slice(1)),
             ),
             getApiToken: vi.fn().mockReturnValue('test-token'),
+            logFailure: vi.fn(),
             loggerService: {
               error: vi.fn(),
               log: vi.fn(),

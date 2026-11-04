@@ -38,6 +38,7 @@ describe('ApifyRedditService', () => {
       viralScore: 80,
     }),
     calculateViralityScore: vi.fn().mockReturnValue(75),
+    logFailure: vi.fn(),
     loggerService: {
       error: vi.fn(),
     },
@@ -108,7 +109,7 @@ describe('ApifyRedditService', () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
       await expect(service.getRedditTrends()).rejects.toThrow('API error');
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
   });
 

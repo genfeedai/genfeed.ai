@@ -39,7 +39,7 @@ export class ApifyPinterestService {
 
       return this.normalizePinterestTrends(rawPins).slice(0, requestedLimit);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getPinterestTrends failed`,
         error,
       );
