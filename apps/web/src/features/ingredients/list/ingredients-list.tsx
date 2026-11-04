@@ -26,7 +26,12 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import { Alert } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -291,16 +296,12 @@ export default function IngredientsList({
 
       {isUsingCache && (
         <Alert variant="warning">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="font-medium">
-                Live ingredients are unavailable.
-              </div>
-              <div className="text-xs text-foreground/70">
-                Showing cached ingredients
-                {cachedLabel ? ` from ${cachedLabel}` : ''}.
-              </div>
-            </div>
+          <AlertTitle>Live ingredients are unavailable.</AlertTitle>
+          <AlertDescription>
+            Showing cached ingredients
+            {cachedLabel ? ` from ${cachedLabel}` : ''}.
+          </AlertDescription>
+          <AlertActions>
             <Button
               label="Retry"
               variant={ButtonVariant.SECONDARY}
@@ -308,7 +309,7 @@ export default function IngredientsList({
                 handleRefresh(true);
               }}
             />
-          </div>
+          </AlertActions>
         </Alert>
       )}
       {loadError && !isUsingCache ? (

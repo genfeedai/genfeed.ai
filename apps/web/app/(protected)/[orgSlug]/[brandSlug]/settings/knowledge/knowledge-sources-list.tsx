@@ -31,7 +31,7 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import Container from '@ui/layout/container/Container';
 import SubbarControls from '@ui/layout/subbar-controls/SubbarControls';
 import SubbarOverflowMenu from '@ui/layout/subbar-overflow-menu/SubbarOverflowMenu';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Globe, Plus, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -660,8 +660,8 @@ export default function KnowledgeSourcesList({
       <div className="space-y-4">
         {(selectionError || isInvalidSelection) && !isLoading ? (
           <Alert variant="destructive">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>{translate('loadError')}</span>
+            <AlertDescription>{translate('loadError')}</AlertDescription>
+            <AlertActions>
               <Button
                 label={translate('retry')}
                 onClick={() => {
@@ -669,14 +669,14 @@ export default function KnowledgeSourcesList({
                 }}
                 variant={ButtonVariant.SECONDARY}
               />
-            </div>
+            </AlertActions>
           </Alert>
         ) : null}
 
         {error && !isLoading ? (
           <Alert variant="destructive">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>{error}</span>
+            <AlertDescription>{error}</AlertDescription>
+            <AlertActions>
               <Button
                 label={translate('retry')}
                 onClick={() => {
@@ -684,7 +684,7 @@ export default function KnowledgeSourcesList({
                 }}
                 variant={ButtonVariant.SECONDARY}
               />
-            </div>
+            </AlertActions>
           </Alert>
         ) : (
           <AppTable<KnowledgeSourceRow>

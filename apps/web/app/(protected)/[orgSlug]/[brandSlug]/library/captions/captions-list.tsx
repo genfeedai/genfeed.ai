@@ -20,7 +20,7 @@ import { createSummaryRowSidebar } from '@ui/display/table/summary-row-sidebar';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -136,8 +136,8 @@ function CaptionsListContent() {
     <>
       {loadError ? (
         <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{loadError}</span>
+          <AlertDescription>{loadError}</AlertDescription>
+          <AlertActions>
             <Button
               label="Retry"
               variant={ButtonVariant.SECONDARY}
@@ -145,7 +145,7 @@ function CaptionsListContent() {
                 void findAllCaptions();
               }}
             />
-          </div>
+          </AlertActions>
         </Alert>
       ) : (
         <>

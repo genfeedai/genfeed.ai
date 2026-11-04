@@ -8,7 +8,7 @@ import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import Table from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -63,12 +63,12 @@ export default function BrandTopVideosSection() {
     <div className="space-y-4">
       {hasReadError && (
         <Alert variant={isUsingCachedVideos ? 'warning' : 'destructive'}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Text as="p" size="sm">
-              {isUsingCachedVideos
-                ? translate('cachedEvaluationWarning')
-                : translateCommon('loadFailed')}
-            </Text>
+          <AlertDescription>
+            {isUsingCachedVideos
+              ? translate('cachedEvaluationWarning')
+              : translateCommon('loadFailed')}
+          </AlertDescription>
+          <AlertActions>
             <Button
               label={translate('retryEvaluationRead')}
               onClick={() => {
@@ -76,7 +76,7 @@ export default function BrandTopVideosSection() {
               }}
               variant={ButtonVariant.SECONDARY}
             />
-          </div>
+          </AlertActions>
         </Alert>
       )}
 

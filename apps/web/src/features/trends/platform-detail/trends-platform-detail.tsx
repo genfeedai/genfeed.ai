@@ -22,7 +22,12 @@ import Card from '@ui/card/Card';
 import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import { Alert } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
@@ -250,15 +255,11 @@ export default function TrendsPlatformDetail({
 
         {error && !isLoading ? (
           <Alert variant="destructive">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="font-medium">
-                  Failed to load platform content
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Retry to fetch the latest saved trend feed.
-                </div>
-              </div>
+            <AlertTitle>Failed to load platform content</AlertTitle>
+            <AlertDescription>
+              Retry to fetch the latest saved trend feed.
+            </AlertDescription>
+            <AlertActions>
               <Button
                 label="Retry"
                 onClick={() => {
@@ -268,7 +269,7 @@ export default function TrendsPlatformDetail({
                 }}
                 variant={ButtonVariant.SECONDARY}
               />
-            </div>
+            </AlertActions>
           </Alert>
         ) : null}
 

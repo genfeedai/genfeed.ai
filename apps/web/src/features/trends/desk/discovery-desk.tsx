@@ -10,7 +10,12 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
-import { Alert } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
@@ -419,21 +424,17 @@ export default function DiscoveryDesk() {
       >
         {currentError && !isLoading ? (
           <Alert variant="destructive">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="font-medium">
-                  {translateDesk('errors.loadTitle')}
-                </div>
-                <div className="text-xs text-foreground/70">
-                  {translateDesk('errors.loadDescription')}
-                </div>
-              </div>
+            <AlertTitle>{translateDesk('errors.loadTitle')}</AlertTitle>
+            <AlertDescription>
+              {translateDesk('errors.loadDescription')}
+            </AlertDescription>
+            <AlertActions>
               <Button
                 label={translateDesk('errors.retry')}
                 onClick={handleRefresh}
                 variant={ButtonVariant.SECONDARY}
               />
-            </div>
+            </AlertActions>
           </Alert>
         ) : null}
 

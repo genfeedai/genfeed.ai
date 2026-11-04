@@ -7,7 +7,12 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import { Alert } from '@ui/primitives/alert';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import type { FieldErrors } from 'react-hook-form';
 
@@ -38,23 +43,19 @@ export default function ModalPostBatchFormAlerts({
 
       {invalidCredentialConfigs.length > 0 && (
         <Alert variant="warning">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="font-medium">
-                Some accounts need to be reconnected.
-              </div>
-              <div className="text-xs text-foreground/70">
-                {invalidCredentialSummary
-                  ? `Reconnect ${invalidCredentialSummary} to publish on those platforms.`
-                  : 'Reconnect your social accounts to enable publishing.'}
-              </div>
-            </div>
+          <AlertTitle>Some accounts need to be reconnected.</AlertTitle>
+          <AlertDescription>
+            {invalidCredentialSummary
+              ? `Reconnect ${invalidCredentialSummary} to publish on those platforms.`
+              : 'Reconnect your social accounts to enable publishing.'}
+          </AlertDescription>
+          <AlertActions>
             <Button
               label="Manage Connections"
               variant={ButtonVariant.SECONDARY}
               onClick={onManageConnections}
             />
-          </div>
+          </AlertActions>
         </Alert>
       )}
     </>

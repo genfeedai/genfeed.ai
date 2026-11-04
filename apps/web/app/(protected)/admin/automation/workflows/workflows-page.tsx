@@ -25,7 +25,7 @@ import TableDateCell from '@ui/display/table/TableDateCell';
 import AdminPageShell from '@ui/layout/admin-page-shell/AdminPageShell';
 import ListRow from '@ui/lists/list-row/ListRow';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { Alert, AlertDescription } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -599,10 +599,10 @@ export default function WorkflowsPage() {
 
         {hasCatalogLoadFailed && !isLoading ? (
           <Alert variant="destructive" icon={false}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <AlertDescription>
-                {translate('catalog.loadError')}
-              </AlertDescription>
+            <AlertDescription>
+              {translate('catalog.loadError')}
+            </AlertDescription>
+            <AlertActions>
               <Button
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
@@ -610,7 +610,7 @@ export default function WorkflowsPage() {
               >
                 {translate('actions.retry')}
               </Button>
-            </div>
+            </AlertActions>
           </Alert>
         ) : null}
 

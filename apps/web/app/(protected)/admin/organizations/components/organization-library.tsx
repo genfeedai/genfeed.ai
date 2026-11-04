@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
-import { Alert } from '@ui/primitives/alert';
+import { Alert, AlertActions, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
@@ -76,8 +76,10 @@ export default function OrganizationLibrary({
       />
       {isError ? (
         <Alert variant="destructive">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>{translate('libraryLoadMoreError')}</span>
+          <AlertDescription>
+            {translate('libraryLoadMoreError')}
+          </AlertDescription>
+          <AlertActions>
             <Button
               label={translate('libraryRetry')}
               variant={ButtonVariant.SECONDARY}
@@ -85,7 +87,7 @@ export default function OrganizationLibrary({
                 void fetchNextPage();
               }}
             />
-          </div>
+          </AlertActions>
         </Alert>
       ) : null}
       {lightboxItems.length > 0 ? (
