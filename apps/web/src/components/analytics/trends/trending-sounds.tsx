@@ -2,6 +2,7 @@
 
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type { TrendMediaExample } from '@genfeedai/contracts/interfaces';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
@@ -16,15 +17,6 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
 import type { TrendingSoundsProps } from '@/props/analytics/trends.props';
-
-function formatDuration(seconds?: number): string {
-  if (!seconds) {
-    return '';
-  }
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
 
 export function TrendingSounds({
   sounds,
@@ -136,7 +128,7 @@ export function TrendingSounds({
                         </span>
                         {sound.duration && (
                           <span className="tabular-nums">
-                            {formatDuration(sound.duration)}
+                            {formatMinutesSeconds(sound.duration)}
                           </span>
                         )}
                       </div>
