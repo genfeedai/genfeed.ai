@@ -7,7 +7,6 @@ import {
   ContentRating,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -16,6 +15,7 @@ import { Button } from '@ui/primitives/button';
 import { Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
+import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
 import type { IngredientReviewActionsProps } from '@/props/content/ingredient.props';
 
 export default function IngredientReviewActions({
@@ -56,7 +56,7 @@ export default function IngredientReviewActions({
       const service = await getService();
       const updated = await service.patch(ingredient.id, { status });
       onUpdated(updated);
-      window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+      dispatchLibraryAssetsRefresh({ isListRefresh: true });
     } catch (error) {
       logger.error('Failed to review Library asset', error);
       NotificationsService.getInstance().error(translate('saveFailed'));

@@ -17,7 +17,7 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import { stripHtmlToSingleLine } from '@helpers/security/strip-html.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
@@ -114,12 +114,8 @@ function getStatusPresentation(status: string): {
   }
 }
 
-function stripHtml(value?: string): string {
-  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
-}
-
 function getPostTitle(post: IPost): string {
-  const plainDescription = stripHtml(post.description);
+  const plainDescription = stripHtmlToSingleLine(post.description);
 
   if (post.label?.trim()) {
     return post.label.trim();
@@ -137,7 +133,7 @@ function getPostTitle(post: IPost): string {
 }
 
 function getPostPreview(post: IPost): string {
-  const plainDescription = stripHtml(post.description);
+  const plainDescription = stripHtmlToSingleLine(post.description);
 
   if (!plainDescription) {
     return 'No post copy yet.';

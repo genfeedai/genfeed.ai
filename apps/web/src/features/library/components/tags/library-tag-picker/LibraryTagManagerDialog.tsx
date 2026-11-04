@@ -2,7 +2,6 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, TagScope } from '@genfeedai/contracts';
-import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
@@ -37,16 +36,13 @@ import LibraryTagChip from '@/components/tags/library-tag-picker/LibraryTagChip'
 import { dispatchLibraryTagUpdate } from '@/components/tags/library-tag-picker/library-asset-tags-event';
 import TagColorPicker from '@/components/tags/library-tag-picker/TagColorPicker';
 import { useLibraryTags } from '@/components/tags/library-tag-picker/use-library-tags';
+import { dispatchLibraryAssetsRefresh } from '@/features/ingredients/hooks/library-assets-refresh';
 import type { LibraryTagManagerDialogProps } from '@/features/library/props/library-tag-manager-dialog.props';
 
 type CreatableScope = TagScope.BRAND | TagScope.ORGANIZATION;
 
 /** `onUpdate` already logged and notified; the rejection only lets inline editors revert. */
 function ignoreReportedFailure(): void {}
-
-function refreshLibraryAssets(): void {
-  window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
-}
 
 function TagManagerRow({
   onDelete,
@@ -195,7 +191,7 @@ export default function LibraryTagManagerDialog({
       const service = await getTagsService();
       await service.removeTag(tag.id);
       await refresh();
-      refreshLibraryAssets();
+      dispatchLibraryAssetsRefresh({ isListRefresh: true });
       NotificationsService.getInstance().success(
         translate('deleted', { label: tag.label }),
       );

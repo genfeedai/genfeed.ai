@@ -10,7 +10,7 @@ import type {
   IPost,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
+import { stripHtmlToSingleLine } from '@helpers/security/strip-html.helper';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {
@@ -49,12 +49,8 @@ export interface PublishingContentLibraryFilters {
   type: PublishingContentTypeFilter;
 }
 
-function stripHtml(value?: string): string {
-  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
-}
-
 export function publishingContentTitle(value?: string): string {
-  return stripHtml(value) || 'Untitled post';
+  return stripHtmlToSingleLine(value) || 'Untitled post';
 }
 
 function normalizedStatus(status?: string): string {
@@ -205,10 +201,10 @@ export function createPublishingContentLibraryItems({
       release,
       scheduledAt: release.scheduledAt,
       status: normalizedStatus(release.status),
-      summary: stripHtml(release.baseContent),
+      summary: stripHtmlToSingleLine(release.baseContent),
       title:
-        stripHtml(release.title) ||
-        stripHtml(release.baseContent) ||
+        stripHtmlToSingleLine(release.title) ||
+        stripHtmlToSingleLine(release.baseContent) ||
         'Untitled post',
       type: 'post',
     }),
@@ -229,9 +225,11 @@ export function createPublishingContentLibraryItems({
         ? new Date(post.scheduledDate).toISOString()
         : null,
       status: normalizedStatus(post.status),
-      summary: stripHtml(post.description),
+      summary: stripHtmlToSingleLine(post.description),
       title:
-        post.label?.trim() || stripHtml(post.description) || 'Untitled post',
+        post.label?.trim() ||
+        stripHtmlToSingleLine(post.description) ||
+        'Untitled post',
       type: 'post',
     }));
 
@@ -245,7 +243,7 @@ export function createPublishingContentLibraryItems({
       format: 'article',
       id: article.id,
       status: normalizedStatus(article.status),
-      summary: stripHtml(article.summary || article.content),
+      summary: stripHtmlToSingleLine(article.summary || article.content),
       title: article.label?.trim() || 'Untitled article',
       type: 'article',
     }),
@@ -258,7 +256,7 @@ export function createPublishingContentLibraryItems({
       format: 'newsletter',
       id: newsletter.id,
       status: normalizedStatus(newsletter.status),
-      summary: stripHtml(newsletter.summary || newsletter.topic),
+      summary: stripHtmlToSingleLine(newsletter.summary || newsletter.topic),
       title: newsletter.label?.trim() || 'Untitled newsletter',
       type: 'newsletter',
     }),

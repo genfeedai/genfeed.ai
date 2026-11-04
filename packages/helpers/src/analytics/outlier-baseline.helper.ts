@@ -7,6 +7,7 @@ import type {
   OutlierBaselineResult,
   OutlierBaselineScope,
 } from '@genfeedai/contracts/interfaces';
+import { isValidTimestampMs } from '@helpers/utils/date-range.util';
 
 const SCOPE_FIELDS = [
   'organizationId',
@@ -14,10 +15,6 @@ const SCOPE_FIELDS = [
   'platform',
   'contentType',
 ] as const;
-
-function isValidTime(value: number): boolean {
-  return Number.isSafeInteger(value) && Math.abs(value) <= 8.64e15;
-}
 
 function resolveOptions(
   options: OutlierBaselineInput['options'],
@@ -96,7 +93,7 @@ function exclusionReasons(
   if (post.isDeleted) reasons.push('soft_deleted');
   if (post.isPinned) reasons.push('pinned');
   if (post.isPromoted) reasons.push('promoted');
-  if (!isValidTime(post.publishedAtMs)) {
+  if (!isValidTimestampMs(post.publishedAtMs)) {
     reasons.push('invalid_publish_date');
   } else if (nowMs - post.publishedAtMs < maturityMs) {
     reasons.push('immature');
@@ -170,7 +167,7 @@ export function computeMetricBaseline(
 ): OutlierBaselineResult {
   const { scope, nowMs, posts } = input;
   validateScope(scope);
-  if (!isValidTime(nowMs)) {
+  if (!isValidTimestampMs(nowMs)) {
     throw new RangeError('Outlier nowMs must be a valid integer Date epoch');
   }
   const options = resolveOptions(input.options);
