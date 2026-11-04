@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { describe, expect, it } from 'vitest';
 
 describe('MetricCardGrid container density', () => {

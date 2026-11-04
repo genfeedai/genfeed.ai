@@ -2,7 +2,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import { Activity, AtSign, Link2, TrendingUp } from 'lucide-react';

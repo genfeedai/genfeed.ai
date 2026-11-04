@@ -1,7 +1,7 @@
 'use client';
 
 import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 
 type TrendsPlatformStatBarProps = {
   feedModeLabel: string;

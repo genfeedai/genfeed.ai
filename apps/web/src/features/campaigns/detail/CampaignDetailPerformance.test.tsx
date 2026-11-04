@@ -45,7 +45,7 @@ vi.mock('@ui/cards/metric-card/MetricCard', () => ({
   ),
 }));
 
-vi.mock('@ui/cards/metric-card/MetricCardGrid', () => ({
+vi.mock('@ui/dashboard/MetricCardGrid', () => ({
   MetricCardGrid: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
