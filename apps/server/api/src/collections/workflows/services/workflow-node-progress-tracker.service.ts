@@ -55,26 +55,23 @@ export class WorkflowNodeProgressTrackerService {
       status: 'completed',
     });
 
-    const trackedExecution = await this.progressService.trackNodeResult(
-      input.executionId,
-      triggerNode.id,
-      triggerNode.type,
-      {
-        completedAt: new Date(),
-        output: input.triggerEvent.data as Record<string, unknown>,
-        startedAt: new Date(),
-        status: WorkflowExecutionStatus.COMPLETED,
-      },
-    );
-
-    await this.progressService.updateExecutionEta(
+    await this.progressService.trackNodeProgress(
       input.executionId,
       input.workflow,
+      {
+        nodeId: triggerNode.id,
+        nodeType: triggerNode.type,
+        updates: {
+          completedAt: new Date(),
+          output: input.triggerEvent.data as Record<string, unknown>,
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.COMPLETED,
+        },
+      },
       {
         baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
         completedNodeIds: input.completedNodes,
         currentPhase: `Triggered ${triggerNode.label}`,
-        progress: trackedExecution?.progress ?? 0,
         skippedNodeIds: input.skippedNodes,
         startedAt: input.startedAt,
         userId: input.triggerEvent.userId,
@@ -89,13 +86,26 @@ export class WorkflowNodeProgressTrackerService {
       node: ExecutableNode;
     },
   ): Promise<void> {
-    const runningExecution = await this.progressService.trackNodeResult(
+    await this.progressService.trackNodeProgress(
       input.executionId,
-      input.node.id,
-      getExecutableNodeOperationId(input.node),
+      input.workflow,
       {
-        startedAt: new Date(),
-        status: WorkflowExecutionStatus.RUNNING,
+        nodeId: input.node.id,
+        nodeType: getExecutableNodeOperationId(input.node),
+        updates: {
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.RUNNING,
+        },
+      },
+      {
+        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
+        completedNodeIds: input.completedNodes,
+        currentPhase: `Running ${input.node.label}`,
+        skippedNodeIds: input.skippedNodes,
+        startedAt: input.startedAt,
+        userId: input.triggerEvent.userId,
+        workflowId: input.workflow.id,
+        workflowLabel: input.options.workflowLabel,
       },
     );
 
@@ -106,22 +116,6 @@ export class WorkflowNodeProgressTrackerService {
         nodeType: getExecutableNodeOperationId(input.node),
       });
     }
-
-    await this.progressService.updateExecutionEta(
-      input.executionId,
-      input.workflow,
-      {
-        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
-        completedNodeIds: input.completedNodes,
-        currentPhase: `Running ${input.node.label}`,
-        progress: runningExecution?.progress ?? 0,
-        skippedNodeIds: input.skippedNodes,
-        startedAt: input.startedAt,
-        userId: input.triggerEvent.userId,
-        workflowId: input.workflow.id,
-        workflowLabel: input.options.workflowLabel,
-      },
-    );
   }
 
   async trackNodeCompleted(
@@ -131,15 +125,30 @@ export class WorkflowNodeProgressTrackerService {
       nodeResult: NodeExecutionResult;
     },
   ): Promise<void> {
-    const completedExecution = await this.progressService.trackNodeResult(
+    await this.progressService.trackNodeProgress(
       input.executionId,
-      input.nodeId,
-      getExecutableNodeOperationId(input.node),
+      input.workflow,
       {
-        completedAt: new Date(),
-        creditsUsed: input.nodeResult.creditsUsed,
-        output: input.nodeResult.output as Record<string, unknown> | undefined,
-        status: WorkflowExecutionStatus.COMPLETED,
+        nodeId: input.nodeId,
+        nodeType: getExecutableNodeOperationId(input.node),
+        updates: {
+          completedAt: new Date(),
+          creditsUsed: input.nodeResult.creditsUsed,
+          output: input.nodeResult.output as
+            | Record<string, unknown>
+            | undefined,
+          status: WorkflowExecutionStatus.COMPLETED,
+        },
+      },
+      {
+        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
+        completedNodeIds: input.completedNodes,
+        currentPhase: `Completed ${input.node.label}`,
+        skippedNodeIds: input.skippedNodes,
+        startedAt: input.startedAt,
+        userId: input.triggerEvent.userId,
+        workflowId: input.workflow.id,
+        workflowLabel: input.options.workflowLabel,
       },
     );
 
@@ -154,22 +163,6 @@ export class WorkflowNodeProgressTrackerService {
         },
       );
     }
-
-    await this.progressService.updateExecutionEta(
-      input.executionId,
-      input.workflow,
-      {
-        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
-        completedNodeIds: input.completedNodes,
-        currentPhase: `Completed ${input.node.label}`,
-        progress: completedExecution?.progress ?? 0,
-        skippedNodeIds: input.skippedNodes,
-        startedAt: input.startedAt,
-        userId: input.triggerEvent.userId,
-        workflowId: input.workflow.id,
-        workflowLabel: input.options.workflowLabel,
-      },
-    );
   }
 
   async trackNodeFailed(
@@ -179,14 +172,28 @@ export class WorkflowNodeProgressTrackerService {
       errorMessage?: string;
     },
   ): Promise<void> {
-    const failedExecution = await this.progressService.trackNodeResult(
+    await this.progressService.trackNodeProgress(
       input.executionId,
-      input.nodeId,
-      getExecutableNodeOperationId(input.node),
+      input.workflow,
       {
-        completedAt: new Date(),
+        nodeId: input.nodeId,
+        nodeType: getExecutableNodeOperationId(input.node),
+        updates: {
+          completedAt: new Date(),
+          error: input.errorMessage,
+          status: WorkflowExecutionStatus.FAILED,
+        },
+      },
+      {
+        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
+        completedNodeIds: input.completedNodes,
+        currentPhase: `Failed at ${input.node.label}`,
         error: input.errorMessage,
-        status: WorkflowExecutionStatus.FAILED,
+        skippedNodeIds: input.skippedNodes,
+        startedAt: input.startedAt,
+        userId: input.triggerEvent.userId,
+        workflowId: input.workflow.id,
+        workflowLabel: input.options.workflowLabel,
       },
     );
 
@@ -198,22 +205,5 @@ export class WorkflowNodeProgressTrackerService {
         nodeType: getExecutableNodeOperationId(input.node),
       });
     }
-
-    await this.progressService.updateExecutionEta(
-      input.executionId,
-      input.workflow,
-      {
-        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
-        completedNodeIds: input.completedNodes,
-        currentPhase: `Failed at ${input.node.label}`,
-        error: input.errorMessage,
-        progress: failedExecution?.progress ?? 0,
-        skippedNodeIds: input.skippedNodes,
-        startedAt: input.startedAt,
-        userId: input.triggerEvent.userId,
-        workflowId: input.workflow.id,
-        workflowLabel: input.options.workflowLabel,
-      },
-    );
   }
 }

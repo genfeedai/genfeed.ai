@@ -663,8 +663,8 @@ describe('WorkflowExecutionsService', () => {
       progress: 50,
     });
 
-    const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
-    const sql = query.join('?').replace(/\s+/g, ' ').trim();
+    const query = prisma.$queryRaw.mock.calls[0]?.[0] as { sql: string };
+    const sql = query.sql.replace(/\s+/g, ' ').trim();
 
     expect(sql).toContain('INSERT INTO workflow_execution_node_results');
     expect(sql).toContain(
@@ -691,8 +691,9 @@ describe('WorkflowExecutionsService', () => {
     // Postgres cannot infer the type of a bare parameter inside `concat()` or an
     // `INSERT ... SELECT` select-list, and answers 42P18. Every placeholder in the
     // tagged template must therefore be followed immediately by an explicit cast.
-    const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
-    const uncastParameterIndexes = query
+    const query = prisma.$queryRaw.mock.calls[0]?.[0] as { sql: string };
+    const uncastParameterIndexes = query.sql
+      .split('?')
       .slice(1)
       .reduce<number[]>((indexes, chunk, index) => {
         if (!chunk.trimStart().startsWith('::')) {
@@ -702,6 +703,39 @@ describe('WorkflowExecutionsService', () => {
       }, []);
 
     expect(uncastParameterIndexes).toEqual([]);
+  });
+
+  it('writes the ETA columns in the node-result statement when given', async () => {
+    const { prisma, service } = makeService();
+    prisma.$queryRaw.mockResolvedValue([{ id: 'execution-1', progress: 50 }]);
+
+    await service.updateNodeResult(
+      'execution-1',
+      {
+        nodeId: 'node-1',
+        nodeType: 'input',
+        status: SharedWorkflowExecutionStatus.COMPLETED,
+      },
+      undefined,
+      {
+        currentPhase: 'Completed node-1',
+        lastEtaUpdateAt: '2026-11-04T12:00:00.000Z',
+        remainingDurationMs: 4_000,
+      },
+    );
+
+    const query = prisma.$queryRaw.mock.calls[0]?.[0] as {
+      sql: string;
+      values: unknown[];
+    };
+    expect(query.sql).toContain('"etaCurrentPhase" = COALESCE(');
+    expect(query.values).toEqual(
+      expect.arrayContaining([
+        'Completed node-1',
+        4_000,
+        new Date('2026-11-04T12:00:00.000Z'),
+      ]),
+    );
   });
 
   it('reads scalar runtime state for delay resume ETA updates', async () => {
