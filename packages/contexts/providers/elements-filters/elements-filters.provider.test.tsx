@@ -1,32 +1,61 @@
+import { useElementsFilters } from '@providers/elements-filters/elements-filters.context';
 import { ElementsFiltersProvider } from '@providers/elements-filters/elements-filters.provider';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <ElementsFiltersProvider>{children}</ElementsFiltersProvider>;
+}
 
 describe('ElementsFiltersProvider', () => {
-  it('should render without crashing', () => {
+  it('renders its children', () => {
     render(
       <ElementsFiltersProvider>
-        <span data-testid="child">test</span>
+        <span>test</span>
       </ElementsFiltersProvider>,
     );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+
+    expect(screen.getByText('test')).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    render(
-      <ElementsFiltersProvider>
-        <span data-testid="child">test</span>
-      </ElementsFiltersProvider>,
-    );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+  it('starts from empty filters, an empty query and no refresh in flight', () => {
+    const { result } = renderHook(() => useElementsFilters(), { wrapper });
+
+    expect(result.current.filters).toEqual({
+      format: '',
+      provider: '',
+      search: '',
+      status: '',
+      type: '',
+    });
+    expect(result.current.query).toEqual({});
+    expect(result.current.isRefreshing).toBe(false);
   });
 
-  it('should apply correct styles and classes', () => {
-    render(
-      <ElementsFiltersProvider>
-        <span data-testid="child">test</span>
-      </ElementsFiltersProvider>,
+  it('keeps the filters, query and refresh state a consumer sets', () => {
+    const { result } = renderHook(() => useElementsFilters(), { wrapper });
+
+    act(() => {
+      result.current.setFilters({ ...result.current.filters, search: 'neon' });
+      result.current.setQuery({ search: 'neon' });
+      result.current.setIsRefreshing(true);
+    });
+
+    expect(result.current.filters.search).toBe('neon');
+    expect(result.current.query).toEqual({ search: 'neon' });
+    expect(result.current.isRefreshing).toBe(true);
+  });
+
+  it('refuses a consumer outside the provider', () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    expect(() => renderHook(() => useElementsFilters())).toThrow(
+      'useElementsFilters must be used within an ElementsFiltersProvider',
     );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+
+    consoleError.mockRestore();
   });
 });
