@@ -6,6 +6,7 @@ import type {
 import {
   CLIPPER_PROJECT_STATUSES,
   type ClipProcessingFlow,
+  type ClipperCaptionStyle,
   type ClipperProjectDraft,
   type ClipperReadinessContract,
   type ClipperReferenceFrameSet,
@@ -41,7 +42,7 @@ export interface ClipperProjectHighlight extends IHighlight {
 export interface ClipperProjectSettings {
   addCaptions?: boolean;
   aspectRatio?: string;
-  captionStyle?: string;
+  captionStyle?: ClipperCaptionStyle;
   maxClips?: number;
   maxDuration?: number;
   minDuration?: number;

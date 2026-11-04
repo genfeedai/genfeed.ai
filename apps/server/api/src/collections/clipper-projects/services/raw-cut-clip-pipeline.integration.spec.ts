@@ -254,7 +254,9 @@ describe('raw-cut clip pipeline integration', () => {
       getProvider: vi.fn().mockReturnValue(avatarProvider),
     };
     clipperProjectsService = {
-      findOne: vi.fn().mockResolvedValue({ captionStyle: 'default' }),
+      findOne: vi
+        .fn()
+        .mockResolvedValue({ settings: { captionStyle: 'default' } }),
       patch: vi.fn().mockResolvedValue(undefined),
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
