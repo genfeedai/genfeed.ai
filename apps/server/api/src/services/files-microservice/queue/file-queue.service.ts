@@ -20,6 +20,7 @@ import type {
   IVideoDimensions,
   IYoutubeUploadData,
 } from '@genfeedai/contracts/interfaces';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -54,6 +55,11 @@ export class FileQueueService {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ??
       'http://localhost:3012';
+  }
+
+  /** The internal service key every files-service route requires. */
+  private authHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.configService.get(key));
   }
 
   private send<T>(
@@ -172,7 +178,10 @@ export class FileQueueService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/video`,
           job,
-          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          {
+            headers: this.authHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
         ),
       );
       return response.data;
@@ -188,7 +197,10 @@ export class FileQueueService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/image`,
           job,
-          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          {
+            headers: this.authHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
         ),
       );
       return response.data;
@@ -204,7 +216,10 @@ export class FileQueueService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/process/file`,
           job,
-          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          {
+            headers: this.authHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
         ),
       );
       return response.data;
@@ -221,7 +236,10 @@ export class FileQueueService {
         () =>
           this.httpService.get(
             `${this.filesServiceUrl}/v1/files/job/${jobId}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+            },
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -240,7 +258,10 @@ export class FileQueueService {
         () =>
           this.httpService.get(
             `${this.filesServiceUrl}/v1/files/job/${jobId}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+            },
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -260,7 +281,10 @@ export class FileQueueService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/job/${jobId}/cancel`,
           {},
-          { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          {
+            headers: this.authHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+          },
         ),
       );
       return response.data;
@@ -311,6 +335,7 @@ export class FileQueueService {
         'getQueueStats',
         () =>
           this.httpService.get(`${this.filesServiceUrl}/v1/files/stats`, {
+            headers: this.authHeaders(),
             timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
           }),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
@@ -503,7 +528,10 @@ export class FileQueueService {
             type: 'upload-youtube',
             userId: data.userId,
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          {
+            headers: this.authHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
         ),
       );
       return response.data;

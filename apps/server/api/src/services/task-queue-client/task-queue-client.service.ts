@@ -3,6 +3,7 @@ import {
   FilesRetryPolicy,
   sendFilesRequest,
 } from '@api/services/files-microservice/client/files-request-retry.util';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
@@ -44,6 +45,11 @@ export class TaskQueueClientService {
       'http://localhost:3012';
   }
 
+  /** The internal service key every files-service route requires. */
+  private authHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.configService.get(key));
+  }
+
   async queueTransformJob(data: TaskJobRequest) {
     return this.queueJob('transform', data);
   }
@@ -71,7 +77,10 @@ export class TaskQueueClientService {
           this.httpService.post(
             `${this.filesServiceUrl}/tasks/queue/${type}`,
             data,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+            },
           ),
         { logger: this.logger, operation: `queueJob:${type}` },
       );
@@ -89,7 +98,10 @@ export class TaskQueueClientService {
         () =>
           this.httpService.get(
             `${this.filesServiceUrl}/tasks/queue/status/${jobId}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+            },
           ),
         {
           logger: this.logger,

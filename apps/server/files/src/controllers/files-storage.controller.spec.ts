@@ -1,8 +1,4 @@
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
-import {
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from '@nestjs/common';
 
 describe('FilesStorageController exact stored object signing', () => {
   it('preserves reserved characters in the JSON storage key', async () => {
@@ -12,7 +8,6 @@ describe('FilesStorageController exact stored object signing', () => {
     const controller = new FilesStorageController(
       {} as never,
       { getPresignedDownloadUrlForStoredKey } as never,
-      {} as never,
       {} as never,
     );
     const storageKey = 'ingredients/images/random key?part=#preview%2F.png';
@@ -37,7 +32,6 @@ describe('FilesStorageController exact stored object signing', () => {
         {} as never,
         { getPresignedDownloadUrlForStoredKey } as never,
         {} as never,
-        {} as never,
       );
       await expect(
         controller.getPresignedDownloadUrlForObjectKey({ storageKey }),
@@ -48,18 +42,12 @@ describe('FilesStorageController exact stored object signing', () => {
 });
 
 describe('FilesStorageController stored object existence', () => {
-  const SERVICE_KEY = 'service-key';
-
-  function createController(
-    storedObjectExists = vi.fn(),
-    expectedKey: string | null = SERVICE_KEY,
-  ) {
+  function createController(storedObjectExists = vi.fn()) {
     return {
       controller: new FilesStorageController(
         {} as never,
         {} as never,
         { storedObjectExists } as never,
-        { get: vi.fn().mockReturnValue(expectedKey ?? undefined) } as never,
       ),
       storedObjectExists,
     };
@@ -71,7 +59,7 @@ describe('FilesStorageController stored object existence', () => {
     );
 
     await expect(
-      controller.storedObjectExists(SERVICE_KEY, {
+      controller.storedObjectExists({
         storageKey: ' ingredients/images/a ',
       }),
     ).resolves.toEqual({ exists: true, storageKey: 'ingredients/images/a' });
@@ -84,30 +72,9 @@ describe('FilesStorageController stored object existence', () => {
       const { controller, storedObjectExists } = createController();
 
       await expect(
-        controller.storedObjectExists(SERVICE_KEY, { storageKey }),
+        controller.storedObjectExists({ storageKey }),
       ).rejects.toThrow('storageKey is required');
       expect(storedObjectExists).not.toHaveBeenCalled();
     },
   );
-
-  it.each([undefined, 'wrong-key', 'service-ke'])(
-    'rejects service key %s before touching storage',
-    async (suppliedKey) => {
-      const { controller, storedObjectExists } = createController();
-
-      await expect(
-        controller.storedObjectExists(suppliedKey, { storageKey: 'a/b' }),
-      ).rejects.toThrow(UnauthorizedException);
-      expect(storedObjectExists).not.toHaveBeenCalled();
-    },
-  );
-
-  it('is unavailable while no service key is configured', async () => {
-    const { controller, storedObjectExists } = createController(vi.fn(), null);
-
-    await expect(
-      controller.storedObjectExists(SERVICE_KEY, { storageKey: 'a/b' }),
-    ).rejects.toThrow(ServiceUnavailableException);
-    expect(storedObjectExists).not.toHaveBeenCalled();
-  });
 });

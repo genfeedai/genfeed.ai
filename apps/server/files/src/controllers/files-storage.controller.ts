@@ -1,6 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
-import { ConfigService } from '@files/config/config.service';
 import {
   MULTIPART_UPLOAD_LIMIT_BYTES,
   multipartUploadStorage,
@@ -8,6 +6,7 @@ import {
   resolvePresignedDownloadKey,
   unlinkUploadedTemp,
 } from '@files/controllers/files-storage.util';
+import { SelfHostedBrowserRoute } from '@files/guards/files-service-key.guard';
 import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,16 +15,13 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpException,
   HttpStatus,
   Inject,
   Param,
   Post,
   Res,
-  ServiceUnavailableException,
   StreamableFile,
-  UnauthorizedException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -38,7 +34,6 @@ export class FilesStorageController {
     private readonly logger: LoggerService,
     @Inject(S3Service) private readonly s3Service: S3Service,
     @Inject(UploadService) private readonly uploadService: UploadService,
-    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
   /** Delete one full storage key. Missing objects are treated as deleted. */
@@ -58,10 +53,8 @@ export class FilesStorageController {
   /** Report whether one full storage key exists, without reading the object. */
   @Post('exists')
   async storedObjectExists(
-    @Headers('x-api-key') key: string | undefined,
     @Body() body: { storageKey?: string },
   ): Promise<{ exists: boolean; storageKey: string }> {
-    this.assertServiceKey(key);
     const storageKey = body.storageKey?.trim();
     if (!storageKey) {
       throw new HttpException('storageKey is required', HttpStatus.BAD_REQUEST);
@@ -73,28 +66,13 @@ export class FilesStorageController {
     };
   }
 
-  /** Same service-to-service key check as the watermark-export endpoint. */
-  private assertServiceKey(key: string | undefined): void {
-    const expected = this.config.get('GENFEEDAI_API_KEY');
-    if (!expected) {
-      throw new ServiceUnavailableException(
-        'Storage service authentication is not configured',
-      );
-    }
-    const supplied = Buffer.from(key ?? '');
-    const secret = Buffer.from(expected);
-    if (
-      supplied.length !== secret.length ||
-      !timingSafeEqual(supplied, secret)
-    ) {
-      throw new UnauthorizedException();
-    }
-  }
-
   /**
-   * Upload file to S3 with metadata extraction and image processing
+   * Upload file to S3 with metadata extraction and image processing.
+   * On self-hosted installs the browser posts here directly (the API returns
+   * this URL with `uploadMethod: 'POST_JSON'` instead of a presigned S3 URL).
    */
   @Post('upload')
+  @SelfHostedBrowserRoute()
   async uploadFile(
     @Body()
     body: {

@@ -52,14 +52,164 @@ function createHarness(
   };
 }
 
+type FilesClient = InstanceType<typeof FilesClientService>;
+
 describe('FilesClientService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSelfHostedDeployment.mockReturnValue(false);
   });
 
+  describe('files-service authentication', () => {
+    const URL_SOURCE = {
+      type: FileInputType.URL,
+      url: 'https://cdn.test/a.png',
+    } as const;
+
+    function sentHeaders(
+      call: (service: FilesClient) => Promise<unknown>,
+      apiKey?: string,
+    ) {
+      const { get, post, put, service } = createHarness(BASE, true, apiKey);
+      const respond = () => of({ data: {} });
+      post.mockImplementation(respond);
+      get.mockImplementation(respond);
+      put.mockImplementation(respond);
+      return call(service)
+        .catch(() => undefined)
+        .then(() => {
+          const [request] = [
+            ...post.mock.calls.map((args) => args[2]),
+            ...get.mock.calls.map((args) => args[1]),
+            ...put.mock.calls.map((args) => args[2]),
+          ];
+          return request?.headers;
+        });
+    }
+
+    it.each<[string, (service: FilesClient) => Promise<unknown>]>([
+      [
+        'watermark-export',
+        (s) =>
+          s.watermarkExport({
+            category: 'images',
+            layers: [],
+            storageKey: 'a',
+          }),
+      ],
+      [
+        'resize-image',
+        (s) => s.resizeImage(Buffer.from('x'), { height: 1, width: 1 }),
+      ],
+      [
+        'resize-image from URL',
+        (s) =>
+          s.resizeImageFromUrl('https://cdn.test/a.png', {
+            height: 1,
+            width: 1,
+          }),
+      ],
+      ['metadata', (s) => s.extractMetadataFromUrl('https://cdn.test/a.mp4')],
+      [
+        'metadata probe',
+        (s) => s.probeMediaFromUrl('https://cdn.test/a.mp4', 'video'),
+      ],
+      [
+        'perception/fingerprint',
+        (s) => s.fingerprintMedia('https://cdn.test/a.mp4'),
+      ],
+      [
+        'perception/artefacts',
+        (s) =>
+          s.extractPerceptionArtefacts({
+            url: 'https://cdn.test/a.mp4',
+          } as Parameters<FilesClient['extractPerceptionArtefacts']>[0]),
+      ],
+      [
+        'generate-thumbnail',
+        (s) => s.generateThumbnail('https://cdn.test/a.mp4', 'ingredient-1'),
+      ],
+      [
+        'speech-assembly',
+        (s) => s.assembleSpeech({ durationSeconds: 1, segments: [] }),
+      ],
+      [
+        'audio-overlay',
+        (s) =>
+          s.audioOverlay({
+            audioUrl: 'https://cdn.test/a.mp3',
+            videoUrl: 'https://cdn.test/a.mp4',
+          }),
+      ],
+      [
+        'video-qa',
+        (s) =>
+          s.inspectVideoQa({
+            blackDurationSeconds: 1,
+            freezeDurationSeconds: 1,
+            isContactSheetEnabled: false,
+            videoUrl: 'https://cdn.test/a.mp4',
+          }),
+      ],
+      ['upload', (s) => s.uploadToS3('a.png', 'images', URL_SOURCE)],
+      [
+        'upload to an existing object',
+        (s) =>
+          s.uploadToExistingObject(
+            'ingredients/images/a.png',
+            'images',
+            URL_SOURCE,
+          ),
+      ],
+      [
+        'upload/multipart',
+        (s) =>
+          s.uploadStreamToS3('a.png', 'images', {
+            contentType: 'image/png',
+            data: Buffer.from('x'),
+          }),
+      ],
+      ['delete', (s) => s.deleteStoredObject('ingredients/images/a.png')],
+      ['exists', (s) => s.storedObjectExists('ingredients/images/a.png')],
+      ['download', (s) => s.getFileFromS3('a.png', 'images')],
+      [
+        'presigned-upload',
+        (s) => s.getPresignedUploadUrl('a.png', 'images', 'image/png'),
+      ],
+      [
+        'presigned-download by type',
+        (s) => s.getPresignedDownloadUrl('a.png', 'images'),
+      ],
+      [
+        'presigned-download by storage key',
+        (s) =>
+          s.getPresignedDownloadUrlForObjectKey('ingredients/images/a.png'),
+      ],
+      ['copy', (s) => s.copyInS3('a.png', 'b.png', 'images', 'images')],
+      ['split-image', (s) => s.splitImage('https://cdn.test/a.png', 2, 2)],
+    ])('sends the service key to %s', async (_route, call) => {
+      await expect(sentHeaders(call, 'service-key')).resolves.toMatchObject({
+        'x-api-key': 'service-key',
+      });
+    });
+
+    it('never sends the service key to a presigned storage URL', async () => {
+      const headers = await sentHeaders(
+        (s) =>
+          s.putStreamToUrl(
+            'https://bucket.s3.test/a.png?X-Amz-Signature=1',
+            Buffer.from('x'),
+            'image/png',
+          ),
+        'service-key',
+      );
+
+      expect(headers).toEqual({ 'Content-Type': 'image/png' });
+    });
+  });
+
   it('normalises an ffprobe payload into the persisted media probe shape', async () => {
-    const { post, service } = createHarness();
+    const { post, service } = createHarness(BASE, true, 'probe-key');
     post.mockReturnValue(
       of({
         data: {
@@ -91,7 +241,7 @@ describe('FilesClientService', () => {
       `${BASE}/v1/files/metadata`,
       { url: 'https://cdn.test/clip.mp4' },
       expect.objectContaining({
-        headers: { 'x-api-key': '' },
+        headers: { 'x-api-key': 'probe-key' },
         timeout: expect.any(Number),
       }),
     );

@@ -28,6 +28,7 @@ import type {
   IWatermarkExportResult,
   UploadSource,
 } from '@genfeedai/contracts/interfaces';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -108,6 +109,19 @@ export class FilesClientService {
       'http://localhost:3012';
   }
 
+  /** The internal service key every files-service route requires. */
+  private authHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.configService.get(key));
+  }
+
+  /** Options for a files-service request: the service key and a timeout. */
+  private requestConfig(timeout: number): {
+    headers: Record<string, string>;
+    timeout: number;
+  } {
+    return { headers: this.authHeaders(), timeout };
+  }
+
   /**
    * Every files-service call goes through here so retries follow one policy:
    * pre-send failures retry for any replayable call, mid-flight failures only
@@ -135,12 +149,7 @@ export class FilesClientService {
       this.httpService.post<IWatermarkExportResult>(
         `${this.filesServiceUrl}/v1/files/watermark-export`,
         payload,
-        {
-          headers: {
-            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
-          },
-          timeout: 600000,
-        },
+        this.requestConfig(600000),
       ),
     );
     return response.data;
@@ -156,7 +165,7 @@ export class FilesClientService {
             imageData: imageData.toString('base64'),
             width: target.width,
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
       return Buffer.from(response.data.data, 'base64');
@@ -176,7 +185,7 @@ export class FilesClientService {
             imageUrl,
             width: target.width,
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
       return Buffer.from(response.data.data, 'base64');
@@ -204,12 +213,7 @@ export class FilesClientService {
           this.httpService.post(
             `${this.filesServiceUrl}/v1/files/metadata`,
             { url },
-            {
-              headers: {
-                'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
-              },
-              timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
-            },
+            this.requestConfig(FILES_REQUEST_TIMEOUT_MS.STANDARD),
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -255,12 +259,7 @@ export class FilesClientService {
         this.httpService.post<IFFprobeResult>(
           `${this.filesServiceUrl}/v1/files/metadata`,
           { url },
-          {
-            headers: {
-              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
-            },
-            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
-          },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.STANDARD),
         ),
       { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
@@ -275,7 +274,7 @@ export class FilesClientService {
         this.httpService.post<unknown>(
           `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
           { url },
-          { timeout: PERCEPTION_FINGERPRINT_TIMEOUT_MS },
+          this.requestConfig(PERCEPTION_FINGERPRINT_TIMEOUT_MS),
         ),
       { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
@@ -295,7 +294,7 @@ export class FilesClientService {
         this.httpService.post<unknown>(
           `${this.filesServiceUrl}/v1/files/perception/artefacts`,
           request,
-          { timeout: PERCEPTION_ARTEFACTS_TIMEOUT_MS },
+          this.requestConfig(PERCEPTION_ARTEFACTS_TIMEOUT_MS),
         ),
       { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
@@ -415,7 +414,7 @@ export class FilesClientService {
             videoUrl,
             width,
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
       return response.data;
@@ -438,7 +437,7 @@ export class FilesClientService {
       this.httpService.post(
         `${this.filesServiceUrl}/v1/files/processing/speech-assembly`,
         params,
-        { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
+        this.requestConfig(FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING),
       ),
     );
     return response.data;
@@ -463,7 +462,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/audio-overlay`,
           params,
-          { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING),
         ),
       );
       return response.data;
@@ -494,7 +493,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/processing/video-qa`,
           params,
-          { timeout: FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.HEAVY_PROCESSING),
         ),
       );
       return response.data;
@@ -584,7 +583,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/upload`,
           { key: uploadKey, source: apiSource, type },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.UPLOAD),
         ),
       );
 
@@ -624,7 +623,7 @@ export class FilesClientService {
       this.httpService.post(
         `${this.filesServiceUrl}/v1/files/upload`,
         { key, source, type },
-        { timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD },
+        this.requestConfig(FILES_REQUEST_TIMEOUT_MS.UPLOAD),
       ),
     );
     return this.validateUploadMetadata(response.data);
@@ -670,7 +669,7 @@ export class FilesClientService {
           this.httpService.post(
             `${this.filesServiceUrl}/v1/files/delete`,
             { storageKey },
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            this.requestConfig(FILES_REQUEST_TIMEOUT_MS.QUICK),
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -691,12 +690,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/exists`,
           { storageKey },
-          {
-            headers: {
-              'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
-            },
-            timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
-          },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.QUICK),
         ),
       { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
@@ -732,7 +726,7 @@ export class FilesClientService {
           `${this.filesServiceUrl}/v1/files/upload/multipart`,
           form,
           {
-            headers: form.getHeaders(),
+            headers: { ...form.getHeaders(), ...this.authHeaders() },
             maxBodyLength: MULTIPART_MAX_BYTES,
             maxContentLength: MULTIPART_MAX_BYTES,
             timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
@@ -759,6 +753,7 @@ export class FilesClientService {
           this.httpService.get(
             `${this.filesServiceUrl}/v1/files/download/${type}/${key}`,
             {
+              headers: this.authHeaders(),
               responseType: 'stream',
               timeout: FILES_REQUEST_TIMEOUT_MS.DOWNLOAD,
             },
@@ -818,7 +813,7 @@ export class FilesClientService {
               filename,
               type,
             },
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            this.requestConfig(FILES_REQUEST_TIMEOUT_MS.QUICK),
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -851,7 +846,7 @@ export class FilesClientService {
         () =>
           this.httpService.get(
             `${this.filesServiceUrl}/v1/files/presigned-download/${type}/${key}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            this.requestConfig(FILES_REQUEST_TIMEOUT_MS.QUICK),
           ),
         { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
       );
@@ -873,7 +868,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/presigned-download`,
           { storageKey },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.QUICK),
         ),
       { retryPolicy: FilesRetryPolicy.IDEMPOTENT },
     );
@@ -894,7 +889,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/copy`,
           { destinationKey, destinationType, sourceKey, sourceType },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
     } catch (error: unknown) {
@@ -936,7 +931,7 @@ export class FilesClientService {
             gridRows,
             imageUrl,
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.PROCESSING },
+          this.requestConfig(FILES_REQUEST_TIMEOUT_MS.PROCESSING),
         ),
       );
 
