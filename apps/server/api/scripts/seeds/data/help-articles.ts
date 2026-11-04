@@ -112,9 +112,9 @@ still save drafts. The full walkthrough is in
 <ol>
   <li>Open <strong>Publishing</strong> and go to <strong>Posts</strong>.</li>
   <li>Choose <strong>New post</strong>. The composer opens with the prompt
-  "Write once, then choose where it goes."</li>
-  <li>Write the post and pick one or more destinations under
-  <strong>Post to</strong>.</li>
+  "Choose where it goes, add your media, then write the post."</li>
+  <li>Pick one or more destinations under <strong>Post to</strong>.</li>
+  <li>Add media from your Library or upload it, then write the post.</li>
   <li>Choose <strong>Create Post</strong>.</li>
 </ol>
 <p>If you select no account, the post is saved as a draft. Nothing goes out
