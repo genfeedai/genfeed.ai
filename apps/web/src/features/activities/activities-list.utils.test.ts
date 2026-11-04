@@ -172,6 +172,20 @@ describe('getActivityDescription', () => {
     expect(getActivityDetailText(activity)).toBeUndefined();
   });
 
+  it('formats the classified cause instead of leaking provider text', () => {
+    const activity = {
+      key: ActivityKey.MUSIC_FAILED,
+      value: JSON.stringify({
+        error: 'Provider timed out: private-diagnostic',
+      }),
+    } as IActivity;
+    const formatter = vi.fn(() => 'Readable timeout guidance');
+    expect(getActivityDetailText(activity, formatter)).toBe(
+      'Readable timeout guidance',
+    );
+    expect(formatter).toHaveBeenCalledWith('timeout');
+  });
+
   it('exposes structured source and credit metadata for compact activity feeds', () => {
     const activity = {
       key: ActivityKey.CREDITS_REMOVE,

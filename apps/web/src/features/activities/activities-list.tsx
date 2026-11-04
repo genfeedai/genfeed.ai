@@ -70,6 +70,9 @@ export default function ActivitiesList({
   scope,
 }: ActivitiesListProps) {
   const translate = useTranslations('pages.activities');
+  const translateGenerationFailure = useTranslations(
+    'common.notificationInbox.generationFailureReasons',
+  );
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
   const { search, setSearch } = useAdminSearchParam();
@@ -216,7 +219,10 @@ export default function ActivitiesList({
           );
         },
         subtext: (a: IActivity) =>
-          [getActivityLifecycleText(a), getActivityDetailText(a)]
+          [
+            getActivityLifecycleText(a),
+            getActivityDetailText(a, translateGenerationFailure),
+          ]
             .filter(Boolean)
             .join(' · '),
       },
@@ -248,6 +254,7 @@ export default function ActivitiesList({
       isAdminScope,
       toggleActivityRead,
       translate,
+      translateGenerationFailure,
     ],
   );
 

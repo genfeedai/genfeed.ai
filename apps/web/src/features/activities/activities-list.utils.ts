@@ -23,6 +23,10 @@ import type {
   IActivity,
   IActivityPopulated,
 } from '@genfeedai/contracts/interfaces';
+import {
+  classifyGenerationFailure,
+  type GenerationFailureReason,
+} from '@genfeedai/utils/media/generation-failure.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
 /**
@@ -361,7 +365,10 @@ const MEDIA_SUBJECTS = new Set([
   'voice',
 ]);
 
-export function getActivityDetailText(activity: IActivity): string | undefined {
+export function getActivityDetailText(
+  activity: IActivity,
+  formatGenerationFailure?: (reason: GenerationFailureReason) => string,
+): string | undefined {
   const value = activity.value?.trim();
   if (!value) {
     return undefined;
@@ -369,13 +376,14 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   if (isCreditActivity(activity.key) || value.startsWith('Published to')) {
     return undefined;
   }
-  // Compact rows already describe the failed media action. Keep provider
-  // diagnostics in the explicit detail panel rather than the main feed.
+  // Compact rows retain a readable cause; raw provider diagnostics remain
+  // in the explicit detail panel rather than the main feed.
+  const parsed = parseActivityValue(value);
   const { subject, lifecycle } = parseActivityKey(activity.key);
   if (MEDIA_SUBJECTS.has(subject) && lifecycle === 'failed') {
-    return undefined;
+    const rawError = typeof parsed?.error === 'string' ? parsed.error : value;
+    return formatGenerationFailure?.(classifyGenerationFailure(rawError));
   }
-  const parsed = parseActivityValue(value);
   if (parsed) {
     const error =
       typeof parsed.error === 'string' ? parsed.error.trim() : undefined;
