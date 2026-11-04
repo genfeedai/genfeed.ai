@@ -74,3 +74,7 @@ export interface ElementConfig {
 export interface FilterPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+export interface StoryboardRunPageProps {
+  params: Promise<{ runId: string }>;
+}

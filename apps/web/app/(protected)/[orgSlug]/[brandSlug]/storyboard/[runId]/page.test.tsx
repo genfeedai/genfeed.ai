@@ -18,6 +18,7 @@ describe('synchronous route shell', () => {
     );
     expect(source).toMatch(/export default function/);
     expect(source).not.toMatch(/await (params|searchParams)/);
-    expect(source).toContain('<StudioStoryboardRunRoute />');
+    expect(source).toContain('<Suspense fallback=');
+    expect(source).toContain('<StudioStoryboardRunRoute params={params} />');
   });
 });
