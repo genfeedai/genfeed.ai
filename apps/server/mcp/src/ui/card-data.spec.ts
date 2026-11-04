@@ -292,16 +292,25 @@ describe('MCP Apps card contract', () => {
       'Acme Studio',
       'Credits',
     ]);
+    expect(view?.cards[0]).toMatchObject({ hasAvatar: true, status: 'Admin' });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Role', value: 'Admin' },
       { label: 'Active brand', value: 'Beta' },
-      { label: 'Brands', value: 'Acme, Beta' },
-      { label: 'Account setup', value: 'Complete' },
+      {
+        items: [{ label: 'Acme' }, { label: 'Beta' }],
+        label: 'Brands',
+        value: 'Acme, Beta',
+      },
+      { label: 'Account setup', status: 'completed', value: 'Complete' },
     ]);
-    expect(view?.cards[1].facts).toEqual([
-      { label: 'Available', value: '88' },
-      { label: 'Used in 7 days', value: '12' },
-      { label: 'Used in 30 days', value: '40' },
+    expect(view?.cards[1].metrics).toEqual([
+      { isPrimary: true, label: 'Available', value: '88' },
+      {
+        isPrimary: false,
+        label: 'Used in 7 days',
+        trend: undefined,
+        value: '12',
+      },
+      { isPrimary: false, label: 'Used in 30 days', value: '40' },
     ]);
   });
 
@@ -444,7 +453,14 @@ describe('MCP Apps card contract', () => {
       title: 'Launch',
     });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Channels', value: 'linkedin (Queued), x' },
+      {
+        items: [
+          { label: 'linkedin', platform: 'linkedin', status: 'queued' },
+          { label: 'x', platform: 'x', status: '' },
+        ],
+        label: 'Channels',
+        value: 'linkedin, x',
+      },
       { label: 'Brand', value: 'Acme' },
       { label: 'Timezone', value: 'Europe/Amsterdam' },
     ]);
@@ -470,7 +486,11 @@ describe('MCP Apps card contract', () => {
       title: 'Launch',
     });
     expect(view?.cards[0].facts).toEqual([
-      { label: 'Channels', value: 'linkedin (Queued)' },
+      {
+        items: [{ label: 'linkedin', platform: 'linkedin', status: 'queued' }],
+        label: 'Channels',
+        value: 'linkedin',
+      },
     ]);
   });
 
@@ -480,6 +500,60 @@ describe('MCP Apps card contract', () => {
     });
 
     expect(view?.cards[0].facts).toEqual([{ label: 'Brands', value: '3' }]);
+  });
+
+  it('rounds credits to two decimals and groups thousands', () => {
+    const view = buildCardView('get_account', {
+      credits: { balance: 10230.381278999994 },
+      usage: { trendPercentage: 12.349, usage7Days: 0.1 + 0.2 },
+    });
+
+    expect(view?.cards[0].metrics).toEqual([
+      { isPrimary: true, label: 'Available', value: '10,230.38' },
+      {
+        isPrimary: false,
+        label: 'Used in 7 days',
+        trend: { direction: 'up', label: '12.35%' },
+        value: '0.3',
+      },
+    ]);
+    expect(view?.isCountHidden).toBe(true);
+  });
+
+  it('gives workspace brands the same card as the brands list', () => {
+    const view = buildCardView('get_orgs', {
+      activeOrganizationId: 'org-1',
+      brands: [
+        {
+          description: 'Truth Seeker',
+          id: 'b1',
+          isActive: true,
+          label: 'Acme',
+          slug: 'acme',
+        },
+      ],
+      organizations: [{ id: 'org-1', label: 'Acme Studio' }],
+    });
+
+    expect(view?.cards[0]).toMatchObject({
+      actions: [{ brandId: 'b1', kind: 'select_brand', label: 'Select' }],
+      description: 'Truth Seeker',
+      facts: [{ label: 'Handle', value: 'acme' }],
+      hasAvatar: true,
+      status: 'Active',
+    });
+  });
+
+  it('titles list views by what they hold, not by the tool name', () => {
+    expect(buildCardView('get_posts', { posts: [{ id: 'p1' }] })?.title).toBe(
+      'Posts',
+    );
+    expect(
+      buildCardView('get_articles', { articles: [{ id: 'a1' }] })?.title,
+    ).toBe('Articles');
+    expect(buildCardView('get_assets', { assets: [{ id: 'a1' }] })?.title).toBe(
+      'Library',
+    );
   });
 
   it('retains text, resource links, and original structured data', () => {

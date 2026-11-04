@@ -29,5 +29,9 @@
     },
     "target": "ES2022"
   },
-  "include": ["src/ui/preview-client.tsx", "src/ui/next-image.tsx"]
+  "include": [
+    "src/ui/card-parts.tsx",
+    "src/ui/preview-client.tsx",
+    "src/ui/next-image.tsx"
+  ]
 }
