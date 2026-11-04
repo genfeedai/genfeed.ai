@@ -1,3 +1,4 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BenchmarkContestant,
@@ -5,7 +6,6 @@ import type {
   BenchmarkTask,
 } from '@public/benchmark/benchmark-loader';
 import { BENCHMARK_REPO_URL } from '@public/benchmark/benchmark-loader';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Badge } from '@ui/primitives/badge';
 import {
   Table,
@@ -212,9 +212,7 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
               trackingName="benchmark_hero_click"
               variant={ButtonVariant.SECONDARY}
             >
-              <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                Start creating
-              </a>
+              <a href={getAppSignUpUrl()}>Start creating</a>
             </ButtonTracked>
           </>
         }

@@ -1,8 +1,8 @@
 'use client';
 
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentFirstActionsProps } from '@props/website/agent-first-actions.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 
@@ -12,7 +12,7 @@ import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
   path; a call exists only for done-for-you work, on the services pages.
 */
 export default function AgentFirstActions({
-  signUpHref = `${EnvironmentService.apps.app}/sign-up`,
+  signUpHref = getAppSignUpUrl(),
   signUpLabel = 'Start for $0',
   trackingName,
 }: AgentFirstActionsProps): React.ReactElement {

@@ -1,11 +1,11 @@
 import { agentClients } from '@data/agent-clients.data';
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClientContentProps } from '@props/agent-client.props';
 import AgentClientExamples from '@public/agent-clients/agent-client-examples';
 import AgentClientInstallAction from '@public/agent-clients/agent-client-install-action';
 import AgentClientSetup from '@public/agent-clients/agent-client-setup';
 import AgentClientVisual from '@public/agent-clients/agent-client-visual';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -23,7 +23,7 @@ export default function AgentClientContent({
   channels,
   client,
 }: AgentClientContentProps): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
+  const signUpHref = getAppSignUpUrl();
   const others = agentClients.filter((entry) => entry.slug !== client.slug);
 
   return (

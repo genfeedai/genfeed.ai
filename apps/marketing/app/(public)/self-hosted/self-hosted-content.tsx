@@ -1,3 +1,4 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
@@ -93,7 +94,7 @@ const FAQ_ITEMS = [
 
 export default function SelfHostedContent() {
   const repoHref = EnvironmentService.github.core;
-  const cloudSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const cloudSignUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance hero={false} sections={false}>
