@@ -1,4 +1,5 @@
 import { UploadStatus } from '@genfeedai/contracts';
+import { isFileDrag } from '@genfeedai/helpers/ui/file-drag.helper';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -44,10 +45,6 @@ function isFileAccepted(file: File, acceptedTypes: string[]): boolean {
     }
     return file.type === pattern;
   });
-}
-
-function isFileDrag(event: DragEvent<HTMLDivElement>): boolean {
-  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
 }
 
 export function useAttachments(

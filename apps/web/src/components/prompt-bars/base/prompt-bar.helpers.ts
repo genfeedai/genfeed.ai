@@ -1,7 +1,6 @@
 import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type { DragEvent } from 'react';
 
 export const EMPTY_ARRAY: never[] = [];
 
@@ -31,10 +30,6 @@ export function resizeTextarea(
       overflowY: 'hidden',
     });
   }
-}
-
-export function isFileDrag(event: DragEvent<HTMLDivElement>): boolean {
-  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
 }
 
 export function toAttachedPromptAsset(

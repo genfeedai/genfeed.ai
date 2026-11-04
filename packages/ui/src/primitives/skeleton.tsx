@@ -34,7 +34,7 @@ export interface SkeletonProps
   width?: number | string;
 }
 
-function formatDimension(
+export function formatDimension(
   value: number | string | undefined,
 ): string | undefined {
   if (value === undefined) {
