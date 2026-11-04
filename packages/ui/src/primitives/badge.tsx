@@ -117,6 +117,7 @@ function Badge({
   const ToneIcon =
     !status &&
     !icon &&
+    value === undefined &&
     casing !== 'normal' &&
     !isMono &&
     !isTruncated &&

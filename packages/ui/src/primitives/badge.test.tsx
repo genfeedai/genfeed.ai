@@ -298,6 +298,7 @@ describe('Badge', () => {
     ['author casing', { casing: 'normal' }, 'Tag'],
     ['mono', { isMono: true }, 'abc123'],
     ['a count', {}, '12'],
+    ['a value badge', { value: 3 }, 'Posts'],
   ] as const)('leaves %s badges without a tone icon', (_name, props, text) => {
     const { container } = render(
       <Badge variant="info" {...props}>
