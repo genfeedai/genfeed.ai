@@ -1,5 +1,10 @@
 import { createPost } from '@api/collections/posts/handlers/post-create.handler';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ActivityEntityModel,
+  ActivityKey,
+  CredentialPlatform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 
 describe('createPost draft boundary', () => {
   const identity = {
@@ -70,6 +75,23 @@ describe('createPost draft boundary', () => {
     );
     expect(mocks.credentialsService.findOne).not.toHaveBeenCalled();
     expect(mocks.quotaService.verifyQuota).not.toHaveBeenCalled();
+  });
+  it('records a saved text draft as a created post, never a scheduled video', async () => {
+    const { mocks, dependencies } = setup();
+    const post = await createPost({
+      createPostDto: draft,
+      dependencies,
+      identity,
+    });
+    expect(post.id).toBe('post-1');
+    expect(mocks.activityRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: ActivityKey.POST_CREATED,
+        entityId: post.id,
+        entityModel: ActivityEntityModel.POST,
+      }),
+    );
+    expect(mocks.postsService.handleYoutubePost).not.toHaveBeenCalled();
   });
   it.each([
     TargetExecutionState.SCHEDULED,

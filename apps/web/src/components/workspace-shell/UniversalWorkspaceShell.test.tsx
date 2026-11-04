@@ -1915,6 +1915,36 @@ describe('UniversalWorkspaceShell', () => {
         ).toHaveAttribute('inert');
       });
 
+      it('dismisses notifications on navigation while preserving same-page filter changes', async () => {
+        navigation.pathname = '/acme/moonrise/workspace/inbox';
+        const { rerender } = renderWithDock();
+        await waitFor(() => expect(dock?.isAvailable).toBe(true));
+        showPanelView(dock, 'notifications');
+        navigation.searchParams = new URLSearchParams('status=all');
+        const shell = (
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <DockProbe onDock={recordDock} />
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>
+        );
+        rerender(shell);
+        expect(
+          screen.getByRole('region', { name: 'Notifications' }),
+        ).toBeVisible();
+        navigation.pathname = '/acme/moonrise/library/assets';
+        rerender(
+          <AgentDockProvider>
+            <UniversalWorkspaceShell agentApiService={agentApiService}>
+              <DockProbe onDock={recordDock} />
+            </UniversalWorkspaceShell>
+          </AgentDockProvider>,
+        );
+        expect(
+          screen.queryByRole('region', { name: 'Notifications' }),
+        ).toBeNull();
+      });
+
       it('sits over an open conversation and reveals it again when closed', async () => {
         navigation.pathname = '/acme/moonrise/workspace';
         renderWithDock();

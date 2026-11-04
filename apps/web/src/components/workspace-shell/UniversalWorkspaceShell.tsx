@@ -581,6 +581,9 @@ function UniversalWorkspaceShellContent({
   useEffect(() => {
     const previousState = previousStateRef.current;
     const previousPathname = previousPathnameRef.current;
+    if (previousPathname !== null && previousPathname !== normalizedPathname) {
+      setIsNotificationsOpen(false);
+    }
     const transition = resolveWorkspaceShellTransition({
       normalizedPathname,
       pendingTransition: pendingTransitionRef.current,

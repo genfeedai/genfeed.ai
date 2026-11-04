@@ -1015,6 +1015,7 @@ export function useAgentChatInput({
       const target = event.target as HTMLElement | null;
       if (
         !target ||
+        !event.currentTarget.contains(target) ||
         target.closest(
           'button, a, input, select, textarea, [contenteditable="true"]',
         )

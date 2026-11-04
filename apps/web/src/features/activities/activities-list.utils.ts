@@ -23,6 +23,10 @@ import type {
   IActivity,
   IActivityPopulated,
 } from '@genfeedai/contracts/interfaces';
+import {
+  classifyGenerationFailure,
+  type GenerationFailureReason,
+} from '@genfeedai/utils/media/generation-failure.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
 /**
@@ -361,7 +365,10 @@ const MEDIA_SUBJECTS = new Set([
   'voice',
 ]);
 
-export function getActivityDetailText(activity: IActivity): string | undefined {
+export function getActivityDetailText(
+  activity: IActivity,
+  formatGenerationFailure?: (reason: GenerationFailureReason) => string,
+): string | undefined {
   const value = activity.value?.trim();
   if (!value) {
     return undefined;
@@ -369,7 +376,14 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   if (isCreditActivity(activity.key) || value.startsWith('Published to')) {
     return undefined;
   }
+  // Compact rows retain a readable cause; raw provider diagnostics remain
+  // in the explicit detail panel rather than the main feed.
   const parsed = parseActivityValue(value);
+  const { subject, lifecycle } = parseActivityKey(activity.key);
+  if (MEDIA_SUBJECTS.has(subject) && lifecycle === 'failed') {
+    const rawError = typeof parsed?.error === 'string' ? parsed.error : value;
+    return formatGenerationFailure?.(classifyGenerationFailure(rawError));
+  }
   if (parsed) {
     const error =
       typeof parsed.error === 'string' ? parsed.error.trim() : undefined;
@@ -383,7 +397,6 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   }
   // Media, post and article activities store the record id as their value;
   // that is a reference, not readable detail.
-  const { subject } = parseActivityKey(activity.key);
   if (
     value === activity.entityId ||
     ((MEDIA_SUBJECTS.has(subject) || ['article', 'post'].includes(subject)) &&

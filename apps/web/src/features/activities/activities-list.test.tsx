@@ -427,7 +427,10 @@ describe('ActivitiesList', () => {
         entityModel: 'Ingredient',
         id: 'failed-image',
         key: ActivityKey.IMAGE_FAILED,
-        value: JSON.stringify({ error: 'Provider timed out' }),
+        value: JSON.stringify({
+          error:
+            'Provider timed out: {"ingredientId":"private-id","secret":"fixture-secret"}',
+        }),
       }),
     ];
 
@@ -439,7 +442,12 @@ describe('ActivitiesList', () => {
       />,
     );
 
-    expect(screen.getByText(/Provider timed out/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/The provider timed out\. Try again\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/fixture-secret|private-id/),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open failed to generate/i }),
     ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
@@ -473,7 +481,9 @@ describe('ActivitiesList', () => {
       ];
       renderWithSidebar(PageScope.ORGANIZATION);
 
-      await user.click(screen.getByText(/Provider timed out/));
+      await user.click(
+        screen.getByText(/The provider timed out\. Try again\./),
+      );
 
       const rail = screen.getByTestId('rail');
       const panel = await within(rail).findByTestId('activity-detail-panel');
@@ -678,7 +688,9 @@ describe('ActivitiesList', () => {
       ];
       renderAdmin();
 
-      await user.click(screen.getByText(/Provider timed out/));
+      await user.click(
+        screen.getByText(/The provider timed out\. Try again\./),
+      );
 
       const panel = await screen.findByTestId('activity-detail-panel');
       expect(
@@ -699,7 +711,9 @@ describe('ActivitiesList', () => {
       ];
       renderAdmin();
 
-      await user.click(screen.getByText(/Provider timed out/));
+      await user.click(
+        screen.getByText(/The provider timed out\. Try again\./),
+      );
 
       const dialog = await screen.findByTestId('activity-detail-panel');
       expect(within(dialog).getByText('org-123')).toBeInTheDocument();

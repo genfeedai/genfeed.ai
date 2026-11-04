@@ -97,6 +97,39 @@ describe('NotificationInboxPanel', () => {
       screen.getByRole('link', { name: /Credits are running low/ }),
     ).toHaveAttribute('href', '/acme/workspace/activity');
   });
+  it('summarizes a generation failure without rendering its JSON or provider diagnostics', () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'generation.status',
+        activity: {
+          id: 'activity-1',
+          key: ActivityKey.MUSIC_FAILED,
+          value: JSON.stringify({
+            error: 'Provider timed out: secret_api_key',
+            ingredientId: 'private-asset-id',
+            label: 'Music Generation',
+          }),
+          source: ActivitySource.MUSIC_GENERATION,
+          brandId: 'brand-1',
+          entityId: 'private-asset-id',
+          entityModel: 'Ingredient',
+          createdAt: '2026-09-05T10:00:00Z',
+        },
+      },
+    ];
+    open();
+    expect(
+      screen.getByText('The provider timed out. Try again.'),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: /music/i })).toBeVisible();
+    expect(
+      screen.getByRole('region', { name: 'Notifications' }),
+    ).not.toHaveTextContent(
+      /secret_api_key|private-asset-id|ingredientId|Image Generation/,
+    );
+  });
+
   it('washes the full notification row on hover, including time and mark-read', async () => {
     open();
     const row = screen.getByTestId('notification-inbox-row');

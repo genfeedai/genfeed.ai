@@ -278,9 +278,10 @@ export async function createPost({
     brandId: firstIngredient?.brandId ?? identity.brandId,
     entityId: data.id,
     entityModel: ActivityEntityModel.POST,
-    key: warmupHoldReason
-      ? ActivityKey.POST_CREATED
-      : ActivityKey.VIDEO_SCHEDULED,
+    key:
+      effectiveExecutionState === TargetExecutionState.SCHEDULED
+        ? ActivityKey.POST_SCHEDULED
+        : ActivityKey.POST_CREATED,
     organizationId: firstIngredient?.organizationId ?? identity.organizationId,
     source: ActivitySource.SCRIPT,
     userId: identity.userId,

@@ -881,7 +881,11 @@ function ActivitySurface({
               : undefined;
             const detail = [
               getActivityLifecycleText(activity),
-              getActivityDetailText(activity),
+              getActivityDetailText(activity, (reason) =>
+                translate(
+                  `notificationInbox.generationFailureReasons.${reason}`,
+                ),
+              ),
             ]
               .filter(Boolean)
               .join(' · ');

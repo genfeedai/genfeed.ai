@@ -53,6 +53,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import type {
   OpenRouterMessage,
   OpenRouterPlugin,
+  OpenRouterReasoningPreferences,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { AgentMessageRole, AgentThreadMode } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -686,6 +687,7 @@ export class AgentOrchestratorPlanModeService {
     messages: OpenRouterMessage[];
     model: string;
     plugins?: OpenRouterPlugin[];
+    reasoning: OpenRouterReasoningPreferences;
     session_id?: string;
     temperature: number;
   }> {
@@ -723,7 +725,9 @@ export class AgentOrchestratorPlanModeService {
     };
 
     return {
+      // Reasoning shares this output cap; leave room for the visible plan.
       max_tokens: 2048,
+      reasoning: { effort: 'low' },
       messages: [planInstruction, ...params.messages],
       model: dispatchModel,
       ...(plugins.length > 0 ? { plugins } : {}),
