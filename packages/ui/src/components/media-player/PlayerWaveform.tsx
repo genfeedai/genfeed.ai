@@ -104,7 +104,7 @@ export default function PlayerWaveform({
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: bars are positional and never reorder.
             key={index}
-            className="min-w-px flex-1 rounded-full bg-muted-foreground/30"
+            className="min-w-px flex-1 rounded-full bg-muted-foreground/40"
             style={{ height: `${peak}%` }}
           />
         ))}
