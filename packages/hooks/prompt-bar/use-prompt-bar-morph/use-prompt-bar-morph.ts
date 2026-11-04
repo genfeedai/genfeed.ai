@@ -1,17 +1,11 @@
 'use client';
 
+import { prefersReducedMotion } from '@genfeedai/helpers/ui/prefers-reduced-motion.helper';
 import { type RefObject, useLayoutEffect, useRef } from 'react';
 
 /** How long the bar takes to fold into its resting pill, and to open again. */
 export const PROMPT_BAR_MORPH_MS = 240;
 const PROMPT_BAR_MORPH_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
 
 /**
  * Softens the switch between the full prompt bar and its resting pill. The

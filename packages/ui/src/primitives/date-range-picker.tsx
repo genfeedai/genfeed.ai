@@ -3,6 +3,7 @@
 import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
 import type { DateRange as AnalyticsDateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { cn } from '@genfeedai/helpers';
+import { formatUtcChipDate } from '@genfeedai/helpers/utils/date-range.util';
 import { subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -42,15 +43,6 @@ function getStartDate(
   } as const;
 
   return subDays(yesterday, daysMap[preset] - 1);
-}
-
-function formatUtcChipDate(date: Date, withYear: boolean): string {
-  return date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-    ...(withYear ? { year: 'numeric' } : {}),
-  });
 }
 
 function formatSelectedDateRange(

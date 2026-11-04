@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
+import { prefersReducedMotion } from '@genfeedai/helpers/ui/prefers-reduced-motion.helper';
 import {
   type FocusEvent,
   isValidElement,
@@ -19,14 +20,6 @@ import type {
 } from './animated-icon.types';
 
 const SIZE_CLASS_PATTERN = /(?:^|\s)(?:size|w|h)-/;
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
 
 /**
  * Gives an icon that sits inside something interactive (a button, a nav row)

@@ -1,3 +1,5 @@
+import { isPlainObject } from '../data/json-api/relationship.helper';
+
 export interface JsonApiResource {
   id?: string;
   type: string;
@@ -288,15 +290,6 @@ class DeserializerUtils {
 
     return null;
   }
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.getPrototypeOf(value) === Object.prototype
-  );
 }
 
 // ── Public API (unchanged interface) ──
