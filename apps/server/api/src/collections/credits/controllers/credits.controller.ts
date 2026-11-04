@@ -8,6 +8,7 @@ import {
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -17,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   CreditTransactionSerializer,
   CreditUsageSerializer,
@@ -38,6 +40,7 @@ export class CreditsController {
 
   @TenantReadPolicy('mutating')
   @Get('usage')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
@@ -70,6 +73,7 @@ export class CreditsController {
    */
   @TenantReadPolicy('selected')
   @Get('transactions')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async listTransactions(
@@ -108,6 +112,7 @@ export class CreditsController {
   }
 
   @Get('topbar-balances')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTopbarBalances(
@@ -124,6 +129,7 @@ export class CreditsController {
 
   @TenantReadPolicy('mutating')
   @Get('last-purchase-baseline')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
     keyGenerator: (req) => {
