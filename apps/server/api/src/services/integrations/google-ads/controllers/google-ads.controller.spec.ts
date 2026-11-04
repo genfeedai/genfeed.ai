@@ -6,8 +6,13 @@ import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/ser
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { isAxiosError } from 'axios';
 import { GoogleAdsController } from './google-ads.controller';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -129,9 +134,17 @@ describe('GoogleAdsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isAxiosError).mockReturnValue(false);
   });
 
   describe('verify', () => {
+    beforeEach(() => {
+      vi.mocked(isAxiosError).mockImplementation(
+        (value: unknown): value is never =>
+          (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
+      );
+    });
+
     it('persists verified credential using access token', async () => {
       googleAdsService.listAccessibleCustomers.mockResolvedValue([
         {
@@ -190,6 +203,73 @@ describe('GoogleAdsController', () => {
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).not.toHaveBeenCalled();
+    });
+
+    const providerError = (status: number) =>
+      Object.assign(new Error(`Request failed with status code ${status}`), {
+        isAxiosError: true,
+        response: { data: { error: 'invalid_grant' }, status },
+      });
+
+    it.each([
+      [401, HttpStatus.BAD_REQUEST],
+      [400, HttpStatus.BAD_REQUEST],
+      [503, HttpStatus.BAD_GATEWAY],
+    ])(
+      'maps a %i provider failure during token exchange to a %i HttpException',
+      async (providerStatus, expectedStatus) => {
+        googleAdsOAuthService.exchangeAuthCodeForAccessToken.mockRejectedValueOnce(
+          providerError(providerStatus),
+        );
+
+        const error = await controller
+          .verify({} as never, mockUser, {
+            code: 'auth-code',
+            state: 'opaque-oauth-state',
+          })
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(expectedStatus);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          title: 'Token exchange failed',
+        });
+        expect(credentialsService.connectAccount).not.toHaveBeenCalled();
+      },
+    );
+
+    it('maps a rejected customer lookup to a client-safe HttpException', async () => {
+      googleAdsService.listAccessibleCustomers.mockRejectedValueOnce(
+        providerError(401),
+      );
+
+      const error = await controller
+        .verify({} as never, mockUser, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        title: 'Customer lookup failed',
+      });
+      expect(credentialsService.connectAccount).not.toHaveBeenCalled();
+    });
+
+    it('passes an HttpException from the exchange through unchanged', async () => {
+      const notConfigured = new ServiceUnavailableException('not configured');
+      googleAdsOAuthService.exchangeAuthCodeForAccessToken.mockRejectedValueOnce(
+        notConfigured,
+      );
+
+      await expect(
+        controller.verify({} as never, mockUser, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).rejects.toBe(notConfigured);
     });
   });
 
