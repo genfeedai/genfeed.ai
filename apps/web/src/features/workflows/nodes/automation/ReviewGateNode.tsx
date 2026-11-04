@@ -75,7 +75,6 @@ function getStatusBadge(
   const badge = badges[status];
   return (
     <Badge
-      casing="normal"
       icon={badge.icon}
       shape="pill"
       size="lg"

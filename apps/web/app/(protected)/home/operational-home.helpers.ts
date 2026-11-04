@@ -200,29 +200,28 @@ export function getVerifiedMcpConnection(
 }
 
 export function getCredentialBadge(credential: ICredential): {
-  label: string;
-  variant: 'destructive' | 'info' | 'success' | 'warning';
+  status: 'connected' | 'disconnected' | 'healthy' | 'needs_attention';
 } {
   if (!credential.isConnected) {
-    return { label: 'Disconnected', variant: 'destructive' };
+    return { status: 'disconnected' };
   }
 
   if (
     credential.accountHealth?.holdPublishing ||
     credential.accountHealth?.riskLevel === 'high'
   ) {
-    return { label: 'Needs attention', variant: 'warning' };
+    return { status: 'needs_attention' };
   }
 
   if (
     credential.accountHealth?.state === 'healthy' ||
     credential.accountHealth?.riskLevel === 'low'
   ) {
-    return { label: 'Healthy', variant: 'success' };
+    return { status: 'healthy' };
   }
 
   // Connected but health unknown — blue info chip, never colorless outline.
-  return { label: 'Connected', variant: 'info' };
+  return { status: 'connected' };
 }
 
 export function needsAttentionCredential(credential: ICredential): boolean {
@@ -237,8 +236,7 @@ export function needsAttentionCredential(credential: ICredential): boolean {
 }
 
 export function getActivityBadge(activity: IActivity): {
-  label: string;
-  variant: 'destructive' | 'info' | 'success' | 'warning';
+  status: 'completed' | 'failed' | 'in_progress' | 'recorded';
 } {
   const key = (activity.key ?? '').toLowerCase();
   const normalized = (activity.status ?? activity.value ?? key).toLowerCase();
@@ -248,7 +246,7 @@ export function getActivityBadge(activity: IActivity): {
     normalized.includes('error') ||
     key.endsWith('-failed')
   ) {
-    return { label: 'Failed', variant: 'destructive' };
+    return { status: 'failed' };
   }
 
   if (
@@ -257,7 +255,7 @@ export function getActivityBadge(activity: IActivity): {
     key.endsWith('-processing') ||
     key.endsWith('-created')
   ) {
-    return { label: 'In progress', variant: 'warning' };
+    return { status: 'in_progress' };
   }
 
   if (
@@ -269,11 +267,11 @@ export function getActivityBadge(activity: IActivity): {
     key.endsWith('-generated') ||
     key.endsWith('-published')
   ) {
-    return { label: 'Completed', variant: 'success' };
+    return { status: 'completed' };
   }
 
   // Generic log entry — blue info chip so the activity list isn't monochrome.
-  return { label: 'Recorded', variant: 'info' };
+  return { status: 'recorded' };
 }
 
 /**

@@ -270,4 +270,14 @@ describe('Badge', () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     },
   );
+
+  it('keeps a status badge uppercase and iconed even when casing is normal', () => {
+    const { container } = render(<Badge casing="normal" status="disconnected" />);
+
+    expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass('uppercase');
+    expect(
+      container.querySelector('[data-slot="badge-icon"] svg'),
+    ).not.toBeNull();
+  });
 });

@@ -456,27 +456,25 @@ function NeedsYouSurface({
                 data-testid="operational-home-needs-you-row"
                 density="compact"
                 key={needsYouItem.key}
-                meta={
-                  <Badge casing="normal" variant={badge.variant}>
-                    {badge.label}
-                  </Badge>
-                }
                 title={
                   <AccountCell
                     connection={credentialToSocialConnection(credential)}
                   />
                 }
                 trailing={
-                  <Button
-                    asChild
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
-                  >
-                    <Link href={credentialsHref}>
-                      {translate('home.credentials.reconnect')}
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Badge status={badge.status} />
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                      withWrapper={false}
+                    >
+                      <Link href={credentialsHref}>
+                        {translate('home.credentials.reconnect')}
+                      </Link>
+                    </Button>
+                  </div>
                 }
               />
             );
@@ -817,9 +815,7 @@ function CredentialHealthSurface({
                   />
                 }
                 trailing={
-                  <Badge casing="normal" variant={badge.variant}>
-                    {badge.label}
-                  </Badge>
+                  <Badge status={badge.status} />
                 }
               />
             );
@@ -925,9 +921,7 @@ function ActivitySurface({
                   )
                 }
                 trailing={
-                  <Badge casing="normal" variant={badge.variant}>
-                    {badge.label}
-                  </Badge>
+                  <Badge status={badge.status} />
                 }
               />
             );

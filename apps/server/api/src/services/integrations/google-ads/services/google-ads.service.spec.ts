@@ -6,12 +6,16 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AxiosResponse } from 'axios';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mocked } from 'vitest';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn().mockReturnValue('testMethod') },
+}));
+
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: { decrypt: vi.fn((value: string) => `decrypted-${value}`) },
 }));
 
 import { GoogleAdsService } from './google-ads.service';
@@ -99,6 +103,78 @@ describe('GoogleAdsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('refreshToken', () => {
+    const credential = { id: 'cred-1', refreshToken: 'enc-refresh' };
+
+    function tokenEndpointError(status: number, error: string): AxiosError {
+      return new AxiosError(
+        error,
+        String(status),
+        undefined,
+        undefined,
+        {
+          config: {} as never,
+          data: { error },
+          headers: {},
+          status,
+          statusText: error,
+        } as AxiosResponse,
+      );
+    }
+
+    function primeCredential(): Mocked<ServerCredentialStore> {
+      const store = (service as unknown as {
+        credentialsService: Mocked<ServerCredentialStore>;
+      }).credentialsService;
+      store.resolveBrandAccount.mockResolvedValue(credential as never);
+      return store;
+    }
+
+    it('stores the new access token and keeps the account connected', async () => {
+      const store = primeCredential();
+      httpService.post.mockReturnValue(
+        makeHttpResponse({ access_token: 'fresh', expires_in: 3600 }),
+      );
+
+      await service.refreshToken('org-1', 'brand-1', 'cred-1');
+
+      expect(store.patch).toHaveBeenCalledWith(
+        'cred-1',
+        expect.objectContaining({ accessToken: 'fresh', isConnected: true }),
+      );
+    });
+
+    it('disconnects the account when Google rejects the grant', async () => {
+      const store = primeCredential();
+      httpService.post.mockReturnValue(
+        throwError(() => tokenEndpointError(400, 'invalid_grant')),
+      );
+
+      await expect(
+        service.refreshToken('org-1', 'brand-1', 'cred-1'),
+      ).rejects.toThrow();
+
+      expect(store.patch).toHaveBeenCalledWith('cred-1', {
+        isConnected: false,
+      });
+    });
+
+    it.each([
+      ['a server error', () => tokenEndpointError(503, 'backend_error')],
+      ['an app config error', () => tokenEndpointError(401, 'invalid_client')],
+      ['a network failure', () => new Error('socket hang up')],
+    ])('keeps the account connected on %s', async (_label, makeError) => {
+      const store = primeCredential();
+      httpService.post.mockReturnValue(throwError(makeError));
+
+      await expect(
+        service.refreshToken('org-1', 'brand-1', 'cred-1'),
+      ).rejects.toThrow();
+
+      expect(store.patch).not.toHaveBeenCalled();
+    });
   });
 
   describe('listAccessibleCustomers', () => {

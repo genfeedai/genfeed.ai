@@ -25,6 +25,7 @@ export interface BadgeProps
   /**
    * Product status or content type ('failed', 'draft', 'video', ...). Sets the
    * variant, default label, icon and tint; explicit children still win.
+   * Status badges are always uppercase and always carry an icon.
    */
   status?: string;
   /** A count or short value, rendered semibold. A value of 0 renders nothing. */
@@ -97,7 +98,9 @@ function Badge({
     <span
       className={cn(
         badgeVariants({
-          casing,
+          // A status is a fixed product label, never author text: always
+          // uppercase, whatever casing a caller asks for.
+          casing: statusConfig ? 'upper' : casing,
           isMono,
           isSolid,
           shape,

@@ -24,7 +24,6 @@ function SaveStatus({
   if (isPill) {
     return (
       <Badge
-        casing="normal"
         icon={icon}
         shape="pill"
         size="lg"

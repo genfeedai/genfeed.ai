@@ -206,29 +206,29 @@ describe('getCredentialBadge', () => {
     [
       'disconnected',
       { isConnected: false },
-      { label: 'Disconnected', variant: 'destructive' },
+      { status: 'disconnected' },
     ],
     [
       'publishing hold',
       { accountHealth: { holdPublishing: true }, isConnected: true },
-      { label: 'Needs attention', variant: 'warning' },
+      { status: 'needs_attention' },
     ],
     [
       'high risk',
       { accountHealth: { riskLevel: 'high' }, isConnected: true },
-      { label: 'Needs attention', variant: 'warning' },
+      { status: 'needs_attention' },
     ],
     [
       'healthy',
       { accountHealth: { state: 'healthy' }, isConnected: true },
-      { label: 'Healthy', variant: 'success' },
+      { status: 'healthy' },
     ],
     [
       'low risk',
       { accountHealth: { riskLevel: 'low' }, isConnected: true },
-      { label: 'Healthy', variant: 'success' },
+      { status: 'healthy' },
     ],
-    ['unknown', { isConnected: true }, { label: 'Connected', variant: 'info' }],
+    ['unknown', { isConnected: true }, { status: 'connected' }],
   ])('maps %s credentials', (_label, credential, expected) => {
     expect(getCredentialBadge(credential as unknown as ICredential)).toEqual(
       expected,
@@ -241,29 +241,29 @@ describe('getActivityBadge', () => {
     [
       'failed',
       { status: 'failed' },
-      { label: 'Failed', variant: 'destructive' },
+      { status: 'failed' },
     ],
     [
       'processing',
       { value: 'processing' },
-      { label: 'In progress', variant: 'warning' },
+      { status: 'in_progress' },
     ],
     [
       'published',
       { status: 'published' },
-      { label: 'Completed', variant: 'success' },
+      { status: 'completed' },
     ],
     [
       'key-generated',
       { key: 'image-generated' },
-      { label: 'Completed', variant: 'success' },
+      { status: 'completed' },
     ],
     [
       'key-failed',
       { key: 'video-failed' },
-      { label: 'Failed', variant: 'destructive' },
+      { status: 'failed' },
     ],
-    ['unknown', {}, { label: 'Recorded', variant: 'info' }],
+    ['unknown', {}, { status: 'recorded' }],
   ])('maps %s activity', (_label, activity, expected) => {
     expect(getActivityBadge(activity as unknown as IActivity)).toEqual(
       expected,

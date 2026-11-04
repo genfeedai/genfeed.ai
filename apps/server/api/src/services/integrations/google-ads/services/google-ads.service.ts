@@ -24,7 +24,30 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
+import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
+
+/**
+ * True only when Google's token endpoint definitively rejected the stored
+ * refresh token (revoked, expired, or the user removed access): HTTP 400/401
+ * with `error: invalid_grant`. Network failures, 5xx, rate limits and
+ * `invalid_client` (this deployment's own OAuth app config) leave the grant
+ * intact, so they must never disconnect the account.
+ */
+export function isGoogleRefreshTokenRejectedError(error: unknown): boolean {
+  if (!isAxiosError(error)) {
+    return false;
+  }
+
+  const status = error.response?.status;
+  const data: unknown = error.response?.data;
+  const oauthError =
+    typeof data === 'object' && data !== null && 'error' in data
+      ? (data as { error?: unknown }).error
+      : undefined;
+
+  return (status === 400 || status === 401) && oauthError === 'invalid_grant';
+}
 
 @Injectable()
 export class GoogleAdsService {
@@ -248,9 +271,17 @@ export class GoogleAdsService {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-      });
+
+      // Only a revoked/expired grant needs the user to reconnect. A transient
+      // failure must leave `isConnected` alone, otherwise the hourly refresh
+      // cron (which skips disconnected rows) never retries and one network
+      // blip permanently disconnects the account.
+      if (isGoogleRefreshTokenRejectedError(error)) {
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+      }
+
       throw error;
     }
   }
