@@ -13,6 +13,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -37,6 +38,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -122,6 +124,7 @@ export class VideosReframeController {
   @UseInterceptors(CreditsInterceptor)
   @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async reframeVideo(
     @Req() request: RequestWithSelectedModel,
     @Param('videoId') videoId: string,

@@ -6,11 +6,13 @@ import type { AvatarVideoGenerationParams } from '@api/collections/videos/servic
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { type CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   AvatarGenerationQuoteSerializer,
@@ -70,6 +72,7 @@ export class AvatarVideoController {
   @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 60, scope: 'organization', windowMs: 60_000 })
   @LogMethod({ logEnd: false, logError: true, logStart: false })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async quoteAvatarVideo(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -93,6 +96,7 @@ export class AvatarVideoController {
   // Admission and funding are owned by AvatarVideoGenerationService, so
   // identity/readiness failures happen before a credit hold is opened.
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createAvatarVideo(
     @Req() request: Request,
     @CurrentUser() user: User,

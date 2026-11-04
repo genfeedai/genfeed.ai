@@ -6,6 +6,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -19,6 +20,7 @@ import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-m
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ApiKeyScope,
   FileInputType,
   FONT_FAMILY_METADATA,
   IngredientCategory,
@@ -90,6 +92,7 @@ export class VideosEditsController {
 
   @Post(':videoId/trim')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async trimVideo(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -221,6 +224,7 @@ export class VideosEditsController {
 
   @Post(':videoId/text-overlay')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async addTextOverlay(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -320,10 +324,7 @@ export class VideosEditsController {
           const meta = await this.filesClientService.uploadToS3(
             ingredientData.id,
             `videos`,
-            {
-              path: output,
-              type: FileInputType.FILE,
-            },
+            { path: output, type: FileInputType.FILE },
           );
 
           await this.metadataService.patch(metadataData.id, {

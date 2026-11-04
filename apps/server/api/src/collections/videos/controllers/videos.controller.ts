@@ -18,6 +18,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -48,6 +49,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
   ActivitySource,
+  ApiKeyScope,
   IngredientCategory,
   MemberRole,
   ModelCategory,
@@ -121,6 +123,7 @@ export class VideosController {
     ttl: 300, // 5 minutes
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async findAll(
     @Req() request: ExpressRequest,
     @CurrentUser() user: User,
@@ -214,6 +217,7 @@ export class VideosController {
     ttl: 900, // 15 minutes
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async findOne(
     @Req() request: ExpressRequest,
     @Param('videoId') videoId: string,
@@ -295,6 +299,7 @@ export class VideosController {
 
   @Get(':videoId/thumbnail')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async getThumbnail(
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
@@ -391,6 +396,7 @@ export class VideosController {
 
   @Delete(':videoId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_DELETE)
   async remove(
     @Req() request: ExpressRequest,
     @Param('videoId') videoId: string,
@@ -444,6 +450,7 @@ export class VideosController {
   @UseInterceptors(CreditsInterceptor)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async create(
     @Req() request: ExpressRequest,
     @Body() createVideoDto: CreateVideoDto,

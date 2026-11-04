@@ -1,3 +1,4 @@
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 /**
  * Videos Relationships Controller
@@ -21,6 +22,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { PostSerializer, VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -39,6 +41,7 @@ export class VideosRelationshipsController {
 
   @Get(':videoId/children')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async findChildren(
     @Req() request: Request,
     @Param('videoId') videoId: string,
@@ -66,6 +69,7 @@ export class VideosRelationshipsController {
   @TenantReadPolicy('owner')
   @Get(':videoId/posts')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async findAllPosts(
     @Req() request: Request,
     @Param('videoId') videoId: string,

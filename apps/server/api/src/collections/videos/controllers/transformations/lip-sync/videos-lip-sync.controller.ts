@@ -10,6 +10,7 @@ import { AvatarVideoBillingService } from '@api/collections/videos/services/avat
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -23,6 +24,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ApiKeyScope,
   categoryToPlural,
   IngredientCategory,
   IngredientOrigin,
@@ -95,6 +97,7 @@ export class VideosLipSyncController {
   // connection decides who pays and which key renders, so a transient key
   // lookup cannot charge the platform rate for a render on the customer key.
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createLipSyncVideo(
     @Req() request: Request,
     @CurrentUser() user: User,
