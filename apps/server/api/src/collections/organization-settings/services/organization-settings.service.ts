@@ -26,7 +26,7 @@ import {
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
-  organizationModuleOverridesSchema,
+  parseOrganizationModuleOverrides,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
@@ -164,12 +164,10 @@ export class OrganizationSettingsService extends BaseService<
 
   private validateModuleOverrides(data: PrismaUpdate): void {
     if (!Object.hasOwn(data, 'moduleOverrides')) return;
-    const parsed = organizationModuleOverridesSchema.safeParse(
-      data.moduleOverrides,
-    );
-    if (!parsed.success)
+    const overrides = parseOrganizationModuleOverrides(data.moduleOverrides);
+    if (!overrides)
       throw new BadRequestException('Invalid organization module preferences');
-    data.moduleOverrides = parsed.data;
+    data.moduleOverrides = overrides;
   }
 
   private getModelsService(): ModelsService {

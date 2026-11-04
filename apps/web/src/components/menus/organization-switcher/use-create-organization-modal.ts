@@ -18,13 +18,12 @@ interface CreateOrganizationState {
   createError: string | null;
   hasSubmitted: boolean;
   isCreating: boolean;
-  isOpen: boolean;
   touched: Partial<Record<CreateOrganizationField, boolean>>;
   values: CreateOrganizationFormValues;
 }
 
 type CreateOrganizationAction =
-  | { type: 'SET_OPEN'; isOpen: boolean }
+  | { type: 'RESET' }
   | { type: 'SET_FIELD'; field: CreateOrganizationField; value: string }
   | { type: 'TOUCH_FIELD'; field: CreateOrganizationField }
   | { type: 'SUBMIT_INVALID' }
@@ -35,7 +34,6 @@ const INITIAL_STATE: CreateOrganizationState = {
   createError: null,
   hasSubmitted: false,
   isCreating: false,
-  isOpen: false,
   touched: {},
   values: { description: '', label: '', websiteUrl: '' },
 };
@@ -45,9 +43,8 @@ function createOrganizationReducer(
   action: CreateOrganizationAction,
 ): CreateOrganizationState {
   switch (action.type) {
-    case 'SET_OPEN':
-      // Reset the form when the modal is dismissed so a reopen starts clean.
-      return action.isOpen ? { ...state, isOpen: true } : { ...INITIAL_STATE };
+    case 'RESET':
+      return INITIAL_STATE;
     case 'SET_FIELD':
       // Editing a field clears a stale server error: it described the old values.
       return {
@@ -82,19 +79,18 @@ export interface UseCreateOrganizationModalReturn {
   /** Errors for fields the user has touched (all fields after a submit). */
   fieldErrors: CreateOrganizationFieldErrors;
   isCreating: boolean;
-  isOpen: boolean;
   /** False while any field fails `createOrganizationSchema`; locks submit. */
   isValid: boolean;
-  open: () => void;
+  /** Clears the form, e.g. when the dialog is dismissed. */
+  reset: () => void;
   setField: (field: CreateOrganizationField, value: string) => void;
-  setOpen: (isOpen: boolean) => void;
   submit: () => Promise<void>;
   touchField: (field: CreateOrganizationField) => void;
   values: CreateOrganizationFormValues;
 }
 
 /**
- * Focused hook for the "Create Organization" modal owned by OrganizationSwitcher.
+ * Form state for the "Create Organization" dialog (`CreateOrganizationDialog`).
  *
  * Validates with `createOrganizationSchema`, the zod mirror of the API's
  * `CreateOrganizationRequestDto`: only the name is required, and description
@@ -137,12 +133,8 @@ export function useCreateOrganizationModal(
     return errors;
   }, [parsed, state.hasSubmitted, state.touched]);
 
-  const setOpen = useCallback((isOpen: boolean) => {
-    dispatch({ isOpen, type: 'SET_OPEN' });
-  }, []);
-
-  const open = useCallback(() => {
-    dispatch({ isOpen: true, type: 'SET_OPEN' });
+  const reset = useCallback(() => {
+    dispatch({ type: 'RESET' });
   }, []);
 
   const setField = useCallback(
@@ -166,9 +158,8 @@ export function useCreateOrganizationModal(
     try {
       const svc = await getOrgsService();
       await svc.createOrganization(parsed.data);
-      // Close + clear the form, then reload to re-sync session-scoped
-      // workspace data for the new org (same contract as the switch flow).
-      dispatch({ isOpen: false, type: 'SET_OPEN' });
+      // Reload to re-sync session-scoped workspace data for the new org
+      // (same contract as the switch flow).
       window.location.reload();
     } catch (error) {
       // Surface the server's reason (e.g. the plan's organization limit)
@@ -186,11 +177,9 @@ export function useCreateOrganizationModal(
     createError: state.createError,
     fieldErrors,
     isCreating: state.isCreating,
-    isOpen: state.isOpen,
     isValid: parsed.success,
-    open,
+    reset,
     setField,
-    setOpen,
     submit,
     touchField,
     values: state.values,

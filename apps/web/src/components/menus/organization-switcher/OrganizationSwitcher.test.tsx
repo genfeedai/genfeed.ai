@@ -2,7 +2,7 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationSwitcher from '@/components/menus/organization-switcher/OrganizationSwitcher';
@@ -373,6 +373,24 @@ describe('OrganizationSwitcher', () => {
     expect(capturedFooterActions.map((action) => action.label)).toEqual([
       'New Organization',
     ]);
+  });
+
+  it('loads the create dialog only when New Organization is chosen', async () => {
+    mockSubscriptionTier = 'scale';
+
+    renderSwitcher();
+
+    await waitFor(() => {
+      expect(capturedFooterActions).toHaveLength(1);
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    act(() => capturedFooterActions[0]?.onAction());
+
+    expect(
+      await screen.findByRole('dialog', { name: 'title' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/nameLabel/)).toHaveValue('');
   });
 
   it('renders the organization as a keyboard-operable h-8 chip', async () => {

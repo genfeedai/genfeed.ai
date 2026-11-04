@@ -247,7 +247,6 @@
       "unstyled-look": 1
     },
     "apps/web/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": {
-      "button-restyle": 1,
       "unstyled-look": 1
     },
     "apps/web/src/components/menus/shared/CollapsibleGroup.tsx": {

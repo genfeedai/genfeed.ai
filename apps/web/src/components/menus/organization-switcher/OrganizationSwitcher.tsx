@@ -7,9 +7,6 @@ import {
   APP_ROUTES,
   createOrganizationAppRoute,
   getOrgSwitchHref,
-  ORGANIZATION_DESCRIPTION_MAX_LENGTH,
-  ORGANIZATION_NAME_MAX_LENGTH,
-  ORGANIZATION_WEBSITE_MAX_LENGTH,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -22,29 +19,19 @@ import {
 } from '@ui/menus/switchers/switcher-trigger.classes';
 import { BrandAvatar } from '@ui/primitives/brand-avatar';
 import { Button } from '@ui/primitives/button';
-import {
-  Dialog,
-  DialogBody,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ui/primitives/dialog';
-import Field from '@ui/primitives/field';
-import { Form } from '@ui/primitives/form';
-import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 
-import { useCreateOrganizationModal } from './use-create-organization-modal';
-
-const CREATE_ORGANIZATION_FORM_ID = 'create-organization-form';
+// Loaded on first "New Organization": its zod form validation and form
+// primitives stay out of the first-load JavaScript of every protected route.
+const LazyCreateOrganizationDialog = dynamic(
+  () => import('./CreateOrganizationDialog'),
+  { ssr: false },
+);
 
 interface OrganizationSwitcherProps {
   compactOnMobile?: boolean;
@@ -71,8 +58,13 @@ export default function OrganizationSwitcher({
   const translate = useTranslations('ui.organizationSwitcher');
   const isLoading = status === 'loading';
   const isSwitching = status === 'switching';
-  const createModal = useCreateOrganizationModal(getOrgsService);
-  const translateCreate = useTranslations('ui.organizationCreateModal');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  // Stays true after the first open so the dialog can animate closed.
+  const [hasRequestedCreate, setHasRequestedCreate] = useState(false);
+  const openCreateDialog = useCallback(() => {
+    setHasRequestedCreate(true);
+    setIsCreateOpen(true);
+  }, []);
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const organizationLimit = getOrganizationLimitForTier(subscriptionTier);
   const hasOwnershipMetadata = orgs.some(
@@ -173,128 +165,20 @@ export default function OrganizationSwitcher({
             ? [
                 {
                   label: 'New Organization',
-                  onAction: createModal.open,
+                  onAction: openCreateDialog,
                 },
               ]
             : []
         }
       />
 
-      {/* Create Organization Modal */}
-      <Dialog open={createModal.isOpen} onOpenChange={createModal.setOpen}>
-        {/*
-          Don't restore focus to the "New Organization" footer button on close —
-          Radix's default focus return leaves a blue :focus-visible ring on that
-          button (#1227). The brand switcher's "New Brand" overlay renders
-          globally and never returns focus to its button, so it has no such ring;
-          this mirrors that behavior.
-        */}
-        <DialogContent
-          size="sm"
-          onCloseAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>{translateCreate('title')}</DialogTitle>
-            <DialogDescription>
-              {translateCreate('description')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogBody>
-            <Form
-              id={CREATE_ORGANIZATION_FORM_ID}
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault();
-                void createModal.submit();
-              }}
-            >
-              <Field
-                error={createModal.fieldErrors.label}
-                htmlFor="org-switcher-name"
-                isRequired
-                label={translateCreate('nameLabel')}
-              >
-                <Input
-                  type="text"
-                  value={createModal.values.label}
-                  onChange={(e) =>
-                    createModal.setField('label', e.target.value)
-                  }
-                  onBlur={() => createModal.touchField('label')}
-                  placeholder={translateCreate('namePlaceholder')}
-                  maxLength={ORGANIZATION_NAME_MAX_LENGTH}
-                />
-              </Field>
-              <Field
-                error={createModal.fieldErrors.websiteUrl}
-                helpText={translateCreate('websiteHelp')}
-                htmlFor="org-switcher-website"
-                label={translateCreate('websiteLabel')}
-              >
-                <Input
-                  type="text"
-                  inputMode="url"
-                  autoComplete="url"
-                  value={createModal.values.websiteUrl}
-                  onChange={(e) =>
-                    createModal.setField('websiteUrl', e.target.value)
-                  }
-                  onBlur={() => createModal.touchField('websiteUrl')}
-                  placeholder={translateCreate('websitePlaceholder')}
-                  maxLength={ORGANIZATION_WEBSITE_MAX_LENGTH}
-                />
-              </Field>
-              <Field
-                error={createModal.fieldErrors.description}
-                helpText={translateCreate('descriptionHelp')}
-                htmlFor="org-switcher-description"
-                label={translateCreate('descriptionLabel')}
-              >
-                <Textarea
-                  value={createModal.values.description}
-                  onChange={(e) =>
-                    createModal.setField('description', e.target.value)
-                  }
-                  onBlur={() => createModal.touchField('description')}
-                  placeholder={translateCreate('descriptionPlaceholder')}
-                  rows={2}
-                  className="resize-none"
-                  maxLength={ORGANIZATION_DESCRIPTION_MAX_LENGTH}
-                />
-              </Field>
-              {createModal.createError && (
-                <p role="alert" className="text-sm text-destructive">
-                  {createModal.createError}
-                </p>
-              )}
-            </Form>
-          </DialogBody>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-                className="px-4 py-2 text-sm text-foreground/60 transition-colors"
-              >
-                {translateCreate('cancel')}
-              </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              form={CREATE_ORGANIZATION_FORM_ID}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-              isDisabled={createModal.isCreating || !createModal.isValid}
-            >
-              {createModal.isCreating
-                ? translateCreate('creating')
-                : translateCreate('create')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {hasRequestedCreate && (
+        <LazyCreateOrganizationDialog
+          getOrgsService={getOrgsService}
+          isOpen={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+        />
+      )}
     </>
   );
 }

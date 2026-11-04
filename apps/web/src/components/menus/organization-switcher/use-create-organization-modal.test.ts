@@ -33,12 +33,11 @@ describe('useCreateOrganizationModal', () => {
     });
   });
 
-  it('starts closed with an empty, locked form and no visible errors', () => {
+  it('starts with an empty, locked form and no visible errors', () => {
     const { result } = renderHook(() =>
       useCreateOrganizationModal(getOrgsService),
     );
 
-    expect(result.current.isOpen).toBe(false);
     expect(result.current.values).toEqual({
       description: '',
       label: '',
@@ -55,10 +54,8 @@ describe('useCreateOrganizationModal', () => {
       useCreateOrganizationModal(getOrgsService),
     );
 
-    act(() => result.current.open());
     act(() => result.current.setField('label', 'Acme'));
 
-    expect(result.current.isOpen).toBe(true);
     expect(result.current.isValid).toBe(true);
     expect(result.current.fieldErrors).toEqual({});
   });
@@ -94,16 +91,14 @@ describe('useCreateOrganizationModal', () => {
     );
   });
 
-  it('resets the form when dismissed', () => {
+  it('clears the form on reset', () => {
     const { result } = renderHook(() =>
       useCreateOrganizationModal(getOrgsService),
     );
 
-    act(() => result.current.open());
     act(() => result.current.setField('label', 'Acme'));
-    act(() => result.current.setOpen(false));
+    act(() => result.current.reset());
 
-    expect(result.current.isOpen).toBe(false);
     expect(result.current.values.label).toBe('');
     expect(result.current.fieldErrors).toEqual({});
   });

@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import {
   isPlatformFlagOn,
   type PlatformFlagKey,
@@ -98,24 +97,37 @@ export const ORGANIZATION_MODULE_IDS = Object.keys(
   ORGANIZATION_MODULES,
 ) as OrganizationModuleId[];
 
-// Strict on writes: typos and non-booleans must never be stored.
-export const organizationModuleOverridesSchema = z.strictObject({
-  playground: z.boolean().optional(),
-  storyboard: z.boolean().optional(),
-  publishing: z.boolean().optional(),
-  analytics: z.boolean().optional(),
-  motion: z.boolean().optional(),
-  clipper: z.boolean().optional(),
-  turbo: z.boolean().optional(),
-  editor: z.boolean().optional(),
-  automation: z.boolean().optional(),
-  messages: z.boolean().optional(),
-  discovery: z.boolean().optional(),
-});
-
-export type OrganizationModuleOverrides = z.infer<
-  typeof organizationModuleOverridesSchema
+export type OrganizationModuleOverrides = Partial<
+  Record<OrganizationModuleId, boolean>
 >;
+
+const ORGANIZATION_MODULE_ID_SET: ReadonlySet<string> = new Set(
+  ORGANIZATION_MODULE_IDS,
+);
+
+/**
+ * Strict on writes: typos and non-booleans must never be stored. Returns the
+ * overrides, or `null` when the value is not a map of known module IDs to
+ * booleans. Hand-written rather than a zod schema because the protected shell
+ * resolves module navigation from it, and zod would otherwise ship in the
+ * first-load JavaScript of every app route.
+ */
+export function parseOrganizationModuleOverrides(
+  value: unknown,
+): OrganizationModuleOverrides | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const overrides: OrganizationModuleOverrides = {};
+  for (const [moduleId, isShown] of Object.entries(value)) {
+    if (!ORGANIZATION_MODULE_ID_SET.has(moduleId)) return null;
+    if (isShown === undefined) continue;
+    if (typeof isShown !== 'boolean') return null;
+    overrides[moduleId as OrganizationModuleId] = isShown;
+  }
+  return overrides;
+}
+
 export type OrganizationModulePreferences = Readonly<
   Record<OrganizationModuleId, boolean>
 >;
@@ -161,20 +173,14 @@ export function resolveOrganizationModulePreferences(
   flags: OrganizationModuleFlagInput,
 ): OrganizationModulePreferences | null {
   if (typeof settings?.hasOrganizationBilling !== 'boolean') return null;
-  const parsed = organizationModuleOverridesSchema.safeParse(
-    settings.moduleOverrides,
-  );
-  if (!parsed.success) return null;
+  const overrides = parseOrganizationModuleOverrides(settings.moduleOverrides);
+  if (!overrides) return null;
   const hasOrganizationBilling = settings.hasOrganizationBilling;
   return Object.fromEntries(
     ORGANIZATION_MODULE_IDS.map((moduleId) => [
       moduleId,
       isReleaseItemVisible(moduleId, settings, flags) &&
-        isOrganizationModuleShown(
-          moduleId,
-          parsed.data,
-          hasOrganizationBilling,
-        ),
+        isOrganizationModuleShown(moduleId, overrides, hasOrganizationBilling),
     ]),
   ) as OrganizationModulePreferences;
 }
@@ -212,16 +218,14 @@ export function resolveOrganizationModulePresentationAccess(
 ): OrganizationModuleAccess {
   if (typeof settings?.hasOrganizationBilling !== 'boolean')
     return { isAllowed: false, reason: 'unavailable' };
-  const parsed = organizationModuleOverridesSchema.safeParse(
-    settings.moduleOverrides,
-  );
-  if (!parsed.success) return { isAllowed: false, reason: 'unavailable' };
+  const overrides = parseOrganizationModuleOverrides(settings.moduleOverrides);
+  if (!overrides) return { isAllowed: false, reason: 'unavailable' };
   const isReleased = isReleaseItemVisible(moduleId, settings, flags);
   if (
     isReleased &&
     !isOrganizationModuleShown(
       moduleId,
-      parsed.data,
+      overrides,
       settings.hasOrganizationBilling,
     )
   ) {
