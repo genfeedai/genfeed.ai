@@ -356,7 +356,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {isRejected && (
-        <div className="text-xs text-red-500">
+        <div className="text-xs text-destructive">
           {data.rejectionReason || 'No reason provided'}
         </div>
       )}
