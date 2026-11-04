@@ -10,6 +10,11 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   persistAuthorizedSnapshot,
@@ -19,7 +24,6 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import {
   isTikTokRateLimitError,
   isTikTokScopeError,
-  parseTikTokGrantedScopes,
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -29,7 +33,7 @@ import {
   type TikTokAuthorizedSignalsSnapshot,
   tiktokAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
-import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
+import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -431,7 +435,7 @@ export class TiktokAuthorizedSignalsService {
           ] as const,
       ),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -495,7 +499,7 @@ export class TiktokAuthorizedSignalsService {
           ] as const,
       ),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -532,7 +536,7 @@ export class TiktokAuthorizedSignalsService {
       );
     }
 
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const fieldAvailability = Object.fromEntries(
       VIDEO_FIELDS.map(
         (field) =>
@@ -613,7 +617,7 @@ export class TiktokAuthorizedSignalsService {
       observedAt,
       provenance: 'platform_verified',
       scope: {
-        ...this.buildScope(requiredScopes, grantedScopes),
+        ...buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
         granted: grantedScopes.filter((scope) =>
           [VIDEO_PUBLISH_SCOPE, VIDEO_UPLOAD_SCOPE].includes(scope),
         ),
@@ -667,7 +671,7 @@ export class TiktokAuthorizedSignalsService {
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const reason: TikTokAuthorizedSignalReason =
       scope.missing.length > 0 || isTikTokScopeError(error)
         ? 'missing_scope'
@@ -741,14 +745,6 @@ export class TiktokAuthorizedSignalsService {
     return VIDEO_FIELDS;
   }
 
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -770,7 +766,10 @@ export class TiktokAuthorizedSignalsService {
       );
       if (previous) {
         const requiredScopes = this.requiredScopesForKey(key);
-        const scope = this.buildScope(requiredScopes, grantedScopes);
+        const scope = buildAuthorizedSignalsScope(
+          requiredScopes,
+          grantedScopes,
+        );
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
@@ -833,27 +832,23 @@ export class TiktokAuthorizedSignalsService {
     credential: Pick<CredentialDocument, 'warmupSignals'>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TIKTOK_AUTHORIZATION_STORAGE_KEY]);
-
-    return parseTikTokGrantedScopes(
-      explicitScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: TIKTOK_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TIKTOK_AUTHORIZATION_STORAGE_KEY]);
-
-    return (
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: TIKTOK_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(

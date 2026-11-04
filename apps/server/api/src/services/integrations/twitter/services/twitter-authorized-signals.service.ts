@@ -14,6 +14,10 @@ import {
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import {
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
+import {
   persistAuthorizedSnapshot,
   readStoredAuthorizedSnapshot,
 } from '@api/services/integrations/_shared/authorized-signals-storage.util';
@@ -35,7 +39,6 @@ import {
   type TwitterOwnedPostSignal,
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
-import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -521,35 +524,25 @@ export class TwitterAuthorizedSignalsService {
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TWITTER_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes = Array.isArray(credential.grantedScopes)
-      ? credential.grantedScopes.filter((scope) => typeof scope === 'string')
-      : [];
-
-    return parseGrantedOAuthScopes(
-      explicitScopes ??
-        (persistedScopes.length > 0 ? persistedScopes : undefined) ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: TWITTER_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[TWITTER_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes = Array.isArray(credential.grantedScopes)
-      ? credential.grantedScopes
-      : [];
-
-    return (
-      persistedScopes.length > 0 ||
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: TWITTER_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(

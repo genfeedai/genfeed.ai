@@ -1,3 +1,4 @@
+import { buildAuthorizedSignalsScope } from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   isTwitterRateLimitError,
@@ -183,14 +184,6 @@ function requiredScopesForKey(key: PlatformEvidenceKey): string[] {
   return [TWEET_READ_SCOPE];
 }
 
-function buildScope(required: string[], grantedScopes: string[]) {
-  return {
-    granted: grantedScopes.filter((scope) => required.includes(scope)),
-    missing: required.filter((scope) => !grantedScopes.includes(scope)),
-    required,
-  };
-}
-
 function publishingGrantedScopes(grantedScopes: string[]): string[] {
   return grantedScopes.filter((scope) =>
     [TWEET_WRITE_SCOPE, MEDIA_WRITE_SCOPE].includes(scope),
@@ -202,7 +195,7 @@ function reportScope(
   requiredScopes: string[],
   grantedScopes: string[],
 ) {
-  const scope = buildScope(requiredScopes, grantedScopes);
+  const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
   return key === 'publishing-capability-snapshot'
     ? { ...scope, granted: publishingGrantedScopes(grantedScopes) }
     : scope;
@@ -216,7 +209,7 @@ function buildUnavailableEvidence(
   previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
   observedAt: string,
 ): TwitterAuthorizedSignalEvidence {
-  const scope = buildScope(requiredScopes, grantedScopes);
+  const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
   const reason: TwitterAuthorizedSignalReason =
     scope.missing.length > 0 || isTwitterScopeOrTierError(error)
       ? 'missing_scope'
@@ -323,7 +316,7 @@ export function buildProfileEvidence(
         ] as const,
     ),
   );
-  const scope = buildScope(requiredScopes, grantedScopes);
+  const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
   return {
     fieldAvailability,
@@ -381,7 +374,7 @@ export function buildStatisticsEvidence(
         ] as const,
     ),
   );
-  const scope = buildScope(requiredScopes, grantedScopes);
+  const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
   return {
     fieldAvailability,
@@ -418,7 +411,7 @@ export function buildOwnedPostsEvidence(
     );
   }
 
-  const scope = buildScope(requiredScopes, grantedScopes);
+  const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
   const fieldAvailability = Object.fromEntries(
     POST_FIELDS.map(
       (field) =>
@@ -494,7 +487,7 @@ export function buildPublishingCapabilityEvidence(
     observedAt,
     provenance: 'platform_verified',
     scope: {
-      ...buildScope(requiredScopes, grantedScopes),
+      ...buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       granted: publishingGrantedScopes(grantedScopes),
     },
     staleAt: null,
@@ -535,7 +528,7 @@ export function buildNativeAccountAgeEvidence(
     key: 'native-account-age',
     observedAt,
     provenance: 'platform_verified',
-    scope: buildScope(requiredScopes, grantedScopes),
+    scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
     staleAt: null,
     status: createdAt ? 'available' : 'unavailable',
     value: createdAt ? { createdAt, createTime } : {},
