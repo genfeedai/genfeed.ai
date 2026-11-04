@@ -23,6 +23,7 @@ import {
   resolveStudioPlaygroundType,
   STUDIO_PLAYGROUND_TYPES,
 } from '@/features/studio/playground/utils/studio-playground-types';
+import { optionalText, pickStringList } from './studio-playground-values';
 
 export const STUDIO_PLAYGROUND_STORAGE_KEY = 'genfeed.studio.generate.v1';
 
@@ -66,14 +67,6 @@ function pickNumber(
     : fallback;
 }
 
-function pickFreeText(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
 function pickOutputs(value: unknown, fallback: number): number {
   return typeof value === 'number' &&
     Number.isInteger(value) &&
@@ -88,13 +81,6 @@ function isRouterPriority(value: unknown): value is RouterPriority {
     typeof value === 'string' &&
     (Object.values(RouterPriority) as string[]).includes(value)
   );
-}
-
-function pickStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
 /**
@@ -179,7 +165,7 @@ export function sanitizeStudioPlaygroundSettings(
               : {}),
           }
         : undefined,
-    editPrimaryId: pickFreeText(value.editPrimaryId),
+    editPrimaryId: optionalText(value.editPrimaryId),
     editSize: isImageEditSize(value.editSize) ? value.editSize : 'source',
     editSeed:
       typeof value.editSeed === 'number' &&
@@ -193,7 +179,7 @@ export function sanitizeStudioPlaygroundSettings(
       getStudioAspectRatios(type, resolvedModelKey),
       defaults.aspectRatio,
     ),
-    avatarPhotoUrl: pickFreeText(avatarPhotoUrl),
+    avatarPhotoUrl: optionalText(avatarPhotoUrl),
     avatarRef:
       isRecord(value.avatarRef) &&
       value.avatarRef.source === 'heygen-look' &&
@@ -209,35 +195,35 @@ export function sanitizeStudioPlaygroundSettings(
         : undefined,
     blacklist: pickStringList(blacklist),
     brandingMode: brandingMode === 'off' ? 'off' : 'brand',
-    camera: pickFreeText(camera),
-    cameraMovement: pickFreeText(cameraMovement),
+    camera: optionalText(camera),
+    cameraMovement: optionalText(cameraMovement),
     duration: isCrunVideo
       ? typeof duration === 'number' && Number.isFinite(duration)
         ? duration
         : undefined
       : pickNumber(duration, durations, defaults.duration),
-    folder: pickFreeText(folder),
+    folder: optionalText(folder),
     isAudioEnabled: isAudioEnabled === true,
-    lens: pickFreeText(lens),
-    lighting: pickFreeText(lighting),
+    lens: optionalText(lens),
+    lighting: optionalText(lighting),
     modelKey: resolvedModelKey,
-    mood: pickFreeText(mood),
+    mood: optionalText(mood),
     outputs: pickOutputs(outputs, defaults.outputs),
     prioritize: isRouterPriority(prioritize) ? prioritize : defaults.prioritize,
-    promptTemplate: pickFreeText(promptTemplate),
+    promptTemplate: optionalText(promptTemplate),
     resolution: isCrunVideo
-      ? (pickFreeText(resolution) ?? '')
+      ? (optionalText(resolution) ?? '')
       : pickString(resolution, allowedResolutions, defaults.resolution),
-    scene: pickFreeText(scene),
+    scene: optionalText(scene),
     // `speech` is per-submission copy, never restored from a previous session.
     speech: undefined,
-    style: pickFreeText(style),
+    style: optionalText(style),
     // `subject` and `action` describe one shot, so like `speech` they are never
     // restored from a previous session.
     action: undefined,
     subject: undefined,
     tags: pickStringList(tags),
-    voiceId: pickFreeText(voiceId),
+    voiceId: optionalText(voiceId),
     ...(type === 'music'
       ? normalizeMusicSettings(resolvedModelKey, {
           duration: typeof duration === 'number' ? duration : undefined,
@@ -245,7 +231,7 @@ export function sanitizeStudioPlaygroundSettings(
             typeof value.instrumental === 'boolean'
               ? value.instrumental
               : undefined,
-          lyrics: pickFreeText(value.lyrics),
+          lyrics: optionalText(value.lyrics),
         })
       : {}),
   };
