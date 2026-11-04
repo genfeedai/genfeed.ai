@@ -512,7 +512,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/services/integrations/elevenlabs/services/elevenlabs.service.spec.ts',
   'apps/server/api/src/services/integrations/facebook/controllers/facebook.controller.spec.ts',
   'apps/server/api/src/services/integrations/fanvue/controllers/fanvue.controller.spec.ts',
-  'apps/server/api/src/services/integrations/google-ads/controllers/google-ads.controller.spec.ts',
   'apps/server/api/src/services/integrations/google-search-console/controllers/google-search-console.controller.spec.ts',
   'apps/server/api/src/services/integrations/google-search-console/services/google-search-console.service.spec.ts',
   'apps/server/api/src/services/integrations/heygen/services/heygen-identity.service.spec.ts',

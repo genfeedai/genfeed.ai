@@ -35,6 +35,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { isAxiosError } from 'axios';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -130,13 +131,28 @@ export class GoogleAdsController {
       );
     }
 
-    const tokens =
-      await this.googleAdsOAuthService.exchangeAuthCodeForAccessToken(
+    let tokens: Awaited<
+      ReturnType<GoogleAdsOAuthService['exchangeAuthCodeForAccessToken']>
+    >;
+    try {
+      tokens = await this.googleAdsOAuthService.exchangeAuthCodeForAccessToken(
         body.code,
       );
-    const customers = await this.googleAdsService.listAccessibleCustomers(
-      tokens.accessToken,
-    );
+    } catch (error: unknown) {
+      throw this.toVerifyException(error, 'Token exchange failed');
+    }
+
+    let customers: Awaited<
+      ReturnType<GoogleAdsService['listAccessibleCustomers']>
+    >;
+    try {
+      customers = await this.googleAdsService.listAccessibleCustomers(
+        tokens.accessToken,
+      );
+    } catch (error: unknown) {
+      throw this.toVerifyException(error, 'Customer lookup failed');
+    }
+
     const primaryCustomer = customers[0];
 
     // The customer id is the account identity — one brand may manage several
@@ -322,6 +338,37 @@ export class GoogleAdsController {
    * Extract the Google Ads access token from the user's credentials.
    * Token is encrypted at rest in the database and decrypted when retrieved.
    */
+  /**
+   * Maps a provider failure during OAuth verify to a client-safe HttpException.
+   * A provider 400/401/403 means the code or token is no longer usable and the
+   * user must reconnect; anything else is an upstream failure.
+   */
+  private toVerifyException(error: unknown, title: string): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+
+    const providerStatus = isAxiosError(error) ? error.response?.status : null;
+    const isProviderRejection =
+      providerStatus === HttpStatus.BAD_REQUEST ||
+      providerStatus === HttpStatus.UNAUTHORIZED ||
+      providerStatus === HttpStatus.FORBIDDEN;
+
+    this.loggerService.warn(`${this.constructorName} verify failed: ${title}`, {
+      providerStatus: providerStatus ?? null,
+    });
+
+    return new HttpException(
+      {
+        detail: isProviderRejection
+          ? 'Google rejected the authorization. Reconnect Google Ads and try again.'
+          : 'Google Ads is temporarily unavailable. Try again shortly.',
+        title,
+      },
+      isProviderRejection ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY,
+    );
+  }
+
   private async getAccessTokenFromCredential(user: User): Promise<string> {
     const organizationId = user.organizationId as string;
     const userId = (user.userId ?? user.id) as string;
