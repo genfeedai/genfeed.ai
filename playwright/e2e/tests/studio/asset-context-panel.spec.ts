@@ -102,8 +102,8 @@ test.describe('Playground asset context panel', () => {
       .getByRole('button', { name: /^Remove/ })
       .click();
 
-    const dialog = page.getByRole('dialog');
-    await expect(dialog.getByText('Remove Generation')).toBeVisible();
+    const dialog = page.getByRole('dialog', { name: 'Remove Generation' });
+    await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
 
     await expect(page.getByTestId('studio-asset-failed-video')).toHaveCount(0);
