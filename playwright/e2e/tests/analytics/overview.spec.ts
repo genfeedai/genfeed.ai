@@ -278,6 +278,79 @@ test.describe('Analytics Overview', () => {
       await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
     });
 
+    for (const colorScheme of ['light', 'dark'] as const) {
+      test(`should show the warming-up banner as one aligned notice (${colorScheme})`, async ({
+        authenticatedPage,
+      }) => {
+        await authenticatedPage.emulateMedia({ colorScheme });
+        await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+        // Accounts connected and posts published, but no tracked performance.
+        await authenticatedPage.route(BRAND_ANALYTICS, async (route) => {
+          await route.fulfill({
+            body: JSON.stringify({
+              data: {
+                attributes: {
+                  activePlatforms: ['instagram'],
+                  avgEngagementRate: 0,
+                  engagementGrowth: 0,
+                  totalCredentialsConnected: 2,
+                  totalEngagement: 0,
+                  totalPosts: 6,
+                  totalViews: 0,
+                  viewsGrowth: 0,
+                } satisfies Partial<IAnalytics>,
+                id: 'brand-1',
+                type: 'analytic',
+              },
+            }),
+            contentType: 'application/json',
+            status: 200,
+          });
+        });
+        await authenticatedPage.route(ANALYTICS_TIMESERIES, async (route) => {
+          await route.fulfill({
+            body: JSON.stringify({ data: [] }),
+            contentType: 'application/json',
+            status: 200,
+          });
+        });
+
+        await authenticatedPage.goto(OVERVIEW_ROUTE);
+
+        const banner = authenticatedPage
+          .getByRole('status')
+          .filter({ hasText: 'Warming up' });
+        await expect(banner).toBeVisible();
+        await expect(banner).toContainText(
+          'Accounts are connected, but there is not enough tracked performance yet.',
+        );
+        const create = banner.getByRole('link', { name: 'Create content' });
+        const manage = banner.getByRole('link', {
+          name: 'Manage connections',
+        });
+        await expect(create).toBeVisible();
+        await expect(manage).toBeVisible();
+
+        // On a wide screen the actions sit beside the copy in one row, not
+        // wrapped under it or stacked on top of each other.
+        const [bannerBox, createBox, manageBox] = await Promise.all([
+          banner.boundingBox(),
+          create.boundingBox(),
+          manage.boundingBox(),
+        ]);
+        expect(bannerBox).not.toBeNull();
+        expect(createBox).not.toBeNull();
+        expect(manageBox).not.toBeNull();
+        expect(
+          Math.abs((createBox?.y ?? 0) - (manageBox?.y ?? 99)),
+        ).toBeLessThan(2);
+        expect(createBox?.x ?? 0).toBeGreaterThan(
+          (bannerBox?.x ?? 0) + (bannerBox?.width ?? 0) / 2,
+        );
+        expect(bannerBox?.height ?? 999).toBeLessThan(120);
+      });
+    }
+
     test('should show engagement metrics', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const kpiRequests = await mockOverviewData(authenticatedPage);
