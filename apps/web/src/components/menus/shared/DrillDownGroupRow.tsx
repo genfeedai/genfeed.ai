@@ -4,7 +4,10 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { SidebarActiveHighlight } from '@ui/primitives/sidebar-active-highlight';
+import {
+  SidebarActiveHighlight,
+  sidebarRowStateClassName,
+} from '@ui/primitives/sidebar-active-highlight';
 import { ChevronRight, FileText } from 'lucide-react';
 
 import Link from 'next/link';
@@ -58,9 +61,7 @@ export default function DrillDownGroupRow({
   const rowClasses = cn(
     'group relative flex w-full items-center gap-3 rounded px-3 py-1.5 transition-colors duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    isActive
-      ? 'text-foreground'
-      : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
+    sidebarRowStateClassName(isActive),
   );
 
   const content = (

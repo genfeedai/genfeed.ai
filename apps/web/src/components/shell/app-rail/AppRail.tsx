@@ -11,10 +11,9 @@ import { Badge } from '@ui/primitives/badge';
 import { Kbd } from '@ui/primitives/kbd';
 import { Separator } from '@ui/primitives/separator';
 import {
-  SIDEBAR_ROW_HOVER_FILL_CLASS_NAME,
-  SidebarActiveHighlight,
   SidebarHighlightGroup,
-  SidebarPendingHighlight,
+  SidebarRowHighlight,
+  sidebarRowStateClassName,
 } from '@ui/primitives/sidebar-active-highlight';
 import {
   Tooltip,
@@ -84,16 +83,13 @@ function AppRailItem({
   const itemClassName = cn(
     'relative inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
-    // Same motion and fills as the sidebar menu rows: the active fill is the
-    // sliding SidebarActiveHighlight, an inactive row only gets the hover fill.
-    isActive
-      ? 'text-foreground'
-      : `text-foreground/50 ${SIDEBAR_ROW_HOVER_FILL_CLASS_NAME} hover:text-foreground`,
+    // Same motion and fills as the sidebar menu rows (one shared primitive).
+    sidebarRowStateClassName(isActive, 'text-foreground/50'),
     isLocked && 'opacity-60',
   );
   const itemBody = (
     <>
-      {isActive ? <SidebarActiveHighlight /> : <SidebarPendingHighlight />}
+      <SidebarRowHighlight isActive={isActive} />
       <span className="relative flex items-center justify-center">
         {hoverIcon}
       </span>
