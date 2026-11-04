@@ -128,6 +128,10 @@ describe('AdminWarmupAccountsService', () => {
     warmupAccount: {
       findFirst: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    workflowExecution: {
+      findFirst: ReturnType<typeof vi.fn>;
     };
   };
   let invitationService: {
@@ -187,6 +191,10 @@ describe('AdminWarmupAccountsService', () => {
         create: vi
           .fn()
           .mockResolvedValue(makeWarmupAccount({ status: 'PROVISIONED' })),
+        update: vi.fn(),
+      },
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue(null),
       },
     };
 
@@ -359,17 +367,12 @@ describe('AdminWarmupAccountsService', () => {
     function arrange(execution: unknown) {
       const account = makeWarmupAccount({ diagnostics: runningDiagnostics });
       prisma.warmupAccount.findFirst.mockResolvedValue(account);
-      Object.assign(tx.warmupAccount, {
-        findFirst: vi.fn().mockResolvedValue(account),
-        update: vi.fn(({ data }: { data: Record<string, unknown> }) =>
+      tx.warmupAccount.findFirst.mockResolvedValue(account);
+      tx.warmupAccount.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) =>
           Promise.resolve({ ...account, ...data }),
-        ),
-      });
-      Object.assign(tx, {
-        workflowExecution: {
-          findFirst: vi.fn().mockResolvedValue(execution),
-        },
-      });
+      );
+      tx.workflowExecution.findFirst.mockResolvedValue(execution);
       return tx.warmupAccount.update;
     }
 
