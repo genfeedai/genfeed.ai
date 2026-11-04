@@ -1,20 +1,15 @@
-import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
-import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { CreateMediaGenerationDto } from '@api/collections/ingredients/dto/create-media-generation.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { CrunVideoQuoteControlsDto } from '@api/collections/videos/dto/create-crun-video-quote.dto';
+import { toCommaSeparatedStrings } from '@api/helpers/dto/comma-separated-strings.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   BeatSyncCutStrategy,
   IngredientCategory,
-  RouterPriority,
   VideoTransition,
 } from '@genfeedai/contracts';
 import type { AdPresetSubmission } from '@genfeedai/contracts/api-types/contracts/ad-preset.contract';
-import {
-  BEAT_SYNC_CUT_STRATEGIES,
-  GENERATION_PROMPT_AUTHORS,
-  type GenerationPromptAuthor,
-} from '@genfeedai/contracts/interfaces';
+import { BEAT_SYNC_CUT_STRATEGIES } from '@genfeedai/contracts/interfaces';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -28,7 +23,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
@@ -163,7 +157,7 @@ export class CreateMergedVideoDto {
   readonly zoomConfigs?: unknown;
 }
 
-export class CreateVideoDto extends CreateIngredientDto {
+export class CreateVideoDto extends CreateMediaGenerationDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsObject()
   @ApiProperty({
@@ -194,54 +188,6 @@ export class CreateVideoDto extends CreateIngredientDto {
   @Type(() => CrunVideoQuoteControlsDto)
   readonly crunControls?: CrunVideoQuoteControlsDto;
 
-  @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsArray()
-  @ArrayMaxSize(8)
-  @IsString({ each: true })
-  @MaxLength(160, { each: true })
-  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
-  @ApiProperty({ required: false, type: [String] })
-  readonly requestedSkillSlugs?: string[];
-
-  @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsBoolean()
-  @ApiProperty({
-    description: 'Override prompt enhancement for this generation',
-    required: false,
-  })
-  readonly harness?: boolean;
-
-  @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsIn(['raw'])
-  @ApiProperty({
-    description:
-      'Generate with the prompt exactly as typed and apply no brand identity. The only client-chosen brand mode; approved and provisional modes are resolved on the server.',
-    enum: ['raw'],
-    required: false,
-  })
-  readonly brandMode?: 'raw';
-
-  @ValidateIf((_object, value: unknown) => value !== undefined)
-  @IsIn(GENERATION_PROMPT_AUTHORS)
-  @ApiProperty({
-    description:
-      'Set when the prompt came from an agent proposal: `agent` unchanged, `agent_edited` changed by the member. Recorded in the generation receipt; omit for a prompt the member wrote.',
-    enum: GENERATION_PROMPT_AUTHORS,
-    required: false,
-  })
-  readonly promptAuthor?: GenerationPromptAuthor;
-
-  @ValidateIf((_object, value: unknown) => value !== undefined)
-  @ValidateNested()
-  @Type(() => KnowledgeSelectionDto)
-  @ApiProperty({
-    description:
-      'Explicit Knowledge sources or spaces to ground this generation on; omit for automatic brand Knowledge',
-    required: false,
-    type: KnowledgeSelectionDto,
-  })
-  readonly knowledge?: KnowledgeSelectionDto;
-
   // Video generation only generates the video: background music is an
   // editing action that belongs in the Studio editor's audio tracks now, not
   // a generation-time option. Removing the fields is enough — the pipe's
@@ -256,11 +202,6 @@ export class CreateVideoDto extends CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ description: 'Video generation prompt', required: false })
   readonly text?: string;
-
-  @IsNumber()
-  @IsOptional()
-  @ApiProperty({ description: 'Random generation seed', required: false })
-  readonly seed?: number;
 
   @IsOptional()
   @IsArray()
@@ -318,21 +259,7 @@ export class CreateVideoDto extends CreateIngredientDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (Array.isArray(value)) {
-      return value;
-    }
-    // If it's a string, split by comma or wrap in array
-    if (typeof value === 'string') {
-      return value.includes(',')
-        ? value.split(',').map((v) => v.trim())
-        : [value];
-    }
-    return [value];
-  })
+  @Transform(toCommaSeparatedStrings)
   @ApiProperty({
     description:
       'Array of blacklist element keys to exclude from video generation',
@@ -344,21 +271,7 @@ export class CreateVideoDto extends CreateIngredientDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (Array.isArray(value)) {
-      return value;
-    }
-    // If it's a string, split by comma or wrap in array
-    if (typeof value === 'string') {
-      return value.includes(',')
-        ? value.split(',').map((v) => v.trim())
-        : [value];
-    }
-    return [value];
-  })
+  @Transform(toCommaSeparatedStrings)
   @ApiProperty({
     description: 'Array of sound element keys to include in video generation',
     required: false,
@@ -387,26 +300,6 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly resolution?: string;
-
-  @IsOptional()
-  @IsIn(['off', 'brand'])
-  @ApiProperty({
-    default: 'off',
-    description: 'Brand context mode for prompt assembly',
-    enum: ['off', 'brand'],
-    required: false,
-  })
-  readonly brandingMode?: 'off' | 'brand';
-
-  @IsOptional()
-  @IsIn(['off', 'guided', 'strict'])
-  @ApiProperty({
-    description:
-      'Generation-brief fidelity. When set, overrides brandingMode for brief compilation.',
-    enum: ['off', 'guided', 'strict'],
-    required: false,
-  })
-  readonly fidelityMode?: 'off' | 'guided' | 'strict';
 
   @IsBoolean()
   @IsOptional()
@@ -452,28 +345,6 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly model?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
-    description:
-      'Automatically select the best model based on the prompt. If true, the model parameter will be ignored.',
-    required: false,
-  })
-  readonly autoSelectModel?: boolean;
-
-  @IsEnum(RouterPriority)
-  @IsOptional()
-  @ApiProperty({
-    default: RouterPriority.BALANCED,
-    description:
-      'Priority for auto model routing: quality, speed, cost, or balanced.',
-    enum: RouterPriority,
-    enumName: 'RouterPriority',
-    required: false,
-  })
-  readonly prioritize?: RouterPriority;
 
   @IsNumber()
   @IsOptional()
@@ -628,25 +499,6 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly promptTemplate?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: true,
-    description: 'Whether to use prompt templates',
-    required: false,
-  })
-  readonly useTemplate?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
-    description:
-      'If true, wait for generation to complete before returning the result. Defaults to false (returns immediately with placeholder).',
-    required: false,
-  })
-  readonly waitForCompletion?: boolean;
 
   @IsString()
   @IsOptional()
