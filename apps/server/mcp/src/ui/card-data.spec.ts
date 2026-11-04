@@ -241,7 +241,12 @@ describe('MCP Apps card contract', () => {
       variations: [{ content: 'Unrelated caption' }],
     };
     expect(buildCardView('generate_content', data)?.cards).toMatchObject([
-      { description: 'Article body', kind: 'article', title: 'Article title' },
+      {
+        body: 'Article body',
+        description: 'Article body',
+        kind: 'article',
+        title: 'Article title',
+      },
     ]);
     expect(buildCardView('create_post', data)?.cards).toMatchObject([
       { description: 'Article body', kind: 'post', title: 'Article title' },

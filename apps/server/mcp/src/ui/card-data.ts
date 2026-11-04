@@ -229,6 +229,9 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       : {}),
     ...(isPending ? { isPending, progress: progress(row) } : {}),
     ...(isPending && stage ? { stage } : {}),
+    ...(resolvedKind === 'article' && text(row, 'content')
+      ? { body: text(row, 'content').slice(0, 60000) }
+      : {}),
     date: text(row, 'scheduledDate', 'scheduledAt', 'publishedAt', 'createdAt'),
     description: text(
       row,

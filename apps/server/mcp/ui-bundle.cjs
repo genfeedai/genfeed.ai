@@ -53,10 +53,13 @@ async function buildMcpPreview(
   });
   const sources = Object.keys(bundle.metafile.inputs)
     .map((input) => path.resolve(repoRoot, input))
+    // Every card and shared UI file that went into the bundle, including the
+    // helpers that hand class names to it (platform brand colours).
     .filter(
       (file) =>
-        file === entry ||
-        file.startsWith(path.join(repoRoot, 'packages/ui/src/')),
+        file.startsWith(path.join(__dirname, 'src/ui/')) ||
+        file.startsWith(path.join(repoRoot, 'packages/ui/src/')) ||
+        file.startsWith(path.join(repoRoot, 'packages/helpers/src/ui/')),
     )
     .sort();
   const sourceDirectives = sources

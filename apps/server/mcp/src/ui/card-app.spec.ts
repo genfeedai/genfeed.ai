@@ -243,13 +243,17 @@ it('presents completed images without tool headings or opaque metadata', async (
   expect(document.querySelector('article')?.textContent).not.toContain(imageId);
   expect(document.querySelector('article time')).toBeNull();
   expect(document.querySelector('article .meta')).toBeNull();
-  expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
-  document.querySelector<HTMLButtonElement>('.media-actions button')?.click();
+  expect(document.querySelector('article a')?.getAttribute('aria-label')).toBe(
+    'Open image',
+  );
+  document
+    .querySelector<HTMLButtonElement>('button[aria-label="Expand Image"]')
+    ?.click();
   await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('[role="dialog"] img')).not.toBeNull();
 });
 
-it('keeps media descriptions available on demand and restores other layouts', async () => {
+it('shows a media prompt under the file and restores other layouts', () => {
   result('get_job_status', {
     category: 'IMAGE',
     description: 'A logo on a white background',
@@ -258,12 +262,6 @@ it('keeps media descriptions available on demand and restores other layouts', as
     url: 'https://cdn.genfeed.ai/logo.jpg',
   });
   expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
-  const details = document.querySelector<HTMLButtonElement>(
-    'article button[aria-expanded]',
-  );
-  expect(details?.getAttribute('aria-expanded')).toBe('false');
-  details?.click();
-  await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('article')?.textContent).toContain(
     'A logo on a white background',
   );
@@ -329,10 +327,16 @@ it('replaces content on empty, error and approval results', () => {
   expect(document.body.textContent).toContain('Approval required');
 });
 
-it('shows long article text and truncated list counts', () => {
+it('reads a long article in full and shows truncated list counts', async () => {
   result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
-  expect(document.querySelector('button[aria-expanded]')?.textContent).toBe(
-    'Read more',
+  document
+    .querySelector<HTMLButtonElement>(
+      'button[aria-label="Read the full article"]',
+    )
+    ?.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'a'.repeat(900),
   );
   result(
     'get_assets',
@@ -460,7 +464,9 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.textContent).toContain('Your Account');
-  expect(post?.querySelector('h2')?.textContent).toBe('LinkedIn');
+  expect(
+    post?.querySelector('[role="img"][aria-label="LinkedIn"]'),
+  ).not.toBeNull();
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
@@ -621,7 +627,7 @@ it('files calendar posts under the viewer-local day of their time', () => {
   );
 });
 
-it('shows post attachments and plays attached media that carries a URL', () => {
+it('lays out every post attachment and plays media that carries a URL', () => {
   result('get_posts', {
     posts: [
       {
@@ -652,11 +658,10 @@ it('shows post attachments and plays attached media that carries a URL', () => {
   const [carousel, clip] = Array.from(
     document.querySelectorAll('article.post'),
   );
+  expect(carousel?.textContent).toContain('Attachment preview unavailable');
   expect(
-    Array.from(carousel?.querySelectorAll('.attachments > span') ?? []).map(
-      (pill) => pill.textContent,
-    ),
-  ).toEqual(['Image ×2', 'Video']);
+    carousel?.querySelectorAll('[data-testid^="platform-preview-media-"]'),
+  ).toHaveLength(3);
   expect(clip?.querySelector('video')?.getAttribute('src')).toBe(
     'https://cdn.genfeed.ai/clip.mp4',
   );
@@ -958,10 +963,10 @@ describe('brand gallery', () => {
   it('shows the logo or initials and a Select button per brand', () => {
     result('get_brands', { brands });
 
-    const cards = document.querySelectorAll('[data-testid="preview-card"]');
-    expect(cards).toHaveLength(2);
-    expect(cards[0].textContent).toContain('@acme');
-    expect(cards[1].textContent).toContain('AL');
+    const rows = document.querySelectorAll('.brands li');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain('@acme');
+    expect(rows[1].textContent).toContain('AL');
     expect(
       [...document.querySelectorAll('button')].map((button) =>
         button.getAttribute('aria-label'),
@@ -1056,7 +1061,7 @@ describe('brand gallery', () => {
   });
 });
 
-it('shows article cards with a status badge and kind chip, not raw identifiers', () => {
+it('shows article cards with a status badge and a reader, not raw identifiers', () => {
   result('get_articles', [
     {
       articleId: 'article-123',
@@ -1070,7 +1075,9 @@ it('shows article cards with a status badge and kind chip, not raw identifiers',
   expect(article?.querySelector('[data-slot="badge"]')?.textContent).toBe(
     'Draft',
   );
-  expect(article?.querySelector('.meta')?.textContent).toContain('Article');
+  expect(
+    article?.querySelector('button[aria-label="Read the full article"]'),
+  ).not.toBeNull();
   expect(article?.textContent).not.toContain('article-123');
 });
 
@@ -1157,7 +1164,9 @@ describe('approval card', () => {
     expect(text).toContain('4 credits');
     expect(buttonNamed('Approve')).toBeDefined();
     expect(buttonNamed('Decline')).toBeDefined();
-    expect(text).toContain('Review in Genfeed');
+    expect(
+      document.querySelector('a[aria-label="Review in Genfeed"]'),
+    ).not.toBeNull();
   });
 
   it('declines in place and shows the outcome instead of the buttons', async () => {
