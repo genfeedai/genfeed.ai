@@ -45,4 +45,36 @@ describe('AppModule (Notifications)', () => {
       await app.close();
     }
   }, 60_000);
+
+  it.each([
+    ['development', true],
+    ['production', false],
+    ['test', false],
+    // The self-hosted image does not set NODE_ENV.
+    [undefined, false],
+  ])(
+    'exposes the unauthenticated Discord dev routes when NODE_ENV is %s: %s',
+    async (nodeEnv, isExposed) => {
+      vi.resetModules();
+      vi.stubEnv('NODE_ENV', nodeEnv);
+
+      try {
+        const { AppModule: FreshAppModule } = await import(
+          '@notifications/app.module'
+        );
+        const { DevModule } = await import(
+          '@notifications/controllers/dev.module'
+        );
+        const imports: unknown[] = Reflect.getMetadata(
+          'imports',
+          FreshAppModule,
+        );
+
+        expect(imports.includes(DevModule)).toBe(isExposed);
+      } finally {
+        vi.stubEnv('NODE_ENV', 'test');
+      }
+    },
+    60_000,
+  );
 });

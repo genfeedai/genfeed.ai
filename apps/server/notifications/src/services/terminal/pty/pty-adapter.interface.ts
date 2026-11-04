@@ -22,7 +22,7 @@ export interface PtySpawnOptions {
   cols: number;
   command: string;
   cwd: string;
-  env: NodeJS.ProcessEnv;
+  env: Record<string, string>;
   kind: TerminalSessionKind;
   name: string;
   rows: number;

@@ -26,6 +26,7 @@ import type {
   TerminalSessionDto,
   TerminalSessionKind,
 } from './terminal.types';
+import { buildTerminalEnvironment } from './terminal-environment';
 
 /** Maximum bytes retained in the per-session scrollback ring buffer. */
 const MAX_BUFFER_BYTES = 256 * 1024;
@@ -42,15 +43,6 @@ const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const MAX_COLS = 240;
 const MAX_ROWS = 80;
-
-const TERMINAL_PATHS = [
-  '/opt/homebrew/bin',
-  '/usr/local/bin',
-  '/usr/bin',
-  '/bin',
-  '/usr/sbin',
-  '/sbin',
-];
 
 const COMMAND_LABELS: Record<TerminalSessionKind, string> = {
   claude: 'Claude CLI (`claude`)',
@@ -132,7 +124,7 @@ export class TerminalService {
         cols: this.clampDimension(payload?.cols, DEFAULT_COLS, MAX_COLS),
         command,
         cwd,
-        env: this.buildEnvironment(),
+        env: buildTerminalEnvironment(process.env),
         kind,
         name: 'xterm-256color',
         rows: this.clampDimension(payload?.rows, DEFAULT_ROWS, MAX_ROWS),
@@ -334,21 +326,6 @@ export class TerminalService {
         'Local terminal is disabled. Set GENFEED_LOCAL_TERMINAL=true to enable it on a self-hosted install.',
       );
     }
-  }
-
-  private buildEnvironment(): NodeJS.ProcessEnv {
-    const existingPath = process.env.PATH ?? '';
-    const nextPath = [
-      ...TERMINAL_PATHS,
-      ...existingPath.split(':').filter(Boolean),
-    ].join(':');
-
-    return {
-      ...process.env,
-      COLORTERM: process.env.COLORTERM ?? 'truecolor',
-      PATH: nextPath,
-      TERM: 'xterm-256color',
-    };
   }
 
   private clampDimension(

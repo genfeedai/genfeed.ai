@@ -2,6 +2,7 @@ import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
 } from '@genfeedai/contracts/constants';
+import type { IBetterAuthVerifiedClaims } from '@genfeedai/contracts/interfaces';
 import {
   isBearerScheme,
   parseAuthorizationHeader,
@@ -74,8 +75,8 @@ export class TerminalGateway
       return;
     }
 
-    const userId = await this.resolveAuthenticatedUserId(client);
-    if (!userId) {
+    const claims = await this.resolveVerifiedClaims(client);
+    if (!claims) {
       this.logger.warn('Rejected unauthenticated terminal socket connection', {
         address: client.handshake.address,
         origin: client.handshake.headers.origin,
@@ -83,6 +84,24 @@ export class TerminalGateway
       });
       client.emit('terminal:error', {
         message: 'Local terminal requires an authenticated session.',
+      });
+      client.disconnect(true);
+      return;
+    }
+
+    // The pty is a shell on the server host. Any account on the install can
+    // sign in (self-hosted sign-up is open and provisions each new user their
+    // own organization, so organization ownership proves nothing here). Only
+    // the platform super-admin — `users.platformRole = SUPERADMIN`, signed into
+    // the JWT by the API and verified above against its JWKS — may open one.
+    if (!claims.isSuperAdmin) {
+      this.logger.warn('Rejected terminal socket for a non-admin user', {
+        address: client.handshake.address,
+        socketId: client.id,
+        userId: claims.sub,
+      });
+      client.emit('terminal:error', {
+        message: 'Local terminal is restricted to platform administrators.',
       });
       client.disconnect(true);
       return;
@@ -96,7 +115,7 @@ export class TerminalGateway
       return;
     }
 
-    this.authenticatedSockets.set(client.id, { userId });
+    this.authenticatedSockets.set(client.id, { userId: claims.sub });
     client.emit('terminal:ready', { socketId: client.id });
   }
 
@@ -252,12 +271,12 @@ export class TerminalGateway
   }
 
   /**
-   * Verifies the socket's Better Auth JWT and returns the genfeed `User.id`
-   * (`sub`). Returns null when verification fails.
+   * Verifies the socket's Better Auth JWT and returns its signed claims
+   * (`sub` is the genfeed `User.id`). Returns null when verification fails.
    */
-  private async resolveAuthenticatedUserId(
+  private async resolveVerifiedClaims(
     client: Socket,
-  ): Promise<string | null> {
+  ): Promise<IBetterAuthVerifiedClaims | null> {
     if (this.hasMalformedBearerHeader(client)) {
       return null;
     }
@@ -265,9 +284,9 @@ export class TerminalGateway
     const token = this.extractToken(client);
 
     if (token) {
-      const userId = await this.verifyToken(client, token);
-      if (userId) {
-        return userId;
+      const claims = await this.verifyToken(client, token);
+      if (claims) {
+        return claims;
       }
     }
 
@@ -286,7 +305,7 @@ export class TerminalGateway
    * an absent one. It must be rejected outright rather than silently
    * downgraded to the session-cookie fallback. A well-formed Bearer token
    * that fails verification is a different case and keeps the documented
-   * cookie fallback via `resolveAuthenticatedUserId`'s normal flow. Mirrors
+   * cookie fallback via `resolveVerifiedClaims`'s normal flow. Mirrors
    * the shared Bearer contract enforced by
    * `CombinedAuthGuard.canActivate` (apps/server/api) via the same
    * `isBearerScheme` / `parseAuthorizationHeader` helpers.
@@ -306,10 +325,9 @@ export class TerminalGateway
   private async verifyToken(
     client: Socket,
     token: string,
-  ): Promise<string | null> {
+  ): Promise<IBetterAuthVerifiedClaims | null> {
     try {
-      const { sub } = await this.getBetterAuthVerifier().verify(token);
-      return sub;
+      return await this.getBetterAuthVerifier().verify(token);
     } catch (error: unknown) {
       this.logger.warn('Failed to verify local terminal socket token', {
         error: error instanceof Error ? error.message : String(error),
