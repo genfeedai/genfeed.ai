@@ -2,6 +2,10 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { STORYBOARD_RUN_CONTRACT } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { parseStoryboardRunId } from '@genfeedai/contracts/api-types/contracts/storyboard-still.contract';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import type { IStoryboardNotificationContext } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -65,7 +69,11 @@ export class StoryboardNotificationContextService {
       return {
         layoutPath:
           orgSlug && brandSlug
-            ? `/${encodeURIComponent(orgSlug)}/${encodeURIComponent(brandSlug)}/storyboard/${encodeURIComponent(runId)}`
+            ? createBrandAppRoute(
+                encodeURIComponent(orgSlug),
+                encodeURIComponent(brandSlug),
+                `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(runId)}`,
+              )
             : undefined,
         runId,
         title,

@@ -1,6 +1,9 @@
 import type {
   McpCard,
   McpCardAction,
+  McpCardFact,
+  McpCardKind,
+  McpCardMetric,
   McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 import type { ImgHTMLAttributes, ReactNode } from 'react';
@@ -76,4 +79,21 @@ export interface CardImageProps
   quality?: number | string;
   src: string;
   unoptimized?: boolean;
+}
+export interface StatusBadgeProps {
+  /** Product status or role ('scheduled', 'needs_review', 'Admin'). */
+  status: string;
+  /** Replaces the status's default label. */
+  label?: string;
+}
+export interface KindBadgeProps {
+  kind: McpCardKind;
+  /** Shown as "×N" when more than one. */
+  count?: number;
+}
+export interface FactValueProps {
+  fact: McpCardFact;
+}
+export interface MetricListProps {
+  metrics: McpCardMetric[];
 }

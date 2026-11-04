@@ -3,6 +3,8 @@ import {
   type ClaimedBotCallbackContext,
 } from '@api/services/bot-gateway/services/bot-callback-context.service';
 import { BotPlatformAdapterRegistryService } from '@api/services/bot-gateway/services/bot-platform-adapter-registry.service';
+import { IngredientCategory } from '@genfeedai/contracts';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { IBotPlatformAdapter } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -72,8 +74,11 @@ export class BotCallbackResponderService {
   ): string | undefined {
     const appUrl = this.configService.get('GENFEEDAI_APP_URL');
     if (!appUrl) return undefined;
-    const category = mediaType === 'image' ? 'Image' : 'Video';
-    return `${appUrl}/ingredients/${category}/${ingredientId}`;
+    const category =
+      mediaType === 'image'
+        ? IngredientCategory.IMAGE
+        : IngredientCategory.VIDEO;
+    return `${appUrl}${createLibraryAssetRoute(category, ingredientId)}`;
   }
 
   /**

@@ -10,6 +10,7 @@ import type {
   McpCalendarDay,
   McpCard,
   McpCardAction,
+  McpCardKind,
   McpCardMedia,
   McpCardView,
   McpOrganizationSwitcher,
@@ -27,6 +28,12 @@ import type {
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import { CardBoundary } from '@mcp/ui/card-boundary';
+import {
+  FactValue,
+  KindBadge,
+  MetricList,
+  StatusBadge,
+} from '@mcp/ui/card-parts';
 import uiMessages from '@preview-messages/ui';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -57,6 +64,12 @@ import { Progress } from '@ui/primitives/progress';
 import { SelectField } from '@ui/primitives/select';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import {
+  CalendarCheck,
+  CalendarClock,
+  CalendarOff,
+  FilePen,
+} from 'lucide-react';
 import Image from 'next/image';
 import { NextIntlClientProvider } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -158,11 +171,57 @@ function card(value: unknown): McpCard | undefined {
           ['image', 'video', 'audio'].includes(text(kind)),
         )
       : undefined,
+    hasAvatar: row.hasAvatar === true,
     facts: Array.isArray(row.facts)
       ? row.facts.slice(0, 12).flatMap((value) => {
           const item = record(value);
           return text(item.label) && text(item.value)
-            ? [{ label: text(item.label), value: text(item.value) }]
+            ? [
+                {
+                  label: text(item.label),
+                  value: text(item.value),
+                  status: text(item.status) || undefined,
+                  items: Array.isArray(item.items)
+                    ? item.items.slice(0, 50).flatMap((entry) => {
+                        const chip = record(entry);
+                        return text(chip.label)
+                          ? [
+                              {
+                                label: text(chip.label),
+                                avatarUrl: safeUrl(chip.avatarUrl),
+                                platform: text(chip.platform) || undefined,
+                                status: text(chip.status) || undefined,
+                              },
+                            ]
+                          : [];
+                      })
+                    : undefined,
+                },
+              ]
+            : [];
+        })
+      : undefined,
+    metrics: Array.isArray(row.metrics)
+      ? row.metrics.slice(0, 6).flatMap((value) => {
+          const item = record(value);
+          const trend = record(item.trend);
+          return text(item.label) && text(item.value)
+            ? [
+                {
+                  label: text(item.label),
+                  value: text(item.value),
+                  isPrimary: item.isPrimary === true,
+                  trend: ['up', 'down', 'flat'].includes(text(trend.direction))
+                    ? {
+                        direction: text(trend.direction) as
+                          | 'up'
+                          | 'down'
+                          | 'flat',
+                        label: text(trend.label),
+                      }
+                    : undefined,
+                },
+              ]
             : [];
         })
       : undefined,
@@ -213,6 +272,7 @@ function readView(result: unknown): McpCardView | undefined {
     organizations: readOrganizations(view.organizations),
     cards: cards(view.cards),
     title: text(view.title) || 'Genfeed content',
+    isCountHidden: view.isCountHidden === true,
     total:
       typeof view.total === 'number' && Number.isFinite(view.total)
         ? Math.max(0, view.total)
@@ -405,11 +465,14 @@ function SummaryCard({
     (mediaUrl(avatar, bridge.origins) || isAccountAvatarOrigin(new URL(avatar)))
       ? avatar
       : undefined;
-  const hasIdentity = Boolean(item.actions?.length || item.avatarUrl);
+  const hasIdentity = Boolean(
+    item.actions?.length || item.avatarUrl || item.hasAvatar,
+  );
   const handle = item.facts?.find((fact) => fact.label === 'Handle')?.value;
   const facts = (item.facts || []).filter(
     (fact) => !hasIdentity || fact.label !== 'Handle',
   );
+  const metrics = item.metrics ?? [];
   return (
     <article className="content-card min-w-0">
       <Card
@@ -435,11 +498,7 @@ function SummaryCard({
           hasIdentity && handle ? `@${handle.replace(/^@/, '')}` : undefined
         }
         headerAction={
-          item.status ? (
-            <Badge variant="outline" className="status shrink-0">
-              {item.status}
-            </Badge>
-          ) : undefined
+          item.status ? <StatusBadge status={item.status} /> : undefined
         }
         actions={
           item.actions?.length
@@ -464,13 +523,21 @@ function SummaryCard({
         {item.description && (
           <Description content={item.description} bridge={bridge} />
         )}
+        {metrics.length ? <MetricList metrics={metrics} /> : null}
         {facts.length ? (
           <DefinitionList variant="compact" className="facts">
             {facts.map((fact) => (
-              <div key={fact.label} className="flex flex-wrap gap-x-2">
+              <div
+                key={fact.label}
+                className={
+                  fact.items?.length
+                    ? 'flex flex-col gap-1.5'
+                    : 'flex flex-wrap items-center gap-x-2 gap-y-1'
+                }
+              >
                 <DefinitionTerm>{fact.label}</DefinitionTerm>
-                <DefinitionDetail className="break-words">
-                  {fact.value}
+                <DefinitionDetail className="min-w-0">
+                  <FactValue fact={fact} />
                 </DefinitionDetail>
               </div>
             ))}
@@ -498,6 +565,9 @@ function CardPreview({
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result resets the media error state.
   useEffect(() => setFailed(false), [item]);
   const isPost = current.kind === 'post';
+  const isJobFailed = ['failed', 'error', 'cancelled', 'canceled'].includes(
+    current.status.toLowerCase(),
+  );
   const isMedia = ['image', 'video', 'audio', 'media'].includes(current.kind);
   const source =
     mediaUrl(current.url, bridge.origins) ||
@@ -620,20 +690,25 @@ function CardPreview({
               onError={() => setFailed(true)}
             />
           ))}
-        {attachments.size > 0 && (
-          <div className="attachments flex flex-wrap gap-2">
-            {[...attachments].map(([kind, count]) => (
-              <Badge key={kind} variant="outline">
-                {kind.charAt(0).toUpperCase() + kind.slice(1)}
-                {count > 1 ? ` ×${count}` : ''}
-              </Badge>
-            ))}
+        {(attachments.size > 0 || when) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {attachments.size > 0 && (
+              <div className="attachments flex flex-wrap gap-2">
+                {[...attachments].map(([kind, count]) => (
+                  <KindBadge
+                    key={kind}
+                    kind={kind as McpCardKind}
+                    count={count}
+                  />
+                ))}
+              </div>
+            )}
+            {when && (
+              <Text size="xs" color="muted">
+                {when}
+              </Text>
+            )}
           </div>
-        )}
-        {when && (
-          <Text size="xs" color="muted">
-            {when}
-          </Text>
         )}
         {failed && (
           <Text as="p" size="sm" color="muted" className="notice">
@@ -678,11 +753,14 @@ function CardPreview({
         isLabelWrapped
         isHeaderInside
         headerAction={
-          !isMedia && current.status ? (
-            <Badge variant="outline" className="status">
-              {current.status}
-            </Badge>
-          ) : undefined
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {isMedia ? <KindBadge kind={current.kind} /> : null}
+            {current.status && !current.isPending ? (
+              <StatusBadge status={current.status} />
+            ) : current.isPending ? (
+              <StatusBadge status="processing" />
+            ) : null}
+          </div>
         }
       >
         {current.isPending ? (
@@ -704,7 +782,7 @@ function CardPreview({
                 : 'This preview updates when the job finishes.'}
             </Text>
           </div>
-        ) : isMedia && !failed ? (
+        ) : isMedia && !failed && !isJobFailed ? (
           <div className="media-preview overflow-hidden rounded-lg bg-muted/40">
             {current.kind === 'media' ? (
               <Text as="p" size="sm" color="muted">
@@ -738,9 +816,7 @@ function CardPreview({
         )}
         {!isPost && !isMedia && (
           <div className="meta flex flex-wrap items-center gap-2">
-            <Badge variant="outline">
-              {current.kind.charAt(0).toUpperCase() + current.kind.slice(1)}
-            </Badge>
+            <KindBadge kind={current.kind} />
             {current.platform && <PlatformBadge platform={current.platform} />}
             {when && (
               <Text size="xs" color="muted">
@@ -749,27 +825,16 @@ function CardPreview({
             )}
           </div>
         )}
-        {isMedia &&
-          !current.isPending &&
-          current.status &&
-          ![
-            'generated',
-            'completed',
-            'ready',
-            'uploaded',
-            'validated',
-          ].includes(current.status.toLowerCase()) && (
-            <Text as="p" size="sm" color="muted">
-              {current.status}
-            </Text>
-          )}
+        {isMedia && !current.isPending && isJobFailed && (
+          <Text as="p" size="sm" color="muted" className="notice">
+            This job did not produce a file. Ask for the job status again or
+            start a new generation.
+          </Text>
+        )}
         {attachments.size > 0 && (
           <div className="attachments flex flex-wrap gap-2">
             {[...attachments].map(([kind, count]) => (
-              <Badge key={kind} variant="outline">
-                {kind.charAt(0).toUpperCase() + kind.slice(1)}
-                {count > 1 ? ` ×${count}` : ''}
-              </Badge>
+              <KindBadge key={kind} kind={kind as McpCardKind} count={count} />
             ))}
           </div>
         )}
@@ -1034,8 +1099,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
               {view?.title || 'Genfeed content'}
             </Heading>
             {view &&
-              ['cards', 'organizations'].includes(view.layout) &&
-              view.total > 1 && <Badge variant="outline">{view.total}</Badge>}
+              ['cards', 'organizations', 'posts'].includes(view.layout) &&
+              !view.isCountHidden &&
+              view.total > 1 && <Badge value={view.total} variant="outline" />}
           </div>
           <Text size="xs" color="muted">
             GENFEED
@@ -1043,14 +1109,16 @@ function Preview({ result, notice, bridge }: PreviewProps) {
         </header>
         {view?.layout === 'calendar' && (
           <div id="summary" className="mb-3 flex flex-wrap gap-2">
-            <Badge variant="outline">{view.total} scheduled</Badge>
-            <Badge variant="outline">
+            <Badge variant="info" icon={<CalendarClock />}>
+              {view.total} scheduled
+            </Badge>
+            <Badge variant="warning" icon={<CalendarOff />}>
               {days.filter((day) => !day.posts.length).length} open{' '}
               {days.filter((day) => !day.posts.length).length === 1
                 ? 'day'
                 : 'days'}
             </Badge>
-            <Badge variant="outline">
+            <Badge variant="secondary" icon={<FilePen />}>
               {view.calendar?.draftsCount || 0}{' '}
               {(view.calendar?.draftsCount || 0) === 1 ? 'draft' : 'drafts'}
             </Badge>
@@ -1117,7 +1185,9 @@ function Preview({ result, notice, bridge }: PreviewProps) {
                     bodyClassName="min-h-24"
                     headerAction={
                       day.date === localDayKey(new Date()) ? (
-                        <Badge variant="outline">Today</Badge>
+                        <Badge variant="info" icon={<CalendarCheck />}>
+                          Today
+                        </Badge>
                       ) : undefined
                     }
                     label={parseDay(day.date).toLocaleDateString(undefined, {

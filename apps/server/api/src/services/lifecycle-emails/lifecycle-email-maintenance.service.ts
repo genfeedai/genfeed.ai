@@ -13,7 +13,12 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
-import { getLifecycleSystemEmailDefinition } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+  getLifecycleSystemEmailDefinition,
+} from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BillingAccountMemberRole, Prisma } from '@genfeedai/prisma';
 import {
@@ -483,7 +488,13 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const organizationPath = encodeURIComponent(organizationSlug);
     return {
       destinationUrl: destinationBrand
-        ? `${this.appUrl()}/${organizationPath}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/connected-accounts' : 'playground'}`
+        ? `${this.appUrl()}${createBrandAppRoute(
+            organizationPath,
+            encodeURIComponent(destinationBrand.slug),
+            missingConnection
+              ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
+              : APP_ROUTES.STUDIO.PLAYGROUND,
+          )}`
         : `${this.appUrl()}/${organizationPath}`,
       missingConnection,
     };
@@ -562,7 +573,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           'You have generated content waiting for a publishing destination.',
           'Connect an account to review and publish it from Genfeed.',
         ],
-        destinationUrl: `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(brand.slug)}/settings/connected-accounts`,
+        destinationUrl: `${this.appUrl()}${createBrandAppRoute(encodeURIComponent(organizationSlug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}`,
         actionLabel: 'Connect an account',
         goal: 'connect_account',
         brandId: item.brandId,
@@ -670,7 +681,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         `You have ${Math.max(0, spendable).toLocaleString('en-US')} credits available after current generation reservations.`,
         'Add credits to keep creating content.',
       ],
-      destinationUrl: `${this.appUrl()}/${encodeURIComponent(organization.slug)}/~/settings/credits`,
+      destinationUrl: `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organization.slug), APP_ROUTES.SETTINGS.CREDITS)}`,
       actionLabel: 'Add credits',
       goal: 'buy_credits',
       ...(lowCreditThreshold === null ? {} : { lowCreditThreshold }),

@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/services/billing-account-metadata.constant';
+import { applyCheckoutPromotion } from '@api/services/integrations/stripe/services/stripe-checkout-promotion.util';
 import {
   classifyStripeFailure,
   isStripeResourceMissingError,
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
-import { applyCheckoutPromotion } from '@api/services/integrations/stripe/services/stripe-checkout-promotion.util';
 import { StripeUpcomingInvoiceError } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import {
   assertUpcomingInvoiceRequest,
@@ -20,6 +20,7 @@ import {
   isProductionCloudFromReader,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   creditPackTotalCredits,
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
@@ -558,7 +559,8 @@ export class StripeService {
           enabled: true,
         },
         cancel_url:
-          cancelUrl || `${this.configService.get('GENFEEDAI_APP_URL')}/credits`,
+          cancelUrl ||
+          `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.SETTINGS.CREDITS}`,
         customer_creation: 'always',
         customer_email: email,
         line_items: [
@@ -572,7 +574,7 @@ export class StripeService {
         allowed_payment_method_types: ['card'],
         success_url:
           successUrl ||
-          `${this.configService.get('GENFEEDAI_APP_URL')}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
+          `${this.configService.get('GENFEEDAI_APP_URL')}${APP_ROUTES.SETTINGS.CREDITS}?credits=success&session_id={CHECKOUT_SESSION_ID}`,
         tax_id_collection: {
           enabled: true,
         },
@@ -903,19 +905,13 @@ export class StripeService {
       if (redirectUrls?.success) {
         sessionConfig.success_url = redirectUrls.success;
       } else {
-        sessionConfig.success_url =
-          origin === this.configService.get('GENFEEDAI_APP_URL')
-            ? `${origin}/welcome/subscribe/success`
-            : `${origin}/billing`;
+        sessionConfig.success_url = `${origin}${APP_ROUTES.SETTINGS.SUBSCRIPTION}`;
       }
 
       if (redirectUrls?.cancel) {
         sessionConfig.cancel_url = redirectUrls.cancel;
       } else {
-        sessionConfig.cancel_url =
-          origin === this.configService.get('GENFEEDAI_APP_URL')
-            ? `${origin}/welcome/subscribe/cancel`
-            : `${origin}/billing`;
+        sessionConfig.cancel_url = `${origin}${APP_ROUTES.SETTINGS.SUBSCRIPTION}`;
       }
 
       const session = await this.stripe.checkout.sessions.create(sessionConfig);

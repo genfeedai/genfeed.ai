@@ -19,6 +19,10 @@ import { EmailPerformanceService } from '@api/services/email-performance/email-p
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
+import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
@@ -155,8 +159,8 @@ export class EmailDigestService {
     const appUrl = (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
     ).replace(/\/$/, '');
-    const destinationUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/${encodeURIComponent(brand.slug)}/library/assets`;
-    const corpusUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/${encodeURIComponent(brand.slug)}/settings/knowledge`;
+    const destinationUrl = `${appUrl}${createBrandAppRoute(encodeURIComponent(organization.slug), encodeURIComponent(brand.slug), APP_ROUTES.LIBRARY.ASSETS)}`;
+    const corpusUrl = `${appUrl}${createBrandAppRoute(encodeURIComponent(organization.slug), encodeURIComponent(brand.slug), APP_ROUTES.SETTINGS.KNOWLEDGE)}`;
     const summary = await this.performanceSummaryService.getWeeklySummary(
       options.organizationId,
       options.brandId,
