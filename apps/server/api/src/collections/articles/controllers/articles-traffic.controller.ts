@@ -1,11 +1,13 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticleTrafficQueryDto } from '@api/collections/articles/dto/article-traffic-query.dto';
 import { ArticleTrafficService } from '@api/collections/articles/services/article-traffic.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { ArticleTraffic } from '@genfeedai/contracts/interfaces/content/article-traffic.interface';
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 
@@ -17,6 +19,7 @@ export class ArticlesTrafficController {
 
   @TenantReadPolicy('selected')
   @Get(':articleId/website-traffic')
+  @RequiredScopes(ApiKeyScope.ARTICLES_READ)
   getTraffic(
     @CurrentUser() user: AuthenticatedUser,
     @Param('articleId') articleId: string,
