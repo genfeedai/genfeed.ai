@@ -175,7 +175,9 @@ export class AdminWarmupAccountsService {
   }
 
   async inspectInvitation(id: string): Promise<WarmupAccountView> {
-    const account = await this.getAccount(id);
+    const account = await this.settleFailedStarterGeneration(
+      await this.getAccount(id),
+    );
     const invitation = await this.loadInvitation(account);
 
     const previews = await this.contentPreviews.listForWarmups([account.id]);
@@ -486,6 +488,93 @@ export class AdminWarmupAccountsService {
           ),
         ),
       },
+    });
+  }
+
+  /**
+   * A starter-article workflow that failed leaves `generation.status` at
+   * `running` until an operator runs repair. Settle it on read so the warm-up
+   * shows the failure and its reason without a manual repair.
+   */
+  private async settleFailedStarterGeneration(
+    account: WarmupAccount,
+  ): Promise<WarmupAccount> {
+    const generation = (
+      account.diagnostics as unknown as IWarmupAccountDiagnostics
+    ).preparation?.generation;
+    if (
+      generation?.status !== 'running' ||
+      !account.organizationId ||
+      account.status === WarmupAccountStatus.CLAIMED ||
+      account.status === WarmupAccountStatus.ARCHIVED
+    ) {
+      return account;
+    }
+    const organizationId = account.organizationId;
+
+    return this.prisma.$transaction(async (tx) => {
+      await lockWarmup(tx, account.id);
+      const current = await tx.warmupAccount.findFirst({
+        where: scopedWhere(organizationId, { id: account.id }),
+      });
+      const running = (
+        current?.diagnostics as unknown as IWarmupAccountDiagnostics | undefined
+      )?.preparation?.generation;
+      if (!current || running?.status !== 'running') return current ?? account;
+
+      const execution = await tx.workflowExecution.findFirst({
+        where: {
+          idempotencyKey: running.key,
+          isDeleted: false,
+          organizationId,
+          status: { in: ['FAILED', 'CANCELLED'] },
+        },
+        select: {
+          error: true,
+          failedNodeId: true,
+          id: true,
+          nodeResults: {
+            select: { error: true, nodeId: true },
+            where: { error: { not: null } },
+          },
+          status: true,
+        },
+      });
+      if (!execution) return current;
+
+      const nodeError = execution.nodeResults.find(
+        (node) => node.nodeId === execution.failedNodeId,
+      )?.error;
+      const reason =
+        execution.error ??
+        nodeError ??
+        `Starter article workflow ${execution.status.toLowerCase()}`;
+      const diagnostics =
+        current.diagnostics as unknown as IWarmupAccountDiagnostics;
+      const message = `Starter article generation failed: ${reason}`;
+
+      return tx.warmupAccount.update({
+        data: {
+          diagnostics: toPrismaJson({
+            ...diagnostics,
+            error: message,
+            preparation: {
+              ...diagnostics.preparation,
+              generation: {
+                ...running,
+                error: reason,
+                status: 'failed',
+                workflowExecutionId: execution.id,
+              },
+            },
+            steps: [
+              ...(diagnostics.steps ?? []),
+              createDiagnosticStep('failed', message),
+            ],
+          }),
+        },
+        where: scopedWhere(organizationId, { id: account.id }),
+      });
     });
   }
 

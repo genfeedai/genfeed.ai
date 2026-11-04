@@ -344,6 +344,75 @@ describe('AdminWarmupAccountsService', () => {
     expect(JSON.stringify(result)).not.toContain('should-never-leak');
   });
 
+  describe('stuck starter generation', () => {
+    const runningDiagnostics = {
+      preparation: {
+        generation: {
+          key: 'warmup:warmup_1:starter-article',
+          startedAt: '2026-11-01T18:47:00.000Z',
+          status: 'running',
+        },
+      },
+      steps: [],
+    };
+
+    function arrange(execution: unknown) {
+      const account = makeWarmupAccount({ diagnostics: runningDiagnostics });
+      prisma.warmupAccount.findFirst.mockResolvedValue(account);
+      Object.assign(tx.warmupAccount, {
+        findFirst: vi.fn().mockResolvedValue(account),
+        update: vi.fn(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({ ...account, ...data }),
+        ),
+      });
+      Object.assign(tx, {
+        workflowExecution: {
+          findFirst: vi.fn().mockResolvedValue(execution),
+        },
+      });
+      return tx.warmupAccount.update;
+    }
+
+    it('marks a running generation failed and shows the workflow error', async () => {
+      const update = arrange({
+        error: null,
+        failedNodeId: 'load-context',
+        id: 'exec_1',
+        nodeResults: [
+          {
+            error:
+              "Template with identifier 'prompt.article.generate' not found",
+            nodeId: 'load-context',
+          },
+        ],
+        status: 'FAILED',
+      });
+
+      const result = await service.inspectInvitation('warmup_1');
+
+      expect(update).toHaveBeenCalledOnce();
+      expect(result.diagnostics.preparation?.generation).toMatchObject({
+        error: "Template with identifier 'prompt.article.generate' not found",
+        status: 'failed',
+        workflowExecutionId: 'exec_1',
+      });
+      expect(result.diagnostics.error).toContain(
+        'Starter article generation failed',
+      );
+    });
+
+    it('leaves a generation running while its workflow has not failed', async () => {
+      const update = arrange(null);
+
+      const result = await service.inspectInvitation('warmup_1');
+
+      expect(update).not.toHaveBeenCalled();
+      expect(result.diagnostics.preparation?.generation?.status).toBe(
+        'running',
+      );
+    });
+  });
+
   it('sends a pending invitation and records the dispatch', async () => {
     const account = makeWarmupAccount({
       invitationId: 'invite_1',

@@ -116,6 +116,8 @@ export interface IWarmupPreparation {
     workflowExecutionId?: string;
     assetCandidateId?: string;
     prompt?: string;
+    /** Why the starter workflow failed; set when `status` is `failed`. */
+    error?: string;
   };
   claimedAt?: string;
   preparationCredits?: number;

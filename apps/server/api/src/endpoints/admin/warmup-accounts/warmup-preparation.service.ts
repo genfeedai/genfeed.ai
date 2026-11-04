@@ -572,6 +572,7 @@ export class WarmupPreparationService {
           articleId,
           generation: {
             ...next.generation,
+            error: undefined,
             workflowExecutionId: execution.id,
             status: 'completed',
           },
@@ -580,10 +581,17 @@ export class WarmupPreparationService {
         execution?.status === 'FAILED' ||
         execution?.status === 'CANCELLED'
       ) {
+        const failedNode = execution.nodeResults.find(
+          (node) => node.nodeId === execution.failedNodeId,
+        );
         next = {
           ...next,
           generation: {
             ...next.generation,
+            error:
+              execution.error ??
+              failedNode?.error ??
+              `Starter article workflow ${execution.status.toLowerCase()}`,
             workflowExecutionId: execution.id,
             status: 'failed',
           },
