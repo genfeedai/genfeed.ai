@@ -2,7 +2,6 @@ import type {
   McpCard,
   McpCardAction,
   McpCardFact,
-  McpCardKind,
   McpCardMetric,
   McpOrganizationSwitcher,
 } from '@mcp/shared/interfaces/mcp-app.interface';
@@ -30,6 +29,8 @@ export interface CardPreviewProps {
   item: McpCard;
   bridge: PreviewBridge;
   openImage(src: string, title: string, trigger: HTMLElement): void;
+  /** Opens an article's full text in the reader. */
+  openArticle(title: string, content: string, trigger: HTMLElement): void;
   /** The brand the user picked in this view, if any. */
   selectedId?: string;
   /** Decisions taken on queued approvals in this view, by approval id. */
@@ -48,14 +49,33 @@ export interface SummaryCardProps {
   resolvedDecision?: 'approve' | 'decline';
   when: string;
 }
+/** What the lightbox shows: an image, or an article's full text. */
 export interface ImagePreview {
-  src: string;
+  src?: string;
+  content?: string;
   title: string;
   trigger: HTMLElement;
 }
 export interface MediaPreviewProps
   extends Pick<CardPreviewProps, 'bridge' | 'item' | 'openImage'> {
   onError(): void;
+  /** Fills a sized media tile instead of keeping the file's own size. */
+  isFill?: boolean;
+}
+export interface IconActionProps {
+  label: string;
+  icon: ReactNode;
+  /** Opens this address through the host; otherwise the action runs `onClick`. */
+  url?: string;
+  bridge: PreviewBridge;
+  onClick?(trigger: HTMLElement): void;
+}
+export interface BrandListProps {
+  items: McpCard[];
+  bridge: PreviewBridge;
+  isActionPending: boolean;
+  selectedId: string;
+  onAction(action: McpCardAction): void;
 }
 export interface DescriptionProps {
   content: string;
@@ -89,11 +109,6 @@ export interface StatusBadgeProps {
   status: string;
   /** Replaces the status's default label. */
   label?: string;
-}
-export interface KindBadgeProps {
-  kind: McpCardKind;
-  /** Shown as "×N" when more than one. */
-  count?: number;
 }
 export interface FactValueProps {
   fact: McpCardFact;

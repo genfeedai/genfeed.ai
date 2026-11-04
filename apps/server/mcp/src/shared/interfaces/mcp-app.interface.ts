@@ -83,6 +83,8 @@ export interface McpCard {
   id: string;
   title: string;
   description: string;
+  /** An article's full text, for the reader. */
+  body?: string;
   kind: McpCardKind;
   status: string;
   platform: string;

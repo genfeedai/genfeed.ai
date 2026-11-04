@@ -229,6 +229,9 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       : {}),
     ...(isPending ? { isPending, progress: progress(row) } : {}),
     ...(isPending && stage ? { stage } : {}),
+    ...(resolvedKind === 'article' && text(row, 'content')
+      ? { body: text(row, 'content').slice(0, 60000) }
+      : {}),
     date: text(row, 'scheduledDate', 'scheduledAt', 'publishedAt', 'createdAt'),
     description: text(
       row,
@@ -592,6 +595,7 @@ function channelLabel(platform: string, label = ''): string {
 /** A readiness check as a status badge: tone from the result, wording its own. */
 function checkFact(label: string, result: unknown): McpCardFact[] {
   const status = typeof result === 'string' ? result.toLowerCase() : '';
+  if (!status) return [];
   if (status === 'pass') {
     return [{ label, status: 'completed', value: 'Passed' }];
   }
@@ -630,27 +634,33 @@ function readinessCard(row: Record<string, unknown>): McpCard {
     diagnostics.find((item) => text(item, 'severity') === 'warning') ??
     diagnostics[0];
   const providerKey = text(row, 'providerKey');
+  const checks = [
+    ...checkFact('Access token', row.tokenFreshness),
+    ...checkFact('Permissions', row.permissionScopeStatus),
+    ...checkFact('Callback URL', row.callbackUrlStatus),
+    ...checkFact('App review', row.appReviewStatus),
+    ...checkFact('Quota', row.quotaStatus),
+  ];
+  // Passed checks fold into one line; only what holds the channel back is listed.
+  const open = checks.filter((check) => check.status !== 'completed');
   return summaryCard(
     channelLabel(providerKey),
     [
-      ...(typeof row.canSchedule === 'boolean'
-        ? [
-            {
-              label: 'Scheduling',
-              status: row.canSchedule ? 'completed' : 'blocked',
-              value: row.canSchedule ? 'Allowed' : 'Blocked',
-            },
-          ]
+      ...(row.canSchedule === false
+        ? [{ label: 'Scheduling', status: 'blocked', value: 'Blocked' }]
         : []),
-      ...checkFact('Access token', row.tokenFreshness),
-      ...checkFact('Permissions', row.permissionScopeStatus),
-      ...checkFact('Callback URL', row.callbackUrlStatus),
-      ...checkFact('App review', row.appReviewStatus),
-      ...checkFact('Quota', row.quotaStatus),
-      ...fact(
-        'Last successful check',
-        utcStamp(text(row, 'lastSuccessfulValidationAt')),
-      ),
+      ...(open.length
+        ? open
+        : checks.length
+          ? [
+              {
+                label: 'Checks',
+                status: 'completed',
+                value: `All ${checks.length} passed`,
+              },
+            ]
+          : []),
+      ...fact('Last check', utcStamp(text(row, 'lastSuccessfulValidationAt'))),
     ],
     {
       description:

@@ -1,6 +1,5 @@
 import type {
   FactValueProps,
-  KindBadgeProps,
   MetricListProps,
   StatusBadgeProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
@@ -11,17 +10,13 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {
   Eye,
-  FileText,
-  ImageIcon,
   Info,
   type LucideIcon,
   Minus,
-  Music,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
   User,
-  Video,
 } from 'lucide-react';
 
 /**
@@ -37,16 +32,6 @@ const STATUS_ICONS: Readonly<Record<string, LucideIcon>> = {
   owner: ShieldCheck,
   user: User,
   viewer: User,
-};
-
-const KIND_ICONS: Readonly<Record<string, LucideIcon>> = {
-  article: FileText,
-  audio: Music,
-  image: ImageIcon,
-  media: ImageIcon,
-  post: FileText,
-  summary: Info,
-  video: Video,
 };
 
 /**
@@ -74,18 +59,6 @@ export function StatusBadge({ label, status }: StatusBadgeProps) {
   return (
     <Badge status={alias?.status ?? key} icon={<Icon />} className="shrink-0">
       {label ?? alias?.label}
-    </Badge>
-  );
-}
-
-/** What a piece of content is: image, video, audio, article. */
-export function KindBadge({ count = 1, kind }: KindBadgeProps) {
-  const Icon = KIND_ICONS[kind] ?? FileText;
-  return (
-    <Badge status={kind === 'summary' ? 'info' : kind} icon={<Icon />}>
-      {count > 1
-        ? `${kind.charAt(0).toUpperCase()}${kind.slice(1)} ×${count}`
-        : undefined}
     </Badge>
   );
 }

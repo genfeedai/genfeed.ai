@@ -241,7 +241,12 @@ describe('MCP Apps card contract', () => {
       variations: [{ content: 'Unrelated caption' }],
     };
     expect(buildCardView('generate_content', data)?.cards).toMatchObject([
-      { description: 'Article body', kind: 'article', title: 'Article title' },
+      {
+        body: 'Article body',
+        description: 'Article body',
+        kind: 'article',
+        title: 'Article title',
+      },
     ]);
     expect(buildCardView('create_post', data)?.cards).toMatchObject([
       { description: 'Article body', kind: 'post', title: 'Article title' },
@@ -810,14 +815,32 @@ describe('MCP Apps card contract', () => {
       status: 'blocked',
       title: 'TikTok',
     });
-    expect(view?.cards[0].facts).toEqual(
-      expect.arrayContaining([
-        { label: 'Scheduling', status: 'blocked', value: 'Blocked' },
-        { label: 'Access token', status: 'failed', value: 'Failed' },
-        { label: 'Callback URL', status: 'completed', value: 'Passed' },
-        { label: 'Quota', status: 'unknown', value: 'Unknown' },
-      ]),
-    );
+    expect(view?.cards[0].facts).toEqual([
+      { label: 'Scheduling', status: 'blocked', value: 'Blocked' },
+      { label: 'Access token', status: 'failed', value: 'Failed' },
+      { label: 'Quota', status: 'unknown', value: 'Unknown' },
+    ]);
+  });
+
+  it('folds a channel whose checks all passed into one line', () => {
+    expect(
+      buildCardView('get_brand_publishing_readiness', [
+        {
+          appReviewStatus: 'pass',
+          callbackUrlStatus: 'pass',
+          canSchedule: true,
+          lastSuccessfulValidationAt: '2026-11-04T14:10:00.000Z',
+          permissionScopeStatus: 'pass',
+          providerKey: 'instagram',
+          quotaStatus: 'pass',
+          state: 'publish_capable',
+          tokenFreshness: 'pass',
+        },
+      ])?.cards[0].facts,
+    ).toEqual([
+      { label: 'Checks', status: 'completed', value: 'All 5 passed' },
+      { label: 'Last check', value: '2026-11-04 14:10 UTC' },
+    ]);
   });
 
   it('falls back to the first diagnostic when no action is required', () => {
