@@ -119,6 +119,35 @@ describe('VideoPlayer', () => {
     ).toBeInTheDocument();
   });
 
+  it('centres the play button on the poster while paused and moves it to the footer to pause', () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<VideoPlayer src="https://cdn.test/video.mp4" />);
+    const video = screen.getByLabelText('Video player');
+    const footer = screen.getByRole('group', { name: 'Video controls' });
+
+    const centrePlay = screen.getByRole('button', { name: 'Play video' });
+    expect(footer).not.toContainElement(centrePlay);
+    expect(screen.queryByRole('button', { name: 'Pause video' })).toBeNull();
+
+    fireEvent.play(video);
+
+    expect(screen.queryByRole('button', { name: 'Play video' })).toBeNull();
+    expect(footer).toContainElement(
+      screen.getByRole('button', { name: 'Pause video' }),
+    );
+  });
+
+  it('shows elapsed and total time as m:ss / m:ss like the audio player', () => {
+    render(<VideoPlayer src="https://cdn.test/video.mp4" />);
+    const video = screen.getByLabelText('Video player') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { configurable: true, value: 75 });
+    fireEvent.loadedMetadata(video);
+    video.currentTime = 5;
+    fireEvent.timeUpdate(video);
+
+    expect(screen.getByText('0:05 / 1:15')).toBeInTheDocument();
+  });
+
   it('exposes seek duration, mute and fullscreen through shared controls', () => {
     render(<VideoPlayer src="https://cdn.test/video.mp4" />);
     const video = screen.getByLabelText('Video player') as HTMLVideoElement;
