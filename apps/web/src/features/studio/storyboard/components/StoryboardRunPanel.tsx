@@ -7,6 +7,7 @@ import {
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { formatSnakeCaseLabel } from '@helpers/formatting/format/format.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -23,12 +24,6 @@ import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-stor
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';
 import { resolvePairedRunIdentity } from '@/features/studio/storyboard/utils/storyboard-run';
 import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
-
-function formatLabel(value: string): string {
-  return value
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
 
 export default function StoryboardRunPanel({
   error,
@@ -86,9 +81,9 @@ export default function StoryboardRunPanel({
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length);
   const outputSummary = [
-    formatLabel(run.draft.target.kind),
-    formatLabel(run.draft.target.platform),
-    formatLabel(run.draft.output.kind),
+    formatSnakeCaseLabel(run.draft.target.kind),
+    formatSnakeCaseLabel(run.draft.target.platform),
+    formatSnakeCaseLabel(run.draft.output.kind),
     'aspectRatio' in run.draft.output
       ? run.draft.output.aspectRatio
       : undefined,
@@ -117,7 +112,7 @@ export default function StoryboardRunPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{formatLabel(run.phase)}</Badge>
+            <Badge variant="secondary">{formatSnakeCaseLabel(run.phase)}</Badge>
             <Badge variant="secondary">{run.brand.name}</Badge>
             <span className="text-xs text-muted-foreground">
               {translate('run.recipeRevision', {
@@ -176,7 +171,7 @@ export default function StoryboardRunPanel({
           <div className="space-y-1">
             <p className="font-medium">
               {translate('run.readinessTitle', {
-                state: formatLabel(run.readiness.state),
+                state: formatSnakeCaseLabel(run.readiness.state),
               })}
             </p>
             {run.readiness.issues.map((issue) => (
@@ -192,7 +187,9 @@ export default function StoryboardRunPanel({
         <dl className="grid gap-2 text-xs sm:grid-cols-2">
           {patternEntries.map(([key, value]) => (
             <div className="flex gap-2" key={key}>
-              <dt className="text-muted-foreground">{formatLabel(key)}</dt>
+              <dt className="text-muted-foreground">
+                {formatSnakeCaseLabel(key)}
+              </dt>
               <dd className="text-foreground">{value}</dd>
             </div>
           ))}
@@ -238,7 +235,8 @@ export default function StoryboardRunPanel({
             key={`${reference.assetId}:${reference.role}`}
             variant="secondary"
           >
-            {formatLabel(reference.role)} · {formatLabel(reference.source)}
+            {formatSnakeCaseLabel(reference.role)} ·{' '}
+            {formatSnakeCaseLabel(reference.source)}
           </Badge>
         ))}
       </div>
@@ -328,7 +326,7 @@ export default function StoryboardRunPanel({
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge variant="secondary">
-                    {formatLabel(variant.status)}
+                    {formatSnakeCaseLabel(variant.status)}
                   </Badge>
                   {variant.status === 'ready' &&
                   (variant.content || variant.assetIds.length > 0) ? (

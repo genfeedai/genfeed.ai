@@ -62,13 +62,13 @@
       "unstyled-look": 3
     },
     "apps/web/app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx": {
-      "button-restyle": 3
+      "button-restyle": 2
     },
     "apps/web/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx": {
       "unstyled-look": 1
     },
     "apps/web/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx": {
-      "button-restyle": 3
+      "button-restyle": 2
     },
     "apps/web/app/(onboarding)/onboarding/post-signup/PostSignupFallback.tsx": {
       "button-restyle": 1

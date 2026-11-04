@@ -1,4 +1,5 @@
 import type { SocialMediaSource } from '@genfeedai/contracts/interfaces';
+import { isHostOrSubdomain } from '../utils/host.util';
 
 export function getSafeExternalUrl(
   value: string | null | undefined,
@@ -10,10 +11,6 @@ export function getSafeExternalUrl(
   } catch {
     return null;
   }
-}
-
-function isHost(host: string, domain: string): boolean {
-  return host === domain || host.endsWith(`.${domain}`);
 }
 
 export function getSocialMediaSource(
@@ -31,9 +28,9 @@ export function getSocialMediaSource(
       const url = new URL(candidate);
       const host = url.hostname;
       if (
-        isHost(host, 'youtube.com') ||
+        isHostOrSubdomain(host, 'youtube.com') ||
         host === 'youtu.be' ||
-        isHost(host, 'youtube-nocookie.com')
+        isHostOrSubdomain(host, 'youtube-nocookie.com')
       ) {
         const id =
           host === 'youtu.be'
@@ -42,7 +39,7 @@ export function getSocialMediaSource(
               url.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1];
         if (id && /^[\w-]{11}$/.test(id))
           embedUrl = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${interactive ? 0 : 1}&playsinline=1&controls=${interactive ? 1 : 0}&rel=0`;
-      } else if (isHost(host, 'tiktok.com')) {
+      } else if (isHostOrSubdomain(host, 'tiktok.com')) {
         const id = url.pathname.match(/\/(?:video|player\/v1)\/(\d+)/)?.[1];
         if (id)
           embedUrl = `https://www.tiktok.com/player/v1/${id}?autoplay=1&muted=${interactive ? 0 : 1}&loop=${interactive ? 0 : 1}&controls=${interactive ? 1 : 0}&description=0&music_info=0`;
@@ -56,7 +53,7 @@ export function getSocialMediaSource(
           'linkedin.com',
           'reddit.com',
           'pinterest.com',
-        ].some((domain) => isHost(host, domain))
+        ].some((domain) => isHostOrSubdomain(host, domain))
       ) {
         directUrl = candidate;
       }

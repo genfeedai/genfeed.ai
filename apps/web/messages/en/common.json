@@ -435,6 +435,7 @@
     }
   },
   "onboarding": {
+    "current": "Current",
     "error": {
       "title": "Onboarding Error",
       "description": "Something went wrong during setup. Please try again."

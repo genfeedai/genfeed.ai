@@ -1,3 +1,5 @@
+import { isHostOrSubdomain } from '../../utils/host.util';
+
 function getUserAgent(): string {
   if (typeof navigator === 'undefined') {
     return '';
@@ -22,18 +24,6 @@ export function isiOSDevice(): boolean {
   return /iphone|ipad|ipod/i.test(getUserAgent());
 }
 
-/**
- * Exact-or-subdomain host match.
- *
- * `host.includes('tiktok.com')` also matches `tiktok.com.evil.example` and
- * `nottiktok.com`, so a lookalike host was rewritten into the real app's deep
- * link. The rewritten link hardcodes the genuine host, so this misroutes the
- * user rather than redirecting them — but it is still the wrong destination.
- */
-function isHost(host: string, domain: string): boolean {
-  return host === domain || host.endsWith(`.${domain}`);
-}
-
 function getYouTubeDeepLink(
   parsed: URL,
   isAndroid: boolean,
@@ -41,7 +31,7 @@ function getYouTubeDeepLink(
   const host = parsed.hostname;
   let videoId = '';
 
-  if (isHost(host, 'youtu.be')) {
+  if (isHostOrSubdomain(host, 'youtu.be')) {
     videoId = parsed.pathname.slice(1).split('?')[0];
   } else if (parsed.searchParams.has('v')) {
     videoId = parsed.searchParams?.get('v') ?? '';
@@ -206,23 +196,29 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     const host = parsed.hostname;
     const isAndroid = isAndroidDevice();
 
-    if (isHost(host, 'youtube.com') || isHost(host, 'youtu.be')) {
+    if (
+      isHostOrSubdomain(host, 'youtube.com') ||
+      isHostOrSubdomain(host, 'youtu.be')
+    ) {
       return getYouTubeDeepLink(parsed, isAndroid) ?? url;
     }
 
-    if (isHost(host, 'tiktok.com')) {
+    if (isHostOrSubdomain(host, 'tiktok.com')) {
       return getTikTokDeepLink(parsed, isAndroid) ?? url;
     }
 
-    if (isHost(host, 'instagram.com')) {
+    if (isHostOrSubdomain(host, 'instagram.com')) {
       return getInstagramDeepLink(parsed, isAndroid) ?? url;
     }
 
-    if (isHost(host, 'twitter.com') || isHost(host, 'x.com')) {
+    if (
+      isHostOrSubdomain(host, 'twitter.com') ||
+      isHostOrSubdomain(host, 'x.com')
+    ) {
       return getTwitterDeepLink(parsed, isAndroid) ?? url;
     }
 
-    if (isHost(host, 'linkedin.com')) {
+    if (isHostOrSubdomain(host, 'linkedin.com')) {
       return getLinkedInDeepLink(parsed, isAndroid) ?? url;
     }
   } catch {

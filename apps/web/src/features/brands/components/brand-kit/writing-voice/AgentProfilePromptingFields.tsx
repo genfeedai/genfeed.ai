@@ -7,6 +7,7 @@ import type {
   IBrandPromptSeed,
 } from '@genfeedai/contracts/interfaces';
 import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+import { parseCommaList } from '@helpers/utils/comma-list.util';
 import type { AgentProfilePromptingFieldsProps } from '@props/pages/brand-detail.props';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
@@ -26,13 +27,6 @@ const STARTER_LABEL_MAX = 32;
 const STARTER_PROMPT_MAX = 220;
 const TEXT_FIELD_MAX = 200;
 const PROMPT_INTENTS: BrandPromptIntent[] = ['create', 'plan', 'analyze'];
-
-function parseList(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 function createStarterId(): string {
   return `starter-${Date.now().toString(36)}-${Math.random()
@@ -162,7 +156,9 @@ export default function AgentProfilePromptingFields({
                   displayClassName="text-sm"
                   isDisabled={isDisabled}
                   onSave={(value) =>
-                    updateSeed(index, { preferredFormats: parseList(value) })
+                    updateSeed(index, {
+                      preferredFormats: parseCommaList(value),
+                    })
                   }
                   value={seed.preferredFormats.join(', ')}
                 />

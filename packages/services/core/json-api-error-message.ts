@@ -1,4 +1,5 @@
 import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
+import { parseHttpStatusCode } from '@genfeedai/utils/error/json-api-status.util';
 
 interface JsonApiErrorDocument {
   readonly errors?: unknown;
@@ -9,18 +10,6 @@ export interface JsonApiErrorMemberView {
   readonly detail?: string;
   readonly status?: number;
   readonly title?: string;
-}
-
-function parseHttpStatusCode(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && /^\d{3}$/.test(value.trim())) {
-    return Number.parseInt(value, 10);
-  }
-
-  return undefined;
 }
 
 function getErrorDocument(error: unknown): JsonApiErrorDocument | null {

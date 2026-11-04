@@ -4,6 +4,7 @@ import type {
   BreakoutEvidenceExclusion,
   BreakoutObservation,
 } from '@genfeedai/contracts/interfaces';
+import { isValidTimestampMs } from '../utils/date-range.util';
 
 const SCOPE_FIELDS = [
   'organizationId',
@@ -22,9 +23,6 @@ function timeBasis(
   row: Readonly<BreakoutObservation>,
 ): BreakoutBaselineEvaluation['timeBasis'] {
   return row.providerAsOfMs === null ? 'collection_interval' : 'provider_as_of';
-}
-function validTime(value: number): boolean {
-  return Number.isSafeInteger(value) && Math.abs(value) <= 8.64e15;
 }
 function reasons(
   row: Readonly<BreakoutObservation>,
@@ -51,7 +49,7 @@ function reasons(
   ];
   if (row.providerAsOfMs !== null) timestamps.push(row.providerAsOfMs);
   if (
-    timestamps.some((value) => !validTime(value)) ||
+    timestamps.some((value) => !isValidTimestampMs(value)) ||
     row.requestStartedAtMs < row.publishedAtMs ||
     row.receivedAtMs < row.requestStartedAtMs ||
     row.receivedAtMs - row.requestStartedAtMs > MAX_COLLECTION_MS ||
@@ -92,7 +90,7 @@ function validateInput(input: BreakoutBaselineInput): void {
     breakoutThreshold,
   } = input.options;
   if (
-    !validTime(input.nowMs) ||
+    !isValidTimestampMs(input.nowMs) ||
     SCOPE_FIELDS.some((key) => !input.scope[key].trim())
   )
     throw new RangeError('Breakout scope and evaluation time are required');

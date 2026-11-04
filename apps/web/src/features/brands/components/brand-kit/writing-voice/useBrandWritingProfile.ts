@@ -7,6 +7,7 @@ import type {
   IBrandVoiceCorpusSummary,
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
+import { parseCommaList } from '@helpers/utils/comma-list.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AgentProfileFormState,
@@ -24,7 +25,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOrganization } from '@/hooks/data/organization/use-organization/use-organization';
 import { useSaveQueue } from '@/hooks/utils/use-save-queue/use-save-queue';
-
 import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 
 export const AUTO_MODEL_SELECT_VALUE = '__auto__';
@@ -42,13 +42,6 @@ function joinList(values?: string[] | string): string {
   }
 
   return values ?? '';
-}
-
-function parseList(value: string): string[] {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 /**
@@ -196,17 +189,17 @@ function buildVoice(
   exemplarTexts: string,
 ): IBrandAgentVoice {
   return {
-    approvedHooks: parseList(approvedHooks),
-    audience: parseList(audience),
-    bannedPhrases: parseList(bannedPhrases),
+    approvedHooks: parseCommaList(approvedHooks),
+    audience: parseCommaList(audience),
+    bannedPhrases: parseCommaList(bannedPhrases),
     canonicalSource,
-    doNotSoundLike: parseList(doNotSoundLike),
+    doNotSoundLike: parseCommaList(doNotSoundLike),
     exemplarTexts: parseExemplars(exemplarTexts),
-    messagingPillars: parseList(messagingPillars),
+    messagingPillars: parseCommaList(messagingPillars),
     sampleOutput: sampleOutput.trim(),
     style: style.trim(),
     tone: tone.trim(),
-    values: parseList(values),
+    values: parseCommaList(values),
     writingRules: parseLines(writingRules),
   } as IBrandAgentVoice;
 }
@@ -219,11 +212,11 @@ function buildStrategy(
   topics: string,
 ): IBrandAgentStrategy {
   return {
-    contentTypes: parseList(contentTypes),
+    contentTypes: parseCommaList(contentTypes),
     frequency: frequency.trim(),
-    goals: parseList(goals),
-    platforms: parseList(platforms),
-    topics: parseList(topics),
+    goals: parseCommaList(goals),
+    platforms: parseCommaList(platforms),
+    topics: parseCommaList(topics),
   };
 }
 
@@ -320,24 +313,24 @@ function buildAgentConfigPayload(form: AgentProfileFormState) {
             defaultModel: override.defaultModel || undefined,
             persona: override.persona,
             strategy: {
-              contentTypes: parseList(override.contentTypes),
+              contentTypes: parseCommaList(override.contentTypes),
               frequency: override.frequency.trim(),
-              goals: parseList(override.goals),
+              goals: parseCommaList(override.goals),
               platforms: [platform],
             },
             voice: {
-              approvedHooks: parseList(override.approvedHooks),
-              audience: parseList(override.audience),
-              bannedPhrases: parseList(override.bannedPhrases),
+              approvedHooks: parseCommaList(override.approvedHooks),
+              audience: parseCommaList(override.audience),
+              bannedPhrases: parseCommaList(override.bannedPhrases),
               canonicalSource: override.canonicalSource || undefined,
-              doNotSoundLike: parseList(override.doNotSoundLike),
-              exemplarTexts: parseList(override.exemplarTexts),
-              messagingPillars: parseList(override.messagingPillars),
+              doNotSoundLike: parseCommaList(override.doNotSoundLike),
+              exemplarTexts: parseCommaList(override.exemplarTexts),
+              messagingPillars: parseCommaList(override.messagingPillars),
               sampleOutput: override.sampleOutput.trim(),
               style: override.style.trim(),
               tone: override.tone.trim(),
-              values: parseList(override.values),
-              writingRules: parseList(override.writingRules),
+              values: parseCommaList(override.values),
+              writingRules: parseCommaList(override.writingRules),
             },
           },
         ]),

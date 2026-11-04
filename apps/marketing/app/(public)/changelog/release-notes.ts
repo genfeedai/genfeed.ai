@@ -1,13 +1,11 @@
+import { escapeRegExp } from '@helpers/utils/regexp.util';
+
 const RELEASE_DATE: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'long',
   timeZone: 'UTC',
   year: 'numeric',
 };
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 export function formatReleaseDate(publishedAt: string): string {
   return new Date(publishedAt).toLocaleDateString('en-US', RELEASE_DATE);
