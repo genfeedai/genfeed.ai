@@ -461,7 +461,11 @@ jobs:
           fi
       - name: Run secretlint on changed files
         if: steps.changed.outputs.files != ''
-        run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
+        # PR-controlled filenames reach the shell only as data, never as
+        # interpolated script text; one file per line, whitespace-safe.
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: printf '%s\n' "$CHANGED_FILES" | xargs -d '\n' bunx secretlint
         timeout-minutes: 5
       - name: Run lint
         run: |

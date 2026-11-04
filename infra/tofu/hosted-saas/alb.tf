@@ -144,9 +144,11 @@ resource "aws_lb_listener_rule" "public_backend" {
 }
 
 # /v1/internal/* is service-to-service only. Every backend reaches it through
-# Cloud Map (GENFEEDAI_API_URL=http://api.genfeed.internal), so the public API
-# hostname answers 403 at the edge instead of relying on the shared bearer alone.
-# Priority sits below the public_backend rules so it wins for the api host.
+# Cloud Map (GENFEEDAI_API_URL=http://api.genfeed.internal, and the
+# *.genfeed.internal microservice URLs), so the public listener answers 403 at
+# the edge instead of relying on the shared bearer alone. The rule matches every
+# Host header: a host-scoped rule let any other Host value fall through to the
+# api default action. Priority sits below every host rule so it is evaluated first.
 resource "aws_lb_listener_rule" "block_internal_api" {
   listener_arn = aws_lb_listener.https.arn
   priority     = local.internal_api_block_priority
@@ -157,12 +159,6 @@ resource "aws_lb_listener_rule" "block_internal_api" {
       content_type = "text/plain"
       message_body = "Forbidden"
       status_code  = "403"
-    }
-  }
-
-  condition {
-    host_header {
-      values = [local.public_service_hostnames["api"]]
     }
   }
 

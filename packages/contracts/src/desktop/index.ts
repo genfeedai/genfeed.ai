@@ -1262,10 +1262,7 @@ export interface IGenfeedDesktopBridge {
   };
   files: {
     getAssetUrl: (assetId: string) => Promise<string>;
-    importAssets: (
-      workspaceId: string,
-      filePaths?: string[],
-    ) => Promise<IDesktopAsset[]>;
+    importAssets: (workspaceId: string) => Promise<IDesktopAsset[]>;
     listAssets: (workspaceId?: string) => Promise<IDesktopAsset[]>;
     openFileDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>;
     revealAsset: (assetId: string) => Promise<void>;

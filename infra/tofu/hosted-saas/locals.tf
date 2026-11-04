@@ -16,7 +16,7 @@ locals {
     notifications = 30
   }
   # Must stay below every public_listener_priorities entry (and the separately
-  # managed console-api rule) so the block wins for the api host.
+  # managed console-api rule) so the block is evaluated before any host rule.
   internal_api_block_priority = 10
 
   vpc_id             = var.vpc_id

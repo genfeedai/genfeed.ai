@@ -118,9 +118,13 @@ describe('DesktopFilesService', () => {
     );
     const sourcePath = path.join(tmpDir, 'source.png');
     await fs.writeFile(sourcePath, Buffer.from(PNG_BYTES));
+    electronMockState.dialog.openResult = {
+      canceled: false,
+      filePaths: [sourcePath],
+    };
 
-    const [firstImport] = await service.importAssets('ws-1', [sourcePath]);
-    const [secondImport] = await service.importAssets('ws-1', [sourcePath]);
+    const [firstImport] = await service.importAssets('ws-1');
+    const [secondImport] = await service.importAssets('ws-1');
 
     expect(firstImport.localPath).toBeUndefined();
     expect(secondImport.localPath).toBeUndefined();
@@ -138,6 +142,29 @@ describe('DesktopFilesService', () => {
     await expect(fs.readFile(secondStoredPath)).resolves.toEqual(
       Buffer.from(PNG_BYTES),
     );
+  });
+
+  it('imports nothing when the user cancels the open dialog', async () => {
+    const { DesktopFilesService } = await import('./files.service');
+    const prisma = createPrismaMock();
+    const workspaceService = {
+      getWorkspace: () => ({
+        path: tmpDir,
+      }),
+    };
+    const service = new DesktopFilesService(
+      workspaceService as DesktopWorkspaceService,
+      prisma as never,
+    );
+    const sourcePath = path.join(tmpDir, 'source.png');
+    await fs.writeFile(sourcePath, Buffer.from(PNG_BYTES));
+    electronMockState.dialog.openResult = {
+      canceled: true,
+      filePaths: [sourcePath],
+    };
+
+    await expect(service.importAssets('ws-1')).resolves.toEqual([]);
+    await expect(service.listAssets('ws-1')).resolves.toEqual([]);
   });
 
   it('reveals local assets by asset id instead of renderer-provided paths', async () => {

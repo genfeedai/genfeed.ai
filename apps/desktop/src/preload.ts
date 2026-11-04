@@ -191,12 +191,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
   files: {
     getAssetUrl: async (assetId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesGetAssetUrl, assetId),
-    importAssets: async (workspaceId, filePaths) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.filesImportAssets,
-        workspaceId,
-        filePaths,
-      ),
+    importAssets: async (workspaceId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesImportAssets, workspaceId),
     listAssets: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.filesListAssets, workspaceId),
     openFileDialog: async () =>
