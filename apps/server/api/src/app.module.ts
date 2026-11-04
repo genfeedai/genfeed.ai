@@ -34,9 +34,12 @@ import { CacheModule } from '@api/services/cache/cache.module';
 import { MediaDeliveryResponseInterceptor } from '@api/services/media-urls/media-delivery-response.interceptor';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
+import { findSelfHostedConfigIssues } from '@api/services/selfhosted-readiness/selfhosted-config-issues.util';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
 import { SharedModule } from '@api/shared/shared.module';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { HealthController } from '@libs/health/health.controller';
@@ -128,14 +131,45 @@ import { SentryModule } from '@sentry/nestjs/setup';
     },
     { provide: APP_INTERCEPTOR, useExisting: MediaDeliveryResponseInterceptor },
     {
-      inject: [MicroservicesService],
+      inject: [MicroservicesService, ConfigService],
       provide: HEALTH_CONTRIBUTOR,
       useFactory: (
         microservicesService: MicroservicesService,
-      ): HealthContributor => ({
-        getHealthDetails: () => microservicesService.getHealthDetails(),
-        getReadiness: () => microservicesService.getReadiness(),
-      }),
+        configService: ConfigService,
+      ): HealthContributor => {
+        // A self-hosted install can serve traffic while sign-in or generation
+        // cannot work (#7886). Cloud keeps its own provisioning, so only
+        // self-hosted re-checks its configuration here.
+        const getConfigurationIssues = () =>
+          isSelfHostedDeployment()
+            ? findSelfHostedConfigIssues({
+                apiPublicUrl: configService.get('GENFEEDAI_API_PUBLIC_URL'),
+                appPublicUrl: configService.get('GENFEEDAI_PUBLIC_URL'),
+                authSecret: configService.get('BETTER_AUTH_SECRET'),
+                authTrustedOrigins: configService.get(
+                  'BETTER_AUTH_TRUSTED_ORIGINS',
+                ),
+                authUrl: configService.get('BETTER_AUTH_URL'),
+                isAuthEnabled: isBetterAuthEnabled(),
+                openRouterApiKey: configService.get('OPENROUTER_API_KEY'),
+              })
+            : [];
+
+        return {
+          getHealthDetails: async () => ({
+            ...(await microservicesService.getHealthDetails()),
+            configurationIssues: getConfigurationIssues(),
+          }),
+          getReadiness: () => {
+            const readiness = microservicesService.getReadiness();
+            const configurationIssues = getConfigurationIssues();
+
+            return configurationIssues.length === 0
+              ? readiness
+              : { ...readiness, configurationIssues, status: 'degraded' };
+          },
+        };
+      },
     },
   ],
 })

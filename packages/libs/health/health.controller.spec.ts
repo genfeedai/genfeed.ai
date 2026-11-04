@@ -202,6 +202,37 @@ describe('HealthController', () => {
       expect(result.degradedDependencies).toEqual(degradedDependencies);
     });
 
+    it('names unusable configuration in the readiness response', async () => {
+      const configurationIssues = [
+        {
+          message: 'Missing or placeholder OpenRouter key.',
+          variable: 'OPENROUTER_API_KEY',
+        },
+      ];
+
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: {
+              getHealthDetails: () => ({}),
+              getReadiness: () => ({
+                configurationIssues,
+                status: 'degraded',
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const result = moduleRef.get<HealthController>(HealthController).ready();
+
+      expect(result).toHaveProperty('status', 'degraded');
+      expect(result.configurationIssues).toEqual(configurationIssues);
+      expect(result).not.toHaveProperty('degradedDependencies');
+    });
+
     it('stays ready when the contributor omits the readiness hook', async () => {
       const moduleRef: TestingModule = await Test.createTestingModule({
         controllers: [HealthController],
