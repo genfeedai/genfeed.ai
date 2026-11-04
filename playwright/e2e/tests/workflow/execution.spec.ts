@@ -173,14 +173,15 @@ test.describe('Workflow Execution', () => {
       authenticatedPage.getByText(`❌ ${failedExec.status}`, { exact: true }),
     ).toBeVisible();
 
-    // The global "Execution Error" banner (`ExecutionDetailPage.tsx`) is
+    // The global "Execution Error" alert (`ExecutionDetailPage.tsx`) is
     // always visible for a failed execution — not gated behind expanding a
     // node — and carries the real fixture error text.
+    const errorAlert = authenticatedPage
+      .getByRole('alert')
+      .filter({ hasText: 'Execution Error' });
+    await expect(errorAlert).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Execution Error' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(String(failedExec.results.error)),
+      errorAlert.getByText(String(failedExec.results.error)),
     ).toBeVisible();
   });
 

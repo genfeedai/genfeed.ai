@@ -104,7 +104,7 @@ test.describe('Library masonry audio and text tiles', () => {
     authenticatedPage: page,
   }) => {
     const music = page
-      .locator('[data-masonry-item]')
+      .locator('[data-masonry-item][data-selected]')
       .filter({ hasText: 'Lo-fi beat' });
 
     await music.hover();
@@ -126,10 +126,10 @@ test.describe('Library masonry audio and text tiles', () => {
     authenticatedPage: page,
   }) => {
     const music = page
-      .locator('[data-masonry-item]')
+      .locator('[data-masonry-item][data-selected]')
       .filter({ hasText: 'Lo-fi beat' });
     const voice = page
-      .locator('[data-masonry-item]')
+      .locator('[data-masonry-item][data-selected]')
       .filter({ hasText: 'Warm brand intro' });
 
     await music.getByRole('button', { name: /^Play preview for/ }).click();
