@@ -11,8 +11,17 @@ const VIDEO_REQUIRED_PLATFORMS: ReadonlySet<string> = new Set([
   Platform.YOUTUBE,
 ]);
 
-/** Platforms that publish text on its own; every other platform needs media. */
-const TEXT_ONLY_PLATFORMS: ReadonlySet<string> = new Set([Platform.TWITTER]);
+/**
+ * Platforms whose publisher refuses a post without media (`supportsTextOnly` is
+ * false in the publisher service). Every other platform publishes text alone,
+ * so LinkedIn, Threads, Reddit and the rest must not be blocked on media.
+ */
+const MEDIA_REQUIRED_PLATFORMS: ReadonlySet<string> = new Set([
+  Platform.FACEBOOK,
+  Platform.INSTAGRAM,
+  Platform.PINTEREST,
+  Platform.SNAPCHAT,
+]);
 
 export type PostMediaRequirement = 'none' | 'media' | 'video';
 
@@ -33,7 +42,7 @@ export function getPostMediaRequirement(
   if (platforms.some((platform) => VIDEO_REQUIRED_PLATFORMS.has(platform))) {
     return 'video';
   }
-  if (platforms.some((platform) => !TEXT_ONLY_PLATFORMS.has(platform))) {
+  if (platforms.some((platform) => MEDIA_REQUIRED_PLATFORMS.has(platform))) {
     return 'media';
   }
   return 'none';

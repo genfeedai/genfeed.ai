@@ -17,7 +17,10 @@ describe('getPostMediaRequirement', () => {
     [[], 'none'],
     [[Platform.TWITTER], 'none'],
     [[Platform.INSTAGRAM], 'media'],
-    [[Platform.TWITTER, Platform.LINKEDIN], 'media'],
+    [[Platform.LINKEDIN], 'none'],
+    [[Platform.THREADS, Platform.REDDIT, Platform.MASTODON], 'none'],
+    [[Platform.TWITTER, Platform.FACEBOOK], 'media'],
+    [[Platform.PINTEREST], 'media'],
     [[Platform.YOUTUBE], 'video'],
     [[Platform.INSTAGRAM, Platform.TIKTOK], 'video'],
   ])('%j needs %s', (platforms, expected) => {
