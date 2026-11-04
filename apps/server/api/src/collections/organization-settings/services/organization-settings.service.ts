@@ -312,9 +312,16 @@ export class OrganizationSettingsService extends BaseService<
       return setting;
     }
 
-    return this.patch(setting.id, {
+    const reseeded = await this.patch(setting.id, {
       enabledModelIds,
     });
+    // The read-only hints come from this request's findOne; a write result
+    // never carries them, so keep the resolved values.
+    return {
+      ...reseeded,
+      hasPaidModuleSubscription: setting.hasPaidModuleSubscription ?? null,
+      hasPurchasedCredits: setting.hasPurchasedCredits ?? null,
+    };
   }
 
   /**

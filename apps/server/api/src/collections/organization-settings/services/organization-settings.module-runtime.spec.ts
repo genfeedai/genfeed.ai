@@ -214,4 +214,31 @@ describe('readonly credit purchase hint', () => {
     );
     expect(result?.hasPurchasedCredits).toBeNull();
   });
+
+  it('keeps the resolved hints when the model allowlist is reseeded', async () => {
+    const service = create(() => Promise.resolve(null));
+    vi.spyOn(
+      service as unknown as {
+        resolveDefaultEnabledModelIds: () => Promise<string[]>;
+      },
+      'resolveDefaultEnabledModelIds',
+    ).mockResolvedValue(['model-1']);
+    vi.spyOn(service, 'patch').mockResolvedValue({
+      ...row,
+      enabledModelIds: ['model-1'],
+      hasPaidModuleSubscription: null,
+      hasPurchasedCredits: null,
+    } as never);
+    const result = await service.ensureEnabledModelIds({
+      ...row,
+      enabledModelIds: [],
+      hasPaidModuleSubscription: false,
+      hasPurchasedCredits: true,
+    } as never);
+    expect(result).toMatchObject({
+      enabledModelIds: ['model-1'],
+      hasPaidModuleSubscription: false,
+      hasPurchasedCredits: true,
+    });
+  });
 });
