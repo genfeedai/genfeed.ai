@@ -29,7 +29,6 @@ describe('ModalPostFooter', () => {
 
     const footerProps = {
       activeTab: 'setup' as const,
-      enabledCount: 1,
       globalDescription: 'A caption',
       globalLabel: 'A title',
       globalScheduledDate: new Date('2026-10-16T21:00:00.000Z'),
@@ -47,7 +46,7 @@ describe('ModalPostFooter', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Next: Select Platforms' }),
+      screen.getByRole('button', { name: 'Next, select channels' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -65,9 +64,7 @@ describe('ModalPostFooter', () => {
     expect(onPreviousStep).toHaveBeenCalledOnce();
     expect(onSubmit).not.toHaveBeenCalled();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Publish to 1 Platform' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 });

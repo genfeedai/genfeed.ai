@@ -814,13 +814,10 @@ const UI_TEST_MESSAGES = {
     },
     postPlatforms: {
       charactersUsed: 'Characters used per channel',
-      empty: 'Enable a platform above to configure its publishing content.',
+      empty: 'Turn on at least one channel to publish.',
       livePreview: 'Live preview',
       livePreviewDescription:
         'Platform-tuned preview of each enabled channel, updated as you type.',
-      settingsDescription:
-        'Enable a platform above to customise its title, description, and scheduling options.',
-      settingsTitle: 'Platform-Specific Settings',
     },
     promptBarAssets: {
       editingTarget: 'Editing target',

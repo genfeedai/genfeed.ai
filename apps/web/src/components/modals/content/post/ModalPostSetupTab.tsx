@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   PromptCategory,
+  SystemPromptKey,
 } from '@genfeedai/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -40,6 +41,7 @@ export default function ModalPostSetupTab({
   );
   const { brandId } = useBrand();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const notificationsService = NotificationsService.getInstance();
 
   const getPromptsService = useAuthedService((token) =>
@@ -59,6 +61,67 @@ export default function ModalPostSetupTab({
     timeoutMessage: 'Generation timed out. Please try again.',
     timeoutMs: 30000,
   });
+
+  const listenForTitle = useWebsocketPrompt<string>({
+    errorMessage: 'Failed to generate title. Please try again.',
+    onError: () => {
+      setIsGeneratingTitle(false);
+    },
+    onSuccess: (result) => {
+      setIsGeneratingTitle(false);
+      form.setValue('globalLabel', result.trim());
+      notificationsService.success('Title generated successfully');
+    },
+    timeoutMessage: 'Generation timed out. Please try again.',
+    timeoutMs: 30000,
+  });
+
+  const handleGenerateTitle = useCallback(async () => {
+    const source =
+      form.getValues('globalDescription')?.trim() || ingredient?.promptText;
+
+    if (!source) {
+      return notificationsService.error(
+        'Add a description first so the title has something to work from',
+      );
+    }
+
+    setIsGeneratingTitle(true);
+    const url = 'POST /prompts';
+
+    try {
+      const service = await getPromptsService();
+      const promptData: Partial<Prompt> = {
+        category: PromptCategory.POST_TITLE_YOUTUBE,
+        isSkipEnhancement: false,
+        original: source,
+        systemPromptKey: SystemPromptKey.YOUTUBE_TITLE,
+        useRAG: true,
+      };
+
+      if (brandId) {
+        promptData.brandId = brandId;
+      }
+
+      const prompt = await service.post(new Prompt(promptData));
+
+      logger.info(`${url} success`, { promptId: prompt.id });
+      listenForTitle(prompt.id);
+    } catch (error) {
+      setIsGeneratingTitle(false);
+      logger.error(`${url} failed`, error);
+      notificationsService.error(
+        'Failed to start generation. Please try again.',
+      );
+    }
+  }, [
+    form,
+    ingredient,
+    getPromptsService,
+    brandId,
+    listenForTitle,
+    notificationsService,
+  ]);
 
   const handleGenerateFromPrompt = useCallback(async () => {
     if (!ingredient?.promptText) {
@@ -107,14 +170,29 @@ export default function ModalPostSetupTab({
   return (
     <>
       <FormControl label="Title">
-        <Input
-          type="text"
-          name="globalLabel"
-          control={form.control}
-          placeholder="Enter title for your post"
-          isRequired={false}
-          isDisabled={isLoading}
-        />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Input
+              type="text"
+              name="globalLabel"
+              control={form.control}
+              placeholder="Enter title for your post"
+              isRequired={false}
+              isDisabled={isLoading || isGeneratingTitle}
+            />
+          </div>
+          <Button
+            type="button"
+            ariaLabel="Generate title with AI"
+            icon={<Sparkles />}
+            isDisabled={isLoading || isGeneratingTitle}
+            isLoading={isGeneratingTitle}
+            label="AI"
+            onClick={handleGenerateTitle}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
+        </div>
         <p className="text-xs text-foreground/70 mt-1">
           {isImage
             ? 'Will be used for Instagram. Not applicable for Twitter.'
@@ -153,8 +231,8 @@ export default function ModalPostSetupTab({
           />
         </div>
         <p className="text-xs text-foreground/70 mt-1">
-          This will be the default description for all platforms. You can
-          customize per platform in the next step.
+          This will be the default description for all channels. You can edit it
+          per channel in the next step.
         </p>
       </FormControl>
 
@@ -166,7 +244,7 @@ export default function ModalPostSetupTab({
         isRequired={true}
         timezone={scheduleTimezone}
         isDisabled={isLoading}
-        helpText="Minimum 15 minutes from now. Can be overridden per platform in the next step."
+        helpText="Minimum 15 minutes from now. You can change it per channel in the next step."
       />
     </>
   );

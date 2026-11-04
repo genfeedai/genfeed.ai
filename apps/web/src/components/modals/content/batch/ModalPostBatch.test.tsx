@@ -49,7 +49,7 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   }),
 }));
 
-vi.mock('@/components/modals/content/post/ModalPostHeader', () => ({
+vi.mock('@/components/modals/content/post/ModalPostStepHeader', () => ({
   default: () => <div data-testid="modal-post-header" />,
 }));
 

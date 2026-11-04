@@ -25,7 +25,6 @@ function WizardHarness({ onSubmit }: WizardHarnessProps) {
     >
       <ModalPostFooter
         activeTab={activeTab}
-        enabledCount={3}
         globalDescription="A caption"
         globalLabel="A title"
         globalScheduledDate={new Date('2026-11-05T21:00:00.000Z')}
@@ -62,11 +61,11 @@ describe('ModalPostFooter wizard navigation', () => {
     render(<WizardHarness onSubmit={onSubmit} />);
 
     clickLikeBrowser(
-      screen.getByRole('button', { name: 'Next: Select Platforms' }),
+      screen.getByRole('button', { name: 'Next, select channels' }),
     );
 
     expect(
-      await screen.findByRole('button', { name: 'Publish to 3 Platforms' }),
+      await screen.findByRole('button', { name: 'Schedule' }),
     ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -76,12 +75,12 @@ describe('ModalPostFooter wizard navigation', () => {
     render(<WizardHarness onSubmit={onSubmit} />);
 
     clickLikeBrowser(
-      screen.getByRole('button', { name: 'Next: Select Platforms' }),
+      screen.getByRole('button', { name: 'Next, select channels' }),
     );
     clickLikeBrowser(await screen.findByRole('button', { name: 'Back' }));
 
     expect(
-      await screen.findByRole('button', { name: 'Next: Select Platforms' }),
+      await screen.findByRole('button', { name: 'Next, select channels' }),
     ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -91,11 +90,9 @@ describe('ModalPostFooter wizard navigation', () => {
     render(<WizardHarness onSubmit={onSubmit} />);
 
     clickLikeBrowser(
-      screen.getByRole('button', { name: 'Next: Select Platforms' }),
+      screen.getByRole('button', { name: 'Next, select channels' }),
     );
-    clickLikeBrowser(
-      await screen.findByRole('button', { name: 'Publish to 3 Platforms' }),
-    );
+    clickLikeBrowser(await screen.findByRole('button', { name: 'Schedule' }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
   });

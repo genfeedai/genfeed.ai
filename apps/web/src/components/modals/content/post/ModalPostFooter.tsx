@@ -9,7 +9,6 @@ import { PUBLISH_SUBMIT_ATTRIBUTE } from './publish-submit';
 export default function ModalPostFooter({
   activeTab,
   isLoading,
-  enabledCount,
   globalScheduledDate,
   globalDescription,
   hasYoutube,
@@ -36,7 +35,7 @@ export default function ModalPostFooter({
 
         <Button
           type="button"
-          label="Next: Select Platforms"
+          label="Next, select channels"
           variant={ButtonVariant.DEFAULT}
           onClick={onNextStep}
           isDisabled={
@@ -63,11 +62,7 @@ export default function ModalPostFooter({
       <Button
         type="submit"
         {...{ [PUBLISH_SUBMIT_ATTRIBUTE]: 'true' }}
-        label={
-          enabledCount > 0
-            ? `Publish to ${enabledCount} Platform${enabledCount !== 1 ? 's' : ''}`
-            : 'Select Platforms'
-        }
+        label="Schedule"
         variant={ButtonVariant.DEFAULT}
         isLoading={isLoading}
         isDisabled={isLoading || !isFormValid}

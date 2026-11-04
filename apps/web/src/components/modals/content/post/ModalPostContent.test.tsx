@@ -15,6 +15,11 @@ vi.mock('@/components/modals/content/post/ModalPostPlatformsTab', () => ({
   default: () => <div data-testid="post-platforms-tab" />,
 }));
 
+vi.mock('@ui/primitives/date-time-picker', () => ({
+  __esModule: true,
+  default: () => <div data-testid="form-date-time-picker" />,
+}));
+
 describe('ModalPostContent', () => {
   const form = {
     control: {},
@@ -51,5 +56,6 @@ describe('ModalPostContent', () => {
   it('should apply correct styles and classes', () => {
     render(<ModalPostContent {...baseProps} activeTab="platforms" />);
     expect(screen.getByTestId('post-platforms-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('form-date-time-picker')).toBeInTheDocument();
   });
 });
