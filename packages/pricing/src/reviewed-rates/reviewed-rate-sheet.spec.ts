@@ -180,26 +180,29 @@ describe('reviewed rate sheet', () => {
     ['360p', false, 0.125],
     ['720p', true, 0.3],
     ['1080p', false, 0.45],
-  ])('prices fal PixVerse V6 at %s with audio %s for five seconds at $%s', (resolution, hasAudio, expected) => {
-    const entry = findReviewedRateSheetEntry(
-      'fal',
-      'fal-ai/pixverse/v6/text-to-video',
-    );
-    if (!entry) throw new Error('missing fal PixVerse entry');
-    const quote = quoteModelBillablePricing(
-      profileFor(entry),
-      {
-        duration: 5,
-        modelKey: entry.endpoint,
-        provider: 'fal',
-        selectors: { generate_audio_switch: hasAudio, resolution },
-      },
-      1,
-      entry.verifiedAt,
-    );
-    if (quote.status !== 'priced') throw new Error(quote.reason);
-    expect(quote.snapshot.providerCostUsd).toBeCloseTo(expected, 10);
-  });
+  ])(
+    'prices fal PixVerse V6 at %s with audio %s for five seconds at $%s',
+    (resolution, hasAudio, expected) => {
+      const entry = findReviewedRateSheetEntry(
+        'fal',
+        'fal-ai/pixverse/v6/text-to-video',
+      );
+      if (!entry) throw new Error('missing fal PixVerse entry');
+      const quote = quoteModelBillablePricing(
+        profileFor(entry),
+        {
+          duration: 5,
+          modelKey: entry.endpoint,
+          provider: 'fal',
+          selectors: { generate_audio_switch: hasAudio, resolution },
+        },
+        1,
+        entry.verifiedAt,
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      expect(quote.snapshot.providerCostUsd).toBeCloseTo(expected, 10);
+    },
+  );
 
   it('never lists a model as both priced and unpriced', () => {
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
