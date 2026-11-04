@@ -27,6 +27,7 @@ describe('ApifyBaseService', () => {
   let configService: Record<string, ReturnType<typeof vi.fn>>;
   let byokFactory: Record<string, ReturnType<typeof vi.fn>>;
   let loggerService: {
+    debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
@@ -52,6 +53,7 @@ describe('ApifyBaseService', () => {
     };
 
     loggerService = {
+      debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
@@ -585,6 +587,121 @@ describe('ApifyBaseService', () => {
         /Apify/i,
       );
       expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('out-of-budget handling', () => {
+    function createSharedCache() {
+      const store = new Map<string, unknown>();
+      return {
+        get: vi.fn(async (key: string) => store.get(key) ?? null),
+        set: vi.fn(async (key: string, value: unknown) => {
+          store.set(key, value);
+          return true;
+        }),
+      };
+    }
+
+    function createService(
+      cache?: ReturnType<typeof createSharedCache>,
+      recorder?: { dispatch: ReturnType<typeof vi.fn> },
+    ) {
+      return new ApifyBaseService(
+        configService as unknown as ConfigService,
+        loggerService as unknown as LoggerService,
+        httpService as unknown as HttpService,
+        byokFactory as unknown as ByokProviderFactoryService,
+        cache as never,
+        recorder as never,
+      );
+    }
+
+    it('logs a refused call as one warning without an error stack', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      loggerService.error.mockClear();
+
+      service.logFailure(
+        'Twitter.searchTwitterTweets failed',
+        ACCOUNT_LIMIT_ERROR,
+      );
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'Twitter.searchTwitterTweets failed (Apify refused the call: 403 platform-feature-disabled: Monthly usage hard limit exceeded)',
+      );
+    });
+
+    it('logs a call held off by the suspension without an error', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      loggerService.error.mockClear();
+      const heldOff = await service
+        .runActor('other/actor', {})
+        .catch((error: unknown) => error);
+
+      service.logFailure('Twitter.searchTwitterTweets failed', heldOff);
+
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(loggerService.debug).toHaveBeenCalledTimes(1);
+    });
+
+    it('still logs other failures as errors', () => {
+      const failure = new Error('socket hang up');
+
+      service.logFailure('Twitter.searchTwitterTweets failed', failure);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Twitter.searchTwitterTweets failed',
+        failure,
+      );
+    });
+
+    it('lets a second process skip the probe once the first found the limit', async () => {
+      const cache = createSharedCache();
+      const first = createService(cache);
+      const second = createService(cache);
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(first.runActor('test/actor', {})).rejects.toBeDefined();
+      await expect(second.runActor('test/actor', {})).rejects.toThrow(
+        /over its account usage limit/,
+      );
+
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends one operator alert naming Apify for a hosted limit', async () => {
+      const recorder = { dispatch: vi.fn().mockResolvedValue(undefined) };
+      const alerting = createService(createSharedCache(), recorder);
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(alerting.runActor('test/actor', {})).rejects.toBeDefined();
+      await vi.waitFor(() =>
+        expect(recorder.dispatch).toHaveBeenCalledTimes(1),
+      );
+
+      const input = recorder.dispatch.mock.calls[0][0];
+      expect(input.topic).toBe('operator.alerts');
+      expect(input.messages[0].message.payload.card.title).toBe(
+        'Apify is out of budget',
+      );
+    });
+
+    it('does not page operators for an exhausted byok account', async () => {
+      const recorder = { dispatch: vi.fn().mockResolvedValue(undefined) };
+      const alerting = createService(createSharedCache(), recorder);
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: 'byok-key',
+        source: 'byok',
+      });
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(
+        alerting.runActorForOrg('org-1', 'test/actor', {}),
+      ).rejects.toBeDefined();
+
+      expect(recorder.dispatch).not.toHaveBeenCalled();
     });
   });
 

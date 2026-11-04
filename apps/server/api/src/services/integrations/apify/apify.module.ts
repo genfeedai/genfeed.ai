@@ -1,3 +1,4 @@
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { ApifyAdsService } from '@api/services/integrations/apify/services/modules/apify-ads.service';
@@ -17,7 +18,12 @@ import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ApifyService, {
   additionalExports: [ApifyAdsService],
-  additionalImports: [HttpModule, ByokModule, ResearchAccessModule],
+  additionalImports: [
+    ActivityRecordingModule,
+    HttpModule,
+    ByokModule,
+    ResearchAccessModule,
+  ],
   additionalProviders: [
     ApifyAdsService,
     ResearchCollectionRunner,

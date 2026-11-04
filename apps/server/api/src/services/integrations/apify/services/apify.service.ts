@@ -25,7 +25,6 @@ import { ApifyTwitterService } from '@api/services/integrations/apify/services/m
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
 import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Platform } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -57,7 +56,6 @@ export class ApifyService {
     private readonly redditService: ApifyRedditService,
     private readonly pinterestService: ApifyPinterestService,
     private readonly linkedinService: ApifyLinkedInService,
-    private readonly loggerService: LoggerService,
   ) {}
 
   /**
@@ -340,7 +338,7 @@ export class ApifyService {
           viralityScore: t.viralityScore,
         }));
     } catch (error: unknown) {
-      this.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTrendingHashtags failed for ${platform}`,
         error,
       );
