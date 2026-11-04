@@ -180,8 +180,9 @@ async function requestToken(
  * expiry), and concurrent callers share one request. Failures are not cached.
  *
  * A caller that joined a shared request which then failed transiently asks once
- * for itself. The request may have started inside a prerender or prefetch that
- * ended first, which kills its fetch for everyone waiting on it.
+ * for itself, through its own request even when another render has started a
+ * replacement meanwhile. The request may have started inside a prerender or
+ * prefetch that ended first, which kills its fetch for everyone waiting on it.
  */
 export async function getBetterAuthServerToken(
   cookieHeader: string,
@@ -208,7 +209,10 @@ async function requestSharedToken(
       : sharedToken;
   }
   if (cached?.promise) {
-    return cached.promise;
+    // This caller already lost one shared request to a render that ended. The
+    // replacement belongs to another render that can end too, so ask for
+    // ourselves and leave that entry to its owner.
+    return fetchServerToken(cookieHeader, options, { expiresAt: 0 });
   }
   if (cached?.token && cached.expiresAt > Date.now()) {
     return cached.token;
