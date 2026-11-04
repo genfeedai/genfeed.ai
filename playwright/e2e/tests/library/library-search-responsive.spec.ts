@@ -48,6 +48,26 @@ for (const viewport of [
       )
       .toBe(true);
 
+    // The typed text and the clear button reserve the rendered width of the
+    // Filters control, so neither runs underneath it.
+    const [searchBounds, clearBounds, filtersBounds] = await Promise.all([
+      search.boundingBox(),
+      clear.boundingBox(),
+      filtersTrigger(canvas).boundingBox(),
+    ]);
+    const textInset = Number.parseFloat(
+      await search.evaluate(
+        (element) => getComputedStyle(element).paddingRight,
+      ),
+    );
+    expect(clearBounds && filtersBounds).toBeTruthy();
+    expect(
+      (clearBounds?.x ?? 0) + (clearBounds?.width ?? 0),
+    ).toBeLessThanOrEqual(filtersBounds?.x ?? 0);
+    expect(
+      (searchBounds?.x ?? 0) + (searchBounds?.width ?? 0) - textInset,
+    ).toBeLessThanOrEqual(clearBounds?.x ?? 0);
+
     const topbar = page.getByTestId('section-topbar');
     for (const control of await topbar
       .locator('button, [role="combobox"]')
