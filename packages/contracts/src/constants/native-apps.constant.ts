@@ -8,7 +8,7 @@ import type {
 } from '../types/native-app';
 
 import { isPlatformFlagOn } from './feature-flags.constant';
-import { ORGANIZATION_MODULES } from './organization-modules.constant';
+import { ORGANIZATION_MODULE_PLATFORM_FLAG_KEYS } from './organization-module-flags.constant';
 
 export type { NativeAppContextualEntry, NativeSecondaryAppId };
 
@@ -214,7 +214,7 @@ export function resolveNativeAppAvailability({
   if (
     !isPlatformFlagOn(
       flags,
-      ORGANIZATION_MODULES[organizationModuleId].platformFlagKey,
+      ORGANIZATION_MODULE_PLATFORM_FLAG_KEYS[organizationModuleId],
     )
   ) {
     return 'platform-off';

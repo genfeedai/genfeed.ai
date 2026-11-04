@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { NativeAppAvailabilityInput } from '../interfaces/ui/native-app.interface';
 import {
@@ -245,5 +246,20 @@ describe('resolveHomeAppId', () => {
     expect(resolveHomeAppId({ availableAppIds, userHomeAppId: 'studio' })).toBe(
       DEFAULT_HOME_APP_ID,
     );
+  });
+});
+
+describe('native apps bundle weight', () => {
+  // The app shell imports this file on every route. Reaching
+  // organization-modules.constant from here would put its zod schema in every
+  // route's first-load JavaScript (+1.4 kB gzip, seen on #9272).
+  it('stays free of the zod-backed organization modules file', () => {
+    const source = readFileSync(
+      new URL('./native-apps.constant.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(source).not.toMatch(/from '\.\/organization-modules\.constant'/);
+    expect(source).not.toMatch(/from 'zod'/);
   });
 });
