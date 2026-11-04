@@ -64,6 +64,6 @@ vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
     </div>
   ),
 }));
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+vi.mock('@ui/media-player/MediaPlayer', () => ({
   default: () => <div data-testid="shared-audio-player" />,
 }));

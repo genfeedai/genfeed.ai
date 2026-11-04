@@ -3,9 +3,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientSound from '@/features/ingredients/components/ingredients/sound/IngredientSound';
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: ({ audioUrl }: { audioUrl?: string }) => (
-    <button type="button" data-testid="shared-audio-player" data-url={audioUrl}>
+vi.mock('@ui/media-player/MediaPlayer', () => ({
+  default: ({ src }: { src?: string }) => (
+    <button type="button" data-testid="shared-audio-player" data-url={src}>
       Play preview
     </button>
   ),

@@ -3,22 +3,22 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MediaPreview } from './MediaPreview';
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+vi.mock('@ui/media-player/MediaPlayer', () => ({
   default: ({
-    audioUrl,
+    src,
     label,
-    isTimelineVisible,
+    variant,
     stopOnUnmount,
   }: {
-    audioUrl: string;
+    src: string;
     label: string;
-    isTimelineVisible: boolean;
+    variant: string;
     stopOnUnmount: boolean;
   }) => (
     <button
       type="button"
-      data-url={audioUrl}
-      data-timeline={String(isTimelineVisible)}
+      data-url={src}
+      data-variant={variant}
       data-stop-on-unmount={String(stopOnUnmount)}
     >
       {label}
@@ -45,7 +45,7 @@ describe('MediaPreview audio review', () => {
       'data-url',
       'https://cdn.example.com/background.wav',
     );
-    expect(player).toHaveAttribute('data-timeline', 'true');
+    expect(player).toHaveAttribute('data-variant', 'row');
     expect(player).toHaveAttribute('data-stop-on-unmount', 'true');
     expect(screen.queryByText('Video preview')).not.toBeInTheDocument();
     expect(screen.queryByText('Image preview')).not.toBeInTheDocument();

@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Trash2 } from 'lucide-react';
@@ -104,10 +104,7 @@ export default function VoiceCatalogRow({
   const stats = useMemo(
     () => (
       <div className="flex flex-wrap items-center gap-2">
-        <AudioPreviewPlayer
-          audioUrl={getVoicePreview(voice)}
-          label={getVoiceName(voice)}
-        />
+        <MediaPlayer src={getVoicePreview(voice)} label={getVoiceName(voice)} />
       </div>
     ),
     [voice],

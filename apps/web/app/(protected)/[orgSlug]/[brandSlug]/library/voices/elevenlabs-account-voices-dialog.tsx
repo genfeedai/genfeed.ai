@@ -9,7 +9,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -268,8 +268,8 @@ export default function ElevenLabsAccountVoicesDialog({
                         </p>
                       ) : null}
                       {voice.preview ? (
-                        <AudioPreviewPlayer
-                          audioUrl={voice.preview}
+                        <MediaPlayer
+                          src={voice.preview}
                           label={voice.name}
                           stopOnUnmount
                         />

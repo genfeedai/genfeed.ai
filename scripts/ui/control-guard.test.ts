@@ -398,7 +398,7 @@ describe('shared media boundary', () => {
     );
     const caller = write(
       'packages/agent/src/Preview.tsx',
-      'export default function Preview(){ return <div>{/* <video /> */}<VideoPlayer /><Image /><AudioPreviewPlayer /></div>; }',
+      'export default function Preview(){ return <div>{/* <video /> */}<VideoPlayer /><Image /><MediaPlayer /></div>; }',
     );
     const test = write(
       'packages/agent/src/Preview.spec.tsx',

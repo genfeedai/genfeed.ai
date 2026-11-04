@@ -16,7 +16,7 @@ import type {
   MasonryVideoProps,
 } from '@genfeedai/props/content/masonry.props';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
+import type { MediaPlayerProps } from '@ui/media-player/MediaPlayer';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import StudioPlaygroundCard from '@/features/studio/playground/components/StudioPlaygroundCard';
@@ -25,7 +25,7 @@ import type { StudioPlaygroundAssetActions } from '@/features/studio/props/studi
 const masonryMocks = vi.hoisted(() => ({
   image: vi.fn<(props: MasonryImageProps) => void>(),
   video: vi.fn<(props: MasonryVideoProps) => void>(),
-  audio: vi.fn<(props: AudioPreviewPlayerProps) => void>(),
+  audio: vi.fn<(props: MediaPlayerProps) => void>(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -58,8 +58,8 @@ vi.mock('next/image', () => ({
   ),
 }));
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: (props: AudioPreviewPlayerProps) => {
+vi.mock('@ui/media-player/MediaPlayer', () => ({
+  default: (props: MediaPlayerProps) => {
     masonryMocks.audio(props);
     return (
       <button type="button" data-testid="shared-audio-player">
@@ -955,10 +955,36 @@ describe('StudioPlaygroundCard', () => {
     fireEvent.click(screen.getByTestId('shared-audio-player'));
     expect(onSelect).not.toHaveBeenCalled();
     const props = masonryMocks.audio.mock.calls.at(-1)?.[0];
-    expect(props?.audioUrl).toBe(generatedJob.url);
-    expect(props?.isTimelineVisible).toBe(true);
+    expect(props?.src).toBe(generatedJob.url);
+    expect(props?.variant).toBe('tile');
+    expect(props?.title).toBe(generatedJob.prompt);
     act(() => props?.onError?.());
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+  });
+
+  it('sizes an audio tile to its content and a list row to its player', () => {
+    const { rerender } = render(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, height: 1920, type: 'music', width: 1080 }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    const card = screen.getByTestId(`studio-asset-${generatedJob.id}`);
+    expect(card.querySelector('[style*="aspect-ratio"]')).toBeNull();
+
+    rerender(
+      <StudioPlaygroundCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'music' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.LIST}
+      />,
+    );
+    expect(masonryMocks.audio.mock.calls.at(-1)?.[0].variant).toBe('row');
   });
 
   it('selects a card so the inspector can open', () => {

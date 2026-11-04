@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonVariant, CardGap } from '@genfeedai/contracts';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Button } from '@ui/primitives/button';
 import { Film, Play } from 'lucide-react';
 import Image from 'next/image';
@@ -71,12 +71,7 @@ export default function ClipperSourcePreview({
           <Play className="absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2" />
         </Button>
       ) : mediaUrl && contentType?.startsWith('audio/') ? (
-        <AudioPreviewPlayer
-          audioUrl={mediaUrl}
-          label={title}
-          isTimelineVisible
-          stopOnUnmount
-        />
+        <MediaPlayer src={mediaUrl} label={title} variant="row" stopOnUnmount />
       ) : mediaUrl && contentType?.startsWith('video/') ? (
         <VideoPlayer
           src={mediaUrl}

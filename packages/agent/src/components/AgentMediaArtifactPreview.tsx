@@ -9,12 +9,12 @@ import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { type ReactElement, useMemo, useState } from 'react';
 
 export type {
@@ -85,13 +85,7 @@ export function AgentMediaArtifactPreview({
         ).map(({ item: asset, key }, index) => {
           const label = asset.title?.trim() || `${title} ${index + 1}`;
           if (asset.kind === 'audio') {
-            return (
-              <AudioPreviewPlayer
-                key={key}
-                audioUrl={asset.url}
-                label={label}
-              />
-            );
+            return <MediaPlayer key={key} src={asset.url} label={label} />;
           }
           const mediaIndex = visibleAssets
             .slice(0, index)

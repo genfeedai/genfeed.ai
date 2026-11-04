@@ -1,7 +1,7 @@
 import type { IMusic } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
+import type { MediaPlayerProps } from '@ui/media-player/MediaPlayer';
 import type { MouseEvent, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalGalleryItemMusic from '@/components/modals/gallery/items/ModalGalleryItemMusic';
@@ -14,12 +14,12 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
   useAuthorizedMediaPreview: () => grantMock.grant,
 }));
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: ({ audioUrl, label, stopOnUnmount }: AudioPreviewPlayerProps) => (
+vi.mock('@ui/media-player/MediaPlayer', () => ({
+  default: ({ src, label, stopOnUnmount }: MediaPlayerProps) => (
     <button
       type="button"
       data-testid="shared-audio-player"
-      data-url={audioUrl}
+      data-url={src}
       data-stop-on-unmount={stopOnUnmount}
       aria-label={`Preview ${label}`}
     />

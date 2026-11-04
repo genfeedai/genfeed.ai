@@ -1,6 +1,6 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import type { IngredientSoundProps } from '@/props/content/ingredient.props';
 
 export default function IngredientSound({ ingredients }: IngredientSoundProps) {
@@ -16,8 +16,8 @@ export default function IngredientSound({ ingredients }: IngredientSoundProps) {
               </p>
             </div>
 
-            <AudioPreviewPlayer
-              audioUrl={sound.ingredientUrl}
+            <MediaPlayer
+              src={sound.ingredientUrl}
               label={sound.metadataLabel || sound.id}
               stopOnUnmount
             />

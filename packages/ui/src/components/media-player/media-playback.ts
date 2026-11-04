@@ -1,11 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn';
-import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
-import { Button } from '@genfeedai/ui/primitives/button';
-import { Slider } from '@genfeedai/ui/primitives/slider';
-import { Loader2, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing' | 'error';
@@ -110,30 +104,21 @@ function ensureSharedAudio(): HTMLAudioElement | null {
   return sharedAudio;
 }
 
-export interface AudioPreviewPlayerProps {
-  audioUrl?: string | null;
-  className?: string;
-  onError?: () => void;
-  isTimelineVisible?: boolean;
-  stopOnUnmount?: boolean;
-  label: string;
-}
-
-export interface UseAudioPreviewParams {
+export interface UseMediaPlaybackParams {
   audioUrl?: string | null;
   onError?: () => void;
   stopOnUnmount?: boolean;
 }
 
 /**
- * One shared audio element for every preview: playing a sample stops the
- * previous one. Exposed so dense pickers can lay out their own controls.
+ * One shared audio element for every MediaPlayer: playing a sample stops the
+ * previous one. Exposed so a dense picker can lay out its own controls.
  */
-export function useAudioPreview({
+export function useMediaPlayback({
   audioUrl,
   onError,
   stopOnUnmount = false,
-}: UseAudioPreviewParams) {
+}: UseMediaPlaybackParams) {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(
@@ -238,99 +223,4 @@ export function useAudioPreview({
     toggleMute,
     volume: snapshot.volume,
   };
-}
-
-export default function AudioPreviewPlayer({
-  audioUrl,
-  label,
-  className,
-  onError,
-  isTimelineVisible = false,
-  stopOnUnmount = false,
-}: AudioPreviewPlayerProps) {
-  const {
-    currentTime,
-    duration,
-    isCurrent,
-    isErrored,
-    isLoading,
-    isMuted,
-    isPlaying,
-    seek,
-    toggle,
-    toggleMute,
-  } = useAudioPreview({ audioUrl, onError, stopOnUnmount });
-
-  const playLabel = isPlaying
-    ? `Pause preview for ${label}`
-    : `Play preview for ${label}`;
-  const PlayIcon = isLoading ? Loader2 : isPlaying ? Pause : Play;
-
-  return (
-    // ui-guard-allow:clickable-element -- stops the click from reaching a parent card; it is not an action
-    <div
-      className={cn('nodrag nopan flex items-center gap-2', className)}
-      onClick={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <Button
-        ariaLabel={playLabel}
-        className="size-8 shrink-0 rounded-full"
-        isDisabled={!audioUrl}
-        onClick={toggle}
-        size={ButtonSize.ICON}
-        variant={ButtonVariant.SECONDARY}
-        withWrapper={false}
-      >
-        <PlayIcon
-          aria-hidden="true"
-          className={cn('size-4', isLoading && 'animate-spin')}
-        />
-      </Button>
-      {isTimelineVisible && (
-        <>
-          <Slider
-            aria-label={`Seek ${label}`}
-            className="min-w-16 flex-1"
-            disabled={!isCurrent || !duration}
-            max={duration || 1}
-            min={0}
-            onValueChange={([time]) => {
-              if (time !== undefined) seek(time);
-            }}
-            step={0.1}
-            value={[Math.min(currentTime, duration || 0)]}
-          />
-          <span className="w-[11ch] shrink-0 whitespace-nowrap text-right text-2xs tabular-nums text-muted-foreground">
-            {formatDuration(currentTime)}
-            {duration > 0 ? ` / ${formatDuration(duration)}` : ''}
-          </span>
-          <Button
-            ariaLabel={
-              isMuted
-                ? `Unmute preview for ${label}`
-                : `Mute preview for ${label}`
-            }
-            className="size-7 shrink-0"
-            isDisabled={!audioUrl}
-            onClick={toggleMute}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {isMuted ? (
-              <VolumeX aria-hidden="true" className="size-4" />
-            ) : (
-              <Volume2 aria-hidden="true" className="size-4" />
-            )}
-          </Button>
-        </>
-      )}
-      {isErrored ? (
-        <span className="shrink-0 text-xs text-destructive">
-          Preview failed
-        </span>
-      ) : null}
-    </div>
-  );
 }
