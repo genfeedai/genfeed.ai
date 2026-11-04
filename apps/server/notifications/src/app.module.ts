@@ -5,7 +5,7 @@ import { WebSocketModule } from '@libs/websockets/websockets.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@notifications/config/config.module';
 import { ConfigService } from '@notifications/config/config.service';
-import { DevDiscordController } from '@notifications/controllers/dev.controller';
+import { DevModule } from '@notifications/controllers/dev.module';
 import { ChannelDeliveriesModule } from '@notifications/services/channel-deliveries/channel-deliveries.module';
 import { ChatBotModule } from '@notifications/services/chatbot/chatbot.module';
 import { DiscordModule } from '@notifications/services/discord/discord.module';
@@ -18,7 +18,6 @@ import { SharedModule } from '@notifications/shared/shared.module';
 import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
 
 @Module({
-  controllers: [DevDiscordController],
   imports: [
     ConfigModule,
     SharedModule,
@@ -41,6 +40,9 @@ import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
     ResendModule,
     SlackNotificationModule,
     TelegramModule,
+    // Decided at import time, before ConfigService exists; mirrors the API's
+    // DevModule gate. An unset NODE_ENV (the self-hosted image) excludes it.
+    ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
   ],
 })
 export class AppModule {}
