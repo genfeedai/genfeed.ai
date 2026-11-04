@@ -10,10 +10,12 @@ import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/ope
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
+import { downloadReplicateVideoFile } from '@api/services/integrations/replicate/helpers/replicate-video-input.util';
 import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -257,9 +259,35 @@ export class ReplicateService {
           ? undefined
           : this.resolveCompletionWebhookUrl(workflowContinuationId);
 
+      let predictionInput = input;
+      if (
+        modelIdentifier.split(':')[0] ===
+          MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
+        typeof input.video === 'string' &&
+        input.video.startsWith('https://') &&
+        !/\.(mp4|mov|webm|mkv|ogv)$/i.test(new URL(input.video).pathname)
+      ) {
+        // Keep a real filename when the provider resolves the source container.
+        // Private stored keys can be extensionless; a named provider file
+        // preserves MIME/container metadata without changing storage access.
+        const file = await downloadReplicateVideoFile(input.video);
+        const uploaded = await client.files.create(
+          file,
+          {},
+          {
+            signal: AbortSignal.timeout(120_000),
+          },
+        );
+        if (!uploaded.urls?.get) {
+          throw new Error(
+            'The provider did not return an uploaded video source.',
+          );
+        }
+        predictionInput = { ...input, video: uploaded.urls.get };
+      }
       onProviderSubmissionStarted?.();
       const res = await client.predictions.create({
-        input,
+        input: predictionInput,
         ...target,
         ...(webhookUrl && {
           webhook: webhookUrl,
