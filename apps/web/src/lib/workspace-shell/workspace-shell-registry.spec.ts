@@ -145,6 +145,12 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
+  it('no longer resolves the retired Playground job route', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/playground/job-1'),
+    ).toBeNull();
+  });
+
   it('nests agent detail under Team', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/agents/agent-1')

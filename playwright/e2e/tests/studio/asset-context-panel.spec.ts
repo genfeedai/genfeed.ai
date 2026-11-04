@@ -35,24 +35,39 @@ function ingredient(
 }
 
 test.describe('Playground asset context panel', () => {
+  let isFailedVideoDeleted = false;
+
   test.beforeEach(async ({ authenticatedPage: page }) => {
     await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
     await page.setViewportSize({ width: 1500, height: 950 });
     await page.route('**/cdn.genfeed.ai/mock/*.png', (route) =>
       route.fulfill({ body: pixel, contentType: 'image/png' }),
     );
+    isFailedVideoDeleted = false;
     await page.route('**/v1/ingredients**', (route) => {
       const url = new URL(route.request().url());
+      if (route.request().method() === 'DELETE') {
+        isFailedVideoDeleted = true;
+        return route.fulfill({
+          json: { deleted: ['failed-video'], failed: [], message: 'Deleted' },
+        });
+      }
       if (/\/(posts|children)$/.test(url.pathname)) {
         return route.fulfill({ json: { data: [] } });
       }
       return route.fulfill({
         json: {
           data: [
-            ingredient('failed-video', 'VIDEO', 'FAILED'),
+            ...(isFailedVideoDeleted
+              ? []
+              : [ingredient('failed-video', 'VIDEO', 'FAILED')]),
             ingredient('ready-image', 'IMAGE', 'GENERATED'),
           ],
-          meta: { page: 1, pageSize: 100, totalCount: 2 },
+          meta: {
+            page: 1,
+            pageSize: 100,
+            totalCount: isFailedVideoDeleted ? 1 : 2,
+          },
         },
       });
     });
@@ -76,6 +91,23 @@ test.describe('Playground asset context panel', () => {
     await expect(page.getByTestId('studio-asset-failed-video')).toHaveClass(
       /gen-selected-card/,
     );
+  });
+
+  test('confirming Remove on a failed generation takes its card out of the gallery', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.getByTestId('studio-asset-failed-video').click();
+    await page
+      .getByTestId('context-sidebar-header-actions')
+      .getByRole('button', { name: /^Remove/ })
+      .click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Remove Generation')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
+
+    await expect(page.getByTestId('studio-asset-failed-video')).toHaveCount(0);
+    await expect(page.getByTestId('studio-asset-ready-image')).toBeVisible();
   });
 
   test('a finished asset puts Preview and the section menu in the header', async ({

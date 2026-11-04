@@ -37,6 +37,18 @@ describe('CreateApiKeyDto', () => {
     },
   );
 
+  it('rejects an expiry that is not an ISO date string', async () => {
+    await expect(invalidFields({ expiresAt: 'not-a-date' })).resolves.toEqual([
+      'expiresAt',
+    ]);
+  });
+
+  it('rejects an IP allowlist containing a non-string entry', async () => {
+    await expect(
+      invalidFields({ allowedIps: ['203.0.113.7', 123] }),
+    ).resolves.toEqual(['allowedIps']);
+  });
+
   it('rejects a scope outside the self-service presets', async () => {
     await expect(invalidFields({ scopes: ['*'] })).resolves.toEqual(['scopes']);
   });

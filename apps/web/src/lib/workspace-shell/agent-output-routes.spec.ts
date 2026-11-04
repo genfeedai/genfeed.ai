@@ -88,4 +88,9 @@ describe('isAgentOutputRoute', () => {
     expect(isAgentOutputRoute('/agent/thread-1/extra')).toBe(false);
     expect(isAgentOutputRoute('/storyboard/run-1/extra')).toBe(false);
   });
+
+  it('keeps the Playground gallery and its retired job route off the split layout', () => {
+    expect(isAgentOutputRoute('/playground')).toBe(false);
+    expect(isAgentOutputRoute('/playground/job-1')).toBe(false);
+  });
 });

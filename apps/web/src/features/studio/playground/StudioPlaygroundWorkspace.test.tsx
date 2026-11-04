@@ -1890,6 +1890,13 @@ describe('StudioPlaygroundWorkspace', () => {
         screen.queryByTestId('studio-focused-preview'),
       ).not.toBeInTheDocument();
       expect(screen.getByTestId('studio-results')).toBeVisible();
+      // Scope changes drop only the focused preview. The card stays selected
+      // while it is still in the gallery, so the inspector and the results
+      // selection survive the round trip.
+      expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+        selectedJobId: 'selected',
+      });
+      expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
     },
   );
 
@@ -2139,6 +2146,39 @@ describe('StudioPlaygroundWorkspace', () => {
     expect(
       screen.getByRole('button', { name: 'Collapse sidebar' }),
     ).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
+  });
+
+  it('reveals a collapsed inspector when the selected card is clicked again', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+    render(<StudioPlaygroundWorkspace />, { wrapper: ContextSidebarHost });
+    const select = () => {
+      const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+        onSelect: (selected: typeof job) => void;
+      };
+      act(() => resultsProps.onSelect(job));
+    };
+
+    select();
+    const toggle = screen.getByRole('button', { name: 'Collapse sidebar' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    select();
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('studio-inspector')).toBeInTheDocument();
   });
 
