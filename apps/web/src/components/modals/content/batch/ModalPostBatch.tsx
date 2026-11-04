@@ -4,9 +4,11 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { useRouter } from 'next/navigation';
+import type { FormEvent } from 'react';
 import ModalPostContent from '@/components/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
 import ModalPostHeader from '@/components/modals/content/post/ModalPostHeader';
+import { PUBLISH_SUBMIT_ATTRIBUTE } from '@/components/modals/content/post/publish-submit';
 import ModalPostBatchEmptyState from './ModalPostBatchEmptyState';
 import ModalPostBatchFormAlerts from './ModalPostBatchFormAlerts';
 import ModalPostBatchIngredientPreview from './ModalPostBatchIngredientPreview';
@@ -54,6 +56,23 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
     platformStatuses,
   } = useModalPostBatch(props);
 
+  // Only the Publish button on the platforms step may submit. Any other
+  // submission (stray Enter on the setup step, a navigation button, a
+  // programmatic submit) is swallowed so it can never schedule posts.
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+
+    if (
+      activeTab !== 'platforms' ||
+      submitter?.getAttribute(PUBLISH_SUBMIT_ATTRIBUTE) !== 'true'
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    onSubmit(event);
+  };
+
   return (
     <Modal
       id={ModalEnum.POST_BATCH}
@@ -92,7 +111,11 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
                   onClose={closeModalPost}
                 />
               ) : (
-                <Form className="h-full" ref={formRef} onSubmit={onSubmit}>
+                <Form
+                  className="h-full"
+                  ref={formRef}
+                  onSubmit={handleFormSubmit}
+                >
                   <ModalPostBatchFormAlerts
                     formErrors={form.formState.errors}
                     invalidCredentialConfigs={invalidCredentialConfigs}
