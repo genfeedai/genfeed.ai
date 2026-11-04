@@ -491,7 +491,7 @@
     "packages/agent/src/workflow/components/QuestionCard.tsx": 3,
     "packages/agent/src/workflow/components/VerificationPanel.tsx": 4,
     "packages/contexts/providers/api-status/api-status.provider.tsx": 8,
-    "packages/helpers/src/content/posts.helper.tsx": 7,
+    "packages/helpers/src/content/posts.helper.tsx": 5,
     "packages/ui/src/components/agent-panel/AgentPanelShell.tsx": 3,
     "packages/ui/src/components/badges/ComingSoonBadge.tsx": 1,
     "packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx": 2,
