@@ -170,7 +170,7 @@ describe('HealthController', () => {
       expect(result).not.toHaveProperty('degradedDependencies');
     });
 
-    it('reports degraded dependencies without failing the probe', async () => {
+    it('reports degraded status without naming the dependency or its URL', async () => {
       const degradedDependencies = [
         {
           error: 'getaddrinfo ENOTFOUND files.genfeed.internal',
@@ -199,10 +199,11 @@ describe('HealthController', () => {
       const result = moduleRef.get<HealthController>(HealthController).ready();
 
       expect(result).toHaveProperty('status', 'degraded');
-      expect(result.degradedDependencies).toEqual(degradedDependencies);
+      expect(result).not.toHaveProperty('degradedDependencies');
+      expect(JSON.stringify(result)).not.toContain('files.genfeed.internal');
     });
 
-    it('names unusable configuration in the readiness response', async () => {
+    it('does not name unusable configuration in the public readiness response', async () => {
       const configurationIssues = [
         {
           message: 'Missing or placeholder OpenRouter key.',
@@ -229,8 +230,37 @@ describe('HealthController', () => {
       const result = moduleRef.get<HealthController>(HealthController).ready();
 
       expect(result).toHaveProperty('status', 'degraded');
-      expect(result.configurationIssues).toEqual(configurationIssues);
-      expect(result).not.toHaveProperty('degradedDependencies');
+      expect(result).not.toHaveProperty('configurationIssues');
+      expect(JSON.stringify(result)).not.toContain('OPENROUTER_API_KEY');
+    });
+
+    it('keeps degraded dependencies and configuration issues on detailed()', async () => {
+      const details = {
+        configurationIssues: [
+          { message: 'placeholder', variable: 'BETTER_AUTH_SECRET' },
+        ],
+        degradedDependencies: [
+          { name: 'files', since: '2026-08-25T17:27:47.000Z', url: 'http://x' },
+        ],
+      };
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: { getHealthDetails: () => details },
+          },
+        ],
+      }).compile();
+
+      const detailed = await moduleRef
+        .get<HealthController>(HealthController)
+        .detailed();
+
+      expect(detailed.configurationIssues).toEqual(details.configurationIssues);
+      expect(detailed.degradedDependencies).toEqual(
+        details.degradedDependencies,
+      );
     });
 
     it('stays ready when the contributor omits the readiness hook', async () => {
