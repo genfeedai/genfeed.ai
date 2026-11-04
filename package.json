@@ -392,7 +392,6 @@
     "lmdb>msgpackr": "1.12.1",
     "plasmo>fflate": "0.8.3",
     "@plasmohq/parcel-transformer-inline-css>browserslist": "4.29.3",
-    "datauri>image-size": "2.0.4",
     "vue": "3.5.42",
     "speech-rule-engine>@xmldom/xmldom": "0.9.12"
   }
