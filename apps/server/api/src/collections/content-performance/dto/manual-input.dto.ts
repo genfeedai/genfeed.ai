@@ -1,3 +1,4 @@
+import { ContentPerformanceCountsDto } from '@api/collections/content-performance/dto/content-performance-counts.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ContentType, CredentialPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
@@ -21,7 +22,7 @@ import {
  */
 const MAX_MANUAL_ENTRIES = 50;
 
-export class ManualMetricEntryDto {
+export class ManualMetricEntryDto extends ContentPerformanceCountsDto {
   @ApiProperty({
     description: 'Platform',
     enum: CredentialPlatform,
@@ -61,43 +62,7 @@ export class ManualMetricEntryDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  views?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  likes?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  comments?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  shares?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  saves?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
   clicks?: number;
-
-  @ApiProperty({ default: 0, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  revenue?: number;
 }
 
 export class ManualInputDto {
