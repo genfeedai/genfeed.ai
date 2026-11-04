@@ -111,6 +111,60 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+const BrandScopedWrapper = ({ children }: { children: ReactNode }) => (
+  <ConversationComposerShellProvider
+    brandId="brand-1"
+    contextLabel="Acme"
+    draftScopeKey={draftScopeKey}
+    portalTarget={null}
+    shellState="canvas"
+  >
+    {children}
+  </ConversationComposerShellProvider>
+);
+
+function UnscopedWrapper({ children }: { children: ReactNode }) {
+  return (
+    <ConversationComposerShellProvider
+      artifactReferences={workspaceReferences}
+      contextLabel="Workspace"
+      draftScopeKey={null}
+      portalTarget={null}
+      shellState="canvas"
+    >
+      {children}
+    </ConversationComposerShellProvider>
+  );
+}
+
+function BrandWrapper({ children }: { children: ReactNode }) {
+  return (
+    <ConversationComposerShellProvider
+      brandId="brand-1"
+      contextLabel="Studio"
+      draftScopeKey={draftScopeKey}
+      portalTarget={null}
+      shellState="canvas"
+    >
+      {children}
+    </ConversationComposerShellProvider>
+  );
+}
+
+function BoundWrapper({ children }: { children: ReactNode }) {
+  return (
+    <ConversationComposerShellProvider
+      brandId="route-brand"
+      contextLabel="Conversation"
+      draftScopeKey={draftScopeKey}
+      portalTarget={null}
+      shellState="canvas"
+    >
+      {children}
+    </ConversationComposerShellProvider>
+  );
+}
+
 describe('areAgentChatMentionReferencesEqual', () => {
   it('returns true only when id, label, type, and order match', () => {
     const base = [
@@ -312,17 +366,6 @@ describe('useAgentChatInput generation mode', () => {
       '#undefined',
     );
     const onSend = vi.fn();
-    const BrandScopedWrapper = ({ children }: { children: ReactNode }) => (
-      <ConversationComposerShellProvider
-        brandId="brand-1"
-        contextLabel="Acme"
-        draftScopeKey={draftScopeKey}
-        portalTarget={null}
-        shellState="canvas"
-      >
-        {children}
-      </ConversationComposerShellProvider>
-    );
 
     const { result } = renderHook(() => useAgentChatInput({ onSend }), {
       wrapper: BrandScopedWrapper,
@@ -976,19 +1019,6 @@ describe('useAgentChatInput surface artifact chip dismissal', () => {
   });
 
   it('accumulates dismissals in a composer without a draft scope', async () => {
-    function UnscopedWrapper({ children }: { children: ReactNode }) {
-      return (
-        <ConversationComposerShellProvider
-          artifactReferences={workspaceReferences}
-          contextLabel="Workspace"
-          draftScopeKey={null}
-          portalTarget={null}
-          shellState="canvas"
-        >
-          {children}
-        </ConversationComposerShellProvider>
-      );
-    }
     const { result } = renderHook(
       () => useAgentChatInput({ onSend: vi.fn() }),
       { wrapper: UnscopedWrapper },
@@ -1042,20 +1072,6 @@ describe('useAgentChatInput surface artifact chip dismissal', () => {
 });
 
 describe('useAgentChatInput attached record brand scope', () => {
-  function BrandWrapper({ children }: { children: ReactNode }) {
-    return (
-      <ConversationComposerShellProvider
-        brandId="brand-1"
-        contextLabel="Studio"
-        draftScopeKey={draftScopeKey}
-        portalTarget={null}
-        shellState="canvas"
-      >
-        {children}
-      </ConversationComposerShellProvider>
-    );
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
@@ -1126,20 +1142,6 @@ describe('useAgentChatInput attached record brand scope', () => {
 });
 
 describe('useAgentChatInput picked post context', () => {
-  function BoundWrapper({ children }: { children: ReactNode }) {
-    return (
-      <ConversationComposerShellProvider
-        brandId="route-brand"
-        contextLabel="Conversation"
-        draftScopeKey={draftScopeKey}
-        portalTarget={null}
-        shellState="canvas"
-      >
-        {children}
-      </ConversationComposerShellProvider>
-    );
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
