@@ -523,10 +523,8 @@ vi.mock(
 
 vi.mock(
   '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote')
-    >()),
+  () => ({
+    serializeCrunQuoteIntent: (value: unknown) => JSON.stringify(value),
     useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
   }),
 );
