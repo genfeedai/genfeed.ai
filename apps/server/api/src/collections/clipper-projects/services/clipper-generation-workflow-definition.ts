@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { conditionNode as buildConditionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -24,20 +25,23 @@ function forEachNode(id: string, positionY: number): WorkflowVisualNode {
   });
 }
 
-export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const conditionNode: WorkflowVisualNode = {
-    data: {
-      config: {
-        customField: 'hookReviewRequired',
-        field: 'custom',
-        operator: 'isTrue',
-      },
-      label: 'Hook review required?',
-    },
-    id: 'hook-review-required',
-    position: { x: 0, y: 320 },
-    type: 'condition',
-  };
+const HOOK_REVIEW_CONDITION_NODE_ID = 'hook-review-required';
+
+/**
+ * The hook gate shared by the clip generation and clip factory workflows:
+ * `generate-hook` feeds an optional review before `generate-remaining` runs.
+ * The condition sits at `conditionY` and the review gate 160px below it.
+ */
+export function buildClipperHookGate(conditionY: number): {
+  edges: WorkflowEdge[];
+  nodes: WorkflowVisualNode[];
+} {
+  const conditionNode = buildConditionNode(
+    HOOK_REVIEW_CONDITION_NODE_ID,
+    'Hook review required?',
+    'hookReviewRequired',
+    conditionY,
+  );
   const reviewNode: WorkflowVisualNode = {
     data: {
       config: {
@@ -47,7 +51,7 @@ export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphD
       label: 'Review Hook Clip',
     },
     id: CLIPPER_HOOK_REVIEW_NODE_ID,
-    position: { x: 0, y: 480 },
+    position: { x: 0, y: conditionY + 160 },
     type: 'reviewGate',
   };
   const edges: WorkflowEdge[] = [
@@ -118,12 +122,17 @@ export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphD
       targetHandle: 'baseInput',
     },
   ];
+  return { edges, nodes: [conditionNode, reviewNode] };
+}
+
+export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  const gate = buildClipperHookGate(320);
 
   return {
     canonicalId: CLIPPER_GENERATION_WORKFLOW_ID,
     organizationModule: 'clipper',
     definition: {
-      edges,
+      edges: gate.edges,
       inputVariables: [
         {
           key: 'request',
@@ -146,8 +155,7 @@ export function buildClipperGenerationWorkflowDefinition(): SystemWorkflowGraphD
           position: { x: 0, y: 0 },
         }),
         forEachNode('generate-hook', 160),
-        conditionNode,
-        reviewNode,
+        ...gate.nodes,
         forEachNode('generate-remaining', 640),
       ],
     },
