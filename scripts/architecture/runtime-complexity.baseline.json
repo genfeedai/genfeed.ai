@@ -66,12 +66,6 @@
     "symbol": "apps/server/api/src/collections/skills/services/skills.service.ts"
   },
   {
-    "actual": 151,
-    "file": "apps/server/api/src/collections/videos/controllers/transformations/edits/videos-edits.controller.ts",
-    "metric": "method-lines",
-    "symbol": "VideosEditsController.addTextOverlay"
-  },
-  {
     "actual": 1016,
     "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
     "metric": "file-lines",

@@ -324,10 +324,7 @@ export class VideosEditsController {
           const meta = await this.filesClientService.uploadToS3(
             ingredientData.id,
             `videos`,
-            {
-              path: output,
-              type: FileInputType.FILE,
-            },
+            { path: output, type: FileInputType.FILE },
           );
 
           await this.metadataService.patch(metadataData.id, {

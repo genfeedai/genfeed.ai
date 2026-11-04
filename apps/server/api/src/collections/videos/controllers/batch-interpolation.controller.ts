@@ -122,9 +122,7 @@ export class BatchInterpolationController {
     // Generate group ID to link all videos from this storyboard batch together.
     const groupId = randomUUID();
 
-    const model = await this.modelsService.findOne({
-      key: dto.modelKey,
-    });
+    const model = await this.modelsService.findOne({ key: dto.modelKey });
 
     if (!model) {
       throw new HttpException(
