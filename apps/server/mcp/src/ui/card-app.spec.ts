@@ -1162,7 +1162,8 @@ describe('approval card', () => {
     expect(document.querySelector('h2')?.textContent).toContain('Generate');
     expect(text).toContain('Pending Approval');
     expect(text).toContain('4 credits');
-    expect(buttonNamed('Approve')).toBeDefined();
+    // Approving happens in the inbox, behind the review link.
+    expect(buttonNamed('Approve')).toBeUndefined();
     expect(buttonNamed('Decline')).toBeDefined();
     expect(
       document.querySelector('a[aria-label="Review in Genfeed"]'),

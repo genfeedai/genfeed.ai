@@ -33,6 +33,8 @@ export interface McpCardMedia {
 /** One entry of a list fact: a brand with its logo, a channel with its state. */
 export interface McpCardFactItem {
   avatarUrl?: string;
+  /** Shows the avatar frame (initials when there is no picture), for brands and people. */
+  hasAvatar?: boolean;
   label: string;
   /** A social platform; the entry then shows the platform badge. */
   platform?: string;

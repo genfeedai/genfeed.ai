@@ -19,6 +19,7 @@ import {
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import type { StudioPlaygroundSettings, StudioPlaygroundType } from '../types';
 import { getStudioPlaygroundTypeConfig } from './studio-playground-types';
+import { optionalText } from './studio-playground-values';
 
 /** Aspect ladder shown in the settings popover, widest to tallest. */
 export const STUDIO_ASPECT_RATIOS = [
@@ -171,11 +172,6 @@ export function getDefaultStudioPlaygroundSettings(
     resolution: DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K',
     tags: [],
   };
-}
-
-function optionalText(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
 }
 
 /**

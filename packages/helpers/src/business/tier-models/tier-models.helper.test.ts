@@ -1,6 +1,7 @@
 import { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 import {
   hasQualityAccess,
+  resolveQualityAccessTier,
   resolveSubscriptionTier,
   TIER_QUALITY_ACCESS,
 } from '@helpers/business/tier-models/tier-models.helper';
@@ -94,6 +95,28 @@ describe('tier-models.helper', () => {
       expect(resolveSubscriptionTier('')).toBe(SubscriptionTier.FREE);
       expect(resolveSubscriptionTier(null)).toBe(SubscriptionTier.FREE);
       expect(resolveSubscriptionTier(undefined)).toBe(SubscriptionTier.FREE);
+    });
+  });
+
+  describe('resolveQualityAccessTier', () => {
+    it.each([
+      [SubscriptionTier.FREE, true, SubscriptionTier.SCALE],
+      [SubscriptionTier.PRO, true, SubscriptionTier.SCALE],
+      [SubscriptionTier.ENTERPRISE, true, SubscriptionTier.ENTERPRISE],
+      [undefined, true, SubscriptionTier.SCALE],
+      [SubscriptionTier.FREE, false, SubscriptionTier.FREE],
+      [SubscriptionTier.PRO, null, SubscriptionTier.PRO],
+      [undefined, undefined, undefined],
+    ])(
+      'resolves %s with purchased credits %s to %s',
+      (tier, hasPurchased, expected) => {
+        expect(resolveQualityAccessTier(tier, hasPurchased)).toBe(expected);
+      },
+    );
+
+    it('gives a free org that bought credits Ultra quality', () => {
+      const tier = resolveQualityAccessTier(SubscriptionTier.FREE, true);
+      expect(tier && hasQualityAccess(tier, QualityTier.ULTRA)).toBe(true);
     });
   });
 });

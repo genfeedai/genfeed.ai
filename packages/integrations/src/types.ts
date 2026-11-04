@@ -101,11 +101,6 @@ export interface ExecutionResult {
   error?: string;
 }
 
-export type ProgressCallback = (
-  message: string,
-  percentage: number,
-) => Promise<void>;
-
 export interface BotManager {
   initialize(): Promise<void>;
   shutdown(): Promise<void>;

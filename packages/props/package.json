@@ -3,7 +3,6 @@
     "@genfeedai/client": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/models": "workspace:*",
-    "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@remotion/player": "4.0.540",

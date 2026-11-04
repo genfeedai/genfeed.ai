@@ -1,3 +1,6 @@
+import CurrentBadge, {
+  CURRENT_RING,
+} from '@app/(onboarding)/onboarding/components/current-badge';
 import {
   ButtonSize,
   ButtonVariant,
@@ -13,16 +16,6 @@ import Link from 'next/link';
 import type { ProvidersActionBarProps } from '@/features/onboarding/props/providers-action-bar.props';
 
 export type { ProvidersAccessSurface } from '@/features/onboarding/props/providers-action-bar.props';
-
-const CURRENT_RING = 'ring-1 ring-border-strong';
-
-function CurrentBadge() {
-  return (
-    <Badge className="absolute -top-2 right-3 z-10" variant="secondary">
-      Current
-    </Badge>
-  );
-}
 
 export default function ProvidersActionBar({
   loading,

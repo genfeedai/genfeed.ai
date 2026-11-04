@@ -93,3 +93,8 @@ export function stripHtmlToPlainText(value?: string | null): string {
     .join('\n')
     .trim();
 }
+
+/** `stripHtmlToPlainText` flattened onto a single line, for titles and previews. */
+export function stripHtmlToSingleLine(value?: string | null): string {
+  return stripHtmlToPlainText(value).replace(/\s+/g, ' ');
+}

@@ -42,6 +42,7 @@ describe('native MCP untrusted-result integration', () => {
     createClipperProjectFromYoutube: vi.fn(),
     isApprovalRequired: vi.fn().mockResolvedValue(true),
     createApproval: vi.fn(),
+    getApproval: vi.fn(),
     resolveApproval: vi.fn(),
     attachApprovalResult: vi.fn(),
     claimApprovalExecution: vi.fn().mockResolvedValue(true),
@@ -79,7 +80,8 @@ describe('native MCP untrusted-result integration', () => {
       status: 'PENDING',
       arguments: routes[3].args,
     });
-    client.resolveApproval.mockResolvedValue({
+    // A reviewer approved it in the inbox; MCP only redeems it.
+    client.getApproval.mockResolvedValue({
       id: 'approval',
       toolName: 'create_clipper_project_from_youtube',
       status: 'APPROVED',
@@ -194,14 +196,10 @@ describe('native MCP untrusted-result integration', () => {
     });
     expect(client.createClipperProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
-    client.resolveApproval
-      .mockResolvedValueOnce({
-        id: 'approval',
-        toolName: routes[3].name,
-        status: 'APPROVED',
-        arguments: routes[3].args,
-      })
-      .mockRejectedValueOnce(new Error('already resolved'));
+    // Two redemptions race; only one wins the execution claim.
+    client.claimApprovalExecution
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
     await Promise.all([
       service.handleToolCall({
         name: 'resolve_approval',

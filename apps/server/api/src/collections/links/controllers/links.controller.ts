@@ -92,26 +92,63 @@ export class LinksController extends BaseCRUDController<
   }
 
   /**
-   * Override enrichCreateDto to not add user field (use brand instead)
+   * Links attach to the brand named in the body (the brand-create flow adds
+   * the website link to the brand it just made, which is not yet the session
+   * brand), falling back to the session brand. Links have no user column.
    */
   public enrichCreateDto(createDto: CreateLinkDto, user: User): CreateLinkDto {
-    const enriched: CreateLinkDto = {
-      ...createDto,
-      brandId: user.brandId ?? createDto.brandId,
+    const dto = super.enrichCreateDto(createDto, user) as CreateLinkDto & {
+      userId?: string;
     };
+    delete dto.userId;
 
-    // Links are associated with accounts, not users
-    // Do NOT add user field - Link schema doesn't have it
-    return enriched;
+    return { ...dto, brandId: createDto.brandId ?? user.brandId ?? '' };
   }
 
   /**
-   * Override enrichUpdateDto to not add user field
+   * A body `brandId` moves the link. Without the check below a member could
+   * move their own link onto another organization's brand, where it shows on
+   * that brand's public page.
    */
   public async enrichUpdateDto(
     updateDto: UpdateLinkDto,
+    user: User,
   ): Promise<UpdateLinkDto> {
-    return await Promise.resolve({ ...updateDto });
+    const dto = await super.enrichUpdateDto(updateDto, user);
+
+    if (dto.brandId !== undefined) {
+      await this.assertBrandInCallerOrganization(dto.brandId, user);
+    }
+
+    return dto;
+  }
+
+  /**
+   * `model Link` has no `organizationId`, so the base controller cannot pin
+   * a new or moved link to the caller's organization. Check the brand instead.
+   */
+  private async assertBrandInCallerOrganization(
+    brandId: string,
+    user: User,
+  ): Promise<void> {
+    if (getIsSuperAdmin(user)) {
+      return;
+    }
+
+    const isOwnBrand =
+      Boolean(brandId) &&
+      Boolean(user.organizationId) &&
+      (await this.linksService.isBrandInOrganization(
+        brandId,
+        user.organizationId,
+      ));
+
+    if (!isOwnBrand) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this brand',
+        title: 'Forbidden',
+      });
+    }
   }
 
   /**
@@ -135,6 +172,10 @@ export class LinksController extends BaseCRUDController<
     @CurrentUser() _user: User,
     @Body() createLinkDto: CreateLinkDto,
   ): Promise<JsonApiSingleResponse> {
+    await this.assertBrandInCallerOrganization(
+      this.enrichCreateDto(createLinkDto, _user).brandId,
+      _user,
+    );
     const result = await super.create(request, _user, createLinkDto);
 
     // Invalidate brands and links cache for brand list endpoints

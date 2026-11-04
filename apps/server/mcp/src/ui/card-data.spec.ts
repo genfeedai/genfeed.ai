@@ -7,11 +7,11 @@ import {
   buildCardView,
   MCP_APP_MIME_TYPE,
   MCP_CARD_RESOURCE_URI,
-  safeCardUrl,
   withApprovalCard,
   withCardMetadata,
   withCardResult,
 } from '@mcp/ui/card-data';
+import { safeCardUrl } from '@mcp/ui/card-fields';
 
 describe('MCP Apps card contract', () => {
   it('links content tools to a public HTML resource, preserving existing metadata', () => {
@@ -302,7 +302,10 @@ describe('MCP Apps card contract', () => {
     expect(view?.cards[0].facts).toEqual([
       { label: 'Active brand', value: 'Beta' },
       {
-        items: [{ label: 'Acme' }, { label: 'Beta' }],
+        items: [
+          { hasAvatar: true, label: 'Acme' },
+          { hasAvatar: true, label: 'Beta' },
+        ],
         label: 'Brands',
         value: 'Acme, Beta',
       },
@@ -562,7 +565,7 @@ describe('MCP Apps card contract', () => {
     );
   });
 
-  it('turns a queued write into an approval card with Approve and Decline', () => {
+  it('turns a queued write into an approval card that declines in place and approves in the inbox', () => {
     const result = withApprovalCard({
       content: [{ text: 'needs approval', type: 'text' }],
       isError: true,
@@ -586,12 +589,6 @@ describe('MCP Apps card contract', () => {
       title: 'Create post',
     });
     expect(view.cards[0].actions).toEqual([
-      {
-        approvalId: 'apr-1',
-        decision: 'approve',
-        kind: 'resolve_approval',
-        label: 'Approve',
-      },
       {
         approvalId: 'apr-1',
         decision: 'decline',

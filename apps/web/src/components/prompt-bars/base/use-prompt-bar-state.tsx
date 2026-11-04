@@ -15,6 +15,7 @@ import {
   type SubscriptionTier,
 } from '@genfeedai/contracts';
 import { getModelDefaultDuration } from '@genfeedai/contracts/constants';
+import { resolveQualityAccessTier } from '@genfeedai/helpers';
 import { createCrunVideoDraft } from '@genfeedai/helpers/crun-video-input.helper';
 import { resolveModelDurationOptions } from '@genfeedai/helpers/generation-controls.helper';
 import {
@@ -265,9 +266,11 @@ export function usePromptBarState({
   const crunConsumedRef = useRef<string | null>(null);
   const crunSubmittingRef = useRef(false);
   const [, setCrunDocumentRevision] = useState(0);
-  const subscriptionTier = settings?.subscriptionTier as
-    | SubscriptionTier
-    | undefined;
+  // Only gates quality options: credit-pack buyers get every quality tier.
+  const subscriptionTier = resolveQualityAccessTier(
+    settings?.subscriptionTier as SubscriptionTier | undefined,
+    settings?.hasPurchasedCredits,
+  );
 
   const {
     trainingIds,

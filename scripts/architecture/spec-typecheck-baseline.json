@@ -5185,14 +5185,6 @@
       "workspace": "services"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/services/analytics/watchlist.service.test.ts",
-      "fingerprint": "d0179f0bfca2150ef289",
-      "message": "Conversion of type 'typeof MockBaseService' to type 'new (token: string) => unknown' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of construct signatures are incompatible.     Type 'new (endpoint: string, token: string, ..._rest: unknown[]) => MockBaseService' is not assignable to type 'new (token: string) => unknown'.       Target signature provides too few arguments. Expected 2 or more, but got 1.",
-      "workspace": "services"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/services/automation/bot-activities.service.test.ts",
@@ -5254,22 +5246,6 @@
       "file": "packages/services/content/posts.service.test.ts",
       "fingerprint": "36c0c4022adacd6e11aa",
       "message": "Type '\"twitter\"' is not assignable to type 'Platform.INSTAGRAM | Platform.TIKTOK | Platform.TWITTER | Platform.LINKEDIN'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2459,
-      "count": 1,
-      "file": "packages/services/content/prompt-generator.service.test.ts",
-      "fingerprint": "325f98c5801fdd0ba2f5",
-      "message": "Module '\"@services/content/prompt-generator.service\"' declares 'GeneratePromptsRequest' locally, but it is not exported.",
-      "workspace": "services"
-    },
-    {
-      "code": 2459,
-      "count": 1,
-      "file": "packages/services/content/prompt-generator.service.test.ts",
-      "fingerprint": "618fb8fe84567201e628",
-      "message": "Module '\"@services/content/prompt-generator.service\"' declares 'GeneratedPrompt' locally, but it is not exported.",
       "workspace": "services"
     },
     {
@@ -5574,14 +5550,6 @@
       "file": "packages/services/core/base.service.test.ts",
       "fingerprint": "9e1edf2df0b1bcbd697a",
       "message": "Object literal may only specify known properties, and 'description' does not exist in type 'Partial<TestModel>'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2554,
-      "count": 2,
-      "file": "packages/services/core/brand-commands.service.test.ts",
-      "fingerprint": "df1e1e83b3dffeb415dd",
-      "message": "Expected 0 arguments, but got 1.",
       "workspace": "services"
     },
     {

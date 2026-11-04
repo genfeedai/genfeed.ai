@@ -60,7 +60,8 @@ export class HealthController {
    * reach. A degraded peer still answers 200 on purpose (#3565): recycling a
    * task that is otherwise serving traffic turns a transient DNS gap into a
    * restart loop. The contributor hook is synchronous and reads cached state,
-   * so this probe never issues its own network calls.
+   * so this probe never issues its own network calls. It is public, so the
+   * response carries the status and nothing that describes the deployment.
    */
   @Public()
   @Get('ready')
@@ -71,17 +72,10 @@ export class HealthController {
       return this.buildResponse('ready');
     }
 
-    const response: HealthResponse = this.buildResponse(readiness.status);
-
-    if (readiness.degradedDependencies?.length) {
-      response.degradedDependencies = readiness.degradedDependencies;
-    }
-
-    if (readiness.configurationIssues?.length) {
-      response.configurationIssues = readiness.configurationIssues;
-    }
-
-    return response;
+    // Which peer is down (its internal URL and error) and which setting is
+    // wrong are operator diagnostics. This route is unauthenticated, so it
+    // reports the status only; `GET /health/detailed` carries the rest.
+    return this.buildResponse(readiness.status);
   }
 
   @Public()

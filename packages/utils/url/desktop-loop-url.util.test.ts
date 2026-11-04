@@ -10,7 +10,6 @@ import {
   buildSourcePostVariationsHref,
   buildTrendAgentHref,
   buildTrendSourceAgentHref,
-  buildTrendSourceTwitterDraftHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 
@@ -64,14 +63,6 @@ describe('desktop-loop-url.util', () => {
       text: 'A concrete source post',
     };
 
-    const href = buildTrendSourceTwitterDraftHref(trend, source);
-
-    expect(href).toContain('/playground?');
-    expect(href).toContain('trendId=trend-1');
-    expect(href).toContain('sourceReferenceId=source-reference-1');
-    expect(href).toContain(
-      'sourceUrl=https%3A%2F%2Fx.com%2Fexample%2Fstatus%2F1',
-    );
     expect(buildTrendSourceAgentHref(trend, source)).toContain(
       'Source+URL%3A+https%3A%2F%2Fx.com%2Fexample%2Fstatus%2F1',
     );

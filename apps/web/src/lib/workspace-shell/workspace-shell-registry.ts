@@ -1302,6 +1302,9 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
   }),
 ] as const satisfies readonly WorkspaceShellOverlayRegistration[]);
 
+// Kept local: `check-product-route-inventory` loads this module straight from
+// source in a bare Node process, where only workspace packages resolve, not
+// the app's `@helpers/*` alias or the unbuilt helpers `dist`.
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

@@ -13,8 +13,6 @@ import {
 } from './schema-builders';
 import { toolActionOutputSchema } from './tool-action-contract';
 
-export const KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT = 1;
-
 const KNOWLEDGE_KIND = enumSchema([
   'AUDIO',
   'DOCUMENT',

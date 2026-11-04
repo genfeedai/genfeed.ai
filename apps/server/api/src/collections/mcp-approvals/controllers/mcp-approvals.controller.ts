@@ -19,7 +19,7 @@ import {
   type FrontendPagination,
   transformPaginationFormat,
 } from '@api/shared/utils/pagination-transform/pagination-transform.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ActionOrigin, MemberRole } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import {
@@ -30,6 +30,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -198,6 +199,14 @@ export class McpApprovalsController {
     @Param('id') id: string,
     @Body() dto: ResolveMcpApprovalDto,
   ): Promise<{ data: McpApprovalResponse }> {
+    // An MCP session may be driven by a model reading untrusted content, so it
+    // must not approve its own queued write; approval happens in the review
+    // inbox. Declining only cancels, so it stays allowed.
+    if (dto.decision === 'approve' && user.actionOrigin === ActionOrigin.MCP) {
+      throw new ForbiddenException(
+        'Approve MCP actions in the Genfeed review inbox, not through MCP.',
+      );
+    }
     const metadata = user;
     const result = await this.service.resolve(
       id,

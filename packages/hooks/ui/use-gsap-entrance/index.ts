@@ -2,7 +2,6 @@ export {
   type GsapAnimation,
   type GsapTimelineStep,
   gsapPresets,
-  prefersReducedMotion,
   type UseGsapEntranceOptions,
   type UseGsapTimelineOptions,
   useGsapEntrance,

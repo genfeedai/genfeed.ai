@@ -56,6 +56,13 @@ export function capitalize(str: string | null | undefined): string {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
+/** `'needs_review'` → `'Needs Review'` for status and enum-style values. */
+export function formatSnakeCaseLabel(value: string): string {
+  return value
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 /**
  * Format number using Intl.NumberFormat with compact notation (1K, 1.2M)
  * Preferred for chart axes and tooltips

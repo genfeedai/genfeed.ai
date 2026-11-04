@@ -1,6 +1,4 @@
 import {
-  INTERNAL_CALLERS,
-  internalCallerKeyName,
   resolveAcceptedInternalCallerKeys,
   resolveInternalCallerKey,
 } from '@libs/auth/internal-caller-keys';
@@ -10,12 +8,20 @@ const reader = (keys: Record<string, string | undefined>) => (key: string) =>
   keys[key];
 
 describe('internal caller keys', () => {
-  it('names every caller key GENFEEDAI_API_KEY_<CALLER>', () => {
-    for (const caller of INTERNAL_CALLERS) {
-      expect(internalCallerKeyName(caller)).toBe(
-        `GENFEEDAI_API_KEY_${caller.toUpperCase()}`,
-      );
-    }
+  it('resolves each caller to its own key', () => {
+    const read = reader({
+      GENFEEDAI_API_KEY_DISCORD: 'd',
+      GENFEEDAI_API_KEY_FILES: 'f',
+      GENFEEDAI_API_KEY_NOTIFICATIONS: 'n',
+      GENFEEDAI_API_KEY_SLACK: 's',
+      GENFEEDAI_API_KEY_TELEGRAM: 't',
+    });
+
+    expect(resolveInternalCallerKey(read, 'discord')).toBe('d');
+    expect(resolveInternalCallerKey(read, 'files')).toBe('f');
+    expect(resolveInternalCallerKey(read, 'notifications')).toBe('n');
+    expect(resolveInternalCallerKey(read, 'slack')).toBe('s');
+    expect(resolveInternalCallerKey(read, 'telegram')).toBe('t');
   });
 
   it('prefers the caller key and falls back to the shared key', () => {

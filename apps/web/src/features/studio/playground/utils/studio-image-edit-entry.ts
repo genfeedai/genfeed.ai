@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { ImageEditingRecipe } from '@genfeedai/contracts/interfaces';
 import type { StudioPlaygroundSettings } from '@/features/studio/playground/types';
+import { optionalText, ratioValue } from './studio-playground-values';
 
 /** Pixel rounding only. A nearer ladder entry is not the source ratio. */
 const ASPECT_MATCH_TOLERANCE = 0.01;
@@ -81,10 +82,6 @@ function ratioShaped(value: string | undefined): string | undefined {
   return /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/.test(trimmed) ? trimmed : undefined;
 }
 
-function text(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
 function positive(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? value
@@ -102,7 +99,7 @@ function readMetadata(value: unknown): ImageEditMetadataRecord | undefined {
   const record = value as ImageEditMetadataRecord;
   return {
     height: positive(record.height),
-    model: text(record.model),
+    model: optionalText(record.model),
     width: positive(record.width),
   };
 }
@@ -185,21 +182,6 @@ export function readImageEditSourceAspect(input: {
   return undefined;
 }
 
-function ratioValue(aspectRatio: string): number | null {
-  const [rawHorizontal, rawVertical] = aspectRatio.split(':');
-  const horizontal = Number(rawHorizontal);
-  const vertical = Number(rawVertical);
-  if (
-    !Number.isFinite(horizontal) ||
-    !Number.isFinite(vertical) ||
-    horizontal <= 0 ||
-    vertical <= 0
-  ) {
-    return null;
-  }
-  return horizontal / vertical;
-}
-
 function selectableRatioForDimensions(
   width: number,
   height: number,
@@ -232,9 +214,9 @@ export function readImageEditSourceModel(input: {
   recipeModelKey?: string;
 }): string | undefined {
   return (
-    text(input.recipeEditModel) ||
-    text(input.modelUsed) ||
-    text(input.recipeModelKey) ||
-    text(input.modelKey)
+    optionalText(input.recipeEditModel) ||
+    optionalText(input.modelUsed) ||
+    optionalText(input.recipeModelKey) ||
+    optionalText(input.modelKey)
   );
 }

@@ -4,9 +4,10 @@ import { McpApprovalPolicyService } from '@api/collections/mcp-approvals/service
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ActionOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -319,6 +320,38 @@ describe('McpApprovalsController', () => {
           decision: 'approve',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('refuses an approval made from an MCP session', async () => {
+      await expect(
+        controller.resolve(
+          { ...mockUser, actionOrigin: ActionOrigin.MCP } as never,
+          'approval-1',
+          { decision: 'approve' },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it.each([
+      [ActionOrigin.MCP, 'decline'],
+      [ActionOrigin.UI, 'approve'],
+      [undefined, 'approve'],
+    ] as const)('lets a %s session %s', async (actionOrigin, decision) => {
+      mockServiceMethods.resolve.mockResolvedValue({
+        ...fakeApproval,
+        status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
+        resolvedAt: new Date(),
+      });
+
+      const result = await controller.resolve(
+        { ...mockUser, actionOrigin } as never,
+        'approval-1',
+        { decision },
+      );
+
+      expect(result.data.status).toBe(
+        decision === 'approve' ? 'APPROVED' : 'DECLINED',
+      );
     });
   });
 

@@ -632,8 +632,9 @@ export class ToolRegistryService implements OnModuleInit {
   /**
    * Approve or decline a previously-queued write. On approval, the original tool
    * is executed (bypassing the approval gate) and its result is persisted on the
-   * approval record. `resolve_approval` is admin-gated upstream, so a user-tier
-   * agent cannot self-approve its own queued write.
+   * approval record. Approval itself only happens in the Genfeed review inbox:
+   * `approve` here redeems an approval a person already granted there, so no
+   * agent can approve its own queued write.
    */
   private async handleResolveApproval(args: Record<string, unknown>) {
     const approvalId = String(args.approvalId ?? '');
@@ -655,13 +656,6 @@ export class ToolRegistryService implements OnModuleInit {
       return this.textResult('Approval declined. The action was not executed.');
     }
 
-    // Atomically CLAIM the approval (PENDING -> APPROVED) BEFORE executing the
-    // tool. The API resolves via a conditional updateMany on status=PENDING, so
-    // a concurrent resolve_approval for the same id loses the race and throws
-    // "already resolved" here — which means the underlying tool runs at most
-    // once even though the MCP server is stateless and handles each request in
-    // isolation. (Previously the claim happened AFTER execution, leaving a
-    // TOCTOU window where two callers could both execute an irreversible tool.)
     const approval = await this.claimApprovalOrRecoverRetry(approvalId);
     return this.runApprovedApproval(approval);
   }
@@ -731,31 +725,30 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   /**
-   * Claim the approval for execution. An approval that is already APPROVED with
-   * no recorded outcome was approved elsewhere (the Genfeed review inbox) or is
-   * a redemption that failed before the API consumed it: its decision stands,
-   * so re-approving runs it instead of dead-ending on "already resolved".
-   * {@link runApprovedApproval} still fences the run to at most once: the API
-   * fences agent-executor tools, and direct-dispatch tools take the execution
-   * claim first.
+   * Redeem an approval a reviewer already approved in the Genfeed review inbox.
+   * The MCP caller never approves: whoever drives this connection may be a
+   * model reading untrusted content, so it must not be able to approve its own
+   * queued write. A PENDING approval is refused with the inbox link; an
+   * APPROVED one with no recorded outcome runs, and {@link runApprovedApproval}
+   * fences that run to at most once (the API fences agent-executor tools,
+   * direct-dispatch tools take the execution claim first).
    */
   private async claimApprovalOrRecoverRetry(
     approvalId: string,
   ): Promise<McpApprovalResource> {
-    try {
-      return await this.clientService.resolveApproval(approvalId, 'approve');
-    } catch (claimError: unknown) {
-      let existing: McpApprovalResource | null = null;
-      try {
-        existing = await this.clientService.getApproval(approvalId);
-      } catch {
-        // Unreadable: keep the original claim failure.
-      }
-      if (existing?.status === 'APPROVED' && !existing.result) {
-        return existing;
-      }
-      throw claimError;
+    const existing = await this.clientService.getApproval(approvalId);
+    if (!existing) {
+      throw new Error(`Approval ${approvalId} not found.`);
     }
+    if (existing.status === 'APPROVED' && !existing.result) {
+      return existing;
+    }
+    if (existing.status === 'PENDING') {
+      throw new Error(
+        `Approval ${approvalId} is waiting for a person to approve it in the Genfeed review inbox. Approve it there, then call resolve_approval again to run it.`,
+      );
+    }
+    throw new Error(`Approval ${approvalId} already resolved; not executed.`);
   }
 
   /**

@@ -206,6 +206,7 @@ function card(value: unknown): McpCard | undefined {
                               {
                                 label: text(chip.label),
                                 avatarUrl: safeUrl(chip.avatarUrl),
+                                hasAvatar: chip.hasAvatar === true || undefined,
                                 platform: text(chip.platform) || undefined,
                                 status: text(chip.status) || undefined,
                               },

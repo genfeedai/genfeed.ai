@@ -24,6 +24,7 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
+import { formatSnakeCaseLabel } from '@helpers/formatting/format/format.helper';
 import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 import { Alert } from '@ui/primitives/alert';
@@ -304,12 +305,6 @@ function getReadinessAlertVariant(
     return 'warning';
   }
   return 'success';
-}
-
-function formatLabel(value: string): string {
-  return value
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function isGenerationReadyAvatar(avatar: IAvatar): boolean {
@@ -631,10 +626,10 @@ export default function RemixBriefInspector(): ReactElement {
               <section className="space-y-3 border-b border-border pb-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">
-                    {formatLabel(run.sourceSnapshot.platform)}
+                    {formatSnakeCaseLabel(run.sourceSnapshot.platform)}
                   </Badge>
                   <Badge variant="secondary">
-                    {formatLabel(run.brand.contextMode)}
+                    {formatSnakeCaseLabel(run.brand.contextMode)}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     {run.sourceSnapshot.title}
@@ -647,7 +642,9 @@ export default function RemixBriefInspector(): ReactElement {
                   <DefinitionList className="mt-2" variant="properties">
                     {patternEntries.map(([key, value]) => (
                       <DefinitionRow key={key}>
-                        <DefinitionTerm>{formatLabel(key)}</DefinitionTerm>
+                        <DefinitionTerm>
+                          {formatSnakeCaseLabel(key)}
+                        </DefinitionTerm>
                         <DefinitionDetail>{value}</DefinitionDetail>
                       </DefinitionRow>
                     ))}
@@ -658,7 +655,7 @@ export default function RemixBriefInspector(): ReactElement {
               <Alert variant={getReadinessAlertVariant(run.readiness.state)}>
                 <div className="space-y-2">
                   <p className="font-medium">
-                    {formatLabel(run.readiness.state)}
+                    {formatSnakeCaseLabel(run.readiness.state)}
                   </p>
                   {run.readiness.issues.length ? (
                     <ul className="space-y-1 text-xs">
@@ -732,7 +729,7 @@ export default function RemixBriefInspector(): ReactElement {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {translate('output.reviewRequired', {
-                        target: formatLabel(run.draft.target.kind),
+                        target: formatSnakeCaseLabel(run.draft.target.kind),
                       })}
                     </p>
                   </div>
@@ -783,7 +780,7 @@ export default function RemixBriefInspector(): ReactElement {
                         : brandRemixOrganicPlatformValues
                       ).map((platform) => (
                         <SelectItem key={platform} value={platform}>
-                          {formatLabel(platform)}
+                          {formatSnakeCaseLabel(platform)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -947,7 +944,7 @@ export default function RemixBriefInspector(): ReactElement {
                     <SelectContent>
                       {generationFidelityModeValues.map((mode) => (
                         <SelectItem key={mode} value={mode}>
-                          {formatLabel(mode)}
+                          {formatSnakeCaseLabel(mode)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1020,8 +1017,8 @@ export default function RemixBriefInspector(): ReactElement {
                             {reference.assetId}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {formatLabel(reference.role)} ·{' '}
-                            {formatLabel(reference.source)}
+                            {formatSnakeCaseLabel(reference.role)} ·{' '}
+                            {formatSnakeCaseLabel(reference.source)}
                           </p>
                         </div>
                         {reference.source === 'explicit' ? (
@@ -1077,7 +1074,7 @@ export default function RemixBriefInspector(): ReactElement {
                         <SelectContent>
                           {generationReferenceRoleValues.map((role) => (
                             <SelectItem key={role} value={role}>
-                              {formatLabel(role)}
+                              {formatSnakeCaseLabel(role)}
                             </SelectItem>
                           ))}
                         </SelectContent>

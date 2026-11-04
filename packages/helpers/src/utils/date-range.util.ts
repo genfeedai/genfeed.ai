@@ -65,3 +65,8 @@ export function getDateRangeWithDefaults(
     startDate: formattedStartDate,
   };
 }
+
+/** True for an integer millisecond timestamp inside the range `Date` can represent. */
+export function isValidTimestampMs(value: number): boolean {
+  return Number.isSafeInteger(value) && Math.abs(value) <= 8.64e15;
+}

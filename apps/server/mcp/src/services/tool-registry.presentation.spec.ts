@@ -69,6 +69,8 @@ function build() {
       return approval;
     }),
     resolveApproval: vi.fn(async () => ({ ...approval, status: 'APPROVED' })),
+    // A reviewer approved it in the inbox; MCP only redeems it.
+    getApproval: vi.fn(async () => ({ ...approval, status: 'APPROVED' })),
   };
   const client = new Proxy(methods, {
     get(target, key: string) {
