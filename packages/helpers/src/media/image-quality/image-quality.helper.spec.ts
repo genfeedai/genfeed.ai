@@ -14,10 +14,13 @@ describe('image-quality.helper', () => {
     expect(values).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'auto']);
   });
 
-  it('keeps GPT Image 1.5 and 2 on the older high-top enum', () => {
-    const values = getImageQualityOptionsByModel(
-      MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
-    ).map((option) => option.value);
+  it.each([
+    ['GPT Image 1.5', MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5],
+    ['GPT Image 2', MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2],
+  ])('keeps %s on the older high-top enum', (_label, modelKey) => {
+    const values = getImageQualityOptionsByModel(modelKey).map(
+      (option) => option.value,
+    );
 
     expect(values).toEqual(['low', 'medium', 'high', 'auto']);
   });
