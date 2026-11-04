@@ -10,6 +10,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import {
   isInstagramProfessionalAccountError,
@@ -376,7 +377,10 @@ export class InstagramAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.INSTAGRAM,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-media-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -788,36 +792,6 @@ export class InstagramAuthorizedSignalsService {
       return [INSIGHTS_SCOPE];
     }
     return [BASIC_SCOPE];
-  }
-
-  private resolveSnapshotState(
-    evidence: InstagramAuthorizedSignalEvidence[],
-  ): InstagramAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedMedia = platformEvidence.find(
-      (item) => item.key === 'owned-media-snapshot',
-    );
-    if (
-      ownedMedia?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
   }
 
   private resolveGrantedScopes(

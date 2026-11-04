@@ -13,6 +13,7 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import {
   getYoutubeRetryAfterMs,
@@ -380,7 +381,10 @@ export class YoutubeAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.YOUTUBE,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-uploads-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -795,36 +799,6 @@ export class YoutubeAuthorizedSignalsService {
       return [YT_ANALYTICS_READONLY_SCOPE];
     }
     return dataRequiredScopes(grantedScopes);
-  }
-
-  private resolveSnapshotState(
-    evidence: YoutubeAuthorizedSignalEvidence[],
-  ): YoutubeAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedUploads = platformEvidence.find(
-      (item) => item.key === 'owned-uploads-snapshot',
-    );
-    if (
-      ownedUploads?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
   }
 
   private resolveGrantedScopes(
