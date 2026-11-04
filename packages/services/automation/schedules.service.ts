@@ -13,52 +13,18 @@ import type {
 } from '@genfeedai/contracts/interfaces/automation/smart-scheduler.interface';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces/automation/workflow-execution.interface';
 import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { RawFetchClient } from '@services/core/raw-fetch-client';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 const smartSchedulerInstances =
   new ServiceInstanceManager<SmartSchedulerServiceClass>();
 
-class SmartSchedulerServiceClass {
-  private baseURL: string;
-  private token: string;
-
-  constructor(baseURL: string, token: string) {
-    this.baseURL = baseURL;
-    this.token = token;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    method: HttpMethod,
-    body?: unknown,
-    errorMessage?: string,
-  ): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      body: body ? JSON.stringify(body) : undefined,
-      headers: {
-        ...getRequestOrganizationHeaders(),
-        Authorization: `Bearer ${this.token}`,
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      method,
-    });
-
-    if (!response.ok) {
-      const error = new Error(errorMessage || `Request failed: ${endpoint}`);
-      logger.error(errorMessage || 'Request failed', { endpoint, error });
-      throw error;
-    }
-
-    return response.json();
-  }
-
+class SmartSchedulerServiceClass extends RawFetchClient {
   async getOptimalPostingTime(
     request: IScheduleOptimizationRequest,
   ): Promise<IAIScheduleRecommendation> {

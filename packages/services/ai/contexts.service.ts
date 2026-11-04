@@ -16,77 +16,31 @@ import type {
   IRAGResult,
 } from '@genfeedai/contracts/interfaces/knowledge-base/knowledge-base.interface';
 import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { RawFetchClient } from '@services/core/raw-fetch-client';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 /** Safety ceiling for the page walk: 50 x 100 context bases. */
 const MAX_CONTEXT_PAGES = 50;
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 const contextInstances = new ServiceInstanceManager<ContextsServiceClass>();
-type DeserializeMode = 'resource' | 'collection' | 'none';
 type ContextRecord = Record<string, unknown> & {
   id?: string;
   label?: string;
 };
 
-class ContextsServiceClass {
-  private baseURL: string;
-  private token: string;
-
-  constructor(baseURL: string, token: string) {
-    this.baseURL = baseURL;
-    this.token = token;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    method: HttpMethod,
-    body?: unknown,
-    errorMessage?: string,
-    deserialize: DeserializeMode = 'none',
-  ): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      body: body ? JSON.stringify(body) : undefined,
-      headers: {
-        ...getRequestOrganizationHeaders(),
-        Authorization: `Bearer ${this.token}`,
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      method,
-    });
-
-    if (!response.ok) {
-      const error = new Error(errorMessage || `Request failed: ${endpoint}`);
-      logger.error(errorMessage || 'Request failed', { endpoint, error });
-      throw error;
-    }
-
-    const json = await response.json();
-
-    if (deserialize === 'resource') {
-      return deserializeResource<T>(json);
-    }
-
-    if (deserialize === 'collection') {
-      return deserializeCollection(json) as T;
-    }
-
-    return json;
-  }
-
+class ContextsServiceClass extends RawFetchClient {
   async backfillEmbeddings(
     contextId: string,
     input: ContextEmbeddingBackfillInput,
   ): Promise<ContextEmbeddingBackfillResult<ContextRecord>> {
     const document = await this.request<JsonApiResponseDocument>(
-      '/contexts/' + encodeURIComponent(contextId) + '/embeddings/backfill',
+      `/contexts/${encodeURIComponent(contextId)}/embeddings/backfill`,
       'POST',
       input,
       'Failed to admit context embeddings',
