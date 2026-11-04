@@ -394,6 +394,12 @@ describe('AdminWarmupAccountsService', () => {
       const result = await service.inspectInvitation('warmup_1');
 
       expect(update).toHaveBeenCalledOnce();
+      expect(tx.workflowExecution.findFirst.mock.calls[0][0].where).toEqual({
+        idempotencyKey: 'warmup:warmup_1:starter-article',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: { in: ['FAILED', 'CANCELLED'] },
+      });
       expect(result.diagnostics.preparation?.generation).toMatchObject({
         error: "Template with identifier 'prompt.article.generate' not found",
         status: 'failed',

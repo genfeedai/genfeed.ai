@@ -656,6 +656,13 @@ export class WarmupPreparationService {
   ): Promise<void> {
     const diagnostics = warmupDiagnostics(account);
     const event = { actorUserId, message, timestamp: new Date().toISOString() };
+    // A repair can be the first thing to notice a failed starter workflow.
+    // Keep its reason in the step history, as the read-time settle does.
+    const failure =
+      diagnostics.preparation?.generation?.status === 'running' &&
+      preparation.generation?.status === 'failed'
+        ? preparation.generation.error
+        : undefined;
     await tx.warmupAccount.update({
       where: {
         id: account.id,
@@ -671,6 +678,15 @@ export class WarmupPreparationService {
             preparation,
             steps: [
               ...(diagnostics.steps ?? []),
+              ...(failure
+                ? [
+                    {
+                      message: `Starter article generation failed: ${failure}`,
+                      timestamp: event.timestamp,
+                      status: 'failed',
+                    },
+                  ]
+                : []),
               { message, timestamp: event.timestamp, status: 'done' },
             ],
           }),
