@@ -87,9 +87,15 @@ vi.mock('@/hooks/ui/use-crud-modal/use-crud-modal', async () => {
         formRef,
         closeModal: vi.fn(),
         isSubmitting: false,
-        onSubmit: form.handleSubmit((data) =>
-          customSubmitHandler(mocks, null, data),
-        ),
+        // The real hook reports a rejected submit and swallows it; mirror that
+        // so a refused publish is not an unhandled rejection.
+        onSubmit: form.handleSubmit(async (data) => {
+          try {
+            await customSubmitHandler(mocks, null, data);
+          } catch {
+            // surfaced through notificationsService by the handler
+          }
+        }),
       };
     },
   };
