@@ -483,35 +483,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       );
     });
 
-    it('mints the managed key with a 30-day expiry', async () => {
-      vi.useFakeTimers({ now: new Date('2026-11-01T00:00:00.000Z') });
-      usersService.findOne.mockResolvedValueOnce(null);
-      usersService.create.mockResolvedValueOnce({
-        id: 'user_managed_1',
-        isOnboardingCompleted: false,
-        onboardingStepsCompleted: [],
-      });
-      eventEmitter.emitAsync.mockResolvedValue([]);
-      apiKeysService.findOne.mockResolvedValueOnce(null);
-      const mintedKeys: Array<{ expiresAt?: string }> = [];
-      apiKeysService.createWithKey.mockImplementationOnce(
-        async (input: { expiresAt?: string }) => {
-          mintedKeys.push(input);
-          return { plainKey: 'gf_plain_key' };
-        },
-      );
-
-      try {
-        await handler.handleCheckoutCompleted(session, 'url');
-      } finally {
-        vi.useRealTimers();
-      }
-
-      expect(mintedKeys.map((key) => key.expiresAt)).toEqual([
-        '2026-12-01T00:00:00.000Z',
-      ]);
-    });
-
     it('does not throw when managed post-grant Redis writes fail', async () => {
       managedStripeCheckoutService.cacheCheckoutResult.mockRejectedValueOnce(
         new Error('redis unavailable'),

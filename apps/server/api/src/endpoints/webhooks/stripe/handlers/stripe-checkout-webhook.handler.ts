@@ -24,7 +24,6 @@ import type { StripeCheckoutSession } from '@api/services/integrations/stripe/se
 import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
-  MANAGED_API_KEY_TTL_MS,
 } from '@api/services/integrations/stripe/stripe.constants';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -760,7 +759,6 @@ export class StripeCheckoutWebhookHandler {
       const createdApiKey = await this.apiKeysService.createWithKey({
         category: ApiKeyCategory.GENFEEDAI,
         description: 'Default Genfeed-hosted access key',
-        expiresAt: new Date(Date.now() + MANAGED_API_KEY_TTL_MS).toISOString(),
         label: MANAGED_API_KEY_LABEL,
         metadata: {
           source: 'managed_inference',

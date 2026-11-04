@@ -2,13 +2,6 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 
 export const MANAGED_API_KEY_LABEL = 'Managed Credits Key';
 
-/**
- * Lifetime of the key minted for an anonymous managed checkout. The checkout
- * email is unverified, so the key is not permanent; the buyer replaces it from
- * their account's API key settings before it lapses.
- */
-export const MANAGED_API_KEY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
 export const MANAGED_API_KEY_SCOPES = [
   ApiKeyScope.VIDEOS_READ,
   ApiKeyScope.VIDEOS_CREATE,
