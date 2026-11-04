@@ -342,7 +342,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/collections/visual-projects/services/visual-projects.service.spec.ts',
   'apps/server/api/src/collections/voices/controllers/voices-account.controller.spec.ts',
   'apps/server/api/src/collections/voices/controllers/voices.controller.spec.ts',
-  'apps/server/api/src/collections/voices/services/external-voice-catalog.service.spec.ts',
   'apps/server/api/src/collections/voices/services/voice-clone.service.spec.ts',
   'apps/server/api/src/collections/voices/services/voice-generation.service.spec.ts',
   'apps/server/api/src/collections/watchlists/services/watchlists.service.spec.ts',
