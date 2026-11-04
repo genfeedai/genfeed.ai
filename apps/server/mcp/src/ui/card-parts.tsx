@@ -49,13 +49,31 @@ const KIND_ICONS: Readonly<Record<string, LucideIcon>> = {
   video: Video,
 };
 
+/**
+ * Domain states the shared Badge has no wording for: a channel that can
+ * publish is "Ready", a validated target is "Valid". Each maps onto a
+ * canonical tone and keeps its own label.
+ */
+const STATUS_ALIASES: Readonly<
+  Record<string, { label: string; status: string }>
+> = {
+  degraded: { label: 'Degraded', status: 'needs_attention' },
+  hidden: { label: 'Unavailable', status: 'planned' },
+  invalid: { label: 'Invalid', status: 'failed' },
+  publish_capable: { label: 'Ready', status: 'healthy' },
+  published: { label: 'Published', status: 'published' },
+  supported: { label: 'Supported', status: 'completed' },
+  valid: { label: 'Valid', status: 'completed' },
+};
+
 /** Every status on every card: uppercase, tinted, with an icon. */
 export function StatusBadge({ label, status }: StatusBadgeProps) {
   const key = status.trim().toLowerCase().replace(/\s+/g, '_');
+  const alias = STATUS_ALIASES[key];
   const Icon = STATUS_ICONS[key] ?? Info;
   return (
-    <Badge status={key} icon={<Icon />} className="shrink-0">
-      {label ?? (key === 'published' ? 'Published' : undefined)}
+    <Badge status={alias?.status ?? key} icon={<Icon />} className="shrink-0">
+      {label ?? alias?.label}
     </Badge>
   );
 }

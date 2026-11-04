@@ -783,6 +783,125 @@ describe('MCP Apps card contract', () => {
     expect(buildCardView('get_articles', [])?.layout).toBe('cards');
   });
 
+  it('shows each connected channel with its readiness checks and next action', () => {
+    const view = buildCardView('get_brand_publishing_readiness', [
+      {
+        callbackUrlStatus: 'pass',
+        canSchedule: false,
+        diagnostics: [
+          {
+            code: 'token_expired',
+            correctiveAction: 'Reconnect the account.',
+            message: 'The access token expired.',
+            severity: 'error',
+          },
+        ],
+        permissionScopeStatus: 'pass',
+        providerKey: 'tiktok',
+        quotaStatus: 'unknown',
+        requiredAction: 'Reconnect TikTok in Genfeed.',
+        state: 'blocked',
+        tokenFreshness: 'fail',
+      },
+    ]);
+    expect(view).toMatchObject({ title: 'Publishing readiness', total: 1 });
+    expect(view?.cards[0]).toMatchObject({
+      description: 'Reconnect TikTok in Genfeed.',
+      status: 'blocked',
+      title: 'TikTok',
+    });
+    expect(view?.cards[0].facts).toEqual(
+      expect.arrayContaining([
+        { label: 'Scheduling', status: 'blocked', value: 'Blocked' },
+        { label: 'Access token', status: 'failed', value: 'Failed' },
+        { label: 'Callback URL', status: 'completed', value: 'Passed' },
+        { label: 'Quota', status: 'unknown', value: 'Unknown' },
+      ]),
+    );
+  });
+
+  it('falls back to the first diagnostic when no action is required', () => {
+    expect(
+      buildCardView('get_brand_publishing_readiness', [
+        {
+          diagnostics: [
+            { message: 'Quota is almost used.', severity: 'warning' },
+          ],
+          providerKey: 'youtube',
+          state: 'degraded',
+        },
+      ])?.cards[0],
+    ).toMatchObject({
+      description: 'Quota is almost used.',
+      status: 'degraded',
+      title: 'YouTube',
+    });
+  });
+
+  it('lists what a channel accepts for a capabilities check', () => {
+    expect(
+      buildCardView('get_scheduler_capabilities', {
+        caption: { maxLength: 2200 },
+        description: 'Short vertical video.',
+        label: 'Instagram',
+        media: { kinds: ['image', 'short_video'] },
+        platform: 'instagram',
+        publishModes: ['draft', 'scheduled'],
+        status: 'supported',
+      })?.cards[0],
+    ).toMatchObject({
+      description: 'Short vertical video.',
+      facts: [
+        { label: 'Publish modes', value: 'Draft, Scheduled' },
+        { label: 'Caption limit', value: '2200 characters' },
+        { label: 'Media', value: 'Image, Short video' },
+      ],
+      status: 'supported',
+      title: 'Instagram',
+    });
+  });
+
+  it('explains why a target failed validation', () => {
+    const card = buildCardView('validate_scheduler_target', {
+      errors: [{ code: 'caption_too_long', message: 'Caption exceeds 280.' }],
+      platform: 'twitter',
+      valid: false,
+      validationState: 'invalid',
+      warnings: [{ code: 'no_media', message: 'No media attached.' }],
+    })?.cards[0];
+    expect(card).toMatchObject({
+      description: 'Error: Caption exceeds 280.\nWarning: No media attached.',
+      status: 'invalid',
+      title: 'X check',
+    });
+    expect(card?.facts).toEqual([
+      { label: 'Errors', status: 'failed', value: '1 error' },
+      { label: 'Warnings', status: 'needs_attention', value: '1 warning' },
+    ]);
+  });
+
+  it('confirms a clean validation', () => {
+    expect(
+      buildCardView('validate_scheduler_target', {
+        errors: [],
+        platform: 'linkedin',
+        valid: true,
+        validationState: 'valid',
+        warnings: [],
+      })?.cards[0],
+    ).toMatchObject({
+      description: 'Ready to schedule on this channel.',
+      status: 'valid',
+      title: 'LinkedIn check',
+    });
+  });
+
+  it('links the canonical check_channel tool to the card', () => {
+    expect(
+      withCardMetadata({ name: 'check_channel' } as never)._meta?.ui,
+    ).toEqual({ resourceUri: MCP_CARD_RESOURCE_URI });
+  });
+
   it('restricts media CSP to configured origins with no API connectivity', () => {
     expect(
       cardResource([
