@@ -10,6 +10,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
   isTikTokRateLimitError,
@@ -356,7 +357,10 @@ export class TiktokAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.TIKTOK,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'public-videos-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -818,36 +822,6 @@ export class TiktokAuthorizedSignalsService {
       return [VIDEO_PUBLISH_SCOPE];
     }
     return [VIDEO_LIST_SCOPE];
-  }
-
-  private resolveSnapshotState(
-    evidence: TikTokAuthorizedSignalEvidence[],
-  ): TikTokAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const publicVideos = platformEvidence.find(
-      (item) => item.key === 'public-videos-snapshot',
-    );
-    if (
-      publicVideos?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
   }
 
   private resolveGrantedScopes(

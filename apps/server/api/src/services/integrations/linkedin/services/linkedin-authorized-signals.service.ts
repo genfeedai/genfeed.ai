@@ -14,6 +14,7 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import {
   getLinkedinRetryAfterMs,
@@ -405,7 +406,10 @@ export class LinkedInAuthorizedSignalsService {
       grantedScopes,
       platform: CredentialPlatform.LINKEDIN,
       refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
+      state: resolveAuthorizedSignalsSnapshotState(
+        evidence,
+        'owned-posts-snapshot',
+      ),
     });
 
     return await this.persistSnapshot(
@@ -730,36 +734,6 @@ export class LinkedInAuthorizedSignalsService {
       return [LINKEDIN_MEMBER_POSTS_SCOPE];
     }
     return [LINKEDIN_OPENID_SCOPE, LINKEDIN_PROFILE_SCOPE];
-  }
-
-  private resolveSnapshotState(
-    evidence: LinkedinAuthorizedSignalEvidence[],
-  ): LinkedinAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedPosts = platformEvidence.find(
-      (item) => item.key === 'owned-posts-snapshot',
-    );
-    if (
-      ownedPosts?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
   }
 
   private resolveGrantedScopes(

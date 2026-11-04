@@ -1,3 +1,4 @@
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
@@ -582,36 +583,6 @@ export function buildDerivedPostEvidence(
   ];
 }
 
-export function resolveTwitterAuthorizedSnapshotState(
-  evidence: TwitterAuthorizedSignalEvidence[],
-): TwitterAuthorizedSignalsSnapshot['state'] {
-  const platformEvidence = evidence.filter(
-    (item) => item.provenance === 'platform_verified',
-  );
-
-  if (platformEvidence.every((item) => item.status === 'stale')) {
-    return 'stale';
-  }
-
-  const ownedPosts = platformEvidence.find(
-    (item) => item.key === 'owned-posts-snapshot',
-  );
-  if (
-    ownedPosts?.status === 'empty' &&
-    platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-  ) {
-    return 'empty';
-  }
-
-  return platformEvidence.every((item) =>
-    ['available', 'empty'].includes(item.status),
-  )
-    ? 'full'
-    : 'partial';
-}
-
 export function buildTwitterRevokedSnapshot(
   credentialId: string,
   grantedScopes: string[],
@@ -703,6 +674,9 @@ export function assembleTwitterAuthorizedSnapshot(
     grantedScopes: input.grantedScopes,
     platform: CredentialPlatform.TWITTER,
     refreshAttemptedAt: input.observedAt,
-    state: resolveTwitterAuthorizedSnapshotState(evidence),
+    state: resolveAuthorizedSignalsSnapshotState(
+      evidence,
+      'owned-posts-snapshot',
+    ),
   });
 }

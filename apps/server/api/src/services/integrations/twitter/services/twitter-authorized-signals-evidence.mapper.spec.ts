@@ -1,3 +1,4 @@
+import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type TwitterAuthorizedSignalEvidence,
@@ -15,7 +16,6 @@ import {
   buildStatisticsEvidence,
   buildTwitterRevokedSnapshot,
   MEDIA_WRITE_SCOPE,
-  resolveTwitterAuthorizedSnapshotState,
   TWEET_READ_SCOPE,
   TWEET_WRITE_SCOPE,
   USERS_READ_SCOPE,
@@ -539,14 +539,22 @@ describe('twitter authorized-signals evidence mapper', () => {
         : item,
     );
 
-    expect(resolveTwitterAuthorizedSnapshotState(staleEvidence)).toBe('stale');
+    expect(
+      resolveAuthorizedSignalsSnapshotState(
+        staleEvidence,
+        'owned-posts-snapshot',
+      ),
+    ).toBe('stale');
   });
 
   it('projects partial when any platform evidence is permission-limited', () => {
     const snapshot = assemble({ grantedScopes: [USERS_READ_SCOPE] });
 
-    expect(resolveTwitterAuthorizedSnapshotState(snapshot.evidence)).toBe(
-      'partial',
-    );
+    expect(
+      resolveAuthorizedSignalsSnapshotState(
+        snapshot.evidence,
+        'owned-posts-snapshot',
+      ),
+    ).toBe('partial');
   });
 });
