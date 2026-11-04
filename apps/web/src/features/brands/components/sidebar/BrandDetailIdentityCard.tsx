@@ -17,9 +17,9 @@ import {
   heyGenDefaultVoice,
   heyGenVoiceValue,
 } from '@helpers/voice/heygen-identity.helper';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Voice } from '@models/ingredients/voice.model';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -38,10 +38,6 @@ import { useOrganization } from '@/hooks/data/organization/use-organization/use-
 import BrandIdentityActions from './BrandIdentityActions';
 import BrandIdentityAvatarField from './BrandIdentityAvatarField';
 import BrandIdentityVoiceField from './BrandIdentityVoiceField';
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
-}
 
 export default function BrandDetailIdentityCard({
   brand,
