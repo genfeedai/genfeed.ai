@@ -1,4 +1,4 @@
-import { isHostOrSubdomain } from '@helpers/utils/host.util';
+import { isHostOrSubdomain } from '../../utils/host.util';
 
 function getUserAgent(): string {
   if (typeof navigator === 'undefined') {

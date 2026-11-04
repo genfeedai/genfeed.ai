@@ -1,5 +1,5 @@
 import type { SocialMediaSource } from '@genfeedai/contracts/interfaces';
-import { isHostOrSubdomain } from '@helpers/utils/host.util';
+import { isHostOrSubdomain } from '../utils/host.util';
 
 export function getSafeExternalUrl(
   value: string | null | undefined,

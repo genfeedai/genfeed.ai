@@ -4,7 +4,7 @@ import type {
   BreakoutEvidenceExclusion,
   BreakoutObservation,
 } from '@genfeedai/contracts/interfaces';
-import { isValidTimestampMs } from '@helpers/utils/date-range.util';
+import { isValidTimestampMs } from '../utils/date-range.util';
 
 const SCOPE_FIELDS = [
   'organizationId',
