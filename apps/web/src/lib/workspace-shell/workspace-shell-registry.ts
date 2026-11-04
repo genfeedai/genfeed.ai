@@ -13,7 +13,6 @@ import type {
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
-import { escapeRegExp } from '@helpers/utils/regexp.util';
 import { parseInternalHref } from './workspace-shell-url.util';
 
 export type {
@@ -1302,6 +1301,13 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
     telemetryClass: 'workflow_picker',
   }),
 ] as const satisfies readonly WorkspaceShellOverlayRegistration[]);
+
+// Kept local: `check-product-route-inventory` loads this module straight from
+// source in a bare Node process, where only workspace packages resolve, not
+// the app's `@helpers/*` alias or the unbuilt helpers `dist`.
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function compileRoutePattern(
   registration: WorkspaceShellRouteRegistration,
