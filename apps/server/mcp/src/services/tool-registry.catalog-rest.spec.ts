@@ -150,6 +150,7 @@ function build() {
         name: 'Digest',
       },
     ]),
+    getApproval: vi.fn(),
     resolveApproval: vi.fn(),
     searchArticles: vi.fn().mockResolvedValue([{ id: 'article-1' }]),
   };
@@ -260,7 +261,7 @@ describe('catalog REST handlers — articles', () => {
       summary: 'Verified',
       content: '<p>Full content</p>',
     };
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: args,
       id: 'apr-1',
       status: 'APPROVED',
@@ -277,7 +278,7 @@ describe('catalog REST handlers — articles', () => {
 
   it('publishes only after approval without forwarding new content', async () => {
     const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: { articleId: 'article-2' },
       id: 'apr-1',
       status: 'APPROVED',
@@ -650,7 +651,7 @@ describe('ToolRegistryService — agent result mapping', () => {
 
   it('does not let an approval audit-write failure mask the tool result', async () => {
     const { client, logger, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: {
         content: '<p>Full content</p>',
         label: 'Reviewed guide',
