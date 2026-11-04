@@ -7,8 +7,8 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import {
   retryProviderRequest,
   settleProviderRequest,
@@ -23,7 +23,6 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
-  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
@@ -144,15 +143,6 @@ export type RefreshTwitterAuthorizedSignalsParams = {
   organizationId: string;
 };
 
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
 type TwitterSignalsRefreshContext = {
   cacheKey: string;
   credential: CredentialDocument;
@@ -179,22 +169,6 @@ type TwitterSignalsProviderFetch =
       tweetsResult: TwitterSettledResult<TwitterOwnedPostsFetch>;
       userInfoResult: TwitterSettledResult<Record<string, unknown>>;
     };
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
 
 @Injectable()
 export class TwitterAuthorizedSignalsService {
@@ -293,11 +267,14 @@ export class TwitterAuthorizedSignalsService {
     const context: TwitterSignalsRefreshContext = {
       cacheKey,
       credential,
-      genfeedEvidence: await this.buildGenfeedEvidence(
-        credential,
-        params.organizationId,
-        refreshAttemptedAt,
-      ),
+      genfeedEvidence: await buildGenfeedPublishEvidence({
+        credentialId: credential.id,
+        key: 'genfeed-publish-activity',
+        limit: TWITTER_POST_LIMIT,
+        observedAt: refreshAttemptedAt,
+        organizationId: params.organizationId,
+        prisma: this.prisma,
+      }),
       grantedScopes,
       organizationId: params.organizationId,
       previousSnapshot,
@@ -533,69 +510,6 @@ export class TwitterAuthorizedSignalsService {
     return (
       !isTwitterScopeOrTierError(error) && isTwitterAuthorizationError(error)
     );
-  }
-
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<TwitterAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: TWITTER_POST_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-activity',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
-    };
   }
 
   private resolveGrantedScopes(
