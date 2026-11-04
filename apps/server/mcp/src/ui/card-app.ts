@@ -9,8 +9,8 @@ import {
   MCP_APP_MIME_TYPE,
   MCP_CARD_RESOURCE_HASH,
   MCP_CARD_RESOURCE_URI,
-  safeCardUrl,
 } from '@mcp/ui/card-data';
+import { safeCardUrl } from '@mcp/ui/card-fields';
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '[::1]', 'localhost']);
 

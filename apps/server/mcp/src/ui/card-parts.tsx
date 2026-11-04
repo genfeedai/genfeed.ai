@@ -87,12 +87,14 @@ export function FactValue({ fact }: FactValueProps) {
                 size="lg"
                 isTruncated
                 icon={
-                  <Avatar
-                    name={item.label}
-                    shape="square"
-                    size="2xs"
-                    src={item.avatarUrl}
-                  />
+                  item.avatarUrl || item.hasAvatar ? (
+                    <Avatar
+                      name={item.label}
+                      shape="square"
+                      size="2xs"
+                      src={item.avatarUrl}
+                    />
+                  ) : undefined
                 }
               >
                 {item.label}
