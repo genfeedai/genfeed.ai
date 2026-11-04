@@ -410,8 +410,8 @@ describe('DiscordService', () => {
       expect(payload.files).toEqual([
         { attachment: Buffer.from('media'), name: 'ing-1.png' },
       ]);
-      expect(embed.url).toContain(
-        `/ingredients/${IngredientCategory.IMAGE}/ing-1`,
+      expect(embed.url).toBe(
+        'https://app.genfeed.ai/admin/content/ingredients/images/ing-1',
       );
       expect(embed.fields.map((field) => field.name)).toEqual([
         'Prompt',
@@ -421,11 +421,30 @@ describe('DiscordService', () => {
         'Dimensions',
       ]);
       expect(embed.fields.find((field) => field.name === 'Prompt')?.value).toBe(
-        "a 'quoted' prompt",
+        '```\na `quoted` prompt\n```',
       );
     });
 
-    it('should truncate prompts longer than 1020 characters', async () => {
+    it('links a music asset to its Library page in the owning organization and brand', async () => {
+      const { service } = await createService();
+
+      await service.sendIngredientNotification(
+        IngredientCategory.MUSIC,
+        'https://cdn/song.mp3',
+        {
+          brand: { id: 'brand_1', label: 'Genfeed (Review)', slug: 'review' },
+          id: 'cmw1wkltp0070enxtngkja3b',
+          owner: { organizationSlug: 'genfeed-review', userId: 'user_1' },
+        },
+      );
+
+      const embed = lastSendPayload().embeds?.[0] as { url: string };
+      expect(embed.url).toBe(
+        'https://app.genfeed.ai/genfeed-review/review/library/music?asset=cmw1wkltp0070enxtngkja3b',
+      );
+    });
+
+    it('should truncate prompts to fit a code block inside the field limit', async () => {
       const { service } = await createService();
 
       await service.sendIngredientNotification(
@@ -438,8 +457,8 @@ describe('DiscordService', () => {
         fields: Array<{ name: string; value: string }>;
       };
       const prompt = embed.fields.find((field) => field.name === 'Prompt');
-      expect(prompt?.value.endsWith('...')).toBe(true);
-      expect(prompt?.value).toHaveLength(1023);
+      expect(prompt?.value.endsWith('...\n```')).toBe(true);
+      expect(prompt?.value).toHaveLength(1024);
     });
 
     it('should send two messages for videos with duration field and thumbnail', async () => {
