@@ -11,6 +11,10 @@ describe('hasGenerationHoldIntent', () => {
     'hold off on the image for now',
     'How much would that cost in credits?',
     'show me the credit estimate first',
+    "Don't spend any credits yet",
+    'Write the copy, but before creating the image let me see the options',
+    'Check with me first on the video',
+    'Wait for my approval on the visuals',
   ])('treats %j as a request to hold the generation', (message) => {
     expect(hasGenerationHoldIntent(message)).toBe(true);
   });
@@ -20,6 +24,8 @@ describe('hasGenerationHoldIntent', () => {
     'Yes, go ahead and create the image',
     'Make the image warmer and generate it again',
     'Write three X post drafts for the spring field kit',
+    'Use my credits to generate the image now',
+    'Create the video, I already approved the cost',
     '',
   ])('leaves %j to the thread mode', (message) => {
     expect(hasGenerationHoldIntent(message)).toBe(false);
