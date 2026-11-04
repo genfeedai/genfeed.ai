@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants/routes.constant';
 import { EnvironmentService } from '@services/core/environment.service';
 
 /**
