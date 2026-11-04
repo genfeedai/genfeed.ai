@@ -15,4 +15,11 @@ export const MODEL_PROVIDER_ASSOCIATIONS = [
     provider: 'fal',
     endpoint: 'fal-ai/nano-banana-2',
   },
+  {
+    // Both are Recraft V4 Pro text-to-image at a flat $0.25 per image.
+    modelKey: 'recraft-ai/recraft-v4-pro',
+    executionModelKey: 'fal-ai/recraft/v4/pro',
+    provider: 'fal',
+    endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
+  },
 ] as const;
