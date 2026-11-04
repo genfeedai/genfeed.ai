@@ -16,6 +16,11 @@ import {
 } from './studio-playground-prompt-slots';
 import { STUDIO_ASPECT_RATIOS } from './studio-playground-settings';
 import { getStudioPlaygroundTypeConfig } from './studio-playground-types';
+import {
+  optionalText,
+  pickStringList,
+  ratioValue,
+} from './studio-playground-values';
 
 /** Stored-shape validation only; live model/version validation belongs to restore and quote. */
 export function readStudioCrunRecipeControls(
@@ -148,28 +153,6 @@ const RECIPE_FIELD_LABELS = [
   readonly [keyof StudioPlaygroundRecipe, string]
 >;
 
-function optionalText(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function ratioValue(aspectRatio: string): number | null {
-  const [rawHorizontal, rawVertical] = aspectRatio.split(':');
-  const horizontal = Number(rawHorizontal);
-  const vertical = Number(rawVertical);
-
-  if (
-    !Number.isFinite(horizontal) ||
-    !Number.isFinite(vertical) ||
-    horizontal <= 0 ||
-    vertical <= 0
-  ) {
-    return null;
-  }
-
-  return horizontal / vertical;
-}
-
 /**
  * Picks the closest aspect ladder entry for a stored width/height pair so
  * Vary can restore the compositor instead of a raw pixel size.
@@ -251,14 +234,6 @@ function metadataIsBrandingApplied(value: unknown): boolean | undefined {
     return false;
   }
   return undefined;
-}
-
-function stringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
 /**
@@ -372,7 +347,7 @@ export function recipeFromIngredient(
       | 'subject',
   ): string | undefined =>
     optional(key) ?? readStoredSlotText(storedPrompt, key);
-  const metadataBlacklist = stringList(metadata.blacklist);
+  const metadataBlacklist = pickStringList(metadata.blacklist);
   const width = ingredient.metadataWidth || ingredient.width || 0;
   const height = ingredient.metadataHeight || ingredient.height || 0;
 
@@ -385,7 +360,7 @@ export function recipeFromIngredient(
     blacklist:
       metadataBlacklist.length > 0
         ? metadataBlacklist
-        : stringList(storedPrompt?.blacklists),
+        : pickStringList(storedPrompt?.blacklists),
     brandingMode: resolveRecipeBrandingMode(
       type,
       metadataIsBrandingApplied(metadata.brandingMode),

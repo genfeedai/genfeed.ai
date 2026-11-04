@@ -9,6 +9,7 @@ import type {
 } from '@/features/studio/playground/types';
 import { readStudioCrunRecipeControls } from './studio-playground-recipe';
 import { isStudioPlaygroundType } from './studio-playground-types';
+import { optionalText, pickStringList } from './studio-playground-values';
 import { readPersistedStudioReferencePreviewUrl } from './studio-reference-preview';
 
 export const STUDIO_PLAYGROUND_SESSION_KEY =
@@ -17,25 +18,10 @@ export const STUDIO_PLAYGROUND_SESSION_LIMIT = 48;
 
 const SESSION_STATUSES = new Set<string>(Object.values(IngredientStatus));
 
-function pickOptionalString(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
 function pickNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
     : undefined;
-}
-
-function pickStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
 function sanitizeRecipe(
@@ -102,22 +88,22 @@ function sanitizeRecipe(
     typeof value.endFrameId === 'string'
       ? { endFrameId: value.endFrameId }
       : {}),
-    aspectRatio: pickOptionalString(value.aspectRatio),
+    aspectRatio: optionalText(value.aspectRatio),
     blacklist: pickStringList(value.blacklist),
     brandingMode:
       value.brandingMode === 'off' || value.brandingMode === 'brand'
         ? value.brandingMode
         : undefined,
-    action: pickOptionalString(value.action),
-    camera: pickOptionalString(value.camera),
-    cameraMovement: pickOptionalString(value.cameraMovement),
+    action: optionalText(value.action),
+    camera: optionalText(value.camera),
+    cameraMovement: optionalText(value.cameraMovement),
     duration: pickNumber(value.duration),
-    folder: pickOptionalString(value.folder),
+    folder: optionalText(value.folder),
     isAudioEnabled: value.isAudioEnabled === true,
-    lens: pickOptionalString(value.lens),
-    lighting: pickOptionalString(value.lighting),
-    modelKey: pickOptionalString(value.modelKey),
-    mood: pickOptionalString(value.mood),
+    lens: optionalText(value.lens),
+    lighting: optionalText(value.lighting),
+    modelKey: optionalText(value.modelKey),
+    mood: optionalText(value.mood),
     outputs:
       typeof value.outputs === 'number' &&
       Number.isInteger(value.outputs) &&
@@ -126,14 +112,14 @@ function sanitizeRecipe(
         : 1,
     originalText:
       typeof value.originalText === 'string' ? value.originalText : undefined,
-    promptTemplate: pickOptionalString(value.promptTemplate),
+    promptTemplate: optionalText(value.promptTemplate),
     references: pickStringList(value.references),
     imageEdit: readImageEditingRecipe(value.imageEdit),
-    resolution: pickOptionalString(value.resolution),
-    scene: pickOptionalString(value.scene),
-    speech: pickOptionalString(value.speech),
-    style: pickOptionalString(value.style) ?? '',
-    subject: pickOptionalString(value.subject),
+    resolution: optionalText(value.resolution),
+    scene: optionalText(value.scene),
+    speech: optionalText(value.speech),
+    style: optionalText(value.style) ?? '',
+    subject: optionalText(value.subject),
     tags: pickStringList(value.tags),
     text: value.text,
     type: isStudioPlaygroundType(value.type) ? value.type : type,
@@ -167,19 +153,19 @@ function sanitizeSessionJob(value: unknown): StudioPlaygroundJob | null {
 
   return {
     createdAt: typeof createdAt === 'number' ? createdAt : 0,
-    error: pickOptionalString(value.error),
+    error: optionalText(value.error),
     phase: value.phase === 'cancelled' ? 'cancelled' : undefined,
     height: pickNumber(value.height),
     id,
-    ingredientId: pickOptionalString(value.ingredientId),
-    modelKey: pickOptionalString(value.modelKey),
+    ingredientId: optionalText(value.ingredientId),
+    modelKey: optionalText(value.modelKey),
     prompt,
     ...(referencePreviewUrl ? { referencePreviewUrl } : {}),
     ...(recipe ? { recipe } : {}),
-    runId: pickOptionalString(value.runId),
+    runId: optionalText(value.runId),
     status: status as IngredientStatus,
     type,
-    url: pickOptionalString(value.url),
+    url: optionalText(value.url),
     width: pickNumber(value.width),
   };
 }
