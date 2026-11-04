@@ -299,9 +299,15 @@ jobs:
 
       - name: Run coverage
         id: coverage
-        run: cd apps/server/api && bunx vitest run --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --coverage --shard=${{ matrix.shard }}/4
+        # The unit config reuses workers (`isolate: false`) and V8 coverage adds
+        # per-file data, so a shard can pass the default 4 GB heap and then die
+        # with "JavaScript heap out of memory" (run 41469486562, shard 2/4).
+        # Two workers with a 6 GB heap each fit the 16 GB runner, matching the
+        # `--maxWorkers=2` the PR API job already uses.
+        run: cd apps/server/api && bunx vitest run --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --coverage --maxWorkers=2 --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
+          NODE_OPTIONS: --max-old-space-size=6144
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
       - name: Assert API blob report exists
