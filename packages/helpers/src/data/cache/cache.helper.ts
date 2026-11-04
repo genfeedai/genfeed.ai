@@ -155,8 +155,6 @@ export function isCacheExpired(expires: number): boolean {
   return Date.now() > expires;
 }
 
-export function pruneExpiredItems(): void {}
-
 export function getCacheStats(): CacheStats {
   const cache = getGlobalCache();
 

@@ -937,7 +937,3 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     title: 'Pinterest Growth With Your Agent',
   },
 ];
-
-export const socialGrowthSlugs = socialGrowthLandingConfigs.map(
-  (config) => config.slug,
-);

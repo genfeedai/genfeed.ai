@@ -480,12 +480,6 @@ export function computeBrandKitReadiness(
   return buildBrandKitDraftFromBrand(brand).readiness;
 }
 
-export function getBrandKitFieldOwner(
-  key: BrandKitFieldKey,
-): IBrandKitFieldOwner {
-  return findOwner(key);
-}
-
 function createWebsiteEvidence(
   scraped: IScrapedBrandData,
 ): IBrandKitSourceEvidence[] {

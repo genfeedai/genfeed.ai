@@ -1,18 +1,15 @@
 'use client';
 
-import type { IWorkflow } from '@genfeedai/contracts/interfaces';
 import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import type {
   ModalArticleProps,
   ModalAvatarProps,
   ModalBlacklistProps,
-  ModalBotProps,
   ModalBrandCreateProps,
   ModalBrandGenerateProps,
   ModalBrandLinkProps,
   ModalConfirmProps,
   ModalCreateProps,
-  ModalCrudProps,
   ModalExportProps,
   ModalFolderProps,
   ModalGalleryProps,
@@ -41,11 +38,6 @@ import type { ModalPostRemixProps } from '@/props/modals/modal-post-remix.props'
 export const LazyModalMember = dynamic(
   () => import('@/components/modals/members/invite/ModalMember'),
 ) as ComponentType<ModalMemberProps>;
-
-export const LazyModalBot = dynamic(
-  () => import('@/components/modals/automation/ModalBot'),
-  { ssr: false },
-) as ComponentType<ModalBotProps>;
 
 // Account modals
 export const LazyModalBrandCreate = dynamic(
@@ -106,11 +98,6 @@ export const LazyModalTag = dynamic(
   { ssr: false },
 ) as ComponentType<ModalTagProps>;
 
-export const LazyModalWorkflow = dynamic(
-  () => import('@/components/modals/elements/workflow/ModalWorkflow'),
-  { ssr: false },
-) as ComponentType<ModalCrudProps<IWorkflow>>;
-
 export const LazyModalConfirm = dynamic(
   () => import('@/components/modals/system/confirm/ModalConfirm'),
   { ssr: false },
@@ -133,11 +120,6 @@ export const LazyModalGenerateIllustration = dynamic(
     ),
   { ssr: false },
 ) as ComponentType<ModalGenerateIllustrationProps>;
-
-export const LazyModalTwitterThread = dynamic(
-  () => import('@/components/modals/content/thread/ModalTwitterThread'),
-  { ssr: false },
-);
 
 export const LazyModalFolder = dynamic(
   () => import('@/components/modals/content/folder/ModalFolder'),
@@ -203,11 +185,6 @@ export const LazyModalUpload = dynamic(
   () => import('@/components/modals/ingredients/upload/ModalUpload'),
   { ssr: false },
 ) as ComponentType<ModalUploadProps>;
-
-export const LazyModalWatchlist = dynamic(
-  () => import('@/components/modals/system/watchlist/ModalWatchlist'),
-  { ssr: false },
-);
 
 export const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),

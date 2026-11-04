@@ -21,9 +21,7 @@ import {
   LayoutGrid,
   Maximize2,
   MessageSquareText,
-  Minus,
   Pencil,
-  Plus,
   RectangleHorizontal,
   RectangleVertical,
   RefreshCw,
@@ -97,27 +95,6 @@ export const createPublishAction = (
     tooltip: 'Publish',
     tooltipPosition: 'top',
     variant: 'primary',
-  };
-};
-
-export const createMergeAction = (
-  ingredient: IIngredient,
-  handler?: IActionHandlers['onMerge'],
-  isLoading?: boolean,
-  isSelected?: boolean,
-): IQuickAction | null => {
-  if (!handler) {
-    return null;
-  }
-
-  return {
-    icon: isSelected ? <Minus className="size-4" /> : <Plus />,
-    id: 'merge',
-    isLoading,
-    label: isSelected ? 'Remove' : 'Add',
-    onClick: () => handler(ingredient),
-    tooltip: isSelected ? 'Remove From Merge' : 'Add To Merge',
-    tooltipPosition: 'top',
   };
 };
 
