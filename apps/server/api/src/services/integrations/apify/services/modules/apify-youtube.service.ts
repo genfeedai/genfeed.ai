@@ -44,7 +44,7 @@ export class ApifyYouTubeService {
 
       return this.normalizeYouTubeComments(rawComments);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getYouTubeVideoComments failed`,
         error,
       );
@@ -73,7 +73,7 @@ export class ApifyYouTubeService {
 
       return rawVideos;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getYouTubeChannelVideos failed`,
         error,
       );
@@ -120,7 +120,7 @@ export class ApifyYouTubeService {
 
       return rawVideos;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getYouTubeChannelUploads failed for ${channelUrl}`,
         error,
       );
@@ -148,7 +148,7 @@ export class ApifyYouTubeService {
 
       return rawVideos;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchYouTubeVideos failed for "${query}"`,
         error,
       );

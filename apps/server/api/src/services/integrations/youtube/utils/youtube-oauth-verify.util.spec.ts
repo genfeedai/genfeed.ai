@@ -113,6 +113,21 @@ describe('youtube oauth verify diagnostics', () => {
     ).toMatchObject({
       code: YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED,
       reason: YoutubeOAuthVerifyFailureReason.TOKEN_EXCHANGE,
+      status: HttpStatus.BAD_REQUEST,
+      title: 'Authorization expired',
+    });
+    expect(
+      classifyYoutubeVerifyFailure(
+        providerError({
+          message: 'Unauthorized',
+          reason: 'invalid_client',
+          status: 401,
+        }),
+        'token_exchange',
+      ),
+    ).toMatchObject({
+      code: YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED,
+      status: HttpStatus.BAD_GATEWAY,
     });
     expect(
       classifyYoutubeVerifyFailure(

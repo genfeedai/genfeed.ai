@@ -236,7 +236,13 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
 
     await expect(
       service.tryHandlePlanModeTurn(baseParams as never, host),
-    ).rejects.toThrow('empty plan');
+    ).rejects.toMatchObject({
+      attempts: 2,
+      finishReason: null,
+      message: 'The planner returned an empty plan. Send the request again.',
+      model: 'test-model',
+      name: 'AgentPlannerEmptyPlanError',
+    });
 
     expect(threadEventRecorder.recordPlanUpserted).not.toHaveBeenCalled();
     expect(agentMessagesService.addMessage).not.toHaveBeenCalled();

@@ -122,11 +122,19 @@ const PLAN_PRICES = {
  * Stripe promotion code that takes $10 off Pro for 12 months. Checkout applies
  * it for the customer on the Pro price, and the pricing page shows the price
  * with it taken off, so the page and the charge always agree.
+ *
+ * Retire the code in Stripe in the same change that removes the `PRO_LAUNCH_*`
+ * constants and `getLaunchPrice`: Checkout falls back to the promo box at the
+ * full price when the code is gone, while a card still reading the launch price
+ * would disagree with the charge.
  */
 export const PRO_LAUNCH_PROMOTION_CODE = 'EARLYGENFEED';
 
 /** Dollars the launch promotion code takes off the Pro monthly price. */
 export const PRO_LAUNCH_DISCOUNT_DOLLARS = 10;
+
+/** Months the launch promotion code applies before the full price returns. */
+export const PRO_LAUNCH_DISCOUNT_MONTHS = 12;
 
 /**
  * Monthly price a new customer pays with the launch promotion applied, or null

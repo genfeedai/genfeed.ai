@@ -43,7 +43,7 @@ export class ApifyTwitterService {
 
       return this.normalizeTwitterTrends(rawTrends);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTwitterTrends failed`,
         error,
       );
@@ -84,7 +84,7 @@ export class ApifyTwitterService {
 
       return normalizedTweets;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTwitterMentions failed for @${username}`,
         error,
       );
@@ -141,7 +141,7 @@ export class ApifyTwitterService {
 
       return normalizedTweets;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTwitterUserTimeline failed for @${username}`,
         error,
       );
@@ -221,7 +221,7 @@ export class ApifyTwitterService {
 
       return this.normalizeTwitterTweets(replies);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTwitterTweetReplies failed for tweet ${tweetId}`,
         error,
       );
@@ -261,7 +261,7 @@ export class ApifyTwitterService {
 
       return normalizedTweets;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchTwitterTweets failed for query "${query}"`,
         error,
       );

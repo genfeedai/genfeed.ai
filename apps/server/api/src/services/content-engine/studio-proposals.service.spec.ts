@@ -159,16 +159,17 @@ describe('StudioProposalsService', () => {
   });
 
   it.each([
-    ['no brief', null, ''],
-    ['an empty brief', { id: 'brief-1' }, '   '],
+    ['no brief', null, '', 'brief_missing'],
+    ['an empty brief', { id: 'brief-1' }, '   ', 'brief_empty'],
     [
       'an over-budget brief',
       { id: 'brief-1' },
       'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+      'brief_over_budget',
     ],
   ])(
     'fails with a retryable 503 and drafts nothing for %s',
-    async (_label, brief, formatted) => {
+    async (_label, brief, formatted, reason) => {
       resolveBrief.mockResolvedValue(brief);
       formatBrief.mockReturnValue(formatted);
 
@@ -177,6 +178,10 @@ describe('StudioProposalsService', () => {
       );
       expect(assembleContext).not.toHaveBeenCalled();
       expect(completeStructured).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('harness brief unavailable'),
+        expect.objectContaining({ brandId: 'brand-1', reason }),
+      );
     },
   );
 

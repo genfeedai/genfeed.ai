@@ -77,7 +77,7 @@ type StripeWebhookEvent = Awaited<
 export type { UpcomingInvoicePreview } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
-  '2026-09-30.endive';
+  '2026-10-28.endive';
 
 function resolveStripeApiVersion(
   configured: string | undefined,

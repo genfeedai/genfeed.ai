@@ -4,6 +4,8 @@
 import {
   AnalyticsProvider,
   useAnalyticsContext,
+  useAnalyticsSearch,
+  useAnalyticsToolbar,
   useOptionalAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { AnalyticsContextType } from '@genfeedai/contracts/interfaces/analytics/analytics-context.interface';
@@ -18,9 +20,19 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 type AnalyticsRuntimeContext = AnalyticsContextType & {
+  searchNode: ReactNode;
   toolbarNode: ReactNode;
   setToolbarNode: (node: ReactNode) => void;
 };
+
+const toolbar = <span>Toolbar controls</span>;
+const search = <span>Search control</span>;
+
+function Publisher(): null {
+  useAnalyticsToolbar(toolbar);
+  useAnalyticsSearch(search);
+  return null;
+}
 
 let contextValue: AnalyticsRuntimeContext;
 
@@ -206,5 +218,32 @@ describe('analytics hooks outside the provider', () => {
   it('useOptionalAnalyticsContext returns undefined without AnalyticsProvider', () => {
     const { result } = renderHook(() => useOptionalAnalyticsContext());
     expect(result.current).toBeUndefined();
+  });
+
+  describe('subbar slots', () => {
+    it('shows what a page publishes in the subbar and clears it when the page leaves', () => {
+      const view = render(
+        <AnalyticsProvider>
+          <Consumer />
+          <Publisher />
+        </AnalyticsProvider>,
+      );
+
+      expect(contextValue.toolbarNode).toBe(toolbar);
+      expect(contextValue.searchNode).toBe(search);
+
+      view.rerender(
+        <AnalyticsProvider>
+          <Consumer />
+        </AnalyticsProvider>,
+      );
+
+      expect(contextValue.toolbarNode).toBeNull();
+      expect(contextValue.searchNode).toBeNull();
+    });
+
+    it('publishes nothing outside an analytics provider', () => {
+      expect(() => render(<Publisher />)).not.toThrow();
+    });
   });
 });

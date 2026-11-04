@@ -12,6 +12,7 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -24,6 +25,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   ActivitySource,
+  ApiKeyScope,
   AssetScope,
   ByokProvider,
   ModelCategory,
@@ -79,6 +81,7 @@ export class PromptsOperationsController {
     }),
   )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_CREATE)
   async voiceToSpeech(
     @UploadedFile() file: UploadedBinaryFile,
   ): Promise<{ text: string }> {
@@ -123,6 +126,7 @@ export class PromptsOperationsController {
     source: ActivitySource.TWEET_REPLY,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.PROMPTS_CREATE)
   async generateTweetReply(
     @Body() createTweetReplyDto: CreateTweetReplyDto,
     @CurrentUser() user: User,

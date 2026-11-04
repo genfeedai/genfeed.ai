@@ -530,6 +530,44 @@ describe('SignUpForm', () => {
       });
     });
 
+    it('sends one sign-up and keeps the button disabled while the redirect lands', async () => {
+      const assign = vi.fn();
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: { ...window.location, assign },
+      });
+
+      render(<SignUpBetterAuth mode="password" />);
+      fillAndSubmit();
+      fireEvent.submit(
+        screen
+          .getByRole('button', { name: 'Create account' })
+          .closest('form') as HTMLFormElement,
+      );
+
+      await waitFor(() => {
+        expect(assign).toHaveBeenCalledTimes(1);
+      });
+      expect(authClientMocks.signUpEmail).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByRole('button', { name: 'Create account' }),
+      ).toBeDisabled();
+    });
+
+    it('re-enables the button after a failed sign-up', async () => {
+      authClientMocks.signUpEmail.mockResolvedValue({
+        error: { message: 'User already exists.' },
+      });
+
+      render(<SignUpBetterAuth mode="password" />);
+      fillAndSubmit();
+
+      await screen.findByText('User already exists.');
+      expect(
+        screen.getByRole('button', { name: 'Create account' }),
+      ).toBeEnabled();
+    });
+
     it('asks the user to verify their email when no session was issued', async () => {
       authClientMocks.signUpEmail.mockResolvedValue({ data: { token: null } });
 

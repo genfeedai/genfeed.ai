@@ -62,6 +62,29 @@ export function isClipperResultMode(
   return CLIPPER_RESULT_MODES.some((mode) => mode === value);
 }
 
+/**
+ * Caption looks a Clipper project can burn into its clips. `default` is the
+ * everyday look and renders as `dynamic`; the others are the presets of the
+ * `effect-captions` workflow node.
+ */
+export const CLIPPER_CAPTION_STYLES = [
+  'default',
+  'dynamic',
+  'minimal',
+  'tiktok',
+  'youtube',
+] as const;
+
+export type ClipperCaptionStyle = (typeof CLIPPER_CAPTION_STYLES)[number];
+
+export const DEFAULT_CLIPPER_CAPTION_STYLE: ClipperCaptionStyle = 'default';
+
+export function isClipperCaptionStyle(
+  value: unknown,
+): value is ClipperCaptionStyle {
+  return CLIPPER_CAPTION_STYLES.some((style) => style === value);
+}
+
 export const CLIPPER_READINESS_STATES = [
   'pending',
   'ready',

@@ -10,6 +10,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -33,6 +34,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  ApiKeyScope,
   AssetScope,
   FileInputType,
   IngredientCategory,
@@ -120,6 +122,7 @@ export class VideosCaptionsController {
     ttl: 300, // 5 minutes
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async getCaptions(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -157,6 +160,7 @@ export class VideosCaptionsController {
 
   @Post(':videoId/captions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createVideoWithCaptions(
     @Req() request: Request,
     @CurrentUser() user: User,

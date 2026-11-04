@@ -8,6 +8,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -22,6 +23,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   ActivitySource,
+  ApiKeyScope,
   LiveSessionTerminateReason,
   MemberRole,
   ModelCategory,
@@ -66,6 +68,7 @@ export class VideosLiveSessionsController {
   @UseInterceptors(CreditsInterceptor)
   @RateLimit({ limit: 30, scope: 'organization', windowMs: 60 * 1000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async openSession(
     @Req() request: ExpressRequest,
     @Body() dto: CreateLiveSessionDto,
@@ -88,6 +91,7 @@ export class VideosLiveSessionsController {
     MemberRole.CREATOR,
   ])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_READ)
   async getSession(
     @Req() request: ExpressRequest,
     @CurrentUser() user: User,
@@ -109,6 +113,7 @@ export class VideosLiveSessionsController {
     MemberRole.CREATOR,
   ])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async terminateSession(
     @Req() request: ExpressRequest,
     @CurrentUser() user: User,

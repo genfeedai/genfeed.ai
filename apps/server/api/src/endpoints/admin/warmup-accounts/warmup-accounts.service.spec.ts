@@ -128,6 +128,10 @@ describe('AdminWarmupAccountsService', () => {
     warmupAccount: {
       findFirst: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    workflowExecution: {
+      findFirst: ReturnType<typeof vi.fn>;
     };
   };
   let invitationService: {
@@ -187,6 +191,10 @@ describe('AdminWarmupAccountsService', () => {
         create: vi
           .fn()
           .mockResolvedValue(makeWarmupAccount({ status: 'PROVISIONED' })),
+        update: vi.fn(),
+      },
+      workflowExecution: {
+        findFirst: vi.fn().mockResolvedValue(null),
       },
     };
 
@@ -342,6 +350,76 @@ describe('AdminWarmupAccountsService', () => {
     });
     expect(result.invitation).not.toHaveProperty('tokenHash');
     expect(JSON.stringify(result)).not.toContain('should-never-leak');
+  });
+
+  describe('stuck starter generation', () => {
+    const runningDiagnostics = {
+      preparation: {
+        generation: {
+          key: 'warmup:warmup_1:starter-article',
+          startedAt: '2026-11-01T18:47:00.000Z',
+          status: 'running',
+        },
+      },
+      steps: [],
+    };
+
+    function arrange(execution: unknown) {
+      const account = makeWarmupAccount({ diagnostics: runningDiagnostics });
+      prisma.warmupAccount.findFirst.mockResolvedValue(account);
+      tx.warmupAccount.findFirst.mockResolvedValue(account);
+      tx.warmupAccount.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({ ...account, ...data }),
+      );
+      tx.workflowExecution.findFirst.mockResolvedValue(execution);
+      return tx.warmupAccount.update;
+    }
+
+    it('marks a running generation failed and shows the workflow error', async () => {
+      const update = arrange({
+        error: null,
+        failedNodeId: 'load-context',
+        id: 'exec_1',
+        nodeResults: [
+          {
+            error:
+              "Template with identifier 'prompt.article.generate' not found",
+            nodeId: 'load-context',
+          },
+        ],
+        status: 'FAILED',
+      });
+
+      const result = await service.inspectInvitation('warmup_1');
+
+      expect(update).toHaveBeenCalledOnce();
+      expect(tx.workflowExecution.findFirst.mock.calls[0][0].where).toEqual({
+        idempotencyKey: 'warmup:warmup_1:starter-article',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: { in: ['FAILED', 'CANCELLED'] },
+      });
+      expect(result.diagnostics.preparation?.generation).toMatchObject({
+        error: "Template with identifier 'prompt.article.generate' not found",
+        status: 'failed',
+        workflowExecutionId: 'exec_1',
+      });
+      expect(result.diagnostics.error).toContain(
+        'Starter article generation failed',
+      );
+    });
+
+    it('leaves a generation running while its workflow has not failed', async () => {
+      const update = arrange(null);
+
+      const result = await service.inspectInvitation('warmup_1');
+
+      expect(update).not.toHaveBeenCalled();
+      expect(result.diagnostics.preparation?.generation?.status).toBe(
+        'running',
+      );
+    });
   });
 
   it('sends a pending invitation and records the dispatch', async () => {

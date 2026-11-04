@@ -113,12 +113,11 @@ export class TwitterReadService {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.resolveClient().v1.trendsByPlace(woeid);
-      return this.responseMapper.mapTrends(
-        response as unknown as TwitterTrendResponse[],
-        organizationId,
-        brandId,
-      );
+      const response = (await this.resolveClient().v2.get(
+        `trends/by/woeid/${woeid}`,
+        { max_trends: 10, 'trend.fields': 'trend_name,tweet_count' },
+      )) as TwitterTrendResponse;
+      return this.responseMapper.mapTrends(response, organizationId, brandId);
     } catch (error: unknown) {
       recordTrendProviderOutcome(
         'native_failed',

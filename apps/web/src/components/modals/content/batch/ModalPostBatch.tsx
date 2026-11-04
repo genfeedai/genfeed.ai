@@ -1,12 +1,12 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
-import { useRouter } from 'next/navigation';
+import type { FormEvent } from 'react';
 import ModalPostContent from '@/components/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
-import ModalPostHeader from '@/components/modals/content/post/ModalPostHeader';
+import ModalPostStepHeader from '@/components/modals/content/post/ModalPostStepHeader';
+import { PUBLISH_SUBMIT_ATTRIBUTE } from '@/components/modals/content/post/publish-submit';
 import ModalPostBatchEmptyState from './ModalPostBatchEmptyState';
 import ModalPostBatchFormAlerts from './ModalPostBatchFormAlerts';
 import ModalPostBatchIngredientPreview from './ModalPostBatchIngredientPreview';
@@ -15,7 +15,6 @@ import { useModalPostBatch } from './useModalPostBatch';
 
 export default function ModalPostBatch(props: ModalPostBatchProps) {
   const { ingredient, credentials } = props;
-  const { push } = useRouter();
 
   const {
     form,
@@ -23,7 +22,6 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
     onSubmit,
     isSubmitting,
     activeTab,
-    handleTabChange,
     handleNextStep,
     handlePreviousStep,
     platformConfigs,
@@ -36,30 +34,46 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
     scheduleTimezone,
     settings,
     activeIngredients,
-    enabledCount,
     hasYoutube,
     hasAvailableCredentials,
     hasInvalidCredentials,
     invalidCredentialConfigs,
     invalidCredentialSummary,
-    isStep1Complete,
     isFormValid,
     aspectRatioInfo,
-    shouldBeFullScreen,
     globalDescription,
     globalLabel,
     error,
     setError,
     closeModalPost,
+    openCredentials,
     platformStatuses,
   } = useModalPostBatch(props);
+
+  // Only the Publish button on the platforms step may submit. Any other
+  // submission (stray Enter on the setup step, a navigation button, a
+  // programmatic submit) is swallowed so it can never schedule posts.
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+
+    if (
+      activeTab !== 'platforms' ||
+      submitter?.getAttribute(PUBLISH_SUBMIT_ATTRIBUTE) !== 'true'
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    onSubmit(event);
+  };
 
   return (
     <Modal
       id={ModalEnum.POST_BATCH}
       error={error}
       onClose={() => setError(null)}
-      isFullScreen={shouldBeFullScreen}
+      accessibleTitle="Schedule post"
+      size="md"
     >
       <div className="h-full flex flex-col overflow-hidden">
         <ModalPostBatchEmptyState
@@ -68,48 +82,48 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
           hasAvailableCredentials={hasAvailableCredentials}
           hasInvalidCredentials={hasInvalidCredentials}
           onClose={closeModalPost}
-          onOpenCredentials={() =>
-            push(`${EnvironmentService.apps.app}/credentials`)
-          }
+          onOpenCredentials={openCredentials}
         />
 
         {ingredient &&
         credentials &&
         credentials?.length > 0 &&
         hasAvailableCredentials ? (
-          <div className="flex gap-6 h-full overflow-hidden">
-            {ingredient && activeTab !== 'results' && (
-              <ModalPostBatchIngredientPreview
-                ingredient={ingredient}
-                aspectRatioInfo={aspectRatioInfo}
+          <div className="flex h-full flex-col overflow-hidden">
+            {activeTab === 'results' ? (
+              <ModalPostBatchResultsView
+                platformStatuses={platformStatuses}
+                onClose={closeModalPost}
               />
-            )}
-
-            <div className="flex-1 h-full overflow-y-auto flex flex-col">
-              {activeTab === 'results' ? (
-                <ModalPostBatchResultsView
-                  platformStatuses={platformStatuses}
-                  onClose={closeModalPost}
+            ) : (
+              <Form
+                className="flex h-full min-h-0 flex-col"
+                ref={formRef}
+                onSubmit={handleFormSubmit}
+              >
+                <ModalPostBatchFormAlerts
+                  formErrors={form.formState.errors}
+                  invalidCredentialConfigs={invalidCredentialConfigs}
+                  invalidCredentialSummary={invalidCredentialSummary}
+                  onManageConnections={() => {
+                    closeModalPost();
+                    openCredentials();
+                  }}
                 />
-              ) : (
-                <Form className="h-full" ref={formRef} onSubmit={onSubmit}>
-                  <ModalPostBatchFormAlerts
-                    formErrors={form.formState.errors}
-                    invalidCredentialConfigs={invalidCredentialConfigs}
-                    invalidCredentialSummary={invalidCredentialSummary}
-                    onManageConnections={() => {
-                      closeModalPost();
-                      push(`${EnvironmentService.apps.app}/credentials`);
-                    }}
-                  />
 
-                  <ModalPostHeader
-                    activeTab={activeTab}
-                    onTabChange={handleTabChange}
-                    isStep1Complete={isStep1Complete}
-                  />
+                <ModalPostStepHeader
+                  activeTab={activeTab}
+                  onBack={handlePreviousStep}
+                />
 
-                  <div className="flex-1 overflow-y-auto p-2">
+                <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                  <div className="flex flex-col gap-4">
+                    {activeTab === 'setup' ? (
+                      <ModalPostBatchIngredientPreview
+                        ingredient={ingredient}
+                        aspectRatioInfo={aspectRatioInfo}
+                      />
+                    ) : null}
                     <ModalPostContent
                       activeTab={activeTab}
                       form={form}
@@ -125,25 +139,28 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
                       updatePlatformConfig={updatePlatformConfig}
                       getMinDateTime={getMinDateTime}
                       scheduleTimezone={scheduleTimezone}
+                      onAddChannels={() => {
+                        closeModalPost();
+                        openCredentials();
+                      }}
                     />
                   </div>
+                </div>
 
-                  <ModalPostFooter
-                    activeTab={activeTab}
-                    isLoading={isSubmitting}
-                    enabledCount={enabledCount}
-                    globalScheduledDate={globalScheduledDate}
-                    globalDescription={globalDescription}
-                    hasYoutube={hasYoutube}
-                    globalLabel={globalLabel}
-                    onNextStep={handleNextStep}
-                    onPreviousStep={handlePreviousStep}
-                    onClose={closeModalPost}
-                    isFormValid={isFormValid}
-                  />
-                </Form>
-              )}
-            </div>
+                <ModalPostFooter
+                  activeTab={activeTab}
+                  isLoading={isSubmitting}
+                  globalScheduledDate={globalScheduledDate}
+                  globalDescription={globalDescription}
+                  hasYoutube={hasYoutube}
+                  globalLabel={globalLabel}
+                  onNextStep={handleNextStep}
+                  onPreviousStep={handlePreviousStep}
+                  onClose={closeModalPost}
+                  isFormValid={isFormValid}
+                />
+              </Form>
+            )}
           </div>
         ) : null}
       </div>

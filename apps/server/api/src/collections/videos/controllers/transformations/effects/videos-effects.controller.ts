@@ -6,6 +6,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -19,6 +20,7 @@ import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-m
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ApiKeyScope,
   FileInputType,
   IngredientCategory,
   IngredientOrigin,
@@ -84,6 +86,7 @@ export class VideosEffectsController {
 
   @Post(':videoId/reverse')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async reverseVideo(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -167,6 +170,7 @@ export class VideosEffectsController {
 
   @Post(':videoId/mirror')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async mirrorVideo(
     @Req() request: Request,
     @CurrentUser() user: User,

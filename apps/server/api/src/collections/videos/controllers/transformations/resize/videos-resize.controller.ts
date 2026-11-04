@@ -6,6 +6,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -20,6 +21,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
+  ApiKeyScope,
   AssetScope,
   FileInputType,
   IngredientCategory,
@@ -79,6 +81,7 @@ export class VideosResizeController {
 
   @Post(':videoId/resize')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async resizeVideo(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -170,6 +173,7 @@ export class VideosResizeController {
 
   @Post(':videoId/portrait')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async resizeToPortrait(
     @Req() request: Request,
     @CurrentUser() user: User,

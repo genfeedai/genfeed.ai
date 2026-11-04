@@ -549,8 +549,12 @@ function formatCounts(counts: Record<string, number>): string {
   return entries.length > 0 ? entries.map(([key, count]) => `${key} ${count}`).join(', ') : 'none';
 }
 
-async function runPublishPipeline(options: { days: number; isJson: boolean }): Promise<void> {
-  const report = await readPublishPipeline(options.days);
+async function runPublishPipeline(options: {
+  days: number;
+  isAnyDecision: boolean;
+  isJson: boolean;
+}): Promise<void> {
+  const report = await readPublishPipeline(options.days, options.isAnyDecision);
   if (options.isJson) {
     printJson(report);
     return;
@@ -571,8 +575,15 @@ async function runPublishPipeline(options: { days: number; isJson: boolean }): P
   );
 
   const review = report.reviewQueue.counts;
-  print(formatHeader('\nApproved in the review queue\n'));
+  print(
+    formatHeader(
+      report.reviewQueue.isAnyDecision
+        ? '\nReviewed in the review queue\n'
+        : '\nApproved in the review queue\n'
+    )
+  );
   print(formatLabel('Posts', String(review.total)));
+  print(formatLabel('By review decision', formatCounts(review.byDecision)));
   print(formatLabel('By execution state', formatCounts(review.byExecutionState)));
   print(formatLabel('With a schedule date', String(review.withScheduleDate)));
   print(formatLabel('Without a schedule date', String(review.withoutScheduleDate)));
@@ -1309,14 +1320,19 @@ export const adminCommand = new Command('admin')
         'Show what became of items approved for publishing: approvals and their posts, by status'
       )
       .option('--days <days>', 'How many days back to include (1-30)', '3')
+      .option('--any-decision', 'List posts reviewed with any decision, not only approved ones')
       .option('--json', 'Output as JSON')
-      .action(async (options: { days: string }, command: Command) => {
+      .action(async (options: { anyDecision?: boolean; days: string }, command: Command) => {
         try {
           const days = Number.parseInt(options.days, 10);
           if (!Number.isInteger(days) || days < 1 || days > 30) {
             throw new GenfeedError('--days must be a whole number from 1 to 30');
           }
-          await runPublishPipeline({ days, isJson: wantsJson(command) });
+          await runPublishPipeline({
+            days,
+            isAnyDecision: options.anyDecision === true,
+            isJson: wantsJson(command),
+          });
         } catch (error) {
           handleError(error);
         }

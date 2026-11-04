@@ -3,11 +3,13 @@ import { VideoUpscaleQuoteQueryDto } from '@api/collections/videos/dto/video-ups
 import { VideoUpscaleQuoteService } from '@api/collections/videos/services/video-upscale-quote.service';
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VideoUpscaleQuoteSerializer } from '@genfeedai/serializers';
 import {
@@ -35,6 +37,7 @@ export class VideosUpscaleQuoteController {
 
   @Get(':videoId/upscale-quote')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async findUpscaleQuote(
     @Req() request: Request,
     @CurrentUser() user: User,

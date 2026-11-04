@@ -65,6 +65,24 @@ export interface IngredientsMediaGridProps {
   onReprompt?: (ingredient: IIngredient) => void;
 }
 
+/**
+ * The frame every non-poster masonry tile shares: selection toggle, the
+ * processing and failure notices, and the click that inspects the asset.
+ */
+export interface IngredientTileFrameProps {
+  children: ReactNode;
+  ingredient: IIngredient;
+  isActionsEnabled?: boolean;
+  isSelected?: boolean;
+  onClickIngredient?: (ingredient: IIngredient) => void;
+  onRefresh?: () => void;
+  onReprompt?: (ingredient: IIngredient) => void;
+  onToggleSelection?: (ingredient: IIngredient) => void;
+}
+
+/** An audio, voice or text tile: the frame's props without its children. */
+export type IngredientTileProps = Omit<IngredientTileFrameProps, 'children'>;
+
 export interface IngredientReviewActionsProps {
   ingredient: IIngredient;
   onUpdated: (ingredient: IIngredient) => void;

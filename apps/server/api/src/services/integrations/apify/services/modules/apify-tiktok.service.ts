@@ -46,7 +46,7 @@ export class ApifyTikTokService {
 
       return this.normalizeTikTokTrends(rawTrends);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTikTokTrends failed`,
         error,
       );
@@ -71,7 +71,7 @@ export class ApifyTikTokService {
 
       return this.normalizeTikTokVideos(rawVideos).slice(0, limit);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTikTokVideos failed`,
         error,
       );
@@ -128,7 +128,7 @@ export class ApifyTikTokService {
         .sort((a, b) => b.usageCount - a.usageCount)
         .slice(0, limit);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTikTokSounds failed`,
         error,
       );
@@ -157,7 +157,7 @@ export class ApifyTikTokService {
 
       return this.normalizeTikTokComments(rawComments);
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTikTokVideoComments failed`,
         error,
       );
@@ -203,7 +203,7 @@ export class ApifyTikTokService {
 
       return rawVideos;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.getTikTokUserVideos failed for @${username}`,
         error,
       );
@@ -273,7 +273,7 @@ export class ApifyTikTokService {
 
       return rawVideos;
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchTikTokByHashtag failed for #${hashtag}`,
         error,
       );
@@ -323,7 +323,7 @@ export class ApifyTikTokService {
         nicheQuery: rawVideos[index]?.searchQuery || searchQueries[0],
       }));
     } catch (error: unknown) {
-      this.baseService.loggerService.error(
+      this.baseService.logFailure(
         `${this.constructorName}.searchTikTokByQueries failed`,
         error,
       );

@@ -13,6 +13,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -26,6 +27,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { resolveVideoIdentityReferencePlan } from '@api/services/generation-brief';
 import {
   ActivitySource,
+  ApiKeyScope,
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
@@ -118,6 +120,7 @@ export class VideosClipChainController {
   @UseGuards(CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.VIDEOS_CREATE)
   async createClipChain(
     @Req() request: Request,
     @CurrentUser() user: User,

@@ -13,11 +13,13 @@ import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { JobState, Status } from '@genfeedai/contracts';
-import type {
-  ClipRawCutFramingContract,
-  ClipRawCutMediaValidationContract,
-  ICaptionBurnStyle,
-  IJobStatusResponse,
+import {
+  type ClipperCaptionStyle,
+  type ClipRawCutFramingContract,
+  type ClipRawCutMediaValidationContract,
+  type ICaptionBurnStyle,
+  type IJobStatusResponse,
+  isClipperCaptionStyle,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -304,6 +306,42 @@ export class RawCutClipCompletionService {
     const { s3Key, url } = this.readOutput(event.result, 'framing');
     const captionSrt = this.readString(clipperResult.captionSrt);
     const userId = event.userId ?? this.readCanonicalUserId(clipperResult);
+    const captions = await this.readCaptionSettings(
+      projectId,
+      event.organizationId,
+    );
+    const framing: ClipRawCutFramingContract = {
+      aspectRatio: '9:16',
+      height: 1920,
+      strategy: 'contain-blur',
+      subjectSafety: 'full-source-visible',
+      version: 1,
+      width: 1080,
+    };
+
+    if (!captions.isEnabled) {
+      // The project turned captions off: the framed clip is the final media.
+      await this.clipperResultsService.patch(
+        clipperResultId,
+        {
+          captionedVideoS3Key: s3Key,
+          captionedVideoUrl: url,
+          framing,
+          status: 'validating',
+          videoS3Key: s3Key,
+          videoUrl: url,
+        },
+        [],
+        event.organizationId,
+      );
+      await this.completeValidation({
+        ...clipperResult,
+        captionedVideoS3Key: s3Key,
+        captionedVideoUrl: url,
+        status: 'validating',
+      });
+      return;
+    }
 
     if (!captionSrt) {
       await this.failClip(
@@ -330,10 +368,7 @@ export class RawCutClipCompletionService {
       organizationId: event.organizationId,
       params: {
         captionContent: captionSrt,
-        captionStyle: await this.readCaptionStyle(
-          projectId,
-          event.organizationId,
-        ),
+        captionStyle: captions.style,
         s3Key,
       },
       room: this.readString(clipperResult.room),
@@ -341,14 +376,6 @@ export class RawCutClipCompletionService {
       userId,
       websocketUrl: `/clips/${clipperResultId}`,
     });
-    const framing: ClipRawCutFramingContract = {
-      aspectRatio: '9:16',
-      height: 1920,
-      strategy: 'contain-blur',
-      subjectSafety: 'full-source-visible',
-      version: 1,
-      width: 1080,
-    };
 
     await this.clipperResultsService.patch(
       clipperResultId,
@@ -578,10 +605,12 @@ export class RawCutClipCompletionService {
       organizationId: clipperResult.organizationId,
       params: {
         captionContent: captionSrt,
-        captionStyle: await this.readCaptionStyle(
-          this.readProjectId(clipperResult),
-          clipperResult.organizationId,
-        ),
+        captionStyle: (
+          await this.readCaptionSettings(
+            this.readProjectId(clipperResult),
+            clipperResult.organizationId,
+          )
+        ).style,
         s3Key,
       },
       room: this.readString(clipperResult.room),
@@ -612,21 +641,32 @@ export class RawCutClipCompletionService {
     return projectId;
   }
 
-  /** The project's caption look; every clip of a project is captioned alike. */
-  private async readCaptionStyle(
+  /**
+   * The project's caption settings, read from `settings` where the project
+   * stores them. Every clip of a project is captioned alike. A project that
+   * never chose a look, or holds a value outside the supported set, gets the
+   * default look.
+   */
+  private async readCaptionSettings(
     projectId: string | undefined,
     organizationId: string,
-  ): Promise<ICaptionBurnStyle> {
+  ): Promise<{ isEnabled: boolean; style: ICaptionBurnStyle }> {
     const project = projectId
       ? await this.clipperProjectsService.findOne({
           id: projectId,
           organizationId,
         })
       : null;
-    const preset = this.readString(project?.captionStyle);
-    return buildCaptionBurnStyleFromConfig({
-      style: preset === 'default' ? 'dynamic' : preset,
-    });
+    const chosen: unknown = project?.settings?.captionStyle;
+    const preset: ClipperCaptionStyle = isClipperCaptionStyle(chosen)
+      ? chosen
+      : 'default';
+    return {
+      isEnabled: project?.settings?.addCaptions !== false,
+      style: buildCaptionBurnStyleFromConfig({
+        style: preset === 'default' ? 'dynamic' : preset,
+      }),
+    };
   }
 
   private async reconcileProject(

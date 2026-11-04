@@ -10,6 +10,9 @@ import type {
 } from '@/features/agents/props/thread-resolution.props';
 
 const RESOLVED_LIST_LIMIT = 50;
+// The list endpoint reports no total, so a short page marks the end. The cap
+// only stops a misbehaving server from looping the client forever.
+const RESOLVED_LIST_MAX_PAGES = 100;
 
 /**
  * Which threads are resolved, for the master workspace: the Threads panel and
@@ -37,12 +40,16 @@ export function useThreadResolution(
     }
 
     const controller = new AbortController();
-    apiService
-      .getThreads(
-        { limit: RESOLVED_LIST_LIMIT, status: AgentThreadStatus.ARCHIVED },
-        controller.signal,
-      )
-      .then((loaded) => {
+    const loadResolvedThreads = async (): Promise<void> => {
+      for (let page = 1; page <= RESOLVED_LIST_MAX_PAGES; page += 1) {
+        const loaded = await apiService.getThreads(
+          {
+            limit: RESOLVED_LIST_LIMIT,
+            page,
+            status: AgentThreadStatus.ARCHIVED,
+          },
+          controller.signal,
+        );
         if (controller.signal.aborted) {
           return;
         }
@@ -55,12 +62,17 @@ export function useThreadResolution(
           }
           return next;
         });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to load resolved threads', { error });
+        if (loaded.length < RESOLVED_LIST_LIMIT) {
+          return;
         }
-      });
+      }
+    };
+
+    loadResolvedThreads().catch((error: unknown) => {
+      if (!controller.signal.aborted) {
+        logger.error('Failed to load resolved threads', { error });
+      }
+    });
 
     return () => controller.abort();
   }, [apiService, isEnabled]);

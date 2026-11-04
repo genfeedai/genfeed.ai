@@ -1,4 +1,8 @@
-import { PostStatus, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  normalizeReviewDecision,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type {
   IPublishPipelineCounts,
   IPublishPipelineItem,
@@ -29,6 +33,7 @@ export interface PublishPipelineReviewedPostRow {
   id: string;
   organizationId: string;
   platform: string | null;
+  reviewDecision: string | null;
   reviewedAt: Date;
   scheduledDate: Date | null;
   status: string | null;
@@ -47,6 +52,7 @@ export interface PublishPipelineApprovalRow {
     platform: string | null;
     scheduledDate: Date | null;
     status: string | null;
+    targetExecutionState: string | null;
   } | null;
   postId: string;
   status: string;
@@ -76,6 +82,7 @@ export function toPublishPipelineItem(
     approvalStatus: row.status,
     brandId: row.brandId,
     executedAt: row.executedAt?.toISOString() ?? null,
+    executionState: row.post?.targetExecutionState ?? null,
     lastError: row.lastError ? row.lastError.slice(0, MAX_ERROR_LENGTH) : null,
     organizationId: row.organizationId,
     platform: row.post?.platform ?? null,
@@ -125,6 +132,7 @@ export function toReviewedPostItem(
     platform: row.platform,
     postId: row.id,
     postStatus: row.status,
+    reviewDecision: normalizeReviewDecision(row.reviewDecision),
     reviewedAt: row.reviewedAt.toISOString(),
     scheduledDate: row.scheduledDate?.toISOString() ?? null,
   };
@@ -135,6 +143,7 @@ export function summarizeReviewQueue(
   now: Date,
 ): IPublishPipelineReviewQueueCounts {
   const counts: IPublishPipelineReviewQueueCounts = {
+    byDecision: {},
     byExecutionState: {},
     overdue: 0,
     total: rows.length,
@@ -143,6 +152,7 @@ export function summarizeReviewQueue(
   };
 
   for (const row of rows) {
+    increment(counts.byDecision, normalizeReviewDecision(row.reviewDecision));
     increment(counts.byExecutionState, row.targetExecutionState);
     if (!row.scheduledDate) {
       counts.withoutScheduleDate += 1;

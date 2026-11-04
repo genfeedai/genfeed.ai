@@ -82,6 +82,7 @@ describe('ApifyTikTokService', () => {
     calculateGrowthRate: vi.fn().mockReturnValue(20),
     calculateViralityScore: vi.fn().mockReturnValue(85),
     getApiToken: vi.fn().mockReturnValue('test-token'),
+    logFailure: vi.fn(),
     loggerService: {
       error: vi.fn(),
     },
@@ -167,7 +168,7 @@ describe('ApifyTikTokService', () => {
       mockBaseService.runActor.mockRejectedValue(new Error('API error'));
 
       await expect(service.getTikTokTrends()).rejects.toThrow('API error');
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
 
     it('should normalize metadata with hashtags and view counts', async () => {
@@ -319,7 +320,7 @@ describe('ApifyTikTokService', () => {
       mockBaseService.runActor.mockRejectedValue(new Error('network error'));
 
       await expect(service.getTikTokVideos()).rejects.toThrow('network error');
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
 
     it('should handle videos with missing authorMeta', async () => {
@@ -389,7 +390,7 @@ describe('ApifyTikTokService', () => {
       mockBaseService.runActor.mockRejectedValue(new Error('timeout'));
 
       await expect(service.getTikTokSounds()).rejects.toThrow('timeout');
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
 
     it('should limit results to requested count', async () => {
@@ -475,7 +476,7 @@ describe('ApifyTikTokService', () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
 
     it('should normalize comment metrics', async () => {
@@ -550,7 +551,7 @@ describe('ApifyTikTokService', () => {
       await expect(service.getTikTokUserVideos('nonexistent')).rejects.toThrow(
         'user not found',
       );
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
   });
 
@@ -663,7 +664,7 @@ describe('ApifyTikTokService', () => {
       const result = await service.searchTikTokByHashtag('viral');
 
       expect(result).toEqual([]);
-      expect(mockBaseService.loggerService.error).toHaveBeenCalled();
+      expect(mockBaseService.logFailure).toHaveBeenCalled();
     });
   });
   it('governs hosted timelines before legacy token admission with unchanged input', async () => {
