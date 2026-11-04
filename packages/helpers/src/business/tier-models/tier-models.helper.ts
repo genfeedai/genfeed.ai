@@ -59,3 +59,21 @@ export function hasQualityAccess(
   const allowed = TIER_QUALITY_ACCESS[subscriptionTier];
   return allowed ? allowed.includes(qualityTier) : false;
 }
+
+/**
+ * Tier whose quality access an organization gets. An organization that has
+ * paid for a credit pack gets every quality tier whatever its plan (#8482),
+ * so it resolves to the top plan's access.
+ */
+export function resolveQualityAccessTier(
+  subscriptionTier: SubscriptionTier | undefined,
+  hasPurchasedCredits: boolean | null | undefined,
+): SubscriptionTier | undefined {
+  if (
+    !hasPurchasedCredits ||
+    subscriptionTier === SubscriptionTier.ENTERPRISE
+  ) {
+    return subscriptionTier;
+  }
+  return SubscriptionTier.SCALE;
+}

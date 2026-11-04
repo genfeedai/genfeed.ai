@@ -57,6 +57,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'subscriptionTier',
   'hasOrganizationBilling',
   'hasPaidModuleSubscription',
+  'hasPurchasedCredits',
   'fleetEvaluationPolicy',
   'onboardingJourneyMissions',
   'onboardingJourneyCompletedAt',
