@@ -766,6 +766,23 @@ describe('model version lifecycle', () => {
       expect(byKey.get(key)?.lifecycle, key).not.toBe(ModelLifecycle.RETIRED);
   });
 
+  it('seeds fal GPT Image 2.6 inactive and unpriced on the live text endpoints', () => {
+    expect(byKey.get(MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE)).toMatchObject({
+      cost: 0,
+      endpoint: 'openai/gpt-image-2.6/flare/text-to-image',
+      isActive: false,
+      isPublic: false,
+      provider: ModelProvider.FAL,
+    });
+    expect(byKey.get(MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST)).toMatchObject({
+      cost: 0,
+      endpoint: 'openai/gpt-image-2.6/sunburst/text-to-image',
+      isActive: false,
+      isPublic: false,
+      provider: ModelProvider.FAL,
+    });
+  });
+
   it('moves X drafts and the retired Grok 4.1 Fast row onto priced Grok 4.3', () => {
     expect(
       byKey.get(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST)?.succeededBy,

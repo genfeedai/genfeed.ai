@@ -8,6 +8,8 @@ const FAL_ENDPOINT_GONE =
   'fal no longer serves this endpoint (no OpenAPI document or a redirect, 2026-10-21); the model identity is unavailable.';
 const FAL_ENDPOINT_MOVED =
   'fal serves this model under a new endpoint id (checked 2026-11-01); it has no reviewed rate until the fal price refresh reads one for the new id and an operator approves it.';
+const FAL_TOKEN_BILLED =
+  'fal bills this model per token ($30/M image output) and publishes no per-image rate (2026-11-04); it has no reviewed rate until a measured per-image cost is approved.';
 const FAL_NO_PUBLIC_RATE =
   'The fal model page publishes no list price (2026-10-21).';
 const LEGACY_KEY =
@@ -42,6 +44,8 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'fal-ai/flux-2-pro': INPUT_MEGAPIXELS,
   'fal-ai/flux-pro': FAL_NO_PUBLIC_RATE,
   'fal-ai/gpt-image-2': FAL_ENDPOINT_MOVED,
+  'fal-ai/gpt-image-2.6-flare': FAL_TOKEN_BILLED,
+  'fal-ai/gpt-image-2.6-sunburst': FAL_TOKEN_BILLED,
   'fal-ai/kling-video':
     'A fal model family page, not a callable endpoint, so it has no single price.',
   'fal-ai/kling-video/v3/pro': FAL_ENDPOINT_MOVED,

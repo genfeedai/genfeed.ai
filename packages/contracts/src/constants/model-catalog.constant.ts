@@ -248,6 +248,12 @@ const FAL_MOVED_ENDPOINTS: Readonly<Record<string, string>> = {
   [MODEL_KEYS.FAL_ELEVEN_LABS_TTS]: 'fal-ai/elevenlabs/tts/multilingual-v2',
   [MODEL_KEYS.FAL_SEEDANCE_2_0]: 'bytedance/seedance-2.0/text-to-video',
   [MODEL_KEYS.FAL_GPT_IMAGE_2]: 'openai/gpt-image-2',
+  // fal splits GPT Image 2.6 by mode. Only the text endpoint is registered, so
+  // an edit request is refused as an alternative and stays on Replicate.
+  [MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE]:
+    'openai/gpt-image-2.6/flare/text-to-image',
+  [MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST]:
+    'openai/gpt-image-2.6/sunburst/text-to-image',
   [MODEL_KEYS.FAL_RECRAFT_V4_PRO]: 'fal-ai/recraft/v4/pro/text-to-image',
   // fal splits these by mode. Only the text endpoint is registered, so an
   // image-to-video request is refused as an alternative and stays on Replicate.

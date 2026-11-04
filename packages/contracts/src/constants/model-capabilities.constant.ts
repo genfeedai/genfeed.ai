@@ -1475,6 +1475,29 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 10,
       qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
     },
+    // GPT Image 2.6 on fal (checked 2026-11-04). fal bills per token and
+    // publishes no per-image rate, so both stay uncurated: seeded inactive with
+    // no price until a reviewed rate exists. Text endpoint only.
+    [MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      defaultQuality: 'high',
+      isBatchSupported: false,
+      maxOutputs: 10,
+      maxReferences: 0,
+      qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
+    },
+    [MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      defaultQuality: 'high',
+      isBatchSupported: false,
+      maxOutputs: 10,
+      maxReferences: 0,
+      qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
+    },
     [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]: {
       aspectRatios: ASPECT_RATIOS.KLING,
       category: ModelCategory.VIDEO,
