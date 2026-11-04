@@ -9,6 +9,7 @@ import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { TopbarPublicMegaMenuFooter } from './TopbarPublicDesktopDropdown';
+import { isLinkActive } from './topbar-link.helper';
 
 interface NavLink {
   href: string;
@@ -40,17 +41,6 @@ type TopbarPublicMobileMenuProps = {
   pathname: string | null;
   onClose: () => void;
 };
-
-function isLinkActive(pathname: string | null, href: string): boolean {
-  if (!pathname) {
-    return false;
-  }
-  if (href === '/') {
-    return pathname === '/';
-  }
-
-  return pathname.startsWith(href);
-}
 
 const ROW_CLASS = 'flex min-h-12 items-center gap-3 px-4 transition-colors';
 
