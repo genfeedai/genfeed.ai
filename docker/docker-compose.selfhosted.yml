@@ -39,7 +39,13 @@ services:
     volumes:
       - genfeed_data:/data
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://localhost:3010/v1/health >/dev/null || exit 1']
+      # Readiness, not liveness: /v1/health answers ok whenever the process is
+      # up, even with no usable OpenRouter key or an auth URL that cannot sign
+      # anyone in. /v1/health/ready answers 200 either way, so match its body;
+      # on failure print it so `docker inspect` names the offending variable.
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://localhost:3010/v1/health/ready | grep -q '\"status\":\"ready\"' || { curl -sS http://localhost:3010/v1/health/ready; exit 1; }"
       interval: 30s
       timeout: 10s
       retries: 5

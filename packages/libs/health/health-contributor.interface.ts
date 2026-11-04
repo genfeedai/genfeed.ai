@@ -25,6 +25,16 @@ export interface DegradedDependency {
 }
 
 /**
+ * A configuration value the service can see is unusable, so a feature will
+ * fail even though every process is up. Names the variable, never its value
+ * when that value could be a secret.
+ */
+export interface ConfigurationIssue {
+  variable: string;
+  message: string;
+}
+
+/**
  * Readiness as the service sees it.
  *
  * `degraded` still answers 200 — an unreachable peer must not make the
@@ -34,6 +44,8 @@ export interface DegradedDependency {
 export interface ReadinessSnapshot {
   status: 'ready' | 'degraded';
   degradedDependencies?: DegradedDependency[];
+  /** Unusable configuration: a feature fails while the process still serves. */
+  configurationIssues?: ConfigurationIssue[];
 }
 
 export interface HealthContributor {

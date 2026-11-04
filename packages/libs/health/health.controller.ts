@@ -74,11 +74,17 @@ export class HealthController {
       return this.buildResponse('ready');
     }
 
-    const response = this.buildResponse(readiness.status);
+    const response: HealthResponse = this.buildResponse(readiness.status);
 
-    return readiness.degradedDependencies?.length
-      ? { ...response, degradedDependencies: readiness.degradedDependencies }
-      : response;
+    if (readiness.degradedDependencies?.length) {
+      response.degradedDependencies = readiness.degradedDependencies;
+    }
+
+    if (readiness.configurationIssues?.length) {
+      response.configurationIssues = readiness.configurationIssues;
+    }
+
+    return response;
   }
 
   @Public()
