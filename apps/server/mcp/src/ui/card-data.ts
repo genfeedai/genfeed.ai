@@ -666,14 +666,14 @@ function buildApprovalView(
 }
 
 /** Adds the approval card to a queued-write result; other errors pass through. */
-export function withApprovalCard<T extends McpAppResult>(result: T): T {
-  if (!result.isError || !result.structuredContent) return result;
-  const view = buildApprovalView(result.structuredContent);
+export function withApprovalCard<
+  T extends { isError?: boolean; structuredContent?: object },
+>(result: T): T & { structuredContent?: { genfeedCards?: McpCardView } } {
+  const content = result.structuredContent;
+  if (!result.isError || !content) return result;
+  const view = buildApprovalView(record(content));
   return view
-    ? {
-        ...result,
-        structuredContent: { ...result.structuredContent, genfeedCards: view },
-      }
+    ? { ...result, structuredContent: { ...content, genfeedCards: view } }
     : result;
 }
 
