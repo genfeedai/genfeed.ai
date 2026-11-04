@@ -90,23 +90,21 @@ export class DesktopFilesService {
     await fs.writeFile(absolutePath, contents, 'utf8');
   }
 
-  async importAssets(
-    workspaceId: string,
-    filePaths?: string[],
-  ): Promise<IDesktopAsset[]> {
+  /**
+   * Copies files the user picks in the native open dialog into the workspace.
+   * Source paths never come from the renderer: a renderer-chosen path would let
+   * web content copy (and then read back) any file the app can read.
+   */
+  async importAssets(workspaceId: string): Promise<IDesktopAsset[]> {
     const workspace = this.workspaceService.getWorkspace(workspaceId);
-    const selectedFilePaths =
-      filePaths && filePaths.length > 0
-        ? filePaths
-        : (
-            await dialog.showOpenDialog({
-              buttonLabel: 'Import Assets',
-              properties: ['openFile', 'multiSelections'],
-              title: 'Import Assets to Workspace',
-            })
-          ).filePaths;
+    const { canceled, filePaths: selectedFilePaths } =
+      await dialog.showOpenDialog({
+        buttonLabel: 'Import Assets',
+        properties: ['openFile', 'multiSelections'],
+        title: 'Import Assets to Workspace',
+      });
 
-    if (selectedFilePaths.length === 0) {
+    if (canceled || selectedFilePaths.length === 0) {
       return [];
     }
 

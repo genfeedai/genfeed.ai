@@ -1746,10 +1746,9 @@ const registerIpcHandlers = (): void => {
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesImportAssets,
-    async (_event: unknown, workspaceId: string, filePaths?: string[]) => {
-      const importedAssets = await requireLocalService(
-        filesService,
-      ).importAssets(workspaceId, filePaths);
+    async (_event: unknown, workspaceId: string) => {
+      const importedAssets =
+        await requireLocalService(filesService).importAssets(workspaceId);
       await emitBootstrap();
       return importedAssets;
     },
