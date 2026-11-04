@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('ModalPostFooter', () => {
   it('should render without crashing', () => {
     const { container } = render(<ModalPostFooter />);

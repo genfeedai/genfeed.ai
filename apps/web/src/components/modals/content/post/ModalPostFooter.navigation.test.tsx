@@ -51,6 +51,11 @@ function clickLikeBrowser(button: HTMLElement) {
   }
 }
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('ModalPostFooter wizard navigation', () => {
   afterEach(() => {
     (globalThis as ActEnvironment).IS_REACT_ACT_ENVIRONMENT = true;

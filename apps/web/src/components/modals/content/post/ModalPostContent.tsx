@@ -2,6 +2,7 @@
 
 import type { ModalPostContentProps } from '@genfeedai/props/modals/modal.props';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
+import { useTranslations } from 'next-intl';
 import ModalPostPlatformsTab from '@/components/modals/content/post/ModalPostPlatformsTab';
 import ModalPostSetupTab from '@/components/modals/content/post/ModalPostSetupTab';
 
@@ -22,6 +23,8 @@ export default function ModalPostContent({
   scheduleTimezone,
   onAddChannels,
 }: ModalPostContentProps) {
+  const translate = useTranslations('ui.postBatch.setup');
+
   if (activeTab === 'setup') {
     return (
       <ModalPostSetupTab
@@ -52,7 +55,7 @@ export default function ModalPostContent({
         onAddChannels={onAddChannels}
       />
       <FormDateTimePicker
-        label="Schedule Date & Time"
+        label={translate('scheduleLabel')}
         value={globalScheduledDate || getMinDateTime()}
         onChange={setGlobalScheduledDate}
         minDate={getMinDateTime()}

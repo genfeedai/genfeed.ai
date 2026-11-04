@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ModalPostStepHeaderProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Header of the two-step publish modal. The details step introduces the post;
@@ -13,6 +14,7 @@ export default function ModalPostStepHeader({
   activeTab,
   onBack,
 }: ModalPostStepHeaderProps) {
+  const translate = useTranslations('ui.postBatch.stepHeader');
   const isDetailsStep = activeTab === 'setup';
 
   return (
@@ -20,7 +22,7 @@ export default function ModalPostStepHeader({
       {isDetailsStep ? null : (
         <Button
           type="button"
-          ariaLabel="Back to details"
+          ariaLabel={translate('back')}
           className="absolute left-0 top-0"
           icon={<ArrowLeft className="size-4" />}
           onClick={onBack}
@@ -30,12 +32,12 @@ export default function ModalPostStepHeader({
         />
       )}
       <h2 className="text-xl font-semibold">
-        {isDetailsStep ? 'Schedule post' : 'Choose channels'}
+        {isDetailsStep ? translate('detailsTitle') : translate('channelsTitle')}
       </h2>
       <p className="text-sm text-foreground/70">
         {isDetailsStep
-          ? 'Add the post details and set the time.'
-          : 'Choose destinations and customize each channel.'}
+          ? translate('detailsDescription')
+          : translate('channelsDescription')}
       </p>
     </div>
   );

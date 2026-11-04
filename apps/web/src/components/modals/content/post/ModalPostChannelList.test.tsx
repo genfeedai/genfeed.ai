@@ -32,6 +32,11 @@ function channel(
   };
 }
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const credentials = [
   {
     externalHandle: 'genfeed-x',
@@ -86,8 +91,7 @@ describe('ModalPostChannelList', () => {
   it('counts only connected channels with a valid connection', () => {
     renderList();
 
-    expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText(/of 1 active/)).toBeInTheDocument();
+    expect(screen.getByText('1 of 1 active')).toBeInTheDocument();
   });
 
   it('shows the connected account name and the caption it will carry', () => {

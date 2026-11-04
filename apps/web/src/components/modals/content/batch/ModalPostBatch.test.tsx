@@ -10,6 +10,11 @@ import { describe, expect, it, vi } from 'vitest';
 import ModalPostBatch from '@/components/modals/content/batch/ModalPostBatch';
 
 // Mock dependencies
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({
     children,

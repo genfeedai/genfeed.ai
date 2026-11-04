@@ -5,6 +5,11 @@ import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostContent from '@/components/modals/content/post/ModalPostContent';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/components/modals/content/post/ModalPostSetupTab', () => ({
   __esModule: true,
   default: () => <div data-testid="post-setup-tab" />,

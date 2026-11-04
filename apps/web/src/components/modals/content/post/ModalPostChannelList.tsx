@@ -15,6 +15,7 @@ import { Avatar } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function getChannelName(
   config: IPostPlatformConfig,
@@ -51,6 +52,7 @@ export default function ModalPostChannelList({
   onAddChannels,
   renderEditor,
 }: ModalPostChannelListProps) {
+  const translate = useTranslations('ui.postBatch.channels');
   const selectableCount = platformConfigs.filter(isSelectable).length;
   const activeCount = platformConfigs.filter(
     (config) => isSelectable(config) && config.enabled,
@@ -60,25 +62,29 @@ export default function ModalPostChannelList({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 text-sm">
         <p>
-          <span className="font-semibold">{activeCount}</span> of{' '}
-          {selectableCount} active
+          {translate('activeCount', {
+            active: activeCount,
+            total: selectableCount,
+          })}
         </p>
         <div className="flex items-center gap-1">
-          <span className="pr-1 text-foreground/60">Toggle all</span>
+          <span className="pr-1 text-foreground/60">
+            {translate('toggleAll')}
+          </span>
           <Button
             type="button"
-            ariaLabel="Turn all channels off"
+            ariaLabel={translate('turnAllOff')}
             isDisabled={isLoading || activeCount === 0}
-            label="Off"
+            label={translate('turnAllOffShort')}
             onClick={() => onToggleAll(false)}
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
           />
           <Button
             type="button"
-            ariaLabel="Turn all channels on"
+            ariaLabel={translate('turnAllOn')}
             isDisabled={isLoading || activeCount === selectableCount}
-            label="On"
+            label={translate('turnAllOnShort')}
             onClick={() => onToggleAll(true)}
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
@@ -86,7 +92,10 @@ export default function ModalPostChannelList({
         </div>
       </div>
 
-      <ul aria-label="Channels" className="divide-y divide-border">
+      <ul
+        aria-label={translate('listLabel')}
+        className="divide-y divide-border"
+      >
         {platformConfigs.map((config) => {
           const credential = credentials.find(
             (item) => item.id === config.credentialId,
@@ -118,10 +127,10 @@ export default function ModalPostChannelList({
                   <span className="truncate text-sm font-medium">{name}</span>
                   <span className="truncate text-xs text-foreground/60">
                     {!hasCredential
-                      ? 'Not connected'
+                      ? translate('notConnected')
                       : !isCredentialValid
-                        ? 'Reconnect this account to publish'
-                        : caption || 'No caption yet'}
+                        ? translate('reconnectToPublish')
+                        : caption || translate('noCaption')}
                   </span>
                 </div>
                 {canToggle ? (
@@ -129,16 +138,16 @@ export default function ModalPostChannelList({
                     {config.enabled ? (
                       <Button
                         type="button"
-                        ariaLabel={`Edit ${name}`}
+                        ariaLabel={translate('editNamed', { name })}
                         isDisabled={isLoading}
-                        label="Edit"
+                        label={translate('edit')}
                         onClick={() => onToggleExpanded(config.platform)}
                         size={ButtonSize.SM}
                         variant={ButtonVariant.GHOST}
                       />
                     ) : null}
                     <Switch
-                      aria-label={`Publish to ${name}`}
+                      aria-label={translate('publishTo', { name })}
                       isChecked={config.enabled}
                       isDisabled={isLoading}
                       onCheckedChange={() => onToggle(config.credentialId)}
@@ -147,9 +156,17 @@ export default function ModalPostChannelList({
                 ) : (
                   <Button
                     type="button"
-                    ariaLabel={`${hasCredential ? 'Reconnect' : 'Connect'} ${name}`}
+                    ariaLabel={
+                      hasCredential
+                        ? translate('reconnectNamed', { name })
+                        : translate('connectNamed', { name })
+                    }
                     isDisabled={!onAddChannels}
-                    label={hasCredential ? 'Reconnect' : 'Connect'}
+                    label={
+                      hasCredential
+                        ? translate('reconnect')
+                        : translate('connect')
+                    }
                     onClick={onAddChannels}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
@@ -167,7 +184,7 @@ export default function ModalPostChannelList({
           type="button"
           icon={<Plus className="size-4" />}
           isDisabled={isLoading}
-          label="Add channels"
+          label={translate('addChannels')}
           onClick={onAddChannels}
           variant={ButtonVariant.SECONDARY}
         />

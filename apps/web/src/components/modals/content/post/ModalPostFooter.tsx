@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalPostFooterProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import { PUBLISH_SUBMIT_ATTRIBUTE } from './publish-submit';
 
 export default function ModalPostFooter({
@@ -18,6 +19,8 @@ export default function ModalPostFooter({
   onClose,
   isFormValid = false,
 }: Omit<ModalPostFooterProps, 'onSubmit'>) {
+  const translate = useTranslations('ui.postBatch.footer');
+
   // Each step owns its own keyed actions row. Without distinct keys React
   // reuses the Next button's DOM node as the Publish submit button during the
   // same click, which flips it to type="submit" before the browser runs the
@@ -27,7 +30,7 @@ export default function ModalPostFooter({
       <ModalActions key="setup-actions">
         <Button
           type="button"
-          label="Cancel"
+          label={translate('cancel')}
           variant={ButtonVariant.SECONDARY}
           onClick={onClose}
           isLoading={isLoading}
@@ -35,7 +38,7 @@ export default function ModalPostFooter({
 
         <Button
           type="button"
-          label="Next, select channels"
+          label={translate('next')}
           variant={ButtonVariant.DEFAULT}
           onClick={onNextStep}
           isDisabled={
@@ -53,7 +56,7 @@ export default function ModalPostFooter({
     <ModalActions key="platforms-actions">
       <Button
         type="button"
-        label="Back"
+        label={translate('back')}
         variant={ButtonVariant.SECONDARY}
         onClick={onPreviousStep}
         isLoading={isLoading}
@@ -62,7 +65,7 @@ export default function ModalPostFooter({
       <Button
         type="submit"
         {...{ [PUBLISH_SUBMIT_ATTRIBUTE]: 'true' }}
-        label="Schedule"
+        label={translate('schedule')}
         variant={ButtonVariant.DEFAULT}
         isLoading={isLoading}
         isDisabled={isLoading || !isFormValid}

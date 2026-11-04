@@ -3,6 +3,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ModalPostStepHeader from '@/components/modals/content/post/ModalPostStepHeader';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('ModalPostStepHeader', () => {
   it('introduces the details step without a back arrow', () => {
     render(<ModalPostStepHeader activeTab="setup" onBack={vi.fn()} />);
