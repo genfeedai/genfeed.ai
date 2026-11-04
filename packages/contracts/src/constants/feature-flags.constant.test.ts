@@ -4,6 +4,7 @@ import {
   DEFAULT_PLATFORM_FLAGS,
   getPlatformFlagChildren,
   isPlatformFlagKey,
+  isPlatformFlagOn,
   PLATFORM_FLAG_KEYS,
   PLATFORM_FLAG_PARENTS,
   PLATFORM_MODULE_FLAG_KEYS,
@@ -98,5 +99,16 @@ describe('platform flags (#5468)', () => {
   it('recognises only registered keys', () => {
     expect(isPlatformFlagKey('reply_bot')).toBe(true);
     expect(isPlatformFlagKey('app_switcher_studio')).toBe(false);
+  });
+
+  it.each([
+    ['an explicit true', { motion: true }, 'motion', true],
+    ['an explicit false', { motion: false }, 'motion', false],
+    ['a missing module', {}, 'motion', true],
+    ['a missing release flag', {}, PLATFORM_RELEASE_FLAG_KEYS[0], false],
+    ['a non-boolean value', { motion: 'no' }, 'motion', true],
+    ['an unrelated key', { studio: false }, 'motion', true],
+  ] as const)('answers %s with one rule', (_label, flags, key, expected) => {
+    expect(isPlatformFlagOn(flags, key)).toBe(expected);
   });
 });

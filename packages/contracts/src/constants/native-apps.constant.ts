@@ -7,6 +7,9 @@ import type {
   NativeSecondaryAppId,
 } from '../types/native-app';
 
+import { isPlatformFlagOn } from './feature-flags.constant';
+import { ORGANIZATION_MODULES } from './organization-modules.constant';
+
 export type { NativeAppContextualEntry, NativeSecondaryAppId };
 
 /**
@@ -180,6 +183,7 @@ export function applyRailAppOrder<T extends { id: string }>(
 }
 
 export const NATIVE_APP_AVAILABILITY_STATES = [
+  'platform-off',
   'not-installed',
   'installed',
   'pinned',
@@ -193,17 +197,28 @@ export type NativeAppAvailabilityState =
   (typeof NATIVE_APP_AVAILABILITY_STATES)[number];
 
 /**
- * Presentation state of a secondary app for the current member. Access
- * denials win over personal preferences, and unresolved access is reported as
- * unavailable rather than available. The server rechecks every new piece of
+ * Presentation state of a secondary app for the current member. The
+ * platform kill switch wins, then access denials win over personal
+ * preferences, and unresolved access is reported as unavailable rather than
+ * available. The server rechecks every new piece of
  * work; this state never admits one.
  */
 export function resolveNativeAppAvailability({
   appId,
+  flags,
   installedAppIds,
   organizationAccess,
   pinnedAppIds,
 }: NativeAppAvailabilityInput): NativeAppAvailabilityState {
+  const { organizationModuleId } = NATIVE_SECONDARY_APPS[appId];
+  if (
+    !isPlatformFlagOn(
+      flags,
+      ORGANIZATION_MODULES[organizationModuleId].platformFlagKey,
+    )
+  ) {
+    return 'platform-off';
+  }
   if (!organizationAccess) {
     return 'unavailable';
   }
