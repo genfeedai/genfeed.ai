@@ -351,3 +351,17 @@ describe('credit transaction presentation', () => {
     expect(getCreditActivityKey('unknown')).toBeUndefined();
   });
 });
+
+describe('completed post creation receipt', () => {
+  it('finishes a saved draft without completing a created model-training job', () => {
+    expect(getActivityLifecycleStatus(ActivityKey.POST_CREATED)).toBe(
+      'completed',
+    );
+    expect(
+      getActivityLifecycleStatus(ActivityKey.MODELS_TRAINING_CREATED),
+    ).toBe('processing');
+    expect(getActivityLifecycleStatus(ActivityKey.POST_SCHEDULED)).toBe(
+      'processing',
+    );
+  });
+});

@@ -959,6 +959,8 @@ function humanizeToken(value: string): string {
 export function getActivityLifecycleStatus(
   key: string,
 ): 'processing' | 'completed' | 'failed' | 'pending' {
+  // Saving a post has finished; created model-training jobs are still running.
+  if (key === ActivityKey.POST_CREATED) return 'completed';
   const { lifecycle } = parseActivityKey(key);
   switch (lifecycle) {
     case 'processing':
