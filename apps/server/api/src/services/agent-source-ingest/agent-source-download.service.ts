@@ -14,6 +14,7 @@ import {
   sendFilesRequest,
 } from '@api/services/files-microservice/client/files-request-retry.util';
 import { CLIPPER_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -182,6 +183,11 @@ export class AgentSourceDownloadService {
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
   ) {}
+
+  /** The internal service key every files-service route requires. */
+  private filesAuthHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.config.get(key));
+  }
 
   async normalizeUrl(raw: string): Promise<string> {
     const destination = await resolveSafeDestination(raw);
@@ -365,7 +371,10 @@ export class AgentSourceDownloadService {
           () =>
             this.http.get<unknown>(
               `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
-              { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+              {
+                headers: this.filesAuthHeaders(),
+                timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+              },
             ),
           {
             logger: this.logger,
@@ -444,7 +453,10 @@ export class AgentSourceDownloadService {
         () =>
           this.http.get<unknown>(
             `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+            {
+              headers: this.filesAuthHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+            },
           ),
         {
           logger: this.logger,
@@ -531,7 +543,10 @@ export class AgentSourceDownloadService {
             params: { inputPath: url },
             type: 'video-to-audio',
           },
-          { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+          {
+            headers: this.filesAuthHeaders(),
+            timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+          },
         ),
       { logger: this.logger, operation: 'enqueueYoutube' },
     );

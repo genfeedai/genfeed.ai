@@ -56,7 +56,9 @@ describe('AgentSourceDownloadService', () => {
         };
       },
     );
-    config.get.mockReturnValue('http://files-service');
+    config.get.mockImplementation((key: string) =>
+      key === 'GENFEEDAI_API_KEY' ? 'service-key' : 'http://files-service',
+    );
     files.extractMetadataFromUrl.mockResolvedValue({
       width: 1920,
       height: 1080,
@@ -292,7 +294,7 @@ describe('AgentSourceDownloadService', () => {
         organizationId: 'org-1',
         ingredientId: 'source-1',
       }),
-      { timeout: 30000 },
+      { headers: { 'x-api-key': 'service-key' }, timeout: 30000 },
     );
     expect(result).toMatchObject({
       storageKey: 'videos/source',
@@ -324,7 +326,7 @@ describe('AgentSourceDownloadService', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(http.get).toHaveBeenCalledWith(
       'http://files-service/v1/files/job/existing-job',
-      { timeout: 30000 },
+      { headers: { 'x-api-key': 'service-key' }, timeout: 30000 },
     );
   });
 
@@ -574,7 +576,9 @@ describe('imported source correlated Files observation', () => {
   }
   beforeEach(() => {
     vi.resetAllMocks();
-    config.get.mockReturnValue('http://files-service');
+    config.get.mockImplementation((key: string) =>
+      key === 'GENFEEDAI_API_KEY' ? 'service-key' : 'http://files-service',
+    );
     files.extractMetadataFromUrl.mockResolvedValue({
       width: 1920,
       height: 1080,

@@ -1,5 +1,7 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
+import { downloadPublicMedia } from '@files/services/audio-overlay/media-download';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesService } from '@files/services/files/files.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
@@ -8,7 +10,6 @@ import { UploadService } from '@files/services/upload/upload.service';
 import type { ICoverStyle } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { HttpService } from '@nestjs/axios';
 import {
   Body,
   Controller,
@@ -17,14 +18,16 @@ import {
   Inject,
   Post,
 } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+
+const IMAGE_DOWNLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
+const VIDEO_DOWNLOAD_LIMIT_BYTES = 500 * 1024 * 1024;
 
 @Controller('files')
 export class FilesProcessingController {
   constructor(
+    @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
     @Inject(FilesService) private readonly filesService: FilesService,
-    @Inject(HttpService) private readonly httpService: HttpService,
     @Inject(ImagesSplitService)
     private readonly imagesSplitService: ImagesSplitService,
     private readonly logger: LoggerService,
@@ -136,14 +139,11 @@ export class FilesProcessingController {
       if (imageData) {
         imageBuffer = Buffer.from(imageData, 'base64');
       } else {
-        const response = await firstValueFrom(
-          this.httpService.get(imageUrl as string, {
-            maxContentLength: 50 * 1024 * 1024,
-            responseType: 'arraybuffer',
-            timeout: 30000,
-          }),
+        imageBuffer = await downloadPublicMedia(
+          imageUrl as string,
+          IMAGE_DOWNLOAD_LIMIT_BYTES,
+          this.configService,
         );
-        imageBuffer = Buffer.from(response.data);
       }
 
       const resizedImage = await this.filesService.resizeImage(imageBuffer, {
@@ -207,16 +207,11 @@ export class FilesProcessingController {
         `Splitting contact sheet: ${gridRows}x${gridCols}, inset: ${borderInset ?? 10}px`,
       );
 
-      // Download the image
-      const response = await firstValueFrom(
-        this.httpService.get(imageUrl, {
-          maxContentLength: 50 * 1024 * 1024, // 50MB limit
-          responseType: 'arraybuffer',
-          timeout: 30000, // 30 second timeout
-        }),
+      const imageBuffer = await downloadPublicMedia(
+        imageUrl,
+        IMAGE_DOWNLOAD_LIMIT_BYTES,
+        this.configService,
       );
-
-      const imageBuffer = Buffer.from(response.data);
 
       // Split the image
       const splitResults = await this.imagesSplitService.splitImage(
@@ -291,18 +286,16 @@ export class FilesProcessingController {
       const randomSuffix = Math.random().toString(36).substring(7);
 
       this.logger.log(`Downloading video for QA from: ${videoUrl}`);
-      const videoResponse = await firstValueFrom(
-        this.httpService.get(videoUrl, {
-          maxContentLength: 500 * 1024 * 1024,
-          responseType: 'arraybuffer',
-          timeout: 120000,
-        }),
+      const videoBuffer = await downloadPublicMedia(
+        videoUrl,
+        VIDEO_DOWNLOAD_LIMIT_BYTES,
+        this.configService,
       );
       videoTempPath = path.resolve(
         tmpDir,
         `video_${timestamp}_${randomSuffix}.mp4`,
       );
-      fs.writeFileSync(videoTempPath, Buffer.from(videoResponse.data));
+      fs.writeFileSync(videoTempPath, videoBuffer);
 
       if (isContactSheetEnabled) {
         contactSheetPath = path.resolve(

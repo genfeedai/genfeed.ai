@@ -13,6 +13,7 @@ import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService as FilesConfigService } from '@files/config/config.service';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
+import { FILES_SERVICE_KEY_GUARD_PROVIDER } from '@files/guards/files-service-key.guard';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WatermarkExportService } from '@files/services/watermark-export/watermark-export.service';
@@ -170,6 +171,7 @@ describe('Library brand-watermarked export with synthetic media', () => {
     const filesModule = await Test.createTestingModule({
       controllers: [FilesWatermarkExportController],
       providers: [
+        FILES_SERVICE_KEY_GUARD_PROVIDER,
         WatermarkExportService,
         {
           provide: FilesConfigService,

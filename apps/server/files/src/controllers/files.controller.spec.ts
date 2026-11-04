@@ -23,11 +23,9 @@ import { IngredientFormat } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
 import { HttpException, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Response } from 'express';
-import { of, throwError } from 'rxjs';
 
 const { guardedFetch } = vi.hoisted(() => ({ guardedFetch: vi.fn() }));
 vi.mock('@libs/security/destination-guard', () => ({
@@ -71,7 +69,6 @@ describe('FilesController', () => {
   let imageQueueService: ImageQueueService;
   let fileQueueService: FileQueueService;
   let youtubeQueueService: YoutubeQueueService;
-  let httpService: HttpService;
   let s3Service: S3Service;
   let uploadService: UploadService;
   let videoThumbnailService: VideoThumbnailService;
@@ -168,10 +165,6 @@ describe('FilesController', () => {
       height: 1080,
       width: 1920,
     }),
-  };
-
-  const mockHttpService = {
-    get: vi.fn(),
   };
 
   const mockS3Service = {
@@ -383,7 +376,6 @@ describe('FilesController', () => {
         { provide: FFmpegService, useValue: mockFFmpegService },
         { provide: FilesService, useValue: mockFilesService },
         { provide: HookRemixService, useValue: mockHookRemixService },
-        { provide: HttpService, useValue: mockHttpService },
         { provide: ImageQueueService, useValue: mockImageQueueService },
         { provide: ImagesSplitService, useValue: mockImagesSplitService },
         { provide: LoggerService, useValue: mockLoggerService },
@@ -416,10 +408,8 @@ describe('FilesController', () => {
       downloadFile: storageController.downloadFile.bind(storageController),
       generateThumbnail:
         processingController.generateThumbnail.bind(processingController),
-      getFileMetadata: (
-        body: Parameters<FilesMetadataController['getFileMetadata']>[0],
-        key = 'internal-key',
-      ) => metadataController.getFileMetadata(body, key),
+      getFileMetadata:
+        metadataController.getFileMetadata.bind(metadataController),
       getJobStatus: jobsController.getJobStatus.bind(jobsController),
       getPresignedDownloadUrl:
         storageController.getPresignedDownloadUrl.bind(storageController),
@@ -450,7 +440,6 @@ describe('FilesController', () => {
     imageQueueService = module.get<ImageQueueService>(ImageQueueService);
     fileQueueService = module.get<FileQueueService>(FileQueueService);
     youtubeQueueService = module.get<YoutubeQueueService>(YoutubeQueueService);
-    httpService = module.get<HttpService>(HttpService);
     s3Service = module.get<S3Service>(S3Service);
     uploadService = module.get<UploadService>(UploadService);
     videoThumbnailService = module.get<VideoThumbnailService>(
@@ -487,7 +476,6 @@ describe('FilesController', () => {
       expect(imageQueueService).toBeDefined();
       expect(fileQueueService).toBeDefined();
       expect(youtubeQueueService).toBeDefined();
-      expect(httpService).toBeDefined();
       expect(s3Service).toBeDefined();
       expect(uploadService).toBeDefined();
       expect(videoThumbnailService).toBeDefined();
@@ -1252,12 +1240,7 @@ describe('FilesController', () => {
     });
 
     it('should resize image URL input successfully', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        of({
-          data: Buffer.from('downloaded-image'),
-          headers: { 'content-type': 'image/png' },
-        }),
-      );
+      guardedFetch.mockResolvedValueOnce(new Response('downloaded-image'));
 
       await controller.resizeImage({
         height: 600,
@@ -1265,13 +1248,10 @@ describe('FilesController', () => {
         width: 800,
       });
 
-      expect(mockHttpService.get).toHaveBeenCalledWith(
+      expect(guardedFetch).toHaveBeenCalledWith(
         'https://example.com/image.png',
-        {
-          maxContentLength: 50 * 1024 * 1024,
-          responseType: 'arraybuffer',
-          timeout: 30000,
-        },
+        expect.anything(),
+        {},
       );
       expect(filesService.resizeImage).toHaveBeenCalledWith(
         Buffer.from('downloaded-image'),
@@ -1304,12 +1284,7 @@ describe('FilesController', () => {
   // ==========================================================================
   describe('splitImage', () => {
     it('should split image successfully', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        of({
-          data: Buffer.from('image-data'),
-          headers: { 'content-type': 'image/png' },
-        }),
-      );
+      guardedFetch.mockResolvedValueOnce(new Response('image-data'));
 
       const body = {
         borderInset: 10,
@@ -1365,12 +1340,7 @@ describe('FilesController', () => {
     });
 
     it('should use default border inset of 10 when not provided', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        of({
-          data: Buffer.from('image-data'),
-          headers: { 'content-type': 'image/png' },
-        }),
-      );
+      guardedFetch.mockResolvedValueOnce(new Response('image-data'));
 
       const body = {
         gridCols: 2,
@@ -1389,9 +1359,7 @@ describe('FilesController', () => {
     });
 
     it('should handle image download errors', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        throwError(() => new Error('Download failed')),
-      );
+      guardedFetch.mockRejectedValueOnce(new Error('Download failed'));
 
       const body = {
         gridCols: 2,

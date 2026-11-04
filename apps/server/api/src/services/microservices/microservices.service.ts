@@ -3,6 +3,7 @@ import {
   FILES_REQUEST_TIMEOUT_MS,
   sendFilesRequest,
 } from '@api/services/files-microservice/client/files-request-retry.util';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import type {
   DegradedDependency,
@@ -586,6 +587,7 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
           this.httpService.post(`${filesUrl}/v1/files/upload`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
+              ...filesServiceAuthHeaders((key) => this.configService.get(key)),
             },
             timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
           }),

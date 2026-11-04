@@ -1,10 +1,9 @@
-import { timingSafeEqual } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
-import { isCloudDeployment, isSelfHostedDeployment } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -12,14 +11,11 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpException,
   HttpStatus,
   Inject,
   Param,
   Post,
-  ServiceUnavailableException,
-  UnauthorizedException,
 } from '@nestjs/common';
 
 interface MetadataDownload {
@@ -38,24 +34,7 @@ export class FilesMetadataController {
   ) {}
 
   @Post('metadata')
-  async getFileMetadata(
-    @Body() body: { filePath?: string; url?: string },
-    @Headers('x-api-key') key?: string,
-  ) {
-    if (isCloudDeployment()) {
-      const expected = this.configService.get('GENFEEDAI_API_KEY');
-      if (!expected)
-        throw new ServiceUnavailableException(
-          'Files metadata authentication is not configured',
-        );
-      const supplied = Buffer.from(key ?? '');
-      const secret = Buffer.from(expected);
-      if (
-        supplied.length !== secret.length ||
-        !timingSafeEqual(supplied, secret)
-      )
-        throw new UnauthorizedException();
-    }
+  async getFileMetadata(@Body() body: { filePath?: string; url?: string }) {
     this.tempFileCleanupCron.cleanupTempFiles();
 
     let filePath: string | undefined;

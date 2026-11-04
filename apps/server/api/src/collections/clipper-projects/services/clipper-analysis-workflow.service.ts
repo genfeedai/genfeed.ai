@@ -55,6 +55,7 @@ import {
   normalizeClipperReferenceTimestamps,
 } from '@genfeedai/helpers';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -519,7 +520,10 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
             userId,
           },
           {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...this.filesAuthHeaders(),
+            },
             timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
           },
         ),
@@ -566,7 +570,10 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
             userId,
           },
           {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...this.filesAuthHeaders(),
+            },
             timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
           },
         ),
@@ -596,6 +603,11 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
     return configuredFilesUrl || 'http://localhost:3012';
   }
 
+  /** The internal service key every files-service route requires. */
+  private filesAuthHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.configService.get(key));
+  }
+
   /**
    * Poll the files microservice until the audio extraction job completes.
    */
@@ -611,6 +623,7 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
       const response = await sendFilesRequest(
         () =>
           this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`, {
+            headers: this.filesAuthHeaders(),
             timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
           }),
         {
@@ -680,6 +693,7 @@ export class ClipperAnalysisWorkflowService implements OnModuleInit {
       const response = await sendFilesRequest(
         () =>
           this.httpService.get<unknown>(`${filesUrl}/v1/files/job/${jobId}`, {
+            headers: this.filesAuthHeaders(),
             timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
           }),
         {

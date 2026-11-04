@@ -2,6 +2,7 @@ import { ConfigModule } from '@files/config/config.module';
 import { ConfigService } from '@files/config/config.service';
 import { ControllersModule } from '@files/controllers/controllers.module';
 import { CronModule } from '@files/cron/cron.module';
+import { FILES_SERVICE_KEY_GUARD_PROVIDER } from '@files/guards/files-service-key.guard';
 import { ProcessorsModule } from '@files/processors/processors.module';
 import { QueuesModule } from '@files/queues/queues.module';
 import { ServicesModule } from '@files/services/services.module';
@@ -46,5 +47,9 @@ import { Module } from '@nestjs/common';
       },
     }),
   ],
+  // Every files route is service-to-service: one guard requires the internal
+  // service key everywhere except `@Public()` health routes and the self-hosted
+  // browser upload (see FilesServiceKeyGuard).
+  providers: [FILES_SERVICE_KEY_GUARD_PROVIDER],
 })
 export class AppModule {}

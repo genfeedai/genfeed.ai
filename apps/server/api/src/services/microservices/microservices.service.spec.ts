@@ -632,6 +632,7 @@ describe('MicroservicesService', () => {
         expect.objectContaining({
           headers: {
             'Content-Type': 'multipart/form-data',
+            'x-api-key': 'internal-key',
           },
           timeout: FILES_REQUEST_TIMEOUT_MS.UPLOAD,
         }),

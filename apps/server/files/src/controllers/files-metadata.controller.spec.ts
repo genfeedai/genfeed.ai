@@ -31,7 +31,6 @@ describe('FilesMetadataController URL download', () => {
   const getVideoMetadata = vi.fn();
   const config = {
     get: (key: string) => {
-      if (key === 'GENFEEDAI_API_KEY') return 'internal-key';
       if (key === 'GENFEEDAI_CDN_URL') return 'http://minio:9000/bucket';
       if (key === 'GENFEEDAI_MICROSERVICES_FILES_URL')
         return 'http://files:3012';
@@ -109,28 +108,13 @@ describe('FilesMetadataController URL download', () => {
     expect(writeFileSync).not.toHaveBeenCalled();
     expect(getVideoMetadata).not.toHaveBeenCalled();
   });
-  it.each([undefined, '', 'wrong'])(
-    'rejects Cloud metadata without the internal key before fetching or probing',
-    async (key) => {
-      deployment.selfHosted = false;
-      await expect(
-        controller.getFileMetadata(
-          { url: 'https://audio.example/narration.mp3' },
-          key,
-        ),
-      ).rejects.toMatchObject({ status: 401 });
-      expect(guardedFetch).not.toHaveBeenCalled();
-      expect(getVideoMetadata).not.toHaveBeenCalled();
-    },
-  );
   it('refuses the Cloud files origin even for an authenticated caller', async () => {
     deployment.selfHosted = false;
     guardedFetch.mockResolvedValue(new Response('audio'));
     await expect(
-      controller.getFileMetadata(
-        { url: 'http://files:3012/v1/files/download/audios/other-tenant.wav' },
-        'internal-key',
-      ),
+      controller.getFileMetadata({
+        url: 'http://files:3012/v1/files/download/audios/other-tenant.wav',
+      }),
     ).rejects.toMatchObject({ status: 400 });
     expect(guardedFetch).not.toHaveBeenCalled();
     expect(getVideoMetadata).not.toHaveBeenCalled();
@@ -138,10 +122,9 @@ describe('FilesMetadataController URL download', () => {
   it('accepts authenticated Cloud public narration with the public destination guard', async () => {
     deployment.selfHosted = false;
     guardedFetch.mockResolvedValue(new Response('audio'));
-    await controller.getFileMetadata(
-      { url: 'https://audio.example/narration.mp3' },
-      'internal-key',
-    );
+    await controller.getFileMetadata({
+      url: 'https://audio.example/narration.mp3',
+    });
     expect(guardedFetch).toHaveBeenCalledWith(
       'https://audio.example/narration.mp3',
       expect.anything(),

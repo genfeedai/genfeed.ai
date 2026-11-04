@@ -10,6 +10,7 @@ import {
   FilesRetryPolicy,
   sendFilesRequest,
 } from '@api/services/files-microservice/client/files-request-retry.util';
+import { filesServiceAuthHeaders } from '@libs/auth/files-service-key';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -29,6 +30,11 @@ export class HookRemixService {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
       'http://localhost:3012';
+  }
+
+  /** The internal service key every files-service route requires. */
+  private authHeaders(): Record<string, string> {
+    return filesServiceAuthHeaders((key) => this.configService.get(key));
   }
 
   async createHookRemix(
@@ -75,7 +81,10 @@ export class HookRemixService {
               userId,
               youtubeUrl: dto.youtubeUrl,
             },
-            { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+            },
           ),
         { logger: this.loggerService, operation: 'createHookRemix' },
       );
@@ -147,7 +156,10 @@ export class HookRemixService {
                   userId,
                   youtubeUrl,
                 },
-                { timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD },
+                {
+                  headers: this.authHeaders(),
+                  timeout: FILES_REQUEST_TIMEOUT_MS.STANDARD,
+                },
               ),
             { logger: this.loggerService, operation: 'createBatchHookRemix' },
           );
@@ -188,7 +200,10 @@ export class HookRemixService {
         () =>
           this.httpService.get(
             `${this.filesServiceUrl}/v1/files/job/${jobId}`,
-            { timeout: FILES_REQUEST_TIMEOUT_MS.QUICK },
+            {
+              headers: this.authHeaders(),
+              timeout: FILES_REQUEST_TIMEOUT_MS.QUICK,
+            },
           ),
         {
           logger: this.loggerService,
