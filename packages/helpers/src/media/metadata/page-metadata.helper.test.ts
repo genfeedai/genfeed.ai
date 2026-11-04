@@ -12,7 +12,6 @@ import {
   createDynamicPageMetadata,
   createPageMetadata,
   createPageMetadataWithCanonical,
-  createPageMetadataWithDescription,
 } from '@helpers/media/metadata/page-metadata.helper';
 
 function createMockParent(images: string[] = []) {
