@@ -29,6 +29,7 @@ import {
   parseOrganizationModuleOverrides,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
+import { BillingRevenueSource } from '@genfeedai/contracts';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -68,14 +69,16 @@ export class OrganizationSettingsService extends BaseService<
       ...super.normalizeDocument(document),
       hasOrganizationBilling: hasOrganizationBilling(),
       hasPaidModuleSubscription: null,
+      hasPurchasedCredits: null,
     };
   }
 
   /**
-   * `hasPaidModuleSubscription` is a presentation hint for settings clients.
-   * Resolving it costs several sequential subscription and billing-account
-   * reads, so only the callers that serialize settings to a client ask for it
-   * with `includePaidHint`; server-side callers get `null`.
+   * `hasPaidModuleSubscription` and `hasPurchasedCredits` are presentation
+   * hints for settings clients. Resolving them costs subscription,
+   * billing-account and revenue reads, so only the callers that serialize
+   * settings to a client ask for them with `includePaidHint`; server-side
+   * callers get `null`.
    */
   override async findOne(
     params: PrismaFilter,
@@ -93,25 +96,60 @@ export class OrganizationSettingsService extends BaseService<
     const tenant = getTenantContext();
     if (tenant && tenant.organizationId !== settings.organizationId)
       return settings;
+    if (!settings.organizationId) return settings;
+
+    const [hasPaidModuleSubscription, hasPurchasedCredits] = await Promise.all(
+      [
+        this.resolvePaidModuleSubscription(settings.organizationId),
+        this.resolveHasPurchasedCredits(settings.organizationId),
+      ],
+    );
+    return { ...settings, hasPaidModuleSubscription, hasPurchasedCredits };
+  }
+
+  private async resolvePaidModuleSubscription(
+    organizationId: string,
+  ): Promise<boolean | null> {
     try {
       const paidAccess = this.moduleRef.get(OrganizationPaidAccessService, {
         strict: false,
       });
-      if (!settings.organizationId || !paidAccess) return settings;
-      const isGated = await paidAccess.isSubscriptionGatedFresh(
-        settings.organizationId,
-      );
-      return typeof isGated === 'boolean'
-        ? { ...settings, hasPaidModuleSubscription: !isGated }
-        : settings;
+      if (!paidAccess) return null;
+      const isGated = await paidAccess.isSubscriptionGatedFresh(organizationId);
+      return typeof isGated === 'boolean' ? !isGated : null;
     } catch {
       this.logger?.warn?.(
         'Organization module subscription eligibility unavailable',
-        {
-          organizationId: settings.organizationId,
-        },
+        { organizationId },
       );
-      return settings;
+      return null;
+    }
+  }
+
+  /**
+   * True once the organization has paid for a credit pack. Credit buyers get
+   * every quality tier (#8482); a 100%-off checkout records no payment and
+   * does not count.
+   */
+  private async resolveHasPurchasedCredits(
+    organizationId: string,
+  ): Promise<boolean | null> {
+    try {
+      const purchase = await this.prisma.billingRevenueEvent.findFirst({
+        select: { id: true },
+        where: {
+          amountMinor: { gt: 0 },
+          isDeleted: false,
+          organizationId,
+          source: BillingRevenueSource.CREDIT_PURCHASE,
+        },
+      });
+      return purchase !== null;
+    } catch {
+      this.logger?.warn?.('Organization credit purchase history unavailable', {
+        organizationId,
+      });
+      return null;
     }
   }
 

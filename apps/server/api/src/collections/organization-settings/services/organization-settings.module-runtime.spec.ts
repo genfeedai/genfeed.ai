@@ -164,3 +164,50 @@ describe('readonly paid module eligibility', () => {
     expect(fresh).not.toHaveBeenCalled();
   });
 });
+
+describe('readonly credit purchase hint', () => {
+  const row = { id: 'settings-1', organizationId: 'org-1', moduleOverrides: {} };
+  function create(readPurchase: () => Promise<unknown>) {
+    return new OrganizationSettingsService(
+      {
+        billingRevenueEvent: { findFirst: vi.fn(readPurchase) },
+        organizationSetting: { findFirst: vi.fn().mockResolvedValue(row) },
+      } as never,
+      { debug: vi.fn(), error: vi.fn(), warn: vi.fn() } as never,
+      {
+        get: vi.fn().mockReturnValue({
+          isSubscriptionGatedFresh: vi.fn().mockResolvedValue(true),
+        }),
+      } as never,
+      {} as never,
+    );
+  }
+
+  it.each([
+    ['a paid credit pack', () => Promise.resolve({ id: 'rev-1' }), true],
+    ['no paid credit pack', () => Promise.resolve(null), false],
+    [
+      'an unavailable revenue read',
+      () => Promise.reject(new Error('db down')),
+      null,
+    ],
+  ])('reports the hint for %s', async (_label, readPurchase, expected) => {
+    vi.mocked(hasOrganizationBilling).mockReturnValue(true);
+    const result = await create(readPurchase).findOne(
+      { organizationId: 'org-1' },
+      [],
+      { includePaidHint: true },
+    );
+    expect(result?.hasPurchasedCredits).toBe(expected);
+  });
+
+  it('leaves the hint unresolved for server-side reads', async () => {
+    vi.mocked(hasOrganizationBilling).mockReturnValue(true);
+    const result = await create(() =>
+      Promise.resolve({ id: 'rev-1' }),
+    ).findOne({
+      organizationId: 'org-1',
+    });
+    expect(result?.hasPurchasedCredits).toBeNull();
+  });
+});

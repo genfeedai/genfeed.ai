@@ -163,6 +163,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   readonly hasOrganizationBilling?: boolean;
   /** Read-only fresh paid eligibility; null means the grant could not be verified. */
   readonly hasPaidModuleSubscription?: boolean | null;
+  /** Read-only: the org has paid for a credit pack; null when unverified. */
+  readonly hasPurchasedCredits?: boolean | null;
   fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first

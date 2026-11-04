@@ -52,6 +52,7 @@ export class OrganizationSetting
   declare public releasedItemIds?: IOrganizationSetting['releasedItemIds'];
   declare public readonly hasOrganizationBilling?: boolean;
   declare public readonly hasPaidModuleSubscription?: boolean | null;
+  declare public readonly hasPurchasedCredits?: boolean | null;
   declare public enabledModelIds?: string[];
   declare public defaultAvatarPhotoUrl?: string | null;
   declare public defaultVoiceId?: string | null;
