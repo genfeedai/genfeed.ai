@@ -1,3 +1,4 @@
+import type { ModelByokKey } from '@api/services/byok/byok-credential-identity.interface';
 import type { ByokProvider } from '@genfeedai/contracts';
 import type {
   CreditsPricingMetadata,
@@ -68,5 +69,22 @@ export function commitDeferredCredits(
     deferred: false,
     modelKey,
     ...(pricingMetadata ? { pricingMetadata } : {}),
+  };
+}
+
+/**
+ * Mark the request's charge as BYOK usage, carrying the exact key (and
+ * secret) dispatch must use so the bypass and the provider call agree.
+ */
+export function applyByokBypass(
+  request: DeferredCreditsRequest,
+  byok: ModelByokKey,
+): void {
+  request.creditsConfig = {
+    ...request.creditsConfig,
+    byokApiKeyOverride: byok.apiKey,
+    ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
+    isByokBypass: true,
+    provider: byok.provider,
   };
 }
