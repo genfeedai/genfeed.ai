@@ -10,6 +10,12 @@
 
 import { z } from 'zod';
 import { timezoneSchema } from '../helpers/common-schemas';
+import {
+  createLocalDateTimeFormatter,
+  type LocalDateTime,
+  localDateTimeToInstant,
+  readLocalDateTime,
+} from '../helpers/local-date-time';
 
 export const MAX_CREDENTIAL_POSTING_TIMES = 48;
 export const MAX_NEXT_SLOT_DAYS = 365;
@@ -36,16 +42,6 @@ export type NextPostingSlot =
       minute: number;
       timezone: string;
     };
-
-type LocalDateTime = {
-  day: number;
-  hour: number;
-  millisecond: number;
-  minute: number;
-  month: number;
-  second: number;
-  year: number;
-};
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
@@ -87,94 +83,6 @@ export function normalizePostingTimes(input: unknown): ClockTime[] {
     .slice(0, MAX_CREDENTIAL_POSTING_TIMES);
 }
 
-function requiredDatePart(parts: Map<string, number>, name: string): number {
-  const value = parts.get(name);
-  if (value === undefined) {
-    throw new Error(`Intl.DateTimeFormat omitted the ${name} date part.`);
-  }
-  return value;
-}
-
-function createFormatter(timezone: string): Intl.DateTimeFormat | null {
-  try {
-    return new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
-      day: '2-digit',
-      hour: '2-digit',
-      hourCycle: 'h23',
-      minute: '2-digit',
-      month: '2-digit',
-      second: '2-digit',
-      timeZone: timezone,
-      year: 'numeric',
-    });
-  } catch {
-    return null;
-  }
-}
-
-function readLocalDateTime(
-  formatter: Intl.DateTimeFormat,
-  instant: Date,
-): LocalDateTime {
-  const parts = new Map(
-    formatter
-      .formatToParts(instant)
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, Number.parseInt(part.value, 10)]),
-  );
-
-  return {
-    day: requiredDatePart(parts, 'day'),
-    hour: requiredDatePart(parts, 'hour'),
-    millisecond: instant.getUTCMilliseconds(),
-    minute: requiredDatePart(parts, 'minute'),
-    month: requiredDatePart(parts, 'month'),
-    second: requiredDatePart(parts, 'second'),
-    year: requiredDatePart(parts, 'year'),
-  };
-}
-
-function localDateTimeValue(local: LocalDateTime): number {
-  return Date.UTC(
-    local.year,
-    local.month - 1,
-    local.day,
-    local.hour,
-    local.minute,
-    local.second,
-    local.millisecond,
-  );
-}
-
-function matchesLocalDateTime(
-  actual: LocalDateTime,
-  expected: LocalDateTime,
-): boolean {
-  return localDateTimeValue(actual) === localDateTimeValue(expected);
-}
-
-function localDateTimeToInstant(
-  local: LocalDateTime,
-  formatter: Intl.DateTimeFormat,
-): Date | null {
-  const desiredValue = localDateTimeValue(local);
-  if (!Number.isFinite(desiredValue)) {
-    return null;
-  }
-  let candidateValue = desiredValue;
-  for (let iteration = 0; iteration < 4; iteration += 1) {
-    const candidate = new Date(candidateValue);
-    const actualValue = localDateTimeValue(
-      readLocalDateTime(formatter, candidate),
-    );
-    candidateValue += desiredValue - actualValue;
-  }
-  const candidate = new Date(candidateValue);
-  return matchesLocalDateTime(readLocalDateTime(formatter, candidate), local)
-    ? candidate
-    : null;
-}
-
 function addCalendarDays(local: LocalDateTime, days: number): LocalDateTime {
   const next = new Date(
     Date.UTC(local.year, local.month - 1, local.day) +
@@ -208,7 +116,7 @@ export function resolvePostingTimezone(
   if (!parsed.success) {
     return 'UTC';
   }
-  return createFormatter(parsed.data) ? parsed.data : 'UTC';
+  return createLocalDateTimeFormatter(parsed.data) ? parsed.data : 'UTC';
 }
 
 export function buildDayViewRows(input: {
@@ -218,7 +126,7 @@ export function buildDayViewRows(input: {
   timezone: string;
 }): ClockTime[] {
   const timezone = resolvePostingTimezone(input.timezone);
-  const formatter = createFormatter(timezone);
+  const formatter = createLocalDateTimeFormatter(timezone);
   const preferred = normalizePostingTimes(input.preferredTimes);
   if (!formatter) {
     return preferred;
@@ -261,7 +169,7 @@ export function findNextFreeSlot(input: {
   }
 
   const timezone = resolvePostingTimezone(input.timezone);
-  const formatter = createFormatter(timezone);
+  const formatter = createLocalDateTimeFormatter(timezone);
   if (!formatter) {
     return { found: false };
   }
@@ -319,7 +227,7 @@ export function instantForClockTime(input: {
   timezone: string;
 }): Date | null {
   const timezone = resolvePostingTimezone(input.timezone);
-  const formatter = createFormatter(timezone);
+  const formatter = createLocalDateTimeFormatter(timezone);
   if (!formatter) {
     return null;
   }

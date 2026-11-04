@@ -11,6 +11,12 @@
 import { z } from 'zod';
 import { CadenceGenerateLanding, PostCategory } from '../..';
 import { entityIdSchema, timezoneSchema } from '../helpers/common-schemas';
+import {
+  createLocalDateTimeFormatter,
+  type LocalDateTime,
+  localDateTimeToInstant,
+  readLocalDateTime,
+} from '../helpers/local-date-time';
 
 export const MAX_CADENCE_WINDOW_OCCURRENCES = 500;
 export const MAX_CADENCE_OCCURRENCES = 1000;
@@ -99,16 +105,6 @@ export type CadenceExpansionResult =
       success: false;
     };
 
-type LocalDateTime = {
-  day: number;
-  hour: number;
-  millisecond: number;
-  minute: number;
-  month: number;
-  second: number;
-  year: number;
-};
-
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
 export function buildSlotIdentityKey(input: {
@@ -186,94 +182,6 @@ export const cadenceGenerateLandingSchema = z.nativeEnum(
   CadenceGenerateLanding,
 );
 
-function requiredDatePart(parts: Map<string, number>, name: string): number {
-  const value = parts.get(name);
-  if (value === undefined) {
-    throw new Error(`Intl.DateTimeFormat omitted the ${name} date part.`);
-  }
-  return value;
-}
-
-function createFormatter(timezone: string): Intl.DateTimeFormat | null {
-  try {
-    return new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
-      day: '2-digit',
-      hour: '2-digit',
-      hourCycle: 'h23',
-      minute: '2-digit',
-      month: '2-digit',
-      second: '2-digit',
-      timeZone: timezone,
-      year: 'numeric',
-    });
-  } catch {
-    return null;
-  }
-}
-
-function readLocalDateTime(
-  formatter: Intl.DateTimeFormat,
-  instant: Date,
-): LocalDateTime {
-  const parts = new Map(
-    formatter
-      .formatToParts(instant)
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, Number.parseInt(part.value, 10)]),
-  );
-
-  return {
-    day: requiredDatePart(parts, 'day'),
-    hour: requiredDatePart(parts, 'hour'),
-    millisecond: instant.getUTCMilliseconds(),
-    minute: requiredDatePart(parts, 'minute'),
-    month: requiredDatePart(parts, 'month'),
-    second: requiredDatePart(parts, 'second'),
-    year: requiredDatePart(parts, 'year'),
-  };
-}
-
-function localDateTimeValue(local: LocalDateTime): number {
-  return Date.UTC(
-    local.year,
-    local.month - 1,
-    local.day,
-    local.hour,
-    local.minute,
-    local.second,
-    local.millisecond,
-  );
-}
-
-function matchesLocalDateTime(
-  actual: LocalDateTime,
-  expected: LocalDateTime,
-): boolean {
-  return localDateTimeValue(actual) === localDateTimeValue(expected);
-}
-
-function localDateTimeToInstant(
-  local: LocalDateTime,
-  formatter: Intl.DateTimeFormat,
-): Date | null {
-  const desiredValue = localDateTimeValue(local);
-  if (!Number.isFinite(desiredValue)) {
-    return null;
-  }
-  let candidateValue = desiredValue;
-  for (let iteration = 0; iteration < 4; iteration += 1) {
-    const candidate = new Date(candidateValue);
-    const actualValue = localDateTimeValue(
-      readLocalDateTime(formatter, candidate),
-    );
-    candidateValue += desiredValue - actualValue;
-  }
-  const candidate = new Date(candidateValue);
-  return matchesLocalDateTime(readLocalDateTime(formatter, candidate), local)
-    ? candidate
-    : null;
-}
-
 function calendarDateValue(local: LocalDateTime): number {
   return Date.UTC(local.year, local.month - 1, local.day);
 }
@@ -309,7 +217,7 @@ export function expandCadenceOccurrences(
     return { issues: issuesFromZod(rangeParsed.error), success: false };
   }
 
-  const formatter = createFormatter(parsed.data.timezone);
+  const formatter = createLocalDateTimeFormatter(parsed.data.timezone);
   if (!formatter) {
     return {
       issues: [

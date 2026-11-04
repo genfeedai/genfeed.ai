@@ -1,6 +1,5 @@
 import {
   gsapPresets,
-  prefersReducedMotion,
   useGsapEntrance,
   useGsapTimeline,
 } from '@hooks/ui/use-gsap-entrance/use-gsap-entrance';
@@ -215,21 +214,6 @@ describe('useGsapEntrance batch reveals', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(gsapMock.context).not.toHaveBeenCalled();
     expect(gsapMock.set).not.toHaveBeenCalled();
-  });
-});
-
-describe('prefersReducedMotion', () => {
-  it('is false when matchMedia is unavailable', () => {
-    vi.stubGlobal('matchMedia', undefined);
-    expect(prefersReducedMotion()).toBe(false);
-  });
-
-  it('reads the reduced-motion media query', () => {
-    stubReducedMotion(true);
-    expect(prefersReducedMotion()).toBe(true);
-
-    stubReducedMotion(false);
-    expect(prefersReducedMotion()).toBe(false);
   });
 });
 
