@@ -2,12 +2,15 @@ import { ClipperProjectStatus } from '@api/collections/clipper-projects/schemas/
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import {
+  CLIPPER_CAPTION_STYLES,
   CLIPPER_PROCESSING_FLOWS,
   CLIPPER_RESULT_MODES,
+  type ClipperCaptionStyle,
   type ClipProcessingFlow,
   type ClipperReferenceFrameSet,
   type ClipperResultMode,
   DEFAULT_CLIP_RESULT_MODE,
+  DEFAULT_CLIPPER_CAPTION_STYLE,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
 } from '@genfeedai/contracts/interfaces';
@@ -147,13 +150,15 @@ export class ClipperProjectSettingsDto {
   readonly aspectRatio?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn([...CLIPPER_CAPTION_STYLES])
   @ApiProperty({
-    default: 'default',
-    description: 'Caption style preset',
+    default: DEFAULT_CLIPPER_CAPTION_STYLE,
+    description: 'Caption style preset burned into the clips',
+    enum: CLIPPER_CAPTION_STYLES,
+    enumName: 'ClipperCaptionStyle',
     required: false,
   })
-  readonly captionStyle?: string;
+  readonly captionStyle?: ClipperCaptionStyle;
 }
 
 export class CreateClipperProjectDto extends OrganizationalCreateDto {

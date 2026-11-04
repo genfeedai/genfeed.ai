@@ -74,7 +74,9 @@ describe('RawCutClipCompletionService', () => {
       }),
     };
     clipperProjectsService = {
-      findOne: vi.fn().mockResolvedValue({ captionStyle: 'tiktok' }),
+      findOne: vi
+        .fn()
+        .mockResolvedValue({ settings: { captionStyle: 'tiktok' } }),
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
     clipperResultsService = {
@@ -230,6 +232,73 @@ describe('RawCutClipCompletionService', () => {
           subjectSafety: 'full-source-visible',
         }),
         status: 'captioning',
+      }),
+      [],
+      'org-1',
+    );
+  });
+
+  it.each([
+    ['an unsupported style', { captionStyle: 'neon-glitch' }],
+    ['no chosen style', {}],
+    ['the default style', { captionStyle: 'default' }],
+  ])('captions in the default look for %s', async (_label, settings) => {
+    clipperProjectsService.findOne.mockResolvedValue({ settings });
+    clipperResultsService.findOne.mockResolvedValue(
+      makeClip({ providerJobId: 'raw-cut-frame-clip-1', status: 'reframing' }),
+    );
+
+    await service.handleCompletion({
+      ingredientId: 'clip-1',
+      organizationId: 'org-1',
+      result: {
+        jobId: 'raw-cut-frame-clip-1',
+        jobType: 'convert-to-portrait',
+        s3Key: 'videos/clip-1-portrait.mp4',
+        url: 'https://cdn.genfeed.ai/videos/clip-1-portrait.mp4',
+      },
+      status: Status.COMPLETED,
+      userId: 'user-1',
+    });
+
+    expect(fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          captionStyle: { fontSizeRatio: 0.058, textCase: 'as-is' },
+        }),
+        type: 'add-captions',
+      }),
+    );
+  });
+
+  it('skips caption burning and finishes the clip when the project turned captions off', async () => {
+    clipperProjectsService.findOne.mockResolvedValue({
+      settings: { addCaptions: false, captionStyle: 'tiktok' },
+    });
+    clipperResultsService.findOne.mockResolvedValue(
+      makeClip({ providerJobId: 'raw-cut-frame-clip-1', status: 'reframing' }),
+    );
+
+    await service.handleCompletion({
+      ingredientId: 'clip-1',
+      organizationId: 'org-1',
+      result: {
+        jobId: 'raw-cut-frame-clip-1',
+        jobType: 'convert-to-portrait',
+        s3Key: 'videos/clip-1-portrait.mp4',
+        url: 'https://cdn.genfeed.ai/videos/clip-1-portrait.mp4',
+      },
+      status: Status.COMPLETED,
+      userId: 'user-1',
+    });
+
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+    expect(clipperResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      expect.objectContaining({
+        captionedVideoS3Key: 'videos/clip-1-portrait.mp4',
+        captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1-portrait.mp4',
+        status: 'completed',
       }),
       [],
       'org-1',
