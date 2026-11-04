@@ -1,5 +1,6 @@
 import {
   getCheckoutRedirectBaseUrls,
+  isLoopbackRedirectUrl,
   resolveAllowedRedirectUrl,
 } from '@api/helpers/utils/checkout-redirect/checkout-redirect.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -73,21 +74,27 @@ export class ManagedStripeCheckoutService {
     const redirectBaseUrls = getCheckoutRedirectBaseUrls(this.configService);
 
     const session = await this.stripeService.createManagedPaymentSession({
-      cancelUrl: resolveAllowedRedirectUrl(
-        dto.cancelUrl,
-        `${appUrl}${APP_ROUTES.SETTINGS.CREDITS}`,
-        redirectBaseUrls,
-      ),
+      // A self-hosted install on the buyer's own machine is sent back to
+      // itself; any other foreign origin falls back to the hosted pages.
+      cancelUrl: isLoopbackRedirectUrl(dto.cancelUrl)
+        ? (dto.cancelUrl as string)
+        : resolveAllowedRedirectUrl(
+            dto.cancelUrl,
+            `${appUrl}${APP_ROUTES.SETTINGS.CREDITS}`,
+            redirectBaseUrls,
+          ),
       email: dto.email,
       firstName: dto.firstName,
       lastName: dto.lastName,
       quantity: dto.quantity,
       stripePriceId,
-      successUrl: resolveAllowedRedirectUrl(
-        dto.successUrl,
-        `${appUrl}${APP_ROUTES.MANAGED_CREDITS_SUCCESS}?session_id={CHECKOUT_SESSION_ID}`,
-        redirectBaseUrls,
-      ),
+      successUrl: isLoopbackRedirectUrl(dto.successUrl)
+        ? (dto.successUrl as string)
+        : resolveAllowedRedirectUrl(
+            dto.successUrl,
+            `${appUrl}${APP_ROUTES.MANAGED_CREDITS_SUCCESS}?session_id={CHECKOUT_SESSION_ID}`,
+            redirectBaseUrls,
+          ),
     });
 
     await this.lifecycleEmailService?.recordManagedCheckoutStartedByEmail({

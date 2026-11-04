@@ -50,3 +50,26 @@ export function resolveAllowedRedirectUrl(
 
   return allowedOrigins.has(requestedOrigin) ? requestedUrl : fallbackUrl;
 }
+
+const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * True for a URL on the buyer's own machine (a self-hosted install on
+ * localhost or a `*.localhost` Portless name). Nobody else can receive a
+ * redirect there, so it is safe to send the checkout session id to it.
+ */
+export function isLoopbackRedirectUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(url);
+    return (
+      (protocol === 'http:' || protocol === 'https:') &&
+      (LOOPBACK_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost'))
+    );
+  } catch {
+    return false;
+  }
+}

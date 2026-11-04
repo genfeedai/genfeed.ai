@@ -138,6 +138,23 @@ describe('ManagedStripeCheckoutService', () => {
       });
     });
 
+    it.each([
+      'http://localhost:3000/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+      'https://app.genfeed.localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+    ])(
+      'sends a self-hosted buyer back to their own machine at %s',
+      async (successUrl) => {
+        const { service, sessions } = buildCloudCheckout();
+
+        await service.createCheckoutSession({
+          email: 'buyer@example.com',
+          successUrl,
+        });
+
+        expect(sessions[0]?.successUrl).toBe(successUrl);
+      },
+    );
+
     it('replaces foreign redirect URLs with the hosted success and credits pages', async () => {
       const { service, sessions } = buildCloudCheckout();
 
