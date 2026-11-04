@@ -1,6 +1,10 @@
 import { isBreakoutMediaFormat } from '@api/collections/outliers/services/breakout-media-format.util';
 import { readBreakoutMediaOutputRecovery } from '@api/collections/outliers/services/breakout-media-output-recovery.util';
-import { breakoutPublicationState } from '@api/collections/outliers/services/breakout-output-publication-state.util';
+import {
+  BREAKOUT_RECEIPT_ROW_SELECT,
+  breakoutPublicationState,
+  breakoutReceiptExecutionState,
+} from '@api/collections/outliers/services/breakout-output-publication-state.util';
 import { loadBreakoutPublication } from '@api/collections/outliers/services/breakout-publication-source.util';
 import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
 import {
@@ -399,18 +403,7 @@ export async function readBreakoutOutputRecovery(
       candidateIndex: 0,
       isDeleted: false,
     },
-    select: {
-      id: true,
-      organizationId: true,
-      brandId: true,
-      requestKey: true,
-      candidateIndex: true,
-      revision: true,
-      state: true,
-      mode: true,
-      providerAttemptRef: true,
-      projection: true,
-    },
+    select: BREAKOUT_RECEIPT_ROW_SELECT,
   });
   if (!row) {
     if (
@@ -473,41 +466,12 @@ export async function readBreakoutOutputRecovery(
       reason: 'receipt_invalid',
       action: 'reconcile',
     };
-  if (receipt.execution?.result === 'indeterminate')
-    return {
-      ...base,
-      state: 'reconciliation_required',
-      reason: 'generation_outcome_indeterminate',
-      action: 'reconcile',
-    };
-  if (receipt.execution?.result === 'pending')
-    return {
-      ...base,
-      state: 'generation_in_flight',
-      reason: 'provider_pending',
-      action: 'wait',
-    };
-  if (receipt.execution?.result === 'failed')
-    return {
-      ...base,
-      state: 'failed',
-      reason: 'generation_failed',
-      action: 'none',
-    };
-  if (receipt.state === 'blocked' || receipt.state === 'cancelled')
-    return {
-      ...base,
-      state: 'awaiting_review',
-      reason: 'quality_or_brand_blocked',
-      action: 'none',
-    };
-  if (!receipt.execution && !post)
-    return {
-      ...base,
-      state: 'not_submitted',
-      reason: 'not_dispatched',
-      action: 'requires_admission',
-    };
+  const executionState = breakoutReceiptExecutionState(
+    base,
+    receipt,
+    Boolean(post),
+  );
+  if (executionState) return executionState;
   if (!receipt.artifact)
     return {
       ...base,
