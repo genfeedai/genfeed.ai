@@ -1,6 +1,13 @@
 import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
-import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
+import {
+  CircleAlert,
+  CircleCheck,
+  Info,
+  type LucideIcon,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { getBadgeStatus } from './badge.status';
 import { badgeVariants } from './badge.variants';
@@ -36,12 +43,20 @@ export interface BadgeProps
  * The icon a status-toned badge shows when the caller gave none, so a
  * success / warning / error / info chip never reads as a bare coloured label.
  */
-const TONE_ICONS = {
-  destructive: CircleAlert,
-  info: Info,
-  success: CircleCheck,
-  warning: TriangleAlert,
-} as const;
+function getToneIcon(variant: BadgeProps['variant']): LucideIcon | undefined {
+  switch (variant) {
+    case 'destructive':
+      return CircleAlert;
+    case 'info':
+      return Info;
+    case 'success':
+      return CircleCheck;
+    case 'warning':
+      return TriangleAlert;
+    default:
+      return undefined;
+  }
+}
 
 function isNumericContent(node: ReactNode): boolean {
   return (
@@ -106,10 +121,8 @@ function Badge({
     !isMono &&
     !isTruncated &&
     hasContent(children) &&
-    !isNumericContent(children) &&
-    variant &&
-    variant in TONE_ICONS
-      ? TONE_ICONS[variant as keyof typeof TONE_ICONS]
+    !isNumericContent(children)
+      ? getToneIcon(variant)
       : undefined;
   const LeadingIcon = StatusIcon ?? ToneIcon;
   const resolvedIcon = LeadingIcon ? <LeadingIcon /> : icon;
