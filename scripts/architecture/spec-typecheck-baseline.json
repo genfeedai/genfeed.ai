@@ -2233,14 +2233,6 @@
       "workspace": "api"
     },
     {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/mcp/mcp.module.spec.ts",
-      "fingerprint": "ef5953d9c920d497b1e5",
-      "message": "Parameter '_ctx' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/endpoints/public/controllers/articles/public.articles.controller.spec.ts",
