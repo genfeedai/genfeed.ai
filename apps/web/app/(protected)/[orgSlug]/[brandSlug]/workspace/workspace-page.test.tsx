@@ -604,6 +604,28 @@ describe('WorkspacePageContent', () => {
     );
   });
 
+  it('retains an Inbox status selected with a pointer held across frames', async () => {
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup({ delay: 25 });
+    render(<WorkspacePageContent section="inbox" />);
+    await user.click(await screen.findByRole('button', { name: /filters/i }));
+    (await screen.findByRole('menuitem', { name: /^status/i })).focus();
+    await user.keyboard('{ArrowRight}');
+    const option = await screen.findByRole('menuitemradio', {
+      name: /recent/i,
+    });
+    await user.pointer([
+      { target: option, keys: '[MouseLeft>]' },
+      { target: option, keys: '[/MouseLeft]' },
+    ]);
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      '/workspace/inbox?status=recent',
+      { scroll: false },
+    );
+  });
+
   it('marks individual rows and all inbox items read without opening the task', async () => {
     mocks.searchParamsString = 'status=all';
     render(<WorkspacePageContent section="inbox" />);

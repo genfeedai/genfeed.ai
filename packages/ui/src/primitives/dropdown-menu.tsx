@@ -3,7 +3,12 @@
 import { cn } from '@genfeedai/helpers';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight } from 'lucide-react';
-import type { ComponentPropsWithRef, HTMLAttributes, ReactNode } from 'react';
+import {
+  type ComponentPropsWithRef,
+  type HTMLAttributes,
+  type ReactNode,
+  useId,
+} from 'react';
 import { Badge } from './badge';
 import { overlayMenuSurfaceClassName } from './field-control';
 
@@ -57,13 +62,29 @@ function DropdownMenuSubContent({
   className,
   sideOffset = 8,
   onPointerDownOutside,
+  onFocusOutside,
   ...props
 }: ComponentPropsWithRef<typeof DropdownMenuPrimitive.SubContent>) {
+  const contentId = useId();
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.SubContent
         ref={ref}
+        data-dropdown-submenu={contentId}
         sideOffset={sideOffset}
+        onFocusOutside={(event) => {
+          const target = event.target;
+          // A portaled item's own focus can be reported as outside by Radix.
+          if (
+            target instanceof Element &&
+            target
+              .closest('[data-dropdown-submenu]')
+              ?.getAttribute('data-dropdown-submenu') === contentId
+          ) {
+            event.preventDefault();
+          }
+          onFocusOutside?.(event);
+        }}
         onPointerDownOutside={(event) => {
           const target = event.target as Element | null;
           if (target?.closest('[data-radix-popper-content-wrapper]')) {
