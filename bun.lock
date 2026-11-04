@@ -703,7 +703,6 @@
       "dependencies": {
         "@genfeedai/contracts": "workspace:*",
         "better-auth": "1.7.14",
-        "zod": "4.6.7",
       },
       "devDependencies": {
         "@types/node": "26.6.6",
@@ -1030,10 +1029,8 @@
         "@genfeedai/client": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/models": "workspace:*",
-        "@genfeedai/pricing": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/services": "workspace:*",
-        "@remotion/player": "4.0.540",
         "@tiptap/core": "3.32.2",
       },
       "devDependencies": {
