@@ -76,6 +76,9 @@ export function toPolicyMediaAssessment(
   };
 }
 
+/** Longest derivation chain followed when looking for a failed original. */
+const MAX_DERIVATION_DEPTH = 8;
+
 /**
  * Per-post media assessment (#4881): every media gate folded into one
  * tighten-only verdict for the publish policy and the publish card.
@@ -380,10 +383,20 @@ export class MediaAssessmentService implements IMediaPublishGate {
     reasons: MediaAssessmentReason[],
   ): Promise<string[]> {
     const rows = await this.prisma.ingredient.findMany({
-      select: { category: true, generationHarness: true, id: true },
+      select: {
+        category: true,
+        generationHarness: true,
+        id: true,
+        parentId: true,
+      },
       where: scopedWhere(organizationId, { id: { in: [...assetIds] } }),
     });
+    const flaggedAncestors = await this.findEnhancementFailedAncestors(
+      organizationId,
+      rows,
+    );
     for (const row of rows) {
+      const isDerivedFromFailure = flaggedAncestors.has(row.id);
       if (isGenerationEnhancementFailed(row.generationHarness)) {
         reasons.push({
           assetId: row.id,
@@ -392,11 +405,67 @@ export class MediaAssessmentService implements IMediaPublishGate {
             'Brand enhancement failed for this asset; automatic publishing is blocked. Regenerate it or approve publishing in the app after reviewing it.',
           source: 'generation',
         });
+      } else if (isDerivedFromFailure) {
+        reasons.push({
+          assetId: row.id,
+          code: 'generation:enhancement_failed',
+          message:
+            'Brand enhancement failed for the asset this one was derived from; automatic publishing is blocked. Regenerate the original or approve publishing in the app after reviewing it.',
+          source: 'generation',
+        });
       }
     }
     return rows
       .filter((row) => resolveMediaKind(row.category) !== null)
       .map((row) => row.id);
+  }
+
+  /**
+   * Derived assets (upscale, resize, reframe, lip-sync, effects) are created
+   * with a `parentId` and carry no generation receipt of their own, so an
+   * unbranded original would otherwise publish once it had been post-processed.
+   * Walks each asset's parent chain, bounded, and returns the ids of the
+   * requested assets with a failed-enhancement ancestor.
+   */
+  private async findEnhancementFailedAncestors(
+    organizationId: string,
+    rows: ReadonlyArray<{ id: string; parentId?: string | null }>,
+  ): Promise<Set<string>> {
+    const flagged = new Set<string>();
+    // Requested asset id -> the ancestor currently being inspected.
+    let frontier = new Map<string, string>();
+    for (const row of rows) {
+      if (row.parentId) frontier.set(row.id, row.parentId);
+    }
+    const visited = new Set<string>(rows.map((row) => row.id));
+    for (
+      let depth = 0;
+      depth < MAX_DERIVATION_DEPTH && frontier.size > 0;
+      depth += 1
+    ) {
+      const parentIds = Array.from(new Set(frontier.values())).filter(
+        (id) => !visited.has(id),
+      );
+      if (parentIds.length === 0) break;
+      for (const id of parentIds) visited.add(id);
+      const parents = await this.prisma.ingredient.findMany({
+        select: { generationHarness: true, id: true, parentId: true },
+        where: scopedWhere(organizationId, { id: { in: parentIds } }),
+      });
+      const byId = new Map(parents.map((parent) => [parent.id, parent]));
+      const next = new Map<string, string>();
+      for (const [assetId, parentId] of frontier) {
+        const parent = byId.get(parentId);
+        if (!parent) continue;
+        if (isGenerationEnhancementFailed(parent.generationHarness)) {
+          flagged.add(assetId);
+        } else if (parent.parentId) {
+          next.set(assetId, parent.parentId);
+        }
+      }
+      frontier = next;
+    }
+    return flagged;
   }
 
   /**
