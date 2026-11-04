@@ -54,6 +54,7 @@ import {
   buildDesktopLoadingScreenUrl,
   getDesktopBootBackground,
 } from './main/boot-screen';
+import { resolveCacheAssetPath } from './main/cache-asset-path.util';
 import { DesktopCliAgentRuntimeService } from './main/cli-agent-runtime.service';
 import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
@@ -1851,7 +1852,7 @@ const registerIpcHandlers = (): void => {
     async (_event: unknown, filename: string, data: ArrayBuffer) => {
       const cachePath = path.join(app.getPath('userData'), 'cache');
       fs.mkdirSync(cachePath, { recursive: true });
-      const filePath = path.join(cachePath, filename);
+      const filePath = resolveCacheAssetPath(cachePath, filename);
       fs.writeFileSync(filePath, Buffer.from(data));
       return filePath;
     },
