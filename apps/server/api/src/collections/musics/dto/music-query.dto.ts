@@ -1,5 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { normalizeIngredientOrigins } from '@api/helpers/dto/ingredient-origins-query.transform';
+import { toBooleanOrUnset } from '@api/helpers/dto/optional-boolean.transform';
 import {
   AssetScope,
   IngredientOrigin,
@@ -31,18 +32,7 @@ export class MusicQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @ValidateIf((o) => o.isDefault !== undefined)
-  @Transform(({ value }) => {
-    if (value == null || value === '') {
-      return undefined;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false || value === '0' || value === 0) {
-      return false;
-    }
-    return value ? true : undefined;
-  })
+  @Transform(toBooleanOrUnset)
   @IsBoolean()
   isDefault?: boolean;
 

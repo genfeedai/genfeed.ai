@@ -1,4 +1,8 @@
 import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
+import {
+  toBooleanDefaultFalse,
+  toBooleanOrUnset,
+} from '@api/helpers/dto/optional-boolean.transform';
 import { RESOLVE_QUERY_ALIASES } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -53,24 +57,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @ValidateIf((o) => o.isDeleted !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return false;
-    }
-    return Boolean(value);
-  })
+  @Transform(toBooleanDefaultFalse)
   @IsBoolean()
   isDeleted: boolean = false;
 
@@ -109,24 +96,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @ValidateIf((o) => o.isFavorite !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return undefined;
-    }
-    return value ? true : undefined;
-  })
+  @Transform(toBooleanOrUnset)
   @IsBoolean()
   isFavorite?: boolean;
 

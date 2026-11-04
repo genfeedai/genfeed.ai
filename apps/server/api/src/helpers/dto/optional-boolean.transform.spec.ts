@@ -1,5 +1,7 @@
 import {
   parseOptionalBoolean,
+  toBooleanDefaultFalse,
+  toBooleanOrUnset,
   toOptionalBoolean,
 } from './optional-boolean.transform';
 
@@ -19,5 +21,37 @@ describe('optional boolean query transforms', () => {
     expect(parseOptionalBoolean('false')).toBe(false);
     expect(parseOptionalBoolean('yes')).toBeUndefined();
     expect(parseOptionalBoolean(undefined)).toBeUndefined();
+  });
+
+  it.each([
+    [undefined, false],
+    [null, false],
+    ['', false],
+    ['true', true],
+    [true, true],
+    ['false', false],
+    [false, false],
+    ['0', false],
+    [0, false],
+    ['yes', true],
+    [1, true],
+  ])('defaults to false: %j -> %j', (value, expected) => {
+    expect(toBooleanDefaultFalse({ value })).toBe(expected);
+  });
+
+  it.each([
+    [undefined, undefined],
+    [null, undefined],
+    ['', undefined],
+    ['true', true],
+    [true, true],
+    ['false', false],
+    [false, false],
+    ['0', false],
+    [0, false],
+    ['yes', true],
+    [1, true],
+  ])('stays unset when blank: %j -> %j', (value, expected) => {
+    expect(toBooleanOrUnset({ value })).toBe(expected);
   });
 });

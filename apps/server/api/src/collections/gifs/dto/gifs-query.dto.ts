@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { toBooleanDefaultFalse } from '@api/helpers/dto/optional-boolean.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
@@ -100,23 +101,6 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsBoolean()
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    if (value === '0' || value === 0) {
-      return false;
-    }
-    if (value === '') {
-      return false;
-    }
-    return Boolean(value);
-  })
+  @Transform(toBooleanDefaultFalse)
   lightweight?: boolean;
 }
