@@ -73,6 +73,23 @@ const PLATFORM_COMPACT_LABELS: Readonly<Record<Platform, string>> = {
   [Platform.YOUTUBE]: 'YT',
 };
 
+/**
+ * Connected for advertising, analytics or livestream chat only. None of these
+ * can receive an organic post, so a posting destination picker never offers them.
+ */
+const NON_ORGANIC_PLATFORMS: ReadonlySet<Platform> = new Set([
+  Platform.GOOGLE_ADS,
+  Platform.GOOGLE_SEARCH_CONSOLE,
+  Platform.RESTREAM,
+  Platform.X_ADS,
+]);
+
+/** True when an account on this platform can be an organic posting destination. */
+export function isOrganicPostingPlatform(value: unknown): boolean {
+  const platform = parsePlatform(value);
+  return platform === undefined || !NON_ORGANIC_PLATFORMS.has(platform);
+}
+
 export function isPlatform(value: unknown): value is Platform {
   return typeof value === 'string' && PLATFORM_VALUES.has(value);
 }

@@ -19,6 +19,7 @@ import { useState } from 'react';
 import BrandRuleProposals from '@/components/brand-rules/BrandRuleProposals';
 import LazyRichTextEditor from '@/components/editors/LazyRichTextEditor';
 import ModalPostDestinations from '@/components/modals/content/post/ModalPostDestinations';
+import ModalPostMedia from '@/components/modals/content/post/ModalPostMedia';
 import PostDraftGenerator from '@/components/modals/content/post/PostDraftGenerator';
 
 export default function ModalPostSimpleFields({
@@ -33,6 +34,7 @@ export default function ModalPostSimpleFields({
   isTitleRequired,
   isTitleError,
   composer,
+  media,
   onDraftGenerated,
 }: ModalPostSimpleFieldsProps) {
   const translate = useTranslations('ui.postDraft');
@@ -71,6 +73,7 @@ export default function ModalPostSimpleFields({
           {composerTranslate('handoff')}
         </p>
       ) : null}
+      {media && !composer?.destination ? <ModalPostMedia {...media} /> : null}
       {!isEditMode && !composer && (
         <FormControl label={translate('platform')}>
           <SelectField
