@@ -1,7 +1,7 @@
 import {
+  buildClipperHookGate,
   CLIPPER_GENERATION_CHILD_WORKFLOW_ID,
   CLIPPER_GENERATION_PLAN_ACTION_ID,
-  CLIPPER_HOOK_REVIEW_NODE_ID,
 } from '@api/collections/clipper-projects/services/clipper-generation-workflow-definition';
 import type {
   WorkflowEdge,
@@ -94,31 +94,7 @@ export function buildClipperGenerationChildWorkflowDefinition(): SystemWorkflowG
 }
 
 export function buildClipperFactoryWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const conditionNode: WorkflowVisualNode = {
-    data: {
-      config: {
-        customField: 'hookReviewRequired',
-        field: 'custom',
-        operator: 'isTrue',
-      },
-      label: 'Hook review required?',
-    },
-    id: 'hook-review-required',
-    position: { x: 0, y: 800 },
-    type: 'condition',
-  };
-  const reviewNode: WorkflowVisualNode = {
-    data: {
-      config: {
-        autoApproveIfNoResponse: false,
-        timeoutHours: 24,
-      },
-      label: 'Review Hook Clip',
-    },
-    id: CLIPPER_HOOK_REVIEW_NODE_ID,
-    position: { x: 0, y: 960 },
-    type: 'reviewGate',
-  };
+  const gate = buildClipperHookGate(800);
   const edges: WorkflowEdge[] = [
     {
       id: 'prepare-to-transcribe',
@@ -138,72 +114,7 @@ export function buildClipperFactoryWorkflowDefinition(): SystemWorkflowGraphDefi
       target: 'plan-generation',
       targetHandle: 'highlighted',
     },
-    {
-      id: 'plan-hook-items',
-      source: 'plan-generation',
-      sourceHandle: 'hookItems',
-      target: 'generate-hook',
-      targetHandle: 'items',
-    },
-    {
-      id: 'plan-hook-base-input',
-      source: 'plan-generation',
-      sourceHandle: 'baseInput',
-      target: 'generate-hook',
-      targetHandle: 'baseInput',
-    },
-    {
-      id: 'plan-to-condition',
-      source: 'plan-generation',
-      target: conditionNode.id,
-      targetHandle: 'value',
-    },
-    {
-      id: 'hook-to-condition',
-      source: 'generate-hook',
-      target: conditionNode.id,
-      targetHandle: 'hookDispatch',
-    },
-    {
-      id: 'condition-to-review',
-      source: conditionNode.id,
-      sourceHandle: 'true',
-      target: reviewNode.id,
-      targetHandle: 'condition',
-    },
-    {
-      id: 'hook-to-review',
-      source: 'generate-hook',
-      target: reviewNode.id,
-      targetHandle: 'media',
-    },
-    {
-      id: 'condition-to-remaining',
-      source: conditionNode.id,
-      sourceHandle: 'false',
-      target: 'generate-remaining',
-      targetHandle: 'previous',
-    },
-    {
-      id: 'review-to-remaining',
-      source: reviewNode.id,
-      target: 'generate-remaining',
-      targetHandle: 'previous',
-    },
-    {
-      id: 'plan-remaining-items',
-      source: 'plan-generation',
-      sourceHandle: 'remainingItems',
-      target: 'generate-remaining',
-      targetHandle: 'items',
-    },
-    {
-      id: 'plan-remaining-base-input',
-      source: 'plan-generation',
-      sourceHandle: 'baseInput',
-      target: 'generate-remaining',
-      targetHandle: 'baseInput',
-    },
+    ...gate.edges,
   ];
 
   return {
@@ -242,8 +153,7 @@ export function buildClipperFactoryWorkflowDefinition(): SystemWorkflowGraphDefi
           position: { x: 0, y: 480 },
         }),
         forEachNode('generate-hook', 'await', 640),
-        conditionNode,
-        reviewNode,
+        ...gate.nodes,
         forEachNode('generate-remaining', 'scheduled', 1120),
       ],
     },
