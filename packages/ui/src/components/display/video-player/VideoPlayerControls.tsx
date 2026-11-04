@@ -42,7 +42,8 @@ export default function VideoPlayerControls({
     <>
       {isPlaying ? null : (
         // Sized to the button, not the poster, so the video's own click still works.
-        <div className="nodrag nopan absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+        // Centred in the space above the footer so short players keep it clickable.
+        <div className="nodrag nopan absolute top-[calc((100%-2.5rem)/2)] left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
           <Button
             ariaLabel={playLabel}
             className="size-10 shrink-0 rounded-full"

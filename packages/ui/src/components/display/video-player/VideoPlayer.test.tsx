@@ -126,6 +126,12 @@ describe('VideoPlayer', () => {
     const footer = screen.getByRole('group', { name: 'Video controls' });
 
     const centrePlay = screen.getByRole('button', { name: 'Play video' });
+    expect(centrePlay.closest('.absolute')).toHaveClass(
+      'top-[calc((100%-2.5rem)/2)]',
+      'left-1/2',
+      '-translate-x-1/2',
+      '-translate-y-1/2',
+    );
     expect(footer).not.toContainElement(centrePlay);
     expect(screen.queryByRole('button', { name: 'Pause video' })).toBeNull();
 
