@@ -362,7 +362,7 @@
     "socket.io": "4.8.4",
     "socket.io-client": "4.8.4",
     "sonner": "2.0.8",
-    "stripe": "23.0.1",
+    "stripe": "23.1.0",
     "tailwindcss": "4.3.4",
     "tippy.js": "6.3.7",
     "uuid": "14.0.3",

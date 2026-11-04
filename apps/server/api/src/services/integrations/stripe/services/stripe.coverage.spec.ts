@@ -110,7 +110,7 @@ function buildConfigGet() {
   return vi.fn((key: string) => {
     const map: Record<string, string> = {
       GENFEEDAI_APP_URL: 'http://localhost:3000',
-      STRIPE_API_VERSION: '2026-09-30.endive',
+      STRIPE_API_VERSION: '2026-10-28.endive',
       STRIPE_PRICE_PAYG: 'payg_id',
       STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
       STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',

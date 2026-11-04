@@ -104,7 +104,7 @@
         "socket.io": "4.8.4",
         "socket.io-client": "4.8.4",
         "sonner": "2.0.8",
-        "stripe": "23.0.1",
+        "stripe": "23.1.0",
         "tailwindcss": "4.3.4",
         "tippy.js": "6.3.7",
         "uuid": "14.0.3",
@@ -7165,7 +7165,7 @@
 
     "strip-json-comments": ["strip-json-comments@2.0.1", "", {}, "sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ=="],
 
-    "stripe": ["stripe@23.0.1", "", { "peerDependencies": { "@types/node": ">=20" }, "optionalPeers": ["@types/node"] }, "sha512-VFLs9IAzSZ8GIm6/vqhjqOL0fbYrSNYCpgZ3LS3YkSi/i5RnyMpu/Hf9YxPTOCYwc3mZKU3IJvuvKffQH2NLMg=="],
+    "stripe": ["stripe@23.1.0", "", { "peerDependencies": { "@types/node": ">=20" }, "optionalPeers": ["@types/node"] }, "sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ=="],
 
     "strtok3": ["strtok3@10.7.0", "", { "dependencies": { "@tokenizer/token": "^0.3.0" } }, "sha512-iAqrCpp7UXD2FZiHWhLXqdJ6CmNeVzRkkHAyyhhKMVtbVm2KtPX3D/bJNonvtcyLTHS4rwqP2pz9fsjK1K4z0Q=="],
 
