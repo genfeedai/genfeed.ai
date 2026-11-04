@@ -15,6 +15,24 @@ import type {
   McpCardView,
   McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
+import {
+  channelLabel,
+  fact,
+  formatAmount,
+  metric,
+  record,
+  rows,
+  safeCardUrl,
+  summaryCard,
+  text,
+  utcStamp,
+  words,
+} from '@mcp/ui/card-fields';
+import {
+  buildToolDiscoveryView,
+  buildToolView,
+  uploadedMediaRow,
+} from '@mcp/ui/card-tool-views';
 import preview from '@mcp/ui/preview-client.tsx?mcp-preview';
 
 // Shared components/styles also change the resource; never reuse a cached view.
@@ -56,27 +74,38 @@ const PENDING_STATUSES = new Set([
 const CALENDAR_MAX_DAYS = 31;
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
+  complete_media_upload: 'media',
   control_scheduled_release: 'summary',
   create_post: 'post',
   create_scheduled_release: 'summary',
+  enhance_prompt: 'summary',
+  find_tools: 'summary',
   generate: 'media',
   // Social copy renders as a post; an article result switches to the article
   // card in buildCardView via its articleId.
   generate_content: 'post',
+  generate_turbo_content: 'summary',
   get_account: 'summary',
   get_articles: 'article',
   check_channel: 'summary',
   get_brand_publishing_readiness: 'summary',
   get_brands: 'summary',
+  get_generation_options: 'summary',
   get_job_status: 'media',
   get_posts: 'post',
   get_scheduled_release: 'summary',
   get_assets: 'media',
   get_orgs: 'summary',
   get_scheduler_capabilities: 'summary',
+  manage_campaign: 'summary',
+  onboard_brand: 'summary',
+  repurpose_post: 'summary',
+  request_media_upload: 'summary',
+  set_generation_settings: 'summary',
   switch_org: 'summary',
   transform_media: 'media',
   update_scheduled_release: 'summary',
+  upload_media: 'summary',
   validate_scheduler_target: 'summary',
 };
 
@@ -113,33 +142,6 @@ export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
       'ui/resourceUri': MCP_CARD_RESOURCE_URI,
     },
   };
-}
-
-function record(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function text(row: Record<string, unknown>, ...keys: string[]): string {
-  for (const key of keys) {
-    const value = row[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return '';
-}
-
-export function safeCardUrl(value: string): string | undefined {
-  try {
-    const url = new URL(value);
-    return ['https:', 'http:'].includes(url.protocol) &&
-      !url.username &&
-      !url.password
-      ? url.href
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function cardKind(
@@ -334,56 +336,6 @@ function layoutFor(kind: McpCardKind): McpCardLayout {
   return 'media';
 }
 
-/** Credits and usage: two decimals at most, grouped by thousands. */
-export function formatAmount(value: number): string {
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
-    value,
-  );
-}
-
-function fact(label: string, value: unknown): McpCardFact[] {
-  const shown =
-    typeof value === 'number' && Number.isFinite(value)
-      ? formatAmount(value)
-      : typeof value === 'string'
-        ? value.trim()
-        : '';
-  return shown ? [{ label, value: shown }] : [];
-}
-
-function words(value: string): string {
-  const spaced = value.replace(/[_-]/g, ' ').toLowerCase();
-  return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
-}
-
-function summaryCard(
-  title: string,
-  facts: McpCardFact[],
-  extra: Partial<McpCard> = {},
-): McpCard {
-  return {
-    date: '',
-    description: '',
-    id: '',
-    kind: 'summary',
-    platform: '',
-    status: '',
-    title,
-    ...extra,
-    facts,
-  };
-}
-
-function metric(
-  label: string,
-  value: unknown,
-  extra: Partial<McpCardMetric> = {},
-): McpCardMetric[] {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? [{ label, value: formatAmount(value), ...extra }]
-    : [];
-}
-
 /**
  * `get_account`: who is connected and what is left to spend, as people name
  * things. Identifiers stay in the structured data for the agent.
@@ -406,7 +358,12 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
           ? [
               {
                 ...(brandNames.length
-                  ? { items: brandNames.map((label) => ({ label })) }
+                  ? {
+                      items: brandNames.map((label) => ({
+                        hasAvatar: true,
+                        label,
+                      })),
+                    }
                   : {}),
                 label: 'Brands',
                 value: brandNames.join(', ') || String(brandCount),
@@ -566,32 +523,6 @@ function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
   };
 }
 
-const CHANNEL_LABELS: Readonly<Record<string, string>> = {
-  discord: 'Discord',
-  facebook: 'Facebook',
-  instagram: 'Instagram',
-  linkedin: 'LinkedIn',
-  pinterest: 'Pinterest',
-  reddit: 'Reddit',
-  telegram: 'Telegram',
-  threads: 'Threads',
-  tiktok: 'TikTok',
-  twitch: 'Twitch',
-  twitter: 'X',
-  x: 'X',
-  youtube: 'YouTube',
-};
-
-/** A channel's display name: the API's own label, else a known brand spelling. */
-function channelLabel(platform: string, label = ''): string {
-  return (
-    label ||
-    CHANNEL_LABELS[platform.toLowerCase()] ||
-    words(platform) ||
-    'Channel'
-  );
-}
-
 /** A readiness check as a status badge: tone from the result, wording its own. */
 function checkFact(label: string, result: unknown): McpCardFact[] {
   const status = typeof result === 'string' ? result.toLowerCase() : '';
@@ -614,17 +545,6 @@ const READINESS_LABELS: Readonly<Record<string, string>> = {
   publish_capable: 'Ready',
   unknown: 'Unknown',
 };
-
-function utcStamp(value: string): string {
-  const time = Date.parse(value);
-  return Number.isNaN(time)
-    ? ''
-    : `${new Date(time).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
-}
-
-function rows(value: unknown): Record<string, unknown>[] {
-  return (Array.isArray(value) ? value : []).map(record);
-}
 
 /** One connected channel: can it publish, and which checks hold it back. */
 function readinessCard(row: Record<string, unknown>): McpCard {
@@ -927,6 +847,16 @@ export function buildCardView(
     return buildCapabilitiesView(payload);
   }
   if (name === 'validate_scheduler_target') return buildValidationView(payload);
+  const toolView = buildToolView(name, payload);
+  if (toolView === 'media') {
+    return {
+      cards: [card(uploadedMediaRow(data), 'media')],
+      layout: 'media',
+      title: 'Upload',
+      total: 1,
+    };
+  }
+  if (toolView) return toolView;
   if (baseKind === 'summary') return buildReleaseView(data);
   if (name === 'get_posts' && Array.isArray(data.gapDays)) {
     return buildCalendarView(data);
@@ -1000,7 +930,11 @@ export function withCardResult<T extends McpAppResult>(
   result: T,
 ) {
   if (result.isError || !result.structuredContent) return result;
-  const view = buildCardView(name, result.structuredContent.data);
+  // Discovery answers without a `data` envelope.
+  const view =
+    name === 'find_tools'
+      ? buildToolDiscoveryView(record(result.structuredContent))
+      : buildCardView(name, result.structuredContent.data);
   if (!view) return result;
   return {
     ...result,
