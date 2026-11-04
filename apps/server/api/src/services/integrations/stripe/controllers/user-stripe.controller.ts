@@ -20,6 +20,7 @@ import { StripeService } from '@api/services/integrations/stripe/services/stripe
 import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IUserSubscriptionsService,
   USER_SUBSCRIPTIONS_SERVICE,
@@ -131,8 +132,8 @@ export class UserStripeController {
       );
 
       // Create checkout session
-      const successUrl = `${origin}/credits/success`;
-      const cancelUrl = `${origin}/credits/cancel`;
+      const successUrl = `${origin}${APP_ROUTES.SETTINGS.CREDITS}?credits=success`;
+      const cancelUrl = `${origin}${APP_ROUTES.SETTINGS.CREDITS}`;
 
       const session = await this.stripeService.createUserPaymentSession({
         cancelUrl,
@@ -227,7 +228,7 @@ export class UserStripeController {
         });
       }
 
-      const returnUrl = `${origin}/credits`;
+      const returnUrl = `${origin}${APP_ROUTES.SETTINGS.CREDITS}`;
       const billingUrl = await this.stripeService.getUserBillingPortalUrl(
         dbUser.stripeCustomerId,
         returnUrl,
