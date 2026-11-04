@@ -1,6 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { StringDecoder } from 'node:string_decoder';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -135,8 +136,16 @@ export class YtDlpService {
       let isSettled = false;
       let hasTimedOut = false;
       let stderr = '';
+      // A persistent decoder keeps a multibyte character that is split across
+      // data chunks intact instead of turning each half into U+FFFD.
+      const stderrDecoder = new StringDecoder('utf8');
+      const appendStderr = (text: string): void => {
+        stderr = (stderr + text).slice(-YT_DLP_STDERR_TAIL_CHARS);
+      };
       proc.stderr?.on('data', (data: Buffer | string) => {
-        stderr = (stderr + data.toString()).slice(-YT_DLP_STDERR_TAIL_CHARS);
+        appendStderr(
+          typeof data === 'string' ? data : stderrDecoder.write(data),
+        );
       });
       const settle = (callback: () => void): void => {
         if (isSettled) {
@@ -152,6 +161,7 @@ export class YtDlpService {
 
       proc.on('close', (code: number | null) => {
         clearTimeout(timeout);
+        appendStderr(stderrDecoder.end());
         if (hasTimedOut) {
           this.cleanupPartialOutput(outputPath);
           settle(() =>

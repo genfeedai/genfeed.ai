@@ -81,11 +81,11 @@ function closeProcess(mockProcess: MockProcess, code: number): void {
   closeHandler?.(code);
 }
 
-function writeStderr(mockProcess: MockProcess, text: string): void {
+function writeStderr(mockProcess: MockProcess, text: string | Buffer): void {
   const dataHandler = mockProcess.stderr.on.mock.calls.find(
     (call) => call[0] === 'data',
   )?.[1];
-  dataHandler?.(Buffer.from(text));
+  dataHandler?.(typeof text === 'string' ? Buffer.from(text) : text);
 }
 
 function failProcess(mockProcess: MockProcess, error: Error): void {
@@ -214,6 +214,55 @@ describe('YtDlpService', () => {
       await expect(promise).rejects.toThrow(
         'yt-dlp exited with code 1: ERROR: [youtube] test: Video unavailable',
       );
+    });
+
+    it('keeps a multibyte character that is split across stderr chunks', async () => {
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadAudio('https://youtube.com/watch?v=test');
+
+      const bytes = Buffer.from('ERROR: Vidéo indisponible 日本\n');
+      const splitAt = bytes.indexOf(0xc3) + 1;
+      writeStderr(mockProcess, bytes.subarray(0, splitAt));
+      writeStderr(mockProcess, bytes.subarray(splitAt));
+      closeProcess(mockProcess, 1);
+
+      await expect(promise).rejects.toThrow(
+        'yt-dlp exited with code 1: ERROR: Vidéo indisponible 日本',
+      );
+    });
+
+    it('reports the ERROR line when ordinary output follows it', async () => {
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadAudio('https://youtube.com/watch?v=test');
+
+      writeStderr(
+        mockProcess,
+        'ERROR: [youtube] test: Sign in to confirm\nWARNING: cleaning up\n[download] done\n',
+      );
+      closeProcess(mockProcess, 1);
+
+      await expect(promise).rejects.toThrow(
+        'yt-dlp exited with code 1: ERROR: [youtube] test: Sign in to confirm',
+      );
+    });
+
+    it('drops an ERROR line that falls outside the retained 4,000-character tail', async () => {
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadAudio('https://youtube.com/watch?v=test');
+
+      writeStderr(mockProcess, 'ERROR: stale failure\n');
+      writeStderr(mockProcess, `${'x'.repeat(4000)}\nlast line`);
+      closeProcess(mockProcess, 1);
+
+      const error = await promise.catch((caught: Error) => caught);
+      expect((error as Error).message).toContain('last line');
+      expect((error as Error).message).not.toContain('stale failure');
     });
 
     it('should handle non-zero exit code', async () => {

@@ -2628,9 +2628,15 @@ export default function StudioPlaygroundWorkspace(): ReactElement {
     [applyRecipeContinuation, prepareContinuation],
   );
 
-  const handleSelectJob = useCallback((job: StudioPlaygroundJob) => {
-    setSelectedJobId(job.id);
-  }, []);
+  const handleSelectJob = useCallback(
+    (job: StudioPlaygroundJob) => {
+      setSelectedJobId(job.id);
+      // Selecting a different card opens its inspector through the selection
+      // effect; re-clicking the selected card must reveal a collapsed panel.
+      if (job.id === selectedJobId) revealInspector?.();
+    },
+    [revealInspector, selectedJobId],
+  );
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
     setFocusedScope(null);
