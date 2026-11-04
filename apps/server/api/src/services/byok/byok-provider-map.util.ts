@@ -1,3 +1,5 @@
+import type { ByokService } from '@api/services/byok/byok.service';
+import type { ModelByokKey } from '@api/services/byok/byok-credential-identity.interface';
 import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
 /**
@@ -166,4 +168,27 @@ export function resolveModelByokProvider(
     (modelProvider ? modelProviderToByokProvider(modelProvider) : undefined) ??
     (modelKey ? modelKeyToByokProvider(modelKey) : undefined)
   );
+}
+
+/**
+ * The single BYOK decision point for a model's generation (#5294). Resolves
+ * the org's decrypted key exactly once: the returned key is both the bypass
+ * decision (defined/undefined) and the value dispatch must use, so the credit
+ * charge and the provider call can never disagree about whose key paid.
+ */
+export async function resolveModelByokKey(
+  byokService: Pick<ByokService, 'resolveApiKey'>,
+  organizationId: string,
+  modelKey: string,
+  modelProvider?: string,
+): Promise<ModelByokKey | undefined> {
+  const provider = resolveModelByokProvider(modelKey, modelProvider);
+  if (!provider) {
+    return undefined;
+  }
+  const resolved = await byokService.resolveApiKey(organizationId, provider);
+  if (!resolved) {
+    return undefined;
+  }
+  return { provider, ...resolved };
 }

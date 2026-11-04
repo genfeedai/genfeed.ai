@@ -9,12 +9,12 @@ import { ImageGenerationProviderRegistryService } from '@api/collections/images/
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   assertApprovedGenerationQuote,
   generationQuoteIdentityHash,
 } from '@api/helpers/utils/credits/approved-generation-quote.util';
 import {
+  applyByokBypass,
   commitDeferredCredits,
   type DeferredCreditsRequest,
   isDeferredCreditsRequest,
@@ -23,11 +23,13 @@ import {
   hasGenerationSourceActionId,
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import {
+  createInsufficientCreditsException,
+  rethrowReservationFailure,
+} from '@api/helpers/utils/credits/insufficient-credits.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
+import { resolveModelByokKey } from '@api/services/byok/byok-provider-map.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { ByokProvider } from '@genfeedai/contracts';
 import { ModelCategory } from '@genfeedai/contracts';
 import {
   isFlux3ImageModel,
@@ -76,7 +78,8 @@ export class ImageGenerationCreditsService {
         'The selected image model is unavailable for an exact quote.',
       );
     }
-    const byok = await this.resolveActiveByokKey(
+    const byok = await resolveModelByokKey(
+      this.byokService,
       organizationId,
       model,
       modelQuote.provider,
@@ -140,7 +143,8 @@ export class ImageGenerationCreditsService {
         organization,
         providerInput,
       );
-    const byok = await this.resolveActiveByokKey(
+    const byok = await resolveModelByokKey(
+      this.byokService,
       organization,
       model,
       modelQuote.provider,
@@ -198,13 +202,7 @@ export class ImageGenerationCreditsService {
       modelQuote,
     };
     if (byok) {
-      reqWithCredits.creditsConfig = {
-        ...reqWithCredits.creditsConfig,
-        byokApiKeyOverride: byok.apiKey,
-        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
-        isByokBypass: true,
-        provider: byok.provider,
-      };
+      applyByokBypass(reqWithCredits, byok);
       return;
     }
 
@@ -216,46 +214,10 @@ export class ImageGenerationCreditsService {
         request,
       });
     } catch (error: unknown) {
-      if (
-        error instanceof BusinessLogicException &&
-        error.errorCode === 'INSUFFICIENT_CREDITS'
-      ) {
-        const balance =
-          await this.creditsUtilsService.getOrganizationCreditsBalance(
-            organization,
-          );
-        throw createInsufficientCreditsException(requiredCredits, balance);
-      }
-      throw error;
+      await rethrowReservationFailure(error, requiredCredits, () =>
+        this.creditsUtilsService.getOrganizationCreditsBalance(organization),
+      );
     }
-  }
-
-  /**
-   * The single BYOK decision point for image generation (#5294). Resolves
-   * the org's decrypted key exactly once — the returned key is both the
-   * bypass decision (defined/undefined) and the value dispatch must use, so
-   * the credit charge and the provider call can never disagree about whose
-   * key paid.
-   */
-  private async resolveActiveByokKey(
-    organizationId: string,
-    modelKey: string,
-    modelProvider?: string,
-  ): Promise<
-    { provider: ByokProvider; apiKey: string; apiSecret?: string } | undefined
-  > {
-    const provider = resolveModelByokProvider(modelKey, modelProvider);
-    if (!provider) {
-      return undefined;
-    }
-    const resolved = await this.byokService.resolveApiKey(
-      organizationId,
-      provider,
-    );
-    if (!resolved) {
-      return undefined;
-    }
-    return { provider, ...resolved };
   }
 
   private quoteHash(snapshot: ModelBillableQuoteSnapshot): string {

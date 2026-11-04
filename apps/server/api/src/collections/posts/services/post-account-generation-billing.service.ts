@@ -5,8 +5,7 @@ import type {
   AccountGenerationFunding,
   AccountGenerationScope,
 } from '@api/collections/posts/services/post-account-generation.types';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { rethrowReservationFailure } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { assertOrganizationCreditsAvailable } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { textDispatchApiKey } from '@api/services/byok/text-dispatch-byok.util';
@@ -122,18 +121,9 @@ export class PostAccountGenerationBillingService {
       });
       return { apiKey, creditsPerDispatch, poolReservationId: pool.id };
     } catch (error: unknown) {
-      if (
-        error instanceof BusinessLogicException &&
-        error.errorCode === 'INSUFFICIENT_CREDITS'
-      ) {
-        throw createInsufficientCreditsException(
-          total,
-          await this.credits.getOrganizationCreditsBalance(
-            scope.organizationId,
-          ),
-        );
-      }
-      throw error;
+      return rethrowReservationFailure(error, total, () =>
+        this.credits.getOrganizationCreditsBalance(scope.organizationId),
+      );
     }
   }
 
