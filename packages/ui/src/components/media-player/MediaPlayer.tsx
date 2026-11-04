@@ -141,7 +141,18 @@ export default function MediaPlayer({
         className,
       )}
       data-media-player={variant}
-      onClick={(event) => event.stopPropagation()}
+      onClick={(event) => {
+        // A tile is a whole card, so a click on its caption belongs to the
+        // card; only the player's own controls keep their click to themselves.
+        if (
+          isTile &&
+          event.target instanceof Element &&
+          !event.target.closest('button, [role="slider"]')
+        ) {
+          return;
+        }
+        event.stopPropagation();
+      }}
       onPointerDown={(event) => event.stopPropagation()}
     >
       {isTile && badge ? (
