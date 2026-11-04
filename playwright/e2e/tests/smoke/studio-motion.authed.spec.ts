@@ -128,8 +128,14 @@ test('Motion loads under a genuine local Better Auth session without creating pa
   expect(pageResponse?.status()).toBeLessThan(400);
   expect(page.url()).not.toContain('/login');
   await assertNoErrorBoundaryFallback(page, route);
+  // One workspace, no hero page or list route: the New pane on the left holds
+  // the starter prompt and the prompt bar that starts a project.
   await expect(
-    page.getByRole('heading', { name: 'Motion', exact: true }).first(),
+    page.getByRole('heading', { name: 'What should Motion make?' }),
+  ).toBeVisible();
+  await expect(page.getByTestId('motion-prompt-bar')).toBeVisible();
+  await expect(
+    page.getByRole('textbox', { name: 'Prompt', exact: true }),
   ).toBeVisible();
   networkGuard.assertNoBlockedRequests();
 });
