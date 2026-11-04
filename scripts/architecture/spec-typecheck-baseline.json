@@ -3273,14 +3273,6 @@
       "workspace": "api"
     },
     {
-      "code": 2304,
-      "count": 5,
-      "file": "apps/server/api/src/services/integrations/slack/services/slack.service.spec.ts",
-      "fingerprint": "7622671817c93e733245",
-      "message": "Cannot find name 'fail'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
