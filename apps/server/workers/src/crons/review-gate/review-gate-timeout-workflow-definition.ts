@@ -1,5 +1,5 @@
+import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const REVIEW_GATE_TIMEOUT_ACTION_IDS = {
   DISCOVER: 'review-gate.timeout.discover',
@@ -10,22 +10,6 @@ export const REVIEW_GATE_TIMEOUT_WORKFLOW_IDS = {
   RESOLVE: 'review-gate.timeout.resolve',
   SWEEP: 'review-gate.timeout.sweep',
 } as const;
-
-function actionNode(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 export function buildReviewGateTimeoutSweepDefinition(): SystemWorkflowGraphDefinition {
   return {
