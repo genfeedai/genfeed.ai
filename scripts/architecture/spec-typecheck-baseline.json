@@ -4474,14 +4474,6 @@
     },
     {
       "code": 2322,
-      "count": 2,
-      "file": "packages/helpers/src/formatting/aspect-ratio/aspect-ratio.util.test.ts",
-      "fingerprint": "2c0652e3740930207912",
-      "message": "Type '{ height: number; width: number; }' is not assignable to type 'string | IMetadata | undefined'.   Type '{ height: number; width: number; }' is missing the following properties from type 'IMetadata': label, id, isDeleted, createdAt, updatedAt",
-      "workspace": "helpers"
-    },
-    {
-      "code": 2322,
       "count": 1,
       "file": "packages/helpers/src/generation-controls.helper.test.ts",
       "fingerprint": "797b46f18670f2ad83bb",
@@ -6862,22 +6854,6 @@
       "file": "apps/web/src/components/modals/content/post/ModalPostSetupTab.test.tsx",
       "fingerprint": "e83529b797ebe82f3e5e",
       "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': watch, getValues, getErrors, getFieldState, and 13 more.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
-      "fingerprint": "8138a4ad4654136a5a00",
-      "message": "Type '{ clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; onClose: Mock<Procedure>; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
-      "workspace": "web"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/web/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
-      "fingerprint": "a235068ee72483372124",
-      "message": "Type '{ onClose: Mock<Procedure>; clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
       "workspace": "web"
     },
     {
