@@ -62,7 +62,7 @@ export default function ModalPostContent({
         isRequired={true}
         timezone={scheduleTimezone}
         isDisabled={isLoading}
-        helpText="Applies to every channel unless you change it in a channel's Edit."
+        helpText={translate('scheduleChannelsHelp')}
       />
     </>
   );

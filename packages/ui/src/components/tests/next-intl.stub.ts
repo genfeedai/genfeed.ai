@@ -865,6 +865,8 @@ const UI_TEST_MESSAGES = {
         descriptionPlaceholder: 'Enter a description for your post',
         generateFromPrompt: 'Generate from Prompt',
         generateTitle: 'Generate title with AI',
+        scheduleChannelsHelp:
+          "Applies to every channel unless you change it in a channel's Edit.",
         scheduleHelp:
           'Minimum 15 minutes from now. You can change it per channel in the next step.',
         scheduleLabel: 'Schedule Date & Time',
