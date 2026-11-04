@@ -255,6 +255,57 @@ describe('IngredientInspectorRail', () => {
     expect(onOpenPreview).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    IngredientCategory.MUSIC,
+    IngredientCategory.VOICE,
+    IngredientCategory.AUDIO,
+  ])(
+    'offers playable audio controls instead of an unsupported full-size action for %s',
+    (category) => {
+      render(
+        <IngredientInspectorRail
+          ingredient={{
+            ...ingredient,
+            category,
+            ingredientUrl: 'https://cdn.genfeed.ai/test.mp3',
+          }}
+          onOpenPreview={vi.fn()}
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: 'Play preview for Apple' }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('slider', { name: 'Seek Apple' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Open full-size preview' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('does not expose an audio original while its authorized preview is pending', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          category: IngredientCategory.MUSIC,
+          ingredientUrl: 'https://cdn.genfeed.ai/private-original.mp3',
+          mediaDelivery: {
+            id: 'asset-1',
+            state: 'PENDING',
+            purpose: 'preview',
+            url: null,
+            expiresAt: null,
+          },
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Apple' }),
+    ).toBeDisabled();
+  });
+
   it('puts the tag control for this asset in the detail panel', () => {
     render(<IngredientInspectorRail ingredient={ingredient} />);
 
