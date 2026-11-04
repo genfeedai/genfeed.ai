@@ -10,6 +10,11 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CacheService } from '@api/services/cache/cache.service';
 import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  hasStoredScopeObservation,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   persistAuthorizedSnapshot,
@@ -20,7 +25,6 @@ import {
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
-  parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -35,7 +39,7 @@ import {
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
 } from '@genfeedai/integrations';
-import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
+import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -430,7 +434,7 @@ export class InstagramAuthorizedSignalsService {
         value[field] === undefined ? 'unavailable' : 'available',
       ]),
     );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
 
     return {
       fieldAvailability,
@@ -467,7 +471,7 @@ export class InstagramAuthorizedSignalsService {
       );
     }
 
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const fieldAvailability = toFieldAvailability(
       MEDIA_FIELDS.map((field) => [
         field,
@@ -556,7 +560,7 @@ export class InstagramAuthorizedSignalsService {
       ...(professionalLimited
         ? { reason: 'professional_account_limited' as const }
         : {}),
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: professionalLimited
         ? 'permission_limited'
@@ -642,7 +646,7 @@ export class InstagramAuthorizedSignalsService {
       key: 'media-performance-snapshot',
       observedAt: ownedMedia.observedAt ?? observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: ownedMedia.staleAt,
       status:
         ownedMedia.status === 'empty'
@@ -662,7 +666,7 @@ export class InstagramAuthorizedSignalsService {
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const reason: InstagramAuthorizedSignalReason =
       isInstagramProfessionalAccountError(error)
         ? 'professional_account_limited'
@@ -727,14 +731,6 @@ export class InstagramAuthorizedSignalsService {
     return MEDIA_FIELDS;
   }
 
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
   private buildRevokedSnapshot(
     credentialId: string,
     grantedScopes: string[],
@@ -757,7 +753,10 @@ export class InstagramAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.buildScope(this.requiredScopesForKey(key), grantedScopes),
+          scope: buildAuthorizedSignalsScope(
+            this.requiredScopesForKey(key),
+            grantedScopes,
+          ),
           staleAt: refreshAttemptedAt,
           status: 'revoked' as const,
         };
@@ -803,39 +802,25 @@ export class InstagramAuthorizedSignalsService {
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[INSTAGRAM_AUTHORIZATION_STORAGE_KEY],
-    );
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseInstagramGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private hasStoredScopeObservation(
     credential: CredentialDocument,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
   ): boolean {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[INSTAGRAM_AUTHORIZATION_STORAGE_KEY],
-    );
-
-    return (
-      (Array.isArray(credential.grantedScopes) &&
-        credential.grantedScopes.length > 0) ||
-      Array.isArray(authorization.grantedScopes) ||
-      previousSnapshot !== undefined
-    );
+    return hasStoredScopeObservation({
+      authorizationStorageKey: INSTAGRAM_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(

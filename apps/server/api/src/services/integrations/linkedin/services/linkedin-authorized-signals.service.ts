@@ -14,6 +14,10 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  buildAuthorizedSignalsScope,
+  resolveAuthorizedGrantedScopes,
+} from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   persistAuthorizedSnapshot,
@@ -26,7 +30,6 @@ import {
   isLinkedinOrganizationSelectionError,
   isLinkedinRateLimitError,
   isLinkedinScopeError,
-  parseLinkedinGrantedScopes,
 } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -37,7 +40,7 @@ import {
   type LinkedinOwnedPostSignal,
   linkedinAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
-import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -686,7 +689,7 @@ export class LinkedInAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.evidenceMapper.buildScope(
+          scope: buildAuthorizedSignalsScope(
             this.requiredScopesForKey(key),
             grantedScopes,
           ),
@@ -745,22 +748,13 @@ export class LinkedInAuthorizedSignalsService {
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(
-      stored[LINKEDIN_AUTHORIZATION_STORAGE_KEY],
-    );
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseLinkedinGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: LINKEDIN_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(

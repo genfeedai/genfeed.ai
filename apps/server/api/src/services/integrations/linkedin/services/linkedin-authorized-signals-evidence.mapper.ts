@@ -1,3 +1,4 @@
+import { buildAuthorizedSignalsScope } from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import {
   isLinkedinOrganizationSelectionError,
   isLinkedinRateLimitError,
@@ -168,7 +169,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       key: 'member-profile-fields-platform-signal',
       observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: 'available',
       value,
@@ -236,7 +237,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       key: 'organization-page-snapshot',
       observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(
+      scope: buildAuthorizedSignalsScope(
         requiredScopes,
         hasScope(grantedScopes, LINKEDIN_ORG_ADMIN_SCOPE)
           ? [...grantedScopes, LINKEDIN_ORG_READ_SCOPE]
@@ -284,7 +285,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       key: 'member-publishing-capability-snapshot',
       observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: 'available',
       value,
@@ -367,7 +368,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       key: 'organization-publishing-capability-snapshot',
       observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: 'available',
       value,
@@ -417,7 +418,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       observedAt,
       provenance: 'platform_verified',
       ...(malformedResponse ? { reason: 'empty_response' as const } : {}),
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: null,
       status: malformedResponse
         ? 'unavailable'
@@ -472,7 +473,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
         key: 'owned-post-performance-snapshot',
         observedAt: ownedPosts.observedAt ?? observedAt,
         provenance: 'platform_verified',
-        scope: this.buildScope(requiredScopes, grantedScopes),
+        scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
         staleAt: ownedPosts.staleAt,
         status: 'empty',
         value: { posts: [] },
@@ -505,7 +506,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       key: 'owned-post-performance-snapshot',
       observedAt: ownedPosts.observedAt ?? observedAt,
       provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
+      scope: buildAuthorizedSignalsScope(requiredScopes, grantedScopes),
       staleAt: ownedPosts.staleAt,
       status: result.value.length === 0 ? 'empty' : 'available',
       value: { posts: result.value },
@@ -542,7 +543,7 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
     previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): LinkedinAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
+    const scope = buildAuthorizedSignalsScope(requiredScopes, grantedScopes);
     const reason: LinkedinAuthorizedSignalReason =
       scope.missing.length > 0 || isLinkedinScopeError(error)
         ? 'missing_scope'
@@ -616,13 +617,5 @@ export class LinkedInAuthorizedSignalsEvidenceMapper {
       return PERFORMANCE_FIELDS;
     }
     return OWNED_POST_FIELDS;
-  }
-
-  buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
   }
 }

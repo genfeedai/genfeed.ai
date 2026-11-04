@@ -13,6 +13,7 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { resolveAuthorizedGrantedScopes } from '@api/services/integrations/_shared/authorized-signals-scope.util';
 import { resolveAuthorizedSignalsSnapshotState } from '@api/services/integrations/_shared/authorized-signals-state.util';
 import {
   persistAuthorizedSnapshot,
@@ -25,7 +26,6 @@ import {
   isYoutubeChannelSelectionError,
   isYoutubeRateLimitError,
   isYoutubeScopeError,
-  parseYoutubeGrantedScopes,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -37,7 +37,7 @@ import {
   type YoutubeOwnedVideoAnalyticsSignal,
   youtubeAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
-import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -810,20 +810,13 @@ export class YoutubeAuthorizedSignalsService {
     credential: Pick<CredentialDocument, 'grantedScopes' | 'warmupSignals'>,
     previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
   ): string[] {
-    const stored = readRecord(credential.warmupSignals);
-    const authorization = readRecord(stored[YOUTUBE_AUTHORIZATION_STORAGE_KEY]);
-    const persistedScopes =
-      Array.isArray(credential.grantedScopes) &&
-      credential.grantedScopes.length > 0
-        ? credential.grantedScopes
-        : undefined;
-
-    return parseYoutubeGrantedScopes(
-      explicitScopes ??
-        persistedScopes ??
-        authorization.grantedScopes ??
-        previousSnapshot?.grantedScopes,
-    );
+    return resolveAuthorizedGrantedScopes({
+      authorizationStorageKey: YOUTUBE_AUTHORIZATION_STORAGE_KEY,
+      credential,
+      credentialScopes: credential.grantedScopes,
+      explicitScopes,
+      previousSnapshot,
+    });
   }
 
   private readStoredSnapshot(
