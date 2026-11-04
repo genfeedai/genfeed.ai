@@ -17,7 +17,8 @@ function approval(id: string, organizationId: string, createdAt: string) {
     post: {
       platform: 'x',
       scheduledDate: new Date('2026-11-02T09:00:00.000Z'),
-      status: 'scheduled',
+      status: 'draft',
+      targetExecutionState: 'published',
     },
     postId: `post_${id}`,
     status: 'approved',
@@ -30,12 +31,14 @@ function reviewedPost(
   reviewedAt: string,
   scheduledDate: string | null,
   targetExecutionState: string,
+  reviewDecision: string | null = 'APPROVED',
 ) {
   return {
     brandId: 'brand_1',
     id,
     organizationId,
     platform: 'x',
+    reviewDecision,
     reviewedAt: new Date(reviewedAt),
     scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
     status: 'draft',
@@ -79,7 +82,12 @@ describe('PublishPipelineService', () => {
     expect(report.windowDays).toBe(2);
     expect(report.since).toBe('2026-10-30T12:00:00.000Z');
     expect(report.counts.total).toBe(3);
-    expect(report.counts.byPostStatus).toEqual({ scheduled: 3 });
+    expect(report.counts.byPostStatus).toEqual({ draft: 3 });
+    expect(report.items.map((item) => item.executionState)).toEqual([
+      'published',
+      'published',
+      'published',
+    ]);
     expect(report.items.map((item) => item.approvalId)).toEqual([
       'b2',
       'b1',
@@ -136,6 +144,7 @@ describe('PublishPipelineService', () => {
     const report = await service.getReport(3, NOW);
 
     expect(report.reviewQueue.counts).toEqual({
+      byDecision: { approved: 3 },
       byExecutionState: { draft: 1, published: 1, scheduled: 1 },
       overdue: 1,
       total: 3,
@@ -147,6 +156,57 @@ describe('PublishPipelineService', () => {
       'p2',
       'p1',
     ]);
+  });
+
+  it('lists rejected and unset reviews too when any decision is asked for', async () => {
+    findMany.mockResolvedValueOnce([]);
+    findMany.mockResolvedValueOnce([
+      {
+        id: 'org_a',
+        posts: [
+          reviewedPost(
+            'p1',
+            'org_a',
+            '2026-10-31T08:00:00.000Z',
+            null,
+            'draft',
+            'REJECTED',
+          ),
+          reviewedPost(
+            'p2',
+            'org_a',
+            '2026-10-31T09:00:00.000Z',
+            '2026-11-02T10:00:00.000Z',
+            'scheduled',
+            'APPROVED',
+          ),
+          reviewedPost(
+            'p3',
+            'org_a',
+            '2026-10-31T10:00:00.000Z',
+            null,
+            'draft',
+            null,
+          ),
+        ],
+      },
+    ]);
+
+    const report = await service.getReport(3, NOW, { isAnyDecision: true });
+
+    expect(report.reviewQueue.isAnyDecision).toBe(true);
+    expect(report.reviewQueue.counts.byDecision).toEqual({
+      approved: 1,
+      rejected: 1,
+      unset: 1,
+    });
+    expect(report.reviewQueue.items.map((item) => item.reviewDecision)).toEqual(
+      ['unset', 'approved', 'rejected'],
+    );
+    const reviewedQuery = findMany.mock.calls[1]?.[0] as {
+      where: { posts: { some: Record<string, unknown> } };
+    };
+    expect(reviewedQuery.where.posts.some).not.toHaveProperty('reviewDecision');
   });
 
   it('reports an empty window', async () => {
