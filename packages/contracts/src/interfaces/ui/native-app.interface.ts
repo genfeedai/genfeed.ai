@@ -20,6 +20,8 @@ export interface NativeAppCatalogEntry {
 
 export interface NativeAppAvailabilityInput {
   appId: NativeSecondaryAppId;
+  /** Resolved platform flags; the app's module kill switch decides first. */
+  flags: Readonly<Record<string, unknown>>;
   /** From `resolveOrganizationModulePresentationAccess`; null is unresolved. */
   organizationAccess: OrganizationModuleAccess | null | undefined;
   installedAppIds: readonly string[];

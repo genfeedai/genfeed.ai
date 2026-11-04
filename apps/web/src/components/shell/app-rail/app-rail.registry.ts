@@ -4,6 +4,7 @@ import {
   type AppRailFeatureFlagKey,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  isPlatformFlagOn,
 } from '@genfeedai/contracts/constants';
 import type {
   AppRailItemConfig,
@@ -378,31 +379,26 @@ export function getAppRailFlagKeyForPath(
 }
 
 /**
- * Whether the platform switch behind an app is on. An unknown flag is on only
- * while the flag provider is unconfigured.
+ * Whether the platform switch behind an app is on, by the one flag rule
+ * (`isPlatformFlagOn`): an explicit boolean wins and a flag the API does not
+ * carry yet takes its default.
  */
 export function isAppRailItemEnabled(
   app: AppRailItemConfig,
   flags: Readonly<Record<string, unknown>>,
-  isConfigured: boolean,
 ): boolean {
-  const flagKey = app.visibilityFlagKey;
   return (
-    !flagKey ||
-    (Object.hasOwn(flags, flagKey) ? flags[flagKey] === true : !isConfigured)
+    !app.visibilityFlagKey || isPlatformFlagOn(flags, app.visibilityFlagKey)
   );
 }
 
-/**
- * Whether the app that owns `path` is switched on. Only an explicit `false`
- * hides it, so a flag the API does not know yet keeps the app visible.
- */
+/** Whether the app that owns `path` is switched on. */
 export function isAppRailPathEnabled(
   path: string | null | undefined,
   flags: Readonly<Record<string, unknown>>,
 ): boolean {
   const flagKey = getAppRailFlagKeyForPath(path ?? undefined);
-  return flagKey === undefined || flags[flagKey] !== false;
+  return flagKey === undefined || isPlatformFlagOn(flags, flagKey);
 }
 
 export function getAppRailHref(

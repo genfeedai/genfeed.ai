@@ -32,7 +32,6 @@ import SearchField from '@/components/content/search-field/SearchField';
 import {
   APP_RAIL_REGISTRY,
   getAppRailHref,
-  isAppRailItemEnabled,
 } from '@/components/shell/app-rail/app-rail.registry';
 import { useInstalledApps } from '@/components/shell/installed-apps.provider';
 import { useRailPreferencesContext } from '@/components/shell/rail-preferences.provider';
@@ -55,7 +54,7 @@ function OrganizationAppsCatalog() {
   const translate = useTranslations('common.apps');
   const translateRail = useTranslations('common.appRail');
   const { selectedBrand, settings, settingsLoading } = useBrand();
-  const { flags, isConfigured } = useFeatureFlagContext();
+  const { flags } = useFeatureFlagContext();
   const { orgSlug } = useOrgUrl();
   const installedApps = useInstalledApps();
   const { pinnedAppIds, togglePin } = useRailPreferencesContext();
@@ -72,15 +71,12 @@ function OrganizationAppsCatalog() {
     () =>
       APP_RAIL_REGISTRY.flatMap((app) => {
         const appId = app.id;
-        if (
-          !isNativeSecondaryAppId(appId) ||
-          !app.organizationModule ||
-          !isAppRailItemEnabled(app, flags, isConfigured)
-        ) {
+        if (!isNativeSecondaryAppId(appId) || !app.organizationModule) {
           return [];
         }
         const state = resolveNativeAppAvailability({
           appId,
+          flags,
           installedAppIds: installedApps.installedAppIds,
           organizationAccess: resolveOrganizationModulePresentationAccess(
             settingsLoading ? null : settings,
@@ -89,7 +85,7 @@ function OrganizationAppsCatalog() {
           ),
           pinnedAppIds,
         });
-        if (state === 'unreleased') {
+        if (state === 'platform-off' || state === 'unreleased') {
           return [];
         }
         return [
@@ -117,7 +113,6 @@ function OrganizationAppsCatalog() {
       brandSlug,
       flags,
       installedApps.installedAppIds,
-      isConfigured,
       orgSlug,
       pinnedAppIds,
       settings,
