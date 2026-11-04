@@ -1,4 +1,5 @@
 import FormControl from '@ui/primitives/field';
+import { FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 
 type RateLimits = {
@@ -30,7 +31,7 @@ export default function ModalReplyBotRateLimits({
         <div className="h-px bg-border flex-1" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <FormRow>
         <FormControl label="Max Replies/Hour">
           <Input
             type="number"
@@ -111,7 +112,7 @@ export default function ModalReplyBotRateLimits({
             disabled={isSubmitting}
           />
         </FormControl>
-      </div>
+      </FormRow>
     </>
   );
 }

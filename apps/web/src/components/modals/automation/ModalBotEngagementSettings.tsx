@@ -2,6 +2,7 @@ import { EngagementAction } from '@genfeedai/contracts';
 import type { IEngagementBotSettings } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
@@ -113,7 +114,7 @@ export default function ModalBotEngagementSettings({
         />
       </FormControl>
 
-      <div className="grid grid-cols-2 gap-4">
+      <FormRow>
         <FormControl label="Actions Per Hour">
           <Input
             type="number"
@@ -139,7 +140,7 @@ export default function ModalBotEngagementSettings({
             disabled={isSubmitting}
           />
         </FormControl>
-      </div>
+      </FormRow>
 
       <FormControl label="Delay Between Actions (seconds)">
         <Input

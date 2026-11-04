@@ -1,10 +1,7 @@
 import type { YoutubeInboxPostFailure } from '@api/collections/social-inbox/services/social-inbox.types';
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 
 export type SocialInboxSyncPlatform =
@@ -61,30 +58,17 @@ export const SOCIAL_INBOX_SYNC_WORKFLOW_IDS = {
   YOUTUBE_COMMENTS: 'social.inbox.sync.youtube-comments',
 } as const;
 
-function actionNode(
-  actionId: (typeof SOCIAL_INBOX_SYNC_ACTION_IDS)[keyof typeof SOCIAL_INBOX_SYNC_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 export function buildSocialInboxSyncWorkflowDefinition(
   platform: SocialInboxSyncPlatform = Platform.YOUTUBE,
   conversationType: SocialInboxSyncConversationType = SocialConversationType.COMMENT,
 ): SystemWorkflowGraphDefinition {
   const surface = resolveSyncSurface(platform, conversationType);
-  const validate = actionNode(
+  const validate = requestActionNode(
     SOCIAL_INBOX_SYNC_ACTION_IDS.VALIDATE,
     'validate-sync',
     0,
   );
-  const ingest = actionNode(surface.actionId, 'ingest-sync', 160);
+  const ingest = requestActionNode(surface.actionId, 'ingest-sync', 160);
   const edges: WorkflowEdge[] = [
     {
       id: 'validate-to-ingest',

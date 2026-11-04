@@ -858,6 +858,8 @@ describe('organization switcher', () => {
 
     const trigger = document.querySelector('[role="combobox"]');
     expect(trigger?.textContent).toContain('Acme');
+    // Organization names are user-authored: the dropdown must not Title Case them.
+    expect(trigger?.classList.contains('normal-case')).toBe(true);
     expect(document.body.textContent).toContain('Acme Main');
     expect(document.body.textContent).toContain('Acme Labs');
     expect(document.body.textContent).not.toContain(

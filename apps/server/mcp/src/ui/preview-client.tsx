@@ -1133,6 +1133,7 @@ function OrganizationSwitcher({
       {switcher.canSwitch ? (
         <SelectField
           isDisabled={isSwitching}
+          isTextCaseKept
           label="Organization"
           name="mcp-organization"
           value={switcher.activeId || undefined}

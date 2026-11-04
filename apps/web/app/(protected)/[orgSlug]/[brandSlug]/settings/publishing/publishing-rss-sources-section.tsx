@@ -6,7 +6,8 @@ import {
   RssApprovalMode,
   RssImportPolicy,
 } from '@genfeedai/contracts';
-import type { ICredential, IRssSource } from '@genfeedai/contracts/interfaces';
+import type { IRssSource } from '@genfeedai/contracts/interfaces';
+import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
@@ -26,15 +27,6 @@ import { Switch } from '@ui/primitives/switch';
 import { type ChangeEvent, useCallback, useState } from 'react';
 import { useRssSources } from '@/hooks/data/content/use-rss-sources';
 import type { PublishingRssSourcesSectionProps } from '@/props/scheduler/rss-sources-section.props';
-
-function getCredentialLabel(credential: ICredential): string {
-  const handle = credential.externalHandle?.replace(/^@/, '');
-  return (
-    credential.label ??
-    credential.externalName ??
-    (handle ? `@${handle}` : credential.platform)
-  );
-}
 
 function formatInstant(value: string | null | undefined): string {
   if (!value) {

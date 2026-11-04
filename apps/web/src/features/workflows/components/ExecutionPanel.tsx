@@ -14,6 +14,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
@@ -283,7 +284,7 @@ export function ExecutionPanel({
                         </span>
                       </div>
                       {result.error && (
-                        <p className="text-sm text-red-600 dark:text-red-400">
+                        <p className="text-sm text-destructive">
                           {result.error}
                         </p>
                       )}
@@ -302,11 +303,11 @@ export function ExecutionPanel({
             </div>
 
             {execution.error && (
-              <div className=" border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950">
-                <p className="text-sm text-red-800 dark:text-red-200">
+              <Alert variant="destructive">
+                <AlertDescription className="text-destructive">
                   {execution.error}
-                </p>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
 
             {execution.status === WorkflowExecutionStatus.FAILED && (

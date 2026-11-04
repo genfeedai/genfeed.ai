@@ -21,6 +21,7 @@ const ALLOWED = { isAllowed: true, reason: null } as const;
 function availability(overrides: Partial<NativeAppAvailabilityInput> = {}) {
   return resolveNativeAppAvailability({
     appId: 'playground',
+    flags: {},
     installedAppIds: [],
     organizationAccess: ALLOWED,
     pinnedAppIds: [],
@@ -113,6 +114,23 @@ describe('resolveNativeAppAvailability', () => {
         organizationAccess: { isAllowed: false, reason: 'unavailable' },
       }),
     ).toBe('unavailable');
+  });
+
+  it('lets the platform kill switch win over everything else', () => {
+    const preferences = {
+      installedAppIds: ['playground'],
+      pinnedAppIds: ['playground'],
+    };
+    expect(availability({ ...preferences, flags: { studio: false } })).toBe(
+      'platform-off',
+    );
+    expect(
+      availability({
+        flags: { studio: false },
+        organizationAccess: { isAllowed: false, reason: 'disabled' },
+      }),
+    ).toBe('platform-off');
+    expect(availability({ flags: { studio: true } })).toBe('not-installed');
   });
 
   it('reports an unreleased module as unreleased', () => {

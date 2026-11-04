@@ -163,7 +163,7 @@ export default function CreditsMenuSection({
         className={cn(
           'flex flex-col gap-2 p-2 pt-1',
           isCritical && 'rounded-md bg-destructive/5',
-          isWarning && 'rounded-md bg-amber-500/5',
+          isWarning && 'rounded-md bg-warning/5',
         )}
       >
         {isLow ? (

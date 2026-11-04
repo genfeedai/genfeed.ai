@@ -6,6 +6,7 @@ bootstrap({ app: 'workers' });
 
 import type { Server } from 'node:http';
 import process from 'node:process';
+import { getAppVersion } from '@libs/health/app-version.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BullRegistrar } from '@nestjs/bullmq';
@@ -24,10 +25,6 @@ interface HealthResponse {
   uptime?: number;
 }
 
-function getVersion(): string {
-  return process.env.npm_package_version ?? process.env.VERSION ?? '1.0.0';
-}
-
 function getServiceName(): string {
   return process.env.SERVICE_NAME ?? 'workers';
 }
@@ -37,7 +34,7 @@ function buildHealthResponse(status: string): HealthResponse {
     service: getServiceName(),
     status,
     timestamp: new Date().toISOString(),
-    version: getVersion(),
+    version: getAppVersion(),
   };
 }
 

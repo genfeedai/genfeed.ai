@@ -14,6 +14,7 @@ import TopbarPublicDesktopDropdown, {
   type TopbarPublicMegaMenuFooter,
 } from './TopbarPublicDesktopDropdown';
 import TopbarPublicMobileMenu from './TopbarPublicMobileMenu';
+import { isLinkActive } from './topbar-link.helper';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -48,17 +49,6 @@ interface TopbarPublicProps {
 interface DropdownPosition {
   top: number;
   left: number;
-}
-
-function isLinkActive(pathname: string | null, href: string): boolean {
-  if (!pathname) {
-    return false;
-  }
-  if (href === '/') {
-    return pathname === '/';
-  }
-
-  return pathname.startsWith(href);
 }
 
 /** Blur the bar reaches once its surface is fully in. */

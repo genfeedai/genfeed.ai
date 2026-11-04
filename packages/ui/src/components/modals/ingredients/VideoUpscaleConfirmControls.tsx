@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { useVideoUpscaleQuote } from '@ui/modals/ingredients/use-video-upscale-quote';
 import FormControl from '@ui/primitives/field';
+import { FormRow } from '@ui/primitives/form';
 import {
   Select,
   SelectContent,
@@ -147,7 +148,7 @@ export default function VideoUpscaleConfirmControls({
         </Select>
       </FormControl>
 
-      <div className="grid grid-cols-2 gap-3">
+      <FormRow>
         <FormControl label={translate('targetResolutionLabel')}>
           <Select value={targetResolution} onValueChange={setTargetResolution}>
             <SelectTrigger>
@@ -180,7 +181,7 @@ export default function VideoUpscaleConfirmControls({
             </SelectContent>
           </Select>
         </FormControl>
-      </div>
+      </FormRow>
 
       {quote.isFailed ? (
         <p role="alert" className="text-xs text-destructive">
