@@ -1,10 +1,7 @@
 import { SOCIAL_INBOX_OUTBOUND_ACTION_IDS } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SOCIAL_REPLY_CAMPAIGN_ACTION_IDS = {
   CLAIM: 'social.reply-campaign.claim',
@@ -17,21 +14,6 @@ export const SOCIAL_REPLY_CAMPAIGN_ACTION_IDS = {
 
 export const SOCIAL_REPLY_CAMPAIGN_WORKFLOW_ID =
   'social.reply-campaign.dispatch-tick';
-
-function actionNode(
-  actionId:
-    | (typeof SOCIAL_REPLY_CAMPAIGN_ACTION_IDS)[keyof typeof SOCIAL_REPLY_CAMPAIGN_ACTION_IDS]
-    | (typeof SOCIAL_INBOX_OUTBOUND_ACTION_IDS)[keyof typeof SOCIAL_INBOX_OUTBOUND_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
 
 export function buildSocialReplyCampaignWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const sequence = [
@@ -46,7 +28,7 @@ export function buildSocialReplyCampaignWorkflowDefinition(): SystemWorkflowGrap
     ['finalize-tick', SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.FINALIZE],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const edges: WorkflowEdge[] = sequence.slice(1).map(([id], index) => ({
     id: `${sequence[index]?.[0]}-to-${id}`,

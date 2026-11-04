@@ -1,7 +1,5 @@
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -22,19 +20,6 @@ export const CAMPAIGN_REPLY_BATCH_WORKFLOW_ID =
   'campaign.reply.process-pending-targets';
 export const CAMPAIGN_REPLY_PREVIEW_WORKFLOW_ID = 'campaign.reply.preview';
 
-function actionNode(
-  actionId: (typeof CAMPAIGN_REPLY_ACTION_IDS)[keyof typeof CAMPAIGN_REPLY_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 export function buildCampaignReplyWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const sequence = [
     ['claim-target', CAMPAIGN_REPLY_ACTION_IDS.CLAIM],
@@ -45,7 +30,7 @@ export function buildCampaignReplyWorkflowDefinition(): SystemWorkflowGraphDefin
     ['finalize-target', CAMPAIGN_REPLY_ACTION_IDS.FINALIZE],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const edges: WorkflowEdge[] = sequence.slice(1).map(([id], index) => ({
     id: `${sequence[index]?.[0]}-to-${id}`,
@@ -78,7 +63,7 @@ export function buildCampaignReplyWorkflowDefinition(): SystemWorkflowGraphDefin
 }
 
 export function buildCampaignReplyBatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const discovery = actionNode(
+  const discovery = requestActionNode(
     CAMPAIGN_REPLY_ACTION_IDS.DISCOVER_TARGETS,
     'discover-targets',
     0,
@@ -132,12 +117,12 @@ export function buildCampaignReplyBatchWorkflowDefinition(): SystemWorkflowGraph
 }
 
 export function buildCampaignReplyPreviewWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const validate = actionNode(
+  const validate = requestActionNode(
     CAMPAIGN_REPLY_ACTION_IDS.PREVIEW_VALIDATE,
     'validate-preview',
     0,
   );
-  const generate = actionNode(
+  const generate = requestActionNode(
     CAMPAIGN_REPLY_ACTION_IDS.PREVIEW_GENERATE,
     'generate-preview',
     160,

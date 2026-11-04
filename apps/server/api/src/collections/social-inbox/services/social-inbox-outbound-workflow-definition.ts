@@ -1,9 +1,6 @@
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SOCIAL_INBOX_OUTBOUND_ACTION_IDS = {
   FINALIZE: 'social.inbox.outbound.finalize',
@@ -15,19 +12,6 @@ export const SOCIAL_INBOX_OUTBOUND_WORKFLOW_IDS = {
   POST_REPLY: 'social.inbox.outbound.post-reply',
   SEND_DM: 'social.inbox.outbound.send-dm',
 } as const;
-
-function actionNode(
-  actionId: (typeof SOCIAL_INBOX_OUTBOUND_ACTION_IDS)[keyof typeof SOCIAL_INBOX_OUTBOUND_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
 
 export function buildSocialInboxOutboundWorkflowDefinition(
   messageType: 'dm' | 'reply',
@@ -42,7 +26,7 @@ export function buildSocialInboxOutboundWorkflowDefinition(
     ['finalize-message', SOCIAL_INBOX_OUTBOUND_ACTION_IDS.FINALIZE],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const edges: WorkflowEdge[] = sequence.slice(1).map(([id], index) => ({
     id: `${sequence[index]?.[0]}-to-${id}`,

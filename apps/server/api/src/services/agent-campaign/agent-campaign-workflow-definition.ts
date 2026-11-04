@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -46,19 +47,6 @@ export const AGENT_CAMPAIGN_ACTION_IDS = {
 type AgentCampaignActionId =
   (typeof AGENT_CAMPAIGN_ACTION_IDS)[keyof typeof AGENT_CAMPAIGN_ACTION_IDS];
 
-function actionNode(
-  actionId: AgentCampaignActionId,
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 function definition(
   canonicalId: string,
   label: string,
@@ -97,17 +85,17 @@ function childActionWorkflow(
   actionId: AgentCampaignActionId,
   label: string,
 ): SystemWorkflowGraphDefinition {
-  const node = actionNode(actionId, 'execute', 0);
+  const node = requestActionNode(actionId, 'execute', 0);
   return definition(canonicalId, label, label, [node], [], node.id);
 }
 
 export function buildAgentCampaignOrchestrationWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const load = actionNode(
+  const load = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.ORCHESTRATION_LOAD_CONTEXT,
     'load-context',
     0,
   );
-  const plan = actionNode(
+  const plan = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.ORCHESTRATION_PLAN,
     'plan-dispatches',
     160,
@@ -123,12 +111,12 @@ export function buildAgentCampaignOrchestrationWorkflowDefinition(): SystemWorkf
     },
     position: { x: 0, y: 320 },
   });
-  const summarize = actionNode(
+  const summarize = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.ORCHESTRATION_SUMMARIZE,
     'summarize',
     480,
   );
-  const capture = actionNode(
+  const capture = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.ORCHESTRATION_CAPTURE_MEMORY,
     'capture-memory',
     640,
@@ -144,17 +132,17 @@ export function buildAgentCampaignOrchestrationWorkflowDefinition(): SystemWorkf
     },
     position: { x: 0, y: 800 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.ORCHESTRATION_FINALIZE,
     'finalize-cycle',
     960,
   );
-  const loadWinners = actionNode(
+  const loadWinners = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.MEMORY_LOAD_WINNERS,
     'load-winners',
     960,
   );
-  const persistMemory = actionNode(
+  const persistMemory = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.MEMORY_PERSIST,
     'persist-memory',
     1120,
@@ -255,7 +243,7 @@ function sweepWorkflow(
   label: string,
   description: string,
 ): SystemWorkflowGraphDefinition {
-  const discover = actionNode(discoverActionId, 'discover-campaigns', 0);
+  const discover = requestActionNode(discoverActionId, 'discover-campaigns', 0);
   const execute = createGenfeedActionNode({
     actionId: 'workflow.for-each',
     id: 'execute-campaigns',
@@ -307,12 +295,12 @@ export function buildAgentCampaignTriggerSweepWorkflowDefinition(): SystemWorkfl
 }
 
 export function buildAgentCampaignMemoryWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const load = actionNode(
+  const load = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.MEMORY_LOAD_WINNERS,
     'load-winners',
     0,
   );
-  const persist = actionNode(
+  const persist = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.MEMORY_PERSIST,
     'persist-memory',
     160,
@@ -335,12 +323,12 @@ export function buildAgentCampaignMemoryWorkflowDefinition(): SystemWorkflowGrap
 }
 
 export function buildAgentCampaignTriggerWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const load = actionNode(
+  const load = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_LOAD_CONTEXT,
     'load-trigger-context',
     0,
   );
-  const planRecommendations = actionNode(
+  const planRecommendations = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_PLAN_RECOMMENDATIONS,
     'plan-recommendations',
     160,
@@ -357,7 +345,7 @@ export function buildAgentCampaignTriggerWorkflowDefinition(): SystemWorkflowGra
     },
     position: { x: 0, y: 320 },
   });
-  const plan = actionNode(
+  const plan = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_PLAN_GROUPS,
     'plan-trigger-groups',
     480,
@@ -373,7 +361,7 @@ export function buildAgentCampaignTriggerWorkflowDefinition(): SystemWorkflowGra
     },
     position: { x: 0, y: 640 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_FINALIZE,
     'finalize-trigger-evaluation',
     800,
@@ -441,7 +429,7 @@ export function buildAgentCampaignTriggerWorkflowDefinition(): SystemWorkflowGra
 }
 
 export function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const plan = actionNode(
+  const plan = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_PLAN_DISPATCHES,
     'plan-trigger-dispatches',
     0,
@@ -457,7 +445,7 @@ export function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkfl
     },
     position: { x: 0, y: 160 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_FINALIZE_GROUP,
     'finalize-trigger-group',
     320,
@@ -493,12 +481,12 @@ export function buildAgentCampaignTriggerGroupWorkflowDefinition(): SystemWorkfl
 }
 
 export function buildAgentCampaignTriggerRunWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const dispatch = actionNode(
+  const dispatch = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_DISPATCH_RUN,
     'dispatch-trigger-run',
     0,
   );
-  const annotate = actionNode(
+  const annotate = requestActionNode(
     AGENT_CAMPAIGN_ACTION_IDS.TRIGGERS_ANNOTATE_RUN,
     'annotate-trigger-run',
     160,
