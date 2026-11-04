@@ -1,5 +1,6 @@
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
@@ -492,17 +493,65 @@ describe('DiscordBotService', () => {
       expect(result).not.toBeNull();
     });
 
-    it('should handle errors gracefully', async () => {
-      mockClient.channels.fetch.mockRejectedValue(new Error('Channel error'));
+    it('throws a retryable error when the channel lookup fails transiently', async () => {
+      mockClient.channels.fetch.mockRejectedValue(new Error('socket hang up'));
 
-      const result = await service.getOrCreateWebhook('channel-123', 'Test');
-
-      expect(result).toBeNull();
+      await expect(
+        service.getOrCreateWebhook('channel-123', 'Test'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to get/create webhook'),
         expect.any(Error),
       );
     });
+
+    it('throws a retryable error when Discord rate limits or fails the lookup', async () => {
+      mockClient.channels.fetch.mockRejectedValue(
+        Object.assign(new Error('Too Many Requests'), { status: 429 }),
+      );
+      await expect(
+        service.getOrCreateWebhook('channel-123', 'Test'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      mockClient.channels.fetch.mockRejectedValue(
+        Object.assign(new Error('Bad Gateway'), { status: 502 }),
+      );
+      await expect(
+        service.getOrCreateWebhook('channel-123', 'Test'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('throws a retryable error when creating the webhook fails transiently', async () => {
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+
+      await expect(
+        service.getOrCreateWebhook('channel-123', 'Test'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it.each([
+      ['Unknown Channel', { code: 10003, status: 404 }],
+      ['Missing Access', { code: 50001, status: 403 }],
+      ['Missing Permissions', { code: 50013, status: 403 }],
+    ])(
+      'skips a channel Discord refuses for good (%s)',
+      async (_name, failure) => {
+        mockClient.channels.fetch.mockRejectedValue(
+          Object.assign(new Error('Discord refused'), failure),
+        );
+
+        await expect(
+          service.getOrCreateWebhook('channel-123', 'Test'),
+        ).resolves.toBeNull();
+      },
+    );
   });
 
   describe('clearWebhookCache', () => {
@@ -664,6 +713,22 @@ describe('DiscordBotService', () => {
 
       expect(mockClient.channels.fetch).toHaveBeenCalledWith(
         'channel-users-789',
+      );
+    });
+
+    it('keeps the billing destination when its lookup fails instead of falling back to users', async () => {
+      configuredBillingChannel = 'channel-billing-654';
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
+      mockClient.channels.fetch.mockRejectedValue(new Error('socket hang up'));
+
+      await expect(service.getBillingWebhook()).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      expect(mockClient.channels.fetch).toHaveBeenCalledTimes(1);
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-billing-654',
       );
     });
 

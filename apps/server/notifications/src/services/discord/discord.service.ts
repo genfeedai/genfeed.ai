@@ -114,7 +114,16 @@ export class DiscordService {
       studio: () => this.discordBotService.getIngredientsWebhook(),
       users: () => this.discordBotService.getUsersWebhook(),
     };
-    const webhookClient = await webhooks[channel]();
+    let webhookClient: WebhookClient | null;
+    try {
+      webhookClient = await webhooks[channel]();
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} test channel ${channel} lookup failed`,
+        error,
+      );
+      return { reason: 'channel_unreachable', status: 'skipped' };
+    }
     if (!webhookClient)
       return { reason: 'channel_unreachable', status: 'skipped' };
 

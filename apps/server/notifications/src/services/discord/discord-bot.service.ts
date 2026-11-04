@@ -19,6 +19,27 @@ import {
   WebhookClient,
 } from 'discord.js';
 
+/** Discord API codes that name a channel the bot cannot use: no retry fixes them. */
+const PERMANENT_DISCORD_CODES: ReadonlySet<number> = new Set([
+  10003, // Unknown Channel
+  50001, // Missing Access
+  50013, // Missing Permissions
+]);
+
+/**
+ * A destination Discord refuses (gone, hidden or not writable by the bot) stays
+ * refused on the next attempt. Network errors, rate limits and 5xx answers are
+ * worth another delivery attempt.
+ */
+function isPermanentDiscordFailure(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, status } = error as { code?: unknown; status?: unknown };
+  if (typeof code === 'number' && PERMANENT_DISCORD_CODES.has(code)) {
+    return true;
+  }
+  return status === 400 || status === 401 || status === 403 || status === 404;
+}
+
 interface WebhookCache {
   client: WebhookClient;
   id: string;
@@ -95,7 +116,9 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Get or create a bot-owned webhook for a channel
+   * Get or create a bot-owned webhook for a channel. Resolves null when there
+   * is nothing to retry (no channel set, bot not ready, or a channel Discord
+   * refuses for good); throws when a configured channel failed transiently.
    */
   async getOrCreateWebhook(
     channelId: string | undefined,
@@ -163,7 +186,14 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
         `Failed to get/create webhook for channel ${channelId}`,
         error,
       );
-      return null;
+      if (isPermanentDiscordFailure(error)) {
+        return null;
+      }
+      // The channel is configured, so a transient lookup failure must reach the
+      // durable delivery as a retry rather than read as "not configured".
+      throw new ServiceUnavailableException(
+        `Discord webhook for channel ${channelId} is temporarily unavailable`,
+      );
     }
   }
 
