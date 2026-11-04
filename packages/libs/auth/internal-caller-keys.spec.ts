@@ -8,6 +8,22 @@ const reader = (keys: Record<string, string | undefined>) => (key: string) =>
   keys[key];
 
 describe('internal caller keys', () => {
+  it('resolves each caller to its own key', () => {
+    const read = reader({
+      GENFEEDAI_API_KEY_DISCORD: 'd',
+      GENFEEDAI_API_KEY_FILES: 'f',
+      GENFEEDAI_API_KEY_NOTIFICATIONS: 'n',
+      GENFEEDAI_API_KEY_SLACK: 's',
+      GENFEEDAI_API_KEY_TELEGRAM: 't',
+    });
+
+    expect(resolveInternalCallerKey(read, 'discord')).toBe('d');
+    expect(resolveInternalCallerKey(read, 'files')).toBe('f');
+    expect(resolveInternalCallerKey(read, 'notifications')).toBe('n');
+    expect(resolveInternalCallerKey(read, 'slack')).toBe('s');
+    expect(resolveInternalCallerKey(read, 'telegram')).toBe('t');
+  });
+
   it('prefers the caller key and falls back to the shared key', () => {
     const read = reader({
       GENFEEDAI_API_KEY: 'shared',
