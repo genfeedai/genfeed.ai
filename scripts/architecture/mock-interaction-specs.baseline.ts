@@ -599,7 +599,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/files/src/services/thumbnails/video-thumbnail.service.spec.ts',
   'apps/server/files/src/services/video-merge/video-merge-job.service.spec.ts',
   'apps/server/files/src/services/youtube/youtube.service.spec.ts',
-  'apps/server/files/src/services/ytdlp/ytdlp.service.spec.ts',
   'apps/server/files/src/shared/services/base-queue/base-queue.service.spec.ts',
   'apps/server/mcp/src/services/client.service.spec.ts',
   'apps/server/mcp/src/services/client/content-lifecycle.client.spec.ts',
