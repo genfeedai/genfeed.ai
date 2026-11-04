@@ -18,6 +18,7 @@ import { OrganizationModule } from '@api/common/organization-modules/organizatio
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
@@ -36,6 +37,7 @@ import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import {
   ActivitySource,
+  ApiKeyScope,
   ByokProvider,
   ModelCategory,
 } from '@genfeedai/contracts';
@@ -86,6 +88,7 @@ export class ArticlesTransformationsController {
 
   @Post(':articleId/thread-conversions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async convertToThread(
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
@@ -108,6 +111,7 @@ export class ArticlesTransformationsController {
     source: ActivitySource.ARTICLE_VIRALITY_ANALYSIS,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async analyzeVirality(
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
@@ -130,6 +134,7 @@ export class ArticlesTransformationsController {
     source: ActivitySource.ARTICLE_ENHANCEMENT,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async scoreSeo(
     @Req() request: Request,
     @Param('articleId') articleId: string,
@@ -179,6 +184,7 @@ export class ArticlesTransformationsController {
    */
   @Post(':articleId/remixes')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async createRemix(
     @Req() request: Request,
     @Param('articleId') articleId: string,
@@ -221,6 +227,7 @@ export class ArticlesTransformationsController {
     source: ActivitySource.ARTICLE_PROMPT_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async generatePrompt(
     @Req() request: Request,
     @Param('articleId') articleId: string,
@@ -238,6 +245,7 @@ export class ArticlesTransformationsController {
 
   @Post(':articleId/images')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async generateImageFromArticle(
     @Param('articleId') articleId: string,
     @Body() body: { model?: string; width?: number; height?: number },
@@ -290,6 +298,7 @@ export class ArticlesTransformationsController {
 
   @Post(':articleId/videos')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async generateVideoFromArticle(
     @Param('articleId') articleId: string,
     @Body() body: { model?: string; duration?: number },

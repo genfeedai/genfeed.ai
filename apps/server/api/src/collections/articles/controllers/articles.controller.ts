@@ -1,11 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
-import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
+import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
+import { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -22,6 +23,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
@@ -31,10 +33,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Optional,
   Param,
   Patch,
+  Post,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -97,7 +102,38 @@ export class ArticlesController extends BaseCRUDController<
     );
   }
 
-  // Inherits create(), findAll(), and remove(:id) from BaseCRUDController
+  // create(), findAll() and remove(:id) come from BaseCRUDController. They are
+  // re-declared here only so each carries this resource's API key scope; the
+  // base metadata is shared by every CRUD controller and must stay unscoped.
+  @Get()
+  @RequiredScopes(ApiKeyScope.ARTICLES_READ)
+  async findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: ArticlesQueryDto,
+  ) {
+    return super.findAll(request, user, query);
+  }
+
+  @Post()
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
+  async create(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateArticleDto,
+  ) {
+    return super.create(request, user, createDto);
+  }
+
+  @Delete(':id')
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    return super.remove(request, user, id);
+  }
 
   /**
    * A superadmin reads any organization's article; everyone else stays inside
@@ -115,6 +151,7 @@ export class ArticlesController extends BaseCRUDController<
    */
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_READ)
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -180,6 +217,7 @@ export class ArticlesController extends BaseCRUDController<
    */
   @Get(':articleId/preview-links')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async createPreviewLink(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -255,6 +293,7 @@ export class ArticlesController extends BaseCRUDController<
    */
   @Patch(':articleId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async patch(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -286,6 +325,7 @@ export class ArticlesController extends BaseCRUDController<
   @TenantReadPolicy('owner')
   @Get(':articleId/versions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_READ)
   async getVersions(
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,

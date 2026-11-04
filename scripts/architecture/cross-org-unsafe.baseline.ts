@@ -482,7 +482,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // createPreviewLink).
     {
       file: 'apps/server/api/src/collections/articles/controllers/articles.controller.ts',
-      line: 110,
+      line: 146,
     },
     // #6120: published public article slugs are unique across all
     // organizations.
