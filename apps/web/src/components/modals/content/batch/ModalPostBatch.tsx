@@ -1,9 +1,7 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
-import { useRouter } from 'next/navigation';
 import ModalPostContent from '@/components/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@/components/modals/content/post/ModalPostFooter';
 import ModalPostHeader from '@/components/modals/content/post/ModalPostHeader';
@@ -15,7 +13,6 @@ import { useModalPostBatch } from './useModalPostBatch';
 
 export default function ModalPostBatch(props: ModalPostBatchProps) {
   const { ingredient, credentials } = props;
-  const { push } = useRouter();
 
   const {
     form,
@@ -28,6 +25,7 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
     handlePreviousStep,
     platformConfigs,
     applyEnabledCredentialIds,
+    openCredentials,
     togglePlatform,
     updatePlatformConfig,
     globalScheduledDate,
@@ -68,9 +66,7 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
           hasAvailableCredentials={hasAvailableCredentials}
           hasInvalidCredentials={hasInvalidCredentials}
           onClose={closeModalPost}
-          onOpenCredentials={() =>
-            push(`${EnvironmentService.apps.app}/credentials`)
-          }
+          onOpenCredentials={openCredentials}
         />
 
         {ingredient &&
@@ -99,7 +95,7 @@ export default function ModalPostBatch(props: ModalPostBatchProps) {
                     invalidCredentialSummary={invalidCredentialSummary}
                     onManageConnections={() => {
                       closeModalPost();
-                      push(`${EnvironmentService.apps.app}/credentials`);
+                      openCredentials();
                     }}
                   />
 
