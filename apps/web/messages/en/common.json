@@ -2675,6 +2675,15 @@
       "title": "{count, plural, one {# new reply} other {# new replies}} to your posts",
       "titleWithHandle": "{count, plural, one {# new reply} other {# new replies}} on @{handle}",
       "openSource": "Reply in Messages"
+    },
+    "generationFailureReasons": {
+      "contentPolicy": "Blocked by the provider’s content filter",
+      "copyright": "Blocked by the provider: possible copyright content",
+      "credits": "The provider account is out of credits",
+      "generic": "Generation failed",
+      "rateLimit": "The provider is rate limiting requests. Try again shortly.",
+      "timeout": "The provider timed out. Try again.",
+      "unavailable": "The provider is temporarily unavailable. Try again."
     }
   },
   "newsletterCreation": {

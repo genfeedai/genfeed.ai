@@ -137,7 +137,7 @@ describe('getActivityDescription', () => {
         key: ActivityKey.IMAGE_FAILED,
         value: JSON.stringify({ error: 'Provider timed out' }),
       } as IActivity),
-    ).toBe('Provider timed out');
+    ).toBeUndefined();
     expect(
       getActivityDetailText({
         key: ActivityKey.WORKFLOW_EXECUTION_FAILED,
@@ -157,6 +157,19 @@ describe('getActivityDescription', () => {
         value: 'cmg1a2b3c0000xyz',
       } as IActivity),
     ).toBeUndefined();
+  });
+
+  it('keeps music labels accurate while omitting raw provider diagnostics from compact rows', () => {
+    const activity = {
+      key: ActivityKey.MUSIC_FAILED,
+      value: JSON.stringify({
+        label: 'Image Generation',
+        error:
+          'Prediction failed: {"ingredientId":"private-id","secret":"token"}',
+      }),
+    } as IActivity;
+    expect(getActivityDescription(activity)).toBe('Failed to generate music');
+    expect(getActivityDetailText(activity)).toBeUndefined();
   });
 
   it('exposes structured source and credit metadata for compact activity feeds', () => {

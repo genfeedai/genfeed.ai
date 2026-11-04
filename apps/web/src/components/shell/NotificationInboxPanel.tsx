@@ -67,7 +67,6 @@ export default function NotificationInboxPanel({
 }: NotificationInboxPanelProps) {
   const translate = useTranslations('common.notificationInbox');
   const formatActivity = useActivityMessageFormatter();
-  const translateGeneration = useTranslations('pages.studioPlayground');
   const { count, history, read } = useNotificationInbox(isActive);
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
   const unreadCount = count.data?.unreadCount;
@@ -176,8 +175,8 @@ export default function NotificationInboxPanel({
                 parseActivityKey(item.activity.key).subject,
               );
             const generationFailureDescription = isGenerationFailure
-              ? translateGeneration(
-                  `failure.reasons.${classifyGenerationFailure(activityValue)}`,
+              ? translate(
+                  `generationFailureReasons.${classifyGenerationFailure(activityValue)}`,
                 )
               : undefined;
             const description = item.failure

@@ -369,6 +369,12 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   if (isCreditActivity(activity.key) || value.startsWith('Published to')) {
     return undefined;
   }
+  // Compact rows already describe the failed media action. Keep provider
+  // diagnostics in the explicit detail panel rather than the main feed.
+  const { subject, lifecycle } = parseActivityKey(activity.key);
+  if (MEDIA_SUBJECTS.has(subject) && lifecycle === 'failed') {
+    return undefined;
+  }
   const parsed = parseActivityValue(value);
   if (parsed) {
     const error =
@@ -383,7 +389,6 @@ export function getActivityDetailText(activity: IActivity): string | undefined {
   }
   // Media, post and article activities store the record id as their value;
   // that is a reference, not readable detail.
-  const { subject } = parseActivityKey(activity.key);
   if (
     value === activity.entityId ||
     ((MEDIA_SUBJECTS.has(subject) || ['article', 'post'].includes(subject)) &&
