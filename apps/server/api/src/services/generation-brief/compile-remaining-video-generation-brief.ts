@@ -3,6 +3,7 @@ import {
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
+import { buildVideoGenerationBriefIntentParts } from '@api/services/generation-brief/compile-video-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { normalizeProviderVideoDuration } from '@api/services/prompt-builder/builders/replicate/provider-video-duration.util';
@@ -222,31 +223,7 @@ export function compileRemainingVideoGenerationBrief(
     );
   }
 
-  const parts: string[] = [brief.intent.objective];
-  if (brief.intent.subjects.length > 0) {
-    parts.push(brief.intent.subjects.join(', '));
-  }
-  if (brief.intent.scene) {
-    parts.push(brief.intent.scene);
-  }
-  if (brief.intent.composition) {
-    parts.push(brief.intent.composition);
-  }
-  if (brief.intent.lighting) {
-    parts.push(brief.intent.lighting);
-  }
-  if (brief.intent.cinematography) {
-    parts.push(brief.intent.cinematography);
-  }
-  if (brief.intent.motion) {
-    parts.push(brief.intent.motion);
-  }
-  if (brief.intent.visualDirection) {
-    parts.push(brief.intent.visualDirection);
-  }
-  if (brief.intent.audioDirection) {
-    parts.push(`Audio: ${brief.intent.audioDirection}`);
-  }
+  const parts = buildVideoGenerationBriefIntentParts(brief);
 
   const negativeParts: string[] = [];
   if (policy.applyConstraints) {

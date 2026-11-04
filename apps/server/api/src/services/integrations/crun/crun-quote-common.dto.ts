@@ -3,6 +3,7 @@ import {
   IsEntityId,
   isEntityId,
 } from '@api/helpers/validation/entity-id.validator';
+import { IsRequestedSkillSlugs } from '@api/helpers/validation/requested-skill-slugs.validator';
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import { Type } from 'class-transformer';
 import {
@@ -12,7 +13,6 @@ import {
   IsIn,
   IsInt,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
@@ -93,12 +93,7 @@ export abstract class CrunQuoteCommonDto {
   @ValidateIf((_object, value) => value !== undefined)
   @IsBoolean()
   harness?: boolean;
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsArray()
-  @ArrayMaxSize(8)
-  @IsString({ each: true })
-  @MaxLength(160, { each: true })
-  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @IsRequestedSkillSlugs()
   requestedSkillSlugs?: string[];
   @ValidateIf((_object, value) => value !== undefined)
   @ValidateNested()

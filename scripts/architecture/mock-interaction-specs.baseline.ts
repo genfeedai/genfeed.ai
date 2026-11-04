@@ -520,7 +520,6 @@ export const MOCK_INTERACTION_SPEC_BASELINE: readonly string[] = [
   'apps/server/api/src/services/integrations/meta-ads/controllers/meta-ads.controller.spec.ts',
   'apps/server/api/src/services/integrations/replicate/replicate.contract.spec.ts',
   'apps/server/api/src/services/integrations/shopify/controllers/shopify.controller.spec.ts',
-  'apps/server/api/src/services/integrations/slack/controllers/slack.controller.spec.ts',
   'apps/server/api/src/services/integrations/snapchat/controllers/snapchat.controller.spec.ts',
   'apps/server/api/src/services/integrations/stripe/controllers/stripe.controller.spec.ts',
   'apps/server/api/src/services/integrations/unipile/services/unipile.service.spec.ts',

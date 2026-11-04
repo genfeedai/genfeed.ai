@@ -29,6 +29,7 @@ import {
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -45,6 +46,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   ModelCategory,
 } from '@genfeedai/contracts';
 import { ArticleSerializer } from '@genfeedai/serializers';
@@ -105,6 +107,7 @@ export class ArticlesOperationsController {
   })
   @DeferCreditsUntilModelResolution()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async generateArticles(
     @Req() request: Request,
     @Body() dto: GenerateArticlesDto,
@@ -224,6 +227,7 @@ export class ArticlesOperationsController {
   })
   @DeferCreditsUntilModelResolution()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @RequiredScopes(ApiKeyScope.ARTICLES_CREATE)
   async reviewArticle(
     @Req() request: Request,
     @Param('articleId') articleId: string,

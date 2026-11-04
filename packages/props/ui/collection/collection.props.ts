@@ -92,11 +92,6 @@ export interface CollectionViewProps<TItem> {
   'data-testid'?: string;
 }
 
-export interface CollectionViewToggleProps {
-  view: CollectionViewType;
-  onViewChange: (view: CollectionViewType) => void;
-}
-
 interface CollectionOverflowActionBase {
   id: string;
   label: string;

@@ -7,9 +7,8 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
-import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
+import { buildGenfeedPublishEvidence } from '@api/services/integrations/_shared/authorized-signals-genfeed-evidence.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import {
@@ -19,7 +18,7 @@ import {
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,
@@ -182,11 +181,17 @@ export class InstagramAuthorizedSignalsService {
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
-      credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
+    // Schedules / publishes / failures come from Genfeed posts. Draft-only
+    // activity (`genfeed-draft-activity-observed`) and first-reel-or-carousel
+    // stay enrollment attestations until a dedicated post-type projection exists.
+    const genfeedEvidence = await buildGenfeedPublishEvidence({
+      credentialId: credential.id,
+      key: 'genfeed-publish-outcomes-observed',
+      limit: INSTAGRAM_MEDIA_LIMIT,
+      observedAt: refreshAttemptedAt,
+      organizationId: params.organizationId,
+      prisma: this.prisma,
+    });
 
     if (!credential.isConnected && !params.accessToken) {
       return await this.persistSnapshot(
@@ -719,72 +724,6 @@ export class InstagramAuthorizedSignalsService {
       granted: grantedScopes.filter((scope) => required.includes(scope)),
       missing: required.filter((scope) => !grantedScopes.includes(scope)),
       required,
-    };
-  }
-
-  // Schedules / publishes / failures come from Genfeed posts. Draft-only
-  // activity (`genfeed-draft-activity-observed`) and first-reel-or-carousel
-  // stay enrollment attestations until a dedicated post-type projection exists.
-  private async buildGenfeedEvidence(
-    credential: CredentialDocument,
-    organizationId: string,
-    observedAt: string,
-  ): Promise<InstagramAuthorizedSignalEvidence> {
-    const rows = await this.prisma.post.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        lastAttemptAt: true,
-        publicationDate: true,
-        publishedAt: true,
-        targetExecutionState: true,
-        updatedAt: true,
-      },
-      take: INSTAGRAM_MEDIA_LIMIT,
-      where: scopedWhere(organizationId, {
-        credentialId: credential.id,
-        targetExecutionState: {
-          in: [
-            TargetExecutionState.SCHEDULED,
-            TargetExecutionState.PUBLISHING,
-            TargetExecutionState.PUBLISHED,
-            TargetExecutionState.FAILED,
-            TargetExecutionState.PAUSED,
-            TargetExecutionState.CANCELLED,
-            TargetExecutionState.SKIPPED,
-          ],
-        },
-      }),
-    });
-    const attempts = rows.flatMap((row) => {
-      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
-      if (!outcome) {
-        return [];
-      }
-      const attemptedAt =
-        row.lastAttemptAt ??
-        row.publishedAt ??
-        row.publicationDate ??
-        row.updatedAt;
-
-      return [
-        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
-      ];
-    });
-
-    return {
-      fieldAvailability: {
-        attemptedAt: 'available',
-        outcome: 'available',
-        postId: 'available',
-      },
-      key: 'genfeed-publish-outcomes-observed',
-      observedAt,
-      provenance: 'genfeed_observed',
-      scope: { granted: [], missing: [], required: [] },
-      staleAt: null,
-      status: attempts.length > 0 ? 'available' : 'empty',
-      value: { attempts },
     };
   }
 

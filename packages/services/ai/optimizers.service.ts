@@ -6,9 +6,8 @@
  */
 
 import { EnvironmentService } from '@services/core/environment.service';
-import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
-import { deserializeCollection } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import { RawFetchClient } from '@services/core/raw-fetch-client';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
 export interface IContentScore {
@@ -74,52 +73,10 @@ export interface IContentOptimizationRequest {
   goals?: string[];
 }
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 const optimizerInstances =
   new ServiceInstanceManager<ContentOptimizerServiceClass>();
-type DeserializeMode = 'collection' | 'none';
 
-class ContentOptimizerServiceClass {
-  private baseURL: string;
-  private token: string;
-
-  constructor(baseURL: string, token: string) {
-    this.baseURL = baseURL;
-    this.token = token;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    method: HttpMethod,
-    body?: unknown,
-    errorMessage?: string,
-    deserialize: DeserializeMode = 'none',
-  ): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      body: body ? JSON.stringify(body) : undefined,
-      headers: {
-        ...getRequestOrganizationHeaders(),
-        Authorization: `Bearer ${this.token}`,
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-      },
-      method,
-    });
-
-    if (!response.ok) {
-      const error = new Error(errorMessage || `Request failed: ${endpoint}`);
-      logger.error(errorMessage || 'Request failed', { endpoint, error });
-      throw error;
-    }
-
-    const json = await response.json();
-
-    if (deserialize === 'collection') {
-      return deserializeCollection(json) as T;
-    }
-
-    return json;
-  }
-
+class ContentOptimizerServiceClass extends RawFetchClient {
   async analyzeContent(
     request: IContentOptimizationRequest,
   ): Promise<IContentScore> {

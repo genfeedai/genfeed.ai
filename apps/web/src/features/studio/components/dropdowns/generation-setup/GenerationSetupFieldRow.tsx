@@ -9,8 +9,7 @@ import type { GenerationSetupFieldRowProps } from '@/features/studio/props/gener
 /**
  * One customize-tab row: label + provenance dot on the left, the field
  * control fixed-width on the right, with a reset affordance that only shows
- * once the field has left agent ownership. Structural port of
- * `StudioSettingControls.tsx`'s `SettingRow` widened with provenance.
+ * once the field has left agent ownership.
  */
 export default function GenerationSetupFieldRow({
   children,
