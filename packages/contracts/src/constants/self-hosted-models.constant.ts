@@ -214,6 +214,55 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.13,
   },
   /**
+   * MiniMax H3 Lite, billed per output second: $0.025/s at 480P, $0.04/s at
+   * 768P (replicate.com/minimax/h3-lite, 2026-11-04). Seeded at the 768P
+   * default; the resolution quote discounts 480P. Credits are
+   * ceil(usd / 0.003): 5 s at 768P = $0.20, floor = 4 s at 480P = $0.10.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 67,
+    costPerUnit: 14,
+    costTier: CostTier.LOW,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
+    description:
+      'MiniMax H3 Lite — lower-cost H3 for drafts and volume: text, first/last-frame, and reference video generation with native audio at 480P or 768P.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE,
+    label: 'MiniMax H3 Lite',
+    minCost: 34,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'h3-lite', owner: 'minimax' },
+    providerCostUsd: 0.04,
+  },
+  /**
+   * MiniMax H3 Highspeed, billed per output second at one 768P rate of
+   * $0.06/s (replicate.com/minimax/h3-highspeed, 2026-11-04). 5 s = $0.30,
+   * floor = 4 s = $0.24.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 100,
+    costPerUnit: 20,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'MiniMax H3 Highspeed — faster H3 for everyday content: text, first/last-frame, and reference video generation with native audio at 768P.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,
+    label: 'MiniMax H3 Highspeed',
+    minCost: 80,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'h3-highspeed', owner: 'minimax' },
+    providerCostUsd: 0.06,
+  },
+  /**
    * sync lipsync-2, billed per output second. Replicate's model page lists no
    * price, so this is sync.so's own list rate: $0.04-$0.05/s at 25 fps
    * (docs/billing, 2026-10-17). Seeded at the top of the range so a platform

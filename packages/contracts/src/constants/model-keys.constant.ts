@@ -82,6 +82,8 @@ export const MODEL_KEYS = {
   REPLICATE_XAI_GROK_IMAGINE_IMAGE: 'xai/grok-imagine-image',
   REPLICATE_XAI_GROK_IMAGINE_VIDEO: 'xai/grok-imagine-video',
   REPLICATE_MINIMAX_H3: 'minimax/h3',
+  REPLICATE_MINIMAX_H3_HIGHSPEED: 'minimax/h3-highspeed',
+  REPLICATE_MINIMAX_H3_LITE: 'minimax/h3-lite',
   REPLICATE_MINIMAX_HAILUO_2_3: 'minimax/hailuo-2.3',
   REPLICATE_MINIMAX_HAILUO_2_3_FAST: 'minimax/hailuo-2.3-fast',
   REPLICATE_PIXVERSE_PIXVERSE_V6: 'pixverse/pixverse-v6',

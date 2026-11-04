@@ -243,6 +243,9 @@ export const LUMA_VIDEO_COMPILER_ID = 'luma-video-compiler';
 export const FAL_STABLE_VIDEO_COMPILER_ID = 'fal-stable-video-compiler';
 export const GEMINI_OMNI_VIDEO_COMPILER_ID = 'gemini-omni-video-compiler';
 export const H3_MAX_VIDEO_COMPILER_ID = 'h3-max-video-compiler';
+/** Replicate MiniMax H3 Lite and H3 Highspeed (H3 itself has its own compiler). */
+export const MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID =
+  'minimax-h3-variant-video-compiler';
 export const HEYGEN_VIDEO_COMPILER_ID = 'heygen-video-compiler';
 export const HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID =
   'higgsfield-genjutsu-video-compiler';

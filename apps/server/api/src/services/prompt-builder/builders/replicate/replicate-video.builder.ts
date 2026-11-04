@@ -92,6 +92,8 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       MODEL_KEYS.REPLICATE_MINIMAX_H3,
+      MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE,
+      MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,
       // Vidu
       MODEL_KEYS.REPLICATE_VIDU_Q3_PRO,
       MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO,
@@ -206,6 +208,8 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         return this.buildHailuo23FastPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_MINIMAX_H3:
+      case MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE:
+      case MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED:
         return this.buildMinimaxH3Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_VIDU_Q3_PRO:
@@ -725,15 +729,17 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       ? undefined
       : params.references?.[0];
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const ratio = firstFrame
-      ? 'adaptive'
-      : normalizeAspectRatioForModel(model, calculatedRatio);
+    // H3 and H3 Highspeed take `adaptive` next to a first frame. H3 Lite's ratio
+    // enum has no `adaptive`: it ignores the ratio for image-to-video, so it
+    // always gets a concrete one.
+    const ratio =
+      firstFrame && model !== MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE
+        ? 'adaptive'
+        : normalizeAspectRatioForModel(model, calculatedRatio);
     const duration = Math.min(
       Math.max(Math.round(params.duration ?? 5), 4),
       15,
     );
-    const resolution =
-      params.resolution?.toUpperCase() === '768P' ? '768P' : '2K';
     const referenceImages = isAudioFrameFallback
       ? [
           ...(params.references ?? []),
@@ -748,8 +754,15 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       reference_audio_urls: audioReferences,
       reference_image_urls: referenceImages.slice(0, 9),
       reference_video_urls: params.video ? [params.video] : [],
-      resolution,
     };
+
+    const resolution = this.resolveMinimaxH3Resolution(
+      model,
+      params.resolution,
+    );
+    if (resolution) {
+      input.resolution = resolution;
+    }
 
     if (firstFrame) {
       input.first_frame_image = firstFrame;
@@ -760,6 +773,22 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     }
 
     return input;
+  }
+
+  /**
+   * H3 offers 768P/2K (default 2K), H3 Lite 480P/768P (default 768P), and
+   * H3 Highspeed has no resolution input: it renders 768P only.
+   */
+  private resolveMinimaxH3Resolution(
+    model: string,
+    requested: string | undefined,
+  ): MinimaxH3Input['resolution'] {
+    const normalized = requested?.toUpperCase();
+    if (model === MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED) return undefined;
+    if (model === MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE) {
+      return normalized === '480P' ? '480P' : '768P';
+    }
+    return normalized === '768P' ? '768P' : '2K';
   }
 
   private buildViduQ3Prompt(

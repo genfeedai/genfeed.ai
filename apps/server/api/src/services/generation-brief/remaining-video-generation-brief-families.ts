@@ -8,6 +8,7 @@ import {
   HIGGSFIELD_GENJUTSU_VIDEO_COMPILER_ID,
   KLING_VIDEO_COMPILER_ID,
   LUMA_VIDEO_COMPILER_ID,
+  MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID,
   PIXVERSE_VIDEO_COMPILER_ID,
   REMAINING_VIDEO_COMPILER_VERSION,
   RUNWAY_VIDEO_COMPILER_ID,
@@ -42,7 +43,10 @@ export interface RemainingVideoFamilyDispatchSpec {
     | 'last_image';
   modelLabel: string;
   negativePromptField?: 'negative_prompt';
-  extraReferenceField?: 'image_urls' | 'reference_images';
+  extraReferenceField?:
+    | 'image_urls'
+    | 'reference_image_urls'
+    | 'reference_images';
   resolutionField?: 'mode' | 'resolution';
   videoReferenceField?:
     | 'reference_video'
@@ -479,6 +483,61 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         firstFrameField: 'first_frame_image',
         modelLabel: 'Hailuo',
         resolutionField: 'resolution',
+      },
+    },
+    {
+      // H3 Lite and H3 Highspeed take H3's inputs minus reference audio (the
+      // brief carries no audio references). Lite has 480P/768P; Highspeed has
+      // no resolution input, so none is dispatched for it.
+      compilerId: MINIMAX_H3_VARIANT_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'minimax-h3-lite-capability',
+          MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE,
+          {
+            aspectRatios: ASPECT_RATIOS.SEEDANCE,
+            audioSupported: true,
+            maxReferences: 9,
+            maxSeconds: 15,
+            maxVideoReferences: 3,
+            minSeconds: 4,
+            nativeFields: [
+              'first_frame_image',
+              'last_frame_image',
+              'reference_image_urls',
+              'reference_video_urls',
+            ],
+          },
+        ),
+        profile(
+          'minimax-h3-highspeed-capability',
+          MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,
+          {
+            aspectRatios: ASPECT_RATIOS.SEEDANCE,
+            audioSupported: true,
+            maxReferences: 9,
+            maxSeconds: 15,
+            maxVideoReferences: 3,
+            minSeconds: 4,
+            nativeFields: [
+              'first_frame_image',
+              'last_frame_image',
+              'reference_image_urls',
+              'reference_video_urls',
+            ],
+          },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'ratio',
+        durationField: 'duration',
+        extraReferenceField: 'reference_image_urls',
+        firstFrameField: 'first_frame_image',
+        lastFrameField: 'last_frame_image',
+        modelLabel: 'MiniMax H3',
+        resolutionField: 'resolution',
+        videoReferenceField: 'reference_video_urls',
       },
     },
     {

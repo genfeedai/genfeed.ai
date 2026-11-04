@@ -141,6 +141,10 @@ export function getVideoGenerationResolutionCreditMultiplier(
   if (modelKey === 'minimax/h3') {
     return normalizedResolution === '768p' ? 0.08 / 0.13 : 1;
   }
+  // H3 Lite is seeded at its 768P rate ($0.04/s); 480P is $0.025/s.
+  if (modelKey === 'minimax/h3-lite') {
+    return normalizedResolution === '480p' ? 0.025 / 0.04 : 1;
+  }
   if (modelKey === 'fal/minimax/h3-max/text-to-video') {
     if (normalizedResolution === '480p') return 0.05 / 0.08;
     if (normalizedResolution === '1080p') return 0.16 / 0.08;
