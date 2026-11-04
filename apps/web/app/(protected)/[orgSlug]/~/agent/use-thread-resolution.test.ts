@@ -96,6 +96,83 @@ describe('useThreadResolution', () => {
     expect(result.current.isPending('review')).toBe(false);
   });
 
+  it('keeps loading archived pages until a short page arrives', async () => {
+    const fullPage = Array.from({ length: 50 }, (_, index) =>
+      makeThread(`page-1-${index}`, { status: AgentThreadStatus.ARCHIVED }),
+    );
+    const lastPage = [
+      makeThread('page-2-0', { status: AgentThreadStatus.ARCHIVED }),
+    ];
+    const api = makeApi();
+    api.getThreads
+      .mockResolvedValueOnce(fullPage)
+      .mockResolvedValueOnce(lastPage);
+
+    const { result } = renderHook(() => useThreadResolution(api, true));
+
+    await waitFor(() =>
+      expect(result.current.isResolved('page-2-0')).toBe(true),
+    );
+    expect(result.current.resolvedThreads).toHaveLength(51);
+    expect(api.getThreads.mock.calls.map(([params]) => params.page)).toEqual([
+      1, 2,
+    ]);
+  });
+
+  it('stops after a single request when the first page is not full', async () => {
+    const api = makeApi([
+      makeThread('only', { status: AgentThreadStatus.ARCHIVED }),
+    ]);
+
+    const { result } = renderHook(() => useThreadResolution(api, true));
+
+    await waitFor(() => expect(result.current.isResolved('only')).toBe(true));
+    expect(api.getThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for no further page once unmounted between pages', async () => {
+    const fullPage = Array.from({ length: 50 }, (_, index) =>
+      makeThread(`page-1-${index}`, { status: AgentThreadStatus.ARCHIVED }),
+    );
+    const api = makeApi();
+    let releaseFirstPage: (threads: AgentThread[]) => void = () => undefined;
+    api.getThreads.mockImplementationOnce(
+      () =>
+        new Promise<AgentThread[]>((resolve) => {
+          releaseFirstPage = resolve;
+        }),
+    );
+
+    const { unmount } = renderHook(() => useThreadResolution(api, true));
+    unmount();
+    await act(async () => releaseFirstPage(fullPage));
+
+    expect(api.getThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a thread reopened elsewhere active while later pages load', async () => {
+    const fullPage = Array.from({ length: 50 }, (_, index) =>
+      makeThread(`page-1-${index}`, { status: AgentThreadStatus.ARCHIVED }),
+    );
+    const api = makeApi();
+    api.getThreads
+      .mockResolvedValueOnce(fullPage)
+      .mockResolvedValueOnce([
+        makeThread('page-2-0', { status: AgentThreadStatus.ARCHIVED }),
+      ]);
+    useAgentChatStore.setState({
+      threads: [makeThread('page-2-0', { status: AgentThreadStatus.ACTIVE })],
+    });
+
+    const { result } = renderHook(() => useThreadResolution(api, true));
+
+    await waitFor(() => expect(api.getThreads).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(result.current.resolvedThreads).toHaveLength(50),
+    );
+    expect(result.current.isResolved('page-2-0')).toBe(false);
+  });
+
   it('loads nothing until it is enabled', () => {
     const api = makeApi();
 
