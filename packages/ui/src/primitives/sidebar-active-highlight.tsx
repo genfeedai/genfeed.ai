@@ -25,8 +25,8 @@ export const SIDEBAR_ROW_HOVER_FILL_CLASS_NAME = 'hover:bg-foreground/5';
 interface HighlightMemory {
   /** The highlight currently on screen, if any. */
   element: HTMLElement | null;
-  /** The highlight a newer one took over from, hidden until that one leaves. */
-  hidden: HTMLElement | null;
+  /** Highlights a newer one took over from, hidden until the newer one leaves. */
+  hidden: Set<HTMLElement>;
   /** Where the last removed highlight sat, and when it left. */
   lastRect: { at: number; rect: DOMRect } | null;
 }
@@ -48,7 +48,7 @@ export function SidebarHighlightGroup({
 }: SidebarHighlightGroupProps) {
   const memory = useRef<HighlightMemory>({
     element: null,
-    hidden: null,
+    hidden: new Set(),
     lastRect: null,
   });
 
@@ -91,8 +91,9 @@ export function SidebarActiveHighlight({
       return undefined;
     }
 
-    const previous = memory.current.element;
-    const lastRect = memory.current.lastRect;
+    const state = memory.current;
+    const previous = state.element;
+    const lastRect = state.lastRect;
     const fromRect =
       previous?.isConnected && previous !== element
         ? previous.getBoundingClientRect()
@@ -100,8 +101,8 @@ export function SidebarActiveHighlight({
           ? lastRect.rect
           : null;
 
-    memory.current.element = element;
-    memory.current.lastRect = null;
+    state.element = element;
+    state.lastRect = null;
 
     if (previous && previous !== element) {
       // The old row keeps its highlight until its own render drops it; hide it
@@ -109,7 +110,7 @@ export function SidebarActiveHighlight({
       // reduced-motion rule gives every element a 0.01ms transition, and a
       // visibility change would linger for a frame under it.
       previous.style.display = 'none';
-      memory.current.hidden = previous;
+      state.hidden.add(previous);
     }
 
     if (fromRect && typeof element.animate === 'function') {
@@ -129,20 +130,36 @@ export function SidebarActiveHighlight({
     }
 
     return () => {
-      if (memory.current.element === element) {
-        const hidden = memory.current.hidden;
-        memory.current.hidden = null;
-        // A highlight that took over and is now gone (a navigation that never
-        // landed) gives the previous one back.
-        if (hidden?.isConnected) {
-          hidden.style.display = '';
-        }
-        memory.current.element = hidden;
-        memory.current.lastRect = {
-          at: performance.now(),
-          rect: element.getBoundingClientRect(),
-        };
+      state.hidden.delete(element);
+
+      if (state.element !== element) {
+        return;
       }
+
+      // Remember where it left off (mid-glide included) so the highlight that
+      // replaces it in this same commit continues from there instead of
+      // jumping back to the row it first took over from.
+      state.element = null;
+      state.lastRect = {
+        at: performance.now(),
+        rect: element.getBoundingClientRect(),
+      };
+
+      // A highlight that took over and is now gone with nothing replacing it
+      // (a navigation that never landed) gives the previous one back. Checked
+      // after the commit, once the DOM shows whether that row is still there.
+      queueMicrotask(() => {
+        if (state.element) {
+          return;
+        }
+
+        for (const hidden of state.hidden) {
+          if (hidden.isConnected) {
+            hidden.style.display = '';
+          }
+        }
+        state.hidden.clear();
+      });
     };
   }, [memory]);
 
@@ -169,4 +186,34 @@ export function SidebarPendingHighlight() {
   const { pending } = useLinkStatus();
 
   return pending ? <SidebarActiveHighlight /> : null;
+}
+
+interface SidebarRowHighlightProps {
+  readonly isActive: boolean;
+}
+
+/**
+ * The one highlight every navigation row uses, in the sidebar menu and in the
+ * app rail alike: the sliding fill on the active row, and the pending fill on
+ * a row whose link is being followed. Render it inside the row's Link.
+ */
+export function SidebarRowHighlight({ isActive }: SidebarRowHighlightProps) {
+  return isActive ? <SidebarActiveHighlight /> : <SidebarPendingHighlight />;
+}
+
+/**
+ * Text and hover state of a navigation row. The active fill is the sliding
+ * highlight, never a class, so only the hover fill appears here.
+ */
+export function sidebarRowStateClassName(
+  isActive: boolean,
+  inactiveClassName = 'text-foreground/80',
+): string {
+  return isActive
+    ? 'text-foreground'
+    : cn(
+        inactiveClassName,
+        SIDEBAR_ROW_HOVER_FILL_CLASS_NAME,
+        'hover:text-foreground',
+      );
 }

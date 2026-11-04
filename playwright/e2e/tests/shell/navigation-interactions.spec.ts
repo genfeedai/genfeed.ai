@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
@@ -100,6 +101,56 @@ async function assertHealthy(
   await expectNoErrorOverlay(page);
 }
 
+/**
+ * Records where the visible sliding highlight inside `scope` sits on every
+ * animation frame, until `stopTracking` reads the samples back.
+ */
+async function startTrackingHighlight(page: Page, scopeTestId: string) {
+  await page.evaluate((testId) => {
+    const tops: number[] = [];
+    const root = document.querySelector(`[data-testid="${testId}"]`);
+    let isTracking = true;
+    const sample = () => {
+      const visible = Array.from(
+        root?.querySelectorAll<HTMLElement>(
+          '[data-sidebar-active-highlight]',
+        ) ?? [],
+      ).filter((element) => getComputedStyle(element).display !== 'none');
+      if (visible.length === 1) {
+        tops.push(Math.round(visible[0].getBoundingClientRect().top));
+      }
+      if (isTracking) {
+        requestAnimationFrame(sample);
+      }
+    };
+    requestAnimationFrame(sample);
+    Object.assign(window, {
+      __stopHighlightTracking: () => {
+        isTracking = false;
+        return tops;
+      },
+    });
+  }, scopeTestId);
+}
+
+async function stopTrackingHighlight(page: Page): Promise<number[]> {
+  return page.evaluate(() =>
+    (
+      window as unknown as { __stopHighlightTracking: () => number[] }
+    ).__stopHighlightTracking(),
+  );
+}
+
+/** The highlight glides one way to the clicked row: it never snaps back. */
+function expectSingleGlide(tops: number[]) {
+  const moves = tops
+    .map((top, index) => (index === 0 ? 0 : top - tops[index - 1]))
+    .filter((delta) => delta !== 0);
+  const direction = Math.sign(moves[0] ?? 0);
+
+  expect(moves.every((delta) => Math.sign(delta) === direction)).toBe(true);
+}
+
 test.describe('Shell — navigation interactions', () => {
   test.setTimeout(90_000);
 
@@ -176,6 +227,7 @@ test.describe('Shell — navigation interactions', () => {
       .getByTestId('sidebar-navigation-section')
       .locator(`a[href="${targetHref}"]`)
       .first();
+    await startTrackingHighlight(authenticatedPage, 'sidebar-shell');
     await target.click();
     await settle(authenticatedPage);
 
@@ -183,6 +235,7 @@ test.describe('Shell — navigation interactions', () => {
     await expect(target.locator('[data-sidebar-active-highlight]')).toHaveCount(
       1,
     );
+    expectSingleGlide(await stopTrackingHighlight(authenticatedPage));
 
     await assertHealthy(authenticatedPage);
   });
@@ -261,6 +314,7 @@ test.describe('Shell — navigation interactions', () => {
         .locator('[data-sidebar-active-highlight]'),
     ).toHaveCount(1);
 
+    await startTrackingHighlight(authenticatedPage, 'desktop-app-rail');
     await rail.getByRole('link', { name: /^Library/ }).click();
     await authenticatedPage.waitForURL(/\/library\//, { timeout: 30_000 });
 
@@ -270,6 +324,8 @@ test.describe('Shell — navigation interactions', () => {
         .getByRole('link', { name: /^Library/ })
         .locator('[data-sidebar-active-highlight]'),
     ).toHaveCount(1);
+    await authenticatedPage.waitForTimeout(400);
+    expectSingleGlide(await stopTrackingHighlight(authenticatedPage));
 
     await assertHealthy(authenticatedPage);
   });

@@ -7,9 +7,9 @@ import { useHoverAnimatedIcon } from '@ui/primitives/animated-icons/use-hover-an
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
-  SIDEBAR_ROW_HOVER_FILL_CLASS_NAME,
   SidebarActiveHighlight,
-  SidebarPendingHighlight,
+  SidebarRowHighlight,
+  sidebarRowStateClassName,
 } from '@ui/primitives/sidebar-active-highlight';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
@@ -97,10 +97,8 @@ export default function MenuItem({
 
   const activeClasses = isIconVariant
     ? isHorizontalLayout
-      ? // The active fill is the sliding SidebarActiveHighlight, not a class here.
-        isActive
-        ? 'text-foreground'
-        : `${SIDEBAR_ROW_HOVER_FILL_CLASS_NAME} hover:text-foreground`
+      ? // The active fill is the sliding highlight, not a class here.
+        sidebarRowStateClassName(isActive, '')
       : '' // No outer wrapper styling for vertical card variant - highlighting is on the icon itself
     : isActive
       ? 'bg-foreground/5 text-foreground font-semibold'
@@ -217,8 +215,9 @@ export default function MenuItem({
         className={contentClasses}
         aria-label={accessibleLabel}
       >
-        {isHorizontalLayout && isActive ? <SidebarActiveHighlight /> : null}
-        {isHorizontalLayout && !isActive ? <SidebarPendingHighlight /> : null}
+        {isHorizontalLayout ? (
+          <SidebarRowHighlight isActive={isActive} />
+        ) : null}
         {contentBody}
       </Link>
     ) : (
