@@ -5,6 +5,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -31,7 +32,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { CredentialPlatform } from '@genfeedai/contracts';
+import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -367,7 +368,10 @@ export class CredentialsController {
     }
   }
 
+  // Rewrites or disconnects the organization's social account tokens: only
+  // keys trusted to publish to those accounts (or admin keys) may do it.
   @Patch(':credentialId')
+  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH, ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -439,6 +443,7 @@ export class CredentialsController {
   }
 
   @Delete(':credentialId')
+  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH, ApiKeyScope.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @Param('credentialId') credentialId: string,

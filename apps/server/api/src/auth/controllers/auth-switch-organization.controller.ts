@@ -1,6 +1,7 @@
 import { SwitchOrganizationDto } from '@api/auth/dto/switch-organization.dto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   Body,
@@ -21,6 +22,7 @@ export class AuthSwitchOrganizationController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
   @Post('switch-organization')
+  @ApiKeyReadAccess()
   async switchOrganization(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: SwitchOrganizationDto,

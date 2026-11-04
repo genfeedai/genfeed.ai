@@ -1,5 +1,10 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
+import {
+  type ApiKeyRouteAccess,
+  hasApiKeyBaselineAccess,
+  resolveApiKeyRouteAccess,
+} from '@api/helpers/utils/auth/api-key-baseline-scope.util';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import { MCP_ORGANIZATION_HEADER } from '@genfeedai/contracts/constants';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
@@ -12,6 +17,7 @@ import {
 import { Reflector } from '@nestjs/core';
 
 export const API_KEY_SCOPES_KEY = 'apiKeyScopes';
+export const API_KEY_ROUTE_ACCESS_KEY = 'apiKeyRouteAccess';
 
 @Injectable()
 export class ApiKeyAuthGuard implements CanActivate {
@@ -89,10 +95,10 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new RateLimitError(rateLimit.retryAfterSeconds);
     }
 
-    const requiredScopes = this.reflector.get<string[]>(
-      API_KEY_SCOPES_KEY,
-      context.getHandler(),
-    );
+    const targets = [context.getHandler(), context.getClass()];
+    const requiredScopes = this.reflector.getAllAndOverride<
+      string[] | undefined
+    >(API_KEY_SCOPES_KEY, targets);
 
     if (requiredScopes && requiredScopes.length > 0) {
       const hasRequiredScope = requiredScopes.some((scope) =>
@@ -100,6 +106,20 @@ export class ApiKeyAuthGuard implements CanActivate {
       );
 
       if (!hasRequiredScope) {
+        throw new UnauthorizedException('Insufficient permissions');
+      }
+    } else {
+      // Deny by default: a route without `@RequiredScopes` still needs a
+      // read-capable scope to read and a write-capable scope to mutate, so a
+      // read-only key cannot change tenant data through an undecorated route.
+      const access = resolveApiKeyRouteAccess(
+        request.method,
+        this.reflector.getAllAndOverride<ApiKeyRouteAccess | undefined>(
+          API_KEY_ROUTE_ACCESS_KEY,
+          targets,
+        ),
+      );
+      if (!hasApiKeyBaselineAccess(apiKey.scopes, access)) {
         throw new UnauthorizedException('Insufficient permissions');
       }
     }

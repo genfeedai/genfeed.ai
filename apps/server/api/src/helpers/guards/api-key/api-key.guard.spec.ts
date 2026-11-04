@@ -82,7 +82,7 @@ describe('ApiKeyAuthGuard', () => {
     };
 
     const mockReflector = {
-      get: vi.fn(),
+      getAllAndOverride: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -272,7 +272,9 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(['images:create']);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue([
+        'images:create',
+      ]);
       vi.spyOn(apiKeysService, 'hasScope').mockReturnValue(false);
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
@@ -289,7 +291,9 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(['videos:create']);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue([
+        'videos:create',
+      ]);
       vi.spyOn(apiKeysService, 'hasScope').mockReturnValue(true);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
@@ -334,7 +338,7 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
       vi.spyOn(apiKeysService, 'canSwitchOrganizations').mockReturnValue(true);
       vi.spyOn(
@@ -380,7 +384,7 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
       vi.spyOn(apiKeysService, 'resolveValidDefaultBrandId').mockResolvedValue(
         mockValidatedDefaultBrandId,
@@ -407,7 +411,7 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
       const result = await guard.canActivate(mockContext);
@@ -429,7 +433,7 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
       const result = await guard.canActivate(mockContext);
@@ -452,7 +456,7 @@ describe('ApiKeyAuthGuard', () => {
         limit: 60,
         retryAfterSeconds: 0,
       });
-      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
       const result = await guard.canActivate(mockContext);

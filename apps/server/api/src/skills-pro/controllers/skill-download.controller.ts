@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OptionalAuth } from '@api/helpers/decorators/optional-auth.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -31,6 +32,7 @@ export class SkillDownloadController {
 
   @OptionalAuth()
   @Post('verify')
+  @ApiKeyReadAccess()
   @ApiOperation({
     summary:
       'Verify a skill receipt secret and return entitled skills without an app session',
@@ -52,6 +54,7 @@ export class SkillDownloadController {
 
   @OptionalAuth()
   @Post('download')
+  @ApiKeyReadAccess()
   @ApiOperation({
     summary:
       'Get a presigned download URL for a purchased skill using the receipt secret',

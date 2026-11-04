@@ -12,6 +12,7 @@ import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyScope } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import {
   GenerationEntryAttribution,
   GenerationEntryChannel,
@@ -24,6 +25,9 @@ import type { NextFunction, Request, Response } from 'express';
 import httpRequest from 'supertest';
 
 const request = {} as Request;
+
+// A realistic MCP key: the guard baseline refuses write tools to scopeless keys.
+const MCP_SCOPES = [...API_KEY_SCOPE_PRESETS.mcp];
 
 const apiKeyUser = (scopes: string[]): User =>
   ({
@@ -131,7 +135,7 @@ describe('AgentToolsController publishing scopes', () => {
         controller.execute(
           'create_brand',
           { parameters: { label: 'Brand', confirmed: true } },
-          apiKeyUser([]),
+          apiKeyUser(MCP_SCOPES),
           request,
         ),
     );
@@ -172,7 +176,7 @@ describe('AgentToolsController publishing scopes', () => {
           controller.execute(
             name,
             { parameters: { prompt: 'x' } },
-            apiKeyUser([]),
+            apiKeyUser(MCP_SCOPES),
             request,
           ),
         );
@@ -206,7 +210,7 @@ describe('AgentToolsController publishing scopes', () => {
         controller.execute(
           'generate',
           { parameters: { prompt: 'x', type: 'image' } },
-          { ...apiKeyUser([]), brandId: 'brand-1' },
+          { ...apiKeyUser(MCP_SCOPES), brandId: 'brand-1' },
           request,
         ),
       );
@@ -229,7 +233,7 @@ describe('AgentToolsController publishing scopes', () => {
         controller.execute(
           'generate',
           { parameters: { brandId: 'brand-1', prompt: 'x', type: 'image' } },
-          apiKeyUser([]),
+          apiKeyUser(MCP_SCOPES),
           request,
         ),
       );
@@ -252,7 +256,7 @@ describe('AgentToolsController publishing scopes', () => {
       await controller.execute(
         'generate',
         { parameters: { prompt: 'x', type: 'image' } },
-        apiKeyUser([]),
+        apiKeyUser(MCP_SCOPES),
         request,
       );
 
@@ -281,7 +285,7 @@ describe('AgentToolsController publishing scopes', () => {
           label: 'Spoofed Brand',
         },
       },
-      apiKeyUser([]),
+      apiKeyUser(MCP_SCOPES),
       request,
     );
 
@@ -302,7 +306,7 @@ describe('AgentToolsController publishing scopes', () => {
         } as never,
         parameters: { confirmed: true, label: 'Brand' },
       },
-      apiKeyUser([]),
+      apiKeyUser(MCP_SCOPES),
       request,
     );
     expect(executor.executeTool).toHaveBeenLastCalledWith(
@@ -320,12 +324,17 @@ describe('AgentToolsController publishing scopes', () => {
     await controller.execute(
       'get_brands',
       { context: { brandId: 'brand-1' }, parameters: {} },
-      apiKeyUser([]),
+      apiKeyUser(MCP_SCOPES),
       request,
     );
     expect(agentScopeContextService.assertBrandAuthorized).toHaveBeenCalledWith(
       'brand-1',
-      { userId: 'user-1', organizationId: 'org-1', isApiKey: true, scopes: [] },
+      {
+        userId: 'user-1',
+        organizationId: 'org-1',
+        isApiKey: true,
+        scopes: MCP_SCOPES,
+      },
     );
     expect(executor.executeTool.mock.calls.at(-1)?.[2]).toMatchObject({
       brandId: 'brand-1',
@@ -342,7 +351,7 @@ describe('AgentToolsController publishing scopes', () => {
       controller.execute(
         'get_brands',
         { context: { brandId: 'foreign-brand' }, parameters: {} },
-        apiKeyUser([]),
+        apiKeyUser(MCP_SCOPES),
         request,
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
@@ -362,7 +371,7 @@ describe('AgentToolsController publishing scopes', () => {
         } as never,
         parameters: {},
       },
-      apiKeyUser([]),
+      apiKeyUser(MCP_SCOPES),
       request,
     );
     const context = executor.executeTool.mock.calls.at(-1)?.[2];
