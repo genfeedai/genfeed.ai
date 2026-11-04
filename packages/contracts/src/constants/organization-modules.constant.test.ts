@@ -287,7 +287,7 @@ describe('organization module admission', () => {
       ).toBe(true);
     },
   );
-  it.each([
+  it.each<unknown>([
     null,
     [],
     'turbo',
