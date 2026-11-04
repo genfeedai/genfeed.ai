@@ -11,6 +11,7 @@ import type {
   McpCardFact,
   McpCardKind,
   McpCardLayout,
+  McpCardMetric,
   McpCardView,
   McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
@@ -309,16 +310,34 @@ function buildCalendarView(data: Record<string, unknown>): McpCardView {
   };
 }
 
+const VIEW_TITLES: Readonly<Record<string, string>> = {
+  create_post: 'Draft post',
+  generate: 'Generation',
+  generate_content: 'Generated content',
+  get_articles: 'Articles',
+  get_assets: 'Library',
+  get_job_status: 'Generation',
+  get_posts: 'Posts',
+  transform_media: 'Media',
+};
+
 function layoutFor(kind: McpCardKind): McpCardLayout {
   if (kind === 'post') return 'posts';
   if (kind === 'article' || kind === 'summary') return 'cards';
   return 'media';
 }
 
+/** Credits and usage: two decimals at most, grouped by thousands. */
+export function formatAmount(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
+    value,
+  );
+}
+
 function fact(label: string, value: unknown): McpCardFact[] {
   const shown =
     typeof value === 'number' && Number.isFinite(value)
-      ? String(value)
+      ? formatAmount(value)
       : typeof value === 'string'
         ? value.trim()
         : '';
@@ -348,6 +367,16 @@ function summaryCard(
   };
 }
 
+function metric(
+  label: string,
+  value: unknown,
+  extra: Partial<McpCardMetric> = {},
+): McpCardMetric[] {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? [{ label, value: formatAmount(value), ...extra }]
+    : [];
+}
+
 /**
  * `get_account`: who is connected and what is left to spend, as people name
  * things. Identifiers stay in the structured data for the agent.
@@ -363,43 +392,73 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
     const brandNames = (Array.isArray(profile.brands) ? profile.brands : [])
       .map((brand) => text(record(brand), 'name'))
       .filter(Boolean);
+    const brandsFact: McpCardFact[] =
+      brandCount === 0
+        ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
+        : brandCount !== undefined
+          ? [
+              {
+                ...(brandNames.length
+                  ? { items: brandNames.map((label) => ({ label })) }
+                  : {}),
+                label: 'Brands',
+                value: brandNames.join(', ') || String(brandCount),
+              },
+            ]
+          : [];
     cards.push(
       summaryCard(
         text(profile, 'organizationName') || 'Genfeed account',
         [
-          ...fact('Role', words(text(profile, 'role'))),
           ...fact('Active brand', text(profile, 'brandName')),
-          ...(brandCount === 0
-            ? fact('Brands', 'None yet. Create one in Genfeed to generate.')
-            : brandCount !== undefined
-              ? fact('Brands', brandNames.join(', ') || String(brandCount))
-              : []),
+          ...brandsFact,
           ...(typeof profile.isOnboardingCompleted === 'boolean'
-            ? fact(
-                'Account setup',
-                profile.isOnboardingCompleted ? 'Complete' : 'Incomplete',
-              )
+            ? [
+                {
+                  label: 'Account setup',
+                  status: profile.isOnboardingCompleted
+                    ? 'completed'
+                    : 'needs_attention',
+                  value: profile.isOnboardingCompleted
+                    ? 'Complete'
+                    : 'Incomplete',
+                },
+              ]
             : []),
         ],
-        { id: text(profile, 'organizationId') },
+        {
+          hasAvatar: true,
+          id: text(profile, 'organizationId'),
+          status: words(text(profile, 'role')),
+        },
       ),
     );
   }
   const balance = credits.balance ?? usage.currentBalance;
-  if (typeof balance === 'number' || Object.keys(usage).length) {
-    cards.push(
-      summaryCard('Credits', [
-        ...fact('Available', balance),
-        ...fact('Used in 7 days', usage.usage7Days),
-        ...fact('Used in 30 days', usage.usage30Days),
-        ...(typeof usage.trendPercentage === 'number'
-          ? fact('Trend', `${usage.trendPercentage}%`)
-          : []),
-      ]),
-    );
+  const trend =
+    typeof usage.trendPercentage === 'number' &&
+    Number.isFinite(usage.trendPercentage)
+      ? {
+          direction:
+            usage.trendPercentage > 0
+              ? ('up' as const)
+              : usage.trendPercentage < 0
+                ? ('down' as const)
+                : ('flat' as const),
+          label: `${formatAmount(Math.abs(usage.trendPercentage))}%`,
+        }
+      : undefined;
+  const metrics: McpCardMetric[] = [
+    ...metric('Available', balance),
+    ...metric('Used in 7 days', usage.usage7Days, { trend }),
+    ...metric('Used in 30 days', usage.usage30Days),
+  ].map((item, index) => ({ ...item, isPrimary: index === 0 }));
+  if (metrics.length) {
+    cards.push(summaryCard('Credits', [], { metrics }));
   }
   return {
     cards,
+    isCountHidden: true,
     layout: 'cards',
     title: 'Genfeed account',
     total: cards.length,
@@ -409,6 +468,25 @@ function buildAccountView(data: Record<string, unknown>): McpCardView {
 /** The brand's logo URL, when the API signed one for this caller. */
 function brandLogoUrl(row: Record<string, unknown>): string | undefined {
   return safeCardUrl(text(record(row.logo), 'cdnUrl'));
+}
+
+/** One brand: logo, handle, ACTIVE badge, description and a Select button. */
+function brandCard(row: Record<string, unknown>): McpCard {
+  const id = text(row, 'id');
+  return summaryCard(
+    text(row, 'label', 'name') || 'Brand',
+    [...fact('Handle', text(row, 'slug'))],
+    {
+      ...(id
+        ? { actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }] }
+        : {}),
+      avatarUrl: brandLogoUrl(row),
+      description: text(row, 'description', 'text').slice(0, 400),
+      hasAvatar: true,
+      id,
+      status: row.isActive === true ? 'Active' : '',
+    },
+  );
 }
 
 /**
@@ -421,20 +499,7 @@ function buildBrandsView(data: Record<string, unknown>): McpCardView {
     : data.brand
       ? [data.brand]
       : [];
-  const cards = rows.slice(0, 24).map((value) => {
-    const row = record(value);
-    const id = text(row, 'id');
-    const title = text(row, 'label', 'name') || 'Brand';
-    return summaryCard(title, [...fact('Handle', text(row, 'slug'))], {
-      ...(id
-        ? { actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }] }
-        : {}),
-      avatarUrl: brandLogoUrl(row),
-      description: text(row, 'description', 'text').slice(0, 400),
-      id,
-      status: row.isActive === true ? 'Active' : '',
-    });
-  });
+  const cards = rows.slice(0, 24).map((value) => brandCard(record(value)));
   return {
     cards,
     layout: 'cards',
@@ -480,18 +545,7 @@ function buildOrganizationsView(data: Record<string, unknown>): McpCardView {
     .filter((choice) => choice.id);
   const brands = (Array.isArray(data.brands) ? data.brands : [])
     .slice(0, 24)
-    .map((value) => {
-      const row = record(value);
-      const id = text(row, 'id');
-      return summaryCard(text(row, 'label', 'name') || 'Brand', [], {
-        ...(id
-          ? {
-              actions: [{ brandId: id, kind: 'select_brand', label: 'Select' }],
-            }
-          : {}),
-        id,
-      });
-    });
+    .map((value) => brandCard(record(value)));
   return {
     cards: brands,
     layout: 'organizations',
@@ -511,20 +565,30 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   // `attributes`, beside the top-level `id`.
   const data = { ...resource, ...record(resource.attributes) };
   const targets = (Array.isArray(data.targets) ? data.targets : []).map(record);
-  const channels = targets
-    .map((target) => {
-      const platform = text(target, 'platform');
-      const state = text(target, 'executionState', 'status');
-      return platform && state
-        ? `${platform} (${words(state)})`
-        : platform || '';
-    })
-    .filter(Boolean)
-    .join(', ');
+  const channels = targets.flatMap((target) => {
+    const platform = text(target, 'platform');
+    return platform
+      ? [
+          {
+            label: platform,
+            platform,
+            status: text(target, 'executionState', 'status'),
+          },
+        ]
+      : [];
+  });
   const card = summaryCard(
     text(data, 'title') || 'Scheduled release',
     [
-      ...fact('Channels', channels),
+      ...(channels.length
+        ? [
+            {
+              items: channels,
+              label: 'Channels',
+              value: channels.map((channel) => channel.label).join(', '),
+            },
+          ]
+        : []),
       ...fact('Brand', text(data, 'brandName')),
       ...fact('Timezone', text(data, 'timezone')),
     ],
@@ -537,6 +601,7 @@ function buildReleaseView(resource: Record<string, unknown>): McpCardView {
   );
   return {
     cards: [card],
+    isCountHidden: true,
     layout: 'cards',
     title: 'Scheduled release',
     total: 1,
@@ -618,7 +683,7 @@ export function buildCardView(
   return {
     cards,
     layout: layoutFor(kind),
-    title: name.replace(/_/g, ' '),
+    title: VIEW_TITLES[name] ?? words(name),
     total: Math.max(count, rows.length),
   };
 }

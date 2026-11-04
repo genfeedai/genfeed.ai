@@ -149,12 +149,30 @@ it('renders the account as named facts without exposing identifiers (#7179)', ()
 
   const text = document.body.textContent ?? '';
   expect(document.querySelector('h2')?.textContent).toContain('Acme Studio');
-  expect(text).toContain('Role');
   expect(text).toContain('Admin');
+  expect(text).toContain('Acme');
   expect(text).toContain('Available');
   expect(text).toContain('88');
   expect(text).not.toMatch(/private/);
-  expect(document.querySelectorAll('dl')).toHaveLength(2);
+});
+
+it('shows credits rounded to two decimals with the trend as a badge', () => {
+  result('get_account', {
+    profile: { organizationName: 'Acme Studio', role: 'admin' },
+    usage: {
+      currentBalance: 10230.381278999994,
+      trendPercentage: -12.5,
+      usage30Days: 301.4,
+      usage7Days: 87.250000000001,
+    },
+  });
+
+  const text = document.body.textContent ?? '';
+  expect(text).toContain('10,230.38');
+  expect(text).toContain('87.25');
+  expect(text).toContain('301.4');
+  expect(text).toContain('12.5%');
+  expect(text).not.toContain('10230.381278999994');
 });
 
 it('shows every generated caption in the existing post grid as safe text', () => {
@@ -1047,7 +1065,9 @@ it('shows article cards with a status badge and kind chip, not raw identifiers',
   ]);
 
   const article = document.querySelector('article.content-card');
-  expect(article?.querySelector('.status')?.textContent).toBe('draft');
+  expect(article?.querySelector('[data-slot="badge"]')?.textContent).toBe(
+    'Draft',
+  );
   expect(article?.querySelector('.meta')?.textContent).toContain('Article');
   expect(article?.textContent).not.toContain('article-123');
 });
