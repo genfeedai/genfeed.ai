@@ -433,14 +433,14 @@ describe('DiscordService', () => {
         'https://cdn/song.mp3',
         {
           brand: { id: 'brand_1', label: 'Genfeed (Review)', slug: 'review' },
-          id: 'cmw1wkltp0070enxtngkja3b',
+          id: 'ing-music-1',
           owner: { organizationSlug: 'genfeed-review', userId: 'user_1' },
         },
       );
 
       const embed = lastSendPayload().embeds?.[0] as { url: string };
       expect(embed.url).toBe(
-        'https://app.genfeed.ai/genfeed-review/review/library/music?asset=cmw1wkltp0070enxtngkja3b',
+        'https://app.genfeed.ai/genfeed-review/review/library/music?asset=ing-music-1',
       );
     });
 
