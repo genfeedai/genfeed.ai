@@ -84,6 +84,16 @@ export function adminUserUrl(
     : null;
 }
 
+/** The admin brand detail page, or null when the app origin is not configured. */
+export function adminBrandUrl(
+  appUrl: string | undefined,
+  brandId: string,
+): string | null {
+  return appUrl
+    ? `${appUrl}${APP_ROUTES.ADMIN.BRANDS}/${encodeURIComponent(brandId)}`
+    : null;
+}
+
 /** The admin organization detail page, or null when the app origin is not configured. */
 export function adminOrganizationUrl(
   appUrl: string | undefined,
