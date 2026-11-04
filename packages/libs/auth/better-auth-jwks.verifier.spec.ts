@@ -75,6 +75,7 @@ describe('BetterAuthJwksVerifier', () => {
     );
 
     await expect(verifier.verify('jwt-token')).resolves.toEqual({
+      isSuperAdmin: false,
       organizationId: 'org-123',
       sub: 'user-123',
     });
@@ -88,6 +89,28 @@ describe('BetterAuthJwksVerifier', () => {
       issuer: 'https://api.genfeed.ai',
     });
   });
+
+  it.each([
+    ['boolean true', true, true],
+    ['boolean false', false, false],
+    ['string "true"', 'true', false],
+    ['number 1', 1, false],
+    ['absent', undefined, false],
+  ])(
+    'treats a signed isSuperAdmin claim of %s (%j) as %s',
+    async (_label, claim, expected) => {
+      jwtVerifyMock.mockResolvedValue({
+        payload: { isSuperAdmin: claim, sub: 'user-123' },
+      });
+      const verifier = new BetterAuthJwksVerifier(
+        createBetterAuthJwksVerifierOptions('https://api.genfeed.ai'),
+      );
+
+      await expect(verifier.verify('jwt-token')).resolves.toMatchObject({
+        isSuperAdmin: expected,
+      });
+    },
+  );
 
   it('rejects tokens without a subject claim after jose verification', async () => {
     jwtVerifyMock.mockResolvedValue({ payload: {} });

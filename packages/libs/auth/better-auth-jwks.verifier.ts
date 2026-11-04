@@ -86,7 +86,8 @@ export class BetterAuthJwksVerifier {
   }
 
   /**
-   * Resolves the verified `sub` (the genfeed `User.id`). Throws when the token
+   * Resolves the verified `sub` (the genfeed `User.id`), the active
+   * organization and the platform super-admin claim. Throws when the token
    * fails signature/claims verification or carries no usable subject — callers
    * treat a throw as "unauthenticated".
    */
@@ -101,6 +102,7 @@ export class BetterAuthJwksVerifier {
     }
 
     return {
+      isSuperAdmin: payload.isSuperAdmin === true,
       organizationId:
         typeof payload.organizationId === 'string' &&
         payload.organizationId.length > 0

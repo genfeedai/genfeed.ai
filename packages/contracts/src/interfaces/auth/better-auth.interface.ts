@@ -18,4 +18,10 @@ export interface IBetterAuthVerifiedClaims {
   sub: string;
   /** Active organization id signed by the API for DB-less websocket authz. */
   organizationId?: string;
+  /**
+   * True only when the signed `isSuperAdmin` claim is literally `true`. The API
+   * derives it from `users.platformRole` when it mints the JWT, so DB-less
+   * consumers can gate platform-administrator surfaces on it.
+   */
+  isSuperAdmin: boolean;
 }

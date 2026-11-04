@@ -219,6 +219,27 @@ describe('TerminalService', () => {
     ).toThrow('Codex CLI (`codex`) is not installed or not on PATH');
   });
 
+  it('spawns the shell without the server process secrets', () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://db.test/genfeed');
+    vi.stubEnv('BETTER_AUTH_SECRET', 'better-auth-secret-test');
+    vi.stubEnv('HOME', '/home/operator');
+    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
+
+    try {
+      service.createSession('socket-1', 'user_123', undefined, {
+        onData: vi.fn(),
+        onExit: vi.fn(),
+      });
+      const [spawnOptions] = vi.mocked(mockAdapter.spawn).mock.calls[0];
+
+      expect(spawnOptions.env).toMatchObject({ HOME: '/home/operator' });
+      expect(spawnOptions.env).not.toHaveProperty('DATABASE_URL');
+      expect(spawnOptions.env).not.toHaveProperty('BETTER_AUTH_SECRET');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('only lets the owning socket write to a session', () => {
     const service = createService({ NODE_ENV: 'development' }, mockAdapter);
     const session = service.createSession('socket-1', 'user_123', undefined, {

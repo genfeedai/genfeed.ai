@@ -11,6 +11,7 @@ const verifyMock = vi.hoisted(() => vi.fn());
 
 /** A Better Auth `sub` is the genfeed User.id (a UUID), not a legacy auth provider user id. */
 const TEST_USER_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+const SUPER_ADMIN_CLAIMS = { isSuperAdmin: true, sub: TEST_USER_ID };
 
 vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({
   BetterAuthJwksVerifier: class {
@@ -71,7 +72,7 @@ describe('TerminalGateway', () => {
       ok: true,
       status: 200,
     });
-    verifyMock.mockResolvedValue({ sub: TEST_USER_ID });
+    verifyMock.mockResolvedValue(SUPER_ADMIN_CLAIMS);
   });
 
   afterEach(() => {
@@ -118,6 +119,72 @@ describe('TerminalGateway', () => {
       socketId: 'socket-1',
     });
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'an organization owner without the platform role',
+      { isSuperAdmin: false, organizationId: 'org-1', sub: TEST_USER_ID },
+    ],
+    [
+      'a freshly signed-up user',
+      { isSuperAdmin: false, sub: 'aaaaaaaa-0000-0000-0000-000000000002' },
+    ],
+  ])(
+    'refuses a terminal to %s and keeps the socket unable to spawn a shell',
+    async (_label, claims) => {
+      verifyMock.mockResolvedValue(claims);
+      const terminalService = createTerminalService();
+      const gateway = new TerminalGateway(terminalService as never);
+      const emitted: unknown[][] = [];
+      const socket = {
+        disconnect: vi.fn(),
+        emit: (...args: unknown[]) => emitted.push(args),
+        handshake: {
+          address: '127.0.0.1',
+          auth: { token: 'session-token' },
+          headers: { origin: 'http://localhost:3000' },
+        },
+        id: 'socket-1',
+      } as unknown as Socket;
+
+      await gateway.handleConnection(socket);
+      gateway.handleCreate(socket, { kind: 'shell' });
+
+      expect(emitted).toEqual([
+        [
+          'terminal:error',
+          {
+            message: 'Local terminal is restricted to platform administrators.',
+          },
+        ],
+        [
+          'terminal:error',
+          { message: 'Local terminal requires an authenticated session.' },
+        ],
+      ]);
+    },
+  );
+
+  it('opens a terminal for the platform super-admin', async () => {
+    verifyMock.mockResolvedValue(SUPER_ADMIN_CLAIMS);
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const emitted: unknown[][] = [];
+    const socket = {
+      disconnect: vi.fn(),
+      emit: (...args: unknown[]) => emitted.push(args),
+      handshake: {
+        address: '127.0.0.1',
+        auth: { token: 'session-token' },
+        headers: { origin: 'http://localhost:3000' },
+      },
+      id: 'socket-1',
+    } as unknown as Socket;
+
+    await gateway.handleConnection(socket);
+
+    expect(emitted).toEqual([['terminal:ready', { socketId: 'socket-1' }]]);
   });
 
   it.each([
@@ -228,7 +295,7 @@ describe('TerminalGateway', () => {
   it('falls back to the session cookie when a well-formed Bearer header fails verification', async () => {
     verifyMock
       .mockRejectedValueOnce(new Error('invalid signature'))
-      .mockResolvedValueOnce({ sub: TEST_USER_ID });
+      .mockResolvedValueOnce(SUPER_ADMIN_CLAIMS);
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
     const socket = {
@@ -317,7 +384,7 @@ describe('TerminalGateway', () => {
   it('falls back to the session cookie when the socket token fails verification', async () => {
     verifyMock
       .mockRejectedValueOnce(new Error('invalid signature'))
-      .mockResolvedValueOnce({ sub: TEST_USER_ID });
+      .mockResolvedValueOnce(SUPER_ADMIN_CLAIMS);
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
     const socket = createSocket(
