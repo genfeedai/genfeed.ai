@@ -119,8 +119,6 @@ describe('ModalPostBatch', () => {
     const ingredient = {
       category: IngredientCategory.IMAGE,
       id: 'ingredient-1',
-      scope: AssetScope.PRIVATE,
-      status: IngredientStatus.COMPLETE,
     } as unknown as IIngredient;
     const expiredCredential = {
       accessTokenExpiry: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
