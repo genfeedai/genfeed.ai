@@ -6,7 +6,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { AxiosError, type AxiosResponse } from 'axios';
+import { type AxiosResponse, isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mocked } from 'vitest';
 
@@ -108,20 +108,20 @@ describe('GoogleAdsService', () => {
   describe('refreshToken', () => {
     const credential = { id: 'cred-1', refreshToken: 'enc-refresh' };
 
-    function tokenEndpointError(status: number, error: string): AxiosError {
-      return new AxiosError(
-        error,
-        String(status),
-        undefined,
-        undefined,
-        {
-          config: {} as never,
-          data: { error },
-          headers: {},
-          status,
-          statusText: error,
-        } as AxiosResponse,
+    // The unit setup mocks axios wholesale, so errors are plain objects with
+    // the same shape the real AxiosError has.
+    beforeEach(() => {
+      vi.mocked(isAxiosError).mockImplementation(
+        (value: unknown): value is never =>
+          (value as { isAxiosError?: boolean } | null)?.isAxiosError === true,
       );
+    });
+
+    function tokenEndpointError(status: number, error: string): Error {
+      return Object.assign(new Error(`Request failed with status ${status}`), {
+        isAxiosError: true,
+        response: { data: { error }, status },
+      });
     }
 
     function primeCredential(): Mocked<ServerCredentialStore> {
