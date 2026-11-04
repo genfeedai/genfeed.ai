@@ -1,3 +1,4 @@
+import { AgentModeDropdown } from '@genfeedai/agent/components/AgentModeDropdown';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import {
   areAgentChatMentionReferencesEqual,
@@ -9,10 +10,21 @@ import {
   writeConversationComposerDocument,
   writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { TextSelection } from '@tiptap/pm/state';
+import { EditorContent } from '@tiptap/react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -1264,5 +1276,39 @@ describe('composer typing performance and draft durability', () => {
     );
     expect(raw).not.toBeNull();
     expect(JSON.parse(raw ?? '{}').plainText).toBe('Do not lose this draft');
+  });
+});
+
+function PointerFocusComposer() {
+  const { editor, handleShellPointerDown } = useAgentChatInput({
+    onSend: vi.fn(),
+  });
+  const [mode, setMode] = useState(AgentThreadMode.MANUAL);
+  return (
+    <div onPointerDown={handleShellPointerDown}>
+      <EditorContent editor={editor} />
+      <AgentModeDropdown mode={mode} onChange={setMode} />
+    </div>
+  );
+}
+
+describe('composer pointer focus', () => {
+  it('allows a pointer selection in the portaled mode menu', async () => {
+    const user = userEvent.setup({ delay: 25 });
+    render(<PointerFocusComposer />, { wrapper: Wrapper });
+    await waitFor(() =>
+      expect(document.querySelector('[contenteditable=true]')).toHaveFocus(),
+    );
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Agent mode: Manual' }),
+    );
+    const option = await screen.findByRole('menuitemradio', { name: /^Auto/ });
+    await user.pointer([
+      { target: option, keys: '[MouseLeft>]' },
+      { target: option, keys: '[/MouseLeft]' },
+    ]);
+    expect(
+      screen.getByRole('button', { name: 'Agent mode: Auto' }),
+    ).toBeVisible();
   });
 });
