@@ -115,7 +115,6 @@ import StudioPlaygroundEmptyState from '@/features/studio/playground/components/
 import StudioPlaygroundFocusedPreview from '@/features/studio/playground/components/StudioPlaygroundFocusedPreview';
 import StudioPlaygroundInspector from '@/features/studio/playground/components/StudioPlaygroundInspector';
 import StudioPlaygroundResults from '@/features/studio/playground/components/StudioPlaygroundResults';
-import { useCrunGenerationQuote } from '@/features/studio/playground/hooks/useCrunGenerationQuote';
 import { useStudioAudioLibrary } from '@/features/studio/playground/hooks/useStudioAudioLibrary';
 import { useStudioGeneration } from '@/features/studio/playground/hooks/useStudioGeneration';
 import { useStudioPendingPreviews } from '@/features/studio/playground/hooks/useStudioPendingPreviews';
@@ -200,6 +199,7 @@ import type {
   StudioPlaygroundStarterSelection,
 } from '@/features/studio/props/studio-playground.props';
 import { useFailedIngredientRecovery } from '@/hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
+import { useCrunGenerationQuote } from '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote';
 
 const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
 

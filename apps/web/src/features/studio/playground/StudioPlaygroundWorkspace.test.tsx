@@ -521,9 +521,15 @@ vi.mock(
   }),
 );
 
-vi.mock('@/features/studio/playground/hooks/useCrunGenerationQuote', () => ({
-  useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
-}));
+vi.mock(
+  '@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/hooks/prompt-bar/use-crun-generation-quote/use-crun-generation-quote')
+    >()),
+    useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
+  }),
+);
 
 vi.mock(
   '@/features/studio/hooks/use-advanced-mode-preference/use-advanced-mode-preference',
