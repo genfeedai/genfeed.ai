@@ -7,29 +7,6 @@ export interface WebhookPayload {
 }
 
 /**
- * Stripe webhook event payload
- * @see https://stripe.com/docs/api/events
- */
-export interface StripeWebhookPayload extends WebhookPayload {
-  id: string;
-  object: string;
-  type: string;
-  data: {
-    object: unknown;
-  };
-  livemode?: boolean;
-}
-
-/**
- * Better Auth webhook event payload
- */
-export interface AuthWebhookPayload extends WebhookPayload {
-  type: string;
-  data: unknown;
-  object: string;
-}
-
-/**
  * Replicate webhook event payload
  * @see https://replicate.com/docs/webhooks
  */
@@ -138,23 +115,4 @@ export interface LeonardoAIWebhookPayload extends WebhookPayload {
   status?: string;
   images?: LeonardoAIWebhookImage[];
   data?: LeonardoAIWebhookData | null;
-}
-
-/**
- * OpenAI webhook event payload
- * @see https://platform.openai.com/docs/api-reference/assistants/webhooks
- */
-export interface OpenAIWebhookPayload extends WebhookPayload {
-  thread_id?: string;
-  run_id?: string;
-  status?: string;
-}
-
-/**
- * Vercel webhook event payload
- * @see https://vercel.com/docs/concepts/deployments/webhooks
- */
-export interface VercelWebhookPayload extends WebhookPayload {
-  type?: string;
-  deployment?: unknown;
 }

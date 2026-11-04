@@ -55,51 +55,10 @@ export function validateCarouselCount(
 }
 
 /**
- * Checks if a platform supports carousel posts.
- */
-export function platformSupportsCarousel(
-  platform: CredentialPlatform,
-): boolean {
-  return carouselLimitsFor(platform) !== undefined;
-}
-
-/**
  * Gets the carousel limits for a platform.
  */
 export function getCarouselLimits(
   platform: CredentialPlatform,
 ): CarouselLimit | undefined {
   return carouselLimitsFor(platform);
-}
-
-/**
- * Filters platforms that support carousels with the given count.
- */
-export function filterValidPlatforms(
-  platforms: CredentialPlatform[],
-  count: number,
-): CredentialPlatform[] {
-  return platforms.filter((platform) => {
-    const limits = carouselLimitsFor(platform);
-    if (!limits) {
-      return false;
-    }
-    return count >= limits.min && count <= limits.max;
-  });
-}
-
-/**
- * Gets a user-friendly message about carousel limitations.
- */
-export function getCarouselMessage(
-  platforms: CredentialPlatform[],
-  count: number,
-): string {
-  const validation = validateCarouselCount(platforms, count);
-
-  if (validation.valid) {
-    return `✓ ${count} image${count !== 1 ? 's' : ''} valid for all selected platforms`;
-  }
-
-  return validation.errors.join('. ');
 }

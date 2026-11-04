@@ -24,15 +24,3 @@ export function resolvePendingIds(response: unknown): string[] {
 
   throw new Error('No valid ingredient IDs found in generation response');
 }
-
-/**
- * Checks if response contains valid pending IDs.
- */
-export function hasValidPendingIds(response: unknown): boolean {
-  try {
-    const ids = resolvePendingIds(response);
-    return ids.length > 0;
-  } catch {
-    return false;
-  }
-}

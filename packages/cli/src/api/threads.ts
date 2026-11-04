@@ -19,14 +19,6 @@ export interface AgentThread {
   title?: string;
 }
 
-export interface AgentThreadMessage {
-  id: string;
-  content?: string;
-  createdAt?: string;
-  metadata?: Record<string, unknown>;
-  role?: string;
-}
-
 export interface AgentThreadEvent {
   commandId: string;
   eventId: string;
@@ -147,16 +139,6 @@ export async function getThread(threadId: string, signal?: AbortSignal): Promise
     ? await get<JsonApiDocument>(path, { signal })
     : await get<JsonApiDocument>(path);
   return flattenSingle<AgentThread>(response);
-}
-
-export async function getThreadMessages(
-  threadId: string,
-  limit = 20
-): Promise<AgentThreadMessage[]> {
-  const response = await get<JsonApiDocument>(
-    `${AGENT_THREADS_ENDPOINT}/${threadId}/messages?limit=${limit}`
-  );
-  return flattenCollection<AgentThreadMessage>(response);
 }
 
 export async function archiveThread(threadId: string): Promise<AgentThread> {

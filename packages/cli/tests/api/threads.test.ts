@@ -113,17 +113,6 @@ describe('api/threads', () => {
     expect(result.contextVersion).toBe(2);
   });
 
-  it('gets thread messages with the default limit', async () => {
-    mockGet.mockResolvedValue({ data: [] });
-    mockFlattenCollection.mockReturnValue([{ id: 'message-1' }]);
-
-    const { getThreadMessages } = await import('../../src/api/threads');
-    const result = await getThreadMessages('thread-1');
-
-    expect(mockGet).toHaveBeenCalledWith('/agent/threads/thread-1/messages?limit=20');
-    expect(result).toEqual([{ id: 'message-1' }]);
-  });
-
   it('updates thread context with the expected version', async () => {
     mockPatch.mockResolvedValue({ data: { id: 'thread-1' } });
     mockFlattenSingle.mockReturnValue({ brandId: 'brand-1', contextVersion: 3, id: 'thread-1' });

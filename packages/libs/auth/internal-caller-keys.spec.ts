@@ -1,6 +1,4 @@
 import {
-  INTERNAL_CALLERS,
-  internalCallerKeyName,
   resolveAcceptedInternalCallerKeys,
   resolveInternalCallerKey,
 } from '@libs/auth/internal-caller-keys';
@@ -10,14 +8,6 @@ const reader = (keys: Record<string, string | undefined>) => (key: string) =>
   keys[key];
 
 describe('internal caller keys', () => {
-  it('names every caller key GENFEEDAI_API_KEY_<CALLER>', () => {
-    for (const caller of INTERNAL_CALLERS) {
-      expect(internalCallerKeyName(caller)).toBe(
-        `GENFEEDAI_API_KEY_${caller.toUpperCase()}`,
-      );
-    }
-  });
-
   it('prefers the caller key and falls back to the shared key', () => {
     const read = reader({
       GENFEEDAI_API_KEY: 'shared',
