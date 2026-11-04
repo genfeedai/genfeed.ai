@@ -32,7 +32,10 @@ const ctx = { organizationId: 'org-1' } as never;
 
 describe('AgentTrendsToolHandler', () => {
   it('returns an unavailable result without retrying through live ingestion', async () => {
-    const result = await handlerWith({}).getTrends({ platform: 'youtube' }, ctx);
+    const result = await handlerWith({}).getTrends(
+      { platform: 'youtube' },
+      ctx,
+    );
 
     expect(result).toMatchObject({
       data: { count: 0, trends: [] },
