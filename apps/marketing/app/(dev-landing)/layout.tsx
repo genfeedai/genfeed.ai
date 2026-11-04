@@ -1,5 +1,5 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import type { LayoutProps } from '@props/layout/layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import PublicShell from '@ui/shell/PublicShell';
 import LandingTopbar from '@web-components/shell/topbars/LandingTopbar';
 
@@ -9,7 +9,7 @@ const overlay = (
 
 const topbar = (
   <LandingTopbar
-    ctaHref={`${EnvironmentService.apps.app}/sign-up`}
+    ctaHref={getAppSignUpUrl()}
     ctaLabel="Start creating"
     hideActionWhileVisible="[data-hero-cta]"
   />

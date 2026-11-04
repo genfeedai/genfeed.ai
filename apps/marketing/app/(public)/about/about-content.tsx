@@ -1,3 +1,4 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { IMAGE_CREDIT_COSTS, PLAN_COPY } from '@genfeedai/pricing';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
@@ -284,7 +285,7 @@ const FAQ_ITEMS = [
 ] as const;
 
 export default function AboutContent() {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const signUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance hero={false} sections={false}>

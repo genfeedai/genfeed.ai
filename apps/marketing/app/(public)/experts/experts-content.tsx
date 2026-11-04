@@ -1,5 +1,5 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -126,7 +126,7 @@ const HERO_VISUAL = (
 );
 
 export default function ExpertsContent() {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?accountType=EXPERT`;
+  const signUpHref = getAppSignUpUrl('?accountType=EXPERT');
 
   return (
     <MarketingEntrance>
