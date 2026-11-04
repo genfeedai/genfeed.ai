@@ -50,7 +50,7 @@ describe('StripeService', () => {
     const configGetMock = vi.fn((key: string) => {
       const map: Record<string, string> = {
         GENFEEDAI_APP_URL: 'http://localhost:3000',
-        STRIPE_API_VERSION: '2026-09-30.endive',
+        STRIPE_API_VERSION: '2026-10-28.endive',
         STRIPE_PRICE_PAYG: 'payg_id',
         STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
         STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
@@ -84,7 +84,7 @@ describe('StripeService', () => {
   });
 
   it('pins the Stripe client to the endive API version', () => {
-    expect(service.stripe.getApiField('version')).toBe('2026-09-30.endive');
+    expect(service.stripe.getApiField('version')).toBe('2026-10-28.endive');
   });
 
   describe('createPaymentSession', () => {
@@ -356,7 +356,7 @@ describe('StripeService', () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
-          STRIPE_API_VERSION: '2026-09-30.endive',
+          STRIPE_API_VERSION: '2026-10-28.endive',
           STRIPE_PRICE_PAYG: 'payg_id',
           STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
           STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
@@ -399,7 +399,7 @@ describe('StripeService', () => {
         const configGetMock = vi.fn((key: string) => {
           const map: Record<string, string> = {
             GENFEEDAI_APP_URL: 'http://localhost:3000',
-            STRIPE_API_VERSION: '2026-09-30.endive',
+            STRIPE_API_VERSION: '2026-10-28.endive',
             STRIPE_PRICE_PAYG: 'payg_id',
             STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'pro_id',
             STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
@@ -564,7 +564,7 @@ describe('StripeService', () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
-          STRIPE_API_VERSION: '2026-09-30.endive',
+          STRIPE_API_VERSION: '2026-10-28.endive',
           STRIPE_PRICE_PAYG: 'payg_id',
           STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',
           STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'scale_id',
@@ -642,7 +642,7 @@ describe('StripeService', () => {
   describe('constructWebhookEvent', () => {
     const webhookSecret = 'whsec_test_secret';
     const payload = JSON.stringify({
-      api_version: '2026-09-30.endive',
+      api_version: '2026-10-28.endive',
       created: 1_700_000_000,
       data: { object: { id: 'in_test', object: 'invoice' } },
       id: 'evt_test_signed',
@@ -684,7 +684,7 @@ describe('StripeService', () => {
         }
 
         const map: Record<string, string> = {
-          STRIPE_API_VERSION: '2026-09-30.endive',
+          STRIPE_API_VERSION: '2026-10-28.endive',
           STRIPE_SECRET_KEY: 'sk_test',
         };
         return map[key];
