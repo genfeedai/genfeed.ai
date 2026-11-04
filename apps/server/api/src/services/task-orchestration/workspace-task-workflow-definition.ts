@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import type { HeyGenAvatarCandidate } from '@api/services/integrations/heygen/heygen-identity.types';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
@@ -45,22 +46,6 @@ export const WORKSPACE_TASK_ACTION_IDS = {
   ROUTE: 'workspace.task.route',
 } as const;
 
-type WorkspaceTaskActionId =
-  (typeof WORKSPACE_TASK_ACTION_IDS)[keyof typeof WORKSPACE_TASK_ACTION_IDS];
-
-function actionNode(
-  actionId: WorkspaceTaskActionId,
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 function definition(
   canonicalId: string,
   label: string,
@@ -91,7 +76,11 @@ function definition(
 }
 
 export function buildWorkspaceTaskWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const route = actionNode(WORKSPACE_TASK_ACTION_IDS.ROUTE, 'route-task', 0);
+  const route = requestActionNode(
+    WORKSPACE_TASK_ACTION_IDS.ROUTE,
+    'route-task',
+    0,
+  );
   const agent = createGenfeedActionNode({
     actionId: 'workflow.for-each',
     id: 'execute-agent-task',
@@ -114,7 +103,7 @@ export function buildWorkspaceTaskWorkflowDefinition(): SystemWorkflowGraphDefin
     },
     position: { x: 180, y: 180 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     WORKSPACE_TASK_ACTION_IDS.FINALIZE,
     'finalize-task',
     360,
@@ -158,12 +147,12 @@ export function buildWorkspaceTaskWorkflowDefinition(): SystemWorkflowGraphDefin
 }
 
 export function buildWorkspaceAgentTaskWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const decompose = actionNode(
+  const decompose = requestActionNode(
     WORKSPACE_TASK_ACTION_IDS.AGENT_DECOMPOSE,
     'decompose-task',
     0,
   );
-  const planExecutions = actionNode(
+  const planExecutions = requestActionNode(
     WORKSPACE_TASK_ACTION_IDS.AGENT_PLAN_EXECUTIONS,
     'plan-agent-executions',
     160,
@@ -179,7 +168,7 @@ export function buildWorkspaceAgentTaskWorkflowDefinition(): SystemWorkflowGraph
     },
     position: { x: 0, y: 320 },
   });
-  const linkExecutions = actionNode(
+  const linkExecutions = requestActionNode(
     WORKSPACE_TASK_ACTION_IDS.AGENT_LINK_EXECUTIONS,
     'link-agent-executions',
     480,
@@ -216,7 +205,7 @@ export function buildWorkspaceAgentTaskWorkflowDefinition(): SystemWorkflowGraph
 }
 
 export function buildWorkspaceAgentExecutionWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const enqueue = actionNode(
+  const enqueue = requestActionNode(
     WORKSPACE_TASK_ACTION_IDS.AGENT_ENQUEUE_EXECUTION,
     'enqueue-agent-execution',
     0,
@@ -240,10 +229,10 @@ export function buildWorkspaceFacecamTaskWorkflowDefinition(): SystemWorkflowGra
     ['finalize-facecam', WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   nodes.push(
-    actionNode(
+    requestActionNode(
       WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE_FAILURE,
       'finalize-facecam-failure',
       640,

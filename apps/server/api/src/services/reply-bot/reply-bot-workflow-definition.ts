@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -28,22 +29,6 @@ export const REPLY_BOT_WORKFLOW_IDS = {
   CONTENT: 'reply-bot.process-content',
   DM: 'reply-bot.send-dm',
 } as const;
-
-type ReplyBotActionId =
-  (typeof REPLY_BOT_ACTION_IDS)[keyof typeof REPLY_BOT_ACTION_IDS];
-
-function actionNode(
-  actionId: ReplyBotActionId,
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
 
 function definition(
   canonicalId: string,
@@ -76,7 +61,7 @@ function definition(
 }
 
 export function buildReplyBotOrganizationWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const discover = actionNode(
+  const discover = requestActionNode(
     REPLY_BOT_ACTION_IDS.DISCOVER_BOTS,
     'discover-bots',
     0,
@@ -93,7 +78,7 @@ export function buildReplyBotOrganizationWorkflowDefinition(): SystemWorkflowGra
     },
     position: { x: 0, y: 160 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     REPLY_BOT_ACTION_IDS.FINALIZE_ORGANIZATION,
     'finalize-organization',
     320,
@@ -123,7 +108,7 @@ export function buildReplyBotOrganizationWorkflowDefinition(): SystemWorkflowGra
 }
 
 export function buildReplyBotWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const fetch = actionNode(
+  const fetch = requestActionNode(
     REPLY_BOT_ACTION_IDS.FETCH_CANDIDATES,
     'fetch-candidates',
     0,
@@ -140,7 +125,7 @@ export function buildReplyBotWorkflowDefinition(): SystemWorkflowGraphDefinition
     },
     position: { x: 0, y: 160 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     REPLY_BOT_ACTION_IDS.FINALIZE_BOT,
     'finalize-bot',
     320,
@@ -183,7 +168,7 @@ export function buildReplyBotContentWorkflowDefinition(): SystemWorkflowGraphDef
     ['send-reply', REPLY_BOT_ACTION_IDS.SEND_REPLY],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const sendReply = nodes.at(-1);
   if (!sendReply) throw new Error('Reply bot content workflow requires send');
@@ -199,7 +184,7 @@ export function buildReplyBotContentWorkflowDefinition(): SystemWorkflowGraphDef
     },
     position: { x: 0, y: 640 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     REPLY_BOT_ACTION_IDS.FINALIZE_CONTENT,
     'finalize-content',
     800,
@@ -249,8 +234,8 @@ export function buildReplyBotContentWorkflowDefinition(): SystemWorkflowGraphDef
 }
 
 export function buildReplyBotDmWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const send = actionNode(REPLY_BOT_ACTION_IDS.SEND_DM, 'send-dm', 0);
-  const finalize = actionNode(
+  const send = requestActionNode(REPLY_BOT_ACTION_IDS.SEND_DM, 'send-dm', 0);
+  const finalize = requestActionNode(
     REPLY_BOT_ACTION_IDS.FINALIZE_DM,
     'finalize-dm',
     160,
@@ -280,7 +265,7 @@ export function buildReplyBotTestWorkflowDefinition(): SystemWorkflowGraphDefini
     ['finalize-test', REPLY_BOT_ACTION_IDS.FINALIZE_TEST],
   ] as const;
   const nodes = sequence.map(([id, actionId], index) =>
-    actionNode(actionId, id, index * 160),
+    requestActionNode(actionId, id, index * 160),
   );
   const edges: WorkflowEdge[] = sequence.slice(1).map(([id], index) => ({
     id: `${sequence[index]?.[0]}-to-${id}`,
