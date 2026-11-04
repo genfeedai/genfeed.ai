@@ -1,4 +1,4 @@
-import type { WorkflowExecutionEtaUpdate } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import type { WorkflowExecutionEtaUpdate } from '@api/collections/workflow-executions/services/workflow-execution-node-result.query';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { ExecutableWorkflow } from '@genfeedai/workflows/engine';
 import { precomputeWorkflowEtaPlan } from '@helpers/generation-eta.helper';
