@@ -172,10 +172,3 @@ export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {
     label: 'YouTube',
   },
 };
-
-export const PLATFORM_CONFIGS_ARRAY: ITrendPlatformConfig[] =
-  Object.values(PLATFORM_CONFIGS);
-
-export function getPlatformConfig(platformId: string): ITrendPlatformConfig {
-  return PLATFORM_CONFIGS[platformId] ?? PLATFORM_CONFIGS.tiktok;
-}

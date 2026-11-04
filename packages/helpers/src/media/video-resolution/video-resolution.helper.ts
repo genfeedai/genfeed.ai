@@ -239,15 +239,6 @@ export function getVideoResolutionsByModel(
   );
 }
 
-export function getVideoResolutionLabel(
-  model: string,
-  value: string,
-): string | undefined {
-  return findModelConfig(model)?.resolutions.find(
-    (resolution) => resolution.value === value,
-  )?.label;
-}
-
 export function getDefaultVideoResolution(model: string): string | undefined {
   return findModelConfig(model)?.default;
 }

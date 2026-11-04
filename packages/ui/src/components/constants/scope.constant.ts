@@ -38,7 +38,3 @@ export const SCOPE_OPTIONS: readonly ScopeOption[] = [
     variant: 'badge-info',
   },
 ];
-
-export function getScopeOption(scope: AssetScope): ScopeOption | undefined {
-  return SCOPE_OPTIONS.find((option) => option.value === scope);
-}

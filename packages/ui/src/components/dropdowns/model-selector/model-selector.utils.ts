@@ -213,10 +213,6 @@ export function buildPricingLabel(model: IModel): string {
   }
 }
 
-export function getBrandIconLetter(brandLabel: string): string {
-  return brandLabel.charAt(0).toUpperCase();
-}
-
 export function getCostTierDisplay(
   costTier?: CostTier,
 ): { symbol: string; colorClass: string } | null {

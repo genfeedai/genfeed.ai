@@ -82,5 +82,3 @@ export const PWA_APPS: Record<PWAAppNameKey, PWAAppConfig> = {
     '/overview',
   ),
 };
-
-export const PWA_APP_NAMES = Object.keys(PWA_APPS) as PWAAppNameKey[];

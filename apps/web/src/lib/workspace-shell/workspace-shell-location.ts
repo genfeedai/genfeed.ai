@@ -19,12 +19,6 @@ export type {
   WorkspaceShellState,
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
-export const WORKSPACE_SHELL_QUERY_KEYS = [
-  'overlay',
-  'overlayRef',
-  'thread',
-] as const;
-
 function isSafeOpaqueId(value: string | null): value is string {
   return Boolean(
     value &&

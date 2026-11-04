@@ -11,10 +11,7 @@ import {
   resolveStudioLongEdge,
 } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import {
-  getDefaultImageQuality,
-  getImageQualityOptionsByModel,
-} from '@genfeedai/helpers/media/image-quality/image-quality.helper';
+import { getImageQualityOptionsByModel } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
@@ -130,22 +127,6 @@ const DEFAULT_RESOLUTION_BY_TYPE: Partial<
   image: '1K',
   video: '720p',
 };
-
-export function getDefaultStudioResolution(
-  type: StudioPlaygroundType,
-  modelKey?: string,
-): string {
-  if (modelKey && isFlux3ImageModel(modelKey)) return '1k';
-  if (type === 'video') {
-    return (modelKey && getDefaultVideoResolution(modelKey)) || '720p';
-  }
-
-  if (type === 'image' && modelKey) {
-    return getDefaultImageQuality(modelKey) ?? '1K';
-  }
-
-  return DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K';
-}
 
 export function getStudioDurations(
   type: StudioPlaygroundType,

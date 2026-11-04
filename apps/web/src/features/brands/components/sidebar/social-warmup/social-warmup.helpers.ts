@@ -137,14 +137,6 @@ export function findSignalForCheck(
   );
 }
 
-export function isSnapshotCheck(
-  check: Pick<SocialWarmupCheckView, 'completionKey' | 'id'>,
-): boolean {
-  return (
-    check.completionKey.includes('snapshot') || check.id.includes('snapshot')
-  );
-}
-
 export function isSocialWarmupCheckComplete(
   check: SocialWarmupCheckView,
   enrollment: ISocialWarmupEnrollment,
