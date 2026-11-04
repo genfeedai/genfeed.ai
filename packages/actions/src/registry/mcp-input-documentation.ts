@@ -406,7 +406,7 @@ const TOOL_DOCUMENTATION = new Map([
       original:
         'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Organization owners and admins only. Pass the approvalId returned by the original (pending) tool call.',
       concise:
-        'Owners/admins: approve (execute) or decline (cancel) a pending MCP write using approvalId from its original call.',
+        'Owners/admins: decline (cancel) a pending MCP write, or run one a person already approved in the Genfeed review inbox, using approvalId from its original call. Approving only happens in the inbox.',
     },
   ],
   [

@@ -783,13 +783,9 @@ function buildApprovalView(
     {
       ...(data.canResolveApproval === true
         ? {
+            // Approving happens in the Genfeed review inbox (the link below),
+            // never from the MCP host, so the card only offers to decline.
             actions: [
-              {
-                approvalId,
-                decision: 'approve' as const,
-                kind: 'resolve_approval' as const,
-                label: 'Approve',
-              },
               {
                 approvalId,
                 decision: 'decline' as const,

@@ -11,7 +11,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Approve or decline a pending MCP write action that was queued for human review, executing it on approval. Organization owners and admins only. Pass the approvalId returned by the original (pending) tool call.',
+      'Owners/admins: decline a pending MCP write action, or run one a person has already approved in the Genfeed review inbox. Approving itself only happens in the inbox, never through MCP. Pass the approvalId returned by the original (pending) tool call.',
     name: 'resolve_approval',
     parameters: {
       properties: {
@@ -21,7 +21,7 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
         },
         decision: {
           description:
-            'approve to execute the queued action, decline to cancel it',
+            'approve to run an action already approved in the review inbox, decline to cancel it',
           enum: ['approve', 'decline'],
           type: 'string',
         },

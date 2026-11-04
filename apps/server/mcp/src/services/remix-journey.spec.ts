@@ -48,7 +48,7 @@ const ALLOWED_PATHS = [
   /^\/content-runs\/[^/]+\/remix$/,
   /^\/content-runs\/[^/]+\/remix\/generation\/(quote|execute)$/,
   /^\/content-runs\/[^/]+\/remix\/scenes\/(source|quote|execute|cancel|resume)$/,
-  /^\/mcp-approvals(\/[^/]+\/(resolve|claim|result))?$/,
+  /^\/mcp-approvals(\/[^/]+(\/(resolve|claim|result))?)?$/,
 ];
 const FORBIDDEN_FRAGMENTS = [
   'knowledge',
@@ -304,6 +304,11 @@ function fixtureApi() {
       },
     ],
     [
+      'get',
+      /^\/mcp-approvals\/([^/]+)$/,
+      ([, id]) => envelope(approvals.get(id)),
+    ],
+    [
       'post',
       /^\/mcp-approvals\/([^/]+)\/claim$/,
       ([, id]) => {
@@ -382,6 +387,8 @@ function build() {
       toolName: name,
       arguments: args,
     });
+    // A person approves it in the Genfeed review inbox; MCP only redeems it.
+    approval.status = 'APPROVED';
     return call('resolve_approval', {
       approvalId: approval.id,
       decision: 'approve',
@@ -503,14 +510,17 @@ describe('external remix journey (#5132)', () => {
     const executeIndex = paths().findIndex((path) =>
       path.endsWith('/generation/execute'),
     );
-    const resolveIndex = api.requests.findIndex(
+    // MCP reads back the inbox approval before running it, and never approves.
+    const redeemIndex = api.requests.findIndex(
       (request) =>
-        request.path.endsWith('/resolve') &&
+        request.method === 'get' &&
+        /^\/mcp-approvals\/[^/]+$/.test(request.path) &&
         api.approvals.get(request.path.split('/')[2])?.toolName ===
           'start_remix_generation',
     );
-    expect(resolveIndex).toBeGreaterThan(-1);
-    expect(executeIndex).toBeGreaterThan(resolveIndex);
+    expect(redeemIndex).toBeGreaterThan(-1);
+    expect(executeIndex).toBeGreaterThan(redeemIndex);
+    expect(paths().some((path) => path.endsWith('/resolve'))).toBe(false);
     assertCanonicalTraffic(paths());
   });
 

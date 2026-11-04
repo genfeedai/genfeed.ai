@@ -130,9 +130,16 @@ function build() {
     createScheduledRelease: vi
       .fn()
       .mockResolvedValue({ id: 'release-1', status: 'scheduled' }),
-    getApproval: vi.fn(),
-    // resolveApproval now performs the atomic CLAIM (PENDING -> APPROVED) and
-    // returns the claimed approval, so its default resolves with toolName + args.
+    // resolve_approval only redeems an approval a reviewer already approved in
+    // the review inbox, so by default the approval reads back APPROVED.
+    getApproval: vi
+      .fn<() => Promise<McpApprovalResource | null>>()
+      .mockResolvedValue({
+        arguments: { content: 'hello' },
+        id: 'apr-1',
+        status: McpApprovalStatus.APPROVED,
+        toolName: 'generate_turbo_content',
+      }),
     resolveApproval: vi
       .fn<() => Promise<McpApprovalResource>>()
       .mockResolvedValue({
@@ -199,7 +206,7 @@ describe('ToolRegistryService — approval queue', () => {
   it('still redeems a brand creation queued before approvals narrowed', async () => {
     const { client, registry } = build();
     const args = { url: 'https://example.com', label: 'Example' };
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: args,
       id: 'apr-1',
       status: McpApprovalStatus.APPROVED,
@@ -234,7 +241,7 @@ describe('ToolRegistryService — approval queue', () => {
       await registry.handleToolCall({ name, arguments: args });
       expect(client.createApproval).toHaveBeenCalledWith(name, args);
       expect(client[method]).not.toHaveBeenCalled();
-      client.resolveApproval.mockResolvedValue({
+      client.getApproval.mockResolvedValue({
         id: 'apr-1',
         status: 'APPROVED',
         toolName: name,
@@ -251,7 +258,7 @@ describe('ToolRegistryService — approval queue', () => {
 
   it('declining a paid remix quote does not dispatch it', async () => {
     const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       id: 'apr-1',
       status: 'DECLINED',
       toolName: 'start_remix_generation',
@@ -412,9 +419,9 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.content[0].text).toContain('declined');
   });
 
-  it('approves an approval: CLAIMS first, executes the deferred tool, then persists the result', async () => {
+  it('runs an approval a reviewer approved in the inbox, then persists the result', async () => {
     const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',
@@ -426,9 +433,8 @@ describe('ToolRegistryService — approval queue', () => {
       name: 'resolve_approval',
     });
 
-    // The claim happens BEFORE execution and carries no result yet (the atomic
-    // PENDING -> APPROVED fence).
-    expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'approve');
+    // MCP never approves; it only redeems the inbox approval.
+    expect(client.resolveApproval).not.toHaveBeenCalled();
     // The deferred tool actually ran...
     expect(client.executeAgentTool).toHaveBeenCalledWith(
       'generate_turbo_content',
@@ -442,6 +448,26 @@ describe('ToolRegistryService — approval queue', () => {
     );
     // The API fences agent-executor runs itself; the MCP claim is not taken.
     expect(client.claimApprovalExecution).not.toHaveBeenCalled();
+  });
+
+  it('refuses to approve a pending approval through MCP and runs nothing', async () => {
+    const { client, registry } = build();
+    client.getApproval.mockResolvedValue({
+      arguments: { content: 'hello' },
+      id: 'apr-1',
+      status: McpApprovalStatus.PENDING,
+      toolName: 'generate_turbo_content',
+    });
+
+    const result = (await registry.handleToolCall({
+      arguments: { approvalId: 'apr-1', decision: 'approve' },
+      name: 'resolve_approval',
+    })) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('review inbox');
+    expect(client.resolveApproval).not.toHaveBeenCalled();
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
   });
 
   describe('repeating a call a reviewer approved in the review inbox', () => {
@@ -531,7 +557,7 @@ describe('ToolRegistryService — approval queue', () => {
     // executeTool (which bypasses the approval gate) — NOT re-enter the gate
     // and queue a second approval, which would be an infinite loop.
     const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: { content: 'hello' },
       id: 'apr-1',
       status: 'APPROVED',
@@ -553,13 +579,14 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.isError).toBeFalsy();
   });
 
-  it('refuses to approve when the claim loses the race (already resolved)', async () => {
-    // The API rejects the concurrent claim (updateMany matched 0 rows), so the
-    // client throws and the tool must NOT execute — closing the TOCTOU window.
+  it('refuses to run an approval that was declined', async () => {
     const { client, registry } = build();
-    client.resolveApproval.mockRejectedValue(
-      new Error('Approval already resolved'),
-    );
+    client.getApproval.mockResolvedValue({
+      arguments: { content: 'hello' },
+      id: 'apr-1',
+      status: McpApprovalStatus.DECLINED,
+      toolName: 'generate_turbo_content',
+    });
 
     const result = (await registry.handleToolCall({
       arguments: { approvalId: 'apr-1', decision: 'approve' },
@@ -576,7 +603,7 @@ describe('ToolRegistryService — approval queue', () => {
     // Defense-in-depth: a claimed approval whose toolName is not in the
     // approval-required set must not run via the admin resolve path.
     const { client, registry } = build();
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: { jobId: 'v1' },
       id: 'apr-1',
       status: 'APPROVED',
@@ -601,7 +628,7 @@ describe('ToolRegistryService — approval queue', () => {
   it('records the error on a direct-dispatch approval when execution fails after claiming', async () => {
     const { client, registry } = build();
     const args = { runId: 'run-1', expectedRevision: 2, action: 'cancel' };
-    client.resolveApproval.mockResolvedValue({
+    client.getApproval.mockResolvedValue({
       arguments: args,
       id: 'apr-1',
       status: 'APPROVED',
@@ -632,7 +659,7 @@ describe('ToolRegistryService — approval queue', () => {
 
     it('does not write a failed redemption onto an agent-executor approval', async () => {
       const { client, registry } = build();
-      client.resolveApproval.mockResolvedValue(queued);
+      client.getApproval.mockResolvedValue(queued);
       client.executeAgentTool.mockResolvedValue({
         error: 'Approval does not authorize this exact tool invocation',
         success: false,
@@ -649,7 +676,7 @@ describe('ToolRegistryService — approval queue', () => {
 
     it('does not write a thrown agent-executor failure onto the approval', async () => {
       const { client, registry } = build();
-      client.resolveApproval.mockResolvedValue(queued);
+      client.getApproval.mockResolvedValue(queued);
       client.executeAgentTool.mockRejectedValue(new Error('403 Forbidden'));
 
       const result = (await registry.handleToolCall({
