@@ -128,9 +128,12 @@ describe('tier-models.helper', () => {
       [SubscriptionTier.FREE, false, SubscriptionTier.FREE],
       [SubscriptionTier.PRO, null, SubscriptionTier.PRO],
       [undefined, undefined, undefined],
-    ])('resolves %s with purchased credits %s to %s', (tier, hasPurchased, expected) => {
-      expect(resolveQualityAccessTier(tier, hasPurchased)).toBe(expected);
-    });
+    ])(
+      'resolves %s with purchased credits %s to %s',
+      (tier, hasPurchased, expected) => {
+        expect(resolveQualityAccessTier(tier, hasPurchased)).toBe(expected);
+      },
+    );
 
     it('gives a free org that bought credits Ultra quality', () => {
       const tier = resolveQualityAccessTier(SubscriptionTier.FREE, true);

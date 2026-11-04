@@ -69,7 +69,10 @@ export function resolveQualityAccessTier(
   subscriptionTier: SubscriptionTier | undefined,
   hasPurchasedCredits: boolean | null | undefined,
 ): SubscriptionTier | undefined {
-  if (!hasPurchasedCredits || subscriptionTier === SubscriptionTier.ENTERPRISE) {
+  if (
+    !hasPurchasedCredits ||
+    subscriptionTier === SubscriptionTier.ENTERPRISE
+  ) {
     return subscriptionTier;
   }
   return SubscriptionTier.SCALE;

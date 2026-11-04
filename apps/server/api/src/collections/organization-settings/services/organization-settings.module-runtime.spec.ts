@@ -166,7 +166,11 @@ describe('readonly paid module eligibility', () => {
 });
 
 describe('readonly credit purchase hint', () => {
-  const row = { id: 'settings-1', organizationId: 'org-1', moduleOverrides: {} };
+  const row = {
+    id: 'settings-1',
+    organizationId: 'org-1',
+    moduleOverrides: {},
+  };
   function create(readPurchase: () => Promise<unknown>) {
     return new OrganizationSettingsService(
       {
@@ -203,11 +207,11 @@ describe('readonly credit purchase hint', () => {
 
   it('leaves the hint unresolved for server-side reads', async () => {
     vi.mocked(hasOrganizationBilling).mockReturnValue(true);
-    const result = await create(() =>
-      Promise.resolve({ id: 'rev-1' }),
-    ).findOne({
-      organizationId: 'org-1',
-    });
+    const result = await create(() => Promise.resolve({ id: 'rev-1' })).findOne(
+      {
+        organizationId: 'org-1',
+      },
+    );
     expect(result?.hasPurchasedCredits).toBeNull();
   });
 });

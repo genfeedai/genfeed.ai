@@ -21,6 +21,7 @@ import type {
   PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
 import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
+import { BillingRevenueSource } from '@genfeedai/contracts';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
@@ -29,7 +30,6 @@ import {
   parseOrganizationModuleOverrides,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
-import { BillingRevenueSource } from '@genfeedai/contracts';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -98,12 +98,10 @@ export class OrganizationSettingsService extends BaseService<
       return settings;
     if (!settings.organizationId) return settings;
 
-    const [hasPaidModuleSubscription, hasPurchasedCredits] = await Promise.all(
-      [
-        this.resolvePaidModuleSubscription(settings.organizationId),
-        this.resolveHasPurchasedCredits(settings.organizationId),
-      ],
-    );
+    const [hasPaidModuleSubscription, hasPurchasedCredits] = await Promise.all([
+      this.resolvePaidModuleSubscription(settings.organizationId),
+      this.resolveHasPurchasedCredits(settings.organizationId),
+    ]);
     return { ...settings, hasPaidModuleSubscription, hasPurchasedCredits };
   }
 
