@@ -1,5 +1,5 @@
+import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TIKTOK_STATUS_ACTION_IDS = {
   DISCOVER: 'tiktok.status.discover',
@@ -10,22 +10,6 @@ export const TIKTOK_STATUS_WORKFLOW_IDS = {
   RECONCILE: 'tiktok.status.reconcile',
   SWEEP: 'tiktok.status.sweep',
 } as const;
-
-function node(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 export function buildTiktokStatusSweepDefinition(): SystemWorkflowGraphDefinition {
   return {

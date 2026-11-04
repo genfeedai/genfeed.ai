@@ -4,10 +4,10 @@ import {
   type CreateAdCreativeMappingInput,
 } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -65,22 +65,6 @@ type AdPermutation = {
   mediaType: 'image' | 'video';
   request: AdBulkUploadWorkflowRequest;
 };
-
-function actionNode(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 export function buildAdBulkUploadWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {

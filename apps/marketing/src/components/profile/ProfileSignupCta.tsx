@@ -1,6 +1,6 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { normalizeSignupReferralCode } from '@genfeedai/helpers';
-import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
 import { ArrowRight } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface ProfileSignupCtaProps {
 }
 
 export function getProfileSignupHref(referralCode?: string | null): string {
-  const signUpUrl = new URL(`${EnvironmentService.apps.app}/sign-up`);
+  const signUpUrl = new URL(getAppSignUpUrl());
   const code = normalizeSignupReferralCode(referralCode);
 
   if (code) {

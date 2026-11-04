@@ -1,3 +1,4 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ONBOARDING_STARTER_CREDITS } from '@genfeedai/contracts/types';
@@ -20,7 +21,6 @@ import {
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -165,7 +165,7 @@ function getCardFeatures(plan: (typeof websitePlans)[number]): string[] {
 }
 
 export default function PricingContent() {
-  const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const paygSignUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance hero={false} sections={false}>

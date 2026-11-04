@@ -14,6 +14,7 @@ import {
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
 
 import type {
@@ -186,18 +187,6 @@ function inferMediaKind(ingredient: IIngredient): ChannelMediaKind {
   return 'image';
 }
 
-function formatDuration(seconds?: number): string | undefined {
-  if (!seconds || seconds <= 0) {
-    return undefined;
-  }
-
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, '0');
-  return `${minutes}:${remainder}`;
-}
-
 export function buildMediaFromIngredients(
   ingredients: IIngredient[] | undefined,
 ): PlatformPreviewMedia[] {
@@ -206,7 +195,10 @@ export function buildMediaFromIngredients(
       ingredient.metadataLabel ??
       ingredient.metadataDescription ??
       `Media ${index + 1}`,
-    durationLabel: formatDuration(ingredient.metadataDuration),
+    durationLabel:
+      ingredient.metadataDuration && ingredient.metadataDuration > 0
+        ? formatMinutesSeconds(ingredient.metadataDuration)
+        : undefined,
     id: ingredient.id ?? `media-${index}`,
     isAnimated: ingredient.category === IngredientCategory.GIF,
     kind: inferMediaKind(ingredient),

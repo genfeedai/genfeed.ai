@@ -15,16 +15,8 @@ import type {
 import { useRouteParams } from '@genfeedai/hooks/navigation/use-route-params';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
-import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
-import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
-import {
-  isCollectionFetchReady,
-  useCollectionScope,
-} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
-import { AnalyticsService } from '@services/analytics/analytics.service';
-import { logger } from '@services/core/logger.service';
 import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
@@ -37,6 +29,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import AnalyticsAccountXGrowth from '@/features/analytics/accounts/analytics-account-x-growth';
+import { useAccountAnalyticsDetail } from '@/features/analytics/accounts/use-account-analytics-detail';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
 
 export default function AnalyticsAccountDetail() {
@@ -45,42 +38,9 @@ export default function AnalyticsAccountDetail() {
   const { href } = useOrgUrl();
   const params = useRouteParams<{ id: string }>();
   const credentialId = params.id ?? '';
-  const scope = useCollectionScope();
-  const { brandId, organizationId } = scope;
-  const isFetchReady = isCollectionFetchReady(scope);
-  const { dateRange, refreshTrigger, triggerRefresh } = useAnalyticsContext();
+  const { triggerRefresh } = useAnalyticsContext();
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const { startDate, endDate } = getDateRangeWithDefaults(
-    dateRange.startDate ?? undefined,
-    dateRange.endDate ?? undefined,
-  );
-  const detailQuery = useAuthedQuery({
-    enabled: isFetchReady && Boolean(organizationId && credentialId),
-    queryFn: async (service) => {
-      try {
-        return (await service.getAccountAnalyticsDetail(credentialId, {
-          brandId: brandId || undefined,
-          endDate,
-          organizationId,
-          startDate,
-        })) as IAccountAnalyticsDetail;
-      } catch (requestError) {
-        logger.error('Failed to fetch account analytics detail', requestError);
-        throw requestError;
-      }
-    },
-    queryKey: [
-      'analytics',
-      'account-detail',
-      organizationId,
-      brandId ?? null,
-      credentialId,
-      startDate,
-      endDate,
-    ],
-    refreshKey: refreshTrigger,
-    service: (token: string) => AnalyticsService.getInstance(token),
-  });
+  const detailQuery = useAccountAnalyticsDetail(credentialId);
   const detail: IAccountAnalyticsDetail | null = detailQuery.data ?? null;
   const error = detailQuery.isError && !detail ? translate('loadError') : null;
   const isLoading = !detail && !error;

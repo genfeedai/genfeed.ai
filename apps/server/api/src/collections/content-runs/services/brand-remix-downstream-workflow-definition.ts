@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { conditionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 
@@ -76,23 +77,6 @@ function edge(
     source,
     target,
     targetHandle,
-  };
-}
-
-function conditionNode(
-  id: string,
-  label: string,
-  field: string,
-  y: number,
-): WorkflowVisualNode {
-  return {
-    data: {
-      config: { customField: field, field: 'custom', operator: 'isTrue' },
-      label,
-    },
-    id,
-    position: { x: 0, y },
-    type: 'condition',
   };
 }
 

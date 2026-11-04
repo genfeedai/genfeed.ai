@@ -1,6 +1,6 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize } from '@genfeedai/contracts';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -55,9 +55,7 @@ export default function HomeHero(): React.ReactElement {
               trackingData={{ action: 'start_signup' }}
               trackingName="home_hero_click"
             >
-              <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                Start for $0
-              </a>
+              <a href={getAppSignUpUrl()}>Start for $0</a>
             </ButtonTracked>
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-foreground/80">

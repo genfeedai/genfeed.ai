@@ -43,6 +43,13 @@ type ArtifactIdentity = {
   metadata?: Record<string, unknown>;
 };
 
+type ExecutionCleanupRow = {
+  completedAt: Date;
+  id: string;
+  organizationId: string;
+  userId: string;
+};
+
 type CleanupScope = {
   executionId: string;
   organizationId: string;
@@ -375,37 +382,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           ],
         },
       }),
-      // tenant-scope-ignore: platform sweep discovers expired executions across tenants; each row carries organizationId for the per-scope cleanup job
-      this.prisma.workflowExecution.findMany({
-        orderBy: { completedAt: 'asc' },
-        select: { id: true, organizationId: true, userId: true },
-        take: MAX_CLEANUP_BATCH_SIZE,
-        where: {
-          completedAt: { not: null },
-          isDeleted: false,
-          OR: [
-            {
-              payloadScrubbedAt: { not: null },
-              purgeAt: { lte: now },
-            },
-            {
-              payloadScrubbedAt: { not: null },
-              generationAdmissionSource: {
-                path: ['state'],
-                equals: 'available',
-              },
-            },
-            {
-              payloadScrubbedAt: null,
-              OR: [
-                { purgeAfterHours: { not: null } },
-                { scrubAllNodePayloads: true },
-                { scrubNodeIds: { isEmpty: false } },
-              ],
-            },
-          ],
-        },
-      }),
+      this.findExecutionsDueForCleanup(now),
     ]);
 
     const scopes = new Map<string, CleanupScope>();
@@ -424,6 +401,60 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       });
     }
     return [...scopes.values()].slice(0, MAX_CLEANUP_BATCH_SIZE);
+  }
+
+  /**
+   * Executions whose payload scrub, purge or repair is due, oldest first.
+   *
+   * Two raw queries instead of one three-way OR: a single OR across
+   * `payloadScrubbedAt` states cannot use any index, so it read the whole
+   * `workflow_executions` table every hour (13s in production). Each query below
+   * mirrors the predicate of a partial index (migration
+   * `20261104160000_workflow_execution_cleanup_partial_indexes`), so the
+   * literals must stay identical. They are inline SQL rather than Prisma
+   * filters because Prisma binds `false`/`true` as parameters and Postgres
+   * does not match a partial index to a parameter under a generic plan.
+   */
+  private async findExecutionsDueForCleanup(
+    now: Date,
+  ): Promise<Array<{ id: string; organizationId: string; userId: string }>> {
+    // tenant-scope-ignore: platform sweep discovers expired executions across tenants; each row carries organizationId for the per-scope cleanup job
+    const [scrubbed, pending] = await Promise.all([
+      this.prisma.$queryRaw<ExecutionCleanupRow[]>`
+        SELECT "id", "organizationId", "userId", "completedAt"
+        FROM "workflow_executions"
+        WHERE "completedAt" IS NOT NULL
+          AND "isDeleted" = false
+          AND "payloadScrubbedAt" IS NOT NULL
+          AND (
+            "purgeAt" <= ${now}
+            OR ("generationAdmissionSource" #> '{state}'::text[])::jsonb = '"available"'::jsonb
+          )
+        ORDER BY "completedAt" ASC
+        LIMIT ${MAX_CLEANUP_BATCH_SIZE}
+      `,
+      this.prisma.$queryRaw<ExecutionCleanupRow[]>`
+        SELECT "id", "organizationId", "userId", "completedAt"
+        FROM "workflow_executions"
+        WHERE "completedAt" IS NOT NULL
+          AND "isDeleted" = false
+          AND "payloadScrubbedAt" IS NULL
+          AND (
+            "purgeAfterHours" IS NOT NULL
+            OR "scrubAllNodePayloads" = true
+            OR "scrubNodeIds" <> '{}'
+          )
+        ORDER BY "completedAt" ASC
+        LIMIT ${MAX_CLEANUP_BATCH_SIZE}
+      `,
+    ]);
+
+    return [...scrubbed, ...pending]
+      .sort(
+        (left, right) =>
+          left.completedAt.getTime() - right.completedAt.getTime(),
+      )
+      .slice(0, MAX_CLEANUP_BATCH_SIZE);
   }
 
   async applyTerminalRetention(input: CleanupScope): Promise<boolean> {

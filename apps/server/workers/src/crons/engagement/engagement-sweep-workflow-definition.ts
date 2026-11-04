@@ -2,8 +2,8 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { actionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const ENGAGEMENT_SWEEP_ACTION_IDS = {
   DISCOVER: 'engagement.sweep.discover',
@@ -20,22 +20,6 @@ export const ENGAGEMENT_SWEEP_WORKFLOW_IDS = {
   PROCESS_RULE: 'engagement.rule.process',
   SWEEP: 'engagement.sweep',
 } as const;
-
-function actionNode(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 function conditionNode(
   id: string,

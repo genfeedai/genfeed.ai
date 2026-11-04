@@ -1,7 +1,7 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import PublicShell from '@ui/shell/PublicShell';
 import ConnectAgentButton from '@web-components/buttons/connect-agent/ConnectAgentButton';
 import ButtonTracked from '@web-components/buttons/tracked/ButtonTracked';
@@ -38,7 +38,7 @@ export interface ServiceLandingPageProps {
 // Marks the hero CTA; the topbar hides its own while this is on screen.
 const HERO_CTA_SELECTOR = '[data-landing-hero-cta]';
 
-const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
+const SIGN_UP_HREF = getAppSignUpUrl();
 
 // Product acquisition pages sell one path: connect the agent you already use.
 // Most of their traffic is a bio link opened on a phone, so a second button
