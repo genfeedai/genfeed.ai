@@ -15,7 +15,7 @@ import {
   ORGANIZATION_MODULE_IDS,
   ORGANIZATION_MODULES,
   type OrganizationModuleId,
-  organizationModuleOverridesSchema,
+  parseOrganizationModuleOverrides,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -61,13 +61,11 @@ export default function OrganizationModulesCard() {
   );
   const isBillingEnabled = settings?.hasOrganizationBilling;
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
-  const parsed = organizationModuleOverridesSchema.safeParse(
-    settings?.moduleOverrides,
-  );
+  const overrides = parseOrganizationModuleOverrides(settings?.moduleOverrides);
   const isAvailable = Boolean(
     organizationId &&
       settings &&
-      parsed.success &&
+      overrides &&
       typeof isBillingEnabled === 'boolean' &&
       !isLoading,
   );
@@ -106,7 +104,7 @@ export default function OrganizationModulesCard() {
   ) {
     if (
       !canManage ||
-      !parsed.success ||
+      !overrides ||
       !isAvailable ||
       !organizationId ||
       operation.current
@@ -126,7 +124,7 @@ export default function OrganizationModulesCard() {
       const service = await getService();
       if (!isCurrent()) return;
       await service.patchSettings(organization, {
-        moduleOverrides: { ...parsed.data, [moduleId]: isShown },
+        moduleOverrides: { ...overrides, [moduleId]: isShown },
       });
       isSaved = true;
       clearClientProtectedBootstrapCache();
@@ -158,9 +156,9 @@ export default function OrganizationModulesCard() {
   }
 
   function isModuleShown(moduleId: OrganizationModuleId): boolean {
-    if (!parsed.success || typeof isBillingEnabled !== 'boolean') return false;
+    if (!overrides || typeof isBillingEnabled !== 'boolean') return false;
     return (
-      parsed.data[moduleId] ??
+      overrides[moduleId] ??
       (!isBillingEnabled || ORGANIZATION_MODULES[moduleId].isDefaultEnabled)
     );
   }

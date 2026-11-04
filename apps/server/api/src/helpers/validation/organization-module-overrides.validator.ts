@@ -1,4 +1,4 @@
-import { organizationModuleOverridesSchema } from '@genfeedai/contracts/constants';
+import { parseOrganizationModuleOverrides } from '@genfeedai/contracts/constants';
 import { ValidateBy, type ValidationOptions } from 'class-validator';
 
 export function IsOrganizationModuleOverrides(
@@ -12,7 +12,7 @@ export function IsOrganizationModuleOverrides(
         defaultMessage: () =>
           'moduleOverrides must contain only supported module IDs with boolean values',
         validate: (value: unknown) =>
-          organizationModuleOverridesSchema.safeParse(value).success,
+          parseOrganizationModuleOverrides(value) !== null,
       },
     },
     options,

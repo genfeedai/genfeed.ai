@@ -3,7 +3,7 @@ import {
   isOrganizationModuleOffered,
   ORGANIZATION_MODULE_IDS,
   type OrganizationModuleAccessInput,
-  organizationModuleOverridesSchema,
+  parseOrganizationModuleOverrides,
   resolveOrganizationModuleAccess,
   resolveOrganizationModulePreferences,
   resolveOrganizationModulePresentationAccess,
@@ -287,25 +287,28 @@ describe('organization module admission', () => {
       ).toBe(true);
     },
   );
-  it('rejects unknown module IDs, nulls and coercion on writes', () => {
-    for (const candidate of [
-      null,
-      [],
-      { typo: true },
-      { turbo: 1 },
-      { clipper: null },
-    ]) {
-      expect(
-        organizationModuleOverridesSchema.safeParse(candidate).success,
-      ).toBe(false);
-    }
+  it.each<unknown>([
+    null,
+    [],
+    'turbo',
+    { typo: true },
+    { turbo: 1 },
+    { clipper: null },
+    { constructor: true },
+  ])('rejects %j on writes', (candidate) => {
+    expect(parseOrganizationModuleOverrides(candidate)).toBeNull();
+  });
+
+  it('keeps known module switches and drops unset ones', () => {
     expect(
-      organizationModuleOverridesSchema.parse({
+      parseOrganizationModuleOverrides({
         automation: true,
+        editor: undefined,
         playground: false,
         turbo: false,
       }),
     ).toEqual({ automation: true, playground: false, turbo: false });
+    expect(parseOrganizationModuleOverrides({})).toEqual({});
   });
 });
 
