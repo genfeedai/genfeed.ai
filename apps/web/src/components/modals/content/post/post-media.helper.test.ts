@@ -1,7 +1,12 @@
-import { IngredientCategory, Platform } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  Platform,
+  PostCategory,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
+  getPostCategoryForMedia,
   getPostMediaRequirement,
   isPostMediaRequirementMet,
   MAX_POST_MEDIA_ITEMS,
@@ -56,5 +61,20 @@ describe('mergePostMedia', () => {
     );
 
     expect(mergePostMedia([], picked)).toHaveLength(MAX_POST_MEDIA_ITEMS);
+  });
+});
+
+describe('getPostCategoryForMedia', () => {
+  it.each([
+    [[], undefined],
+    [[IngredientCategory.IMAGE], PostCategory.IMAGE],
+    [[IngredientCategory.GIF], PostCategory.IMAGE],
+    [[IngredientCategory.VIDEO], PostCategory.VIDEO],
+    [[IngredientCategory.IMAGE, IngredientCategory.VIDEO], PostCategory.VIDEO],
+    [[IngredientCategory.MUSIC], undefined],
+  ])('%j is %s', (categories, expected) => {
+    expect(
+      getPostCategoryForMedia(categories.map((c, i) => media(`m-${i}`, c))),
+    ).toBe(expected);
   });
 });
