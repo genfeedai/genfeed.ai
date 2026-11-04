@@ -42,6 +42,7 @@ vi.mock('node:fs', () => ({
 type ProcessHandler = (...args: unknown[]) => void;
 
 type MockProcess = {
+  stderr: { on: Mock<(event: string, cb: ProcessHandler) => void> };
   emit: Mock<(event: string, ...args: unknown[]) => void>;
   kill: Mock<(signal: NodeJS.Signals) => boolean>;
   on: Mock<(event: string, cb: ProcessHandler) => void>;
@@ -49,8 +50,14 @@ type MockProcess = {
 
 function createMockProcess(): MockProcess {
   const events: Record<string, ProcessHandler> = {};
+  const stderrEvents: Record<string, ProcessHandler> = {};
 
   return {
+    stderr: {
+      on: vi.fn((event: string, cb: ProcessHandler) => {
+        stderrEvents[event] = cb;
+      }),
+    },
     emit: vi.fn((event: string, ...args: unknown[]) => {
       events[event]?.(...args);
     }),
@@ -72,6 +79,13 @@ function closeProcess(mockProcess: MockProcess, code: number): void {
     (call) => call[0] === 'close',
   )?.[1];
   closeHandler?.(code);
+}
+
+function writeStderr(mockProcess: MockProcess, text: string): void {
+  const dataHandler = mockProcess.stderr.on.mock.calls.find(
+    (call) => call[0] === 'data',
+  )?.[1];
+  dataHandler?.(Buffer.from(text));
 }
 
 function failProcess(mockProcess: MockProcess, error: Error): void {
@@ -183,6 +197,23 @@ describe('YtDlpService', () => {
       failProcess(mockProcess, error);
 
       await expect(promise).rejects.toThrow('Process failed');
+    });
+
+    it('includes the yt-dlp ERROR line in the failure message', async () => {
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadAudio('https://youtube.com/watch?v=test');
+
+      writeStderr(
+        mockProcess,
+        '[youtube] test: Downloading webpage\nERROR: [youtube] test: Video unavailable\n',
+      );
+      closeProcess(mockProcess, 1);
+
+      await expect(promise).rejects.toThrow(
+        'yt-dlp exited with code 1: ERROR: [youtube] test: Video unavailable',
+      );
     });
 
     it('should handle non-zero exit code', async () => {

@@ -9,6 +9,22 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 const createBadRequest = (message: string) => new BadRequestException(message);
 
+const YT_DLP_STDERR_TAIL_CHARS = 4000;
+
+/**
+ * yt-dlp prints the actionable failure on stderr as `ERROR: ...`. Without it
+ * every failure (private video, bot check, network) collapses into one
+ * `exited with code 1` group that cannot be told apart.
+ */
+function summarizeYtDlpStderr(stderr: string): string {
+  const lines = stderr
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const errorLine = [...lines].reverse().find((line) => /^ERROR:/i.test(line));
+  return (errorLine ?? lines.at(-1) ?? '').slice(0, 500);
+}
+
 // Download audio from a YouTube video
 
 @Injectable()
@@ -118,6 +134,10 @@ export class YtDlpService {
       });
       let isSettled = false;
       let hasTimedOut = false;
+      let stderr = '';
+      proc.stderr?.on('data', (data: Buffer | string) => {
+        stderr = (stderr + data.toString()).slice(-YT_DLP_STDERR_TAIL_CHARS);
+      });
       const settle = (callback: () => void): void => {
         if (isSettled) {
           return;
@@ -159,7 +179,16 @@ export class YtDlpService {
           settle(() => resolve(outputPath));
         } else {
           this.cleanupPartialOutput(outputPath);
-          settle(() => reject(new Error(`yt-dlp exited with code ${code}`)));
+          const reason = summarizeYtDlpStderr(stderr);
+          settle(() =>
+            reject(
+              new Error(
+                reason
+                  ? `yt-dlp exited with code ${code}: ${reason}`
+                  : `yt-dlp exited with code ${code}`,
+              ),
+            ),
+          );
         }
       });
       proc.on('error', (error) => {
