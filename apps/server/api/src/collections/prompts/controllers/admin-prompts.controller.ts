@@ -2,9 +2,11 @@ import { AdminPromptsQueryDto } from '@api/collections/prompts/dto/admin-prompts
 import { AdminPromptsService } from '@api/collections/prompts/services/admin-prompts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -24,6 +26,7 @@ export class AdminPromptsController {
       'List prompts that never produced a generation, across organizations',
   })
   @ApiResponse({ description: 'Prompts returned', status: 200 })
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async list(@Req() request: Request, @Query() query: AdminPromptsQueryDto) {
     return serializeCollection(
       request,
