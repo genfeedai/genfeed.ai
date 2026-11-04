@@ -41,7 +41,8 @@ describe('ContentCalendar Week view with the real renderer', () => {
         container.querySelectorAll('[role="columnheader"][data-date]'),
       ).toHaveLength(7);
     });
-    expect(screen.getByRole('table')).toHaveAttribute('aria-colcount', '7');
+    // 7 day columns plus the time-axis column (fullcalendar >= 7.1.4 counts it).
+    expect(screen.getByRole('table')).toHaveAttribute('aria-colcount', '8');
     expect(container.querySelector('[data-time="09:00:00"]')).not.toBeNull();
     expect(
       Array.from(

@@ -5,19 +5,19 @@
     "gf": "dist/index.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "8.7.4",
+    "@inquirer/prompts": "8.7.5",
     "chalk": "6.0.1",
     "commander": "15.0.0",
     "ink": "8.0.0",
     "ofetch": "1.5.1",
-    "ora": "9.4.1",
+    "ora": "10.0.0",
     "react": "19.3.1",
     "socket.io-client": "4.8.4",
     "zod": "4.6.7"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
   "devDependencies": {
-    "@biomejs/biome": "2.6.3",
+    "@biomejs/biome": "2.6.4",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/errors": "workspace:*",
@@ -28,8 +28,8 @@
     "@types/node": "22.20.1",
     "@types/react": "19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
-    "@vitest/coverage-v8": "5.0.5",
-    "vitest": "5.0.5"
+    "@vitest/coverage-v8": "5.1.0",
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": ">=24"

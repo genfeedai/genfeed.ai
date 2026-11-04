@@ -1,11 +1,11 @@
 {
   "dependencies": {
-    "@aws-sdk/cloudfront-signer": "3.1155.0",
+    "@aws-sdk/cloudfront-signer": "3.1161.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/storage": "workspace:*",
-    "jose": "^6.2.13",
+    "jose": "^6.2.15",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
