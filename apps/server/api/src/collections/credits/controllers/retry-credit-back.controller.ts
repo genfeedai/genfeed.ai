@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PreviewRetryCreditBackDto } from '@api/collections/credits/dto/preview-retry-credit-back.dto';
 import { RetryCreditBackService } from '@api/collections/credits/services/retry-credit-back.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { RETRY_CREDIT_BACK_RATE } from '@genfeedai/contracts/constants';
 import type { IRetryCreditBackPreview } from '@genfeedai/contracts/interfaces/billing';
 import { Body, Controller, Post } from '@nestjs/common';
@@ -19,6 +21,7 @@ export class RetryCreditBackController {
    * Reads only the caller's own attempts and writes nothing.
    */
   @Post('preview')
+  @RequiredScopes(ApiKeyScope.CREDITS_READ)
   @RateLimit({ limit: 60, scope: 'user', windowMs: 60_000 })
   async preview(
     @Body() body: PreviewRetryCreditBackDto,
