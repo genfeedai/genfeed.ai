@@ -23,7 +23,7 @@ import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
-import { Form } from '@ui/primitives/form';
+import { Form, FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -115,7 +115,7 @@ export default function ModalModelFormContent({
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <div className="grid grid-cols-2 gap-2">
+      <FormRow>
         <FormControl label={translate('provider.label')}>
           <Select
             disabled={isSubmitting}
@@ -175,7 +175,7 @@ export default function ModalModelFormContent({
             </SelectContent>
           </Select>
         </FormControl>
-      </div>
+      </FormRow>
       <FormControl label={translate('cost.label')}>
         <Input
           type="number"
