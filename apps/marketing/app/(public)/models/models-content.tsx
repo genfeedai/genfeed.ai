@@ -1,6 +1,6 @@
+import { getAppSignUpUrl } from '@data/app-links';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Badge } from '@ui/primitives/badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -143,7 +143,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
               trackingData={{ action: 'start_creating_models' }}
               trackingName="models_hero_click"
             >
-              <a href={`${EnvironmentService.apps.app}/sign-up`}>
+              <a href={getAppSignUpUrl()}>
                 Start creating
                 <ArrowRight className="size-4" />
               </a>

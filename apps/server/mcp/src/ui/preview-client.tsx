@@ -501,7 +501,7 @@ function SummaryCard({
         key="link"
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
-        className="normal-case"
+        textTransform="none"
       >
         <a
           href={link}

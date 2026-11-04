@@ -1,4 +1,4 @@
-import { EnvironmentService } from '@services/core/environment.service';
+import { getAppSignUpUrl } from '@data/app-links';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -85,7 +85,7 @@ const HERO_VISUAL = (
 );
 
 export default function HireAgentsContent() {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
+  const signUpHref = getAppSignUpUrl('?plan=payg');
 
   return (
     <MarketingEntrance>

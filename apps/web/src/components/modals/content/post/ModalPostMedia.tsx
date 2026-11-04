@@ -7,6 +7,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import type { ModalPostMediaProps } from '@genfeedai/props/modals/modal.props';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
@@ -16,11 +17,6 @@ import { ImagePlus, Library, Upload, Video, X } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { getPostMediaUrl } from '@/components/modals/content/post/post-media.helper';
-
-function formatDuration(seconds: number): string {
-  const whole = Math.round(seconds);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-}
 
 function getMediaName(item: IIngredient): string {
   return item.metadataLabel || formatEnumLabel(item.category) || 'Media';
@@ -36,7 +32,7 @@ function getMediaFacts(item: IIngredient): string[] {
 
   return [
     formatEnumLabel(item.category) ?? 'Media',
-    ...(duration ? [formatDuration(duration)] : []),
+    ...(duration ? [formatMinutesSeconds(Math.round(duration))] : []),
     ...(width && height ? [`${width}×${height}`] : []),
   ];
 }

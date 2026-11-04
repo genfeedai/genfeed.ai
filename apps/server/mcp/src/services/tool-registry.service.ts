@@ -451,7 +451,7 @@ export class ToolRegistryService implements OnModuleInit {
         if (approval.status === 'APPROVED' && !approval.result) {
           return await this.runApprovedApproval(approval);
         }
-        return this.pendingApprovalResult(approval, args ?? {});
+        return withApprovalCard(this.pendingResult(approval, args ?? {}));
       }
 
       return await this.executeTool(name, args ?? {});
@@ -776,14 +776,7 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  private pendingApprovalResult(
-    approval: McpApprovalResource,
-    args: Record<string, unknown>,
-  ) {
-    return withApprovalCard(this.buildPendingApprovalResult(approval, args));
-  }
-
-  private buildPendingApprovalResult(
+  private pendingResult(
     approval: McpApprovalResource,
     args: Record<string, unknown>,
   ) {

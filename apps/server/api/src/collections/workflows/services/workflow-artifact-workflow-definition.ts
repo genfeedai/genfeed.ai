@@ -1,27 +1,11 @@
+import { actionNode as node } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const WORKFLOW_ARTIFACT_MAINTENANCE_WORKFLOW_IDS = {
   CLEANUP_EXECUTION: 'workflow.artifact.cleanup.execution',
   CLEANUP_EXPIRED_SCOPE: 'workflow.artifact.cleanup.expired-scope',
   CLEANUP_SWEEP: 'workflow.artifact.cleanup.sweep',
 } as const;
-
-function node(
-  actionId: string,
-  id: string,
-  y: number,
-  inputVariableKeys: string[] = [],
-  parameters: Record<string, unknown> = {},
-) {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys,
-    parameters,
-    position: { x: 0, y },
-  });
-}
 
 export function buildWorkflowArtifactCleanupExecutionDefinition(
   actionId: string,

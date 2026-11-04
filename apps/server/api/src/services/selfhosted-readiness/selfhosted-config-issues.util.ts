@@ -69,7 +69,7 @@ function findAuthIssues(input: SelfHostedConfigInput): ConfigurationIssue[] {
   const auth = parseOrigin(input.authUrl);
   if (!auth || isLocalOrigin(auth)) {
     issues.push({
-      message: `${publicVariable}=${publicOrigin.origin} but BETTER_AUTH_URL=${auth?.origin ?? '(unset)'}; sign-in from the public address will fail.`,
+      message: `${publicVariable} is a public address but BETTER_AUTH_URL is ${auth ? 'a local address' : 'unset'}; sign-in from the public address will fail.`,
       variable: 'BETTER_AUTH_URL',
     });
   }
@@ -80,7 +80,8 @@ function findAuthIssues(input: SelfHostedConfigInput): ConfigurationIssue[] {
     .filter((origin): origin is string => Boolean(origin));
   if (app && !isLocalOrigin(app) && !trusted.includes(app.origin)) {
     issues.push({
-      message: `GENFEEDAI_PUBLIC_URL=${app.origin} is not among BETTER_AUTH_TRUSTED_ORIGINS=${trusted.join(',') || '(unset)'}; the browser's sign-in request will be rejected.`,
+      message:
+        "GENFEEDAI_PUBLIC_URL is not among BETTER_AUTH_TRUSTED_ORIGINS; the browser's sign-in request will be rejected.",
       variable: 'BETTER_AUTH_TRUSTED_ORIGINS',
     });
   }

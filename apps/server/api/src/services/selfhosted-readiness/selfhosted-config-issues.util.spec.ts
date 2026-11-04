@@ -91,7 +91,7 @@ describe('findSelfHostedConfigIssues', () => {
     expect(issues).toEqual([
       {
         message:
-          'GENFEEDAI_PUBLIC_URL=https://genfeed.example.org but BETTER_AUTH_URL=http://localhost:3010; sign-in from the public address will fail.',
+          'GENFEEDAI_PUBLIC_URL is a public address but BETTER_AUTH_URL is a local address; sign-in from the public address will fail.',
         variable: 'BETTER_AUTH_URL',
       },
     ]);
@@ -117,10 +117,26 @@ describe('findSelfHostedConfigIssues', () => {
     expect(issues).toEqual([
       {
         message:
-          "GENFEEDAI_PUBLIC_URL=https://genfeed.example.org is not among BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000; the browser's sign-in request will be rejected.",
+          "GENFEEDAI_PUBLIC_URL is not among BETTER_AUTH_TRUSTED_ORIGINS; the browser's sign-in request will be rejected.",
         variable: 'BETTER_AUTH_TRUSTED_ORIGINS',
       },
     ]);
+  });
+
+  it('names variables but never echoes a configured URL', () => {
+    const issues = findSelfHostedConfigIssues({
+      ...DOMAIN_INSTALL,
+      authTrustedOrigins: 'http://internal.example:3000',
+      authUrl: 'http://localhost:3010',
+    });
+
+    expect(issues.map((issue) => issue.variable)).toEqual([
+      'BETTER_AUTH_URL',
+      'BETTER_AUTH_TRUSTED_ORIGINS',
+    ]);
+    expect(JSON.stringify(issues)).not.toMatch(
+      /genfeed\.example\.org|internal\.example|localhost:3010/,
+    );
   });
 
   it('does not echo credentials embedded in a URL', () => {
