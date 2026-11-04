@@ -722,6 +722,9 @@ describe('WorkflowExecutorService', () => {
         nodeId: 'PyHRz6uB',
         nodeType: 'llm',
       }),
+      undefined,
+      // The ETA rides along in the same node-result write.
+      expect.objectContaining({ currentPhase: expect.any(String) }),
     );
   });
 
@@ -860,14 +863,13 @@ describe('WorkflowExecutorService', () => {
       id: 'exec-1',
       organizationId: 'org-1',
     });
-    expect(executionsService.updateExecutionProgress).toHaveBeenCalledWith(
+    expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
       'exec-1',
-      'org-1',
+      expect.objectContaining({ nodeId: 'next-node' }),
+      undefined,
       expect.objectContaining({
-        eta: expect.objectContaining({
-          currentPhase: 'Running Next node',
-          estimatedDurationMs: 123_456,
-        }),
+        currentPhase: 'Running Next node',
+        estimatedDurationMs: 123_456,
       }),
     );
     expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(

@@ -15,6 +15,11 @@ import { readWorkflowAccounting } from '@api/collections/workflow-executions/ser
 import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { findWorkflowExecutionCompletionRow } from '@api/collections/workflow-executions/services/workflow-execution-completion-row.util';
 import { logWorkflowExecutionEtaComparison } from '@api/collections/workflow-executions/services/workflow-execution-eta-log.util';
+import {
+  buildNodeResultProgressQuery,
+  toEtaColumns,
+  type WorkflowExecutionEtaUpdate,
+} from '@api/collections/workflow-executions/services/workflow-execution-node-result.query';
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   buildWorkflowOutcomeInput,
@@ -106,14 +111,7 @@ type WorkflowExecutionCompletionFields = {
   failedNodeId?: string | null;
 };
 type WorkflowExecutionProgressUpdate = {
-  eta?: {
-    currentPhase?: string;
-    estimatedDurationMs?: number;
-    etaConfidence?: string;
-    lastEtaUpdateAt?: string;
-    remainingDurationMs?: number;
-    startedAt?: string;
-  };
+  eta?: WorkflowExecutionEtaUpdate;
   progress?: number;
 };
 
@@ -644,149 +642,21 @@ export class WorkflowExecutionsService extends BaseService<
   }
 
   @HandleErrors('update node result', 'workflow-executions')
+  /**
+   * Upserts one node result and recomputes the execution's progress in a
+   * single statement. An `eta` rides along in that same UPDATE, so a node
+   * transition costs one round trip instead of two.
+   */
   async updateNodeResult(
     executionId: string,
     nodeResult: WorkflowNodeResult,
     totalNodes?: number,
+    eta?: WorkflowExecutionEtaUpdate,
   ): Promise<WorkflowExecutionProgressSnapshot | null> {
-    const nodeId = nodeResult.nodeId;
-    const nodeType = nodeResult.nodeType || 'unknown';
-    const status = String(nodeResult.status);
-    const inputJson =
-      nodeResult.input === undefined ? null : JSON.stringify(nodeResult.input);
-    const outputJson =
-      nodeResult.output === undefined
-        ? null
-        : JSON.stringify(nodeResult.output);
-    const error = nodeResult.error ?? null;
-    const startedAt = nodeResult.startedAt ?? null;
-    const completedAt = nodeResult.completedAt ?? null;
-    const nodeProgress = nodeResult.progress ?? null;
-    const retryCount = nodeResult.retryCount ?? null;
-    const creditsUsed = nodeResult.creditsUsed ?? null;
-    const useStoredNodeCount = totalNodes === undefined;
-    const expectedNodeCount = totalNodes ?? 0;
-
     // sql-risk-audit: ignore raw-sql-review -- Primary-key-scoped child-row upsert plus scalar progress update; payload is one node, not the execution result blob.
     const [updatedExecution] = await this.prisma.$queryRaw<
       WorkflowExecutionProgressRow[]
-    >`
-      WITH upserted AS (
-        INSERT INTO workflow_execution_node_results (
-          id,
-          "organizationId",
-          "executionId",
-          "nodeId",
-          "nodeType",
-          status,
-          input,
-          output,
-          error,
-          "startedAt",
-          "completedAt",
-          progress,
-          "retryCount",
-          "creditsUsed",
-          "createdAt",
-          "updatedAt"
-        )
-        SELECT
-          concat('wer_', e.id, '_', ${nodeId}::text),
-          e."organizationId",
-          e.id,
-          ${nodeId}::text,
-          ${nodeType}::text,
-          ${status}::text,
-          ${inputJson}::jsonb,
-          ${outputJson}::jsonb,
-          ${error}::text,
-          ${startedAt}::timestamp,
-          ${completedAt}::timestamp,
-          ${nodeProgress}::int,
-          ${retryCount}::int,
-          ${creditsUsed}::int,
-          NOW(),
-          NOW()
-        FROM workflow_executions AS e
-        WHERE e.id = ${executionId}::text
-        ON CONFLICT ("executionId", "nodeId") DO UPDATE SET
-          "nodeType" = EXCLUDED."nodeType",
-          status = EXCLUDED.status,
-          input = COALESCE(EXCLUDED.input, workflow_execution_node_results.input),
-          output = COALESCE(EXCLUDED.output, workflow_execution_node_results.output),
-          error = COALESCE(EXCLUDED.error, workflow_execution_node_results.error),
-          "startedAt" = COALESCE(
-            workflow_execution_node_results."startedAt",
-            EXCLUDED."startedAt"
-          ),
-          "completedAt" = COALESCE(
-            EXCLUDED."completedAt",
-            workflow_execution_node_results."completedAt"
-          ),
-          progress = COALESCE(
-            EXCLUDED.progress,
-            workflow_execution_node_results.progress
-          ),
-          "retryCount" = COALESCE(
-            EXCLUDED."retryCount",
-            workflow_execution_node_results."retryCount"
-          ),
-          "creditsUsed" = COALESCE(
-            EXCLUDED."creditsUsed",
-            workflow_execution_node_results."creditsUsed"
-          ),
-          "updatedAt" = NOW()
-        RETURNING "executionId"
-      ),
-      counted AS (
-        SELECT
-          upserted."executionId",
-          COUNT(*) FILTER (
-            WHERE node_result.status IN (
-              ${SharedWorkflowExecutionStatus.COMPLETED}::text,
-              ${SharedWorkflowExecutionStatus.FAILED}::text
-            )
-          ) AS completed_count,
-          COUNT(*) AS result_count
-        FROM upserted
-        JOIN workflow_execution_node_results AS node_result
-          ON node_result."executionId" = upserted."executionId"
-        GROUP BY upserted."executionId"
-      )
-      UPDATE workflow_executions AS execution
-      SET
-        progress = CASE
-          WHEN GREATEST(
-            CASE
-              WHEN ${useStoredNodeCount}::boolean THEN counted.result_count
-              ELSE ${expectedNodeCount}::int
-            END,
-            COALESCE(execution."totalNodes", 0)
-          ) > 0
-            THEN ROUND(
-              counted.completed_count::numeric * 100 / GREATEST(
-                CASE
-                  WHEN ${useStoredNodeCount}::boolean
-                    THEN COALESCE(execution."totalNodes", counted.result_count)
-                  ELSE ${expectedNodeCount}::int
-                END,
-                1
-              )::numeric
-            )::int
-          ELSE 0
-        END,
-        "totalNodes" = COALESCE(
-          execution."totalNodes",
-          CASE
-            WHEN ${useStoredNodeCount}::boolean THEN counted.result_count
-            ELSE ${expectedNodeCount}::int
-          END
-        ),
-        "updatedAt" = NOW()
-      FROM counted
-      WHERE execution.id = counted."executionId"
-      RETURNING execution.id, execution.progress
-    `;
+    >(buildNodeResultProgressQuery(executionId, nodeResult, totalNodes, eta));
 
     return toWorkflowExecutionProgressSnapshot(updatedExecution);
   }
@@ -939,30 +809,12 @@ export class WorkflowExecutionsService extends BaseService<
     update: WorkflowExecutionProgressUpdate,
   ): Promise<WorkflowExecutionProgressSnapshot | null> {
     const eta = update.eta;
-    const etaUpdatedAt = eta?.lastEtaUpdateAt
-      ? new Date(eta.lastEtaUpdateAt)
-      : eta
-        ? new Date()
-        : undefined;
 
     const result = await this.prisma.workflowExecution.update({
       data: {
-        ...(eta?.etaConfidence !== undefined
-          ? { etaConfidence: eta.etaConfidence }
-          : {}),
-        ...(eta?.currentPhase !== undefined
-          ? { etaCurrentPhase: eta.currentPhase }
-          : {}),
-        ...(etaUpdatedAt && !Number.isNaN(etaUpdatedAt.getTime())
-          ? { etaUpdatedAt }
-          : {}),
-        ...(eta?.estimatedDurationMs !== undefined
-          ? { estimatedDurationMs: eta.estimatedDurationMs }
-          : {}),
-        ...(update.progress !== undefined ? { progress: update.progress } : {}),
-        ...(eta?.remainingDurationMs !== undefined
-          ? { remainingDurationMs: eta.remainingDurationMs }
-          : {}),
+        // Prisma skips undefined fields, so absent values keep their column.
+        ...toEtaColumns(eta),
+        progress: update.progress,
       },
       select: { id: true, progress: true },
       where: scopedWhere(organizationId, { id: executionId }),

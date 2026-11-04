@@ -25,6 +25,18 @@ export interface WorkflowEtaSnapshot {
   startedAt?: string;
 }
 
+interface EtaProgressOptions {
+  baselineEstimatedDurationMs?: number;
+  completedNodeIds?: Iterable<string>;
+  skippedNodeIds?: Iterable<string>;
+  currentPhase: string;
+  startedAt: Date | string;
+  userId: string;
+  workflowId: string;
+  workflowLabel: string;
+  error?: string;
+}
+
 export class WorkflowExecutionProgressService {
   private readonly logContext = 'WorkflowExecutorService';
   private readonly etaPlans = new Map<string, WorkflowEtaPlan>();
@@ -74,6 +86,7 @@ export class WorkflowExecutionProgressService {
       completedAt?: Date;
       creditsUsed?: number;
     },
+    eta?: WorkflowEtaSnapshot,
   ): Promise<Awaited<
     ReturnType<WorkflowExecutionsService['updateNodeResult']>
   > | null> {
@@ -100,6 +113,8 @@ export class WorkflowExecutionProgressService {
         nodeResult as Parameters<
           WorkflowExecutionsService['updateNodeResult']
         >[1],
+        undefined,
+        eta,
       );
     } catch (error) {
       this.logger.error(
@@ -129,23 +144,6 @@ export class WorkflowExecutionProgressService {
           (candidate: ExecutableNode) => candidate.id === changeEvent.nodeId,
         ) ?? null;
       const nodeLabel = node?.label ?? changeEvent.nodeId;
-      const trackedExecution = await this.trackNodeResult(
-        input.executionId,
-        changeEvent.nodeId,
-        node?.type ?? 'unknown',
-        {
-          completedAt:
-            changeEvent.newStatus === 'completed' ||
-            changeEvent.newStatus === 'failed'
-              ? new Date()
-              : undefined,
-          error: changeEvent.error,
-          output: changeEvent.output as Record<string, unknown> | undefined,
-          startedAt:
-            changeEvent.newStatus === 'running' ? new Date() : undefined,
-          status: mapEngineNodeStatus(changeEvent.newStatus),
-        },
-      );
 
       if (changeEvent.newStatus === 'completed') {
         input.completedNodeIds.add(changeEvent.nodeId);
@@ -153,52 +151,97 @@ export class WorkflowExecutionProgressService {
         input.skippedNodeIds.add(changeEvent.nodeId);
       }
 
-      await this.updateExecutionEta(input.executionId, input.workflow, {
-        baselineEstimatedDurationMs: input.baselineEstimatedDurationMs,
-        completedNodeIds: input.completedNodeIds,
-        currentPhase:
-          changeEvent.newStatus === 'failed'
-            ? `Failed at ${nodeLabel}`
-            : changeEvent.newStatus === 'completed'
-              ? `Completed ${nodeLabel}`
-              : changeEvent.newStatus === 'skipped'
-                ? `Skipped ${nodeLabel}`
-                : `Running ${nodeLabel}`,
-        progress: trackedExecution?.progress ?? input.progressFallback,
-        skippedNodeIds: input.skippedNodeIds,
-        startedAt: input.startedAt,
-        userId: input.userId,
-        workflowId: input.workflowId,
-        workflowLabel: input.workflowLabel,
-      });
+      await this.trackNodeProgress(
+        input.executionId,
+        input.workflow,
+        {
+          nodeId: changeEvent.nodeId,
+          nodeType: node?.type ?? 'unknown',
+          updates: {
+            completedAt:
+              changeEvent.newStatus === 'completed' ||
+              changeEvent.newStatus === 'failed'
+                ? new Date()
+                : undefined,
+            error: changeEvent.error,
+            output: changeEvent.output as Record<string, unknown> | undefined,
+            startedAt:
+              changeEvent.newStatus === 'running' ? new Date() : undefined,
+            status: mapEngineNodeStatus(changeEvent.newStatus),
+          },
+        },
+        {
+          baselineEstimatedDurationMs: input.baselineEstimatedDurationMs,
+          completedNodeIds: input.completedNodeIds,
+          currentPhase:
+            changeEvent.newStatus === 'failed'
+              ? `Failed at ${nodeLabel}`
+              : changeEvent.newStatus === 'completed'
+                ? `Completed ${nodeLabel}`
+                : changeEvent.newStatus === 'skipped'
+                  ? `Skipped ${nodeLabel}`
+                  : `Running ${nodeLabel}`,
+          progressFallback: input.progressFallback,
+          skippedNodeIds: input.skippedNodeIds,
+          startedAt: input.startedAt,
+          userId: input.userId,
+          workflowId: input.workflowId,
+          workflowLabel: input.workflowLabel,
+        },
+      );
     };
+  }
+
+  /**
+   * Records a node transition and the execution ETA it implies. When the ETA
+   * is due for a write it rides along in the node-result statement, so a
+   * transition costs one database round trip rather than two.
+   */
+  async trackNodeProgress(
+    executionId: string,
+    workflow: ExecutableWorkflow,
+    node: {
+      nodeId: string;
+      nodeType: string;
+      updates: Parameters<
+        WorkflowExecutionProgressService['trackNodeResult']
+      >[3];
+    },
+    options: EtaProgressOptions & { progressFallback?: number },
+  ): Promise<void> {
+    const eta = this.computeEta(executionId, workflow, options);
+    const isEtaDue = this.shouldPersistEta(executionId, eta);
+    const trackedExecution = await this.trackNodeResult(
+      executionId,
+      node.nodeId,
+      node.nodeType,
+      node.updates,
+      isEtaDue ? eta : undefined,
+    );
+    const progress =
+      trackedExecution?.progress ?? options.progressFallback ?? 0;
+
+    if (isEtaDue) {
+      if (!trackedExecution) {
+        // The node write failed, so the ETA did not ride along with it.
+        await this.executionsService.updateExecutionProgress(
+          executionId,
+          workflow.organizationId,
+          { eta, progress },
+        );
+      }
+      this.recordEtaWrite(executionId, eta);
+    }
+
+    await this.publishEta(executionId, eta, { ...options, progress });
   }
 
   async updateExecutionEta(
     executionId: string,
     workflow: ExecutableWorkflow,
-    options: {
-      baselineEstimatedDurationMs?: number;
-      completedNodeIds?: Iterable<string>;
-      skippedNodeIds?: Iterable<string>;
-      currentPhase: string;
-      startedAt: Date | string;
-      userId: string;
-      workflowId: string;
-      workflowLabel: string;
-      progress?: number;
-      error?: string;
-    },
+    options: EtaProgressOptions & { progress?: number },
   ): Promise<void> {
-    const plan = this.resolveEtaPlan(executionId, workflow);
-    const eta = applyWorkflowEtaProgress(plan, {
-      baselineEstimatedDurationMs:
-        options.baselineEstimatedDurationMs ?? plan.estimatedDurationMs,
-      completedNodeIds: options.completedNodeIds,
-      currentPhase: options.currentPhase,
-      skippedNodeIds: options.skippedNodeIds,
-      startedAt: options.startedAt,
-    });
+    const eta = this.computeEta(executionId, workflow, options);
 
     if (this.shouldPersistEta(executionId, eta)) {
       await this.executionsService.updateExecutionProgress(
@@ -209,18 +252,49 @@ export class WorkflowExecutionProgressService {
           progress: options.progress,
         },
       );
-      this.lastEtaWrites.set(executionId, {
-        at: Date.now(),
-        phase: eta.currentPhase,
-        remainingDurationMs: eta.remainingDurationMs,
-      });
+      this.recordEtaWrite(executionId, eta);
     }
 
-    await this.publishWorkflowTaskUpdate({
+    await this.publishEta(executionId, eta, {
+      ...options,
+      progress: options.progress ?? 0,
+    });
+  }
+
+  private computeEta(
+    executionId: string,
+    workflow: ExecutableWorkflow,
+    options: EtaProgressOptions,
+  ): WorkflowEtaSnapshot {
+    const plan = this.resolveEtaPlan(executionId, workflow);
+    return applyWorkflowEtaProgress(plan, {
+      baselineEstimatedDurationMs:
+        options.baselineEstimatedDurationMs ?? plan.estimatedDurationMs,
+      completedNodeIds: options.completedNodeIds,
+      currentPhase: options.currentPhase,
+      skippedNodeIds: options.skippedNodeIds,
+      startedAt: options.startedAt,
+    });
+  }
+
+  private recordEtaWrite(executionId: string, eta: WorkflowEtaSnapshot): void {
+    this.lastEtaWrites.set(executionId, {
+      at: Date.now(),
+      phase: eta.currentPhase,
+      remainingDurationMs: eta.remainingDurationMs,
+    });
+  }
+
+  private publishEta(
+    executionId: string,
+    eta: WorkflowEtaSnapshot,
+    options: EtaProgressOptions & { progress: number },
+  ): Promise<void> {
+    return this.publishWorkflowTaskUpdate({
       error: options.error,
       eta,
       executionId,
-      progress: options.progress ?? 0,
+      progress: options.progress,
       status: 'processing',
       userId: options.userId,
       workflowId: options.workflowId,

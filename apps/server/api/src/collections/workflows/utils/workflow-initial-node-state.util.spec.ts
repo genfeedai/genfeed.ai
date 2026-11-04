@@ -192,8 +192,7 @@ describe('shared fresh workflow initial node state', () => {
       node('second', 'commentTrigger'),
     ]);
     const progress = {
-      trackNodeResult: vi.fn(async () => ({ progress: 0 })),
-      updateExecutionEta: vi.fn(),
+      trackNodeProgress: vi.fn(async (..._args: unknown[]) => undefined),
     };
     const tracker = new WorkflowNodeProgressTrackerService(
       progress as unknown as WorkflowExecutionProgressService,
@@ -221,12 +220,10 @@ describe('shared fresh workflow initial node state', () => {
     expect(cache.get('first')).toEqual(event.data);
     expect(cache.has('second')).toBe(false);
     expect([...completed]).toEqual(['first']);
-    expect(progress.trackNodeResult).toHaveBeenCalledTimes(1);
-    expect(progress.trackNodeResult.mock.calls[0]?.slice(0, 3)).toEqual([
-      'execution',
-      'first',
-      'commentTrigger',
-    ]);
-    expect(progress.updateExecutionEta).toHaveBeenCalledTimes(1);
+    expect(progress.trackNodeProgress).toHaveBeenCalledTimes(1);
+    expect(progress.trackNodeProgress.mock.calls[0]?.[2]).toMatchObject({
+      nodeId: 'first',
+      nodeType: 'commentTrigger',
+    });
   });
 });
