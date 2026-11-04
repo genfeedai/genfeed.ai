@@ -40,3 +40,8 @@ export function conditionNode(
     type: 'condition',
   };
 }
+
+/** An action node at `(0, y)` that reads the `request` workflow variable. */
+export function requestActionNode(actionId: string, id: string, y: number) {
+  return actionNode(actionId, id, y, ['request']);
+}

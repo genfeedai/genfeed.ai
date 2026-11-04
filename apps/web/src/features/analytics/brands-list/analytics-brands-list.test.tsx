@@ -1,11 +1,15 @@
 import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
 
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import {
   fireEvent,
-  render,
+  render as renderView,
   screen,
   waitFor,
   within,
@@ -13,6 +17,13 @@ import {
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsBrandsList from '@/features/analytics/brands-list/analytics-brands-list';
+
+/** The row sidebar reads through React Query, as the app's provider allows. */
+function render(ui: ReactNode) {
+  return renderView(ui, {
+    wrapper: queryClientWrapper(createTestQueryClient()),
+  });
+}
 
 const pushMock = vi.fn();
 const setFilterMock = vi.fn();

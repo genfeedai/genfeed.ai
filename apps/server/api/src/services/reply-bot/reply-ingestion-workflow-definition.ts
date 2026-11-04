@@ -2,6 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { AUTHOR_REPLY_WORKFLOW_IDS } from '@api/services/reply-bot/author-reply-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -62,19 +63,6 @@ export const REPLY_INGESTION_WORKFLOW_IDS = {
   POST_WATCH: 'reply.post-watch.process',
 } as const;
 
-function actionNode(
-  actionId: (typeof REPLY_INGESTION_ACTION_IDS)[keyof typeof REPLY_INGESTION_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 function definition(
   canonicalId: string,
   label: string,
@@ -106,7 +94,7 @@ function definition(
 }
 
 export function buildReplyInboundWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const prepare = actionNode(
+  const prepare = requestActionNode(
     REPLY_INGESTION_ACTION_IDS.PREPARE_INBOUND,
     'prepare-inbound',
     0,
@@ -123,7 +111,7 @@ export function buildReplyInboundWorkflowDefinition(): SystemWorkflowGraphDefini
     },
     position: { x: 0, y: 160 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     REPLY_INGESTION_ACTION_IDS.FINALIZE_INBOUND,
     'finalize-inbound',
     320,
@@ -159,7 +147,7 @@ export function buildReplyInboundWorkflowDefinition(): SystemWorkflowGraphDefini
 }
 
 export function buildReplyPostWatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const fetch = actionNode(
+  const fetch = requestActionNode(
     REPLY_INGESTION_ACTION_IDS.FETCH_POST_WATCH,
     'fetch-comments',
     0,
@@ -175,7 +163,7 @@ export function buildReplyPostWatchWorkflowDefinition(): SystemWorkflowGraphDefi
     },
     position: { x: 0, y: 160 },
   });
-  const finalize = actionNode(
+  const finalize = requestActionNode(
     REPLY_INGESTION_ACTION_IDS.FINALIZE_POST_WATCH,
     'finalize-watch',
     320,

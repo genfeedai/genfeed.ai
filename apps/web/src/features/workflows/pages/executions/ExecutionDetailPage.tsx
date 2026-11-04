@@ -11,6 +11,7 @@ import {
 } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
 import Link from 'next/link';
@@ -274,18 +275,14 @@ export default function ExecutionDetailPage({
 
         {/* Global Error */}
         {execution.error && (
-          <div className="mt-6 border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
-            <h3 className="mb-2 font-semibold text-red-800 dark:text-red-200">
-              {translate('errorTitle')}
-            </h3>
-            <Pre
-              variant="ghost"
-              size="md"
-              className="text-red-700 dark:text-red-300"
-            >
-              {execution.error}
-            </Pre>
-          </div>
+          <Alert className="mt-6" variant="destructive">
+            <AlertTitle>{translate('errorTitle')}</AlertTitle>
+            <AlertDescription>
+              <Pre variant="ghost" size="md" className="text-destructive">
+                {execution.error}
+              </Pre>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Download Logs */}

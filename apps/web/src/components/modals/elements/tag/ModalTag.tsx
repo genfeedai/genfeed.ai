@@ -17,7 +17,7 @@ import Modal from '@ui/modals/modal/Modal';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
-import { Form } from '@ui/primitives/form';
+import { Form, FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -160,7 +160,7 @@ export default function ModalTag({ onConfirm }: ModalTagProps) {
           />
         </FormControl>
 
-        <div className="grid grid-cols-2 gap-4">
+        <FormRow>
           <FormControl label="Background Color">
             <Input
               type="color"
@@ -180,7 +180,7 @@ export default function ModalTag({ onConfirm }: ModalTagProps) {
               isDisabled={isSubmitting}
             />
           </FormControl>
-        </div>
+        </FormRow>
 
         <ModalActions>
           <Button

@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import type { PlatformFlagKey } from './feature-flags.constant';
+import {
+  isPlatformFlagOn,
+  type PlatformFlagKey,
+} from './feature-flags.constant';
 import {
   isReleaseItemVisible,
   type ReleaseAudienceInput,
@@ -147,7 +150,7 @@ export function isOrganizationModuleOffered(
   flags: OrganizationModuleFlagInput,
 ): boolean {
   return (
-    flags[ORGANIZATION_MODULES[moduleId].platformFlagKey] !== false &&
+    isPlatformFlagOn(flags, ORGANIZATION_MODULES[moduleId].platformFlagKey) &&
     isReleaseItemVisible(moduleId, settings, flags)
   );
 }

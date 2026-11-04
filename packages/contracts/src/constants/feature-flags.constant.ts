@@ -99,6 +99,20 @@ export function isPlatformFlagKey(value: string): value is PlatformFlagKey {
 }
 
 /**
+ * The one rule for "is this platform flag on": an explicit boolean wins, and
+ * a flag the map does not carry takes its `DEFAULT_PLATFORM_FLAGS` value, so
+ * a module added by a newer release is on and a release stays off. Every
+ * surface (rail, Apps page, route gate, modules settings) asks through here.
+ */
+export function isPlatformFlagOn(
+  flags: Readonly<Record<string, unknown>>,
+  key: PlatformFlagKey,
+): boolean {
+  const value = flags[key];
+  return typeof value === 'boolean' ? value : DEFAULT_PLATFORM_FLAGS[key];
+}
+
+/**
  * Narrow the persisted `flags` JSON. A missing, unknown or malformed entry
  * keeps its default: a module or feature flag added by a newer release is on
  * until an operator switches it off, and a release flag stays preview-only

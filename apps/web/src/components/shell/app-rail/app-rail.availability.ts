@@ -8,10 +8,10 @@ import type { AppRailItemConfig } from '@genfeedai/contracts/interfaces/ui/app-r
 import type { AppRailProps } from '@/props/ui/app-rail.props';
 import { APP_RAIL_REGISTRY, isAppRailItemEnabled } from './app-rail.registry';
 
-type LauncherAvailabilityInput = Pick<
-  AppRailProps,
-  'installedAppIds' | 'moduleAccess'
->;
+interface LauncherAvailabilityInput
+  extends Pick<AppRailProps, 'installedAppIds' | 'moduleAccess'> {
+  flags: Readonly<Record<string, unknown>>;
+}
 
 /**
  * A launcher app shows only while its platform switches are on and the member
@@ -21,12 +21,13 @@ type LauncherAvailabilityInput = Pick<
  */
 export function isLauncherAppAvailable(
   app: AppRailItemConfig,
-  { installedAppIds, moduleAccess }: LauncherAvailabilityInput,
+  { flags, installedAppIds, moduleAccess }: LauncherAvailabilityInput,
 ): boolean {
   if (!isNativeSecondaryAppId(app.id)) return false;
   return isNativeAppLaunchable(
     resolveNativeAppAvailability({
       appId: app.id,
+      flags,
       installedAppIds: installedAppIds ?? NATIVE_SECONDARY_APP_IDS,
       organizationAccess:
         moduleAccess === undefined || !app.organizationModule
@@ -41,7 +42,6 @@ interface ResolveAvailableRailAppsInput
   extends LauncherAvailabilityInput,
     Pick<AppRailProps, 'modulePreferences'> {
   flags: Readonly<Record<string, unknown>>;
-  isConfigured: boolean;
 }
 
 /**
@@ -53,16 +53,19 @@ interface ResolveAvailableRailAppsInput
 export function resolveAvailableRailApps({
   flags,
   installedAppIds,
-  isConfigured,
   moduleAccess,
   modulePreferences,
 }: ResolveAvailableRailAppsInput): AppRailItemConfig[] {
   return APP_RAIL_REGISTRY.filter((app) => {
-    if (!isAppRailItemEnabled(app, flags, isConfigured)) {
+    if (!isAppRailItemEnabled(app, flags)) {
       return false;
     }
     if (app.group === 'app') {
-      return isLauncherAppAvailable(app, { installedAppIds, moduleAccess });
+      return isLauncherAppAvailable(app, {
+        flags,
+        installedAppIds,
+        moduleAccess,
+      });
     }
     return (
       !app.organizationModule ||

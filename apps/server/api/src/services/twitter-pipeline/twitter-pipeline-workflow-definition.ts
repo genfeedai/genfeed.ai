@@ -2,8 +2,8 @@ import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { OrganizationModuleId } from '@genfeedai/contracts/constants';
 
 export const TWITTER_PIPELINE_ACTION_IDS = {
@@ -20,19 +20,6 @@ export const TWITTER_PIPELINE_WORKFLOW_IDS = {
   PUBLISH: 'twitter.pipeline.publish',
   SEARCH: 'twitter.pipeline.search',
 } as const;
-
-function requestActionNode(
-  actionId: (typeof TWITTER_PIPELINE_ACTION_IDS)[keyof typeof TWITTER_PIPELINE_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
 
 function definition(
   canonicalId: string,

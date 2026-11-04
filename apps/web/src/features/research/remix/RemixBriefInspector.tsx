@@ -24,6 +24,7 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 import { Alert } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -309,10 +310,6 @@ function formatLabel(value: string): string {
   return value
     .replaceAll('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
 }
 
 function isGenerationReadyAvatar(avatar: IAvatar): boolean {

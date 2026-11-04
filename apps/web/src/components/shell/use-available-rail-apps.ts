@@ -26,7 +26,7 @@ const NO_INSTALLED_APP_IDS: readonly string[] = [];
  */
 export function useAvailableRailApps() {
   const { settings, settingsLoading } = useBrand();
-  const { flags: platformFlags, isConfigured } = useFeatureFlagContext();
+  const { flags: platformFlags } = useFeatureFlagContext();
   const installedApps = useInstalledApps();
   const modulePreferences = resolveOrganizationModulePreferences(
     settingsLoading ? null : settings,
@@ -59,17 +59,10 @@ export function useAvailableRailApps() {
       resolveAvailableRailApps({
         flags: platformFlags,
         installedAppIds,
-        isConfigured,
         moduleAccess,
         modulePreferences,
       }),
-    [
-      installedAppIds,
-      isConfigured,
-      moduleAccess,
-      modulePreferences,
-      platformFlags,
-    ],
+    [installedAppIds, moduleAccess, modulePreferences, platformFlags],
   );
 
   return {

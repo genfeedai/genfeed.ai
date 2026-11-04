@@ -4,8 +4,9 @@ import {
   CardVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
-import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
+import type { IPostingSet } from '@genfeedai/contracts/interfaces';
 import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
+import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
 import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { POSTING_SETS_QUERY_KEY } from '@hooks/data/content/use-posting-sets/use-posting-sets';
@@ -42,15 +43,6 @@ function isCancelledLoad(error: unknown): boolean {
   return (
     isCancelledRequest(error) ||
     (error instanceof Error && error.name === 'AbortError')
-  );
-}
-
-function getCredentialLabel(credential: ICredential): string {
-  const handle = credential.externalHandle?.replace(/^@/, '');
-  return (
-    credential.label ??
-    credential.externalName ??
-    (handle ? `@${handle}` : credential.platform)
   );
 }
 

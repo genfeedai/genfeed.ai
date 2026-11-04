@@ -11,7 +11,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import { Alert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
-import { Form } from '@ui/primitives/form';
+import { Form, FormRow } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { UserPlus } from 'lucide-react';
@@ -62,7 +62,7 @@ export default function InviteForm({
         />
       </FormControl>
 
-      <div className="grid grid-cols-2 gap-4">
+      <FormRow>
         <FormControl label="First Name">
           <Input name="firstName" placeholder="John" control={control} />
         </FormControl>
@@ -70,7 +70,7 @@ export default function InviteForm({
         <FormControl label="Last Name">
           <Input name="lastName" placeholder="Doe" control={control} />
         </FormControl>
-      </div>
+      </FormRow>
 
       <FormControl label="Role">
         <SelectField

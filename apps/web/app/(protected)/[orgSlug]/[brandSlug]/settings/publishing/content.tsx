@@ -10,12 +10,12 @@ import {
 import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
-  ICredential,
   PublishingReadinessState,
   PublishingSetupCheckStatus,
 } from '@genfeedai/contracts/interfaces';
 import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
+import { getCredentialLabel } from '@helpers/publisher/credential-label.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -149,16 +149,6 @@ function formatReadinessState(state: PublishingReadinessState): string {
 
 function formatCheckStatus(status: PublishingSetupCheckStatus): string {
   return `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
-}
-
-function getCredentialLabel(credential: ICredential): string {
-  const handle = credential.externalHandle?.replace(/^@/, '');
-
-  return (
-    credential.label ??
-    credential.externalName ??
-    (handle ? `@${handle}` : credential.platform)
-  );
 }
 
 function buildPublishingReadinessSummary(

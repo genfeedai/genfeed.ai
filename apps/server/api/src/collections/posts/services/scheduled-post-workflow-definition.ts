@@ -1,9 +1,6 @@
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowEdge } from '@api/collections/workflows/schemas/workflow.schema';
+import { requestActionNode } from '@api/collections/workflows/services/workflow-definition-nodes';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const SCHEDULED_POST_ACTION_IDS = {
   CLAIM: 'scheduled-post.claim',
@@ -45,24 +42,15 @@ export type ScheduledPostWorkflowInput = {
   versionPinId?: string;
 };
 
-function actionNode(
-  actionId: (typeof SCHEDULED_POST_ACTION_IDS)[keyof typeof SCHEDULED_POST_ACTION_IDS],
-  id: string,
-  y: number,
-): WorkflowVisualNode {
-  return createGenfeedActionNode({
-    actionId,
-    id,
-    inputVariableKeys: ['request'],
-    position: { x: 0, y },
-  });
-}
-
 export function buildScheduledPostWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const nodes = [
-    actionNode(SCHEDULED_POST_ACTION_IDS.CLAIM, 'claim-publish', 0),
-    actionNode(SCHEDULED_POST_ACTION_IDS.DELIVER, 'deliver-post', 160),
-    actionNode(SCHEDULED_POST_ACTION_IDS.FINALIZE, 'finalize-publish', 320),
+    requestActionNode(SCHEDULED_POST_ACTION_IDS.CLAIM, 'claim-publish', 0),
+    requestActionNode(SCHEDULED_POST_ACTION_IDS.DELIVER, 'deliver-post', 160),
+    requestActionNode(
+      SCHEDULED_POST_ACTION_IDS.FINALIZE,
+      'finalize-publish',
+      320,
+    ),
   ];
   const edges: WorkflowEdge[] = [
     {
@@ -120,7 +108,9 @@ export function buildScheduledPostFailureWorkflowDefinition(): SystemWorkflowGra
           type: 'json',
         },
       ],
-      nodes: [actionNode(SCHEDULED_POST_ACTION_IDS.FAIL, 'fail-publish', 0)],
+      nodes: [
+        requestActionNode(SCHEDULED_POST_ACTION_IDS.FAIL, 'fail-publish', 0),
+      ],
     },
     description: 'Projects terminal failure for one scheduled publish.',
     label: 'Fail Scheduled Post Publishing',

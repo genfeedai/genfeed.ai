@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ComponentType, SVGProps } from 'react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { isLinkActive } from './topbar-link.helper';
 
 interface DropdownItem {
   href: string;
@@ -50,17 +51,6 @@ type RenderedPanel = {
   dropdown: CurrentDropdown;
   footer?: TopbarPublicMegaMenuFooter;
 };
-
-function isLinkActive(pathname: string | null, href: string): boolean {
-  if (!pathname) {
-    return false;
-  }
-  if (href === '/') {
-    return pathname === '/';
-  }
-
-  return pathname.startsWith(href);
-}
 
 function groupItems(items: DropdownItem[]): [string, DropdownItem[]][] {
   const order: string[] = [];

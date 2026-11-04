@@ -205,7 +205,7 @@ export function AppRail({
   showAdmin = false,
   surface = 'desktop',
 }: AppRailProps) {
-  const { flags, isConfigured } = useFeatureFlagContext();
+  const { flags } = useFeatureFlagContext();
   const isDesktop = useIsDesktopClient();
   const router = useRouter();
   const t = useTranslations('common.appRail');
@@ -221,7 +221,6 @@ export function AppRail({
     const visible = resolveAvailableRailApps({
       flags,
       installedAppIds,
-      isConfigured,
       moduleAccess,
       modulePreferences,
     });
@@ -229,7 +228,6 @@ export function AppRail({
   }, [
     flags,
     installedAppIds,
-    isConfigured,
     isAdminChrome,
     moduleAccess,
     modulePreferences,

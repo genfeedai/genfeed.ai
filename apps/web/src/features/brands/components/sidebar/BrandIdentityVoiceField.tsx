@@ -1,6 +1,7 @@
 'use client';
 
 import { CardPadding } from '@genfeedai/contracts';
+import { getVoiceName } from '@helpers/voice/voice-name.helper';
 import type { Voice } from '@models/ingredients/voice.model';
 import Card from '@ui/card/Card';
 import MediaPlayer from '@ui/media-player/MediaPlayer';
@@ -25,10 +26,6 @@ type BrandIdentityVoiceFieldProps = {
   previewVoice: Voice | null;
   onVoiceChange: (value: string) => void;
 };
-
-function getVoiceName(voice: Voice): string {
-  return voice.metadataLabel || voice.externalVoiceId || voice.id;
-}
 
 export default function BrandIdentityVoiceField({
   catalogOptions,
