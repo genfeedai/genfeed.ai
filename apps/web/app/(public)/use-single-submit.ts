@@ -3,8 +3,6 @@ import { useCallback, useRef, useState } from 'react';
 /** Returned by a submit action that navigates away on success. */
 export const SUBMIT_REDIRECTING = 'redirecting' as const;
 
-type SubmitOutcome = typeof SUBMIT_REDIRECTING | undefined;
-
 /**
  * Guards an async form submit so it runs once at a time.
  *
@@ -18,7 +16,7 @@ export function useSingleSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const runSubmit = useCallback(
-    async (action: () => Promise<SubmitOutcome>): Promise<void> => {
+    async (action: () => Promise<unknown>): Promise<void> => {
       if (isInFlightRef.current) {
         return;
       }
