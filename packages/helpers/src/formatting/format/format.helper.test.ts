@@ -8,7 +8,6 @@ import {
   formatNumberWithCommas,
   formatPercentage,
   formatPercentageSimple,
-  formatTooltipDateTime,
 } from '@helpers/formatting/format/format.helper';
 import { describe, expect, it } from 'vitest';
 
@@ -195,25 +194,6 @@ describe('format.helper', () => {
     it('formats timestamp number', () => {
       const timestamp = new Date(2025, 11, 25).getTime(); // Dec 25, 2025
       expect(formatChartDate(timestamp)).toBe('Dec 25');
-    });
-  });
-
-  describe('formatTooltipDateTime', () => {
-    it('returns empty string for null and undefined', () => {
-      expect(formatTooltipDateTime(null)).toBe('');
-      expect(formatTooltipDateTime(undefined)).toBe('');
-    });
-
-    it('returns empty string for invalid date', () => {
-      expect(formatTooltipDateTime('invalid')).toBe('');
-    });
-
-    it('formats date with time', () => {
-      const date = new Date(2025, 0, 15, 15, 30); // Jan 15, 2025 3:30 PM
-      const result = formatTooltipDateTime(date);
-      expect(result).toContain('Jan');
-      expect(result).toContain('15');
-      expect(result).toMatch(/3:30\s*PM/);
     });
   });
 

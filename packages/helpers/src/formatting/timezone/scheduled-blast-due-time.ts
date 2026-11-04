@@ -220,13 +220,3 @@ export function resolveScheduledBlastDueTime(
     },
   };
 }
-
-export function toScheduledBlastLocalDateTime(parts: {
-  day: number;
-  hour: number;
-  minute: number;
-  month: number;
-  year: number;
-}): string {
-  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
-}

@@ -54,13 +54,6 @@ function setOpenState(modalId: string, open: boolean): void {
   notify(modalId);
 }
 
-export function subscribeModalState(listener: () => void): () => void {
-  globalListeners.add(listener);
-  return () => {
-    globalListeners.delete(listener);
-  };
-}
-
 export function subscribeModal(
   id: ModalEnum | string,
   listener: () => void,

@@ -23,12 +23,6 @@ describe('PostsHelper', () => {
     expect(PostsHelper.getPostsPlatformLabel(Platform.YOUTUBE)).toBe('YouTube');
   });
 
-  it('should get post status options', () => {
-    const options = PostsHelper.getPostStatusOptions();
-    expect(Array.isArray(options)).toBe(true);
-    expect(options.length).toBeGreaterThan(0);
-  });
-
   it('should normalize publisher post status values', () => {
     expect(PostsHelper.normalizePublishingPostsStatus('scheduled')).toBe(
       'scheduled',

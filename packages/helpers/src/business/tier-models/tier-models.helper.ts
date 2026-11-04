@@ -40,16 +40,6 @@ export function resolveSubscriptionTier(
 }
 
 /**
- * Get all allowed quality tiers for a subscription tier.
- * Returns BASIC only for unknown tiers.
- */
-export function getQualityTiersForSubscription(
-  tier: SubscriptionTier,
-): QualityTier[] {
-  return TIER_QUALITY_ACCESS[tier] ?? [QualityTier.BASIC];
-}
-
-/**
  * Check if a subscription tier has access to a specific quality tier.
  */
 export function hasQualityAccess(

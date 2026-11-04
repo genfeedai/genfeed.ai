@@ -37,10 +37,6 @@ export function getImageQualityOptionsByModel(
   }));
 }
 
-export function getDefaultImageQuality(modelKey: string): string | undefined {
-  return imageCapability(modelKey)?.defaultQuality;
-}
-
 export function isImageQualitySupported(
   modelKey: string,
   quality: string | undefined,

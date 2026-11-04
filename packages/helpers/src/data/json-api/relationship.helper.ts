@@ -19,20 +19,6 @@ export function isJsonApiRelationshipReference(
   );
 }
 
-export function normalizeJsonApiRelationshipValue(
-  value: JsonApiRelationshipValue,
-): string | undefined {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (isJsonApiRelationshipReference(value)) {
-    return value.id;
-  }
-
-  return undefined;
-}
-
 export function isPlainObject(
   value: unknown,
 ): value is Record<string, unknown> {

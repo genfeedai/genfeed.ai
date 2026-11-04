@@ -18,10 +18,6 @@ export function isAndroidDevice(): boolean {
   return /android/i.test(getUserAgent());
 }
 
-export function isiOSDevice(): boolean {
-  return /iphone|ipad|ipod/i.test(getUserAgent());
-}
-
 /**
  * Exact-or-subdomain host match.
  *

@@ -1,7 +1,6 @@
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
-  getDefaultImageQuality,
   getImageQualityOptionsByModel,
   isImageQualitySupported,
 } from './image-quality.helper';
@@ -13,9 +12,6 @@ describe('image-quality.helper', () => {
     ).map((option) => option.value);
 
     expect(values).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'auto']);
-    expect(
-      getDefaultImageQuality(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE),
-    ).toBe('high');
   });
 
   it('keeps GPT Image 1.5 and 2 on the older high-top enum', () => {
@@ -24,9 +20,6 @@ describe('image-quality.helper', () => {
     ).map((option) => option.value);
 
     expect(values).toEqual(['low', 'medium', 'high', 'auto']);
-    expect(
-      getDefaultImageQuality(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5),
-    ).toBe('high');
   });
 
   it('returns no quality control for models without a schema quality field', () => {

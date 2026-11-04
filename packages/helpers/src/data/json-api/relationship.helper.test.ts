@@ -1,37 +1,17 @@
 import {
   isJsonApiRelationshipReference,
   normalizeJsonApiRelationshipGraph,
-  normalizeJsonApiRelationshipValue,
 } from '@helpers/data/json-api/relationship.helper';
 import { describe, expect, it } from 'vitest';
 
 describe('relationship.helper', () => {
-  it('normalizes bare JSON:API relationship linkage objects to string ids', () => {
-    expect(normalizeJsonApiRelationshipValue({ id: 'org-42' })).toBe('org-42');
-  });
-
-  it('preserves string relationship ids', () => {
-    expect(normalizeJsonApiRelationshipValue('org-42')).toBe('org-42');
-  });
-
   it('accepts hydrated relationship objects as references when they expose an id', () => {
-    expect(
-      normalizeJsonApiRelationshipValue({
-        id: 'org-42',
-        label: 'Acme',
-      }),
-    ).toBe('org-42');
     expect(
       isJsonApiRelationshipReference({
         id: 'org-42',
         label: 'Acme',
       }),
     ).toBe(true);
-  });
-
-  it('returns undefined for missing relationship values', () => {
-    expect(normalizeJsonApiRelationshipValue(undefined)).toBeUndefined();
-    expect(normalizeJsonApiRelationshipValue(null)).toBeUndefined();
   });
 
   it('normalizes bare relationship linkage objects recursively across graphs', () => {

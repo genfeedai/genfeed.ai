@@ -92,10 +92,6 @@ export class MemoryCache<T> {
   }
 }
 
-let globalCache: MemoryCache<unknown> | null = null;
-let cacheHits = 0;
-let cacheMisses = 0;
-
 export function createCacheKey(...parts: unknown[]): string {
   return parts
     .map((part) => {
@@ -110,95 +106,8 @@ export function createCacheKey(...parts: unknown[]): string {
     .join(':');
 }
 
-function getGlobalCache(): MemoryCache<unknown> {
-  if (!globalCache) {
-    globalCache = new MemoryCache();
-  }
-  return globalCache;
-}
-
-export function setCacheItem<T>(
-  key: string,
-  data: T,
-  ttlMs: number = 300000,
-): void {
-  const cache = getGlobalCache();
-  cache.set(key, data, ttlMs);
-}
-
-export function getCacheItem<T>(key: string): T | null {
-  const cache = getGlobalCache();
-  const value = cache.get(key);
-
-  if (value === undefined) {
-    cacheMisses++;
-    return null;
-  }
-
-  cacheHits++;
-  return value as T;
-}
-
-export function removeCacheItem(key: string): void {
-  const cache = getGlobalCache();
-  cache.delete(key);
-}
-
-export function clearCache(): void {
-  const cache = getGlobalCache();
-  cache.clear();
-  cacheHits = 0;
-  cacheMisses = 0;
-}
-
 export function isCacheExpired(expires: number): boolean {
   return Date.now() > expires;
-}
-
-export function getCacheStats(): CacheStats {
-  const cache = getGlobalCache();
-
-  const totalRequests = cacheHits + cacheMisses;
-  const hitRate = totalRequests > 0 ? cacheHits / totalRequests : 0;
-
-  return {
-    hitRate,
-    hits: cacheHits,
-    misses: cacheMisses,
-    size: cache.size(),
-  };
-}
-
-export function createMemoryCache<T = unknown>(
-  config?: CacheConfig,
-): {
-  get: (key: string) => T | null;
-  set: (key: string, value: T, ttlMs?: number) => void;
-  remove: (key: string) => void;
-  clear: () => void;
-} {
-  const prefix = config?.prefix || 'cache:';
-  const maxSize = config?.maxSize || 1000;
-  const cache = new MemoryCache<T>(300000, maxSize);
-
-  return {
-    clear: () => {
-      cache.clear();
-    },
-    get: (key: string) => {
-      const value = cache.get(`${prefix}${key}`);
-      config?.onGet?.(key, value as T);
-      return (value ?? null) as T | null;
-    },
-    remove: (key: string) => {
-      cache.delete(`${prefix}${key}`);
-      config?.onRemove?.(key);
-    },
-    set: (key: string, value: T, ttlMs?: number) => {
-      cache.set(`${prefix}${key}`, value, ttlMs);
-      config?.onSet?.(key, value);
-    },
-  };
 }
 
 type BrowserStorageCache<T> = {
@@ -292,58 +201,4 @@ export function createLocalStorageCache<T = unknown>(
   config?: CacheConfig,
 ): BrowserStorageCache<T> {
   return createBrowserStorageCache<T>(() => localStorage, config, true);
-}
-
-export function createSessionStorageCache<T = unknown>(
-  config?: CacheConfig,
-): BrowserStorageCache<T> {
-  return createBrowserStorageCache<T>(() => sessionStorage, config);
-}
-
-export class RateLimiter {
-  private buckets = new Map<string, { tokens: number; lastRefill: number }>();
-
-  constructor(
-    private readonly maxTokens: number = 10,
-    private readonly refillRate: number = 1,
-    private readonly ttlMs: number = 60 * 60 * 1000,
-  ) {}
-
-  consume(key: string, tokens: number = 1): boolean {
-    const now = Date.now();
-    let bucket = this.buckets.get(key);
-
-    if (!bucket) {
-      bucket = { lastRefill: now, tokens: this.maxTokens };
-      this.buckets.set(key, bucket);
-    }
-
-    const timePassed = now - bucket.lastRefill;
-    const tokensToAdd = Math.floor((timePassed / 1000) * this.refillRate);
-
-    if (tokensToAdd > 0) {
-      bucket.tokens = Math.min(this.maxTokens, bucket.tokens + tokensToAdd);
-      bucket.lastRefill = now;
-    }
-
-    if (bucket.tokens >= tokens) {
-      bucket.tokens -= tokens;
-      return true;
-    }
-
-    return false;
-  }
-
-  reset(key: string): void {
-    this.buckets.delete(key);
-  }
-
-  cleanup(): void {
-    const now = Date.now();
-    for (const [key, bucket] of this.buckets.entries()) {
-      if (now - bucket.lastRefill > this.ttlMs) {
-        this.buckets.delete(key);
-      }
-    }
-  }
 }

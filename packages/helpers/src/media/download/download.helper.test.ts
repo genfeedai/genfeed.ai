@@ -20,7 +20,6 @@ global.window = {
 
 import {
   downloadUrl,
-  filenameFromContentDisposition,
   ingredientDownloadFilename,
   sanitizeDownloadFilename,
 } from '@helpers/media/download/download.helper';
@@ -144,16 +143,6 @@ describe('download.helper', () => {
         downloadUrl('https://example.com/file', 'file.pdf'),
       ).rejects.toThrow('Failed to download file (status 403)');
       expect(mockWindowOpen).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('filenameFromContentDisposition', () => {
-    it('reads a quoted attachment filename', () => {
-      expect(
-        filenameFromContentDisposition(
-          'attachment; filename="image-1-watermarked.png"',
-        ),
-      ).toBe('image-1-watermarked.png');
     });
   });
 

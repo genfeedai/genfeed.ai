@@ -1,8 +1,4 @@
-import {
-  addUTMParameters,
-  buildUTMParameters,
-  getLinkType,
-} from '@helpers/utm/utm-builder.helper';
+import { addUTMParameters, getLinkType } from '@helpers/utm/utm-builder.helper';
 import { describe, expect, it } from 'vitest';
 
 describe('UTM Builder Helper', () => {
@@ -170,26 +166,6 @@ describe('UTM Builder Helper', () => {
 
       expect(httpsResult).toContain('https://');
       expect(httpResult).toContain('http://');
-    });
-  });
-
-  describe('buildUTMParameters', () => {
-    it('should build UTM parameters object', () => {
-      const result = buildUTMParameters('testuser', 'social_youtube');
-
-      expect(result).toEqual({
-        campaign: 'testuser',
-        content: 'social_youtube',
-        medium: 'profile_link',
-        source: 'genfeedai_profile',
-      });
-    });
-
-    it('should handle different usernames and link types', () => {
-      const result = buildUTMParameters('john_doe', 'integration_calendly');
-
-      expect(result.campaign).toBe('john_doe');
-      expect(result.content).toBe('integration_calendly');
     });
   });
 

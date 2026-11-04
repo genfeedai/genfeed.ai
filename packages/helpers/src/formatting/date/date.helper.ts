@@ -1,11 +1,4 @@
-import {
-  endOfDay,
-  format,
-  formatDistance,
-  formatRelative,
-  parseISO,
-  startOfDay,
-} from 'date-fns';
+import { format, formatDistance, parseISO } from 'date-fns';
 
 export const DATE_FORMATS = {
   API_FORMAT: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
@@ -46,10 +39,6 @@ export function formatDate(
   }
 }
 
-export function toApiFormat(date: Date | string | number): string {
-  return formatDate(date, DATE_FORMATS.API_FORMAT);
-}
-
 export function getRelativeTime(date: Date | string | number): string {
   const parsedDate = parseDate(date);
   if (Number.isNaN(parsedDate.getTime())) {
@@ -59,23 +48,6 @@ export function getRelativeTime(date: Date | string | number): string {
   return formatDistance(parsedDate, new Date(), { addSuffix: true });
 }
 
-export function getRelativeDate(date: Date | string | number): string {
-  const parsedDate = parseDate(date);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return '';
-  }
-
-  return formatRelative(parsedDate, new Date());
-}
-
 export function isValidDate(date: string | number | Date): boolean {
   return !Number.isNaN(parseDate(date).getTime());
-}
-
-export function getStartOfDay(date: Date | string | number): Date {
-  return startOfDay(parseDate(date));
-}
-
-export function getEndOfDay(date: Date | string | number): Date {
-  return endOfDay(parseDate(date));
 }

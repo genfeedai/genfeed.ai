@@ -74,15 +74,6 @@ export function resolveMediaSubjectLock(
     : brandOfferingSubjectLock(kind);
 }
 
-export function lockMediaUserPrompt(
-  userPrompt: string,
-  corpus: string,
-): string {
-  const trimmed = userPrompt.trim();
-  const lock = resolveMediaSubjectLock(trimmed, corpus);
-  return trimmed.length > 0 ? `${lock}\n\n${trimmed}` : lock;
-}
-
 function physicalProductTerms(text: string): string[] {
   return [...text.matchAll(new RegExp(INVENTED_PHYSICAL_PRODUCT, 'giu'))].map(
     (match) => match[0].toLowerCase(),

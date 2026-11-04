@@ -1,12 +1,8 @@
 import {
   DATE_FORMATS,
   formatDate,
-  getEndOfDay,
-  getRelativeDate,
   getRelativeTime,
-  getStartOfDay,
   isValidDate,
-  toApiFormat,
 } from '@helpers/formatting/date/date.helper';
 import { describe, expect, it } from 'vitest';
 
@@ -56,23 +52,9 @@ describe('date.helper', () => {
     });
   });
 
-  describe('toApiFormat', () => {
-    it('formats date to API format', () => {
-      const date = new Date(2025, 0, 15, 10, 30, 45, 123);
-      const result = toApiFormat(date);
-      expect(result).toBe('2025-01-15T10:30:45.123Z');
-    });
-  });
-
   describe('getRelativeTime', () => {
     it('returns empty string for invalid dates', () => {
       expect(getRelativeTime('not-a-date')).toBe('');
-    });
-  });
-
-  describe('getRelativeDate', () => {
-    it('returns empty string for invalid dates', () => {
-      expect(getRelativeDate('not-a-date')).toBe('');
     });
   });
 
@@ -95,62 +77,6 @@ describe('date.helper', () => {
 
     it('returns false for invalid Date object', () => {
       expect(isValidDate(new Date('invalid'))).toBe(false);
-    });
-  });
-
-  describe('getStartOfDay', () => {
-    it('returns start of day for Date object', () => {
-      const date = new Date(2025, 0, 15, 14, 30, 45);
-      const result = getStartOfDay(date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(0);
-      expect(result.getDate()).toBe(15);
-      expect(result.getHours()).toBe(0);
-      expect(result.getMinutes()).toBe(0);
-      expect(result.getSeconds()).toBe(0);
-      expect(result.getMilliseconds()).toBe(0);
-    });
-
-    it('returns start of day for ISO string', () => {
-      const result = getStartOfDay('2025-06-15');
-      expect(result.getHours()).toBe(0);
-      expect(result.getMinutes()).toBe(0);
-      expect(result.getSeconds()).toBe(0);
-    });
-
-    it('returns start of day for timestamp', () => {
-      const timestamp = new Date(2025, 3, 10, 18, 0).getTime();
-      const result = getStartOfDay(timestamp);
-      expect(result.getHours()).toBe(0);
-      expect(result.getMinutes()).toBe(0);
-    });
-  });
-
-  describe('getEndOfDay', () => {
-    it('returns end of day for Date object', () => {
-      const date = new Date(2025, 0, 15, 14, 30, 45);
-      const result = getEndOfDay(date);
-      expect(result.getFullYear()).toBe(2025);
-      expect(result.getMonth()).toBe(0);
-      expect(result.getDate()).toBe(15);
-      expect(result.getHours()).toBe(23);
-      expect(result.getMinutes()).toBe(59);
-      expect(result.getSeconds()).toBe(59);
-      expect(result.getMilliseconds()).toBe(999);
-    });
-
-    it('returns end of day for ISO string', () => {
-      const result = getEndOfDay('2025-06-15');
-      expect(result.getHours()).toBe(23);
-      expect(result.getMinutes()).toBe(59);
-      expect(result.getSeconds()).toBe(59);
-    });
-
-    it('returns end of day for timestamp', () => {
-      const timestamp = new Date(2025, 3, 10, 6, 0).getTime();
-      const result = getEndOfDay(timestamp);
-      expect(result.getHours()).toBe(23);
-      expect(result.getMinutes()).toBe(59);
     });
   });
 });

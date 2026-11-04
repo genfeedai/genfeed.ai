@@ -5,7 +5,6 @@ import type {
 import {
   buildPublishingProviderReadiness,
   canScheduleWithPublishingReadiness,
-  classifyPublishingDiagnostic,
   classifyPublishingReadiness,
   classifyPublishingSetupChecklistState,
   redactPublishingDiagnosticValue,
@@ -39,51 +38,6 @@ function check(
 }
 
 describe('publishing diagnostics helpers', () => {
-  it('classifies common provider setup failures into stable buckets', () => {
-    expect(
-      classifyPublishingDiagnostic({
-        code: 'redirect_uri_mismatch',
-        message: 'OAuth redirect URI is not allowed',
-      }),
-    ).toBe('misconfiguration');
-
-    expect(
-      classifyPublishingDiagnostic({
-        message: 'App review required before publishing',
-      }),
-    ).toBe('missing_provider_approval');
-
-    expect(
-      classifyPublishingDiagnostic({
-        message: 'Missing instagram_content_publish scope',
-      }),
-    ).toBe('missing_permission_scope');
-
-    expect(
-      classifyPublishingDiagnostic({
-        statusCode: 401,
-      }),
-    ).toBe('expired_credential');
-
-    expect(
-      classifyPublishingDiagnostic({
-        message: 'Provider quota exceeded',
-      }),
-    ).toBe('quota_or_rate_limit');
-
-    expect(
-      classifyPublishingDiagnostic({
-        statusCode: 503,
-      }),
-    ).toBe('provider_outage');
-
-    expect(
-      classifyPublishingDiagnostic({
-        message: 'Managed provider keys are not available in self-host mode',
-      }),
-    ).toBe('unsupported_self_host_mode');
-  });
-
   it('redacts nested secrets without removing non-secret evidence', () => {
     const redacted = redactPublishingDiagnosticValue({
       callbackUrl:

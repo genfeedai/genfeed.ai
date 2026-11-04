@@ -1,7 +1,4 @@
-import {
-  resolveScheduledBlastDueTime,
-  toScheduledBlastLocalDateTime,
-} from '@helpers/formatting/timezone/scheduled-blast-due-time';
+import { resolveScheduledBlastDueTime } from '@helpers/formatting/timezone/scheduled-blast-due-time';
 import { describe, expect, it } from 'vitest';
 
 const FIXED_NOW = new Date('2026-08-24T12:00:00.000Z');
@@ -139,19 +136,5 @@ describe('resolveScheduledBlastDueTime', () => {
         timezone: 'UTC',
       }),
     ).toEqual({ error: 'not_in_the_future', ok: false });
-  });
-});
-
-describe('toScheduledBlastLocalDateTime', () => {
-  it('pads to the datetime-local wire shape', () => {
-    expect(
-      toScheduledBlastLocalDateTime({
-        day: 5,
-        hour: 9,
-        minute: 7,
-        month: 1,
-        year: 2026,
-      }),
-    ).toBe('2026-01-05T09:07');
   });
 });

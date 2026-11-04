@@ -146,54 +146,6 @@ describe('page-metadata.helper', () => {
     });
   });
 
-  describe('createPageMetadataWithDescription', () => {
-    it('should return a function', () => {
-      const generate = createPageMetadataWithDescription(
-        'Pricing',
-        'Our pricing plans',
-      );
-      expect(typeof generate).toBe('function');
-    });
-
-    it('should include description in metadata', async () => {
-      const generate = createPageMetadataWithDescription(
-        'Pricing',
-        'Affordable plans for everyone',
-      );
-      const result = await generate({}, createMockParent() as never);
-      expect(result.description).toBe('Affordable plans for everyone');
-      expect(result.title).toBe('Pricing | Genfeed AI');
-    });
-
-    it('should include description in openGraph', async () => {
-      const generate = createPageMetadataWithDescription(
-        'Features',
-        'All our features',
-      );
-      const result = await generate({}, createMockParent() as never);
-      expect(result.openGraph?.description).toBe('All our features');
-      expect(result.openGraph?.title).toBe('Features | Genfeed AI');
-    });
-
-    it('should include description in twitter', async () => {
-      const generate = createPageMetadataWithDescription('Blog', 'Latest news');
-      const result = await generate({}, createMockParent() as never);
-      expect(result.twitter?.description).toBe('Latest news');
-      expect(result.twitter?.title).toBe('Blog | Genfeed AI');
-    });
-
-    it('should emit a canonical URL and openGraph url when given a path', async () => {
-      const generate = createPageMetadataWithDescription(
-        'Pricing',
-        'Affordable plans',
-        '/pricing',
-      );
-      const result = await generate({}, createMockParent() as never);
-      expect(result.alternates?.canonical).toBe('https://genfeed.ai/pricing');
-      expect(result.openGraph?.url).toBe('https://genfeed.ai/pricing');
-    });
-  });
-
   describe('createPageMetadataWithCanonical', () => {
     it('should return a function', () => {
       const generate = createPageMetadataWithCanonical(
@@ -282,14 +234,6 @@ describe('page-metadata.helper', () => {
         name: 'createPageMetadata',
       },
       {
-        generate: createPageMetadataWithDescription(
-          'Pricing',
-          'Affordable plans',
-          '/pricing',
-        ),
-        name: 'createPageMetadataWithDescription',
-      },
-      {
         generate: createPageMetadataWithCanonical('FAQ', 'Questions', '/faq'),
         name: 'createPageMetadataWithCanonical',
       },
@@ -345,7 +289,7 @@ describe('page-metadata.helper', () => {
     });
 
     it('should prefer an explicit description over the site fallback', async () => {
-      const generate = createPageMetadataWithDescription(
+      const generate = createPageMetadataWithCanonical(
         'Pricing',
         'Affordable plans',
         '/pricing',
