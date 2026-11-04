@@ -28,7 +28,9 @@ export class PublishPipelineController {
     return serializeSingle(
       request,
       PublishPipelineSerializer,
-      await this.pipelineService.getReport(query.days),
+      await this.pipelineService.getReport(query.days, new Date(), {
+        isAnyDecision: query.anyDecision === true,
+      }),
     );
   }
 }

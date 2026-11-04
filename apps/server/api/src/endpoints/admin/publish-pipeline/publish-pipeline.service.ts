@@ -18,6 +18,11 @@ const ITEM_LIMIT = 100;
 const APPROVALS_PER_ORGANIZATION = 500;
 const REVIEWED_POSTS_PER_ORGANIZATION = 500;
 
+export interface PublishPipelineReportOptions {
+  /** List posts reviewed with any decision, not only approved ones. */
+  isAnyDecision?: boolean;
+}
+
 @Injectable()
 export class PublishPipelineService {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,11 +32,14 @@ export class PublishPipelineService {
    * approvals and the posts they approved, read through each organization so
    * every row stays scoped to the organization that owns it. The review queue
    * section covers posts approved there in the same window, including those
-   * approved without a schedule date, which get no publish approval. Read-only.
+   * approved without a schedule date, which get no publish approval. With
+   * `isAnyDecision` that section lists every post reviewed in the window, so a
+   * rejected or never-approved item is visible too. Read-only.
    */
   async getReport(
     windowDays = DEFAULT_WINDOW_DAYS,
     now = new Date(),
+    { isAnyDecision = false }: PublishPipelineReportOptions = {},
   ): Promise<IPublishPipelineReport> {
     const since = new Date(now.getTime() - windowDays * DAY_MS);
     const organizations = await this.prisma.organization.findMany({
@@ -49,7 +57,12 @@ export class PublishPipelineService {
             lastError: true,
             organizationId: true,
             post: {
-              select: { platform: true, scheduledDate: true, status: true },
+              select: {
+                platform: true,
+                scheduledDate: true,
+                status: true,
+                targetExecutionState: true,
+              },
             },
             postId: true,
             status: true,
@@ -68,7 +81,7 @@ export class PublishPipelineService {
       .flatMap((organization) => organization.publishApprovals)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-    const reviewedPosts = await this.getReviewedPosts(since);
+    const reviewedPosts = await this.getReviewedPosts(since, isAnyDecision);
 
     return {
       counts: summarizePublishPipeline(rows, now),
@@ -76,6 +89,7 @@ export class PublishPipelineService {
       itemLimit: ITEM_LIMIT,
       items: rows.slice(0, ITEM_LIMIT).map(toPublishPipelineItem),
       reviewQueue: {
+        isAnyDecision,
         counts: summarizeReviewQueue(reviewedPosts, now),
         items: reviewedPosts.slice(0, ITEM_LIMIT).map(toReviewedPostItem),
       },
@@ -86,10 +100,13 @@ export class PublishPipelineService {
 
   private async getReviewedPosts(
     since: Date,
+    isAnyDecision: boolean,
   ): Promise<PublishPipelineReviewedPostRow[]> {
     const reviewedInWindow = {
       isDeleted: false,
-      reviewDecision: PersistedReviewDecision.APPROVED,
+      ...(isAnyDecision
+        ? {}
+        : { reviewDecision: PersistedReviewDecision.APPROVED }),
       reviewedAt: { gte: since },
     };
     const organizations = await this.prisma.organization.findMany({
@@ -103,6 +120,7 @@ export class PublishPipelineService {
             id: true,
             organizationId: true,
             platform: true,
+            reviewDecision: true,
             reviewedAt: true,
             scheduledDate: true,
             status: true,

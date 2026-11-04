@@ -205,6 +205,16 @@ describe('operations/admin', () => {
     expect(mockAdminGet).toHaveBeenCalledWith('/admin/publish-pipeline?days=2');
   });
 
+  it('asks the publish pipeline for any review decision when requested', async () => {
+    mockAdminGet.mockResolvedValueOnce({ data: { windowDays: 5 } });
+
+    await readPublishPipeline(5, true);
+
+    expect(mockAdminGet).toHaveBeenCalledWith(
+      '/admin/publish-pipeline?days=5&anyDecision=true'
+    );
+  });
+
   it('reads the onboarding funnel for the requested window', async () => {
     mockAdminGet.mockResolvedValueOnce({ data: { windowDays: 7 } });
 
