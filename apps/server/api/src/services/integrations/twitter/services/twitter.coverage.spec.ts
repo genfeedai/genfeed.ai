@@ -45,7 +45,6 @@ import {
 
 const {
   mockRefreshOAuth2Token,
-  mockV1TrendsByPlace,
   mockV2Get,
   mockV2Me,
   mockV2Retweet,
@@ -56,7 +55,6 @@ const {
   mockV2UploadMedia,
 } = vi.hoisted(() => ({
   mockRefreshOAuth2Token: vi.fn(),
-  mockV1TrendsByPlace: vi.fn(),
   mockV2Get: vi.fn(),
   mockV2Me: vi.fn(),
   mockV2Retweet: vi.fn(),
@@ -71,7 +69,6 @@ vi.mock('twitter-api-v2', () => {
   const MockTwitterApi = vi.fn(function TwitterApiMock() {
     return {
       refreshOAuth2Token: mockRefreshOAuth2Token,
-      v1: { trendsByPlace: mockV1TrendsByPlace },
       v2: {
         get: mockV2Get,
         me: mockV2Me,
@@ -879,11 +876,11 @@ describe('TwitterService (coverage)', () => {
   describe('getTrends (error branches)', () => {
     it('returns empty array on access-level error (code 453)', async () => {
       const err = { code: 453, message: 'access level error' };
-      mockV1TrendsByPlace.mockRejectedValue(err);
+      mockV2Get.mockRejectedValue(err);
 
       // Reassign client
       (service as unknown as Record<string, unknown>).twitterClient = {
-        v1: { trendsByPlace: mockV1TrendsByPlace },
+        v2: { get: mockV2Get },
       };
 
       const result = await service.getTrends('org', 'brand');
@@ -893,13 +890,13 @@ describe('TwitterService (coverage)', () => {
     });
 
     it('returns empty array on 403 status error', async () => {
-      mockV1TrendsByPlace.mockRejectedValue({
+      mockV2Get.mockRejectedValue({
         message: 'Forbidden',
         status: 403,
       });
 
       (service as unknown as Record<string, unknown>).twitterClient = {
-        v1: { trendsByPlace: mockV1TrendsByPlace },
+        v2: { get: mockV2Get },
       };
 
       const result = await service.getTrends('org', 'brand');
@@ -909,10 +906,10 @@ describe('TwitterService (coverage)', () => {
     });
 
     it('returns empty array and logs error on generic failure', async () => {
-      mockV1TrendsByPlace.mockRejectedValue(new Error('Unknown trends error'));
+      mockV2Get.mockRejectedValue(new Error('Unknown trends error'));
 
       (service as unknown as Record<string, unknown>).twitterClient = {
-        v1: { trendsByPlace: mockV1TrendsByPlace },
+        v2: { get: mockV2Get },
       };
 
       const result = await service.getTrends();
