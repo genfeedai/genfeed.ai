@@ -45,6 +45,7 @@ const DESKTOP_STANDARD_SCOPES: string[] = [
   ApiKeyScope.IMAGES_READ,
   ApiKeyScope.IMAGES_CREATE,
   ApiKeyScope.IMAGES_UPDATE,
+  ApiKeyScope.IMAGES_DELETE,
   ApiKeyScope.PROMPTS_READ,
   ApiKeyScope.PROMPTS_CREATE,
   ApiKeyScope.ARTICLES_READ,
