@@ -1,12 +1,6 @@
 import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
-import {
-  CircleAlert,
-  CircleCheck,
-  Info,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from 'lucide-react';
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { getBadgeStatus } from './badge.status';
 import { badgeVariants } from './badge.variants';

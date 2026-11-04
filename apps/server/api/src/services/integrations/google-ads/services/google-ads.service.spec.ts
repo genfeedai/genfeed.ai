@@ -125,9 +125,11 @@ describe('GoogleAdsService', () => {
     }
 
     function primeCredential(): Mocked<ServerCredentialStore> {
-      const store = (service as unknown as {
-        credentialsService: Mocked<ServerCredentialStore>;
-      }).credentialsService;
+      const store = (
+        service as unknown as {
+          credentialsService: Mocked<ServerCredentialStore>;
+        }
+      ).credentialsService;
       store.resolveBrandAccount.mockResolvedValue(credential as never);
       return store;
     }

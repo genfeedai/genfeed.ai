@@ -203,11 +203,7 @@ describe('getVerifiedMcpConnection for OAuth agents', () => {
 
 describe('getCredentialBadge', () => {
   it.each([
-    [
-      'disconnected',
-      { isConnected: false },
-      { status: 'disconnected' },
-    ],
+    ['disconnected', { isConnected: false }, { status: 'disconnected' }],
     [
       'publishing hold',
       { accountHealth: { holdPublishing: true }, isConnected: true },
@@ -238,31 +234,11 @@ describe('getCredentialBadge', () => {
 
 describe('getActivityBadge', () => {
   it.each([
-    [
-      'failed',
-      { status: 'failed' },
-      { status: 'failed' },
-    ],
-    [
-      'processing',
-      { value: 'processing' },
-      { status: 'in_progress' },
-    ],
-    [
-      'published',
-      { status: 'published' },
-      { status: 'completed' },
-    ],
-    [
-      'key-generated',
-      { key: 'image-generated' },
-      { status: 'completed' },
-    ],
-    [
-      'key-failed',
-      { key: 'video-failed' },
-      { status: 'failed' },
-    ],
+    ['failed', { status: 'failed' }, { status: 'failed' }],
+    ['processing', { value: 'processing' }, { status: 'in_progress' }],
+    ['published', { status: 'published' }, { status: 'completed' }],
+    ['key-generated', { key: 'image-generated' }, { status: 'completed' }],
+    ['key-failed', { key: 'video-failed' }, { status: 'failed' }],
     ['unknown', {}, { status: 'recorded' }],
   ])('maps %s activity', (_label, activity, expected) => {
     expect(getActivityBadge(activity as unknown as IActivity)).toEqual(

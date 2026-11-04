@@ -74,12 +74,7 @@ function getStatusBadge(
   };
   const badge = badges[status];
   return (
-    <Badge
-      icon={badge.icon}
-      shape="pill"
-      size="lg"
-      variant={badge.variant}
-    >
+    <Badge icon={badge.icon} shape="pill" size="lg" variant={badge.variant}>
       {badge.label}
     </Badge>
   );

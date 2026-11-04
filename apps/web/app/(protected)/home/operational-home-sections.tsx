@@ -814,9 +814,7 @@ function CredentialHealthSurface({
                     connection={credentialToSocialConnection(credential)}
                   />
                 }
-                trailing={
-                  <Badge status={badge.status} />
-                }
+                trailing={<Badge status={badge.status} />}
               />
             );
           })}
@@ -920,9 +918,7 @@ function ActivitySurface({
                     getActivityDescription(activity, activityMessageFormatter)
                   )
                 }
-                trailing={
-                  <Badge status={badge.status} />
-                }
+                trailing={<Badge status={badge.status} />}
               />
             );
           })}
