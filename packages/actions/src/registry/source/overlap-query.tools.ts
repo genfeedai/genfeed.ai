@@ -66,24 +66,15 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
     name: 'get_trends',
     parameters: {
       properties: {
-        category: {
-          default: 'all',
-          description: 'Content category',
-          enum: [
-            'all',
-            'tech',
-            'business',
-            'entertainment',
-            'sports',
-            'science',
-            'health',
-            'politics',
-          ],
+        platform: {
+          description:
+            'Limit to one platform (instagram, linkedin, pinterest, reddit, tiktok, twitter, youtube). Omit to get trends from every platform.',
           type: 'string',
         },
         timeframe: {
           default: '24h',
-          description: 'Timeframe for trends',
+          description:
+            'Only trends refreshed within this window. Every trend carries its updatedAt.',
           enum: ['24h', '7d', '30d'],
           type: 'string',
         },
