@@ -229,6 +229,22 @@ export class CronTrendsService implements OnModuleInit {
       }
     }
 
+    // A platform missing from this line was never scheduled; compare it with
+    // the connected scopes the missed-window check counts for that platform.
+    const scheduledByPlatform: Record<string, number> = {};
+    for (const credential of credentials) {
+      const platform = fromPrismaCredentialPlatform(credential.platform);
+      if (platform) {
+        scheduledByPlatform[platform] =
+          (scheduledByPlatform[platform] ?? 0) + 1;
+      }
+    }
+    this.loggerService.log('Discovered scoped trend refresh tasks', {
+      context: this.context,
+      nicheVideoBrands: nicheBrands.size,
+      scheduledByPlatform,
+    });
+
     return {
       items: [
         ...credentials.flatMap((credential) => {
