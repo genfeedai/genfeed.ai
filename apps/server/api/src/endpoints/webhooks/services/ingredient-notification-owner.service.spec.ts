@@ -29,7 +29,7 @@ describe('IngredientNotificationOwnerService', () => {
     await expect(
       service.find({
         id: 'ingredient_1',
-        organization: { id: 'org_1', label: 'Acme' },
+        organization: { id: 'org_1', label: 'Acme', slug: 'acme' },
         organizationId: 'org_1',
         user: {
           email: 'owner@example.com',
@@ -42,7 +42,9 @@ describe('IngredientNotificationOwnerService', () => {
       creditBalance: 13,
       organizationId: 'org_1',
       organizationLabel: 'Acme',
+      organizationSlug: 'acme',
       userEmail: 'owner@example.com',
+      userId: 'user_1',
       userName: 'Ada Owner',
     });
   });
@@ -60,7 +62,9 @@ describe('IngredientNotificationOwnerService', () => {
       creditBalance: undefined,
       organizationId: 'org_2',
       organizationLabel: undefined,
+      organizationSlug: undefined,
       userEmail: 'owner@example.com',
+      userId: 'user_2',
       userName: undefined,
     });
   });

@@ -1,6 +1,13 @@
 import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
-import { X } from 'lucide-react';
+import {
+  CircleAlert,
+  CircleCheck,
+  Info,
+  type LucideIcon,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { getBadgeStatus } from './badge.status';
 import { badgeVariants } from './badge.variants';
@@ -25,10 +32,37 @@ export interface BadgeProps
   /**
    * Product status or content type ('failed', 'draft', 'video', ...). Sets the
    * variant, default label, icon and tint; explicit children still win.
+   * Status badges are always uppercase and always carry an icon.
    */
   status?: string;
   /** A count or short value, rendered semibold. A value of 0 renders nothing. */
   value?: number | string;
+}
+
+/**
+ * The icon a status-toned badge shows when the caller gave none, so a
+ * success / warning / error / info chip never reads as a bare coloured label.
+ */
+function getToneIcon(variant: BadgeProps['variant']): LucideIcon | undefined {
+  switch (variant) {
+    case 'destructive':
+      return CircleAlert;
+    case 'info':
+      return Info;
+    case 'success':
+      return CircleCheck;
+    case 'warning':
+      return TriangleAlert;
+    default:
+      return undefined;
+  }
+}
+
+function isNumericContent(node: ReactNode): boolean {
+  return (
+    typeof node === 'number' ||
+    (typeof node === 'string' && /^[\d\s.,%+/-]+$/.test(node))
+  );
 }
 
 function hasContent(node: ReactNode): boolean {
@@ -75,8 +109,24 @@ function Badge({
 
   const statusConfig = status ? getBadgeStatus(status) : null;
   const StatusIcon = statusConfig?.Icon;
-  const resolvedIcon = StatusIcon ? <StatusIcon /> : icon;
   const label = hasContent(children) ? children : statusConfig?.label;
+
+  // Status-toned badges carry an icon unless the caller opted out of the
+  // status look: author casing (tags), mono ids, truncated labels and bare
+  // counts are not statuses.
+  const ToneIcon =
+    !status &&
+    !icon &&
+    value === undefined &&
+    casing !== 'normal' &&
+    !isMono &&
+    !isTruncated &&
+    hasContent(children) &&
+    !isNumericContent(children)
+      ? getToneIcon(variant)
+      : undefined;
+  const LeadingIcon = StatusIcon ?? ToneIcon;
+  const resolvedIcon = LeadingIcon ? <LeadingIcon /> : icon;
 
   let content: ReactNode = EMPTY_BADGE_LABEL;
   if (value !== undefined) {
@@ -97,7 +147,9 @@ function Badge({
     <span
       className={cn(
         badgeVariants({
-          casing,
+          // A status is a fixed product label, never author text: always
+          // uppercase, whatever casing a caller asks for.
+          casing: statusConfig ? 'upper' : casing,
           isMono,
           isSolid,
           shape,

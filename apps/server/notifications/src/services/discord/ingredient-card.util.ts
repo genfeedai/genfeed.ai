@@ -1,5 +1,15 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import {
+  createAdminIngredientRoute,
+  createBrandAppRoute,
+  createLibraryAssetRoute,
+} from '@genfeedai/contracts/constants';
 import type { IIngredientNotificationData } from '@genfeedai/contracts/interfaces';
+import {
+  adminBrandUrl,
+  adminUserUrl,
+  formatCredits,
+} from '@notifications/services/discord/operator-card.util';
 import { ButtonBuilder, ButtonStyle } from 'discord.js';
 
 export function getIngredientEmbedColor(category: IngredientCategory): number {
@@ -20,19 +30,63 @@ function fitFieldValue(value: string): string {
     : value;
 }
 
+/** A Discord markdown link, or the bare text when there is nowhere to go. */
+function linkField(text: string, url: string | null): string {
+  return url ? `[${text.replace(/[[\]]/g, '\\$&')}](${url})` : text;
+}
+
+const CODE_FENCE = '```';
+
+/**
+ * The prompt as a copyable code block. Discord has no copy button for plain
+ * text, and a triple backtick inside the prompt would close the block early.
+ */
+function promptCodeBlock(prompt: string): string {
+  const safePrompt = prompt.replaceAll(CODE_FENCE, '`\u200b``');
+  const room = DISCORD_FIELD_VALUE_LIMIT - CODE_FENCE.length * 2 - 2;
+  const fitted =
+    safePrompt.length > room
+      ? `${safePrompt.substring(0, room - 3)}...`
+      : safePrompt;
+  return `${CODE_FENCE}\n${fitted}\n${CODE_FENCE}`;
+}
+
+/**
+ * The embed link for the asset: its Library page in the organization and brand
+ * it lives in, or the admin page when the slugs are missing and the category
+ * has one. Null when neither exists or the app origin is not configured.
+ */
+export function buildIngredientManagerUrl(
+  appUrl: string | undefined,
+  category: IngredientCategory,
+  ingredient: IIngredientNotificationData,
+): string | null {
+  if (!appUrl) return null;
+  const orgSlug = ingredient.owner?.organizationSlug;
+  const brandSlug = ingredient.brand?.slug;
+  if (orgSlug && brandSlug) {
+    return `${appUrl}${createBrandAppRoute(
+      encodeURIComponent(orgSlug),
+      encodeURIComponent(brandSlug),
+      createLibraryAssetRoute(category, ingredient.id),
+    )}`;
+  }
+  const adminRoute = createAdminIngredientRoute(category, ingredient.id);
+  return adminRoute ? `${appUrl}${adminRoute}` : null;
+}
+
 export function buildIngredientFields(
   ingredient: IIngredientNotificationData,
+  appUrl?: string,
 ): Array<{ name: string; value: string; inline: boolean }> {
   const fields: Array<{ name: string; value: string; inline: boolean }> = [];
 
   if (ingredient.prompt?.original) {
-    const escapedPrompt = ingredient.prompt.original.replace(/`/g, "'");
-    const truncatedPrompt =
-      escapedPrompt.length > 1020
-        ? `${escapedPrompt.substring(0, 1020)}...`
-        : escapedPrompt;
-
-    fields.push({ inline: false, name: 'Prompt', value: truncatedPrompt });
+    fields.push({
+      inline: false,
+      name: 'Prompt',
+      value: promptCodeBlock(ingredient.prompt.original),
+    });
   }
 
   const { owner } = ingredient;
@@ -43,7 +97,12 @@ export function buildIngredientFields(
     fields.push({
       inline: false,
       name: 'User',
-      value: fitFieldValue(account),
+      value: fitFieldValue(
+        linkField(
+          account,
+          owner?.userId ? adminUserUrl(appUrl, owner.userId) : null,
+        ),
+      ),
     });
   }
 
@@ -61,7 +120,7 @@ export function buildIngredientFields(
     fields.push({
       inline: true,
       name: 'Credits left',
-      value: String(owner.creditBalance),
+      value: formatCredits(owner.creditBalance),
     });
   }
 
@@ -85,7 +144,14 @@ export function buildIngredientFields(
     fields.push({
       inline: true,
       name: 'Brand',
-      value: ingredient.brand.label,
+      value: fitFieldValue(
+        linkField(
+          ingredient.brand.label,
+          ingredient.brand.id
+            ? adminBrandUrl(appUrl, ingredient.brand.id)
+            : null,
+        ),
+      ),
     });
   }
 

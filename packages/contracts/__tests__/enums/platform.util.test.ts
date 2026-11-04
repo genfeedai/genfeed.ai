@@ -1,6 +1,7 @@
 import {
   formatCompactPlatformLabel,
   formatPlatformLabel,
+  isOrganicPostingPlatform,
   isPlatform,
   isSourcePostVariationPlatform,
   isTwitterPlatform,
@@ -62,5 +63,19 @@ describe('platform.util', () => {
     expect(isSourcePostVariationPlatform('x')).toBe(true);
     expect(isSourcePostVariationPlatform(Platform.YOUTUBE)).toBe(false);
     expect(isSourcePostVariationPlatform('not-a-platform')).toBe(false);
+  });
+
+  it.each([
+    ['youtube', true],
+    ['tiktok', true],
+    ['instagram', true],
+    ['twitter', true],
+    ['google_ads', false],
+    ['x_ads', false],
+    ['google_search_console', false],
+    ['restream', false],
+    ['GOOGLE_ADS', false],
+  ])('treats %s as organic posting destination: %s', (platform, expected) => {
+    expect(isOrganicPostingPlatform(platform)).toBe(expected);
   });
 });

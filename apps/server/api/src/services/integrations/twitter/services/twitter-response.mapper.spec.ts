@@ -100,20 +100,10 @@ describe('TwitterResponseMapper', () => {
   });
 
   describe('mapTrends', () => {
-    it('projects scope and normalized growth', () => {
+    it('projects scope, normalized growth and a search url', () => {
       expect(
         mapper.mapTrends(
-          [
-            {
-              trends: [
-                {
-                  name: '#launch',
-                  tweet_volume: 250_000,
-                  url: 'https://x.com/search?q=%23launch',
-                },
-              ],
-            },
-          ],
+          { data: [{ trend_name: '#launch', tweet_count: 250_000 }] },
           'organization-1',
           'brand-1',
         ),
@@ -128,6 +118,14 @@ describe('TwitterResponseMapper', () => {
           url: 'https://x.com/search?q=%23launch',
         },
       ]);
+    });
+
+    it('treats a missing tweet count as zero mentions and absent data as no trends', () => {
+      expect(
+        mapper.mapTrends({ data: [{ trend_name: 'quiet' }] })[0]?.mentions,
+      ).toBe(0);
+      expect(mapper.mapTrends({})).toEqual([]);
+      expect(mapper.mapTrends(null)).toEqual([]);
     });
   });
 

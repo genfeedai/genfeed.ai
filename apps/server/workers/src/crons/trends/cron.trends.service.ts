@@ -16,6 +16,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   fromPrismaCredentialPlatform,
   WorkflowExecutionTrigger,
@@ -113,17 +114,24 @@ export class CronTrendsService implements OnModuleInit {
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_GLOBAL,
-      async () => ({
-        count: (await this.trendsService.fetchAndCacheTrends()).length,
-      }),
+      () =>
+        runWithApifyCaller('trends.fetch-global', async () => ({
+          count: (await this.trendsService.fetchAndCacheTrends()).length,
+        })),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_DATASET,
-      ({ input }) => this.fetchDataset(input.task as TrendDatasetTask),
+      ({ input }) =>
+        runWithApifyCaller('trends.fetch-dataset', () =>
+          this.fetchDataset(input.task as TrendDatasetTask),
+        ),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SOUNDS,
-      () => this.countResult(this.trendsService.fetchAndCacheSounds()),
+      () =>
+        runWithApifyCaller('trends.fetch-sounds', () =>
+          this.countResult(this.trendsService.fetchAndCacheSounds()),
+        ),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.PRECOMPUTE_PREVIEW,
@@ -136,7 +144,9 @@ export class CronTrendsService implements OnModuleInit {
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED,
       ({ input }) =>
-        this.fetchScopedTrendTask(input.task as ScopedTrendRefreshTask),
+        runWithApifyCaller('trends.fetch-scoped', () =>
+          this.fetchScopedTrendTask(input.task as ScopedTrendRefreshTask),
+        ),
     );
   }
 

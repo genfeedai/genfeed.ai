@@ -1,5 +1,6 @@
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { runWithApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -734,6 +735,43 @@ describe('ApifyBaseService', () => {
         /Apify/i,
       );
       expect(httpService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('caller attribution', () => {
+    beforeEach(() => {
+      httpService.post.mockReturnValue(
+        of({ data: { data: { defaultDatasetId: 'ds-1', id: 'run-42' } } }),
+      );
+      httpService.get.mockImplementation((url: string) =>
+        url.includes('/datasets/')
+          ? of({ data: [] })
+          : of({ data: { data: { id: 'run-42', status: 'SUCCEEDED' } } }),
+      );
+    });
+
+    it('names the caller and the run id for a run started inside a named caller', async () => {
+      await runWithApifyCaller('trends.fetch-global', () =>
+        service.runActor('clockworks/tiktok-trends-scraper', {}),
+      );
+
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('started Apify run run-42'),
+        expect.objectContaining({
+          actorId: 'clockworks/tiktok-trends-scraper',
+          caller: 'trends.fetch-global',
+          runId: 'run-42',
+        }),
+      );
+    });
+
+    it('marks a run from an entry point that never named itself as unattributed', async () => {
+      await service.runActor('clockworks/tiktok-trends-scraper', {});
+
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('started Apify run run-42'),
+        expect.objectContaining({ caller: 'unattributed' }),
+      );
     });
   });
 });

@@ -130,6 +130,17 @@
     "destinationsDescription": "Pick one or more accounts, or choose Article or Newsletter to write it in its own editor.",
     "noAccounts": "No connected accounts yet. Save a draft now and connect an account later.",
     "draftOnly": "No account selected. This saves as a draft.",
+    "media": "Media",
+    "noMedia": "No media attached. Pick a video or image from your Library, or upload one.",
+    "libraryVideo": "Library video",
+    "libraryImage": "Library image",
+    "uploadVideo": "Upload video",
+    "uploadImage": "Upload image",
+    "removeMedia": "Remove {name}",
+    "mediaNeeded": "{platforms} needs media before it can be published or scheduled.",
+    "videoNeeded": "{platforms} needs a video before it can be published or scheduled.",
+    "mediaRequired": "Attach media before publishing or scheduling this post.",
+    "videoRequired": "Attach a video before publishing or scheduling this post.",
     "editorsHeading": "Or write in its own editor",
     "article": "Article",
     "articleHint": "Long-form · blog or copy",
@@ -150,7 +161,7 @@
     "scheduleAt": "Publish at",
     "scheduleNeedsAccount": "Select an account to publish or schedule.",
     "createTitle": "New post",
-    "createDescription": "Write once, then choose where it goes.",
+    "createDescription": "Choose where it goes, add your media, then write the post.",
     "editTitle": "Edit Post",
     "editDescription": "Update the content and details for this post",
     "threadReplyTitle": "Add Thread Reply",
@@ -306,13 +317,61 @@
     "elapsed": "{time} elapsed",
     "outputs": "{count} of {total} ready"
   },
+  "postBatch": {
+    "channels": {
+      "activeCount": "{active} of {total} active",
+      "addChannels": "Add channels",
+      "connect": "Connect",
+      "connectNamed": "Connect {name}",
+      "edit": "Edit",
+      "editNamed": "Edit {name}",
+      "listLabel": "Channels",
+      "noCaption": "No caption yet",
+      "notConnected": "Not connected",
+      "publishTo": "Publish to {name}",
+      "reconnect": "Reconnect",
+      "reconnectNamed": "Reconnect {name}",
+      "reconnectToPublish": "Reconnect this account to publish",
+      "toggleAll": "Toggle all",
+      "turnAllOff": "Turn all channels off",
+      "turnAllOffShort": "Off",
+      "turnAllOn": "Turn all channels on",
+      "turnAllOnShort": "On"
+    },
+    "footer": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "next": "Next, select channels",
+      "schedule": "Schedule"
+    },
+    "setup": {
+      "aiShort": "AI",
+      "descriptionHelp": "This will be the default description for all channels. You can edit it per channel in the next step.",
+      "descriptionHelpFromPrompt": "Generate description from ingredient prompt or enter manually",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter a description for your post",
+      "generateFromPrompt": "Generate from Prompt",
+      "generateTitle": "Generate title with AI",
+      "scheduleHelp": "Minimum 15 minutes from now. You can change it per channel in the next step.",
+      "scheduleLabel": "Schedule Date & Time",
+      "titleHelpImage": "Will be used for Instagram. Not applicable for Twitter.",
+      "titleHelpVideo": "Will be used for YouTube, TikTok, and Instagram. Not applicable for Twitter.",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter title for your post"
+    },
+    "stepHeader": {
+      "back": "Back to details",
+      "channelsDescription": "Choose destinations and customize each channel.",
+      "channelsTitle": "Choose channels",
+      "detailsDescription": "Add the post details and set the time.",
+      "detailsTitle": "Schedule post"
+    }
+  },
   "postPlatforms": {
     "charactersUsed": "Characters used per channel",
-    "empty": "Enable a platform above to configure its publishing content.",
+    "empty": "Turn on at least one channel to publish.",
     "livePreview": "Live preview",
-    "livePreviewDescription": "Platform-tuned preview of each enabled channel, updated as you type.",
-    "settingsDescription": "Enable a platform above to customise its title, description, and scheduling options.",
-    "settingsTitle": "Platform-Specific Settings"
+    "livePreviewDescription": "Platform-tuned preview of each enabled channel, updated as you type."
   },
   "organizationCreateModal": {
     "title": "Create Organization",

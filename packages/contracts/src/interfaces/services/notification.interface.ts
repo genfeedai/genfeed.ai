@@ -192,13 +192,23 @@ export interface IIngredientNotificationOwner {
   creditBalance?: number;
   organizationId?: string;
   organizationLabel?: string;
+  /** Scopes the app link to the organization the asset lives in. */
+  organizationSlug?: string;
   userEmail?: string;
+  /** Opens the user's admin profile from the card. */
+  userId?: string;
   userName?: string;
+}
+
+export interface IIngredientNotificationBrand {
+  id?: string;
+  label?: string;
+  slug?: string;
 }
 
 export interface IIngredientNotificationData {
   id: string;
-  brand?: { label?: string };
+  brand?: IIngredientNotificationBrand;
   owner?: IIngredientNotificationOwner;
   label?: string;
   metadata?: {

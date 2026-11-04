@@ -1,4 +1,10 @@
-import type { LucideIcon } from 'lucide-react';
+import {
+  Info,
+  type LucideIcon,
+  Plug,
+  TriangleAlert,
+  Unplug,
+} from 'lucide-react';
 import {
   type StatusKey,
   statusBadge,
@@ -101,6 +107,22 @@ export function getBadgeStatus(status: string): BadgeStatus {
       return fromCanonical('error', 'Discrepant', 'destructive');
     case 'unresolved':
       return fromCanonical('pending', 'Unresolved', 'warning');
+
+    // Account / integration connection health
+    case 'disconnected':
+      return { Icon: Unplug, label: 'Disconnected', variant: 'destructive' };
+    case 'connected':
+      return { Icon: Plug, label: 'Connected', variant: 'info' };
+    case 'healthy':
+      return fromCanonical('completed', 'Healthy', 'success');
+    case 'needs_attention':
+      return {
+        Icon: TriangleAlert,
+        label: 'Needs attention',
+        variant: 'warning',
+      };
+    case 'recorded':
+      return { Icon: Info, label: 'Recorded', variant: 'info' };
 
     // Operational status
     case 'validated':

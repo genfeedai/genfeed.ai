@@ -16,7 +16,6 @@ export default function ProvidersRowItem({
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
       <Badge
-        casing="normal"
         className="w-fit"
         icon={enabled ? <CircleCheck /> : <Key />}
         shape="pill"

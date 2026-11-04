@@ -217,10 +217,10 @@ export interface ModalPostProps extends ModalVisibilityProps {
 /** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
 export type ModalPostBatchProps = Omit<ModalPostProps, 'modalId'>;
 
-export interface ModalPostHeaderProps {
+export interface ModalPostStepHeaderProps {
   activeTab: 'setup' | 'platforms';
-  onTabChange: (tab: 'setup' | 'platforms') => void;
-  isStep1Complete: boolean;
+  /** Goes back from the channels step to the details step. */
+  onBack: () => void;
 }
 
 export interface ModalPostContentProps {
@@ -241,6 +241,8 @@ export interface ModalPostContentProps {
   ) => void;
   getMinDateTime: () => Date;
   scheduleTimezone: string;
+  /** Opens the connections page to connect or reconnect a channel. */
+  onAddChannels?: () => void;
 }
 
 export interface ModalPostPlatformsTabProps {
@@ -257,6 +259,24 @@ export interface ModalPostPlatformsTabProps {
   ) => void;
   getMinDateTime: () => Date;
   scheduleTimezone: string;
+  /** Opens the connections page to connect or reconnect a channel. */
+  onAddChannels?: () => void;
+}
+
+export interface ModalPostChannelListProps {
+  platformConfigs: IPostPlatformConfig[];
+  credentials: ICredential[];
+  /** Shared caption shown for a channel that has no caption of its own. */
+  globalDescription: string;
+  /** Platform whose editor is open, if any. */
+  expandedPlatform: string | null;
+  isLoading: boolean;
+  onToggle: (credentialId: string) => void;
+  onToggleAll: (isEnabled: boolean) => void;
+  onToggleExpanded: (platform: string) => void;
+  onAddChannels?: () => void;
+  /** The per-channel editor revealed by Edit. */
+  renderEditor: (config: IPostPlatformConfig) => ReactNode;
 }
 
 export interface ModalPostSetupTabProps {
@@ -272,7 +292,6 @@ export interface ModalPostSetupTabProps {
 export interface ModalPostFooterProps {
   activeTab: 'setup' | 'platforms';
   isLoading: boolean;
-  enabledCount: number;
   globalScheduledDate: Date | null;
   globalDescription: string;
   hasYoutube: boolean;
@@ -313,8 +332,23 @@ export interface ModalPostComposerFieldsState
   onThreadChange: (isThread: boolean) => void;
 }
 
+export type ModalPostMediaKind = 'image' | 'video';
+
+export interface ModalPostMediaProps {
+  /** Attached Library media in the order it will be posted. */
+  items: IIngredient[];
+  isDisabled: boolean;
+  /** Names the media the selected destinations need, shown before delivery. */
+  requirementHint: string | null;
+  onPickFromLibrary: (kind: ModalPostMediaKind) => void;
+  onUpload: (kind: ModalPostMediaKind) => void;
+  onRemove: (ingredientId: string) => void;
+}
+
 export interface ModalPostSimpleFieldsProps {
   composer?: ModalPostComposerFieldsState;
+  /** Media attachment for a new post; absent when editing an existing post. */
+  media?: ModalPostMediaProps;
   form: UseFormReturn<PostModalSchema>;
   credentials: ICredential[];
   isEditMode: boolean;

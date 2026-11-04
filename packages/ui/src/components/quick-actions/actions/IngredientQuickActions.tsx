@@ -76,6 +76,7 @@ function IngredientQuickActionsContent(
 ): React.ReactNode {
   const {
     align = 'end',
+    isHeaderEmbedded = false,
     isMasonryCompact = false,
     selectedIngredient,
     size = ComponentSize.SM,
@@ -421,6 +422,47 @@ function IngredientQuickActionsContent(
       : cn(BG_BLUR, BORDER_WHITE_30, 'p-1'),
     'quick-actions-wrapper transition-colors duration-300',
   );
+
+  // Inside a sidebar header the actions are part of the header, not a floating
+  // pill: one flat row with Publish as the labelled primary action.
+  if (isHeaderEmbedded) {
+    return (
+      <div
+        className="flex items-center gap-1"
+        data-testid="header-embedded-actions"
+      >
+        {downloadControl}
+        {visibleActions(primaryActions).map((action) => (
+          <QuickActionButton
+            key={action.id}
+            action={action}
+            size={size}
+            showLabel={action.id === 'publish'}
+            onClick={handleActionClick}
+          />
+        ))}
+
+        {(menuActions.length > 0 ||
+          editingActions.length > 0 ||
+          (props.characterActions?.length ?? 0) > 0) && (
+          <QuickActionsMenu
+            actions={visibleActions([
+              ...editingActions,
+              ...menuActions,
+              ...(props.characterActions ?? []),
+            ])}
+            isMenuOpen={isMenuOpen}
+            setIsMenuOpen={(open) => {
+              setIsMenuOpen(open);
+              props.onMenuOpenChange?.(open);
+            }}
+            size={size}
+            onActionClick={handleActionClick}
+          />
+        )}
+      </div>
+    );
+  }
 
   // A masonry tile shows one control at rest: the overflow menu. Primary
   // actions are not deleted, they move to the top of that menu so the media

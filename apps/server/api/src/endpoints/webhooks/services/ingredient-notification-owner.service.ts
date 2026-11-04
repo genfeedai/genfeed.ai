@@ -8,7 +8,8 @@ import { Injectable } from '@nestjs/common';
 type OwnedIngredient = Pick<
   IngredientDocument,
   'id' | 'organization' | 'organizationId' | 'user'
->;
+> &
+  Partial<Pick<IngredientDocument, 'userId'>>;
 
 function readText(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
@@ -53,7 +54,9 @@ export class IngredientNotificationOwnerService {
       creditBalance,
       organizationId: ingredient.organizationId ?? undefined,
       organizationLabel: readText(organization?.label),
+      organizationSlug: readText(organization?.slug),
       userEmail: readText(user?.email),
+      userId: readText(user?.id) ?? readText(ingredient.userId),
       userName: userName || undefined,
     };
   }
