@@ -1,8 +1,5 @@
-import {
-  fitBrandContextToPromptBudget,
-  joinGenerationBriefPromptParts,
-  recordOmittedGenerationBriefSignal,
-} from '@api/services/generation-brief/compile-image-generation-brief.util';
+import { recordOmittedGenerationBriefSignal } from '@api/services/generation-brief/compile-image-generation-brief.util';
+import { buildVideoGenerationBriefPrompt } from '@api/services/generation-brief/compile-video-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
@@ -111,95 +108,6 @@ function resolveReferences(
   };
 }
 
-function buildPrompt(
-  brief: VideoGenerationBrief,
-  policy: GenerationFidelityPolicy,
-  omitted: VideoGenerationBriefOmittedSignal[],
-): string {
-  const parts: string[] = [brief.intent.objective];
-
-  if (brief.intent.subjects.length > 0) {
-    parts.push(brief.intent.subjects.join(', '));
-  }
-  if (brief.intent.scene) {
-    parts.push(brief.intent.scene);
-  }
-  if (brief.intent.composition) {
-    parts.push(brief.intent.composition);
-  }
-  if (brief.intent.lighting) {
-    parts.push(brief.intent.lighting);
-  }
-  if (brief.intent.cinematography) {
-    parts.push(brief.intent.cinematography);
-  }
-  if (brief.intent.motion) {
-    parts.push(brief.intent.motion);
-  }
-  if (brief.intent.visualDirection) {
-    parts.push(brief.intent.visualDirection);
-  }
-  if (brief.intent.audioDirection) {
-    parts.push(`Audio: ${brief.intent.audioDirection}`);
-  }
-  if (brief.intent.requestedText.length > 0) {
-    parts.push(`Visible text: ${brief.intent.requestedText.join(', ')}`);
-  }
-
-  if (policy.applyConstraints) {
-    for (const constraint of brief.constraints) {
-      if (constraint.kind === 'desired_outcome') {
-        parts.push(constraint.value);
-        continue;
-      }
-
-      if (constraint.kind === 'exact_composition') {
-        parts.push(constraint.value);
-        continue;
-      }
-
-      recordOmittedGenerationBriefSignal(
-        omitted,
-        `constraints.${constraint.kind}`,
-        'MiniMax H3 has no native negative-prompt field.',
-        policy,
-        constraint.required,
-        'MiniMax H3',
-      );
-    }
-  }
-
-  // Independent of fidelity policy — brand voice follows Brand voice only.
-  // Fit into whatever budget is left after everything else (#4676).
-  const fittedBrandContext = fitBrandContextToPromptBudget({
-    brandContext: brief.intent.brandContext,
-    maxCharacters: MINIMAX_H3_CAPABILITY_PROFILE.prompt.maxCharacters,
-    modelLabel: 'MiniMax H3',
-    omitted,
-    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
-  });
-  if (fittedBrandContext) {
-    parts.push(fittedBrandContext);
-  }
-
-  const prompt = joinGenerationBriefPromptParts(parts);
-  if (!prompt) {
-    throw new GenerationBriefCompileError(
-      'MiniMax H3 compilation produced an empty prompt.',
-      'invalid_brief',
-    );
-  }
-
-  if (prompt.length > MINIMAX_H3_CAPABILITY_PROFILE.prompt.maxCharacters) {
-    throw new GenerationBriefCompileError(
-      'MiniMax H3 prompt exceeds the capability profile character limit.',
-      'invalid_brief',
-    );
-  }
-
-  return prompt;
-}
-
 export function compileMinimaxH3GenerationBrief(
   input: CompileMinimaxH3GenerationBriefInput,
 ): MinimaxH3CompileResult {
@@ -213,7 +121,10 @@ export function compileMinimaxH3GenerationBrief(
   const policy = generationFidelityPolicies[input.brief.fidelityMode];
   const omitted: VideoGenerationBriefOmittedSignal[] = [];
 
-  const prompt = buildPrompt(input.brief, policy, omitted);
+  const prompt = buildVideoGenerationBriefPrompt(input.brief, policy, omitted, {
+    label: 'MiniMax H3',
+    maxCharacters: MINIMAX_H3_CAPABILITY_PROFILE.prompt.maxCharacters,
+  });
   const aspectRatio = resolveAspectRatio(input.brief);
   const duration = resolveDuration(input.brief);
   const resolved = resolveReferences(input.brief, policy, omitted);
