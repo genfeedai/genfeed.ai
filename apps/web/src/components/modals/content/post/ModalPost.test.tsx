@@ -424,6 +424,7 @@ describe('ModalPost', () => {
         await waitFor(() =>
           expect(mocks.post).toHaveBeenCalledWith(
             expect.objectContaining({
+              category: 'VIDEO',
               credentialId: 'cred-x',
               ingredients: ['video-1'],
             }),

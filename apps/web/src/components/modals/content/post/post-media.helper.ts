@@ -1,4 +1,8 @@
-import { IngredientCategory, Platform } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  Platform,
+  PostCategory,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
@@ -73,4 +77,34 @@ export function mergePostMedia(
     }
   }
   return merged.slice(0, MAX_POST_MEDIA_ITEMS);
+}
+
+const VIDEO_INGREDIENT_CATEGORIES: ReadonlySet<string> = new Set([
+  IngredientCategory.AVATAR,
+  IngredientCategory.VIDEO,
+  IngredientCategory.VIDEO_EDIT,
+]);
+
+const IMAGE_INGREDIENT_CATEGORIES: ReadonlySet<string> = new Set([
+  IngredientCategory.GIF,
+  IngredientCategory.IMAGE,
+  IngredientCategory.IMAGE_EDIT,
+]);
+
+/**
+ * The post category the attached media describes. The API validates a new
+ * post's channel contract from its category (the default is TEXT), so a draft
+ * with a video must say VIDEO or it is judged as text. `undefined` leaves the
+ * server default for a post with no visual media.
+ */
+export function getPostCategoryForMedia(
+  media: readonly IIngredient[],
+): PostCategory | undefined {
+  if (media.some((item) => VIDEO_INGREDIENT_CATEGORIES.has(item.category))) {
+    return PostCategory.VIDEO;
+  }
+  if (media.some((item) => IMAGE_INGREDIENT_CATEGORIES.has(item.category))) {
+    return PostCategory.IMAGE;
+  }
+  return undefined;
 }

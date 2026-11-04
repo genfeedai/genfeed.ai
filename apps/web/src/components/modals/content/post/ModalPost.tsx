@@ -51,6 +51,7 @@ import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
 import ModalPostSimpleHeader from './ModalPostSimpleHeader';
 import {
+  getPostCategoryForMedia,
   getPostMediaRequirement,
   isPostMediaRequirementMet,
   mergePostMedia,
@@ -321,6 +322,7 @@ export default function ModalPost({
             const caption = isX
               ? stripHtmlToPlainText(formData.description)
               : formData.description;
+            const category = getPostCategoryForMedia(selectedMediaRef.current);
             const shared = {
               brandId: brandId || undefined,
               credentialId: target?.id,
@@ -337,6 +339,7 @@ export default function ModalPost({
               const thread = await postsService.createThread({
                 posts: parts.map((part, index) => ({
                   ...shared,
+                  ...(index === 0 && category ? { category } : {}),
                   description: part,
                   ingredients: index === 0 ? formData.ingredients || [] : [],
                   label: label || `Thread ${index + 1}/${parts.length}`,
@@ -347,6 +350,7 @@ export default function ModalPost({
 
             return postsService.post({
               ...shared,
+              ...(category ? { category } : {}),
               description: caption,
               format:
                 isX && calculateTweetLength(caption) > X_STANDARD_POST_LIMIT
@@ -418,6 +422,7 @@ export default function ModalPost({
         logger.info(`${url} success`);
         return result;
       } else {
+        const mediaCategory = getPostCategoryForMedia(selectedMediaRef.current);
         const adopted = adoptedDraftRef.current;
         const canAdoptDraft =
           adopted !== null &&
@@ -441,6 +446,7 @@ export default function ModalPost({
             })
           : await postsService.post({
               brandId: brandId || undefined,
+              ...(mediaCategory ? { category: mediaCategory } : {}),
               credentialId: formData.credentialId || undefined,
               description: descriptionForSubmit,
               format: formData.format,
