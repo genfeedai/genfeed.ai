@@ -6,6 +6,7 @@ import {
   ApifyActorRun,
   ApifyActorRunResponse,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import { currentApifyCaller } from '@api/services/integrations/apify/utils/apify-caller.context';
 import {
   ApifyAccountSuspendedException,
   describeApifyError,
@@ -329,10 +330,12 @@ export class ApifyBaseService {
 
     const url = this.buildActorRunUrl(actorId);
 
+    const caller = currentApifyCaller();
     this.loggerService.log(
       `${this.constructorName} starting governed Apify actor`,
       {
         actorId,
+        caller,
         capability: registration?.capability ?? 'unclassified_non_production',
         mode: registration?.mode ?? 'unclassified_non_production',
         scope,
@@ -348,6 +351,11 @@ export class ApifyBaseService {
 
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
+      // The run id is the key into the Apify console's usage and cost view.
+      this.loggerService.log(
+        `${this.constructorName} started Apify run ${runId}`,
+        { actorId, caller, runId, scope },
+      );
 
       const completedRun = await this.waitForRun(runId, token);
       if (completedRun.status !== 'SUCCEEDED') {
