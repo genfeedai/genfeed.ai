@@ -153,14 +153,21 @@ export class StudioProposalsService {
       userId,
     });
     const formatted = this.harnessGenerationService.formatBrief(brief).trim();
-    if (
-      !brief ||
-      !formatted ||
-      formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET
-    ) {
+    // The three refusals read the same to the member; the log names which one
+    // fired so a recurrence can be attributed without the brand's content.
+    const unavailableReason = !brief
+      ? 'brief_missing'
+      : !formatted
+        ? 'brief_empty'
+        : formatted.length > BRAND_CONTEXT_CHARACTER_BUDGET
+          ? 'brief_over_budget'
+          : null;
+    if (unavailableReason) {
       this.logger.warn(`${this.constructor.name} harness brief unavailable`, {
         brandId,
+        formattedLength: formatted.length,
         organizationId,
+        reason: unavailableReason,
         surface,
       });
       throw new ServiceUnavailableException(
