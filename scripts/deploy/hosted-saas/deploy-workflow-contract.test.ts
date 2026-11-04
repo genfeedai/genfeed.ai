@@ -177,9 +177,7 @@ describe('preview frontend deployment contract', () => {
     const preview = await workflow('deploy-preview-frontend.yml');
 
     expect(preview).toContain('PREVIEW_API_URL: ${{ vars.PREVIEW_API_URL }}');
-    expect(preview).toContain(
-      `printf 'API_URL=%s\\n' "\${PREVIEW_API_URL%/}"`,
-    );
+    expect(preview).toContain(`printf 'API_URL=%s\\n' "\${PREVIEW_API_URL%/}"`);
     expect(preview).toContain('PREVIEW_API_URL points at the production API.');
   });
 
