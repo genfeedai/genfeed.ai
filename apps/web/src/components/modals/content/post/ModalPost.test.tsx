@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import type { PostModalSchema } from '@genfeedai/client/schemas';
-import { ModalEnum } from '@genfeedai/contracts';
+import { IngredientCategory, ModalEnum } from '@genfeedai/contracts';
 import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
 import {
   closeModal,
@@ -21,6 +21,26 @@ const mocks = vi.hoisted(() => ({
   post: vi.fn(),
   patch: vi.fn(),
   generateDraftText: vi.fn(),
+  openGallery: vi.fn(),
+  openUpload: vi.fn(),
+}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.hooks',
+  () => ({
+    useGalleryModal: () => ({
+      closeGallery: vi.fn(),
+      openGallery: mocks.openGallery,
+    }),
+    useUploadModal: () => ({
+      closeUpload: vi.fn(),
+      openUpload: mocks.openUpload,
+    }),
+  }),
+);
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: ({ ariaLabel }: { ariaLabel?: string }) => (
+    <div role="img" aria-label={`Playable ${ariaLabel}`} />
+  ),
 }));
 vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
@@ -67,9 +87,15 @@ vi.mock('@/hooks/ui/use-crud-modal/use-crud-modal', async () => {
         formRef,
         closeModal: vi.fn(),
         isSubmitting: false,
-        onSubmit: form.handleSubmit((data) =>
-          customSubmitHandler(mocks, null, data),
-        ),
+        // The real hook reports a rejected submit and swallows it; mirror that
+        // so a refused publish is not an unhandled rejection.
+        onSubmit: form.handleSubmit(async (data) => {
+          try {
+            await customSubmitHandler(mocks, null, data);
+          } catch {
+            // surfaced through notificationsService by the handler
+          }
+        }),
       };
     },
   };
@@ -309,6 +335,180 @@ describe('ModalPost', () => {
       expect(
         screen.queryByRole('button', { name: 'Acme Restream' }),
       ).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['google_ads', 'Acme Google Ads'],
+      ['x_ads', 'Acme X Ads'],
+      ['google_search_console', 'Acme Search Console'],
+    ])('does not offer %s as a post target', (platform, label) => {
+      render(
+        <ModalPost
+          isComposer
+          credentials={[
+            xAccount,
+            {
+              id: `cred-${platform}`,
+              label,
+              platform,
+            } as unknown as ICredential,
+          ]}
+          modalId={ModalEnum.POST_COMPOSE}
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: 'Acme on X' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: label }),
+      ).not.toBeInTheDocument();
+    });
+
+    describe('media', () => {
+      const video = {
+        category: IngredientCategory.VIDEO,
+        id: 'video-1',
+        ingredientUrl: 'https://cdn.example/video-1.mp4',
+        metadataDuration: 42,
+        metadataLabel: 'Launch teaser',
+        metadataHeight: 1920,
+        metadataWidth: 1080,
+      };
+      const youtubeAccount = {
+        id: 'cred-yt',
+        label: 'Acme on YouTube',
+        platform: 'youtube',
+      } as unknown as ICredential;
+
+      async function pickLibraryVideo(
+        user: ReturnType<typeof userEvent.setup>,
+      ) {
+        mocks.openGallery.mockImplementationOnce(
+          ({ onSelect }: { onSelect: (items: unknown[]) => void }) =>
+            onSelect([video]),
+        );
+        await user.click(screen.getByRole('button', { name: 'Library video' }));
+      }
+
+      it('shows the destinations before the media and the caption', () => {
+        renderComposer();
+        const destinations = screen.getByRole('button', { name: 'Acme on X' });
+        const media = screen.getByRole('button', { name: 'Library video' });
+        const caption = screen.getByRole('textbox', { name: 'Post content' });
+
+        expect(
+          destinations.compareDocumentPosition(media) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+          media.compareDocumentPosition(caption) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+      });
+
+      it('previews a picked Library video and saves its identity in the draft', async () => {
+        const user = userEvent.setup();
+        renderComposer();
+        await user.click(screen.getByRole('button', { name: 'Acme on X' }));
+        await pickLibraryVideo(user);
+
+        expect(
+          screen.getByRole('img', { name: 'Playable Launch teaser' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('0:42')).toBeInTheDocument();
+        expect(screen.getByText('1080×1920')).toBeInTheDocument();
+
+        await writeCaption(user, 'Watch this');
+        await user.click(screen.getByRole('button', { name: 'Save draft' }));
+
+        await waitFor(() =>
+          expect(mocks.post).toHaveBeenCalledWith(
+            expect.objectContaining({
+              credentialId: 'cred-x',
+              ingredients: ['video-1'],
+            }),
+          ),
+        );
+      });
+
+      it('removes a picked video so it is not saved', async () => {
+        const user = userEvent.setup();
+        renderComposer();
+        await pickLibraryVideo(user);
+        await user.click(
+          screen.getByRole('button', { name: 'Remove Launch teaser' }),
+        );
+
+        expect(
+          screen.queryByRole('img', { name: 'Playable Launch teaser' }),
+        ).not.toBeInTheDocument();
+        await writeCaption(user, 'No media');
+        await user.click(screen.getByRole('button', { name: 'Save draft' }));
+        await waitFor(() =>
+          expect(mocks.post).toHaveBeenCalledWith(
+            expect.objectContaining({ ingredients: [] }),
+          ),
+        );
+      });
+
+      it('attaches uploaded videos', async () => {
+        const user = userEvent.setup();
+        mocks.openUpload.mockImplementationOnce(
+          ({ onComplete }: { onComplete: (items: unknown[]) => void }) =>
+            onComplete([video]),
+        );
+        renderComposer();
+        await user.click(screen.getByRole('button', { name: 'Upload video' }));
+
+        expect(
+          screen.getByRole('img', { name: 'Playable Launch teaser' }),
+        ).toBeInTheDocument();
+      });
+
+      it('says which destinations need a video before delivery', async () => {
+        const user = userEvent.setup();
+        render(
+          <ModalPost
+            isComposer
+            credentials={[xAccount, youtubeAccount]}
+            modalId={ModalEnum.POST_COMPOSE}
+          />,
+        );
+        await user.click(
+          screen.getByRole('button', { name: 'Acme on YouTube' }),
+        );
+
+        expect(
+          screen.getByText(
+            'YouTube needs a video before it can be published or scheduled.',
+          ),
+        ).toBeInTheDocument();
+      });
+
+      it('does not publish to a video platform without a video', async () => {
+        const user = userEvent.setup();
+        render(
+          <ModalPost
+            isComposer
+            credentials={[xAccount, youtubeAccount]}
+            modalId={ModalEnum.POST_COMPOSE}
+          />,
+        );
+        await user.click(
+          screen.getByRole('button', { name: 'Acme on YouTube' }),
+        );
+        await user.type(
+          screen.getByRole('textbox', { name: 'Title' }),
+          'Teaser',
+        );
+        await writeCaption(user, 'Watch this');
+        await user.click(screen.getByRole('button', { name: 'Publish now' }));
+
+        await waitFor(() =>
+          expect(mocks.publishTargetNow).not.toHaveBeenCalled(),
+        );
+        expect(mocks.post).not.toHaveBeenCalled();
+      });
     });
 
     it('creates one post per selected account', async () => {

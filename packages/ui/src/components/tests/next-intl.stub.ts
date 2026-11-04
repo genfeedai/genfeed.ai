@@ -802,8 +802,24 @@ const UI_TEST_MESSAGES = {
       confirmSchedule: 'Schedule post',
       scheduleAt: 'Publish at',
       scheduleNeedsAccount: 'Select an account to publish or schedule.',
+      media: 'Media',
+      noMedia:
+        'No media attached. Pick a video or image from your Library, or upload one.',
+      libraryVideo: 'Library video',
+      libraryImage: 'Library image',
+      uploadVideo: 'Upload video',
+      uploadImage: 'Upload image',
+      removeMedia: 'Remove {name}',
+      mediaNeeded:
+        '{platforms} needs media before it can be published or scheduled.',
+      videoNeeded:
+        '{platforms} needs a video before it can be published or scheduled.',
+      mediaRequired: 'Attach media before publishing or scheduling this post.',
+      videoRequired:
+        'Attach a video before publishing or scheduling this post.',
       createTitle: 'New post',
-      createDescription: 'Write once, then choose where it goes.',
+      createDescription:
+        'Choose where it goes, add your media, then write the post.',
       draftDescription:
         'Write or generate a draft. Connect an account when you are ready to publish',
       draftTitle: 'Create Post',

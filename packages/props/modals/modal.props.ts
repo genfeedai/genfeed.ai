@@ -332,8 +332,23 @@ export interface ModalPostComposerFieldsState
   onThreadChange: (isThread: boolean) => void;
 }
 
+export type ModalPostMediaKind = 'image' | 'video';
+
+export interface ModalPostMediaProps {
+  /** Attached Library media in the order it will be posted. */
+  items: IIngredient[];
+  isDisabled: boolean;
+  /** Names the media the selected destinations need, shown before delivery. */
+  requirementHint: string | null;
+  onPickFromLibrary: (kind: ModalPostMediaKind) => void;
+  onUpload: (kind: ModalPostMediaKind) => void;
+  onRemove: (ingredientId: string) => void;
+}
+
 export interface ModalPostSimpleFieldsProps {
   composer?: ModalPostComposerFieldsState;
+  /** Media attachment for a new post; absent when editing an existing post. */
+  media?: ModalPostMediaProps;
   form: UseFormReturn<PostModalSchema>;
   credentials: ICredential[];
   isEditMode: boolean;
