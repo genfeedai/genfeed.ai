@@ -73,6 +73,7 @@ describe('WorkflowArtifactLifecycleService', () => {
   };
   const workflowExecutionNodeResult = { updateMany: vi.fn() };
   const prisma = {
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(async (operations: Array<Promise<unknown>>) =>
       Promise.all(operations),
     ),
@@ -394,27 +395,104 @@ describe('WorkflowArtifactLifecycleService', () => {
     ).resolves.toBe(false);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
-  it('discovers already-scrubbed available sources for repair without a new timer', async () => {
-    workflowArtifact.findMany.mockResolvedValue([]);
-    workflowExecution.findMany.mockResolvedValue([]);
-    await service.findExpiredExecutionScopes(new Date('2026-09-30T12:00:00Z'));
-    expect(workflowExecution.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: expect.arrayContaining([
-            {
-              payloadScrubbedAt: { not: null },
-              generationAdmissionSource: {
-                path: ['state'],
-                equals: 'available',
-              },
-            },
-          ]),
-        }),
-      }),
+  describe('findExpiredExecutionScopes', () => {
+    const row = (id: string, completedAt: string) => ({
+      completedAt: new Date(completedAt),
+      id,
+      organizationId: `org-${id}`,
+      userId: `user-${id}`,
+    });
+
+    it('returns scrubbed and pending executions together, oldest first, without a new timer', async () => {
+      workflowArtifact.findMany.mockResolvedValue([]);
+      prisma.$queryRaw
+        .mockResolvedValueOnce([
+          row('scrubbed-late', '2026-09-30T10:00:00Z'),
+          row('scrubbed-early', '2026-09-30T08:00:00Z'),
+        ])
+        .mockResolvedValueOnce([row('pending', '2026-09-30T09:00:00Z')]);
+
+      await expect(
+        service.findExpiredExecutionScopes(new Date('2026-09-30T12:00:00Z')),
+      ).resolves.toEqual([
+        {
+          executionId: 'scrubbed-early',
+          organizationId: 'org-scrubbed-early',
+          userId: 'user-scrubbed-early',
+        },
+        {
+          executionId: 'pending',
+          organizationId: 'org-pending',
+          userId: 'user-pending',
+        },
+        {
+          executionId: 'scrubbed-late',
+          organizationId: 'org-scrubbed-late',
+          userId: 'user-scrubbed-late',
+        },
+      ]);
+      expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('keeps the 100 oldest executions when both sweeps are full', async () => {
+      workflowArtifact.findMany.mockResolvedValue([]);
+      const day = (offset: number) =>
+        new Date(Date.UTC(2026, 8, 1 + offset)).toISOString();
+      prisma.$queryRaw
+        .mockResolvedValueOnce(
+          Array.from({ length: 100 }, (_, index) =>
+            row(`scrubbed-${index}`, day(index * 2)),
+          ),
+        )
+        .mockResolvedValueOnce(
+          Array.from({ length: 100 }, (_, index) =>
+            row(`pending-${index}`, day(index * 2 + 1)),
+          ),
+        );
+
+      const scopes = await service.findExpiredExecutionScopes(
+        new Date('2026-12-30T12:00:00Z'),
+      );
+
+      expect(scopes).toHaveLength(100);
+      expect(scopes[0]?.executionId).toBe('scrubbed-0');
+      expect(scopes[1]?.executionId).toBe('pending-0');
+      expect(scopes[99]?.executionId).toBe('pending-49');
+    });
+
+    // The literal predicates below are also asserted against the partial
+    // indexes in packages/prisma/prisma/workflow-execution-cleanup-indexes.test.ts;
+    // Postgres only uses an index when the query repeats its predicate.
+    it.each([
+      [
+        0,
+        '"completedAt" IS NOT NULL AND "isDeleted" = false AND "payloadScrubbedAt" IS NOT NULL',
+      ],
+      [
+        1,
+        '"completedAt" IS NOT NULL AND "isDeleted" = false AND "payloadScrubbedAt" IS NULL AND ("purgeAfterHours" IS NOT NULL OR "scrubAllNodePayloads" = true OR "scrubNodeIds" <> \'{}\')',
+      ],
+    ])(
+      'query %i repeats its partial-index predicate literally',
+      async (queryIndex, predicate) => {
+        workflowArtifact.findMany.mockResolvedValue([]);
+        prisma.$queryRaw.mockResolvedValue([]);
+        await service.findExpiredExecutionScopes(
+          new Date('2026-09-30T12:00:00Z'),
+        );
+
+        const [strings] = prisma.$queryRaw.mock.calls[queryIndex] as [string[]];
+        const queryText = strings
+          .join('?')
+          .replace(/\s+/g, ' ')
+          .replace(/\( /g, '(')
+          .replace(/ \)/g, ')');
+
+        expect(queryText).toContain(predicate);
+      },
     );
-    expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
+
   it('does not reset retention timestamps when another scrub won the update', async () => {
     workflowExecution.findFirst.mockResolvedValue({
       generationAdmissionSource: admissionSource(),
