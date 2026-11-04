@@ -1,8 +1,13 @@
+import {
+  getCheckoutRedirectBaseUrls,
+  resolveAllowedRedirectUrl,
+} from '@api/helpers/utils/checkout-redirect/checkout-redirect.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -48,8 +53,9 @@ export class ManagedStripeCheckoutService {
       );
     }
 
-    const stripePriceId =
-      dto.stripePriceId || this.configService.get('STRIPE_PRICE_PAYG');
+    // The endpoint is public: only the configured PAYG price may be charged,
+    // and the buyer may only be sent back to a configured Genfeed origin.
+    const stripePriceId = this.configService.get('STRIPE_PRICE_PAYG');
 
     if (!stripePriceId) {
       throw new BadRequestException(
@@ -57,14 +63,31 @@ export class ManagedStripeCheckoutService {
       );
     }
 
+    if (dto.stripePriceId && dto.stripePriceId !== stripePriceId) {
+      throw new BadRequestException(
+        'Stripe price ID is not available for managed checkout.',
+      );
+    }
+
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+    const redirectBaseUrls = getCheckoutRedirectBaseUrls(this.configService);
+
     const session = await this.stripeService.createManagedPaymentSession({
-      cancelUrl: dto.cancelUrl,
+      cancelUrl: resolveAllowedRedirectUrl(
+        dto.cancelUrl,
+        `${appUrl}${APP_ROUTES.SETTINGS.CREDITS}`,
+        redirectBaseUrls,
+      ),
       email: dto.email,
       firstName: dto.firstName,
       lastName: dto.lastName,
       quantity: dto.quantity,
       stripePriceId,
-      successUrl: dto.successUrl,
+      successUrl: resolveAllowedRedirectUrl(
+        dto.successUrl,
+        `${appUrl}${APP_ROUTES.MANAGED_CREDITS_SUCCESS}?session_id={CHECKOUT_SESSION_ID}`,
+        redirectBaseUrls,
+      ),
     });
 
     await this.lifecycleEmailService?.recordManagedCheckoutStartedByEmail({

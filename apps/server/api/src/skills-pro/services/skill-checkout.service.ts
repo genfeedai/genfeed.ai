@@ -1,4 +1,8 @@
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import {
+  getCheckoutRedirectBaseUrls,
+  resolveAllowedRedirectUrl,
+} from '@api/helpers/utils/checkout-redirect/checkout-redirect.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkout.dto';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
@@ -64,9 +68,14 @@ export class SkillCheckoutService {
     const appUrl = this.configService.get('GENFEEDAI_APP_URL');
     const defaultSuccessUrl = `${appUrl}/skills-pro/success?session_id={CHECKOUT_SESSION_ID}`;
     const defaultCancelUrl = `${appUrl}/skills-pro`;
+    const redirectBaseUrls = getCheckoutRedirectBaseUrls(this.configService);
 
     const sessionConfig: CheckoutSessionCreateParams = {
-      cancel_url: this.resolveRedirectUrl(dto.cancelUrl, defaultCancelUrl),
+      cancel_url: resolveAllowedRedirectUrl(
+        dto.cancelUrl,
+        defaultCancelUrl,
+        redirectBaseUrls,
+      ),
       line_items: [lineItem],
       metadata: {
         bundle: String(productType === 'bundle'),
@@ -77,7 +86,11 @@ export class SkillCheckoutService {
       },
       mode: 'payment',
       allowed_payment_method_types: ['card'],
-      success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
+      success_url: resolveAllowedRedirectUrl(
+        dto.successUrl,
+        defaultSuccessUrl,
+        redirectBaseUrls,
+      ),
     };
 
     // Promo field open so public defaults (EARLYGEN) and team codes
@@ -165,51 +178,5 @@ export class SkillCheckoutService {
     throw new BadRequestException(
       'Skills Pro checkout is not configured. No bundle price found.',
     );
-  }
-
-  private resolveRedirectUrl(
-    requestedUrl: string | undefined,
-    fallbackUrl: string,
-  ): string {
-    if (!requestedUrl) {
-      return fallbackUrl;
-    }
-
-    return this.isAllowedRedirectUrl(requestedUrl) ? requestedUrl : fallbackUrl;
-  }
-
-  private isAllowedRedirectUrl(url: string): boolean {
-    let requestedOrigin: string;
-
-    try {
-      requestedOrigin = new URL(url).origin;
-    } catch {
-      return false;
-    }
-
-    return this.getAllowedRedirectOrigins().has(requestedOrigin);
-  }
-
-  private getAllowedRedirectOrigins(): Set<string> {
-    return new Set(
-      [
-        this.configService.get('GENFEEDAI_APP_URL'),
-        this.configService.get('GENFEEDAI_PUBLIC_URL'),
-      ]
-        .map((url) => this.toOrigin(url))
-        .filter((origin): origin is string => Boolean(origin)),
-    );
-  }
-
-  private toOrigin(url: string | undefined): string | undefined {
-    if (!url) {
-      return undefined;
-    }
-
-    try {
-      return new URL(url).origin;
-    } catch {
-      return undefined;
-    }
   }
 }

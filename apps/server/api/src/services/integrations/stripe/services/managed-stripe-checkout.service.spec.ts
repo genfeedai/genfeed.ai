@@ -1,18 +1,24 @@
+const deployment = vi.hoisted(() => ({ isSelfHosted: true }));
+
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
 
   return {
     ...actual,
-    isSelfHostedDeployment: () => true,
+    isSelfHostedDeployment: () => deployment.isSelfHosted,
   };
 });
 
 import { CacheService } from '@api/services/cache/cache.service';
+import type { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 const provisioned = {
   apiKey: 'gf_test_123',
@@ -48,7 +54,108 @@ function buildService(cache: ReturnType<typeof buildCache>) {
   );
 }
 
+const CLOUD_CONFIG: Record<string, string> = {
+  GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+  GENFEEDAI_PUBLIC_URL: 'https://genfeed.ai',
+  STRIPE_PRICE_PAYG: 'price_payg',
+};
+
+type ManagedPaymentSessionParams = Parameters<
+  StripeService['createManagedPaymentSession']
+>[0];
+
+/** Cloud service whose Stripe double records the session it was asked for. */
+function buildCloudCheckout() {
+  const sessions: ManagedPaymentSessionParams[] = [];
+  const service = new ManagedStripeCheckoutService(
+    { get: (key: string) => CLOUD_CONFIG[key] } as unknown as ConfigService,
+    {
+      createManagedPaymentSession: async (
+        params: ManagedPaymentSessionParams,
+      ) => {
+        sessions.push(params);
+        return { id: 'cs_cloud', url: 'https://checkout.stripe.com/c/cs' };
+      },
+    } as unknown as StripeService,
+    {} as unknown as CacheService,
+    { warn: vi.fn() } as unknown as LoggerService,
+  );
+
+  return { service, sessions };
+}
+
 describe('ManagedStripeCheckoutService', () => {
+  describe('createCheckoutSession on Genfeed Cloud', () => {
+    beforeEach(() => {
+      deployment.isSelfHosted = false;
+    });
+
+    afterEach(() => {
+      deployment.isSelfHosted = true;
+    });
+
+    it.each<[string, Partial<CreateManagedCheckoutDto>]>([
+      ['no price', {}],
+      ['the configured PAYG price', { stripePriceId: 'price_payg' }],
+    ])('charges the configured PAYG price for %s', async (_label, input) => {
+      const { service, sessions } = buildCloudCheckout();
+
+      const result = await service.createCheckoutSession({
+        email: 'buyer@example.com',
+        ...input,
+      });
+
+      expect(result.url).toBe('https://checkout.stripe.com/c/cs');
+      expect(sessions[0]?.stripePriceId).toBe('price_payg');
+    });
+
+    it('rejects a price outside the configured allowlist', async () => {
+      const { service, sessions } = buildCloudCheckout();
+
+      await expect(
+        service.createCheckoutSession({
+          email: 'buyer@example.com',
+          stripePriceId: 'price_attacker_chosen',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(sessions).toEqual([]);
+    });
+
+    it('keeps redirect URLs on a configured Genfeed origin', async () => {
+      const { service, sessions } = buildCloudCheckout();
+
+      await service.createCheckoutSession({
+        cancelUrl: 'https://genfeed.ai/pricing',
+        email: 'buyer@example.com',
+        successUrl:
+          'https://app.genfeed.ai/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+      });
+
+      expect(sessions[0]).toMatchObject({
+        cancelUrl: 'https://genfeed.ai/pricing',
+        successUrl:
+          'https://app.genfeed.ai/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+      });
+    });
+
+    it('replaces foreign redirect URLs with the hosted success and credits pages', async () => {
+      const { service, sessions } = buildCloudCheckout();
+
+      await service.createCheckoutSession({
+        cancelUrl: 'https://evil.example/cancel',
+        email: 'buyer@example.com',
+        successUrl:
+          'https://evil.example/steal?session_id={CHECKOUT_SESSION_ID}',
+      });
+
+      expect(sessions[0]).toMatchObject({
+        cancelUrl: 'https://app.genfeed.ai/settings/credits',
+        successUrl:
+          'https://app.genfeed.ai/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
+      });
+    });
+  });
+
   it('fails clearly on the self-hosted API instead of dereferencing a disabled Stripe client', async () => {
     const service = new ManagedStripeCheckoutService(
       { get: vi.fn() } as unknown as ConfigService,
