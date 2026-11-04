@@ -8,7 +8,9 @@ import { EmailPerformanceService } from '@api/services/email-performance/email-p
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
+  APP_ROUTES,
   buildLifecycleSystemEmailAction,
+  createOrganizationAppRoute,
   getLifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/contracts/constants';
@@ -225,7 +227,7 @@ export class LifecycleEmailDeliveryService {
     });
     const destinationUrl =
       state.request.step === 'checkout-recovery' && organization
-        ? `${this.appUrl()}/${organization.slug}/~/settings/credits`
+        ? `${this.appUrl()}${createOrganizationAppRoute(encodeURIComponent(organization.slug), APP_ROUTES.SETTINGS.CREDITS)}`
         : state.template.actionUrl;
     const emailMessageId = await this.emailPerformance.queueEmail({
       userId: state.delivery.user.id,
