@@ -63,6 +63,25 @@ Respond with JSON only, without markdown fences, in exactly this shape:
 Return exactly {{count}} item(s) in "articles".`;
 
 /**
+ * The brief for X Article generation. The X Article path reads this key from
+ * the database too, and its reply shape is a single article split into
+ * sections (`title`, `sections[]`), not the `articles[]` list above.
+ */
+const X_ARTICLE_GENERATE_CONTENT = `Write one long-form X Article for the brief below.
+
+Brief: {{{prompt}}}
+Tone: {{{tone}}}
+Target length: about {{targetWordCount}} words.
+{{#if keywords}}Keywords to work in naturally: {{{keywords}}}
+{{/if}}
+Write in the brand's voice from the context you were given. Open with a strong hook, make each section earn its place, and end with a clear takeaway. Be specific and concrete, avoid filler, and do not invent facts, numbers or quotes.
+
+Section "content" is HTML using only <p>, <ul>, <ol>, <li> and <strong> tags. Do not repeat the heading inside it.
+
+Respond with JSON only, without markdown fences, in exactly this shape:
+{"title": "Article title", "slug": "article-title", "summary": "One or two sentence summary", "sections": [{"heading": "Section heading", "content": "<p>Body</p>", "pullQuote": "Optional standout line"}], "tags": ["tag"]}`;
+
+/**
  * The platform defaults `PromptBuilderService` resolves for each model
  * category, plus the article brief. The category defaults pass the prompt
  * through unchanged (triple braces: no HTML escaping), so seeding them keeps
@@ -118,6 +137,26 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplateDefinition[] = [
       PROMPT_VARIABLE,
       variable('count', 'Count', 'How many drafts to write', true),
       variable('category', 'Category', 'The article category', false),
+      variable('keywords', 'Keywords', 'Comma-separated keywords', false),
+    ],
+  },
+  {
+    category: TemplateCategory.ARTICLE_GENERATION,
+    content: X_ARTICLE_GENERATE_CONTENT,
+    description:
+      'Brief for X Article generation. Asks for one article as JSON sections.',
+    key: PromptTemplateKey.X_ARTICLE_GENERATE,
+    label: 'X Article generation',
+    tags: ['system', 'article', 'x'],
+    variables: [
+      PROMPT_VARIABLE,
+      variable('tone', 'Tone', 'The writing tone', true),
+      variable(
+        'targetWordCount',
+        'Target word count',
+        'Approximate length',
+        true,
+      ),
       variable('keywords', 'Keywords', 'Comma-separated keywords', false),
     ],
   },
