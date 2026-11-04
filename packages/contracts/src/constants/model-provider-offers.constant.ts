@@ -22,4 +22,13 @@ export const MODEL_PROVIDER_ASSOCIATIONS = [
     provider: 'fal',
     endpoint: 'fal-ai/recraft/v4/pro/text-to-image',
   },
+  {
+    // Both are PixVerse V6 text-to-video; fal prices by resolution and audio
+    // per second from its model page. fal's text endpoint has no image input,
+    // so an image-to-video request stays on Replicate.
+    modelKey: 'pixverse/pixverse-v6',
+    executionModelKey: 'fal-ai/pixverse/v6',
+    provider: 'fal',
+    endpoint: 'fal-ai/pixverse/v6/text-to-video',
+  },
 ] as const;
