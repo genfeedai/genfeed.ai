@@ -5,6 +5,7 @@ import { canThreadSourceReviewPlans } from '@api/collections/agent-threads/utils
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentPlannerEmptyPlanError } from '@api/services/agent-orchestrator/agent-planner-empty-plan.error';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -305,6 +306,8 @@ export class AgentOrchestratorPlanModeService {
       // whole budget thinking and return no text, and a second draw usually
       // answers, so one blank reply is retried before the turn fails.
       run: async () => {
+        let lastFinishReason: string | null = null;
+        let lastModel = chatParams.model;
         for (let attempt = 1; attempt <= MAX_PLANNING_ATTEMPTS; attempt += 1) {
           const response = await this.llmDispatcher.chatCompletion(
             chatParams,
@@ -323,18 +326,23 @@ export class AgentOrchestratorPlanModeService {
           if (planText.trim()) {
             return response;
           }
+          lastFinishReason = choice?.finish_reason ?? null;
+          lastModel = response.model ?? chatParams.model;
           this.logger.warn('Planner returned no text', {
             attempt,
-            finishReason: choice?.finish_reason ?? null,
+            executionId: params.context.executionId,
+            finishReason: lastFinishReason,
             hasReasoning: Boolean(choice?.message.reasoning_content?.trim()),
             hasToolCalls: Boolean(choice?.message.tool_calls?.length),
-            model: response.model ?? chatParams.model,
+            model: lastModel,
             threadId: params.threadId,
           });
         }
-        throw new Error(
-          'The planner returned an empty plan. Send the request again.',
-        );
+        throw new AgentPlannerEmptyPlanError({
+          attempts: MAX_PLANNING_ATTEMPTS,
+          finishReason: lastFinishReason,
+          model: lastModel,
+        });
       },
       waived: params.turnCost === 0,
     });
