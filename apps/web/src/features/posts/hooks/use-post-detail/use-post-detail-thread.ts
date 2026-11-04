@@ -17,6 +17,7 @@ import {
   FIRST_COMMENT_PLACEHOLDER,
   GROK_FEEDBACK_QUESTIONS,
 } from '@/features/posts/hooks/use-post-detail/use-post-detail-state';
+import { requirePostId } from './require-post-id';
 
 export interface UsePostDetailThreadOptions {
   post: IPost | null;
@@ -60,13 +61,6 @@ export interface UsePostDetailThreadReturn {
     question?: string,
   ) => Promise<void>;
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
-}
-
-function requirePostId(post: IPost): string {
-  if (typeof post.id !== 'string' || post.id.length === 0) {
-    throw new Error('Post is missing an id');
-  }
-  return post.id;
 }
 
 function requireCredentialId(post: IPost): string {

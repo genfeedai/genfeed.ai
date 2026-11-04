@@ -5,6 +5,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   buildLibraryArtifactReference,
@@ -60,14 +61,6 @@ export interface UseLibraryPickerResult {
   readonly selectionFailure: LibraryPickerSelectionFailure | null;
   readonly setCategory: (category: LibraryPickerCategory) => void;
   readonly state: LibraryPickerState;
-}
-
-function getErrorStatus(error: unknown): number | null {
-  if (!error || typeof error !== 'object' || !('status' in error)) {
-    return null;
-  }
-
-  return typeof error.status === 'number' ? error.status : null;
 }
 
 function isAbortError(error: unknown): boolean {

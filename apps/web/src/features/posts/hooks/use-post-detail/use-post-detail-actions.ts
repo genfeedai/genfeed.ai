@@ -19,6 +19,7 @@ import { stripHtmlToPlainText } from '@helpers/security/strip-html.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
+import { requirePostId } from './require-post-id';
 
 export interface UsePostDetailActionsOptions {
   post: IPost | null;
@@ -93,13 +94,6 @@ function getSafeRewriteReason(error: unknown): string | undefined {
     return detail;
   }
   return undefined;
-}
-
-function requirePostId(post: IPost): string {
-  if (typeof post.id !== 'string' || post.id.length === 0) {
-    throw new Error('Post is missing an id');
-  }
-  return post.id;
 }
 
 export function usePostDetailActions({

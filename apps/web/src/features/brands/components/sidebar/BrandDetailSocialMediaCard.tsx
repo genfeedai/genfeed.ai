@@ -26,7 +26,7 @@ import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import { Alert } from '@ui/primitives/alert';
-import { Badge, type BadgeProps } from '@ui/primitives/badge';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -50,6 +50,7 @@ import {
   hasWarmupBlueprint,
   STATE_MESSAGE_KEYS,
 } from '@/features/brands/components/integrations/account-connection-status.util';
+import { getHealthBadgeVariant } from '@/features/brands/components/integrations/account-health-badge-variant';
 import ConnectAccountModal from '@/features/brands/components/integrations/ConnectAccountModal';
 import GhostConnectDialog from '@/features/brands/components/integrations/GhostConnectDialog';
 import SocialWarmupProgram from '@/features/brands/components/sidebar/social-warmup/SocialWarmupProgram';
@@ -160,20 +161,6 @@ function ConnectedAccount({
       {content}
     </Link>
   );
-}
-
-function getHealthBadgeVariant(
-  summary: AccountHealthSummary,
-): BadgeProps['variant'] {
-  if (summary.override.isActive) {
-    return 'info';
-  }
-
-  if (summary.holdPublishing || summary.riskLevel === 'high') {
-    return 'warning';
-  }
-
-  return 'success';
 }
 
 export default function BrandDetailSocialMediaCard({
