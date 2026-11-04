@@ -60,13 +60,24 @@ export interface McpCardMetric {
   trend?: { direction: 'down' | 'flat' | 'up'; label: string };
 }
 
-/** A button on a card; the view runs it through the host. */
-export interface McpCardAction {
+/** Tells the host which brand the conversation works with. */
+export interface McpSelectBrandAction {
   kind: 'select_brand';
   /** The brand the action selects. */
   brandId: string;
   label: string;
 }
+
+/** Approves or declines a queued write; the view calls `resolve_approval`. */
+export interface McpResolveApprovalAction {
+  kind: 'resolve_approval';
+  approvalId: string;
+  decision: 'approve' | 'decline';
+  label: string;
+}
+
+/** A button on a card; the view runs it through the host. */
+export type McpCardAction = McpSelectBrandAction | McpResolveApprovalAction;
 
 export interface McpCard {
   id: string;
@@ -77,6 +88,8 @@ export interface McpCard {
   platform: string;
   date: string;
   url?: string;
+  /** Names the `url` link on a summary card ("Review in Genfeed"). */
+  linkLabel?: string;
   thumbnailUrl?: string;
   /** Brand logo or account avatar shown at the head of a summary card. */
   avatarUrl?: string;
@@ -134,6 +147,8 @@ export interface McpCardView {
   title: string;
   /** The view lists unlike cards (account, release), so a card count says nothing. */
   isCountHidden?: boolean;
+  /** A queued approval: the result is an error, the card is how to resolve it. */
+  isApproval?: boolean;
   cards: McpCard[];
   total: number;
   layout: McpCardLayout;

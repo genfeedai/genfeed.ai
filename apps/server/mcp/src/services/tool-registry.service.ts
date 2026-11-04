@@ -132,6 +132,7 @@ import { cardResource } from '@mcp/ui/card-app';
 import {
   isContentCardsUri,
   MCP_CARD_RESOURCE_HASH,
+  withApprovalCard,
   withCardMetadata,
   withoutBrandLogos,
 } from '@mcp/ui/card-data';
@@ -776,6 +777,13 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private pendingApprovalResult(
+    approval: McpApprovalResource,
+    args: Record<string, unknown>,
+  ) {
+    return withApprovalCard(this.buildPendingApprovalResult(approval, args));
+  }
+
+  private buildPendingApprovalResult(
     approval: McpApprovalResource,
     args: Record<string, unknown>,
   ) {
