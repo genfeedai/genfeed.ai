@@ -9,6 +9,7 @@ const ALIASES = [
   ['end_image', 'end_image_url', 'last_frame', 'end_frame'],
   ['images', 'image_urls', 'input_images'],
   ['num_outputs', 'num_images'],
+  ['quality', 'resolution'],
 ] as const;
 
 /** Refuse an offer rather than silently dropping a feature the user requested. */

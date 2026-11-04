@@ -49,6 +49,27 @@ describe('provider offer input mapping', () => {
       }),
     ).toEqual({ prompt: 'Sunrise', sound: false, duration: 8 });
   });
+  it('maps a Replicate video quality to the provider resolution only when the values match', () => {
+    const resolutionSchema = {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string' },
+        resolution: { type: 'string', enum: ['360p', '540p', '720p', '1080p'] },
+      },
+      required: ['prompt'],
+      additionalProperties: false,
+    };
+    expect(
+      mapProviderOfferInput(resolutionSchema, {
+        providerInput: { prompt: 'Sunrise', quality: '720p' },
+      }),
+    ).toEqual({ prompt: 'Sunrise', resolution: '720p' });
+    expect(
+      mapProviderOfferInput(resolutionSchema, {
+        providerInput: { prompt: 'Sunrise', quality: 'high' },
+      }),
+    ).toBeNull();
+  });
   it('refuses missing or unknown fields', () => {
     expect(
       mapProviderOfferInput(schema, {

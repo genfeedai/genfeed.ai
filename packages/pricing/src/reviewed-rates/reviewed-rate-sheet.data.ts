@@ -3805,6 +3805,99 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-11-04T06:04:50.000Z',
   },
   {
+    // fal model page (2026-11-04): "Billing is calculated per second of video
+    // generated. Rates without audio / with audio are 360p: $0.025 / $0.035;
+    // 540p: $0.035 / $0.045; 720p: $0.045 / $0.060; 1080p: $0.090 / $0.115."
+    // The pricing API returns a single $0.005 per second, which matches none of
+    // them, so the page is the source.
+    endpoint: 'fal-ai/pixverse/v6/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.025,
+        when: {
+          generate_audio_switch: false,
+          resolution: '360p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.035,
+        when: {
+          generate_audio_switch: true,
+          resolution: '360p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.035,
+        when: {
+          generate_audio_switch: false,
+          resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.045,
+        when: {
+          generate_audio_switch: true,
+          resolution: '540p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.045,
+        when: {
+          generate_audio_switch: false,
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {
+          generate_audio_switch: true,
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.09,
+        when: {
+          generate_audio_switch: false,
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.115,
+        when: {
+          generate_audio_switch: true,
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/pixverse/v6/text-to-video',
+    verifiedAt: '2026-11-04T10:53:13.000Z',
+  },
+  {
     // fal's pricing API (GET /v1/models/pricing, 2026-10-25) returns a flat
     // $0.01 per megapixel. The model page still prints the old 24 MP block
     // table ($0.08 to 24 MP), which is stale. fal states no rounding, so each
