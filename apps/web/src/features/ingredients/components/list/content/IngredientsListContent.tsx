@@ -62,6 +62,10 @@ import IngredientOriginBadge from '@/components/ingredients/ingredient-origin-ba
 import IngredientTagChips from '@/components/ingredients/ingredient-tag-chips';
 import LibraryAssetTypeBadge from '@/components/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@/components/ingredients/list/media-grid/IngredientsMediaGrid';
+import {
+  getIngredientTileKind,
+  isIngredientPlayable,
+} from '@/components/ingredients/list/media-grid/ingredient-tile-kind.util';
 import IngredientTimeGroupHeading from '@/components/ingredients/list/media-grid/ingredient-time-group-heading';
 import { groupIngredientsByTime } from '@/components/ingredients/list/media-grid/ingredient-time-groups.util';
 import FailedIngredientsRecovery from '@/features/ingredients/components/ingredients/list/recovery/FailedIngredientsRecovery';
@@ -81,31 +85,6 @@ const LibraryCanvas = dynamic(
     ssr: false,
   },
 );
-
-/**
- * Audio rendering is a property of the asset itself, not of the page it
- * happens to be listed on — a mixed "all assets" view carries music and voice
- * rows alongside images and video, and each row still has to know how to
- * play itself.
- */
-function isAudioIngredient(ingredient: IIngredient): boolean {
-  const assetTypeId = getLibraryAssetType(ingredient.category)?.id;
-  return assetTypeId === 'audio' || assetTypeId === 'voice';
-}
-
-/**
- * `ingredient.ingredientUrl` always resolves to *something* — for a
- * PROCESSING or FAILED row it falls back to a placeholder image URL rather
- * than an empty string. Handing that straight to the audio player would
- * render an enabled control that "plays" a JPEG, so readiness is judged from
- * the row's own status instead of the URL's presence.
- */
-function isAudioReadyToPlay(ingredient: IIngredient): boolean {
-  return (
-    !isFailedIngredient(ingredient) &&
-    ingredient.status !== IngredientStatus.PROCESSING
-  );
-}
 
 function IngredientTableVideoPreview({
   url,
@@ -172,7 +151,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
   const isVideo = isVideoIngredient(ingredient);
   const assetType = getLibraryAssetType(ingredient.category);
-  const isAudio = isAudioIngredient(ingredient);
+  const isAudio = getIngredientTileKind(ingredient) === 'audio';
   const videoAsset = isVideo || assetType?.id === 'video';
   // Video grants can point at extensionless delivery endpoints. Only a known
   // image suffix identifies an authorized poster; retained raw URLs never
@@ -288,7 +267,7 @@ function IngredientLedgerAssetCell({
   const label = getIngredientDisplayLabel(ingredient);
   const failureReason = getIngredientFailureReason(ingredient);
   const promptText = ingredient.promptText?.trim();
-  const isAudio = isAudioIngredient(ingredient);
+  const isAudio = getIngredientTileKind(ingredient) === 'audio';
 
   return (
     <div className="flex w-40 min-w-0 max-w-40 items-center gap-2">
@@ -329,7 +308,7 @@ function IngredientLedgerAssetCell({
       {isAudio ? (
         <MediaPlayer
           src={
-            isAudioReadyToPlay(ingredient)
+            isIngredientPlayable(ingredient)
               ? grant
                 ? (grant.url ?? undefined)
                 : ingredient.ingredientUrl
@@ -411,18 +390,21 @@ export default function IngredientsListContent({
     singularType === IngredientCategory.VIDEO ||
     singularType === IngredientCategory.GIF;
 
-  const { nonVisualIngredients, visualIngredients } = useMemo(() => {
+  const { nonVisualIngredients, gridIngredients } = useMemo(() => {
     const visual: IIngredient[] = [];
     const nonVisual: IIngredient[] = [];
 
     for (const ingredient of filteredIngredients) {
       const assetType = getLibraryAssetType(ingredient.category)?.id;
 
+      // Posters and the audio and text tiles all live in the masonry; only
+      // an asset with no tile of its own falls back to the table below it.
       if (
         assetType === 'image' ||
         assetType === 'video' ||
         assetType === 'gif' ||
-        assetType === 'avatar'
+        assetType === 'avatar' ||
+        getIngredientTileKind(ingredient)
       ) {
         visual.push(ingredient);
       } else {
@@ -430,7 +412,7 @@ export default function IngredientsListContent({
       }
     }
 
-    return { nonVisualIngredients: nonVisual, visualIngredients: visual };
+    return { nonVisualIngredients: nonVisual, gridIngredients: visual };
   }, [filteredIngredients]);
 
   const {
@@ -792,7 +774,7 @@ export default function IngredientsListContent({
     if (isMediaCategory || viewMode === 'grid') {
       const mediaItems = isMediaCategory
         ? filteredIngredients
-        : visualIngredients;
+        : gridIngredients;
       // `type` is 'ingredients' on every Library route — the type axis is a
       // clearable chip, so the noun follows the chips, not the URL.
       const mediaNoun = (
@@ -926,7 +908,7 @@ export default function IngredientsListContent({
     translate,
     type,
     viewMode,
-    visualIngredients,
+    gridIngredients,
     href,
   ]);
 

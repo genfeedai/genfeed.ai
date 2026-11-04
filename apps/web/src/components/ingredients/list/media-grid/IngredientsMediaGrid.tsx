@@ -15,6 +15,9 @@ import { EmptyState } from '@ui/primitives/empty-state';
 import { Skeleton } from '@ui/primitives/skeleton';
 import IngredientTileOverlays from '@/components/ingredients/ingredient-tile-overlays';
 import type { IngredientsMediaGridProps } from '@/props/content/ingredient.props';
+import IngredientAudioTile from './IngredientAudioTile';
+import IngredientTextTile from './IngredientTextTile';
+import { getIngredientTileKind } from './ingredient-tile-kind.util';
 import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
@@ -85,6 +88,32 @@ export default function IngredientsMediaGrid({
 
   const renderIngredient = (ingredient: IIngredient) => {
     const isSelected = selectedIds.includes(ingredient.id);
+
+    const tileKind = getIngredientTileKind(ingredient);
+
+    if (tileKind) {
+      const Tile =
+        tileKind === 'audio' ? IngredientAudioTile : IngredientTextTile;
+
+      return (
+        <div key={ingredient.id} className="group relative">
+          <Tile
+            ingredient={ingredient}
+            isActionsEnabled={isActionsEnabled}
+            isSelected={isSelected}
+            onClickIngredient={onClickIngredient}
+            onRefresh={onRefresh}
+            onReprompt={onReprompt}
+            onToggleSelection={onToggleSelection}
+          />
+          <IngredientTileOverlays
+            ingredient={ingredient}
+            isReviewEnabled={isReviewEnabled}
+            onReviewUpdated={reviewHandler ?? NOOP}
+          />
+        </div>
+      );
+    }
 
     if (isVideoIngredient(ingredient)) {
       return (

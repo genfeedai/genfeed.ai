@@ -13,6 +13,14 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
+  useAuthorizedMediaPreview: () => null,
+}));
+
+vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
+  default: () => <div data-testid="status-dropdown" />,
+}));
+
 vi.mock('@/components/ingredients/IngredientReviewActions', () => ({
   default: () => <div data-testid="asset-review-actions" />,
 }));
@@ -271,5 +279,148 @@ describe('IngredientsMediaGrid', () => {
     );
 
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  describe('audio, voice and text tiles', () => {
+    const audioItem = {
+      category: IngredientCategory.MUSIC,
+      id: 'music-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
+      metadataLabel: 'Opening Theme',
+      status: IngredientStatus.GENERATED,
+    } as IIngredient;
+    const voiceItem = {
+      ...audioItem,
+      category: IngredientCategory.VOICE,
+      id: 'voice-1',
+      metadataLabel: 'Narration Take',
+    } as IIngredient;
+    const textItem = {
+      category: IngredientCategory.TEXT,
+      id: 'text-1',
+      metadataLabel: 'Launch caption',
+      status: IngredientStatus.GENERATED,
+      text: 'Ship the content, not the slide deck.',
+    } as IIngredient;
+
+    it('draws audio and voice as waveform tiles with a type badge', () => {
+      render(
+        <IngredientsMediaGrid {...baseProps} items={[audioItem, voiceItem]} />,
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('button', { name: 'Play preview for Narration Take' }),
+      ).toBeEnabled();
+      expect(screen.getByText('Audio')).toBeInTheDocument();
+      expect(screen.getByText('Voice')).toBeInTheDocument();
+    });
+
+    it('draws a text asset as a snippet card', () => {
+      render(<IngredientsMediaGrid {...baseProps} items={[textItem]} />);
+
+      expect(screen.getByText('Launch caption')).toBeInTheDocument();
+      expect(
+        screen.getByText('Ship the content, not the slide deck.'),
+      ).toBeInTheDocument();
+    });
+
+    it('selects an audio tile through its toggle', () => {
+      const onToggleSelection = vi.fn();
+      render(
+        <IngredientsMediaGrid
+          {...baseProps}
+          items={[audioItem]}
+          onToggleSelection={onToggleSelection}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select asset' }));
+
+      expect(onToggleSelection).toHaveBeenCalledExactlyOnceWith(audioItem);
+    });
+
+    it('marks a selected tile as selected', () => {
+      const { container } = render(
+        <IngredientsMediaGrid
+          {...baseProps}
+          items={[textItem]}
+          onToggleSelection={vi.fn()}
+          selectedIds={[textItem.id]}
+        />,
+      );
+
+      expect(
+        container.querySelector('[data-masonry-item][data-selected="true"]'),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole('button', { name: 'Deselect asset' }),
+      ).toBeInTheDocument();
+    });
+
+    it('opens the inspector from the tile and from its details button, not from the player', () => {
+      const onClickIngredient = vi.fn();
+      render(
+        <IngredientsMediaGrid
+          {...baseProps}
+          items={[audioItem]}
+          onClickIngredient={onClickIngredient}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      );
+      expect(onClickIngredient).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getAllByText('Opening Theme')[0] as HTMLElement);
+      expect(onClickIngredient).toHaveBeenCalledExactlyOnceWith(audioItem);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Open details for Opening Theme' }),
+      );
+      expect(onClickIngredient).toHaveBeenCalledTimes(2);
+    });
+
+    it('offers retry on a failed audio tile and keeps playback off', () => {
+      const failed = {
+        ...audioItem,
+        generationError: 'Provider rejected the prompt.',
+        status: IngredientStatus.FAILED,
+      } as IIngredient;
+      const onReprompt = vi.fn();
+      render(
+        <IngredientsMediaGrid
+          {...baseProps}
+          items={[failed]}
+          onReprompt={onReprompt}
+        />,
+      );
+
+      expect(screen.getByText('Provider rejected the prompt.')).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      ).toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry generation' }));
+
+      expect(onReprompt).toHaveBeenCalledExactlyOnceWith(failed);
+    });
+
+    it('shows the status control and keeps playback off while processing', () => {
+      render(
+        <IngredientsMediaGrid
+          {...baseProps}
+          items={[{ ...audioItem, status: IngredientStatus.PROCESSING }]}
+        />,
+      );
+
+      expect(screen.getByTestId('status-dropdown')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      ).toBeDisabled();
+    });
   });
 });
