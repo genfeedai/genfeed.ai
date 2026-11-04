@@ -26,6 +26,7 @@ import {
   isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
+import { readLatestOperatorMessage } from '@api/services/agent-orchestrator/utils/agent-operator-message.util';
 import {
   annotateKnowledgeSearchData,
   readBrandId,
@@ -780,14 +781,7 @@ export class AgentTurnRoundRunnerService {
       return null;
     }
 
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      const message = messages[index];
-      if (message?.role === 'user' && typeof message.content === 'string') {
-        return message.content;
-      }
-    }
-
-    return null;
+    return readLatestOperatorMessage(messages);
   }
 
   private buildUnknownToolError(
