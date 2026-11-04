@@ -4,8 +4,10 @@ import {
   ButtonSize,
   ButtonVariant,
   getActivityMessageDescriptor,
+  parseActivityKey,
 } from '@genfeedai/contracts';
 import type { INotificationInboxItem } from '@genfeedai/contracts/interfaces';
+import { classifyGenerationFailure } from '@genfeedai/utils/media/generation-failure.util';
 import { Button } from '@ui/primitives/button';
 import {
   CircleAlert,
@@ -65,6 +67,7 @@ export default function NotificationInboxPanel({
 }: NotificationInboxPanelProps) {
   const translate = useTranslations('common.notificationInbox');
   const formatActivity = useActivityMessageFormatter();
+  const translateGeneration = useTranslations('pages.studioPlayground');
   const { count, history, read } = useNotificationInbox(isActive);
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
   const unreadCount = count.data?.unreadCount;
@@ -159,11 +162,30 @@ export default function NotificationInboxPanel({
                   : translate(
                       item.outcome === 'completed' ? 'completed' : 'failed',
                     ));
+            const activityValue = item.activity?.value?.trim();
+            const readableActivityValue =
+              activityValue &&
+              !activityValue.startsWith('{') &&
+              !activityValue.startsWith('[')
+                ? activityValue
+                : undefined;
+            const isGenerationFailure =
+              item.outcome === 'failed' &&
+              item.activity &&
+              ['image', 'video', 'music', 'voice', 'audio', 'avatar'].includes(
+                parseActivityKey(item.activity.key).subject,
+              );
+            const generationFailureDescription = isGenerationFailure
+              ? translateGeneration(
+                  `failure.reasons.${classifyGenerationFailure(activityValue)}`,
+                )
+              : undefined;
             const description = item.failure
               ? [item.failure.summary, item.failure.recovery]
                   .filter(Boolean)
                   .join(' ')
-              : item.activity?.value?.trim() ||
+              : generationFailureDescription ||
+                readableActivityValue ||
                 item.sourceLabel?.trim() ||
                 translate(
                   socialReply
