@@ -5,6 +5,7 @@ import { SchedulesService } from '@api/collections/schedules/services/schedules.
 import { OrganizationModule } from '@api/common/organization-modules/organization-module.decorator';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
@@ -43,6 +44,7 @@ export class SchedulesController {
   }
 
   @Post('channel-capabilities/validate')
+  @ApiKeyReadAccess()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   validateChannelTargetSettings(
     @Body() input: ValidateChannelTargetSettingsInput,
@@ -55,6 +57,7 @@ export class SchedulesController {
    * posts, or labelled default times when there is not enough data.
    */
   @Post('optimal')
+  @ApiKeyReadAccess()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getOptimalTime(
     @Body() dto: GetOptimalTimeDto,

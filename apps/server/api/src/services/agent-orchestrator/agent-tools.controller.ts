@@ -3,7 +3,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
+import { ApiKeyReadAccess } from '@api/helpers/decorators/scopes/api-key-read-access.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { assertApiKeyAgentToolBaselineAccess } from '@api/helpers/utils/auth/api-key-baseline-scope.util';
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
@@ -62,6 +64,7 @@ export class AgentToolsController {
   ) {}
 
   @Post(':name/execute')
+  @ApiKeyReadAccess()
   @ApiOperation({
     summary: 'Execute a canonical agent tool by name',
   })
@@ -72,6 +75,7 @@ export class AgentToolsController {
     @Req() request: Request,
   ) {
     assertMcpAccessModeAllowsTool(user, name, 'agent');
+    assertApiKeyAgentToolBaselineAccess(user, name);
     assertApiKeyAgentPublishingScope(user, name, body.parameters ?? {});
 
     try {
@@ -209,6 +213,7 @@ export class AgentToolsController {
   }
 
   @Post(':name/result-gate')
+  @ApiKeyReadAccess()
   @ApiOperation({
     summary: 'Classify an authenticated MCP tool result observation',
   })
