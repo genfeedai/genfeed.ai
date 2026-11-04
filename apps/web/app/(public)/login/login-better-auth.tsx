@@ -50,6 +50,7 @@ import {
 } from '../auth-ui';
 import { useIsGoogleSignInAvailable } from '../use-is-google-sign-in-available';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
+import { SUBMIT_REDIRECTING, useSingleSubmit } from '../use-single-submit';
 import { useTurnstileToken } from '../use-turnstile-token';
 
 const LOGIN_TITLE = 'Welcome back';
@@ -122,8 +123,9 @@ export default function LoginBetterAuth({
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
+  const { isSubmitting, runSubmit: runMagicLinkSubmit } = useSingleSubmit();
+  const { isSubmitting: isPasswordSubmitting, runSubmit: runPasswordSubmit } =
+    useSingleSubmit();
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -338,11 +340,14 @@ export default function LoginBetterAuth({
     }
   }
 
-  async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
+  function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    return runMagicLinkSubmit(sendMagicLink);
+  }
+
+  async function sendMagicLink() {
     setErrorMessage(null);
     setSocialErrorMessage(null);
-    setIsSubmitting(true);
 
     try {
       const result = await signIn.magicLink({
@@ -360,16 +365,17 @@ export default function LoginBetterAuth({
       }
     } catch {
       setErrorMessage('Failed to send sign-in link. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
-  async function handleEmailPassword(event: FormEvent<HTMLFormElement>) {
+  function handleEmailPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    return runPasswordSubmit(signInWithPassword);
+  }
+
+  async function signInWithPassword() {
     setPasswordErrorMessage(null);
     setSocialErrorMessage(null);
-    setIsPasswordSubmitting(true);
 
     try {
       const result = await signIn.email({
@@ -388,12 +394,12 @@ export default function LoginBetterAuth({
       // Better Auth may not navigate when the session is already warm after an
       // API bounce. Always land on the requested post-auth destination.
       window.location.assign(authCallbackURL);
+      // Keep the form locked until the navigation lands.
+      return SUBMIT_REDIRECTING;
     } catch {
       setPasswordErrorMessage(
         'Failed to sign in with email and password. Please try again.',
       );
-    } finally {
-      setIsPasswordSubmitting(false);
     }
   }
 

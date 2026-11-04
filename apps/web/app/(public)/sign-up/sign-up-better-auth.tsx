@@ -38,6 +38,7 @@ import {
 } from '../auth-ui';
 import { useIsGoogleSignInAvailable } from '../use-is-google-sign-in-available';
 import { useIsMagicLinkAvailable } from '../use-is-magic-link-available';
+import { SUBMIT_REDIRECTING, useSingleSubmit } from '../use-single-submit';
 import { useTurnstileToken } from '../use-turnstile-token';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -82,7 +83,7 @@ export default function SignUpBetterAuth({
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isSubmitting, runSubmit } = useSingleSubmit();
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -113,11 +114,14 @@ export default function SignUpBetterAuth({
     );
   }, []);
 
-  async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
+  function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    return runSubmit(sendMagicLink);
+  }
+
+  async function sendMagicLink() {
     setErrorMessage(null);
     setSocialErrorMessage(null);
-    setIsSubmitting(true);
 
     const normalizedEmail = email.trim().toLowerCase();
     setEmail(normalizedEmail);
@@ -143,16 +147,17 @@ export default function SignUpBetterAuth({
       }
     } catch {
       setErrorMessage('Failed to send sign-up link. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
-  async function handlePasswordSignUp(event: FormEvent<HTMLFormElement>) {
+  function handlePasswordSignUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    return runSubmit(signUpWithPassword);
+  }
+
+  async function signUpWithPassword() {
     setErrorMessage(null);
     setSocialErrorMessage(null);
-    setIsSubmitting(true);
 
     const normalizedEmail = email.trim().toLowerCase();
     setEmail(normalizedEmail);
@@ -186,10 +191,11 @@ export default function SignUpBetterAuth({
       // Better Auth may not navigate once the account is created. Always land
       // on the requested post-signup destination.
       window.location.assign(authCallbackURL);
+      // Keep the form locked until the navigation lands, so the account is
+      // never submitted twice.
+      return SUBMIT_REDIRECTING;
     } catch {
       setErrorMessage('Failed to create account. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
