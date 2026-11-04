@@ -143,6 +143,15 @@ export function isYoutubeAuthorizationError(error: unknown): boolean {
   );
 }
 
+/**
+ * Google rejected the authorization code itself (`invalid_grant`): it was
+ * reused, expired, or issued for a different client. The user has to restart
+ * the connection, so this is not a server fault.
+ */
+export function isYoutubeInvalidGrantError(error: unknown): boolean {
+  return getYoutubeErrorReasons(error).includes('invalid_grant');
+}
+
 export function isYoutubeChannelSelectionError(error: unknown): boolean {
   const message = getYoutubeErrorMessage(error);
   const reasons = getYoutubeErrorReasons(error);

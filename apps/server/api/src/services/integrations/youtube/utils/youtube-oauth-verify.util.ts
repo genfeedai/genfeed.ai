@@ -4,6 +4,7 @@ import {
   getYoutubeErrorCode,
   isYoutubeAuthorizationError,
   isYoutubeChannelSelectionError,
+  isYoutubeInvalidGrantError,
   isYoutubeRateLimitError,
   isYoutubeScopeError,
   readSafeYoutubeProviderReason,
@@ -170,6 +171,17 @@ function tokenExchangeCopy(): YoutubeVerifyCopy {
   });
 }
 
+function authorizationExpiredCopy(): YoutubeVerifyCopy {
+  return copy({
+    code: YoutubeOAuthVerifyErrorCode.TOKEN_EXCHANGE_FAILED,
+    detail:
+      'This YouTube authorization expired or was already used. Reconnect YouTube to try again.',
+    reason: YoutubeOAuthVerifyFailureReason.TOKEN_EXCHANGE,
+    status: HttpStatus.BAD_REQUEST,
+    title: 'Authorization expired',
+  });
+}
+
 function missingScopesCopy(): YoutubeVerifyCopy {
   return copy({
     code: YoutubeOAuthVerifyErrorCode.MISSING_SCOPES,
@@ -242,7 +254,9 @@ export function classifyYoutubeVerifyFailure(
   }
 
   if (stage === 'token_exchange' && !isYoutubeProviderFailure(error)) {
-    return tokenExchangeCopy();
+    return isYoutubeInvalidGrantError(error)
+      ? authorizationExpiredCopy()
+      : tokenExchangeCopy();
   }
 
   if (isYoutubeAuthorizationError(error)) {
