@@ -11,13 +11,13 @@ import {
 import { Injectable } from '@nestjs/common';
 
 export interface TwitterTrendItem {
-  name: string;
-  tweet_volume: number | null;
-  url: string;
+  trend_name: string;
+  tweet_count?: number | null;
 }
 
+/** `GET /2/trends/by/woeid/:woeid`. */
 export interface TwitterTrendResponse {
-  trends?: TwitterTrendItem[];
+  data?: TwitterTrendItem[];
 }
 
 export interface TwitterTrendResult {
@@ -183,12 +183,12 @@ export class TwitterResponseMapper {
   }
 
   mapTrends(
-    result: TwitterTrendResponse[] | null | undefined,
+    result: TwitterTrendResponse | null | undefined,
     organizationId?: string,
     brandId?: string,
   ): TwitterTrendResult[] {
-    return (result?.[0]?.trends ?? []).slice(0, 10).map((trend) => {
-      const mentions = trend.tweet_volume || 0;
+    return (result?.data ?? []).slice(0, 10).map((trend) => {
+      const mentions = trend.tweet_count || 0;
 
       return {
         brandId,
@@ -196,8 +196,8 @@ export class TwitterResponseMapper {
         mentions,
         organizationId,
         platform: CredentialPlatform.TWITTER,
-        topic: trend.name,
-        url: trend.url,
+        topic: trend.trend_name,
+        url: `https://x.com/search?q=${encodeURIComponent(trend.trend_name)}`,
       };
     });
   }

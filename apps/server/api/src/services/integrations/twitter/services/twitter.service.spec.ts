@@ -164,22 +164,27 @@ describe('TwitterService', () => {
         makeTwitterCredential(),
       );
 
-      const trendsMock = vi
-        .fn()
-        .mockResolvedValue([
-          { trends: [{ name: '#test', tweet_volume: 0, url: '' }] },
-        ]);
+      const trendsMock = vi.fn().mockResolvedValue({
+        data: [{ trend_name: '#test', tweet_count: 1200 }],
+      });
 
       service.twitterClient = {
-        v1: { trendsByPlace: trendsMock },
+        v2: { get: trendsMock },
       } as unknown as TwitterApi;
 
       const res = await service.getTrends('o', 'a');
 
-      expect(trendsMock).toHaveBeenCalledWith(1);
-      expect(res).toEqual(
-        expect.arrayContaining([expect.objectContaining({ topic: '#test' })]),
+      expect(trendsMock).toHaveBeenCalledWith(
+        'trends/by/woeid/1',
+        expect.objectContaining({ max_trends: 10 }),
       );
+      expect(res).toEqual([
+        expect.objectContaining({
+          mentions: 1200,
+          topic: '#test',
+          url: 'https://x.com/search?q=%23test',
+        }),
+      ]);
     });
   });
 
