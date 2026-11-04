@@ -286,10 +286,6 @@ vi.mock('@ui/display/table/Table', () => ({
   default: () => <div data-testid="table" />,
 }));
 
-vi.mock('@ui/primitives/alert', () => ({
-  Alert: () => <div data-testid="alert" />,
-}));
-
 vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({ title, isLoading }: { title: string; isLoading: boolean }) => (
     <div data-testid="kpi-section" data-loading={isLoading}>
@@ -502,6 +498,9 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
 
     expect(markup).toContain('Warming up');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('Create content');
+    expect(markup).toContain('Manage connections');
     expect(markup).toContain('/acme/brand-x/publishing');
     expect(markup).toContain('/acme/brand-x/settings/connected-accounts');
     expect(markup).not.toContain('/settings/api-keys');

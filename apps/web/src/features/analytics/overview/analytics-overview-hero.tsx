@@ -1,8 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  Alert,
+  AlertActions,
+  AlertDescription,
+  AlertTitle,
+} from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
-import { buttonVariants } from '@ui/primitives/button.variants';
+import { Button } from '@ui/primitives/button';
 import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,9 +33,13 @@ type AnalyticsOverviewHeroProps = {
 };
 
 /**
- * Warming-up status strip only. First-run is a page-level card EmptyState.
+ * Warming-up status banner. First-run is a page-level card EmptyState.
  * Page identity lives in the shell breadcrumb — no in-page H1.
  * Metrics live in KPISection MetricCards.
+ *
+ * Built from the shared Alert: the state is the shared Badge in the title
+ * slot, the copy is the description, and the next actions sit in AlertActions
+ * so they stay beside the text and wrap under it on a narrow screen.
  */
 export default function AnalyticsOverviewHero({
   dashboardState,
@@ -37,10 +47,9 @@ export default function AnalyticsOverviewHero({
   connectAccountsHref,
 }: AnalyticsOverviewHeroProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+    <Alert icon={false}>
+      <AlertTitle>
         <Badge
-          className="w-fit shrink-0"
           icon={
             dashboardState === 'active' ? (
               <CircleCheck />
@@ -51,7 +60,6 @@ export default function AnalyticsOverviewHero({
             )
           }
           shape="pill"
-          size="lg"
           variant={
             dashboardState === 'active'
               ? 'success'
@@ -62,31 +70,28 @@ export default function AnalyticsOverviewHero({
         >
           {heroContent.badge}
         </Badge>
-        <p className="min-w-0 text-sm leading-5 text-foreground/70">
-          {heroContent.description}
-        </p>
-      </div>
-
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Link
-          href={heroContent.primaryAction.href}
-          className={buttonVariants({
-            size: ButtonSize.SM,
-            variant: heroContent.primaryAction.variant,
-          })}
+      </AlertTitle>
+      <AlertDescription>{heroContent.description}</AlertDescription>
+      <AlertActions>
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={heroContent.primaryAction.variant}
+          withWrapper={false}
         >
-          {heroContent.primaryAction.label}
-        </Link>
-        <Link
-          href={connectAccountsHref}
-          className={buttonVariants({
-            size: ButtonSize.SM,
-            variant: ButtonVariant.SECONDARY,
-          })}
+          <Link href={heroContent.primaryAction.href}>
+            {heroContent.primaryAction.label}
+          </Link>
+        </Button>
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
         >
-          Manage connections
-        </Link>
-      </div>
-    </div>
+          <Link href={connectAccountsHref}>Manage connections</Link>
+        </Button>
+      </AlertActions>
+    </Alert>
   );
 }
