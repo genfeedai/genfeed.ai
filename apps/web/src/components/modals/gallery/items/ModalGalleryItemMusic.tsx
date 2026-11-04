@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { formatDuration } from '@genfeedai/helpers';
 import type { ModalGalleryItemMusicProps } from '@genfeedai/props/modals/modal-gallery.props';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Button } from '@ui/primitives/button';
 import { Music } from 'lucide-react';
 import { useIngredientMediaUrl } from '@/hooks/media/use-ingredient-media-url';
@@ -62,8 +62,8 @@ export default function ModalGalleryItemMusic({
           </div>
         </Button>
 
-        <AudioPreviewPlayer
-          audioUrl={audioUrl}
+        <MediaPlayer
+          src={audioUrl}
           label={metadataLabel || 'Untitled'}
           stopOnUnmount
         />

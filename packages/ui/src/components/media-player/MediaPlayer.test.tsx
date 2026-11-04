@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 class PreviewAudio extends EventTarget {
@@ -40,14 +40,14 @@ beforeEach(() =>
 );
 afterAll(() => vi.unstubAllGlobals());
 
-describe('AudioPreviewPlayer', () => {
+describe('MediaPlayer', () => {
   it('shares playback, seeks, and reports load failures without native controls', async () => {
     const onError = vi.fn();
     render(
-      <AudioPreviewPlayer
-        audioUrl="https://cdn.test/voice.mp3"
+      <MediaPlayer
+        src="https://cdn.test/voice.mp3"
         label="Voice"
-        isTimelineVisible
+        variant="inspector"
         onError={onError}
       />,
     );
@@ -59,7 +59,7 @@ describe('AudioPreviewPlayer', () => {
     const slider = screen.getByRole('slider', { name: 'Seek Voice' });
     expect(slider).toHaveAttribute('aria-valuemax', '30');
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    expect(audio.currentTime).toBeGreaterThan(0);
+    expect(audio.currentTime).toBe(5);
     expect(screen.getByText('0:00 / 0:30')).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Mute preview for Voice' }),
@@ -81,11 +81,7 @@ describe('AudioPreviewPlayer', () => {
 
   it('resumes relative sources and stops modal playback on unmount', async () => {
     const { unmount } = render(
-      <AudioPreviewPlayer
-        audioUrl="/preview.mp3"
-        label="Relative"
-        stopOnUnmount
-      />,
+      <MediaPlayer src="/preview.mp3" label="Relative" stopOnUnmount />,
     );
     fireEvent.click(
       screen.getByRole('button', { name: 'Play preview for Relative' }),
@@ -100,9 +96,61 @@ describe('AudioPreviewPlayer', () => {
   });
 
   it('disables playback when no source is available', () => {
-    render(<AudioPreviewPlayer label="Missing" />);
+    render(<MediaPlayer label="Missing" />);
     expect(
       screen.getByRole('button', { name: 'Play preview for Missing' }),
     ).toBeDisabled();
+  });
+
+  it('starts playback instead of seeking when the waveform of an idle clip is pressed', async () => {
+    render(
+      <MediaPlayer
+        knownDuration={34}
+        label="Idle"
+        src="https://cdn.test/idle.mp3"
+        variant="row"
+      />,
+    );
+    expect(screen.getByText('0:00 / 0:34')).toBeInTheDocument();
+    const positionBefore = audio.currentTime;
+    fireEvent.keyDown(screen.getByRole('slider', { name: 'Seek Idle' }), {
+      key: 'ArrowRight',
+    });
+    await waitFor(() => expect(audio.play).toHaveBeenCalledOnce());
+    expect(audio.currentTime).toBe(positionBefore);
+  });
+
+  it('shows the tile caption with its badge and keeps the same controls', () => {
+    render(
+      <MediaPlayer
+        badge={<span>Voice</span>}
+        knownDuration={24}
+        label="Brand intro"
+        meta="Rachel · en"
+        src="https://cdn.test/intro.mp3"
+        title="Warm narration for the brand intro"
+        variant="tile"
+      />,
+    );
+    expect(screen.getByText('Voice')).toBeInTheDocument();
+    expect(
+      screen.getByText('Warm narration for the brand intro'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Rachel · en')).toBeInTheDocument();
+    expect(screen.getByText('0:00 / 0:24')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Brand intro' }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('slider', { name: 'Seek Brand intro' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders only the play button for the button variant', () => {
+    render(<MediaPlayer label="Pick" src="https://cdn.test/pick.mp3" />);
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Pick' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 });

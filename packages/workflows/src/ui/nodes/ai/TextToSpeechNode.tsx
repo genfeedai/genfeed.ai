@@ -7,7 +7,7 @@ import type {
   TTSVoice,
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
-import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
+import MediaPlayer from '@genfeedai/ui/components/media-player/MediaPlayer';
 import {
   Alert,
   AlertDescription,
@@ -263,11 +263,11 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Output Audio Player */}
         {nodeData.outputAudio && (
-          <AudioPreviewPlayer
-            audioUrl={nodeData.outputAudio}
+          <MediaPlayer
+            src={nodeData.outputAudio}
             label="Generated speech audio"
             className="nodrag nowheel w-full"
-            isTimelineVisible
+            variant="row"
           />
         )}
 

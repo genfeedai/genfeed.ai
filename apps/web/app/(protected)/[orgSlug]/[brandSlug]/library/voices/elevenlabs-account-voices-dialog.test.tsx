@@ -76,7 +76,7 @@ vi.mock('@ui/primitives/dialog', () => ({
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+vi.mock('@ui/media-player/MediaPlayer', () => ({
   default: ({ label }: { label: string }) => (
     <div data-testid="audio-preview-player">{label}</div>
   ),

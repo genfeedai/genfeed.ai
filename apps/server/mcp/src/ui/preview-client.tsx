@@ -28,10 +28,10 @@ import type {
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import { CardBoundary } from '@mcp/ui/card-boundary';
 import uiMessages from '@preview-messages/ui';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Avatar } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
@@ -381,11 +381,11 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
     );
   if (item.kind === 'audio')
     return (
-      <AudioPreviewPlayer
-        isTimelineVisible
+      <MediaPlayer
+        variant="row"
         stopOnUnmount
         onError={onError}
-        audioUrl={src}
+        src={src}
         label={item.title || 'Generated audio'}
       />
     );

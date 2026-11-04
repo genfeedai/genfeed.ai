@@ -5,9 +5,9 @@ import type { TrendMediaExample } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { getSafeExternalUrl } from '@genfeedai/helpers/media/social-media-source.helper';
 import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
@@ -185,11 +185,11 @@ export function TrendingSounds({
                     />
                   </div>
                 </div>
-                <AudioPreviewPlayer
-                  audioUrl={getSafeExternalUrl(sound.playUrl) ?? undefined}
+                <MediaPlayer
+                  src={getSafeExternalUrl(sound.playUrl) ?? undefined}
                   label={sound.soundName}
                   stopOnUnmount
-                  isTimelineVisible
+                  variant="row"
                 />
                 {sound.examples?.length ? (
                   <div className="mt-3 space-y-3">

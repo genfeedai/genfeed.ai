@@ -39,14 +39,13 @@ import {
 import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import TableDateCell from '@ui/display/table/TableDateCell';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { EmptyState } from '@ui/primitives/empty-state';
@@ -328,8 +327,8 @@ function IngredientLedgerAssetCell({
         ) : null}
       </div>
       {isAudio ? (
-        <AudioPreviewPlayer
-          audioUrl={
+        <MediaPlayer
+          src={
             isAudioReadyToPlay(ingredient)
               ? grant
                 ? (grant.url ?? undefined)

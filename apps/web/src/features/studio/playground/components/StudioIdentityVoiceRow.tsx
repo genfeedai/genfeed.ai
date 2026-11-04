@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
-import { useAudioPreview } from '@ui/audio/preview-player/AudioPreviewPlayer';
+import { useMediaPlayback } from '@ui/media-player/media-playback';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import Spinner from '@ui/primitives/spinner';
@@ -29,7 +29,7 @@ export default function StudioIdentityVoiceRow({
 }: StudioIdentityVoiceRowProps): ReactElement {
   const translate = useTranslations('agent.generationSetup');
   const { currentTime, duration, isErrored, isLoading, isPlaying, toggle } =
-    useAudioPreview({ audioUrl: previewUrl, stopOnUnmount: true });
+    useMediaPlayback({ audioUrl: previewUrl, stopOnUnmount: true });
   const progress = duration ? (currentTime / duration) * 100 : 0;
 
   return (

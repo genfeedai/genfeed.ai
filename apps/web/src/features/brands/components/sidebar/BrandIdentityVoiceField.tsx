@@ -2,8 +2,8 @@
 
 import { CardPadding } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Label } from '@ui/primitives/label';
 import {
   Select,
@@ -87,8 +87,8 @@ export default function BrandIdentityVoiceField({
                 {`${getVoiceName(previewVoice)} (${previewVoice.provider ?? 'unknown'})`}
               </p>
             </div>
-            <AudioPreviewPlayer
-              audioUrl={previewVoice.sampleAudioUrl ?? null}
+            <MediaPlayer
+              src={previewVoice.sampleAudioUrl ?? null}
               label={getVoiceName(previewVoice)}
             />
           </div>

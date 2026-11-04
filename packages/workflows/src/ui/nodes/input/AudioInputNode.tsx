@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AudioInputNodeData } from '@genfeedai/contracts/types';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
-import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
+import MediaPlayer from '@genfeedai/ui/components/media-player/MediaPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
@@ -178,11 +178,11 @@ function AudioInputNodeComponent(props: NodeProps) {
       {nodeData.audio ? (
         <div className="space-y-2">
           <div className="relative">
-            <AudioPreviewPlayer
-              audioUrl={nodeData.audio}
+            <MediaPlayer
+              src={nodeData.audio}
               label={nodeData.filename || 'Audio preview'}
               className="nodrag nowheel w-full"
-              isTimelineVisible
+              variant="row"
             />
             <Button
               withWrapper={false}

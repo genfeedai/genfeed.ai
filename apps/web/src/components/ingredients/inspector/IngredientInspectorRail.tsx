@@ -38,6 +38,7 @@ import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -189,6 +190,16 @@ export default function IngredientInspectorRail({
     },
     [href, push],
   );
+  const isAudio = [
+    IngredientCategory.MUSIC,
+    IngredientCategory.VOICE,
+    IngredientCategory.AUDIO,
+  ].includes(ingredient.category);
+  const audioUrl = isAudio
+    ? grant
+      ? grant.url
+      : ingredient.ingredientUrl
+    : undefined;
   const previewUrl = grant
     ? isRasterPreviewUrl(grant.url)
       ? grant.url
@@ -220,7 +231,7 @@ export default function IngredientInspectorRail({
       )}
     >
       {/* A failed generation has nothing to preview. */}
-      {onOpenPreview && shelf !== LibraryShelf.FAILED ? (
+      {onOpenPreview && !isAudio && shelf !== LibraryShelf.FAILED ? (
         <ContextSidebarHeaderSlot>
           <Button
             ariaLabel={translate('openPreview')}
@@ -234,7 +245,16 @@ export default function IngredientInspectorRail({
           />
         </ContextSidebarHeaderSlot>
       ) : null}
-      {previewUrl || videoUrl ? (
+      {isAudio && shelf !== LibraryShelf.FAILED ? (
+        <MediaPlayer
+          src={audioUrl}
+          className="w-full"
+          variant="inspector"
+          label={ingredient.metadataLabel || translate('untitled')}
+          stopOnUnmount
+        />
+      ) : null}
+      {!isAudio && (previewUrl || videoUrl) ? (
         <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/5">
           {videoUrl ? (
             <VideoPlayer

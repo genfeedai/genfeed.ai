@@ -81,9 +81,9 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <nav aria-label="pagination" />,
 }));
 vi.mock('@services/ingredients/voices.service', () => ({ VoicesService: {} }));
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: ({ label, audioUrl }: { label: string; audioUrl: string }) => (
-    <span role="img" aria-label={label} data-url={audioUrl} />
+vi.mock('@ui/media-player/MediaPlayer', () => ({
+  default: ({ label, src }: { label: string; src: string }) => (
+    <span role="img" aria-label={label} data-url={src} />
   ),
 }));
 

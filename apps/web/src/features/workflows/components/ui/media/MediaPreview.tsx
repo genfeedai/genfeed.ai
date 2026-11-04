@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import Image from 'next/image';
 
 interface MediaPreviewProps {
@@ -35,11 +35,11 @@ export function MediaPreview({
 
   if (type === 'audio') {
     return (
-      <AudioPreviewPlayer
-        audioUrl={src}
+      <MediaPlayer
+        src={src}
         label="Review audio"
         className={cn('nodrag nowheel w-full', className)}
-        isTimelineVisible
+        variant="row"
         stopOnUnmount
       />
     );

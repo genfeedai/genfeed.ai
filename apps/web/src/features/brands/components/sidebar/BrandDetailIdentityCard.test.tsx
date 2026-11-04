@@ -83,14 +83,10 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: ({
-    audioUrl,
-    label,
-  }: {
-    audioUrl?: string | null;
-    label: string;
-  }) => <div>{`${label}:${audioUrl ?? 'no-preview'}`}</div>,
+vi.mock('@ui/media-player/MediaPlayer', () => ({
+  default: ({ src, label }: { src?: string | null; label: string }) => (
+    <div>{`${label}:${src ?? 'no-preview'}`}</div>
+  ),
 }));
 
 vi.mock('@ui/card/Card', () => ({

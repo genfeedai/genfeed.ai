@@ -23,10 +23,10 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import ViewMenu from '@ui/navigation/view-menu/ViewMenu';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -478,10 +478,10 @@ export default function StudioPlaygroundInspector({
   if (isReady && previewUrl) {
     if (AUDIO_TYPES.has(job.type)) {
       preview = (
-        <AudioPreviewPlayer
-          audioUrl={previewUrl}
+        <MediaPlayer
+          src={previewUrl}
           className="w-full"
-          isTimelineVisible
+          variant="inspector"
           label={studioAssetAccessibleLabel(continuationJob)}
         />
       );

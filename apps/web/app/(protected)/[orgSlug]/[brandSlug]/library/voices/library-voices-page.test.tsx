@@ -174,7 +174,7 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+vi.mock('@ui/media-player/MediaPlayer', () => ({
   default: ({ label }: { label: string }) => (
     <div data-testid="audio-preview-player">{label}</div>
   ),

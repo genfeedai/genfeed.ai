@@ -70,17 +70,17 @@
       "import": "./src/components/display/video-player/VideoPlayerControls.tsx",
       "default": "./src/components/display/video-player/VideoPlayerControls.tsx"
     },
-    "./components/audio/preview-player/AudioPreviewPlayer": {
-      "types": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx",
-      "import": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx",
-      "default": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx"
+    "./components/media-player/MediaPlayer": {
+      "types": "./src/components/media-player/MediaPlayer.tsx",
+      "import": "./src/components/media-player/MediaPlayer.tsx",
+      "default": "./src/components/media-player/MediaPlayer.tsx"
     }
   },
   "files": [
     "dist",
     "web-tokens.css",
     "src/components/display/video-player",
-    "src/components/audio/preview-player"
+    "src/components/media-player"
   ],
   "license": "MIT",
   "main": "./dist/index.js",

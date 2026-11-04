@@ -18,13 +18,13 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import BrandModeBadge from '@ui/ingredients/brand-mode-badge';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -35,6 +35,8 @@ import {
   GitBranch,
   ImageOff,
   ImagePlus,
+  Mic,
+  Music,
   Pencil,
   RotateCcw,
   Scissors,
@@ -235,11 +237,17 @@ export default function StudioPlaygroundCard({
   const unbrandedMode = brandMode === 'raw' ? brandMode : undefined;
 
   const isVideo = VIDEO_TYPES.has(job.type);
+  const isAudio = AUDIO_TYPES.has(job.type);
+  const isReadyAudio = mediaState === 'ready' && Boolean(job.url) && isAudio;
   const ingredientMetadata = job.ingredient?.metadata;
   const videoDuration =
     isVideo && typeof ingredientMetadata === 'object'
       ? ingredientMetadata?.duration
       : undefined;
+  const audioDuration =
+    isAudio && typeof ingredientMetadata === 'object'
+      ? (ingredientMetadata?.duration ?? 0)
+      : 0;
 
   const handleMediaError = useCallback(() => {
     if (mediaKey) {
@@ -651,9 +659,19 @@ export default function StudioPlaygroundCard({
     >
       <div
         className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/5 ${
-          isListView ? 'h-32 border-r border-border sm:h-40' : 'w-full min-h-40'
+          isListView
+            ? 'h-32 border-r border-border sm:h-40'
+            : isReadyAudio
+              ? 'w-full'
+              : 'w-full min-h-40'
         }`}
-        style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
+        // Audio has no frame of its own: its tile is as tall as its content,
+        // not the 1080 x 1080 fallback or a stale media ratio.
+        style={
+          isListView || isAudio
+            ? undefined
+            : { aspectRatio: `${width} / ${height}` }
+        }
       >
         {job.referencePreviewUrl ? (
           <GenerationReferencePreview
@@ -710,13 +728,30 @@ export default function StudioPlaygroundCard({
           </div>
         ) : null}
 
-        {mediaState === 'ready' && job.url && AUDIO_TYPES.has(job.type) ? (
-          <AudioPreviewPlayer
-            audioUrl={job.url}
-            className="pointer-events-auto w-full px-3"
-            isTimelineVisible
+        {isReadyAudio ? (
+          <MediaPlayer
+            badge={
+              <Badge
+                icon={
+                  job.type === 'voice' ? (
+                    <Mic aria-hidden="true" className="size-3" />
+                  ) : (
+                    <Music aria-hidden="true" className="size-3" />
+                  )
+                }
+                variant="secondary"
+              >
+                {label}
+              </Badge>
+            }
+            className="pointer-events-auto w-full"
+            knownDuration={audioDuration}
             label={accessibleLabel}
+            meta={job.modelKey || 'Auto'}
             onError={handleMediaError}
+            src={job.url}
+            title={job.prompt}
+            variant={isListView ? 'row' : 'tile'}
           />
         ) : null}
       </div>

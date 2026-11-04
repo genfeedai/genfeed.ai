@@ -1,9 +1,9 @@
 import { VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import type { TableColumn } from '@props/ui/display/table.props';
-import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import AppTable from '@ui/display/table/Table';
+import MediaPlayer from '@ui/media-player/MediaPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { useTranslations } from 'next-intl';
 import type { VoicesCatalogTableProps as Props } from '@/features/admin/props/voices.props';
@@ -90,10 +90,10 @@ export default function VoicesCatalogTable({
       header: t('columns.preview'),
       key: 'sampleAudioUrl',
       render: (voice) => (
-        <AudioPreviewPlayer
-          audioUrl={voice.sampleAudioUrl ?? null}
+        <MediaPlayer
+          src={voice.sampleAudioUrl ?? null}
           className="w-64"
-          isTimelineVisible
+          variant="row"
           label={getVoiceName(voice)}
         />
       ),
