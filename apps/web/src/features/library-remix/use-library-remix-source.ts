@@ -6,6 +6,7 @@ import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { useCallback, useEffect, useState } from 'react';
 import {
   type LibraryArtifactReference,
@@ -28,14 +29,6 @@ export interface UseLibraryRemixSourceResult {
   readonly reference: LibraryArtifactReference | null;
   readonly retry: () => void;
   readonly status: LibraryRemixSourceStatus;
-}
-
-function getErrorStatus(error: unknown): number | null {
-  if (!error || typeof error !== 'object' || !('status' in error)) {
-    return null;
-  }
-
-  return typeof error.status === 'number' ? error.status : null;
 }
 
 function isAssetInBrand(asset: IAsset, brandId: string): boolean {

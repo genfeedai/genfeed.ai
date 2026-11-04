@@ -10,7 +10,6 @@ import {
   APP_ROUTES,
   createPublishingCampaignRoute,
 } from '@genfeedai/contracts/constants';
-import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
@@ -35,19 +34,13 @@ import {
   parseCampaignStatusFilter,
 } from '@/features/campaigns/campaigns-status';
 import CampaignCreateDialog from '@/features/campaigns/form/CampaignCreateDialog';
+import { formatCampaignDate } from '@/features/campaigns/format-campaign-date';
 import { useCampaigns } from '@/features/campaigns/hooks/use-campaigns';
 import type { CampaignsListPageProps } from '@/features/campaigns/props/campaign-setup.props';
 import { useTableSort } from '@/hooks/ui/use-table-sort/use-table-sort';
 
 /** Columns the campaigns endpoint can order by. */
 const CAMPAIGN_SORT_KEYS = ['name', 'objective', 'startDate', 'status'];
-
-function formatCampaignDate(value?: string | null): string {
-  if (!value) {
-    return '—';
-  }
-  return formatDate(value, DATE_FORMATS.DISPLAY_DATE) || '—';
-}
 
 export default function CampaignsListPage({
   isCreateOpen = false,

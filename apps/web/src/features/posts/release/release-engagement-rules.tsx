@@ -32,6 +32,7 @@ import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useState } from 'react';
 import { useEngagementRules } from '@/features/posts/hooks/use-engagement-rules';
 import type { ReleaseEngagementRulesProps } from '@/features/posts/props/engagement-rules.props';
+import { formatInstant } from './format-instant';
 
 function parseMetric(value: string): EngagementMetric {
   switch (value) {
@@ -99,11 +100,6 @@ function stateBadgeVariant(
     return 'destructive';
   }
   return 'outline';
-}
-
-function formatInstant(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US');
 }
 
 function formatSnapshot(rule: IEngagementRule): string {

@@ -6,6 +6,7 @@ import type { TrendDetailData } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
 import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { getGrowthRateClass } from '@/features/trends/detail/growth-rate-class';
 
 type TrendDetailAnalysisCardProps = {
   analysis: TrendDetailData['analysis'];
@@ -22,16 +23,6 @@ function getTrendDirectionIcon(
     default:
       return <ChartColumn className="size-5 text-warning" />;
   }
-}
-
-function getGrowthRateClass(rate: number): string {
-  if (rate > 0) {
-    return 'text-success';
-  }
-  if (rate < 0) {
-    return 'text-destructive';
-  }
-  return '';
 }
 
 export default function TrendDetailAnalysisCard({

@@ -13,18 +13,9 @@ import { Skeleton } from '@ui/primitives/skeleton';
 import { Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import SocialMediaPlayer from '@/components/analytics/trends/social-media-player';
+import { getGrowthRateClass } from '@/features/trends/detail/growth-rate-class';
 import TrendRowSummary from '@/features/trends/detail/trend-row-summary';
 import type { Props } from '@/features/trends/props/trending-topics-section.props';
-
-function getGrowthRateClass(rate: number): string {
-  if (rate > 0) {
-    return 'text-success';
-  }
-  if (rate < 0) {
-    return 'text-destructive';
-  }
-  return '';
-}
 
 function getViralityBadgeProps(score: number): {
   isSolid: boolean;

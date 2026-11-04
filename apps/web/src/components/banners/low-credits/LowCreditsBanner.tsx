@@ -25,6 +25,7 @@ import { TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { coerceFiniteBalance } from '@/components/topbars/credits-bar/coerce-finite-balance';
 import { useTopbarBalances } from '@/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@/hooks/data/subscription/use-subscription/use-subscription';
 import { useDesktopRuntimeContext } from '@/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
@@ -44,10 +45,6 @@ interface LowCreditsBannerProps {
    */
   isLowBalanceWarningEnabled?: boolean;
   variant?: 'inline' | 'shell';
-}
-
-function coerceFiniteBalance(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function getDismissState(): DismissState | null {

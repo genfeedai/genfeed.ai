@@ -25,16 +25,13 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { SocketService } from '@genfeedai/services/core/socket.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
+import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useForm } from 'react-hook-form';
+import { updateFileStatus } from '@/components/modals/ingredients/upload/upload.utils';
 import { useFocusFirstInput } from '@/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@/hooks/utils/use-form-submit/use-form-submit';
-
-type FileStatusUpdater = Dispatch<
-  SetStateAction<Map<string, FileUploadStatus>>
->;
 
 const RANDOM_TRIGGER_CHARS = 'BCDFGHJKLMNPQRSTVWXYZ23456789';
 const RANDOM_TRIGGER_DIGITS = '23456789';
@@ -62,21 +59,6 @@ function buildRandomToken(
   }
 
   return token;
-}
-
-function updateFileStatus(
-  setFileStatuses: FileStatusUpdater,
-  fileId: string,
-  updates: Partial<FileUploadStatus>,
-): void {
-  setFileStatuses((prev) => {
-    const newMap = new Map(prev);
-    const existing = newMap.get(fileId);
-    if (existing) {
-      newMap.set(fileId, { ...existing, ...updates });
-    }
-    return newMap;
-  });
 }
 
 export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {

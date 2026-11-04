@@ -1,21 +1,9 @@
-import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Flame, Gift, ShieldCheck } from 'lucide-react';
 import type { Props } from '@/features/settings/props/settings-progress-rewards-card.props';
-
-function rewardLabel(milestone: IStreakMilestoneState): string {
-  if (milestone.days === 7) {
-    return 'Freeze unlocked';
-  }
-
-  if (milestone.rewardCredits > 0) {
-    return `${milestone.rewardCredits} credits + badge`;
-  }
-
-  return 'Milestone reached';
-}
+import { rewardLabel } from '@/features/streaks/reward-label';
 
 export default function SettingsProgressRewardsCard({
   badgeMilestones,

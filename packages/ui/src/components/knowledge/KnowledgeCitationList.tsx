@@ -1,15 +1,7 @@
 import type { KnowledgeCitationListProps } from '@genfeedai/props/content/knowledge-library.props';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-
-const EXCERPT_LENGTH = 160;
-
-function toExcerpt(text: string): string {
-  const flattened = text.replace(/\s+/g, ' ').trim();
-  return flattened.length > EXCERPT_LENGTH
-    ? `${flattened.slice(0, EXCERPT_LENGTH).trimEnd()}…`
-    : flattened;
-}
+import { toExcerpt } from './knowledge-excerpt';
 
 /**
  * The numbered sources behind an agent answer. Each row matches a `[n]` marker

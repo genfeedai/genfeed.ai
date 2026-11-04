@@ -3,8 +3,7 @@ import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import type { KnowledgeReceiptListProps } from '@genfeedai/props/content/knowledge-library.props';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-
-const EXCERPT_LENGTH = 160;
+import { toExcerpt } from './knowledge-excerpt';
 
 /** Keys resolve under `ui.knowledgeReceipts.purpose`. */
 const PURPOSE_KEY: Record<KnowledgeSourcePurpose, string> = {
@@ -12,13 +11,6 @@ const PURPOSE_KEY: Record<KnowledgeSourcePurpose, string> = {
   [KnowledgeSourcePurpose.INSPIRATION]: 'inspiration',
   [KnowledgeSourcePurpose.RESEARCH]: 'research',
 };
-
-function toExcerpt(text: string): string {
-  const flattened = text.replace(/\s+/g, ' ').trim();
-  return flattened.length > EXCERPT_LENGTH
-    ? `${flattened.slice(0, EXCERPT_LENGTH).trimEnd()}…`
-    : flattened;
-}
 
 /**
  * Receipts for the exact Knowledge source versions that grounded a generated
