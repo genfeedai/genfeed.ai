@@ -10,6 +10,8 @@ import type { SchemaFixture } from '@api/seeds/reviewed-provider-rates-seed.type
 import flux3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/flux-3-image.schema.json';
 import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/ideogram-4-5.schema.json';
 import minimaxH3Openapi from '@api/services/prompt-builder/builders/replicate/fixtures/minimax-h3.schema.json';
+import minimaxH3HighspeedOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/minimax-h3-highspeed.schema.json';
+import minimaxH3LiteOpenapi from '@api/services/prompt-builder/builders/replicate/fixtures/minimax-h3-lite.schema.json';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import {
@@ -75,6 +77,14 @@ const SCHEMA_FIXTURES: Readonly<Record<string, SchemaFixture>> = {
   // Replicate exposes no version, so no OpenAPI document is ever observed.
   'minimax/h3': {
     openapi: minimaxH3Openapi,
+    schemaFamily: 'replicate-video-v1',
+  },
+  'minimax/h3-lite': {
+    openapi: minimaxH3LiteOpenapi,
+    schemaFamily: 'replicate-video-v1',
+  },
+  'minimax/h3-highspeed': {
+    openapi: minimaxH3HighspeedOpenapi,
     schemaFamily: 'replicate-video-v1',
   },
   ...ELEVENLABS_SCHEMA_FIXTURES,

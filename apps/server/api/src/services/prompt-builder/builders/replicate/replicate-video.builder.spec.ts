@@ -90,6 +90,12 @@ describe('ReplicateVideoBuilder', () => {
       );
     });
 
+    it('should include MiniMax H3 Lite and Highspeed', () => {
+      const models = builder.getSupportedModels();
+      expect(models).toContain(MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED);
+    });
+
     it('should include Hailuo 2.3 Fast', () => {
       expect(builder.getSupportedModels()).toContain(
         MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
@@ -179,6 +185,70 @@ describe('ReplicateVideoBuilder', () => {
           ),
         'first_frame_image',
       );
+    });
+  });
+
+  describe('buildPrompt - MiniMax H3 Lite and Highspeed', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'test',
+      width: 1920,
+    };
+
+    it.each([
+      [undefined, '768P'],
+      ['480p', '480P'],
+      ['768P', '768P'],
+      ['2K', '768P'],
+    ])('maps Lite resolution %s onto %s', (requested, expected) => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE,
+        { ...baseParams, resolution: requested },
+        'A cinematic product reveal',
+      );
+
+      expect(result).toEqual({
+        duration: 5,
+        prompt: 'A cinematic product reveal',
+        ratio: '16:9',
+        reference_audio_urls: [],
+        reference_image_urls: [],
+        reference_video_urls: [],
+        resolution: expected,
+      });
+    });
+
+    it('sends Lite a concrete ratio next to a first frame because its enum has no adaptive', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3_LITE,
+        { ...baseParams, references: ['start.jpg'] },
+        'Animate the start frame',
+      );
+
+      expect(result).toMatchObject({
+        first_frame_image: 'start.jpg',
+        ratio: '16:9',
+        resolution: '768P',
+      });
+    });
+
+    it('sends Highspeed no resolution and adaptive ratio next to a first frame', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3_HIGHSPEED,
+        { ...baseParams, resolution: '2K', references: ['start.jpg'] },
+        'Animate the start frame',
+      );
+
+      expect(result).toEqual({
+        duration: 5,
+        first_frame_image: 'start.jpg',
+        prompt: 'Animate the start frame',
+        ratio: 'adaptive',
+        reference_audio_urls: [],
+        reference_image_urls: [],
+        reference_video_urls: [],
+      });
     });
   });
 

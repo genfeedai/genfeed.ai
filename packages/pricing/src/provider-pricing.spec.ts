@@ -125,6 +125,21 @@ describe('PRICING constants', () => {
     expect(quote('2K')).toBeGreaterThan(quote('768P'));
   });
 
+  it('quotes MiniMax H3 Lite 480P at its published $0.025 against $0.04 at 768P', () => {
+    const quote = (resolution: string) =>
+      quoteVideoGenerationCredits({
+        cost: 67,
+        costPerUnit: 14,
+        duration: 5,
+        modelKey: 'minimax/h3-lite',
+        pricingType: 'per-second',
+        resolution,
+      });
+
+    expect(quote('480P')).toBeLessThan(quote('768P'));
+    expect(quote('480P')).toBe(Math.ceil(quote('768P') * (0.025 / 0.04)));
+  });
+
   it('quotes MiniMax H3 Max 1080P above its published 768P band', () => {
     const quote = (resolution: string) =>
       quoteVideoGenerationCredits({

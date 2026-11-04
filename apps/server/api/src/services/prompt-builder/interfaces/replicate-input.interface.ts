@@ -418,14 +418,15 @@ export interface Seedance2Input extends BaseVideoInput {
   audio?: string;
 }
 
-/** MiniMax H3 multimodal video generation */
+/** MiniMax H3, H3 Lite and H3 Highspeed multimodal video generation */
 export interface MinimaxH3Input extends BaseVideoInput {
   duration: number;
   ratio: string;
   reference_audio_urls: string[];
   reference_image_urls: string[];
   reference_video_urls: string[];
-  resolution: '768P' | '2K';
+  /** Absent for H3 Highspeed, which renders 768P only. */
+  resolution?: '480P' | '768P' | '2K';
   first_frame_image?: string;
   last_frame_image?: string;
 }

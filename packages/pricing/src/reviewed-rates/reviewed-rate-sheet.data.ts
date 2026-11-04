@@ -1895,6 +1895,51 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     sourceUrl: 'https://replicate.com/minimax/h3',
     verifiedAt: '2026-10-06T09:45:37.170Z',
   },
+  // Replicate model pages, checked 2026-11-04. Provider list prices: the pages
+  // state no promotion. A 50% launch promotion was reported for both models
+  // (unverified); if these pages change when it ends, re-pull with
+  // `bun run pricing:rates:pull --model minimax/h3-lite`.
+  {
+    endpoint: 'minimax/h3-lite',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.025,
+        when: {
+          resolution: '480P',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: {
+          resolution: '768P',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/minimax/h3-lite',
+    verifiedAt: '2026-11-04T07:39:26.000Z',
+  },
+  {
+    endpoint: 'minimax/h3-highspeed',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.06,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/minimax/h3-highspeed',
+    verifiedAt: '2026-11-04T07:39:26.000Z',
+  },
   {
     endpoint: 'minimax/h3-max/director',
     provider: 'fal',

@@ -146,6 +146,9 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   // H3 is billed per output second. The catalog owns live PER_SECOND billing;
   // this conservative 2K rate is only the discovery estimator's unit proxy.
   'minimax/h3': 0.13,
+  // Per output second at 768P (Lite 480P is $0.025); Highspeed has one rate.
+  'minimax/h3-highspeed': 0.06,
+  'minimax/h3-lite': 0.04,
   'openai/gpt-image-1.5': 0.053,
   'openai/gpt-image-2': 0.053,
   'openai/gpt-image-2.5-flare': 0.211,
