@@ -2,7 +2,7 @@ import type { BrandValidationReceiptService } from '@api/services/brand-validati
 import type { BrandVisionJobData } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Job } from 'bullmq';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { BrandVisionProcessor } from './brand-vision.processor';
 
 const data: BrandVisionJobData = {
@@ -13,64 +13,81 @@ const data: BrandVisionJobData = {
 };
 const job = { data } as Job<BrandVisionJobData>;
 
-function setup(result: unknown) {
-  const validation = { completeVisionChecks: vi.fn(async () => result) };
-  const logger = { log: vi.fn() };
+/**
+ * The processor against a receipt service that records which receipt it was
+ * asked to finish and as whom, and a logger that keeps the finished summary.
+ */
+function processorReturning(result: unknown, failure?: Error) {
+  const checked: unknown[] = [];
+  const summaries: unknown[] = [];
+  const validation = {
+    completeVisionChecks: async (actor: unknown, receiptId: string) => {
+      checked.push({ actor, receiptId });
+      if (failure) {
+        throw failure;
+      }
+      return result;
+    },
+  };
+  const logger = {
+    log: (_message: string, summary: unknown) => {
+      summaries.push(summary);
+    },
+  };
   const processor = new BrandVisionProcessor(
     validation as unknown as BrandValidationReceiptService,
     logger as unknown as LoggerService,
   );
-  return { logger, processor, validation };
+  return { checked, processor, summaries };
 }
 
 describe('BrandVisionProcessor', () => {
   it('finishes the pending checks of the receipt as the actor who produced it', async () => {
-    const { logger, processor, validation } = setup({
+    const { checked, processor } = processorReturning({
       receipt: { state: 'needs_review' },
       replayed: false,
     });
+
     await processor.process(job);
-    expect(validation.completeVisionChecks).toHaveBeenCalledWith(
-      { actorId: 'user-a', brandId: 'brand-a', organizationId: 'org-a' },
-      'receipt-a',
-    );
-    expect(logger.log).toHaveBeenCalledWith(
-      'BrandVisionProcessor finished',
-      expect.objectContaining({
-        outcome: 'revalidated',
+
+    expect(checked).toEqual([
+      {
+        actor: {
+          actorId: 'user-a',
+          brandId: 'brand-a',
+          organizationId: 'org-a',
+        },
         receiptId: 'receipt-a',
-      }),
-    );
+      },
+    ]);
   });
 
-  it('leaves a receipt with nothing pending alone', async () => {
-    const { logger, processor } = setup({
-      receipt: { state: 'ready' },
-      replayed: true,
-    });
-    await processor.process(job);
-    expect(logger.log).toHaveBeenCalledWith(
-      'BrandVisionProcessor finished',
-      expect.objectContaining({ outcome: 'replayed' }),
-    );
-  });
+  it.each([
+    [
+      'revalidated',
+      { receipt: { state: 'needs_review' }, replayed: false },
+      'needs_review',
+    ],
+    ['replayed', { receipt: { state: 'ready' }, replayed: true }, 'ready'],
+    ['skipped', null, undefined],
+  ])('logs a %s receipt', async (outcome, result, state) => {
+    const { processor, summaries } = processorReturning(result);
 
-  it('skips when no analysis is configured', async () => {
-    const { logger, processor } = setup(null);
     await processor.process(job);
-    expect(logger.log).toHaveBeenCalledWith(
-      'BrandVisionProcessor finished',
-      expect.objectContaining({ outcome: 'skipped' }),
-    );
+
+    expect(summaries).toEqual([{ outcome, receiptId: 'receipt-a', state }]);
   });
 
   it('fails the job, running once, when the receipt cannot be read or written', async () => {
-    const { processor, validation } = setup(null);
-    validation.completeVisionChecks.mockRejectedValueOnce(
+    const { checked, processor, summaries } = processorReturning(
+      null,
       new Error('receipt_state_conflict'),
     );
+
     await expect(processor.process(job)).rejects.toThrow(
       'receipt_state_conflict',
     );
+    expect(checked).toHaveLength(1);
+    expect(summaries).toEqual([]);
   });
 });
