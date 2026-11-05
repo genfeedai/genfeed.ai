@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -73,10 +77,10 @@ beforeEach(() => {
   mocks.identity = { userId: 'user-a', sessionId: 'session-a', orgId: 'org-a' };
 });
 describe('scoped Studio audio Library', () => {
-  it('reads only while the audio picker is enabled and cancels on close', async () => {
+  it('reads only while the audio picker is enabled and hides it on close', async () => {
     const { result, rerender } = renderHook(
       ({ enabled }) => useStudioAudioLibrary(enabled),
-      { initialProps: { enabled: false } },
+      { initialProps: { enabled: false }, wrapper: queryClientWrapper() },
     );
     expect(mocks.getService).not.toHaveBeenCalled();
     mocks.findAllPage.mockResolvedValue(page('recording'));
@@ -86,18 +90,38 @@ describe('scoped Studio audio Library', () => {
         'recording',
       ]),
     );
-    const signal = mocks.findAllPage.mock.calls[0][1];
     rerender({ enabled: false });
     expect(result.current.items).toEqual([]);
-    expect(signal.aborted).toBe(true);
+  });
+  it('paints the cached audio at once when the picker is opened again', async () => {
+    const client = createTestQueryClient();
+    mocks.findAllPage.mockResolvedValue(page('recording'));
+    const firstOpen = renderHook(() => useStudioAudioLibrary(true), {
+      wrapper: queryClientWrapper(client),
+    });
+    await waitFor(() =>
+      expect(firstOpen.result.current.items.map((item) => item.id)).toEqual([
+        'recording',
+      ]),
+    );
+    firstOpen.unmount();
+
+    mocks.findAllPage.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useStudioAudioLibrary(true), {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.items.map((item) => item.id)).toEqual(['recording']);
   });
   it.each(['brand', 'actor', 'session', 'organization'])(
     'rejects old results after a %s A-to-B-to-A scope change',
     async (scope) => {
       const old = deferred<ReturnType<typeof page>>();
       mocks.findAllPage.mockImplementationOnce(() => old.promise);
-      const { result, rerender } = renderHook(() =>
-        useStudioAudioLibrary(true),
+      const { result, rerender } = renderHook(
+        () => useStudioAudioLibrary(true),
+        { wrapper: queryClientWrapper() },
       );
       await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(3));
       if (scope === 'brand') mocks.brandId = 'brand-b';
@@ -122,7 +146,9 @@ describe('scoped Studio audio Library', () => {
   );
   it('shows a failed load without retaining stale items', async () => {
     mocks.findAllPage.mockRejectedValue(new Error('offline'));
-    const { result } = renderHook(() => useStudioAudioLibrary(true));
+    const { result } = renderHook(() => useStudioAudioLibrary(true), {
+      wrapper: queryClientWrapper(),
+    });
     await waitFor(() => expect(result.current.hasError).toBe(true));
     expect(result.current.items).toEqual([]);
     expect(result.current.isLoading).toBe(false);
