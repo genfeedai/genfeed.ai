@@ -159,18 +159,6 @@ export function getAspectRatiosFromModel(model: IModel): readonly string[] {
   return getAspectRatiosForModel(model.key, getModelCapability(model));
 }
 
-/** Normalize an aspect ratio for an IModel document. */
-export function normalizeAspectRatioFromModel(
-  model: IModel,
-  aspectRatio: string,
-): string {
-  return normalizeAspectRatioForModel(
-    model.key,
-    aspectRatio,
-    getModelCapability(model),
-  );
-}
-
 /** Check if an aspect ratio is supported by an IModel document. */
 export function isAspectRatioSupportedFromModel(
   model: IModel,

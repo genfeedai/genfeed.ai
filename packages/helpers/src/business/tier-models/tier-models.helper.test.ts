@@ -1,6 +1,5 @@
 import { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 import {
-  getQualityTiersForSubscription,
   hasQualityAccess,
   resolveQualityAccessTier,
   resolveSubscriptionTier,
@@ -40,26 +39,6 @@ describe('tier-models.helper', () => {
         expect(TIER_QUALITY_ACCESS[tier]).toBeDefined();
         expect(TIER_QUALITY_ACCESS[tier].length).toBeGreaterThan(0);
       }
-    });
-  });
-
-  describe('getQualityTiersForSubscription', () => {
-    it('should return correct tiers for FREE', () => {
-      expect(getQualityTiersForSubscription(SubscriptionTier.FREE)).toEqual([
-        QualityTier.BASIC,
-      ]);
-    });
-
-    it('should return correct tiers for ENTERPRISE', () => {
-      const tiers = getQualityTiersForSubscription(SubscriptionTier.ENTERPRISE);
-      expect(tiers).toHaveLength(4);
-    });
-
-    it('should return BASIC for unknown tier', () => {
-      const result = getQualityTiersForSubscription(
-        'UNKNOWN_TIER' as SubscriptionTier,
-      );
-      expect(result).toEqual([QualityTier.BASIC]);
     });
   });
 

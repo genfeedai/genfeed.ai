@@ -1,7 +1,4 @@
-import {
-  calculateTweetLength,
-  isTweetTooLong,
-} from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
 import { describe, expect, it } from 'vitest';
 
 describe('tweet-length.helper', () => {
@@ -36,36 +33,6 @@ describe('tweet-length.helper', () => {
     it('handles text with no URLs', () => {
       const text = 'Just a regular tweet with no links';
       expect(calculateTweetLength(text)).toBe(text.length);
-    });
-  });
-
-  describe('isTweetTooLong', () => {
-    it('returns false for short tweets', () => {
-      expect(isTweetTooLong('Hello world')).toBe(false);
-    });
-
-    it('returns false for exactly 280 characters', () => {
-      expect(isTweetTooLong('a'.repeat(280))).toBe(false);
-    });
-
-    it('returns true for 281 characters', () => {
-      expect(isTweetTooLong('a'.repeat(281))).toBe(true);
-    });
-
-    it('returns false for empty string', () => {
-      expect(isTweetTooLong('')).toBe(false);
-    });
-
-    it('accounts for URL shortening in length check', () => {
-      // 260 chars of text + 1 URL (23) = 283 > 280
-      const text = `${'a'.repeat(260)} https://example.com`;
-      expect(isTweetTooLong(text)).toBe(true);
-    });
-
-    it('passes when URL shortening keeps it under 280', () => {
-      // 250 chars of text + " " + URL(23) = 274 <= 280
-      const text = `${'a'.repeat(250)} https://example.com`;
-      expect(isTweetTooLong(text)).toBe(false);
     });
   });
 });

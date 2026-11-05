@@ -6,7 +6,3 @@ export function calculateTweetLength(text: string): number {
   const replaced = text.replace(urlRegex, '');
   return replaced.length + urls.length * URL_LENGTH;
 }
-
-export function isTweetTooLong(text: string): boolean {
-  return calculateTweetLength(text) > 280;
-}

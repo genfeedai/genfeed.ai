@@ -59,15 +59,3 @@ export function addUTMParameters(
     return url;
   }
 }
-
-export function buildUTMParameters(
-  username: string,
-  linkType: string,
-): UTMParameters {
-  return {
-    campaign: username,
-    content: linkType,
-    medium: 'profile_link',
-    source: 'genfeedai_profile',
-  };
-}

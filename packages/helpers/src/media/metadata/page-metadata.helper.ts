@@ -106,21 +106,6 @@ export function createDynamicPageMetadata<K extends string>(
   };
 }
 
-export function createPageMetadataWithDescription(
-  pageTitle: string,
-  description: string,
-  canonicalPath?: string,
-) {
-  return async function generateMetadata(
-    _props: unknown,
-    parent: ResolvingMetadata,
-  ): Promise<Metadata> {
-    const previousImages = (await parent).openGraph?.images || [];
-
-    return buildMetadata(pageTitle, previousImages, description, canonicalPath);
-  };
-}
-
 export function createPageMetadataWithCanonical(
   pageTitle: string,
   description: string,

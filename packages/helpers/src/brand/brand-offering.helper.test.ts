@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   brandOfferingSubjectLock,
   classifyBrandOffering,
-  lockMediaUserPrompt,
   RECRUITING_SUBJECT_LOCK,
+  resolveMediaSubjectLock,
   scoreBrandOfferingPrompt,
 } from './brand-offering.helper';
 
@@ -65,23 +65,21 @@ describe('classifyBrandOffering', () => {
   });
 });
 
-describe('lockMediaUserPrompt', () => {
-  it('puts the software subject lock ahead of the user prompt', () => {
-    const locked = lockMediaUserPrompt(
-      'Open on the product.',
-      'Recruiting software for hiring managers and candidates.',
+describe('resolveMediaSubjectLock', () => {
+  const corpus = 'Recruiting software for hiring managers and candidates.';
+
+  it('returns the software subject lock for a software corpus', () => {
+    expect(resolveMediaSubjectLock('Open on the product.', corpus)).toBe(
+      brandOfferingSubjectLock('software'),
     );
-    expect(locked.startsWith(brandOfferingSubjectLock('software'))).toBe(true);
-    expect(locked.endsWith('Open on the product.')).toBe(true);
   });
 
   it('adds the hiring feeling only when the prompt itself is about hiring', () => {
-    const corpus = 'Recruiting software for hiring managers and candidates.';
     expect(
-      lockMediaUserPrompt('Explain the product to leaders.', corpus),
+      resolveMediaSubjectLock('Explain the product to leaders.', corpus),
     ).not.toContain('finding the right person');
     expect(
-      lockMediaUserPrompt('A hiring manager meets a candidate.', corpus),
+      resolveMediaSubjectLock('A hiring manager meets a candidate.', corpus),
     ).toContain(RECRUITING_SUBJECT_LOCK);
   });
 });

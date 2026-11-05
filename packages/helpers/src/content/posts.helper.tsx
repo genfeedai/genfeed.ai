@@ -5,7 +5,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IPlatformTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
   DiscordIcon,
   FacebookIcon,
@@ -229,27 +228,6 @@ export function getPublishingPostsHref({
   params.set('platform', normalizedPlatform);
 
   return `${basePath}?${params.toString()}`;
-}
-
-export function getPostStatusOptions(
-  includeAll = false,
-): Array<{ label: string; value: string }> {
-  const formStatuses = [
-    PostStatus.DRAFT,
-    PostStatus.SCHEDULED,
-    PostStatus.PUBLIC,
-    PostStatus.PRIVATE,
-    PostStatus.UNLISTED,
-  ];
-
-  const options = formStatuses.map((status) => ({
-    label: formatHelper.capitalize(status),
-    value: status,
-  }));
-
-  return includeAll
-    ? [{ label: 'All Statuses', value: '' }, ...options]
-    : options;
 }
 
 export function getPostVisibilityOptions(): Array<{

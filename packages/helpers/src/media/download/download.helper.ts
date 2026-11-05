@@ -89,28 +89,6 @@ export async function ingredientDownloadFilenameForBlob(
   return ingredientDownloadFilename(ingredient, blob.type, bytes);
 }
 
-export function filenameFromContentDisposition(
-  contentDisposition: string | undefined,
-): string | undefined {
-  if (!contentDisposition) {
-    return undefined;
-  }
-  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
-  if (utfMatch?.[1]) {
-    try {
-      return decodeURIComponent(utfMatch[1]);
-    } catch {
-      return utfMatch[1];
-    }
-  }
-  const quoted = /filename="([^"]+)"/i.exec(contentDisposition);
-  if (quoted?.[1]) {
-    return quoted[1];
-  }
-  const unquoted = /filename=([^;]+)/i.exec(contentDisposition);
-  return unquoted?.[1]?.trim();
-}
-
 export function saveDownloadBlob(blob: Blob, filename: string): void {
   saveAs(blob, sanitizeDownloadFilename(filename));
 }

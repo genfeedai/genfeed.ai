@@ -3,7 +3,6 @@ import {
   isModalOpen,
   openModal,
   subscribeModal,
-  subscribeModalState,
 } from '@helpers/ui/modal/modal.helper';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -22,18 +21,6 @@ describe('modal.helper (store-backed)', () => {
 
     expect(closeModal(modalId)).toBe(true);
     expect(isModalOpen(modalId)).toBe(false);
-  });
-
-  it('notifies global subscribers when modal state changes', () => {
-    const modalId = 'modal-test-global-sub';
-    const listener = vi.fn();
-    const unsubscribe = subscribeModalState(listener);
-
-    openModal(modalId);
-    closeModal(modalId);
-
-    expect(listener).toHaveBeenCalledTimes(2);
-    unsubscribe();
   });
 
   it('notifies modal-specific subscribers only for the same id', () => {

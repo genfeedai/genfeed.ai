@@ -17,7 +17,6 @@ import {
   isAspectRatioSupported,
   isAspectRatioSupportedFromModel,
   normalizeAspectRatioForModel,
-  normalizeAspectRatioFromModel,
 } from '@helpers/aspect-ratio.helper';
 
 const IMAGEN_4_KEY = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
@@ -341,30 +340,6 @@ describe('getAspectRatiosFromModel', () => {
     });
 
     expect(getAspectRatiosFromModel(model)).toEqual(['3:2', '2:3', '1:1']);
-  });
-});
-
-describe('normalizeAspectRatioFromModel', () => {
-  it('should return the ratio when supported', () => {
-    const model = createMockModel({
-      aspectRatios: ['1:1', '16:9'],
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
-      maxOutputs: 4,
-    });
-
-    expect(normalizeAspectRatioFromModel(model, '16:9')).toBe('16:9');
-  });
-
-  it('should return default when ratio is not supported', () => {
-    const model = createMockModel({
-      aspectRatios: ['1:1', '16:9'],
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
-      maxOutputs: 4,
-    });
-
-    expect(normalizeAspectRatioFromModel(model, '21:9')).toBe('1:1');
   });
 });
 

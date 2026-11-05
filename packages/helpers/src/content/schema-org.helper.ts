@@ -156,20 +156,6 @@ export function buildHowToJsonLd(
   });
 }
 
-export function buildGeneratedContentJsonLd(
-  input: GeneratedContentJsonLdInput,
-): Record<string, JsonLdValue> {
-  if (input.contentType === 'faq') {
-    return buildFaqJsonLd(input);
-  }
-
-  if (input.contentType === 'howto') {
-    return buildHowToJsonLd(input);
-  }
-
-  return buildArticleJsonLd(input);
-}
-
 function buildAuthorEntity(
   input: SchemaOrgOrganizationInput | SchemaOrgPersonInput | string,
 ): Record<string, JsonLdValue> {

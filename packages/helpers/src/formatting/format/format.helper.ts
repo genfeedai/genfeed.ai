@@ -6,12 +6,6 @@ const CHART_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'short',
 });
-const TOOLTIP_DATE_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  month: 'short',
-});
 
 export function formatCompactNumber(
   num: number | string | null | undefined,
@@ -153,25 +147,6 @@ export function formatChartDate(
   }
 
   return CHART_DATE_FORMATTER.format(dateObj);
-}
-
-/**
- * Format date for tooltips with time (Jan 15, 3:30 PM)
- */
-export function formatTooltipDateTime(
-  date: Date | string | number | null | undefined,
-): string {
-  if (date === null || date === undefined) {
-    return '';
-  }
-
-  const dateObj = date instanceof Date ? date : new Date(date);
-
-  if (Number.isNaN(dateObj.getTime())) {
-    return '';
-  }
-
-  return TOOLTIP_DATE_TIME_FORMATTER.format(dateObj);
 }
 
 /**

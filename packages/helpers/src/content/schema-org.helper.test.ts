@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildArticleJsonLd,
   buildFaqJsonLd,
-  buildGeneratedContentJsonLd,
   buildHowToJsonLd,
 } from './schema-org.helper';
 
@@ -115,14 +114,5 @@ describe('schema-org helpers', () => {
         { '@type': 'HowToStep', name: 'Add schema', position: 2 },
       ],
     });
-  });
-
-  it('routes generated content by content type', () => {
-    expect(
-      buildGeneratedContentJsonLd({
-        contentType: 'faq',
-        items: [{ answer: 'A', question: 'Q' }],
-      })['@type'],
-    ).toBe('FAQPage');
   });
 });

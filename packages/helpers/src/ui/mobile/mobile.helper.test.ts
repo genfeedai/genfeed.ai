@@ -1,7 +1,6 @@
 import {
   getDeepLink,
   isAndroidDevice,
-  isiOSDevice,
   isMobileDevice,
 } from '@helpers/ui/mobile/mobile.helper';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -57,25 +56,6 @@ describe('mobile.helper', () => {
     it('returns false for iPhone user agent', () => {
       setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
       expect(isAndroidDevice()).toBe(false);
-    });
-  });
-
-  describe('isiOSDevice', () => {
-    it('returns true for iPhone user agent', () => {
-      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
-      expect(isiOSDevice()).toBe(true);
-    });
-
-    it('returns true for iPad user agent', () => {
-      setUserAgent('Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X)');
-      expect(isiOSDevice()).toBe(true);
-    });
-
-    it('returns false for Android user agent', () => {
-      setUserAgent(
-        'Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36',
-      );
-      expect(isiOSDevice()).toBe(false);
     });
   });
 

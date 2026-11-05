@@ -1,16 +1,8 @@
 import {
-  clearCache,
   createCacheKey,
   createLocalStorageCache,
-  createMemoryCache,
-  createSessionStorageCache,
-  getCacheItem,
-  getCacheStats,
   isCacheExpired,
   MemoryCache,
-  RateLimiter,
-  removeCacheItem,
-  setCacheItem,
 } from '@helpers/data/cache/cache.helper';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -144,46 +136,6 @@ describe('createCacheKey', () => {
   });
 });
 
-describe('setCacheItem / getCacheItem', () => {
-  beforeEach(() => clearCache());
-
-  it('sets and retrieves an item', () => {
-    setCacheItem('foo', { bar: 1 });
-    expect(getCacheItem('foo')).toEqual({ bar: 1 });
-  });
-
-  it('returns null for a missing key', () => {
-    expect(getCacheItem('missing')).toBeNull();
-  });
-
-  it('removeCacheItem removes the entry', () => {
-    setCacheItem('del', 'val');
-    removeCacheItem('del');
-    expect(getCacheItem('del')).toBeNull();
-  });
-
-  it('tracks hits and misses in getCacheStats', () => {
-    clearCache();
-    setCacheItem('hit', 1);
-    getCacheItem('hit'); // hit
-    getCacheItem('miss'); // miss
-    const stats = getCacheStats();
-    expect(stats.hits).toBe(1);
-    expect(stats.misses).toBe(1);
-    expect(stats.hitRate).toBeCloseTo(0.5);
-  });
-
-  it('clearCache resets stats', () => {
-    setCacheItem('x', 1);
-    getCacheItem('x');
-    clearCache();
-    const stats = getCacheStats();
-    expect(stats.hits).toBe(0);
-    expect(stats.misses).toBe(0);
-    expect(stats.size).toBe(0);
-  });
-});
-
 describe('isCacheExpired', () => {
   it('returns true for a timestamp in the past', () => {
     expect(isCacheExpired(Date.now() - 1000)).toBe(true);
@@ -191,52 +143,6 @@ describe('isCacheExpired', () => {
 
   it('returns false for a timestamp in the future', () => {
     expect(isCacheExpired(Date.now() + 10000)).toBe(false);
-  });
-});
-
-describe('createMemoryCache', () => {
-  it('stores and retrieves with prefix', () => {
-    const c = createMemoryCache<number>({ prefix: 'pfx:' });
-    c.set('count', 5);
-    expect(c.get('count')).toBe(5);
-  });
-
-  it('returns null for missing key', () => {
-    const c = createMemoryCache<string>();
-    expect(c.get('nope')).toBeNull();
-  });
-
-  it('calls onSet callback', () => {
-    const onSet = vi.fn();
-    const c = createMemoryCache<string>({ onSet });
-    c.set('k', 'v');
-    expect(onSet).toHaveBeenCalledWith('k', 'v');
-  });
-
-  it('calls onGet callback on hit', () => {
-    const onGet = vi.fn();
-    const c = createMemoryCache<string>({ onGet });
-    c.set('k', 'v');
-    c.get('k');
-    expect(onGet).toHaveBeenCalledWith('k', 'v');
-  });
-
-  it('calls onRemove callback', () => {
-    const onRemove = vi.fn();
-    const c = createMemoryCache<string>({ onRemove });
-    c.set('k', 'v');
-    c.remove('k');
-    expect(onRemove).toHaveBeenCalledWith('k');
-    expect(c.get('k')).toBeNull();
-  });
-
-  it('clear() empties the cache', () => {
-    const c = createMemoryCache<number>();
-    c.set('a', 1);
-    c.set('b', 2);
-    c.clear();
-    expect(c.get('a')).toBeNull();
-    expect(c.get('b')).toBeNull();
   });
 });
 
@@ -295,18 +201,6 @@ describe('browser storage caches', () => {
     expect(storage.getItem('other:two')).toBe('2');
   });
 
-  it('clears only prefixed sessionStorage entries', () => {
-    const storage = createStorage();
-    setBrowserStorage('sessionStorage', storage);
-    storage.setItem('cache:one', '1');
-    storage.setItem('other:two', '2');
-
-    createSessionStorageCache().clear();
-
-    expect(storage.getItem('cache:one')).toBeNull();
-    expect(storage.getItem('other:two')).toBe('2');
-  });
-
   // Regression: createLocalStorageCache/createSessionStorageCache are sometimes
   // invoked at module scope (e.g. useDiscoveryTrends.ts), which runs during
   // Next.js SSR/prerender where `localStorage` is not defined. The factory must
@@ -314,60 +208,5 @@ describe('browser storage caches', () => {
   it('does not touch localStorage at construction time (SSR-safe)', () => {
     restoreBrowserStorage('localStorage', undefined); // simulate server: no global
     expect(() => createLocalStorageCache({ prefix: 'trends:' })).not.toThrow();
-  });
-
-  it('does not touch sessionStorage at construction time (SSR-safe)', () => {
-    restoreBrowserStorage('sessionStorage', undefined);
-    expect(() =>
-      createSessionStorageCache({ prefix: 'trends:' }),
-    ).not.toThrow();
-  });
-});
-
-describe('RateLimiter', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('allows consumption within the token budget', () => {
-    const limiter = new RateLimiter(5, 1);
-    expect(limiter.consume('user1')).toBe(true);
-    expect(limiter.consume('user1')).toBe(true);
-    expect(limiter.consume('user1')).toBe(true);
-  });
-
-  it('rejects when tokens are exhausted', () => {
-    const limiter = new RateLimiter(2, 0); // no refill
-    limiter.consume('u');
-    limiter.consume('u');
-    expect(limiter.consume('u')).toBe(false);
-  });
-
-  it('refills tokens over time', () => {
-    const limiter = new RateLimiter(2, 1); // refill 1 token/s
-    limiter.consume('u');
-    limiter.consume('u');
-    expect(limiter.consume('u')).toBe(false);
-    vi.advanceTimersByTime(2000); // +2 tokens
-    expect(limiter.consume('u')).toBe(true);
-  });
-
-  it('resets a key', () => {
-    const limiter = new RateLimiter(1, 0);
-    limiter.consume('u');
-    expect(limiter.consume('u')).toBe(false);
-    limiter.reset('u');
-    expect(limiter.consume('u')).toBe(true);
-  });
-
-  it('tracks separate budgets per key', () => {
-    const limiter = new RateLimiter(1, 0);
-    limiter.consume('a');
-    expect(limiter.consume('b')).toBe(true); // 'b' is fresh
-    expect(limiter.consume('a')).toBe(false);
   });
 });
