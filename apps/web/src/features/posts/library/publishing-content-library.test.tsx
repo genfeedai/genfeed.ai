@@ -268,13 +268,16 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
-  it('ends the table on Date and leaves Content unsortable', () => {
+  it('ends the table on Status and leaves Content unsortable', () => {
     render(<PublishingContentLibrary />);
 
     const headers = screen
       .getAllByRole('columnheader')
       .map((header) => header.textContent);
-    expect(headers.slice(0, 3)).toEqual(['Content', 'Status', 'Date']);
+    expect(headers.slice(0, 2)).toEqual(['Content', 'Status']);
+    expect(
+      screen.queryByRole('columnheader', { name: 'Date' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('columnheader', { name: 'Created' }),
     ).not.toBeInTheDocument();
@@ -505,12 +508,33 @@ describe('PublishingContentLibrary', () => {
     ).toBeVisible();
   });
 
-  it('keeps board status columns and card actions available', () => {
+  it('shows every board lane, with the post as a card under its status', () => {
     mocks.search = 'view=board';
     render(<PublishingContentLibrary />);
-    expect(screen.getByRole('region', { name: 'Scheduled' })).toBeVisible();
+
+    const board = screen.getByRole('region', { name: 'label' });
     expect(
-      screen.getByRole('link', { name: 'Open Social launch copy' }),
+      within(board)
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent),
+    ).toEqual([
+      'Draft0',
+      'Scheduled1',
+      'Publishing0',
+      'Published1',
+      'Failed0',
+      'Ready For Review1',
+    ]);
+    expect(
+      within(screen.getByRole('region', { name: 'Scheduled' })).getByRole(
+        'link',
+        { name: 'Social launch copy' },
+      ),
+    ).toHaveAttribute('href', '/acme/main/publishing/posts/post-1');
+    expect(
+      within(screen.getByRole('region', { name: 'Publishing' })).getByText(
+        'empty',
+      ),
     ).toBeVisible();
   });
 

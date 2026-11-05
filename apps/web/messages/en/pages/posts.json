@@ -232,6 +232,11 @@
       "setStatus": "Set status to {status}",
       "statusFailed": "Could not update the post status.",
       "textOnlyMark": "Aa",
+      "notScheduled": "Not scheduled",
+      "board": {
+        "label": "Posts board",
+        "empty": "No {status} posts"
+      },
       "statusTime": {
         "published": "Published {date}",
         "scheduled": "Goes out {date}"

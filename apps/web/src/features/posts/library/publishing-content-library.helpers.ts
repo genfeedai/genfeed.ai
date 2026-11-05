@@ -16,6 +16,7 @@ import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {
   PublishingContentAccount,
+  PublishingContentBoardColumn,
   PublishingContentFormat,
   PublishingContentMedia,
 } from '@/features/posts/props/publishing-content-entry.props';
@@ -371,4 +372,51 @@ export function parsePublishingContentType(
     PUBLISHING_CONTENT_TYPES.includes(value as PublishingContentType)
     ? (value as PublishingContentType)
     : 'all';
+}
+
+/** Board columns that always show, so an empty one still reads as a lane. */
+const BOARD_LANES = ['draft', 'scheduled', 'publishing', 'published', 'failed'];
+/** Where every known status sits, left to right, from first draft to outcome. */
+const BOARD_ORDER = [
+  'draft',
+  'pending',
+  'review',
+  'paused',
+  'scheduled',
+  'processing',
+  'publishing',
+  'published',
+  'partially-published',
+  'private',
+  'unlisted',
+  'failed',
+  'cancelled',
+];
+
+function boardRank(status: string): number {
+  const index = BOARD_ORDER.indexOf(status.replace(SEPARATORS_PATTERN, '-'));
+  return index === -1 ? BOARD_ORDER.length : index;
+}
+
+/**
+ * The Posts board's columns, in lifecycle order. The five main lanes always
+ * show; any other status gets a column only when a post has it. With a status
+ * filter on, only the statuses that still have posts show.
+ */
+export function createPublishingBoardColumns(
+  items: PublishingContentLibraryItem[],
+  isStatusFiltered: boolean,
+): PublishingContentBoardColumn[] {
+  const present = new Set(items.map((item) => item.status));
+  const statuses = isStatusFiltered
+    ? [...present]
+    : [...new Set([...BOARD_LANES, ...present])];
+
+  return statuses
+    .sort((left, right) => boardRank(left) - boardRank(right))
+    .map((status) => ({
+      items: items.filter((item) => item.status === status),
+      label: formatPublishingContentStatus(status),
+      status,
+    }));
 }

@@ -36,7 +36,6 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import Card from '@ui/card/Card';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import AppTable from '@ui/display/table/Table';
@@ -52,8 +51,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostDetailPanel from '@/features/posts/detail/PostDetailPanel';
+import PublishingContentBoard from '@/features/posts/library/publishing-content-board';
+import PublishingContentCard from '@/features/posts/library/publishing-content-card';
 import PublishingContentIdentity from '@/features/posts/library/publishing-content-identity';
 import {
+  createPublishingBoardColumns,
   createPublishingContentAccounts,
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
@@ -694,47 +696,17 @@ export default function PublishingContentLibrary() {
     );
   }
 
-  const renderPostCard = (item: PublishingContentLibraryItem) => (
-    // ui-guard-allow:clickable-element -- pointer shortcut for the whole card; the title link and the primary action inside are the keyboard path
-    <div
-      key={`${item.type}:${item.id}`}
-      className="cursor-pointer"
-      onClick={(event) => {
-        if (
-          event.target instanceof HTMLElement &&
-          event.target.closest('a,button')
-        ) {
-          return;
-        }
-        openRowOverlay(item);
-      }}
-    >
-      <Card>
-        <PublishingPostHoverPreview
-          post={postsById.get(item.id)}
-          release={item.release}
-        >
-          <PublishingContentIdentity
-            accounts={item.accounts}
-            channels={item.channels ?? [item.channel]}
-            format={item.format}
-            media={item.media}
-            title={item.title}
-            summary={item.summary}
-            titleHref={getDetailHref(item)}
-          />
-        </PublishingPostHoverPreview>
-        <div className="flex items-center justify-between gap-2">
-          <PublishingContentStatus
-            publishedAt={item.publishedAt}
-            scheduledAt={item.scheduledAt}
-            status={item.status}
-          />
-        </div>
-        {renderPrimaryAction(item)}
-      </Card>
-    </div>
-  );
+  const renderPostCard =
+    (isStatusShown: boolean) => (item: PublishingContentLibraryItem) => (
+      <PublishingContentCard
+        key={`${item.type}:${item.id}`}
+        actions={renderPrimaryAction(item)}
+        isStatusShown={isStatusShown}
+        item={item}
+        titleHref={getDetailHref(item)}
+        onOpen={openRowOverlay}
+      />
+    );
 
   return (
     <div className="@container space-y-6">
@@ -755,37 +727,17 @@ export default function PublishingContentLibrary() {
       <CollectionSection isLoading={isLoading}>
         {filteredItems.length > 0 && (view === 'grid' || view === 'board') ? (
           view === 'grid' ? (
-            <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3">
-              {pageItems.map(renderPostCard)}
+            <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3 @[80rem]:grid-cols-4">
+              {pageItems.map(renderPostCard(true))}
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto">
-              {statusOptions
-                .filter((option) =>
-                  filteredItems.some((item) => item.status === option.value),
-                )
-                .map((option) => (
-                  <section
-                    key={option.value}
-                    className="w-80 shrink-0 space-y-3"
-                    aria-label={option.label}
-                  >
-                    <h2 className="flex items-center justify-between text-sm font-medium">
-                      <span>{option.label}</span>
-                      <span className="text-muted-foreground">
-                        {
-                          filteredItems.filter(
-                            (item) => item.status === option.value,
-                          ).length
-                        }
-                      </span>
-                    </h2>
-                    {filteredItems
-                      .filter((item) => item.status === option.value)
-                      .map(renderPostCard)}
-                  </section>
-                ))}
-            </div>
+            <PublishingContentBoard
+              columns={createPublishingBoardColumns(
+                filteredItems,
+                status.length > 0,
+              )}
+              renderCard={renderPostCard(false)}
+            />
           )
         ) : (
           <AppTable<PublishingContentLibraryItem>

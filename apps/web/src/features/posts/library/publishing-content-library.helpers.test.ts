@@ -10,9 +10,11 @@ import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { describe, expect, it } from 'vitest';
 import {
+  createPublishingBoardColumns,
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
   formatPublishingContentFormat,
+  type PublishingContentLibraryItem,
 } from '@/features/posts/library/publishing-content-library.helpers';
 
 const collections = {
@@ -361,5 +363,62 @@ describe('publishing content library federation', () => {
     });
 
     expect(items[0]?.media).toEqual(expected);
+  });
+});
+
+describe('createPublishingBoardColumns', () => {
+  const item = (id: string, status: string): PublishingContentLibraryItem => ({
+    channel: 'twitter',
+    createdAt: '2026-11-05T10:00:00.000Z',
+    id,
+    status,
+    summary: '',
+    title: id,
+    type: 'post',
+  });
+
+  it.each([
+    {
+      expected: [
+        'draft:1',
+        'scheduled:0',
+        'publishing:0',
+        'published:2',
+        'failed:0',
+      ],
+      isStatusFiltered: false,
+      items: [
+        item('a', 'published'),
+        item('b', 'draft'),
+        item('c', 'published'),
+      ],
+      name: 'keeps the five lanes in lifecycle order, empty ones too',
+    },
+    {
+      expected: [
+        'draft:0',
+        'pending:1',
+        'scheduled:0',
+        'publishing:0',
+        'published:0',
+        'private:1',
+        'failed:0',
+      ],
+      isStatusFiltered: false,
+      items: [item('a', 'private'), item('b', 'pending')],
+      name: 'slots any other status in where it belongs',
+    },
+    {
+      expected: ['published:1'],
+      isStatusFiltered: true,
+      items: [item('a', 'published')],
+      name: 'shows only the statuses left under a status filter',
+    },
+  ])('$name', ({ expected, isStatusFiltered, items }) => {
+    expect(
+      createPublishingBoardColumns(items, isStatusFiltered).map(
+        (column) => `${column.status}:${column.items.length}`,
+      ),
+    ).toEqual(expected);
   });
 });

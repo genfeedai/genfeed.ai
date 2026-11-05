@@ -1,6 +1,7 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import type { ReactNode } from 'react';
+import type { PublishingContentLibraryItem } from '@/features/posts/library/publishing-content-library.helpers';
 
 /** A Posts library entry renders as a list row or as a grid card. */
 export type PublishingContentEntryLayout = 'row' | 'card';
@@ -78,4 +79,43 @@ export interface PublishingContentIdentityProps
   summary?: string;
   title: string;
   titleHref?: string;
+}
+
+/** When a post went out, or when it goes out, ready to show. */
+export interface PublishingContentTime {
+  date: Date;
+  isPublished: boolean;
+  label: string;
+}
+
+/** The first media item of a post, shown large on a board or grid card. */
+export interface PublishingContentMediaPreviewProps {
+  media: PublishingContentMedia;
+}
+
+export interface PublishingContentCardProps {
+  item: PublishingContentLibraryItem;
+  /** Canonical detail route the title links to. */
+  titleHref: string;
+  /**
+   * A board card sits under its status column, so it shows the time on its
+   * own; a grid card shows the status badge with the time on hover.
+   */
+  isStatusShown: boolean;
+  /** The card's labelled action and overflow menu. */
+  actions: ReactNode;
+  /** Opens the post's drawer; the card runs it on a click outside its links and buttons. */
+  onOpen: (item: PublishingContentLibraryItem) => void;
+}
+
+/** One status column of the Posts board. */
+export interface PublishingContentBoardColumn {
+  items: PublishingContentLibraryItem[];
+  label: string;
+  status: string;
+}
+
+export interface PublishingContentBoardProps {
+  columns: PublishingContentBoardColumn[];
+  renderCard: (item: PublishingContentLibraryItem) => ReactNode;
 }
