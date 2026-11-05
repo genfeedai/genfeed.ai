@@ -1,5 +1,13 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+/**
+ * One attempt at the Agent / Output switch. A trigger click dropped before
+ * hydration leaves the menu closed; a short step timeout fails that attempt
+ * fast so `toPass` can try again, instead of one click spending the whole
+ * retry deadline at the default action timeout.
+ */
+const PANE_MENU_STEP_TIMEOUT_MS = 2_000;
+
 /** The prompt bar is the last thing in the agent column, plus a small gutter. */
 const PROMPT_BAR_BOTTOM_GAP_PX = 160;
 
@@ -70,10 +78,10 @@ export async function showOutputPane(page: Page): Promise<Locator> {
     // A click that lands before hydration after a reload is dropped, so retry
     // until the output pane is actually showing.
     await expect(async () => {
-      await views.click();
+      await views.click({ timeout: PANE_MENU_STEP_TIMEOUT_MS });
       await page
         .getByRole('menuitemradio', { exact: true, name: 'Output' })
-        .click();
+        .click({ timeout: PANE_MENU_STEP_TIMEOUT_MS });
       await expect(output).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 15_000 });
   await expect(output).toBeVisible();
@@ -97,10 +105,10 @@ export async function showAgentPane(page: Page): Promise<Locator> {
   await expect(layout).toHaveCount(1);
   if (await views.isVisible())
     await expect(async () => {
-      await views.click();
+      await views.click({ timeout: PANE_MENU_STEP_TIMEOUT_MS });
       await page
         .getByRole('menuitemradio', { exact: true, name: 'Agent' })
-        .click();
+        .click({ timeout: PANE_MENU_STEP_TIMEOUT_MS });
       await expect(agent).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 15_000 });
   await expect(agent).toBeVisible();

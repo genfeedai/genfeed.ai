@@ -59,6 +59,27 @@ describe('CreativeAppWorkspace', () => {
     expect(screen.getByText('List')).toBeInTheDocument();
   });
 
+  it.each([
+    ['empty', 'true'],
+    ['populated', 'false'],
+  ] as const)(
+    'keeps the %s layout while the list goes back to unknown',
+    (known, isHidden) => {
+      const { rerender } = renderWorkspace(known);
+      rerender(
+        <CreativeAppWorkspace
+          agent={<p>New</p>}
+          agentTitle="New"
+          outputLabel="Projects"
+        >
+          <List presence="unknown" />
+        </CreativeAppWorkspace>,
+      );
+
+      expect(layout()).toHaveAttribute('data-output-hidden', isHidden);
+    },
+  );
+
   it('brings the second column back once a project exists', () => {
     const { rerender } = renderWorkspace('empty');
     rerender(

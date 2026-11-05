@@ -493,6 +493,21 @@ test.describe('Admin Organization', () => {
     await refreshRequest;
   });
 
+  /** The cell of `row` under the column headed `header`. */
+  async function cellInColumn(
+    table: Locator,
+    row: Locator,
+    header: string,
+  ): Promise<Locator> {
+    const headers = table.getByRole('columnheader');
+    await expect(headers.filter({ hasText: header })).toHaveCount(1);
+    const index = (await headers.allTextContents()).findIndex((text) =>
+      text.includes(header),
+    );
+    expect(index, `${header} column`).toBeGreaterThanOrEqual(0);
+    return row.getByRole('cell').nth(index);
+  }
+
   /** The unit economics report: one organization row, or its one user. */
   async function mockUnitEconomics(adminPage: Page): Promise<string[]> {
     const requestedOrganizations: string[] = [];
@@ -559,15 +574,15 @@ test.describe('Admin Organization', () => {
         .getByRole('main')
         .getByRole('cell', { name: 'ada@example.com' }),
     ).toBeVisible();
-    const userRow = adminPage
-      .getByRole('main')
-      .getByRole('row', { name: /ada@example\.com/ });
+    const table = adminPage.getByRole('main').getByRole('table');
+    const userRow = table.getByRole('row', { name: /ada@example\.com/ });
+    // Each cost under its own column: swapped LLM and generation costs fail.
+    await expect(await cellInColumn(table, userRow, 'LLM cost')).toHaveText(
+      '$15.00',
+    );
     await expect(
-      userRow.getByRole('cell', { name: '$15.00', exact: true }),
-    ).toBeVisible();
-    await expect(
-      userRow.getByRole('cell', { name: '$5.00', exact: true }),
-    ).toBeVisible();
+      await cellInColumn(table, userRow, 'Generation cost'),
+    ).toHaveText('$5.00');
     expect(requestedOrganizations).toContain('org-spend-1');
   });
 
