@@ -189,6 +189,7 @@ async function finalizeFailedCommentTrigger(
 
     const freshConversation = await transaction.socialConversation.findFirst({
       where: scopedWhere(input.organizationId, { id: conversation.id }),
+      select: { metadata: true },
     });
     if (!freshConversation) {
       return;
@@ -238,6 +239,7 @@ async function finalizeQueuedCommentTrigger(
 
     const freshConversation = await transaction.socialConversation.findFirst({
       where: scopedWhere(input.organizationId, { id: conversation.id }),
+      select: { automationState: true, metadata: true },
     });
     if (!freshConversation) {
       return;

@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { DesktopAssetKind } from '@genfeedai/contracts/desktop';
 
+const INLINE_EVENT_HANDLER_PATTERN = /\son[a-z]+\s*=/;
+
 const MIME_BY_EXTENSION: Record<string, string> = {
   '.avif': 'image/avif',
   '.gif': 'image/gif',
@@ -66,7 +68,7 @@ const isMimeSignatureValid = (bytes: Buffer, mimeType: string): boolean => {
         (source.startsWith('<svg') || source.startsWith('<?xml')) &&
         !source.includes('<script') &&
         !source.includes('<foreignobject') &&
-        !/\son[a-z]+\s*=/.test(source)
+        !INLINE_EVENT_HANDLER_PATTERN.test(source)
       );
     }
     case 'image/webp':

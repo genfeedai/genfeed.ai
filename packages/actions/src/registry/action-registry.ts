@@ -20,6 +20,8 @@ import {
 } from './curated-action-catalog';
 import { ALL_TOOLS } from './tool-registry';
 
+const ACTION_ID_SEPARATOR_PATTERN = /[.-]/;
+
 const CURATED_ACTIONS_BY_NAME = new Map(
   CURATED_ACTION_CATALOG.map((entry) => [entry.name, entry]),
 );
@@ -719,7 +721,7 @@ const AUTOMATION_ACTION_DEFINITIONS = AUTOMATION_ACTION_IDS.map((id) =>
   internalAction(
     id,
     id
-      .split(/[.-]/)
+      .split(ACTION_ID_SEPARATOR_PATTERN)
       .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
       .join(' '),
     `Executes the atomic ${id} workflow operation.`,

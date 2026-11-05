@@ -13,9 +13,13 @@ import {
   validPublicationCaptureIdentity,
 } from '~services/publication-capture-validation';
 
+const CRLF_PATTERN = /\r\n/g;
+const X_PROFILE_PATH_PATTERN = /^\/[a-z0-9_]{1,15}$/i;
+const X_HANDLE_MENTIONS_PATTERN = /@[a-z0-9_]{1,15}(?![a-z0-9_])/gi;
+
 const textOf = (element: HTMLElement) =>
   (element.innerText ?? element.textContent ?? '')
-    .replace(/\r\n/g, '\n')
+    .replace(CRLF_PATTERN, '\n')
     .trim();
 export function isXHome(value: string): boolean {
   return Boolean(publicationCaptureHomeUrl(value));
@@ -68,7 +72,7 @@ export function extractXPublicationIdentity(
   const anchors = [...header.querySelectorAll<HTMLAnchorElement>('a[href]')];
   const profiles = anchors.flatMap((anchor) => {
     const url = anchorUrl(anchor);
-    return url && /^\/[a-z0-9_]{1,15}$/i.test(url.pathname) ? [url] : [];
+    return url && X_PROFILE_PATH_PATTERN.test(url.pathname) ? [url] : [];
   });
   if (!profiles.length) return null;
   const authorHandle = profiles[0].pathname.slice(1).toLowerCase();
@@ -278,8 +282,7 @@ export function readXPublicationAuthorHandle(
   ].filter((element) => element.isConnected);
   if (accounts.length !== 1) return null;
   const handles =
-    (accounts[0].textContent ?? '').match(/@[a-z0-9_]{1,15}(?![a-z0-9_])/gi) ??
-    [];
+    (accounts[0].textContent ?? '').match(X_HANDLE_MENTIONS_PATTERN) ?? [];
   return handles.length === 1 ? handles[0].slice(1).toLowerCase() : null;
 }
 export function matchingXPublicationCandidates(

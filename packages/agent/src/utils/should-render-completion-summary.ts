@@ -1,5 +1,9 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 
+const TOOL_ACTIONS_COMPLETED_BULLET_PATTERN =
+  /^\d+\s+tool action(s)?\s+completed$/i;
+const TOOL_PREFIX_PATTERN = /^tool:\s+/i;
+
 const GENERIC_DONE_COPY = new Set([
   'generated content for this request.',
   'generated content for this request',
@@ -16,8 +20,8 @@ const GENERIC_DONE_COPY = new Set([
 function isToolInventoryBullet(bullet: string): boolean {
   const trimmed = bullet.trim();
   return (
-    /^\d+\s+tool action(s)?\s+completed$/i.test(trimmed) ||
-    /^tool:\s+/i.test(trimmed)
+    TOOL_ACTIONS_COMPLETED_BULLET_PATTERN.test(trimmed) ||
+    TOOL_PREFIX_PATTERN.test(trimmed)
   );
 }
 

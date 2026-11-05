@@ -94,6 +94,7 @@ export class UnipileService {
 
     const existing = await this.prisma.orgIntegration.findFirst({
       where: scopedWhere(organizationId, { platform: PRISMA_UNIPILE_PLATFORM }),
+      select: { id: true },
     });
 
     const encryptedToken = this.cryptoService.encrypt(input.apiKey);
@@ -128,6 +129,7 @@ export class UnipileService {
   async getStatus(organizationId: string): Promise<UnipileIntegrationStatus> {
     const integration = await this.prisma.orgIntegration.findFirst({
       where: scopedWhere(organizationId, { platform: PRISMA_UNIPILE_PLATFORM }),
+      select: { config: true, status: true },
     });
 
     if (integration) {
@@ -328,6 +330,7 @@ export class UnipileService {
         platform: PRISMA_UNIPILE_PLATFORM,
         status: PRISMA_ACTIVE_STATUS,
       }),
+      select: { config: true, encryptedToken: true },
     });
 
     if (integration) {

@@ -10,6 +10,11 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+const SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/;
+const IMAGE_TAG_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+const GHCR_REPOSITORY_PATTERN = /^ghcr\.io\/[a-z0-9._/-]+$/;
+const S3_URI_PATTERN = /^s3:\/\/[a-z0-9][a-z0-9.-]+\/[^\s]+$/;
+
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
 const privateEcrPattern =
   /^\d{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(?:\.cn)?\/[a-z0-9][a-z0-9._/-]*$/;
@@ -56,7 +61,7 @@ function inspect(reference: string, execute: CommandRunner): string {
 
 export function verifyBundle(contents: Uint8Array, expected: string): void {
   if (
-    !/^[0-9a-f]{64}$/.test(expected) ||
+    !SHA256_HEX_PATTERN.test(expected) ||
     !contents.length ||
     contents.length > 5 * 1024 * 1024 ||
     createHash('sha256').update(contents).digest('hex') !== expected
@@ -74,8 +79,8 @@ export function prepareServerImage(
   if (!privateEcrPattern.test(config.destination))
     throw new Error('Hosted images require a private ECR destination.');
   if (
-    !/^[A-Za-z0-9._-]{1,128}$/.test(config.tag) ||
-    !/^ghcr\.io\/[a-z0-9._/-]+$/.test(config.source)
+    !IMAGE_TAG_PATTERN.test(config.tag) ||
+    !GHCR_REPOSITORY_PATTERN.test(config.source)
   )
     throw new Error('Invalid source image reference.');
   const { bundleUri, bundleSha256 } = config;
@@ -83,8 +88,8 @@ export function prepareServerImage(
   if (
     hasBundle &&
     (!config.bundleUri ||
-      !/^s3:\/\/[a-z0-9][a-z0-9.-]+\/[^\s]+$/.test(config.bundleUri) ||
-      !/^[0-9a-f]{64}$/.test(config.bundleSha256 ?? ''))
+      !S3_URI_PATTERN.test(config.bundleUri) ||
+      !SHA256_HEX_PATTERN.test(config.bundleSha256 ?? ''))
   ) {
     throw new Error(
       'Configure both CONTENT_HARNESS_BUNDLE_URI and CONTENT_HARNESS_BUNDLE_SHA256.',

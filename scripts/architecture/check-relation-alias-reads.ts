@@ -4,6 +4,11 @@ import * as ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
 
+const PRISMA_FIELD_LINE_PATTERN = /^[ \t]+(\w+)[ \t]+\S+/;
+const PRISMA_RELATION_FIELDS_PATTERN = /@relation\([^)]*fields:\s*\[([^\]]*)\]/;
+const SERVICE_SUFFIX_PATTERN = /service$/i;
+const ID_SUFFIX_PATTERN = /Id$/i;
+
 /**
  * Guard: forbid reading Mongo-era relation aliases off Prisma rows in the
  * server apps.
@@ -183,13 +188,13 @@ export function collectRelationAliases(
   const ambiguous = new Set<string>();
 
   for (const line of schemaSource.split('\n')) {
-    const field = /^[ \t]+(\w+)[ \t]+\S+/.exec(line);
+    const field = PRISMA_FIELD_LINE_PATTERN.exec(line);
     if (!field) {
       continue;
     }
 
     const name = field[1];
-    const fkList = /@relation\([^)]*fields:\s*\[([^\]]*)\]/.exec(line);
+    const fkList = PRISMA_RELATION_FIELDS_PATTERN.exec(line);
     const isAliasDeclaration =
       fkList?.[1]
         .split(',')
@@ -279,9 +284,9 @@ function isRowReadCall(expression: ts.Expression | undefined): boolean {
   const receiver = callee.expression;
   return (
     receiver.kind === ts.SyntaxKind.ThisKeyword ||
-    (ts.isIdentifier(receiver) && /service$/i.test(receiver.text)) ||
+    (ts.isIdentifier(receiver) && SERVICE_SUFFIX_PATTERN.test(receiver.text)) ||
     (ts.isPropertyAccessExpression(receiver) &&
-      /service$/i.test(receiver.name.text))
+      SERVICE_SUFFIX_PATTERN.test(receiver.name.text))
   );
 }
 
@@ -441,10 +446,10 @@ function isIdCoercion(access: ts.PropertyAccessExpression): boolean {
 function looksLikeIdOperand(expression: ts.Expression): boolean {
   const value = unwrapInputExpression(expression);
   if (ts.isIdentifier(value)) {
-    return /Id$/i.test(value.text) || value.text === 'id';
+    return ID_SUFFIX_PATTERN.test(value.text) || value.text === 'id';
   }
   if (ts.isPropertyAccessExpression(value)) {
-    return /Id$/i.test(value.name.text) || value.name.text === 'id';
+    return ID_SUFFIX_PATTERN.test(value.name.text) || value.name.text === 'id';
   }
   return ts.isStringLiteral(value);
 }
@@ -469,7 +474,8 @@ function isIdentityComparison(access: ts.PropertyAccessExpression): boolean {
 function isScalarIdInitializer(expression: ts.Expression): boolean {
   const value = unwrapInputExpression(expression);
   return (
-    ts.isIdentifier(value) && (/Id$/i.test(value.text) || value.text === 'id')
+    ts.isIdentifier(value) &&
+    (ID_SUFFIX_PATTERN.test(value.text) || value.text === 'id')
   );
 }
 

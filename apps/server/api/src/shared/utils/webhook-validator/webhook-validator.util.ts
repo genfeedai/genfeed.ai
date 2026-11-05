@@ -5,6 +5,8 @@ import {
 } from '@libs/security/destination-guard';
 import { BadRequestException } from '@nestjs/common';
 
+const LINE_BREAK_CHAR_PATTERN = /[\r\n]/;
+
 /**
  * SSRF-safe URL validation for user-supplied webhook URLs.
  *
@@ -136,7 +138,10 @@ export function assertSafeWebhookHeaders(
       );
     }
 
-    if (/[\r\n]/.test(key) || /[\r\n]/.test(headers[key])) {
+    if (
+      LINE_BREAK_CHAR_PATTERN.test(key) ||
+      LINE_BREAK_CHAR_PATTERN.test(headers[key])
+    ) {
       throw new BadRequestException(
         `webhookHeaders contains an invalid header value with line-break characters`,
       );

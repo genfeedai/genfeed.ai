@@ -96,6 +96,7 @@ export class ProfilesService {
         data: { equals: true, path: ['isDefault'] },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       }),
+      select: { data: true, id: true },
     });
 
     await Promise.all(

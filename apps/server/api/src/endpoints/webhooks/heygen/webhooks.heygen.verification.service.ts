@@ -5,6 +5,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
+const HEX_SIGNATURE_PATTERN = /^[a-fA-F0-9]{64}$/;
+
 /** HeyGen retries signed payloads for up to 24 hours. */
 const REPLAY_WINDOW_SECONDS = 24 * 60 * 60;
 
@@ -52,7 +54,10 @@ export class HeygenWebhookVerificationService {
       throw new UnauthorizedException('Webhook secret not configured');
     }
 
-    if (typeof signature !== 'string' || !/^[a-fA-F0-9]{64}$/.test(signature)) {
+    if (
+      typeof signature !== 'string' ||
+      !HEX_SIGNATURE_PATTERN.test(signature)
+    ) {
       throw new UnauthorizedException('Missing signature header');
     }
 

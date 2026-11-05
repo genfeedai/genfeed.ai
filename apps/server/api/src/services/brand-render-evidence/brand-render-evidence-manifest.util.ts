@@ -15,6 +15,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/brand-render-evidence.interface';
 import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 
+const CSS_MATRIX_PATTERN = /^matrix\(([^)]*)\)$/;
+const FONT_WEIGHT_PATTERN = /^\d{1,4}$/;
+
 export const VISUAL_CODE_RENDERER_ID = 'genfeed-visual-code';
 
 /** Diagnostics from the renderer that mean it could not observe the export. */
@@ -72,7 +75,7 @@ export function hashManifest(
 function matrixOf(
   transform: string,
 ): [number, number, number, number, number, number] | null {
-  const match = /^matrix\(([^)]*)\)$/.exec(transform.trim());
+  const match = CSS_MATRIX_PATTERN.exec(transform.trim());
   if (!match) return null;
   const values = match[1].split(',').map((part) => Number(part.trim()));
   return values.length === 6 && values.every(Number.isFinite)
@@ -133,7 +136,9 @@ function placedAssetsOf(
 }
 
 function weightOf(value: string | null): number | null {
-  return value !== null && /^\d{1,4}$/.test(value) ? Number(value) : null;
+  return value !== null && FONT_WEIGHT_PATTERN.test(value)
+    ? Number(value)
+    : null;
 }
 
 function styleOf(value: string | null): 'normal' | 'italic' | 'oblique' | null {

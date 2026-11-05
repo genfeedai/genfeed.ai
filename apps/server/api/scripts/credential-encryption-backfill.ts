@@ -1,6 +1,8 @@
 import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import type { Client, QueryResult } from 'pg';
 
+const BATCH_ARG_PATTERN = /^--batch=[1-9]\d*$/;
+
 export const CREDENTIAL_BACKFILL_VERSION = 'credential-encryption-v1';
 const SECRET_FIELDS = [
   'accessToken',
@@ -27,7 +29,7 @@ export function parseCredentialBackfillArgs(
   let batchSize = 100;
   for (const arg of args) {
     if (arg === '--live' || arg === '--dry-run') continue;
-    if (!/^--batch=[1-9]\d*$/.test(arg))
+    if (!BATCH_ARG_PATTERN.test(arg))
       throw new Error(
         'Expected --live, --dry-run, or --batch=<positive integer>',
       );

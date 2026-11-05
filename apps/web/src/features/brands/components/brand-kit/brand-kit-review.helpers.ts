@@ -18,6 +18,8 @@ import type {
   EvidenceKind,
 } from '@/features/brands/props/brand-kit-review.props';
 
+const LIST_SEPARATOR_PATTERN = /[\n,]/;
+
 /** Readable field inside the scan strip — light surface, not invisible ghost. */
 export const INLINE_INPUT_CLASSNAME =
   'h-8 border-0 bg-transparent px-2.5 text-sm text-foreground shadow-none placeholder:text-muted-foreground/80 focus-visible:border-0 focus-visible:ring-0';
@@ -232,14 +234,14 @@ export function parseEditableValue(key: BrandKitFieldKey, value: string) {
   }
 
   return value
-    .split(/[\n,]/)
+    .split(LIST_SEPARATOR_PATTERN)
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
 export function parseSocialUrls(value: string): string[] {
   return value
-    .split(/[\n,]/)
+    .split(LIST_SEPARATOR_PATTERN)
     .map((item) => item.trim())
     .filter(Boolean);
 }

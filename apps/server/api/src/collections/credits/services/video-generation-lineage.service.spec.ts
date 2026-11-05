@@ -139,6 +139,7 @@ describe('VideoGenerationLineageService', () => {
           path: ['lineageId'],
         },
       }),
+      select: { amount: true, metadata: true },
     });
     expect(total).toBe(15);
   });

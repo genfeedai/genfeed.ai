@@ -26,6 +26,9 @@ import {
   unwrapActionSchemaProperty,
 } from './action-schema';
 
+const LONG_TEXT_FIELD_PATTERN =
+  /(content|html|instructions|prompt|script|template)/i;
+
 interface ActionSchemaFieldsProps {
   disabled?: boolean;
   /** Controls the host renders beside a field's label, keyed by field name. */
@@ -199,9 +202,7 @@ function ActionField({
         value={value}
       />
     );
-  } else if (
-    /(content|html|instructions|prompt|script|template)/i.test(field)
-  ) {
+  } else if (LONG_TEXT_FIELD_PATTERN.test(field)) {
     control = (
       <Textarea
         id={fieldId}

@@ -60,6 +60,8 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -349,6 +351,6 @@ export class OrganizationsMembersController {
       return undefined;
     }
 
-    return `${appUrl.replace(/\/$/, '')}/login?org=${organizationId}`;
+    return `${appUrl.replace(TRAILING_SLASH_PATTERN, '')}/login?org=${organizationId}`;
   }
 }

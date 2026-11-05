@@ -6,6 +6,8 @@ import type {
   StudioReferenceMentionValidation,
 } from '@genfeedai/contracts/interfaces/studio/studio-reference-mention.interface';
 
+const REFERENCE_MENTIONS_PATTERN = /(?<![\w@])@(Image|Video|Audio)\d+\b/g;
+
 const TOKEN_PREFIX = { audio: 'Audio', image: 'Image', video: 'Video' };
 
 /** Merge independently managed upload/Library trays without regrouping by source.
@@ -76,7 +78,7 @@ export function numberReferenceMentions(
 }
 
 export function findReferenceMentionTokens(text: string): RegExpMatchArray[] {
-  return [...text.matchAll(/(?<![\w@])@(Image|Video|Audio)\d+\b/g)];
+  return [...text.matchAll(REFERENCE_MENTIONS_PATTERN)];
 }
 
 /** The mention tokens in `text`, in reading order, repeats included. */

@@ -241,6 +241,7 @@ export class BrandRelocationJobsService {
             },
             isDeleted: false,
           },
+          select: { organizationId: true, userId: true },
         });
         if (brand?.organizationId === operation.destinationOrganizationId) {
           await this.relocation.assertCanRelocate(
@@ -285,6 +286,7 @@ export class BrandRelocationJobsService {
             organizationId: operation.organizationId,
             isDeleted: false,
           },
+          select: { status: true },
         });
         if (committed?.status === BrandRelocationStatus.DONE) {
           this.logger.warn('Brand move committed before a post-commit error', {

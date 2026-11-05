@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, Length, Matches } from 'class-validator';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export class ClaimPublicYoutubeClipperDto {
   @ApiPropertyOptional({
     description: 'Brand that should own the claimed Studio Clip project.',
@@ -8,7 +10,7 @@ export class ClaimPublicYoutubeClipperDto {
   @IsOptional()
   @IsString()
   @Length(1, 128)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly brandId?: string;
 
   @ApiProperty({
@@ -18,6 +20,6 @@ export class ClaimPublicYoutubeClipperDto {
   })
   @IsString()
   @Length(43, 43)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   readonly previewToken!: string;
 }

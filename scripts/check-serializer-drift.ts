@@ -10,6 +10,44 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const QUOTED_STRINGS_PATTERN = /['"]([^'"]+)['"]/g;
+const SPREAD_TARGETS_PATTERN = /\.\.\.(\w+)/g;
+const SEPARATOR_CHAR_PATTERN = /[-_]/;
+const CAMEL_CASE_BOUNDARY_PATTERN = /([a-z0-9])([A-Z])/g;
+const ACRONYM_BOUNDARY_PATTERN = /([A-Z])([A-Z][a-z])/g;
+const TYPE_IMPORT_PREFIX_PATTERN = /^type\s+/;
+const IMPORT_SPECIFIER_PATTERN = /^(\w+)(?:\s+as\s+(\w+))?$/;
+const PRISMA_MODEL_LINE_PATTERN = /^model\s+(\w+)\s+\{$/;
+const PRISMA_FIELD_LINE_PATTERN = /^(\w+)\s+(\S+)/;
+const DOCUMENT_FIELD_LINES_PATTERN = /^\s{2}([A-Za-z_]\w*)(?:\?|!)?\s*:/gm;
+const PRISMA_TYPE_REEXPORTS_PATTERN =
+  /export\s+type\s+\{\s*([^}]+)\s*\}\s+from\s+['"]@genfeedai\/prisma['"]/g;
+const TYPE_NAMES_PATTERN = /\b([A-Z][A-Za-z0-9_]*)\b/g;
+const DOCUMENT_TYPE_EXPORTS_PATTERN =
+  /export\s+(?:interface|type)\s+(\w+Document)\b/g;
+const TYPE_REEXPORTS_PATTERN =
+  /export\s+type\s+\{\s*([^}]+)\s*\}\s+from\s+['"][^'"]+['"]/g;
+const OMIT_FIELDS_PATTERN = /Omit\s*<\s*\w+\s*,([\s\S]*?)>/;
+const NAMED_REEXPORTS_PATTERN =
+  /export\s*\{\s*([^}]+)\s*\}\s*from\s*['"]([^'"]+)['"]/g;
+const STAR_REEXPORTS_PATTERN = /export\s+\*\s+from\s+['"]([^'"]+)['"]/g;
+const TRAILING_COMMA_PATTERN = /,\s*$/;
+const IDENTIFIER_PATTERN = /^\w+$/;
+const FILTERED_ATTRIBUTES_PATTERN =
+  /^(\w+)\.filter\([\s\S]*?=>[\s\S]*?\w+\s*!==?\s*['"]([^'"]+)['"][\s\S]*\)$/;
+const ATTRIBUTES_REFERENCE_PATTERN = /\battributes\s*:\s*(\w+)/;
+const SIMPLE_CONFIG_ATTRIBUTES_PATTERN =
+  /\bsimpleConfig\(\s*['"][^'"]+['"]\s*,\s*(\w+)/;
+const BUILD_SERIALIZER_CONFIG_PATTERN =
+  /build(?:Single)?Serializer\(\s*['"]server['"]\s*,\s*(\w+)/;
+const RELATIONSHIPS_BLOCK_PATTERN = /\brelationships\s*:\s*\{/;
+const TYPE_PROPERTY_PATTERN = /\btype\s*:\s*['"]([^'"]+)['"]/;
+const ATTRIBUTES_IDENTIFIER_PATTERN = /\battributes\s*:\s*([A-Za-z_]\w*)/;
+const OBJECT_KEY_LINES_PATTERN = /^[ \t]*([A-Za-z_]\w*)[ \t]*:/gm;
+const SPREAD_TARGET_PATTERN = /\.\.\.(\w+)/;
+const ATTRIBUTES_ARRAY_PATTERN = /attributes\s*:\s*\[([\s\S]*?)\]/;
+const INDENTED_KEY_LINES_PATTERN = /^\s{2}([A-Za-z_]\w*)\s*:/gm;
+
 const DEFAULT_ROOT_DIR = path.resolve(__dirname, '..');
 const DEFAULT_SCHEMA_ROOTS = ['apps/server/api/src', 'apps/server/api/src'];
 const PRISMA_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
@@ -1029,18 +1067,20 @@ function extractBalancedBlock(
 }
 
 function extractQuotedStrings(content: string): string[] {
-  return [...content.matchAll(/['"]([^'"]+)['"]/g)].map(
+  return [...content.matchAll(QUOTED_STRINGS_PATTERN)].map(
     (match) => match[1] ?? '',
   );
 }
 
 function extractSpreadTargets(content: string): string[] {
-  return [...content.matchAll(/\.\.\.(\w+)/g)].map((match) => `...${match[1]}`);
+  return [...content.matchAll(SPREAD_TARGETS_PATTERN)].map(
+    (match) => `...${match[1]}`,
+  );
 }
 
 function toPascalCase(value: string): string {
   return value
-    .split(/[-_]/)
+    .split(SEPARATOR_CHAR_PATTERN)
     .filter(Boolean)
     .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
     .join('');
@@ -1048,8 +1088,8 @@ function toPascalCase(value: string): string {
 
 function toKebabCase(value: string): string {
   return value
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .replace(CAMEL_CASE_BOUNDARY_PATTERN, '$1-$2')
+    .replace(ACRONYM_BOUNDARY_PATTERN, '$1-$2')
     .toLowerCase();
 }
 
@@ -1064,8 +1104,10 @@ function parseNamedImports(content: string): Map<string, ImportBinding> {
       continue;
     }
     for (const rawSpecifier of match[1]?.split(',') ?? []) {
-      const specifier = rawSpecifier.replace(/^type\s+/, '').trim();
-      const aliasMatch = /^(\w+)(?:\s+as\s+(\w+))?$/.exec(specifier);
+      const specifier = rawSpecifier
+        .replace(TYPE_IMPORT_PREFIX_PATTERN, '')
+        .trim();
+      const aliasMatch = IMPORT_SPECIFIER_PATTERN.exec(specifier);
       if (!aliasMatch?.[1]) {
         continue;
       }
@@ -1093,7 +1135,7 @@ export function parsePrismaSchema(
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
     if (!currentModel) {
-      const modelMatch = /^model\s+(\w+)\s+\{$/.exec(trimmed);
+      const modelMatch = PRISMA_MODEL_LINE_PATTERN.exec(trimmed);
       if (modelMatch?.[1]) {
         currentModel = modelMatch[1];
         modelNames.add(currentModel);
@@ -1108,7 +1150,7 @@ export function parsePrismaSchema(
     if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('@@')) {
       continue;
     }
-    const fieldMatch = /^(\w+)\s+(\S+)/.exec(trimmed);
+    const fieldMatch = PRISMA_FIELD_LINE_PATTERN.exec(trimmed);
     if (fieldMatch?.[1] && fieldMatch[2]) {
       rawModels.get(currentModel)?.set(fieldMatch[1], fieldMatch[2]);
     }
@@ -1142,7 +1184,7 @@ function extractDocumentInterface(
 
 function parseDocumentFields(body: string): Set<string> {
   const fields = new Set<string>();
-  for (const match of body.matchAll(/^\s{2}([A-Za-z_]\w*)(?:\?|!)?\s*:/gm)) {
+  for (const match of body.matchAll(DOCUMENT_FIELD_LINES_PATTERN)) {
     if (match[1]) {
       fields.add(match[1]);
     }
@@ -1154,12 +1196,10 @@ function directPrismaExportName(
   content: string,
   symbolName: string,
 ): string | null {
-  for (const match of content.matchAll(
-    /export\s+type\s+\{\s*([^}]+)\s*\}\s+from\s+['"]@genfeedai\/prisma['"]/g,
-  )) {
+  for (const match of content.matchAll(PRISMA_TYPE_REEXPORTS_PATTERN)) {
     for (const rawSpecifier of match[1]?.split(',') ?? []) {
       const specifier = rawSpecifier.trim();
-      const alias = /^(\w+)(?:\s+as\s+(\w+))?$/.exec(specifier);
+      const alias = IMPORT_SPECIFIER_PATTERN.exec(specifier);
       if (alias?.[1] && (alias[2] ?? alias[1]) === symbolName) {
         return alias[1];
       }
@@ -1226,7 +1266,7 @@ const TYPE_WRAPPER_NAMES = new Set([
 ]);
 
 function referencedTypeNames(expression: string): string[] {
-  return [...expression.matchAll(/\b([A-Z][A-Za-z0-9_]*)\b/g)]
+  return [...expression.matchAll(TYPE_NAMES_PATTERN)]
     .map((match) => match[1])
     .filter(
       (name): name is string =>
@@ -1311,18 +1351,14 @@ function collectDocumentFields(
 
 function collectExportedDocumentNames(content: string): Set<string> {
   const documentNames = new Set<string>();
-  for (const match of content.matchAll(
-    /export\s+(?:interface|type)\s+(\w+Document)\b/g,
-  )) {
+  for (const match of content.matchAll(DOCUMENT_TYPE_EXPORTS_PATTERN)) {
     if (match[1]) {
       documentNames.add(match[1]);
     }
   }
-  for (const match of content.matchAll(
-    /export\s+type\s+\{\s*([^}]+)\s*\}\s+from\s+['"][^'"]+['"]/g,
-  )) {
+  for (const match of content.matchAll(TYPE_REEXPORTS_PATTERN)) {
     for (const rawSpecifier of match[1]?.split(',') ?? []) {
-      const alias = /^(\w+)(?:\s+as\s+(\w+))?$/.exec(rawSpecifier.trim());
+      const alias = IMPORT_SPECIFIER_PATTERN.exec(rawSpecifier.trim());
       const exportedName = alias?.[2] ?? alias?.[1];
       if (exportedName?.endsWith('Document')) {
         documentNames.add(exportedName);
@@ -1346,7 +1382,7 @@ function parseOmittedFields(
     declarationStart,
     content.indexOf('{', declarationStart),
   );
-  const omitMatch = /Omit\s*<\s*\w+\s*,([\s\S]*?)>/.exec(declaration);
+  const omitMatch = OMIT_FIELDS_PATTERN.exec(declaration);
   return new Set(extractQuotedStrings(omitMatch?.[1] ?? ''));
 }
 
@@ -1479,12 +1515,10 @@ function resolveExportedSymbolFile(
     return filePath;
   }
 
-  for (const match of content.matchAll(
-    /export\s*\{\s*([^}]+)\s*\}\s*from\s*['"]([^'"]+)['"]/g,
-  )) {
+  for (const match of content.matchAll(NAMED_REEXPORTS_PATTERN)) {
     for (const rawSpecifier of match[1]?.split(',') ?? []) {
       const specifier = rawSpecifier.trim();
-      const alias = /^(\w+)(?:\s+as\s+(\w+))?$/.exec(specifier);
+      const alias = IMPORT_SPECIFIER_PATTERN.exec(specifier);
       if (!alias?.[1] || (alias[2] ?? alias[1]) !== symbolName || !match[2]) {
         continue;
       }
@@ -1505,9 +1539,7 @@ function resolveExportedSymbolFile(
     }
   }
 
-  for (const match of content.matchAll(
-    /export\s+\*\s+from\s+['"]([^'"]+)['"]/g,
-  )) {
+  for (const match of content.matchAll(STAR_REEXPORTS_PATTERN)) {
     if (!match[1]) {
       continue;
     }
@@ -1569,7 +1601,7 @@ function parseAttributeFile(
     const openIndex = content.indexOf('(', match.index);
     const argument = (extractBalancedBlock(content, openIndex, '(', ')') ?? '')
       .trim()
-      .replace(/,\s*$/, '');
+      .replace(TRAILING_COMMA_PATTERN, '');
     exports.add(exportName);
     if (argument.startsWith('[') && argument.endsWith(']')) {
       const arrayBody = argument.slice(1, -1);
@@ -1580,13 +1612,10 @@ function parseAttributeFile(
         ],
         kind: 'array',
       });
-    } else if (/^\w+$/.test(argument)) {
+    } else if (IDENTIFIER_PATTERN.test(argument)) {
       symbols.set(exportName, { kind: 'alias', targetName: argument });
     } else {
-      const filterMatch =
-        /^(\w+)\.filter\([\s\S]*?=>[\s\S]*?\w+\s*!==?\s*['"]([^'"]+)['"][\s\S]*\)$/.exec(
-          argument,
-        );
+      const filterMatch = FILTERED_ATTRIBUTES_PATTERN.exec(argument);
       if (filterMatch?.[1] && filterMatch[2]) {
         symbols.set(exportName, {
           excludedFields: [filterMatch[2]],
@@ -1698,14 +1727,11 @@ function resolveAttributeSymbol(
 }
 
 function findPrimaryAttributeName(configContent: string): string | null {
-  const explicit = /\battributes\s*:\s*(\w+)/.exec(configContent)?.[1];
+  const explicit = ATTRIBUTES_REFERENCE_PATTERN.exec(configContent)?.[1];
   if (explicit) {
     return explicit;
   }
-  return (
-    /\bsimpleConfig\(\s*['"][^'"]+['"]\s*,\s*(\w+)/.exec(configContent)?.[1] ??
-    null
-  );
+  return SIMPLE_CONFIG_ATTRIBUTES_PATTERN.exec(configContent)?.[1] ?? null;
 }
 
 function findCanonicalConfigName(
@@ -1718,9 +1744,7 @@ function findCanonicalConfigName(
   ).exec(serializerContent)?.[1];
   return (
     exactExport ??
-    /build(?:Single)?Serializer\(\s*['"]server['"]\s*,\s*(\w+)/.exec(
-      serializerContent,
-    )?.[1] ??
+    BUILD_SERIALIZER_CONFIG_PATTERN.exec(serializerContent)?.[1] ??
     null
   );
 }
@@ -1731,7 +1755,7 @@ function collectNestedSerializerContracts(
   configFilePath: string,
   configContent: string,
 ): SerializerInfo[] {
-  const relationshipsMatch = /\brelationships\s*:\s*\{/.exec(configContent);
+  const relationshipsMatch = RELATIONSHIPS_BLOCK_PATTERN.exec(configContent);
   if (!relationshipsMatch) {
     return [];
   }
@@ -1761,12 +1785,9 @@ function collectNestedSerializerContracts(
     }
     relationshipRegex.lastIndex = openIndex + relationshipBody.length + 2;
 
-    const basename = /\btype\s*:\s*['"]([^'"]+)['"]/.exec(
-      relationshipBody,
-    )?.[1];
-    const attributeName = /\battributes\s*:\s*([A-Za-z_]\w*)/.exec(
-      relationshipBody,
-    )?.[1];
+    const basename = TYPE_PROPERTY_PATTERN.exec(relationshipBody)?.[1];
+    const attributeName =
+      ATTRIBUTES_IDENTIFIER_PATTERN.exec(relationshipBody)?.[1];
     const attributeImport = attributeName
       ? imports.get(attributeName)
       : undefined;
@@ -1799,9 +1820,7 @@ function collectNestedSerializerContracts(
     }
 
     const relationshipFields = new Set<string>();
-    for (const match of relationshipBody.matchAll(
-      /^[ \t]*([A-Za-z_]\w*)[ \t]*:/gm,
-    )) {
+    for (const match of relationshipBody.matchAll(OBJECT_KEY_LINES_PATTERN)) {
       if (match[1] && match[1] !== 'attributes' && match[1] !== 'type') {
         relationshipFields.add(match[1]);
       }
@@ -1850,13 +1869,12 @@ function collectSerializerContracts(context: ParserContext): SerializerInfo[] {
           ? null
           : extractBalancedBlock(serializerContent, openIndex);
       const baseConfigName = localConfigBody
-        ? /\.\.\.(\w+)/.exec(localConfigBody)?.[1]
+        ? SPREAD_TARGET_PATTERN.exec(localConfigBody)?.[1]
         : null;
       if (baseConfigName) {
         configImport = serializerImports.get(baseConfigName);
         const attributesExpression =
-          /attributes\s*:\s*\[([\s\S]*?)\]/.exec(localConfigBody ?? '')?.[1] ??
-          '';
+          ATTRIBUTES_ARRAY_PATTERN.exec(localConfigBody ?? '')?.[1] ?? '';
         for (const spreadTarget of extractSpreadTargets(attributesExpression)) {
           const targetName = spreadTarget.slice(3);
           if (targetName === baseConfigName) {
@@ -1926,7 +1944,7 @@ function collectSerializerContracts(context: ParserContext): SerializerInfo[] {
       continue;
     }
     const relationshipFields = new Set<string>();
-    for (const match of configContent.matchAll(/^\s{2}([A-Za-z_]\w*)\s*:/gm)) {
+    for (const match of configContent.matchAll(INDENTED_KEY_LINES_PATTERN)) {
       if (match[1] && match[1] !== 'attributes' && match[1] !== 'type') {
         relationshipFields.add(match[1]);
       }

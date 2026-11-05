@@ -28,6 +28,8 @@ import { SpendCapExceededError, SpendLedger } from './spend';
 import { resolveSuiteRunner } from './suites';
 import { loadTextFixture } from './suites/text-fixture';
 
+const TIMESTAMP_SEPARATORS_PATTERN = /[-:.TZ]/g;
+
 const EMPTY_OUTCOME: SuiteOutcome = {
   contestants: [],
   judges: [],
@@ -146,7 +148,7 @@ export async function runContentEval(
   const generatedAt = (options.now ?? new Date()).toISOString();
   const runId =
     options.runId ??
-    `${config.suite}-${generatedAt.replace(/[-:.TZ]/g, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
+    `${config.suite}-${generatedAt.replace(TIMESTAMP_SEPARATORS_PATTERN, '').slice(0, 14)}-${randomUUID().slice(0, 8)}`;
   const ledger = new SpendLedger(config.maxCredits);
   const dispatcher = await options.createDispatcher(config.dispatcher);
   const judge = createEvalJudge({ dispatcher, ledger, seed: config.seed });

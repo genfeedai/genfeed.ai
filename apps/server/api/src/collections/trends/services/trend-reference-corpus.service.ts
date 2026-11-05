@@ -29,6 +29,8 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const FALLBACK_SUFFIX_PATTERN = /-fallback-[1-9]\d*$/;
+
 interface RemixLineagePayload {
   organizationId: string;
   brandId: string;
@@ -128,6 +130,7 @@ export class TrendReferenceCorpusService {
       where: scopedWhere(payload.organizationId, {
         postId: payload.postId,
       }) as Prisma.TrendRemixLineageWhereInput,
+      select: { id: true },
     });
 
     const dataPayload = {
@@ -202,6 +205,7 @@ export class TrendReferenceCorpusService {
         canonicalUrl: { in: canonicalUrls },
         isDeleted: false,
       },
+      select: { canonicalUrl: true, data: true, id: true },
     });
 
     if (matchedRefs.length === 0) {
@@ -592,7 +596,8 @@ export class TrendReferenceCorpusService {
     data: TrendReferenceRecordData,
   ): boolean {
     return (
-      data.sourcePreviewState !== 'fallback' && !/-fallback-[1-9]\d*$/.test(id)
+      data.sourcePreviewState !== 'fallback' &&
+      !FALLBACK_SUFFIX_PATTERN.test(id)
     );
   }
 

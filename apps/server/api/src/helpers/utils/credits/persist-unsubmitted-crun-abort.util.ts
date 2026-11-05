@@ -64,6 +64,7 @@ export async function abortUnsubmittedCrunOutput(
   const target = await serializable(prisma, async (tx) => {
     const task = await tx.crunGenerationTask.findFirst({
       where: { ingredientId, organizationId, isDeleted: false },
+      select: { id: true },
     });
     if (task) return 'skip' as const;
     const ingredient = await tx.ingredient.findFirst({
@@ -86,6 +87,7 @@ export async function abortUnsubmittedCrunOutput(
         isDeleted: false,
         workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
       },
+      select: { id: true, metadata: true, status: true },
     });
     if (
       !hold ||

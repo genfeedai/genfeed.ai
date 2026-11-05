@@ -6,6 +6,9 @@ import type { SourcePostMetrics } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 
+const HOOK_END_PATTERN = /[.\n]/;
+const NEWLINE_PATTERN = /\n/;
+
 /**
  * Where a performance row comes from: content Genfeed published (daily
  * `PostAnalytics` snapshots) or posts the brand published elsewhere and
@@ -359,6 +362,7 @@ export class PerformanceSummaryService {
       }),
       orderBy: { engagementRate: 'desc' },
       take: 50,
+      select: { engagementRate: true, postId: true, totalViews: true },
     });
 
     // Group by first 100 chars of description/label
@@ -772,7 +776,7 @@ export class PerformanceSummaryService {
     return topContent
       .map((item) => {
         const text = item.description || item.title || '';
-        const firstLine = text.split(/[.\n]/)[0]?.trim();
+        const firstLine = text.split(HOOK_END_PATTERN)[0]?.trim();
         return firstLine || '';
       })
       .filter(Boolean);
@@ -887,7 +891,7 @@ function toImportedPerformanceItem(
   const engagementRate =
     views > 0 ? ((likes + comments + shares) / views) * 100 : 0;
   const text = (row.text ?? '').trim();
-  const title = text.split(/\n/)[0]?.trim().slice(0, 120) ?? '';
+  const title = text.split(NEWLINE_PATTERN)[0]?.trim().slice(0, 120) ?? '';
   const publishedAt = row.publishedAt ? new Date(row.publishedAt) : null;
 
   return {

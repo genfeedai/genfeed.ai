@@ -211,6 +211,7 @@ export class TurboProjectIdeaDispatchService implements OnModuleInit {
         projectId: job.projectId,
         status: TurboProjectItemStatus.GENERATING,
       }),
+      select: { dispatch: true, id: true },
     });
     const dispatch = parseTurboProjectItemDispatch(item?.dispatch);
     if (!item || !dispatch || dispatch.key !== job.key) {

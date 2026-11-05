@@ -23,6 +23,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 
+const ONBOARDING_PATH_PATTERN = /\/onboarding\//;
+const WORKSPACE_OVERVIEW_PATH_PATTERN = /\/[^/]+\/[^/]+\/workspace\/overview/;
+const ORG_BRAND_PREFIX_PATTERN = /^\/([^/]+)\/([^/]+)\//;
+const WORKFLOW_EDITOR_PATH_PATTERN = /\/automation\/workflows\/[^/]+$/;
+
 const repoRoot = path.resolve(import.meta.dir, '../..');
 const outputDir = path.join(repoRoot, 'docs/assets/readme');
 
@@ -84,18 +89,18 @@ async function signUp(page: Page): Promise<void> {
   await page.locator('input[type=email]').fill(DEMO_EMAIL);
   await page.locator('input[type=password]').fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Create Account' }).click();
-  await page.waitForURL(/\/onboarding\//, { timeout: 60_000 });
+  await page.waitForURL(ONBOARDING_PATH_PATTERN, { timeout: 60_000 });
 }
 
 /** Returns the `<org>/<brand>` path prefix of the demo workspace. */
 async function skipOnboarding(page: Page): Promise<string> {
   await page.getByText('Skip Onboarding').first().click();
   await page.getByRole('button', { name: 'Skip Onboarding' }).last().click();
-  await page.waitForURL(/\/[^/]+\/[^/]+\/workspace\/overview/, {
+  await page.waitForURL(WORKSPACE_OVERVIEW_PATH_PATTERN, {
     timeout: 60_000,
   });
 
-  const match = /^\/([^/]+)\/([^/]+)\//.exec(new URL(page.url()).pathname);
+  const match = ORG_BRAND_PREFIX_PATTERN.exec(new URL(page.url()).pathname);
   if (!match) {
     throw new Error(`Cannot read workspace slugs from ${page.url()}`);
   }
@@ -122,7 +127,7 @@ async function createWorkflowFromTemplate(
   // new workflow's own editor route instead.
   await page.waitForURL(
     (url) =>
-      /\/automation\/workflows\/[^/]+$/.test(url.pathname) &&
+      WORKFLOW_EDITOR_PATH_PATTERN.test(url.pathname) &&
       !url.pathname.endsWith('/templates'),
     { timeout: 60_000 },
   );

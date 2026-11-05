@@ -18,6 +18,12 @@ export type {
   RestoredAnalyticsSurfaceState,
 } from '@/features/analytics/props/analytics-work-surface-state.props';
 
+const ANALYTICS_BRAND_PATH_PATTERN =
+  /^\/analytics\/brands\/([^/]+)(?:\/platforms\/[^/]+)?$/;
+const ANALYTICS_PLATFORM_PATH_PATTERN =
+  /^\/analytics\/brands\/([^/]+)\/platforms\/([^/]+)$/;
+const ANALYTICS_BRAND_ONLY_PATH_PATTERN = /^\/analytics\/brands\/([^/]+)$/;
+
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const PLATFORM_PATTERN = /^[a-z0-9_-]{1,32}$/;
 const RESOURCE_ID_PATTERN = /^[A-Za-z0-9_-]{1,120}$/;
@@ -231,9 +237,7 @@ function normalizeFilterValue(
  * read this instead of `selectedResource`.
  */
 function resolveRouteBrandId(route: string): string | undefined {
-  const brandMatch = route.match(
-    /^\/analytics\/brands\/([^/]+)(?:\/platforms\/[^/]+)?$/,
-  );
+  const brandMatch = route.match(ANALYTICS_BRAND_PATH_PATTERN);
   return brandMatch ? brandMatch[1] : undefined;
 }
 
@@ -244,13 +248,11 @@ function resolveSelectedResource(
   if (filters.postId) {
     return { id: filters.postId, kind: 'post' };
   }
-  const brandPlatformMatch = route.match(
-    /^\/analytics\/brands\/([^/]+)\/platforms\/([^/]+)$/,
-  );
+  const brandPlatformMatch = route.match(ANALYTICS_PLATFORM_PATH_PATTERN);
   if (brandPlatformMatch) {
     return { id: brandPlatformMatch[2], kind: 'platform' };
   }
-  const brandMatch = route.match(/^\/analytics\/brands\/([^/]+)$/);
+  const brandMatch = route.match(ANALYTICS_BRAND_ONLY_PATH_PATTERN);
   if (brandMatch) {
     return { id: brandMatch[1], kind: 'brand' };
   }

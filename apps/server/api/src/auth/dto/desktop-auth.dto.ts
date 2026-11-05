@@ -7,6 +7,8 @@ import {
   MinLength,
 } from 'class-validator';
 
+const PKCE_CODE_VERIFIER_PATTERN = /^[A-Za-z0-9._~-]+$/;
+
 export class CreateDesktopAuthCodeDto {
   @IsString()
   @MinLength(32)
@@ -32,7 +34,7 @@ export class ExchangeDesktopAuthCodeDto {
 
   @IsString()
   @MinLength(43)
-  @Matches(/^[A-Za-z0-9._~-]+$/)
+  @Matches(PKCE_CODE_VERIFIER_PATTERN)
   codeVerifier!: string;
 
   @IsString()

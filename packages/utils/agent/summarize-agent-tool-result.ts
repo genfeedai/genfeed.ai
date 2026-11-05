@@ -1,6 +1,11 @@
 import type { UnknownRecord } from '../data/extract.util';
 import { isRecord, readString } from '../data/extract.util';
 
+const STATUS_TOKEN_PATTERN = /^[a-z][a-z_-]{0,31}$/i;
+const SHORT_STATUS_TOKEN_PATTERN = /^[a-z][a-z_-]{0,24}$/i;
+const SEPARATOR_RUNS_PATTERN = /[_-]+/g;
+const WORD_INITIAL_LOWERCASE_PATTERN = /\b[a-z]/g;
+
 /**
  * Short sentence shown beside an agent tool name.
  *
@@ -198,12 +203,12 @@ function summarizeCounted(record: UnknownRecord): string | undefined {
 
 function summarizeStatus(record: UnknownRecord): string | undefined {
   const status = readString(record.status);
-  if (!status || !/^[a-z][a-z_-]{0,31}$/i.test(status)) {
+  if (!status || !STATUS_TOKEN_PATTERN.test(status)) {
     return undefined;
   }
   const statusLabel = humanizeToken(status);
   const kind = readString(record.kind);
-  if (!kind || !/^[a-z][a-z_-]{0,24}$/i.test(kind)) {
+  if (!kind || !SHORT_STATUS_TOKEN_PATTERN.test(kind)) {
     return statusLabel;
   }
   return `${humanizeToken(kind)} ${statusLabel.toLowerCase()}`;
@@ -241,8 +246,8 @@ function humanizeToken(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+    .replace(SEPARATOR_RUNS_PATTERN, ' ')
+    .replace(WORD_INITIAL_LOWERCASE_PATTERN, (letter) => letter.toUpperCase());
 }
 
 function readCount(value: unknown): number | undefined {

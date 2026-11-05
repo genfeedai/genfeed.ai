@@ -47,6 +47,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+const SEEDANCE_MODEL_PATTERN =
+  /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/;
+
 export type PreparedAgentGenerationQuote = AgentGenerationQuote & {
   snapshot?: ModelBillableQuoteSnapshot;
 };
@@ -464,9 +467,7 @@ export class AgentGenerationEstimateService {
       const endpoint = getFalEndpointFromModelKey(model.endpoint ?? modelKey);
       if (
         provider === 'fal' &&
-        /^(?:bytedance\/seedance-|fal-ai\/bytedance\/seedance\/)/.test(
-          endpoint,
-        ) &&
+        SEEDANCE_MODEL_PATTERN.test(endpoint) &&
         model.providerSchemaFamily &&
         isRecord(model.providerInputSchema)
       ) {

@@ -38,6 +38,8 @@ import { useBrandDetail } from '@/hooks/pages/use-brand-detail/use-brand-detail'
 import { useBrandInterview } from '@/hooks/utils/use-brand-interview/use-brand-interview';
 import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
 
+const LIST_SEPARATOR_PATTERN = /[\n,]/;
+
 const INTERVIEW_CREDIT_COST = 10;
 
 const GROUP_LABELS: Record<BrandInterviewGroup, string> = {
@@ -49,7 +51,7 @@ const GROUP_LABELS: Record<BrandInterviewGroup, string> = {
 
 function parseListDraft(value: string): string[] {
   return value
-    .split(/[\n,]/)
+    .split(LIST_SEPARATOR_PATTERN)
     .map((part) => part.trim())
     .filter(Boolean);
 }

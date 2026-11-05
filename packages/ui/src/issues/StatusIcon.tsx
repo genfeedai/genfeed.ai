@@ -6,8 +6,13 @@ import {
   statusIconDefault,
 } from '../tokens/status-colors';
 
+const UNDERSCORES_PATTERN = /_/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return status
+    .replace(UNDERSCORES_PATTERN, ' ')
+    .replace(WORD_INITIALS_PATTERN, (c) => c.toUpperCase());
 }
 
 interface StatusIconProps {

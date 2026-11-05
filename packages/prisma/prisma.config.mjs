@@ -6,6 +6,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'prisma/config';
 
+const EDGE_QUOTES_PATTERN = /^['"]|['"]$/g;
+
 function databaseUrl() {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
@@ -22,7 +24,9 @@ function databaseUrl() {
   for (const line of readFileSync(envLocal, 'utf8').split('\n')) {
     const trimmed = line.trim();
     if (trimmed.startsWith('DATABASE_URL=')) {
-      return trimmed.slice('DATABASE_URL='.length).replace(/^['"]|['"]$/g, '');
+      return trimmed
+        .slice('DATABASE_URL='.length)
+        .replace(EDGE_QUOTES_PATTERN, '');
     }
   }
 

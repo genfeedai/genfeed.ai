@@ -1,6 +1,9 @@
 import type { IHttpErrorPresentationContext } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 
+const STORYBOARD_REVISION_CONFLICT_PATTERN =
+  /^Expected revision ([1-9][0-9]*); current revision is ([1-9][0-9]*). Reload before retrying\.$/;
+
 export function isExpectedStoryboardSaveConflict(
   response: IHttpErrorPresentationContext,
   expectedRevision: number,
@@ -40,10 +43,7 @@ export function isExpectedStoryboardSaveConflict(
     'The storyboard changed during this save. Reload before retrying.'
   )
     return true;
-  const match =
-    /^Expected revision ([1-9][0-9]*); current revision is ([1-9][0-9]*). Reload before retrying\.$/.exec(
-      member.detail,
-    );
+  const match = STORYBOARD_REVISION_CONFLICT_PATTERN.exec(member.detail);
   if (!match) return false;
   const expected = Number(match[1]);
   const current = Number(match[2]);

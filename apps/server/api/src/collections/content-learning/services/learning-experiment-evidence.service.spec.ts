@@ -205,6 +205,14 @@ describe('same-client fenced experiment evidence append', () => {
     });
     expect(f.tx.contentLearningOpportunity.findFirst).toHaveBeenCalledWith({
       where: { id: 'opportunity', organizationId: 'org', isDeleted: false },
+      select: {
+        brandId: true,
+        credentialId: true,
+        enrollmentId: true,
+        experimentId: true,
+        id: true,
+        organizationId: true,
+      },
     });
     expect(f.tx.contentLearningExperimentEvent.findFirst).toHaveBeenCalledWith({
       where: {
@@ -256,6 +264,7 @@ describe('same-client fenced experiment evidence append', () => {
         opportunityId: 'opportunity',
         isDeleted: false,
       },
+      select: { id: true },
     });
     expect(f.dependencies.invalidate).toHaveBeenCalledWith(
       'experiment-event',
@@ -463,6 +472,7 @@ describe('same-client fenced experiment evidence append', () => {
           sourceId: 'fixed-attempt',
           isDeleted: false,
         },
+        select: { opportunityId: true },
       });
       expect(
         f.root.llmVendorCost.findFirst.mock.invocationCallOrder[0],

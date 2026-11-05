@@ -31,6 +31,8 @@ import {
   EMAIL_SIGNAL_STREAMS,
 } from './email-product-signals.workflow';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
 @Injectable()
@@ -421,6 +423,6 @@ export class EmailProductSignalsService implements OnModuleInit {
   private appUrl(): string {
     return (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/$/, '');
+    ).replace(TRAILING_SLASH_PATTERN, '');
   }
 }

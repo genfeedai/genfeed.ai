@@ -20,6 +20,15 @@ import {
   Video,
 } from 'lucide-react';
 
+const WWW_PREFIX_PATTERN = /^www\./;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const NO_EXTRACTABLE_TEXT_ERROR_PATTERN = /no extractable text/i;
+const NETWORK_ERROR_PATTERN =
+  /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|fetch failed/i;
+const OUTPUT_VALIDATION_ERROR_PATTERN = /output validation failed/i;
+const HTTP_STATUS_ERROR_PATTERN =
+  /request to https?:\/\/\S+ failed with status/i;
+
 const SNIPPET_LENGTH = 140;
 const LINK_LABEL_LENGTH = 64;
 
@@ -74,7 +83,7 @@ export function getSourceLink(
     return null;
   }
   const path = url.pathname === '/' ? '' : url.pathname;
-  const label = `${url.host.replace(/^www\./, '')}${path}${url.search}`;
+  const label = `${url.host.replace(WWW_PREFIX_PATTERN, '')}${path}${url.search}`;
   return {
     href: url.href,
     label:
@@ -95,7 +104,7 @@ export function getSourceSnippet(row: KnowledgeSourceRow): string | null {
   if (!text) {
     return null;
   }
-  const flat = text.replace(/\s+/g, ' ');
+  const flat = text.replace(WHITESPACE_RUNS_PATTERN, ' ');
   return flat.length > SNIPPET_LENGTH
     ? `${flat.slice(0, SNIPPET_LENGTH - 1)}…`
     : flat;
@@ -110,18 +119,16 @@ export function classifyFailure(error: string | null): KnowledgeFailureKind {
   if (!error) {
     return 'unknown';
   }
-  if (/no extractable text/i.test(error)) {
+  if (NO_EXTRACTABLE_TEXT_ERROR_PATTERN.test(error)) {
     return 'noText';
   }
-  if (
-    /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|getaddrinfo|fetch failed/i.test(error)
-  ) {
+  if (NETWORK_ERROR_PATTERN.test(error)) {
     return 'unreachable';
   }
-  if (/output validation failed/i.test(error)) {
+  if (OUTPUT_VALIDATION_ERROR_PATTERN.test(error)) {
     return 'invalidResult';
   }
-  if (/request to https?:\/\/\S+ failed with status/i.test(error)) {
+  if (HTTP_STATUS_ERROR_PATTERN.test(error)) {
     return 'serviceUnavailable';
   }
   return 'unknown';

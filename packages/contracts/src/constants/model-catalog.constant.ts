@@ -42,6 +42,9 @@ import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
+const KEY_SEPARATOR_RUNS_PATTERN = /[-_.]+/g;
+const WORD_INITIALS_PATTERN = /\b\w/g;
+
 /** Marker in `capabilities` so the agent picker can identify chat models. */
 export const AGENT_CHAT_CAPABILITY = 'agent-chat';
 
@@ -119,8 +122,8 @@ function labelFromKey(key: string): string {
   const leaf = key.split('/').pop() ?? key;
 
   return leaf
-    .replace(/[-_.]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(KEY_SEPARATOR_RUNS_PATTERN, ' ')
+    .replace(WORD_INITIALS_PATTERN, (char) => char.toUpperCase())
     .trim();
 }
 

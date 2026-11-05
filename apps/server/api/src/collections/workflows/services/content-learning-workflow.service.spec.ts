@@ -366,6 +366,7 @@ describe('durable scoped content learning workflow dispatch', () => {
         isDeleted: false,
         type: 'dataset-train',
       },
+      select: { id: true, resultReferences: true },
     });
   });
   it('executes only the run linked by the stored receipt', async () => {
@@ -1705,6 +1706,7 @@ describe('remaining A2/A4/A5 compatibility boundaries', () => {
     });
     expect(f.prisma.organization.findFirst).toHaveBeenCalledExactlyOnceWith({
       where: { id: 'org', isDeleted: false },
+      select: { id: true, isDeleted: true },
     });
     expect(f.prisma.brand.findFirst).toHaveBeenCalledExactlyOnceWith({
       where: {
@@ -1712,6 +1714,12 @@ describe('remaining A2/A4/A5 compatibility boundaries', () => {
         organizationId: 'org',
         isDeleted: false,
         isActive: true,
+      },
+      select: {
+        id: true,
+        isActive: true,
+        isDeleted: true,
+        organizationId: true,
       },
     });
     expect(f.prisma.credential.findFirst).toHaveBeenCalledExactlyOnceWith({
@@ -1721,6 +1729,14 @@ describe('remaining A2/A4/A5 compatibility boundaries', () => {
         brandId: 'brand',
         isDeleted: false,
         isConnected: true,
+      },
+      select: {
+        brandId: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+        organizationId: true,
+        platform: true,
       },
     });
   });

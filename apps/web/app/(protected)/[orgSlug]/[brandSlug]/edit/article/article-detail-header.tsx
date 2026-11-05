@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import type { ArticleDetailHeaderProps } from '@/features/studio/props/article-detail-header.props';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//;
+
 export default function ArticleDetailHeader({
   state,
   permissions,
@@ -56,7 +58,7 @@ export default function ArticleDetailHeader({
                   ? 'Publish to genfeed.ai'
                   : 'Mark article published',
                 message: isHostedOnWebsite
-                  ? `This article goes live for anyone at ${publicUrl?.replace(/^https?:\/\//, '') ?? 'genfeed.ai/articles'} and appears on the genfeed.ai blog, RSS feed and sitemap.`
+                  ? `This article goes live for anyone at ${publicUrl?.replace(HTTP_PROTOCOL_PREFIX_PATTERN, '') ?? 'genfeed.ai/articles'} and appears on the genfeed.ai blog, RSS feed and sitemap.`
                   : 'This marks the article published in your workspace only. It is not posted anywhere and is not hosted on genfeed.ai. Share it through posts on your connected accounts.',
                 onConfirm: onPublish,
               })

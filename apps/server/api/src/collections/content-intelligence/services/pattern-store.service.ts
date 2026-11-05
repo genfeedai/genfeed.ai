@@ -174,7 +174,10 @@ export class PatternStoreService extends BaseService<
 
   async incrementUsage(id: string, organizationId: string): Promise<void> {
     const where = scopedWhere(organizationId, { id });
-    const existing = await this.delegate.findFirst({ where });
+    const existing = await this.delegate.findFirst({
+      where,
+      select: { data: true },
+    });
     if (!existing) return;
     const data = readJsonRecord(existing.data);
     await this.patchOneWhere(where, {

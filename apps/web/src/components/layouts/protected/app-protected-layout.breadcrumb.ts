@@ -1,5 +1,8 @@
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
+const AGENT_CONVERSATION_PATH_PATTERN = /^\/agent\/([^/]+)(?:\/full)?\/?$/;
+const STORYBOARD_RUN_PATH_PATTERN = /^\/storyboard\/([^/]+)\/?$/;
+
 const AGENT_CONVERSATION_ID_EXCLUSIONS = new Set(['journey', 'new', 'threads']);
 
 /** Max chars for agent conversation leaf in topbar breadcrumb. */
@@ -12,7 +15,7 @@ export function extractAgentConversationId(
     return null;
   }
   const normalized = normalizeProtectedPathname(pathname);
-  const match = normalized.match(/^\/agent\/([^/]+)(?:\/full)?\/?$/);
+  const match = normalized.match(AGENT_CONVERSATION_PATH_PATTERN);
   const conversationId = match?.[1];
   if (!conversationId || AGENT_CONVERSATION_ID_EXCLUSIONS.has(conversationId)) {
     return null;
@@ -26,7 +29,7 @@ export function extractStoryboardRunId(pathname: string | null): string | null {
     return null;
   }
   const normalized = normalizeProtectedPathname(pathname);
-  const runId = normalized.match(/^\/storyboard\/([^/]+)\/?$/)?.[1];
+  const runId = normalized.match(STORYBOARD_RUN_PATH_PATTERN)?.[1];
   if (!runId) {
     return null;
   }

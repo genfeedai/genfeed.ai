@@ -14,6 +14,9 @@ import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 
+const FFMPEG_PROGRESS_PATTERN =
+  /frame=\s*(\d+)\s+fps=\s*([\d.]+).*?q=\s*([\d.-]+).*?size=\s*(\w+).*?time=\s*([\d:.]+).*?bitrate=\s*([\d.]+\w+\/s).*?speed=\s*([\d.]+x)/;
+
 const createBadRequest = (message: string) => new BadRequestException(message);
 
 const DEFAULT_FFMPEG_MAX_CONCURRENCY = 4;
@@ -128,9 +131,7 @@ export class FFmpegCoreService implements OnModuleInit {
         stderr += output;
 
         if (onProgress) {
-          const progressMatch = output.match(
-            /frame=\s*(\d+)\s+fps=\s*([\d.]+).*?q=\s*([\d.-]+).*?size=\s*(\w+).*?time=\s*([\d:.]+).*?bitrate=\s*([\d.]+\w+\/s).*?speed=\s*([\d.]+x)/,
-          );
+          const progressMatch = output.match(FFMPEG_PROGRESS_PATTERN);
 
           if (progressMatch) {
             onProgress({

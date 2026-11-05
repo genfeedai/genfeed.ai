@@ -176,6 +176,14 @@ describe('actual breakout credit admission before the provider', () => {
           credentialId: 'account-a',
           isDeleted: false,
         },
+        select: {
+          format: true,
+          generationKey: true,
+          kind: true,
+          ordinal: true,
+          state: true,
+          workflowExecutionId: true,
+        },
       });
       expect(readBreakoutGrowth).toHaveBeenCalledWith(h.tx, {
         source: h.source,

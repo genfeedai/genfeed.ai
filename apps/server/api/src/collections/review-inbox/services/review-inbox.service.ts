@@ -37,6 +37,8 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { HttpException, Injectable } from '@nestjs/common';
 
+const HTTP_PROTOCOL_PREFIX_PATTERN = /^https?:\/\//i;
+
 /** Each source is capped so one noisy producer cannot flood the inbox. */
 const REVIEW_INBOX_SOURCE_LIMIT = 200;
 const PREVIEW_MAX_LENGTH = 280;
@@ -59,7 +61,7 @@ function excerpt(value: string | null): string | null {
 
 function readHttpUrl(value: unknown): string | null {
   const url = readString(value);
-  return url && /^https?:\/\//i.test(url) ? url : null;
+  return url && HTTP_PROTOCOL_PREFIX_PATTERN.test(url) ? url : null;
 }
 
 /**

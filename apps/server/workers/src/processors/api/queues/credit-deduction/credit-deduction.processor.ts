@@ -341,6 +341,13 @@ export class CreditDeductionProcessor extends WorkerHost {
         isDeleted: false,
         idempotencyKey: key,
       },
+      select: {
+        actorUserId: true,
+        amount: true,
+        category: true,
+        metadata: true,
+        source: true,
+      },
     });
     if (existing) {
       const saved = existing.metadata;

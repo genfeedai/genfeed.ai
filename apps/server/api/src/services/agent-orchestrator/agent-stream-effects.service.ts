@@ -15,6 +15,10 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+const NON_PHASE_CHARS_PATTERN = /[^a-z_]/g;
+const UNSAFE_IDENTIFIER_CHARS_PATTERN = /[^a-zA-Z0-9_-]/g;
+const WHITESPACE_GROUPS_PATTERN = /(\s+)/;
+
 @Injectable()
 export class AgentStreamEffectsService {
   private readonly constructorName = String(this.constructor.name);
@@ -34,8 +38,10 @@ export class AgentStreamEffectsService {
       this.loggerService.warn(
         `${this.constructorName} turn phase publish failed`,
         {
-          phase: data.phase.replace(/[^a-z_]/g, ''),
-          runId: data.runId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128),
+          phase: data.phase.replace(NON_PHASE_CHARS_PATTERN, ''),
+          runId: data.runId
+            .replace(UNSAFE_IDENTIFIER_CHARS_PATTERN, '')
+            .slice(0, 128),
         },
       );
     }
@@ -162,7 +168,9 @@ export class AgentStreamEffectsService {
       return;
     }
 
-    const words = params.content.split(/(\s+)/).filter(Boolean);
+    const words = params.content
+      .split(WHITESPACE_GROUPS_PATTERN)
+      .filter(Boolean);
 
     for (const word of words) {
       try {

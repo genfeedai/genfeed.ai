@@ -6,6 +6,30 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from '../architecture/parse-source-file';
 
+const START_OF_STRING_PATTERN = /^/;
+const END_OF_STRING_PATTERN = /$/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const PRISMA_RECEIVER_NAME_PATTERN = /(^|\.)prisma$|(^|\.)tx$|transaction/i;
+const PRISMA_WORD_PATTERN = /\bprisma\b/i;
+const THIS_MEMBER_PATTERN = /^this\.\w+$/i;
+const TX_MEMBER_PATTERN = /^tx\.\w+$/i;
+const TRANSACTION_MEMBER_PATTERN = /^transaction\.\w+$/i;
+const TAKE_OPTION_PATTERN = /\btake\s*:/i;
+const SKIP_OPTION_PATTERN = /\bskip\s*:/i;
+const CURSOR_OPTION_PATTERN = /\bcursor\s*:/i;
+const LIMIT_CLAUSE_PATTERN = /\blimit\s+/i;
+const LIMIT_PLACEHOLDER_PATTERN = /\bLIMIT\s+\?/i;
+const INCLUDE_OBJECT_PATTERN = /\binclude\s*:\s*{/;
+const SELECT_OBJECT_PATTERN = /\bselect\s*:\s*{/;
+const WHERE_OPTION_PATTERN = /\bwhere\s*:/i;
+const SCOPED_WHERE_CALL_PATTERN = /\bwhere\s*:\s*scopedWhere\s*\(/i;
+const BILLING_SCOPED_WHERE_CALL_PATTERN =
+  /\bwhere\s*:\s*billingAccountScopedWhere\s*\(/i;
+const TENANT_FIELD_PATTERN =
+  /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i;
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const PIPES_PATTERN = /\|/g;
+
 const DEFAULT_SOURCE_GLOBS = ['apps/server/api/src/**/*.ts'];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
@@ -157,8 +181,8 @@ export function formatSqlRiskAudit(result: SqlRiskAuditResult): string {
       ]
         .map(escapeMarkdownCell)
         .join(' | ')
-        .replace(/^/, '| ')
-        .replace(/$/, ' |'),
+        .replace(START_OF_STRING_PATTERN, '| ')
+        .replace(END_OF_STRING_PATTERN, ' |'),
     );
   }
 
@@ -384,20 +408,23 @@ function createFinding(
     receiver: call.receiver,
     recommendation,
     severity,
-    snippet: call.callText.replace(/\s+/g, ' ').trim().slice(0, 500),
+    snippet: call.callText
+      .replace(WHITESPACE_RUNS_PATTERN, ' ')
+      .trim()
+      .slice(0, 500),
   };
 }
 
 function looksLikePrismaReceiver(receiver: string, method: string): boolean {
   if (method.startsWith('$')) {
-    return /(^|\.)prisma$|(^|\.)tx$|transaction/i.test(receiver);
+    return PRISMA_RECEIVER_NAME_PATTERN.test(receiver);
   }
 
   return (
-    /\bprisma\b/i.test(receiver) ||
-    /^this\.\w+$/i.test(receiver) ||
-    /^tx\.\w+$/i.test(receiver) ||
-    /^transaction\.\w+$/i.test(receiver)
+    PRISMA_WORD_PATTERN.test(receiver) ||
+    THIS_MEMBER_PATTERN.test(receiver) ||
+    TX_MEMBER_PATTERN.test(receiver) ||
+    TRANSACTION_MEMBER_PATTERN.test(receiver)
   );
 }
 
@@ -419,38 +446,37 @@ function isBulkWrite(method: string): boolean {
 
 function hasPagination(callText: string): boolean {
   return (
-    /\btake\s*:/i.test(callText) ||
-    /\bskip\s*:/i.test(callText) ||
-    /\bcursor\s*:/i.test(callText) ||
-    /\blimit\s+/i.test(callText) ||
-    /\bLIMIT\s+\?/i.test(callText)
+    TAKE_OPTION_PATTERN.test(callText) ||
+    SKIP_OPTION_PATTERN.test(callText) ||
+    CURSOR_OPTION_PATTERN.test(callText) ||
+    LIMIT_CLAUSE_PATTERN.test(callText) ||
+    LIMIT_PLACEHOLDER_PATTERN.test(callText)
   );
 }
 
 function hasBroadInclude(callText: string): boolean {
   return (
-    /\binclude\s*:\s*{/.test(callText) && !/\bselect\s*:\s*{/.test(callText)
+    INCLUDE_OBJECT_PATTERN.test(callText) &&
+    !SELECT_OBJECT_PATTERN.test(callText)
   );
 }
 
 function hasTenantGuard(callText: string): boolean {
-  const whereIndex = callText.search(/\bwhere\s*:/i);
+  const whereIndex = callText.search(WHERE_OPTION_PATTERN);
   if (whereIndex === -1) {
     return false;
   }
 
   const whereText = callText.slice(whereIndex);
   return (
-    /\bwhere\s*:\s*scopedWhere\s*\(/i.test(whereText) ||
+    SCOPED_WHERE_CALL_PATTERN.test(whereText) ||
     // `billingAccountScopedWhere` (#5217, `apps/server/api/src/tenancy/scoped-where.ts`)
     // is `scopedWhere`'s billing-account-shared-model counterpart: it
     // non-overridably spreads `billingAccountId`/`isDeleted` into the where
     // clause from a `BillingAccountScope` that can only come from
     // `resolveBillingAccountAccess`. Same tenant guarantee, different key.
-    /\bwhere\s*:\s*billingAccountScopedWhere\s*\(/i.test(whereText) ||
-    /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i.test(
-      whereText,
-    )
+    BILLING_SCOPED_WHERE_CALL_PATTERN.test(whereText) ||
+    TENANT_FIELD_PATTERN.test(whereText)
   );
 }
 
@@ -462,7 +488,7 @@ function hasSuppression(call: PrismaCall, category: string): boolean {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 function countBy<T>(
@@ -489,7 +515,7 @@ function formatCountLines(counts: Record<string, number>): string[] {
 }
 
 function escapeMarkdownCell(value: string): string {
-  return value.replace(/\|/g, '\\|');
+  return value.replace(PIPES_PATTERN, '\\|');
 }
 
 function parseArgs(argv: string[]): CliOptions {

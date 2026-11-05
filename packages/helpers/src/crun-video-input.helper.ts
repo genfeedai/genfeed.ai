@@ -7,6 +7,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunInput } from './crun-input-contract.helper';
 
+const UNSAFE_DRAFT_CHAR_PATTERN = /[\s:/?#\\]/;
+
 function acceptsVideoContract(controls: CrunInputControls): boolean {
   if (controls.mediaKind !== 'video') return false;
   const result = normalizeCrunInput(controls, { prompt: 'x' });
@@ -112,7 +114,7 @@ export function normalizeCrunVideoDraft(
             ? 'type'
             : value.length > 256
               ? 'bounds'
-              : /[\s:/?#\\]/.test(value)
+              : UNSAFE_DRAFT_CHAR_PATTERN.test(value)
                 ? 'uri'
                 : null;
         if (code) errors.push({ field: key, code });

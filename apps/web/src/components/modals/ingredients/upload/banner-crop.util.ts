@@ -4,6 +4,9 @@ import {
   BRAND_BANNER_WIDTH,
 } from '@genfeedai/contracts/constants';
 
+const JPEG_MIME_PATTERN = /^image\/jpe?g$/i;
+const FILE_EXTENSION_PATTERN = /\.[^.]+$/;
+
 /**
  * A brand banner is always the X header format (1500x500, 3:1). The upload
  * crops whatever the owner picked to that ratio, centered, so the stored file
@@ -112,7 +115,7 @@ export async function cropFileToBanner(file: File): Promise<File> {
     output.height,
   );
 
-  const isJpeg = /^image\/jpe?g$/i.test(file.type);
+  const isJpeg = JPEG_MIME_PATTERN.test(file.type);
   const type = isJpeg ? 'image/jpeg' : 'image/png';
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, type, isJpeg ? 0.92 : undefined),
@@ -121,8 +124,12 @@ export async function cropFileToBanner(file: File): Promise<File> {
     throw new Error('The banner could not be cropped. Try another image.');
   }
   const extension = isJpeg ? 'jpg' : 'png';
-  return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.${extension}`, {
-    lastModified: file.lastModified,
-    type,
-  });
+  return new File(
+    [blob],
+    `${file.name.replace(FILE_EXTENSION_PATTERN, '')}.${extension}`,
+    {
+      lastModified: file.lastModified,
+      type,
+    },
+  );
 }

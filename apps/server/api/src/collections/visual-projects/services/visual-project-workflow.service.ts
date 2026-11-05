@@ -46,6 +46,8 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const SNAKE_CASE_WORD_PATTERN = /^[a-z_]+$/;
+
 const terminal = [
   VisualCodeStatus.COMPLETED,
   VisualCodeStatus.FAILED,
@@ -288,6 +290,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         status: 'running',
         leaseExpiresAt: { gt: new Date() },
       },
+      select: { leaseOwnerId: true },
     });
     if (!lease?.leaseOwnerId || context.abortSignal?.aborted)
       throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });
@@ -342,6 +345,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         userId: job.userId,
         isDeleted: false,
       },
+      select: { brandId: true, id: true, organizationId: true },
     });
     const execution = await this.prisma.workflowExecution.findFirstOrThrow({
       where: {
@@ -386,6 +390,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         status: 'running',
         leaseExpiresAt: { gt: new Date() },
       },
+      select: { leaseOwnerId: true },
     });
     if (!lease?.leaseOwnerId || context.abortSignal?.aborted)
       throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });
@@ -893,7 +898,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       await this.assertOwnership();
       revision = await this.current(revision);
       const code =
-        error instanceof Error && /^[a-z_]+$/.test(error.message)
+        error instanceof Error && SNAKE_CASE_WORD_PATTERN.test(error.message)
           ? error.message
           : 'visual_execution_failed';
       revision = await this.update(revision, {

@@ -1,6 +1,10 @@
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { createPathSecurityClass } from '@libs/security';
 
+// biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally matching control characters for security sanitization
+const CONTROL_CHARS_PATTERN = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+const BACKTICKS_PATTERN = /`/g;
+
 /**
  * Security utilities for input validation and sanitization.
  * Path-traversal / command-injection sanitization is shared with the `files`
@@ -50,8 +54,7 @@ export class SecurityUtil extends createPathSecurityClass({
     let sanitized = input;
 
     // Remove control characters except newlines and tabs
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally matching control characters for security sanitization
-    sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    sanitized = sanitized.replace(CONTROL_CHARS_PATTERN, '');
 
     // Remove/escape prompt injection patterns
     for (const pattern of SecurityUtil.PROMPT_INJECTION_PATTERNS) {
@@ -59,7 +62,7 @@ export class SecurityUtil extends createPathSecurityClass({
     }
 
     // Escape backticks (used in some LLM prompt attacks)
-    sanitized = sanitized.replace(/`/g, "'");
+    sanitized = sanitized.replace(BACKTICKS_PATTERN, "'");
 
     // Limit length
     if (sanitized.length > maxLength) {

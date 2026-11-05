@@ -1,3 +1,5 @@
+const URL_SCHEME_PREFIX_PATTERN = /^.*:\/\//;
+
 /**
  * Shared Redis connection config utilities.
  * Single source of truth for TLS — derived from BOTH REDIS_TLS env var AND URL scheme.
@@ -137,7 +139,8 @@ export function parseRedisConnection(configService: {
     port = parsed.port ? Number(parsed.port) : port;
     password = parsed.password || redisPassword;
   } catch {
-    const withoutScheme = redisUrl.replace(/^.*:\/\//, '') || 'localhost:6379';
+    const withoutScheme =
+      redisUrl.replace(URL_SCHEME_PREFIX_PATTERN, '') || 'localhost:6379';
     const [parsedHost, parsedPort] = withoutScheme.split(':');
     host = parsedHost || host;
     port = parsedPort ? Number(parsedPort) : port;

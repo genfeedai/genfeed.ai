@@ -8,12 +8,14 @@ export {
   isFreePlanHandoff,
 } from '@/lib/onboarding/onboarding-access.util';
 
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+
 export function parseSelectedCredits(
   rawCredits?: string | null,
 ): number | null {
   const normalizedCredits = rawCredits?.trim();
 
-  if (!normalizedCredits || !/^\d+$/.test(normalizedCredits)) {
+  if (!normalizedCredits || !DIGITS_ONLY_PATTERN.test(normalizedCredits)) {
     return null;
   }
 

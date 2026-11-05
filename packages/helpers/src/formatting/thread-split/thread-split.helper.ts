@@ -1,5 +1,9 @@
 import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+const PARAGRAPH_BREAK_PATTERN = /\n{2,}/;
+const SENTENCES_PATTERN = /[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g;
+
 /** X's per-post character limit. Long-form posts lift it; threads do not. */
 export const X_POST_CHAR_LIMIT = 280;
 
@@ -11,7 +15,7 @@ function splitWords(text: string, limit: number): string[] {
   const chunks: string[] = [];
   let current = '';
 
-  for (const word of text.split(/\s+/).filter(Boolean)) {
+  for (const word of text.split(WHITESPACE_RUN_PATTERN).filter(Boolean)) {
     const candidate = current ? `${current} ${word}` : word;
     if (fits(candidate, limit)) {
       current = candidate;
@@ -49,11 +53,8 @@ export function splitTextIntoThread(
   }
 
   const units = normalized
-    .split(/\n{2,}/)
-    .flatMap(
-      (paragraph) =>
-        paragraph.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g) ?? [paragraph],
-    )
+    .split(PARAGRAPH_BREAK_PATTERN)
+    .flatMap((paragraph) => paragraph.match(SENTENCES_PATTERN) ?? [paragraph])
     .map((unit) => unit.trim())
     .filter(Boolean);
 

@@ -1,5 +1,7 @@
 import type { FormattedAgentError } from '@genfeedai/agent/server';
 
+const RELATIVE_PATH_PATTERN = /^\/[^/]/;
+
 export const AGENT_STATUS_NOTIFICATION_TOPIC = 'agent.status';
 export const WORKFLOW_STATUS_NOTIFICATION_TOPIC = 'workflow.status';
 export const EMAIL_NOTIFICATION_CHANNEL = 'email';
@@ -34,7 +36,7 @@ export function readNotificationSourcePath(value: unknown): string | undefined {
   if (
     typeof value !== 'string' ||
     value.length > 2000 ||
-    !/^\/[^/]/.test(value) ||
+    !RELATIVE_PATH_PATTERN.test(value) ||
     [...value].some(
       (character) => character.charCodeAt(0) <= 32 || character === '\\',
     )

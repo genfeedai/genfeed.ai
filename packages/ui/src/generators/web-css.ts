@@ -7,8 +7,13 @@ import { sizingTokens } from '@ui/core/sizing';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
 
+const UPPERCASE_LETTERS_PATTERN = /[A-Z]/g;
+
 function kebab(tokenName: string): string {
-  return tokenName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+  return tokenName.replace(
+    UPPERCASE_LETTERS_PATTERN,
+    (match) => `-${match.toLowerCase()}`,
+  );
 }
 
 function declaration(name: string, value: string, indent: string): string {

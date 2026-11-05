@@ -161,6 +161,7 @@ describe('connected timeline isolation and action delivery', () => {
         brandId: 'brand-a',
         isDeleted: false,
       }),
+      select: { externalId: true, platform: true },
     });
     expect(prisma.credential.findFirst).toHaveBeenCalledWith({
       where: expect.objectContaining({
@@ -171,6 +172,7 @@ describe('connected timeline isolation and action delivery', () => {
         isConnected: true,
         isDeleted: false,
       }),
+      select: { grantedScopes: true, grantedScopesCapturedAt: true, id: true },
     });
     expect(
       prisma.sourcePostNativeAction.create.mock.invocationCallOrder[0],

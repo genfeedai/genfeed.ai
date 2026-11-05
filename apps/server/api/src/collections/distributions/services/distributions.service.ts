@@ -150,7 +150,10 @@ export class DistributionsService extends BaseService<
   ): Promise<DistributionDocument> {
     const where = this.transitionWhere(id, organizationId);
     // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
-    const existing = await this.prisma.distribution.findFirst({ where });
+    const existing = await this.prisma.distribution.findFirst({
+      where,
+      select: { config: true },
+    });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
     // tenant-scope-ignore: same transitionWhere scope as the read above
@@ -176,7 +179,10 @@ export class DistributionsService extends BaseService<
   ): Promise<DistributionDocument> {
     const where = this.transitionWhere(id, organizationId);
     // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
-    const existing = await this.prisma.distribution.findFirst({ where });
+    const existing = await this.prisma.distribution.findFirst({
+      where,
+      select: { config: true },
+    });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
     // tenant-scope-ignore: same transitionWhere scope as the read above

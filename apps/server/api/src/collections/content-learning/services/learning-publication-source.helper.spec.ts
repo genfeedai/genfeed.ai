@@ -1668,6 +1668,17 @@ describe('current physical checkpoint and bounded source closure', () => {
           },
           orderBy: { id: 'asc' },
           take: 9,
+          select: {
+            derivedId: true,
+            derivedKind: true,
+            derivedOrganizationId: true,
+            isDeleted: true,
+            sourceId: true,
+            sourceKind: true,
+            sourceOrganizationId: true,
+            sourceVersion: true,
+            valid: true,
+          },
         },
       ],
       [
@@ -1689,6 +1700,7 @@ describe('current physical checkpoint and bounded source closure', () => {
             ],
           },
           take: 1,
+          select: { id: true },
         },
       ],
       [
@@ -1700,6 +1712,7 @@ describe('current physical checkpoint and bounded source closure', () => {
             isDeleted: false,
           },
           take: 1,
+          select: { id: true },
         },
       ],
     ]);

@@ -299,6 +299,7 @@ export class BrandRemixSceneAssemblyService {
         groupIndex: 1,
         category: 'VIDEO' as const,
       }),
+      select: { id: true },
     });
     const assetId = found
       ? found.id
@@ -561,6 +562,7 @@ export class BrandRemixSceneAssemblyService {
         brandId,
         category: 'VIDEO' as const,
       }),
+      select: { metadataId: true },
     });
     if (!asset?.metadataId)
       throw new ConflictException('Composition metadata is unavailable.');

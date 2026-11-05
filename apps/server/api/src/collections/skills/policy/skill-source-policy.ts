@@ -6,6 +6,8 @@ import {
 } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const AUTHORED_POLICY: SkillSourcePolicy = {
   allowsDerivatives: true,
   allowsExport: true,
@@ -51,7 +53,7 @@ export function resolveSkillSourcePolicy(
         recorded.format === 'genfeed.skill.ordinary-upload.v1' &&
         recorded.importedByUserId === subject.ownerUserId &&
         typeof recorded.packageChecksum === 'string' &&
-        /^[a-f0-9]{64}$/.test(recorded.packageChecksum) &&
+        SHA256_HEX_PATTERN.test(recorded.packageChecksum) &&
         config.checksum === recorded.packageChecksum
       ) {
         return { ...AUTHORED_POLICY, allowsPublicPublication: false };

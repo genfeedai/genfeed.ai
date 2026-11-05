@@ -5,6 +5,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 
+const EMBEDDED_STATUS_CODE_PATTERN = /:\s*(\d{3})(?:\s+.*)?\s*$/;
+const TIMEOUT_ERROR_PATTERN = /timed out|timeout/i;
+
 /**
  * Network-transport error codes Node/undici attach to a failed fetch. Every
  * one of these means the target host never answered.
@@ -84,7 +87,7 @@ function readTransportCode(error: unknown): string | undefined {
  * that and miss the status entirely (#5080 review).
  */
 function readEmbeddedStatus(message: string): number | undefined {
-  const match = /:\s*(\d{3})(?:\s+.*)?\s*$/.exec(message);
+  const match = EMBEDDED_STATUS_CODE_PATTERN.exec(message);
   const status = match ? Number(match[1]) : undefined;
   return status !== undefined && Number.isFinite(status) ? status : undefined;
 }
@@ -94,7 +97,7 @@ function isTimeoutError(error: unknown): boolean {
   if (name === 'AbortError' || name === 'TimeoutError') {
     return true;
   }
-  return /timed out|timeout/i.test(readErrorMessage(error));
+  return TIMEOUT_ERROR_PATTERN.test(readErrorMessage(error));
 }
 
 function isDestinationGuardError(error: unknown): boolean {

@@ -27,6 +27,8 @@ import type { SocialSourceResearchContext } from '@api/services/source-collector
 import { Platform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 /**
  * ApifyService
  *
@@ -328,7 +330,7 @@ export class ApifyService {
         .filter((t) => t.metadata.trendType === 'hashtag')
         .map((t) => ({
           growthRate: t.growthRate,
-          hashtag: t.topic.replace(/^#/, ''),
+          hashtag: t.topic.replace(LEADING_HASH_PATTERN, ''),
           platform: t.platform,
           postCount: t.mentions,
           postCountScope: t.platform === 'instagram' ? 'observed' : 'platform',

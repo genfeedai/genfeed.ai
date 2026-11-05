@@ -16,6 +16,15 @@ import {
   validateCpuSeal,
 } from './cpu-profile-core.mjs';
 
+const SAFE_PROFILE_PATH_PATTERN = /^[A-Za-z0-9_@./+() -]+$/;
+const PACKAGE_KEYS_PATTERN = /"((?:@[A-Za-z0-9_.-]+\/)?[A-Za-z0-9_.-]+)"\s*:/g;
+const NODE_PROTOCOL_PATTERN = /^node:/;
+const WEBPACK_MODULE_KEY_PATTERN = /^\/\*\*\*\/\s*("(?:[^"\\]|\\.)*")\s*:/;
+const UNSAFE_LOCATION_CHAR_PATTERN = /[?#%\0]/;
+const WEBPACK_URL_PREFIX_PATTERN = /^webpack:\/\/[^/]*\//;
+const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9_.-]+\/)?[a-z0-9_.-]+$/i;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const bundleFile = 'apps/server/dist/apps/api/main.js';
 const kinds = [
   'source',
@@ -32,7 +41,7 @@ const categoryKinds = ['unknown', 'gc', 'idle', 'program', 'root'];
 const anchorKeys = ['kind', 'file', 'line', 'column', 'modulePath'];
 const safePath = (value) =>
   typeof value === 'string' &&
-  /^[A-Za-z0-9_@./+() -]+$/.test(value) &&
+  SAFE_PROFILE_PATH_PATTERN.test(value) &&
   !value.split('/').some((part) => part === '..' || part === '') &&
   !isAbsolute(value);
 const anchor = (
@@ -69,12 +78,10 @@ export function createCpuCatalog(repositoryRoot) {
   }
   const lock = readFileSync(join(root, 'bun.lock'), 'utf8');
   const packageNames = new Set(
-    [...lock.matchAll(/"((?:@[A-Za-z0-9_.-]+\/)?[A-Za-z0-9_.-]+)"\s*:/g)].map(
-      (match) => match[1],
-    ),
+    [...lock.matchAll(PACKAGE_KEYS_PATTERN)].map((match) => match[1]),
   );
   const builtins = new Set(
-    builtinModules.map((name) => name.replace(/^node:/, '')),
+    builtinModules.map((name) => name.replace(NODE_PROTOCOL_PATTERN, '')),
   );
   const lines = new Map();
   const lineBounds = (file) => {
@@ -97,9 +104,7 @@ export function createCpuCatalog(repositoryRoot) {
     bundleSha256 = digestCpu(bytes);
     bundleLines = bytes.toString('utf8').split('\n');
     for (let i = 0; i < bundleLines.length; i++) {
-      const match = bundleLines[i].match(
-        /^\/\*\*\*\/\s*("(?:[^"\\]|\\.)*")\s*:/,
-      );
+      const match = bundleLines[i].match(WEBPACK_MODULE_KEY_PATTERN);
       if (match) {
         try {
           const id = JSON.parse(match[1]);
@@ -151,7 +156,7 @@ export function createCpuCatalog(repositoryRoot) {
       };
     }
     if (
-      /[?#%\0]/.test(url) ||
+      UNSAFE_LOCATION_CHAR_PATTERN.test(url) ||
       url.includes('\\') ||
       url.split('/').includes('..')
     )
@@ -183,7 +188,7 @@ export function createCpuCatalog(repositoryRoot) {
         try {
           if (source?.startsWith('file://')) source = fileURLToPath(source);
           if (source?.startsWith('webpack://'))
-            source = source.replace(/^webpack:\/\/[^/]*\//, '');
+            source = source.replace(WEBPACK_URL_PREFIX_PATTERN, '');
           const mapped = relative(
             root,
             realpathSync(
@@ -241,7 +246,7 @@ export function createCpuCatalog(repositoryRoot) {
             const { name } = JSON.parse(readFileSync(packageFile, 'utf8'));
             if (
               typeof name === 'string' &&
-              /^(?:@[a-z0-9_.-]+\/)?[a-z0-9_.-]+$/i.test(name) &&
+              PACKAGE_NAME_PATTERN.test(name) &&
               packageNames.has(name)
             ) {
               const normalized = `${name}/${relative(directory, file).split(sep).join('/')}`;
@@ -415,7 +420,7 @@ function validateAnchor(value) {
       typeof value.file !== 'string' ||
       (value.kind === 'node'
         ? !builtinModules
-            .map((name) => `node:${name.replace(/^node:/, '')}`)
+            .map((name) => `node:${name.replace(NODE_PROTOCOL_PATTERN, '')}`)
             .includes(value.file)
         : !safePath(value.file)) ||
       value.line === null ||
@@ -450,7 +455,8 @@ export function validateCpuEvidence(value) {
     ) ||
     !exact(value.mapping, Object.keys(emptyCpuEvidence().mapping)) ||
     Object.values(value.mapping).some((number) => !integer(number)) ||
-    (value.bundleSha256 !== null && !/^[a-f0-9]{64}$/.test(value.bundleSha256))
+    (value.bundleSha256 !== null &&
+      !SHA256_HEX_PATTERN.test(value.bundleSha256))
   )
     throw cpuError('invalidSchema');
   if (

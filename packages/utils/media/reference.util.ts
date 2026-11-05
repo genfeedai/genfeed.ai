@@ -1,6 +1,8 @@
 import type { IAsset } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
+const LEADING_SLASHES_PATTERN = /^\/+/;
+
 /**
  * Resolve the primary reference image URL for an ingredient.
  */
@@ -27,7 +29,7 @@ export function resolveIngredientReferenceUrl(
       return url;
     }
 
-    const normalized = url.replace(/^\/+/, '');
+    const normalized = url.replace(LEADING_SLASHES_PATTERN, '');
 
     if (normalized.startsWith('references/')) {
       return `${EnvironmentService.cdnUrl}/${normalized}`;

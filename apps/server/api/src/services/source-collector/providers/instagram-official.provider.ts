@@ -13,6 +13,8 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const INSIGHTS_ERROR_PATTERN = /insight|permission|metric/i;
+
 const PAGE_SIZE = 50;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
@@ -297,5 +299,5 @@ function isInsightsError(error: unknown): boolean {
   )?.response?.data?.error;
   const message =
     typeof graphError?.message === 'string' ? graphError.message : '';
-  return /insight|permission|metric/i.test(message);
+  return INSIGHTS_ERROR_PATTERN.test(message);
 }

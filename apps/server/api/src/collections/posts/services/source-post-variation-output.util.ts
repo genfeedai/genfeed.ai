@@ -3,6 +3,10 @@ import {
   measurePlatformText,
 } from '@genfeedai/helpers/content/platform-text-length.helper';
 
+const HTTP_URLS_PATTERN = /https?:\/\/\S+/gu;
+const NON_WORD_RUNS_PATTERN = /[^\p{L}\p{N}]+/gu;
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+
 export type VariationRejectionReason =
   | 'duplicate'
   | 'empty'
@@ -25,10 +29,10 @@ const normalizeText = (value: string): string =>
   value
     .normalize('NFKC')
     .toLocaleLowerCase()
-    .replace(/https?:\/\/\S+/gu, ' ')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(HTTP_URLS_PATTERN, ' ')
+    .replace(NON_WORD_RUNS_PATTERN, ' ')
     .trim()
-    .replace(/\s+/gu, ' ');
+    .replace(WHITESPACE_RUNS_PATTERN, ' ');
 
 const tokenSet = (value: string): Set<string> =>
   new Set(normalizeText(value).split(' ').filter(Boolean));

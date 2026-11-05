@@ -38,6 +38,10 @@ import {
   Optional,
 } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const REPEATED_HYPHENS_PATTERN = /-{2,}/g;
+const EDGE_HYPHEN_PATTERN = /^-|-$/g;
+
 const PRISMA_ORGANIZATION_CATEGORIES = new Set([
   'CREATOR',
   'BUSINESS',
@@ -471,9 +475,9 @@ export class OrganizationsService extends BaseService<
   generateSlug(label: string): string {
     return label
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-|-$/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(REPEATED_HYPHENS_PATTERN, '-')
+      .replace(EDGE_HYPHEN_PATTERN, '');
   }
 
   /**
@@ -521,7 +525,10 @@ export class OrganizationsService extends BaseService<
       }
       if (
         !isReservedAppRootSegment(candidate) &&
-        !(await this.prisma.organization.findFirst({ where: filter }))
+        !(await this.prisma.organization.findFirst({
+          where: filter,
+          select: { id: true },
+        }))
       ) {
         break;
       }

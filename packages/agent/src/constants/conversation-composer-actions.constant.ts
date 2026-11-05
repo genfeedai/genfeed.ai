@@ -5,6 +5,8 @@ import type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
+const COMPOSER_COMMAND_PATTERN = /^\/([^\s/]+)(?:\s+([\s\S]*))?$/;
+
 /**
  * Preferred product surface for each slash command.
  *
@@ -123,7 +125,7 @@ export function getConversationComposerAction(
 export function parseConversationComposerCommand(
   text: string,
 ): ParsedConversationComposerCommand {
-  const match = /^\/([^\s/]+)(?:\s+([\s\S]*))?$/.exec(text.trim());
+  const match = COMPOSER_COMMAND_PATTERN.exec(text.trim());
   if (!match) {
     return { kind: 'none' };
   }

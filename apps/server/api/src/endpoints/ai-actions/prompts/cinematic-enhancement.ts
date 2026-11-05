@@ -5,6 +5,9 @@ import {
 } from '@api/endpoints/ai-actions/prompts/cinematic-lexicon';
 import { PromptCategory } from '@genfeedai/contracts';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 export const ENHANCE_PROMPT_BASE = `You are an expert at writing prompts for AI image and video generation models. Enhance the user's prompt to be more detailed, descriptive, and effective for AI generation. Add specific details about lighting, composition, style, mood, and technical aspects. Return ONLY the enhanced prompt text, nothing else.`;
 
 const CINEMATIC_PROMPT_CATEGORIES: ReadonlySet<string> = new Set([
@@ -115,7 +118,7 @@ export function resolveEnhancePromptSystemPrompt(
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 function sortAliasesLongestFirst(
@@ -156,5 +159,5 @@ export function translateNaiveCinematicLanguage(prompt: string): string {
     }
   }
 
-  return rewritten.replace(/\s+/g, ' ').trim();
+  return rewritten.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
 }

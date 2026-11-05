@@ -1,6 +1,8 @@
 import type { Command } from 'commander';
 import { GenfeedError } from '@/utils/errors';
 
+const INTEGER_PATTERN = /^-?\d+$/;
+
 interface JsonOptions extends Record<string, unknown> {
   json?: boolean;
 }
@@ -11,7 +13,7 @@ export function wantsJson(command: Command): boolean {
 
 export function parseInteger(value: string): number {
   const normalized = value.trim();
-  if (!/^-?\d+$/.test(normalized)) {
+  if (!INTEGER_PATTERN.test(normalized)) {
     throw new GenfeedError(`Invalid integer "${value}"`);
   }
 

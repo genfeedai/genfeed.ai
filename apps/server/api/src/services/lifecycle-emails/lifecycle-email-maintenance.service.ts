@@ -45,6 +45,8 @@ import {
   SystemEmailEligibilityService,
 } from './system-email-eligibility.service';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 /**
@@ -744,6 +746,6 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
   private appUrl(): string {
     return (
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
   }
 }

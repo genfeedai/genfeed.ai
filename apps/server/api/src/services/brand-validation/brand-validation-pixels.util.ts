@@ -6,6 +6,8 @@ import { promisify } from 'node:util';
 import ffmpegPath from 'ffmpeg-static';
 import sharp from 'sharp';
 
+const FFMPEG_DURATION_PATTERN = /Duration: (\d+):(\d{2}):(\d{2}(?:\.\d+)?)/;
+
 const execFileAsync = promisify(execFile);
 
 /** Longest edge of the pixels compared with a palette; more adds cost, not signal. */
@@ -160,7 +162,7 @@ async function readDurationSeconds(
     // ffmpeg without an output exits 1 and prints the container info on stderr.
     const stderr =
       error instanceof Error && 'stderr' in error ? String(error.stderr) : '';
-    const match = /Duration: (\d+):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(stderr);
+    const match = FFMPEG_DURATION_PATTERN.exec(stderr);
     if (!match) return null;
     const seconds =
       Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);

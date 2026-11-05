@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+const HEX_DIGITS_PATTERN = /[0-9a-f]/gu;
+
 /**
  * Public half of the key pinned in the extension manifest
  * (`apps/extension/package.json` -> `manifest.key`). Unpacked
@@ -22,7 +24,7 @@ export function deriveExtensionId(publicKeyBase64: string): string {
     .digest()
     .subarray(0, 16)
     .toString('hex')
-    .replace(/[0-9a-f]/gu, (digit) => String.fromCharCode(97 + Number.parseInt(digit, 16)));
+    .replace(HEX_DIGITS_PATTERN, (digit) => String.fromCharCode(97 + Number.parseInt(digit, 16)));
 }
 
 export function extensionOrigin(extensionId: string): string {

@@ -21,6 +21,11 @@ import {
   parseVersionComment,
 } from './check-github-action-versions';
 
+const ACTION_VERSION_PATTERN = /^v?(\d+(?:\.\d+){0,3})(?:-[\w.]+)?$/i;
+const TRAILING_COMMENT_PATTERN = /\s+#\s*(.*?)\s*$/;
+const VERSION_COMMENT_PREFIX_PATTERN =
+  /^(?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?(?:\s+\|\s+)?/i;
+
 const VERSION_TAG = /^(?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?$/i;
 const BRANCH_PIN = /^(master|main|develop|HEAD)$/i;
 
@@ -45,7 +50,7 @@ export function isVersionTag(version: string): boolean {
 }
 
 export function parseVersionParts(version: string): number[] | null {
-  const match = version.trim().match(/^v?(\d+(?:\.\d+){0,3})(?:-[\w.]+)?$/i);
+  const match = version.trim().match(ACTION_VERSION_PATTERN);
 
   if (!match?.[1]) {
     return null;
@@ -104,13 +109,11 @@ export function rewriteUsesLine(
 
   const nextTarget = `${rawTarget.slice(0, rawTarget.lastIndexOf('@'))}@${nextRelease.sha}`;
   const rewritten = line.replace(rawTarget, nextTarget);
-  const existingComment = rewritten.match(/\s+#\s*(.*?)\s*$/);
+  const existingComment = rewritten.match(TRAILING_COMMENT_PATTERN);
 
   if (existingComment?.index !== undefined) {
     const comment = existingComment[1] ?? '';
-    const prose = comment
-      .replace(/^(?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?(?:\s+\|\s+)?/i, '')
-      .trim();
+    const prose = comment.replace(VERSION_COMMENT_PREFIX_PATTERN, '').trim();
     const suffix = prose ? ` | ${prose}` : '';
 
     return `${rewritten.slice(0, existingComment.index).trimEnd()} # ${nextRelease.tag}${suffix}`;

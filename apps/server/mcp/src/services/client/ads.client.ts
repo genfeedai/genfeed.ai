@@ -1,6 +1,14 @@
 import type { BaseApiClient } from './base-api-client';
 import type { AdsGatewayInsightsParams, ApiError } from './client.types';
 
+const CLIENT_OR_SERVER_ERROR_STATUS_PATTERN = /^[45]\d\d$/;
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const AUTHORIZATION_CREDENTIALS_PATTERN = /\b(Bearer|Basic)\s+\S+/gi;
+const SECRET_ASSIGNMENTS_PATTERN =
+  /\b((?:access[_-]?token|api[_-]?key|refresh[_-]?token|client[_-]?secret|password|secret)\s*[:=]\s*)\S+/gi;
+const JWTS_PATTERN =
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
+
 type AdsListProvider = 'Meta' | 'Google Ads';
 type AdsListErrorClass = 'auth' | 'internal' | 'provider';
 
@@ -87,7 +95,10 @@ function readAdsHttpStatus(error: ApiError): number | undefined {
   }
 
   const coded = error.response?.data?.errors?.[0]?.status;
-  if (typeof coded === 'string' && /^[45]\d\d$/.test(coded)) {
+  if (
+    typeof coded === 'string' &&
+    CLIENT_OR_SERVER_ERROR_STATUS_PATTERN.test(coded)
+  ) {
     return Number(coded);
   }
 
@@ -101,16 +112,10 @@ function readSafeAdsDetail(error: ApiError): string | undefined {
   }
 
   const redacted = raw
-    .replace(/\s+/g, ' ')
-    .replace(/\b(Bearer|Basic)\s+\S+/gi, '$1 [redacted]')
-    .replace(
-      /\b((?:access[_-]?token|api[_-]?key|refresh[_-]?token|client[_-]?secret|password|secret)\s*[:=]\s*)\S+/gi,
-      '$1[redacted]',
-    )
-    .replace(
-      /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
-      '[redacted]',
-    )
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .replace(AUTHORIZATION_CREDENTIALS_PATTERN, '$1 [redacted]')
+    .replace(SECRET_ASSIGNMENTS_PATTERN, '$1[redacted]')
+    .replace(JWTS_PATTERN, '[redacted]')
     .trim();
 
   if (

@@ -7,6 +7,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
+const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9_-]+$/;
+
 export class OAuthAuthorizeRequestDto {
   @IsString()
   @MaxLength(2048)
@@ -22,7 +24,7 @@ export class OAuthAuthorizeRequestDto {
 
   @IsString()
   @Length(43, 43)
-  @Matches(/^[A-Za-z0-9_-]+$/)
+  @Matches(SAFE_IDENTIFIER_PATTERN)
   code_challenge!: string;
 
   @IsString()

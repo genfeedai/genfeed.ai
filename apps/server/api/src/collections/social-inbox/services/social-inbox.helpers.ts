@@ -12,6 +12,8 @@ import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { BadRequestException } from '@nestjs/common';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const SUPPORTED_PLATFORMS = new Set([
   'instagram',
   'linkedin',
@@ -45,7 +47,9 @@ export function normalizePlatform(platform: string): string {
 }
 
 export function sanitizeBody(body: string): string {
-  const stripped = replaceMarkup(body, '', true).replace(/\s+/g, ' ').trim();
+  const stripped = replaceMarkup(body, '', true)
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
 
   if (!stripped) {
     throw new BadRequestException('Message body cannot be empty');

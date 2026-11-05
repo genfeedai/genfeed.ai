@@ -41,6 +41,11 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+const PROMPT_CIPHERTEXT_PATTERN =
+  /^[0-9a-fA-F]{32}:(?:[0-9a-fA-F]{2})+:[0-9a-fA-F]{32}$/;
+const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9][0-9]*)$/;
+const SNAPSHOT_BRIEF_VERSION_PATTERN = /^snapshot-brief-v[1-9][0-9]{0,9}$/;
+
 const TEXT_FORMAT = 'genfeed.branded-generation-prompt.v1';
 const COMPILED_FORMAT = 'genfeed.branded-generation-compiled.v1';
 const COMPILED_ENVELOPE_MAX_BYTES = 4194304;
@@ -62,7 +67,7 @@ function isBoundedPromptCiphertext(
   return (
     typeof value === 'string' &&
     value.length <= maximum &&
-    /^[0-9a-fA-F]{32}:(?:[0-9a-fA-F]{2})+:[0-9a-fA-F]{32}$/.test(value)
+    PROMPT_CIPHERTEXT_PATTERN.test(value)
   );
 }
 const OPTIONAL_INPUT_FIELDS = new Set([
@@ -169,7 +174,10 @@ function detachInput(
         ['__proto__', 'constructor', 'prototype'].includes(key)
       )
         invalidInput();
-      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length))
+      if (
+        array &&
+        (!NON_NEGATIVE_INTEGER_PATTERN.test(key) || Number(key) >= length)
+      )
         invalidInput();
     }
     if (array && Object.keys(descriptors).length !== length + 1) invalidInput();
@@ -306,7 +314,7 @@ const futureContributionShape = z
 const futureRecipeShape = z
   .tuple([
     z.string().refine((value) => {
-      if (value.length > 26 || !/^snapshot-brief-v[1-9][0-9]{0,9}$/.test(value))
+      if (value.length > 26 || !SNAPSHOT_BRIEF_VERSION_PATTERN.test(value))
         return false;
       const version = Number(value.slice('snapshot-brief-v'.length));
       return (

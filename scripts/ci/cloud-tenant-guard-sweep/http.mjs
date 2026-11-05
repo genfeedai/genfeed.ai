@@ -7,6 +7,10 @@ import {
   tenantHit,
 } from './core.mjs';
 
+const ONE_TO_TEN_PATTERN = /^(?:[1-9]|10)$/;
+const SESSION_TOKEN_COOKIE_PATTERN =
+  /(?:^|[,;]\s*)(?:__Secure-)?better-auth\.session_token=([^;]+)/;
+
 export function createRequester({
   baseUrl,
   records,
@@ -185,7 +189,7 @@ export function createRequester({
         Object.keys(outcome.json).length === 1 &&
         outcome.json.message === 'Too many requests. Please try again later.' &&
         !outcome.headers?.has('set-cookie') &&
-        /^(?:[1-9]|10)$/.test(throttleHeader ?? '');
+        ONE_TO_TEN_PATTERN.test(throttleHeader ?? '');
       // Setup tolerates transient cold-start failures; sweep requests retain
       // their bounded deadlines and retry only throttling. Preserve every attempt.
       const isSignin =
@@ -273,9 +277,7 @@ export function hasSessionCookie(headers) {
 export function sessionCookie(headers) {
   const values = headers.getSetCookie?.() ?? [headers.get('set-cookie') ?? ''];
   for (const value of values) {
-    const match = value.match(
-      /(?:^|[,;]\s*)(?:__Secure-)?better-auth\.session_token=([^;]+)/,
-    );
+    const match = value.match(SESSION_TOKEN_COOKIE_PATTERN);
     if (match) return `better-auth.session_token=${match[1]}`;
   }
   throw new Error('Better Auth returned no session cookie');

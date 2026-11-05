@@ -37,6 +37,8 @@ import {
   type ValidatorConstraintInterface,
 } from 'class-validator';
 
+const BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
 function assertRawKeys(value: unknown, allowed: string[]): void {
   if (
     value &&
@@ -116,7 +118,7 @@ class SkillPackageBase64Constraint implements ValidatorConstraintInterface {
       !value ||
       value.length > SKILL_PACKAGE_MAX_BASE64_CHARACTERS ||
       value.length % 4 !== 0 ||
-      !/^[A-Za-z0-9+/]*={0,2}$/.test(value)
+      !BASE64_PATTERN.test(value)
     )
       return false;
     const bytes = Buffer.from(value, 'base64');

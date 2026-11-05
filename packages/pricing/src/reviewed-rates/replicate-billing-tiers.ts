@@ -14,6 +14,12 @@ import {
 } from './replicate-variant-selectors';
 import { variantOwn } from './variant-rule-validation';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const PRICE_TEXT_PATTERN = /^\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*$/;
+const COMMAS_PATTERN = /,/g;
+const PER_UNIT_DIVISOR_PATTERN =
+  /\bper[\s-]+(million|thousand|hundred|1m|1k|[0-9][0-9,]*)\b/g;
+
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -73,10 +79,7 @@ export function extractReplicateBillingTiers(html: string): unknown[] | null {
 }
 
 function words(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
+  return value.toLowerCase().replace(NON_ALPHANUMERIC_RUNS_PATTERN, ' ').trim();
 }
 
 /** Billing criterion titles Replicate words differently from the input field. */
@@ -183,9 +186,9 @@ function mapMetric(metric: string): MetricUnit | null {
 function parsePrice(raw: unknown): number | null {
   const text = typeof raw === 'number' ? String(raw) : raw;
   if (typeof text !== 'string') return null;
-  const match = /^\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*$/.exec(text);
+  const match = PRICE_TEXT_PATTERN.exec(text);
   if (!match?.[1]) return null;
-  const value = Number(match[1].replace(/,/g, ''));
+  const value = Number(match[1].replace(COMMAS_PATTERN, ''));
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
@@ -196,9 +199,7 @@ function billingDivisor(
   const text =
     `${String(price.type ?? '')} ${String(price.title ?? '')}`.toLowerCase();
   const scales = new Set<number>();
-  for (const match of text.matchAll(
-    /\bper[\s-]+(million|thousand|hundred|1m|1k|[0-9][0-9,]*)\b/g,
-  )) {
+  for (const match of text.matchAll(PER_UNIT_DIVISOR_PATTERN)) {
     const scale = match[1];
     const divisor =
       scale === 'million' || scale === '1m'
@@ -207,7 +208,7 @@ function billingDivisor(
           ? 1_000
           : scale === 'hundred'
             ? 100
-            : Number(scale?.replace(/,/g, ''));
+            : Number(scale?.replace(COMMAS_PATTERN, ''));
     if (!Number.isSafeInteger(divisor) || divisor <= 0) return null;
     scales.add(divisor);
   }

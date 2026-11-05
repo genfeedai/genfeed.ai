@@ -11,6 +11,8 @@ import {
   MinLength,
 } from 'class-validator';
 
+const X_HANDLE_PATTERN = /^@?[A-Za-z0-9_]{1,15}$/;
+
 export class DiscoverReplyTargetsDto {
   @IsEntityId()
   @ApiProperty({ description: 'Brand whose X account is being warmed up' })
@@ -40,7 +42,7 @@ export class AddReplyTargetDto {
   brandId!: string;
 
   @IsString()
-  @Matches(/^@?[A-Za-z0-9_]{1,15}$/)
+  @Matches(X_HANDLE_PATTERN)
   @ApiProperty({
     description: 'X username to monitor, with or without @',
     example: 'someaccount',

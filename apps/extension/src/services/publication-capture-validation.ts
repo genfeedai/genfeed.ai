@@ -7,6 +7,14 @@ import type {
   PublicationCaptureSurface,
 } from '@genfeedai/contracts/interfaces/extension/extension-publication-observer.interface';
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const X_HANDLE_PATTERN = /^[a-z0-9_]{1,15}$/i;
+const DIGITS_ONLY_PATTERN = /^\d+$/;
+const X_HOME_PATH_PATTERN = /^\/home\/?$/;
+const X_COMPOSE_PATH_PATTERN = /^\/compose\/post\/?$/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export const PUBLICATION_REPLY_ASSOCIATION_WINDOW_MS = 30_000;
 export const PUBLICATION_REPLY_INTENT_LIFETIME_MS = 10 * 60_000;
 export function publicationCaptureRecord(
@@ -31,19 +39,16 @@ export function publicationCaptureText(
   );
 }
 export function publicationCaptureUuid(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
+  return typeof value === 'string' && UUID_PATTERN.test(value);
 }
 export function publicationCaptureHandle(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-z0-9_]{1,15}$/i.test(value);
+  return typeof value === 'string' && X_HANDLE_PATTERN.test(value);
 }
 export function publicationCaptureNumericId(value: unknown): value is string {
   return (
-    typeof value === 'string' && /^\d+$/.test(value) && value.length <= 255
+    typeof value === 'string' &&
+    DIGITS_ONLY_PATTERN.test(value) &&
+    value.length <= 255
   );
 }
 export function publicationCaptureBody(value: unknown): value is string {
@@ -120,14 +125,15 @@ export function publicationCapturePageUrl(value: unknown): URL | null {
 }
 export function publicationCaptureHomeUrl(value: unknown): URL | null {
   const page = supportedPage(value);
-  return page?.platform === 'twitter' && /^\/home\/?$/.test(page.url.pathname)
+  return page?.platform === 'twitter' &&
+    X_HOME_PATH_PATTERN.test(page.url.pathname)
     ? page.url
     : null;
 }
 export function publicationCaptureComposeUrl(value: unknown): URL | null {
   const page = supportedPage(value);
   return page?.platform === 'twitter' &&
-    /^\/compose\/post\/?$/.test(page.url.pathname)
+    X_COMPOSE_PATH_PATTERN.test(page.url.pathname)
     ? page.url
     : null;
 }
@@ -207,7 +213,7 @@ export function parsePublicationCaptureParent(
       ? new RegExp(`^/[a-z0-9_]{1,15}/status/${v.externalId}$`, 'i').test(
           url.pathname,
         )
-      : url.pathname.replace(/\/$/, '') === path
+      : url.pathname.replace(TRAILING_SLASH_PATTERN, '') === path
   )
     ? { externalId: v.externalId, url: url.href }
     : null;
@@ -290,7 +296,8 @@ export function publicationCaptureAttemptAllowsUrl(
     attempt.surface.kind === 'linkedin-comment'
   )
     return (
-      url.pathname.replace(/\/$/, '') === source.pathname.replace(/\/$/, '')
+      url.pathname.replace(TRAILING_SLASH_PATTERN, '') ===
+      source.pathname.replace(TRAILING_SLASH_PATTERN, '')
     );
   return attempt.surface.kind === 'x-home'
     ? Boolean(publicationCaptureHomeUrl(value))

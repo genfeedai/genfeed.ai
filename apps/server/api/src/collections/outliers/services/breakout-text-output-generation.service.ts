@@ -39,6 +39,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+const PARAGRAPH_BREAKS_PATTERN = /\n{2,}/u;
+
 /** Prepared internally from a pinned execution; never a controller DTO or serialized authority. */
 export type BreakoutTextOutputGenerationRequest = {
   admission: Readonly<BreakoutGenerationAdmission>;
@@ -57,7 +59,7 @@ export type BreakoutTextOutputGenerationRequest = {
 function segments(text: string, thread: boolean): string[] {
   return thread
     ? text
-        .split(/\n{2,}/u)
+        .split(PARAGRAPH_BREAKS_PATTERN)
         .map((part) => part.trim())
         .filter(Boolean)
     : [text];

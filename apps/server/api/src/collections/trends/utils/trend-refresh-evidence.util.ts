@@ -6,6 +6,11 @@ import type {
   TrendRefreshReason,
 } from '@genfeedai/contracts/interfaces';
 
+const USAGE_EXHAUSTED_ERROR_PATTERN =
+  /not-enough-usage|usage limit|budget|payment required|credits depleted/i;
+const INVALID_TOKEN_ERROR_PATTERN =
+  /invalid.grant|invalid.*token|expired.*token/i;
+
 const attempts = new AsyncLocalStorage<TrendRefreshHealth[]>();
 const current = new AsyncLocalStorage<TrendRefreshHealth>();
 const skipped = new WeakSet<TrendRefreshHealth>();
@@ -161,17 +166,12 @@ export function classifyTrendProviderError(error: unknown): TrendRefreshReason {
   ]
     .filter((value): value is string => typeof value === 'string')
     .join(' ');
-  if (
-    status === 402 ||
-    /not-enough-usage|usage limit|budget|payment required|credits depleted/i.test(
-      message,
-    )
-  )
+  if (status === 402 || USAGE_EXHAUSTED_ERROR_PATTERN.test(message))
     return 'budget_exhausted';
   if (
     status === 401 ||
     status === 89 ||
-    /invalid.grant|invalid.*token|expired.*token/i.test(message)
+    INVALID_TOKEN_ERROR_PATTERN.test(message)
   )
     return 'authentication_required';
   if (status === 403) return 'access_required';

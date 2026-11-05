@@ -26,6 +26,8 @@ import type {
 } from '@/features/auth/props/oauth-consent-content.props';
 import { redirectToOAuthClient } from './redirect';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 type AccessLevel = 'full' | 'drafts' | 'read';
 
 /** Scopes that let a client schedule or publish, dropped by the drafts level. */
@@ -39,9 +41,9 @@ function getRequestedScopes(scope: string | null, isClaude: boolean): string[] {
   const ceiling: readonly string[] = isClaude
     ? MCP_CLAUDE_SCOPE_CEILING
     : API_KEY_SCOPE_PRESETS.mcp;
-  return (scope?.split(/\s+/).filter(Boolean) ?? [...ceiling]).filter(
-    (candidate) => ceiling.includes(candidate),
-  );
+  return (
+    scope?.split(WHITESPACE_RUN_PATTERN).filter(Boolean) ?? [...ceiling]
+  ).filter((candidate) => ceiling.includes(candidate));
 }
 
 /**

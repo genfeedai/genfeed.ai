@@ -4,11 +4,15 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { stripHtmlToPlainText } from '@genfeedai/helpers';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 const RELEASE_TITLE_MAX_LENGTH = 80;
 const UNTITLED_RELEASE = 'Untitled post';
 
 function toPlainTitleText(value?: string | null): string {
-  return stripHtmlToPlainText(value).replace(/\s+/g, ' ').trim();
+  return stripHtmlToPlainText(value)
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
+    .trim();
 }
 
 /**

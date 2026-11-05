@@ -9,6 +9,8 @@ import type {
 } from '@genfeedai/workflows/ui/stores';
 import { apiClient } from './client';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 /**
  * Workflow export format — uses canonical WorkflowFile from @genfeedai/contracts/types.
  */
@@ -56,7 +58,7 @@ export const workflowsApi = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflow.name.toLowerCase().replace(/\s+/g, '-')}.genfeed.json`;
+    a.download = `${workflow.name.toLowerCase().replace(WHITESPACE_RUNS_PATTERN, '-')}.genfeed.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

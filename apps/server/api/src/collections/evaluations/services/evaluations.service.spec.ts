@@ -261,6 +261,7 @@ describe('EvaluationsService review and comparison workflow', () => {
 
       expect(mocks.prisma.evaluation.findFirst).toHaveBeenCalledWith({
         where: { id: 'eval-1', isDeleted: false, organizationId },
+        select: { data: true },
       });
     });
   });
@@ -445,6 +446,7 @@ describe('EvaluationsService review and comparison workflow', () => {
           isDeleted: false,
           organizationId,
         },
+        select: { data: true },
       });
       expect(mocks.prisma.evaluation.update).toHaveBeenCalledWith({
         where: {

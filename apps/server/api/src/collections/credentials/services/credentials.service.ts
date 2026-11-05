@@ -53,6 +53,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
 
+const LEADING_AT_SIGN_PATTERN = /^@/;
+
 /** Reconnect intent lives on warmupSignals, never in the OAuth state nonce. */
 const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
 
@@ -342,7 +344,7 @@ export class CredentialsService
     handle: string,
     organizationId: string,
   ): Promise<CredentialDocument | null> {
-    const normalizedHandle = handle.replace(/^@/, '');
+    const normalizedHandle = handle.replace(LEADING_AT_SIGN_PATTERN, '');
 
     return this.findOne(
       scopedWhere(organizationId, {

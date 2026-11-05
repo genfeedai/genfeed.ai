@@ -7,6 +7,8 @@ import type { Terminal as XtermTerminal } from '@xterm/xterm';
 import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 export const TERMINAL_COLS = 120;
 export const TERMINAL_ROWS = 32;
 export const TERMINAL_CWD_STORAGE_KEY = 'genfeed:terminal:cwd';
@@ -102,7 +104,7 @@ export interface AgentCliTerminalController {
 }
 
 export function resolveTerminalEndpoint(): string {
-  return EnvironmentService.wsEndpoint.replace(/\/$/, '');
+  return EnvironmentService.wsEndpoint.replace(TRAILING_SLASH_PATTERN, '');
 }
 
 export function resolveClientWorkspaceCwd(): string | undefined {

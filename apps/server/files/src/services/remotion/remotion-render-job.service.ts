@@ -26,6 +26,8 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
 
+const TRAILING_SLASH_PATTERN = /\/$/;
+
 type EditorRenderResult = JobResult & IEditorRenderOutputMetadata;
 type EditorRenderParams = IEditorRenderJobParams & {
   editorRender: IEditorRenderCorrelation;
@@ -339,7 +341,10 @@ export class RemotionRenderJobService {
     authorizedUrls?: ReadonlyMap<string, string>,
   ): void {
     const trustedBase = new URL(this.configService.ingredientsEndpoint);
-    const trustedPath = trustedBase.pathname.replace(/\/$/, '');
+    const trustedPath = trustedBase.pathname.replace(
+      TRAILING_SLASH_PATTERN,
+      '',
+    );
     const trustedUrlByClipId = new Map(
       assetManifest.map((asset) => [asset.clipId, asset.ingredientUrl]),
     );

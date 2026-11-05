@@ -14,6 +14,8 @@ import {
   VALID_PLATFORMS,
 } from './trend-inspiration-shared';
 
+const LEADING_HASH_PATTERN = /^#/;
+
 export type { TrendInspirationPlatform };
 
 export type TrendContentPreference = 'video' | 'image' | 'any';
@@ -70,7 +72,7 @@ function buildPrompt(input: {
   hashtag: string;
   platform: TrendInspirationPlatform;
 }): string {
-  const topic = input.hashtag.replace(/^#/, '');
+  const topic = input.hashtag.replace(LEADING_HASH_PATTERN, '');
 
   switch (input.contentType) {
     case 'thread':

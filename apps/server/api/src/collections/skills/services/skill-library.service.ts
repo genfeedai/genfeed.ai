@@ -75,6 +75,9 @@ export type {
 } from '@api/collections/skills/services/skill-resolution-evidence';
 export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
+const PROMPT_SNAPSHOT_TOKEN_PATTERN =
+  /^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/;
+
 @Injectable()
 export class SkillLibraryService {
   private readonly versionReader: SkillVersionReader;
@@ -389,6 +392,7 @@ export class SkillLibraryService {
     }
     const version = await this.prisma.skillVersion.findFirst({
       where: { id: input.versionId, skillId },
+      select: { id: true, payload: true },
     });
     if (!version) {
       throw new NotFoundException('Skill version', input.versionId);
@@ -470,7 +474,7 @@ export class SkillLibraryService {
     } catch {
       return;
     }
-    if (!/^[0-9a-fA-F]{32}:[0-9a-fA-F]+:[0-9a-fA-F]{32}$/.test(ciphertext)) {
+    if (!PROMPT_SNAPSHOT_TOKEN_PATTERN.test(ciphertext)) {
       return;
     }
     const contentHash = createHash('sha256')
@@ -668,6 +672,7 @@ export class SkillLibraryService {
           skillId: skill.id,
           targetKind: 'organization',
         },
+        select: { id: true },
       });
       if (existing) continue;
       await this.prisma.skillAssignment.create({
@@ -782,6 +787,7 @@ export class SkillLibraryService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       where: { id: brandId ?? '', isDeleted: false, organizationId },
+      select: { id: true },
     });
     if (!brand) throw new NotFoundException('Brand', brandId ?? '');
   }
@@ -816,6 +822,7 @@ export class SkillLibraryService {
     if (canEdit && skill.currentVersionId) {
       const current = await this.prisma.skillVersion.findFirst({
         where: { id: skill.currentVersionId, skillId: skill.id },
+        select: { contentHash: true, id: true, instructionText: true },
       });
       return current
         ? {
@@ -885,6 +892,15 @@ export class SkillLibraryService {
         OR: skillGrantRecipientClauses(actor),
         revokedAt: null,
         skillId: { in: skillIds },
+      },
+      select: {
+        access: true,
+        recipientBrandId: true,
+        recipientKind: true,
+        recipientOrganizationId: true,
+        recipientUserId: true,
+        revokedAt: true,
+        skillId: true,
       },
     });
     const grouped = new Map<string, SkillCapabilityGrant[]>();

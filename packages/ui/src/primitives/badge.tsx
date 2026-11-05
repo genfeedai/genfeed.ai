@@ -12,6 +12,8 @@ import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { getBadgeStatus } from './badge.status';
 import { badgeVariants } from './badge.variants';
 
+const NUMERIC_CONTENT_PATTERN = /^[\d\s.,%+/-]+$/;
+
 /** A badge with nothing to say still reads as "no value", never blank. */
 const EMPTY_BADGE_LABEL = '—';
 
@@ -61,7 +63,7 @@ function getToneIcon(variant: BadgeProps['variant']): LucideIcon | undefined {
 function isNumericContent(node: ReactNode): boolean {
   return (
     typeof node === 'number' ||
-    (typeof node === 'string' && /^[\d\s.,%+/-]+$/.test(node))
+    (typeof node === 'string' && NUMERIC_CONTENT_PATTERN.test(node))
   );
 }
 

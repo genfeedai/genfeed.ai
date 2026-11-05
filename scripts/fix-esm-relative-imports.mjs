@@ -4,6 +4,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const REGEX_SPECIAL_CHARS_PATTERN = /[.*+?^${}()|[\]\\]/g;
+const QUERY_OR_HASH_PATTERN = /[?#]/;
+const TRAILING_SLASH_PATTERN = /\/$/;
+const TS_SOURCE_EXTENSION_PATTERN = /(?:\.d)?\.[cm]?tsx?$/;
+
 const OUTPUT_FILE = /(?:\.[cm]?js|\.d\.[cm]?ts)$/;
 const OUTPUT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
 
@@ -55,11 +60,11 @@ function isPathInside(parentPath, childPath) {
 }
 
 function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(REGEX_SPECIAL_CHARS_PATTERN, '\\$&');
 }
 
 function splitSuffix(specifier) {
-  const suffixIndex = specifier.search(/[?#]/);
+  const suffixIndex = specifier.search(QUERY_OR_HASH_PATTERN);
   if (suffixIndex === -1) return [specifier, ''];
   return [specifier.slice(0, suffixIndex), specifier.slice(suffixIndex)];
 }
@@ -80,7 +85,7 @@ function resolveRelativeSpecifier(filePath, specifier) {
 
   for (const extension of OUTPUT_EXTENSIONS) {
     if (fs.existsSync(path.join(absoluteTarget, `index${extension}`))) {
-      return `${modulePath.replace(/\/$/, '')}/index${extension}${suffix}`;
+      return `${modulePath.replace(TRAILING_SLASH_PATTERN, '')}/index${extension}${suffix}`;
     }
   }
 
@@ -137,7 +142,7 @@ function resolveInternalAlias(filePath, specifier, aliases) {
     if (!isPathInside(alias.rootDir, sourceTarget)) continue;
     const outputRelative = path
       .relative(alias.rootDir, sourceTarget)
-      .replace(/(?:\.d)?\.[cm]?tsx?$/, '');
+      .replace(TS_SOURCE_EXTENSION_PATTERN, '');
     const outputTarget = resolveOutputTarget(
       path.resolve(alias.outputDir, outputRelative),
     );

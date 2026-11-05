@@ -16,6 +16,9 @@ import type {
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { Injectable } from '@nestjs/common';
 
+const FALLBACK_SUFFIX_PATTERN = /-fallback-[1-9]\d*$/;
+const LEADING_HASH_PATTERN = /^#/;
+
 /**
  * Owns the trend "source item" subsystem: live Apify fetch + per-platform
  * normalization and the stored source-preview accessors.
@@ -175,7 +178,7 @@ export class TrendSourceItemsService {
 
     return cachedItems
       .filter((item): item is TrendSourceItem => this.isTrendSourceItem(item))
-      .filter((item) => !/-fallback-[1-9]\d*$/.test(item.id))
+      .filter((item) => !FALLBACK_SUFFIX_PATTERN.test(item.id))
       .slice(0, limit);
   }
 
@@ -233,7 +236,7 @@ export class TrendSourceItemsService {
       : null;
 
     if (primaryHashtag) {
-      return primaryHashtag.replace(/^#/, '').trim();
+      return primaryHashtag.replace(LEADING_HASH_PATTERN, '').trim();
     }
 
     const topic = trend.topic?.trim();
@@ -241,7 +244,7 @@ export class TrendSourceItemsService {
       return null;
     }
 
-    return topic.replace(/^#/, '').trim();
+    return topic.replace(LEADING_HASH_PATTERN, '').trim();
   }
 
   private mapInstagramPostToSourceItem(

@@ -218,6 +218,12 @@ export class ContextEmbeddingService {
         organizationId: job.organizationId,
         isDeleted: false,
       },
+      select: {
+        contextBaseId: true,
+        id: true,
+        knowledgeSourceId: true,
+        sourceAgentMemoryId: true,
+      },
     });
     if (!initial) {
       await this.settle(
@@ -362,6 +368,7 @@ export class ContextEmbeddingService {
           generation: entry.embeddingGeneration,
           isDeleted: false,
         },
+        select: { failedAt: true },
       });
       if (!manifest || manifest.failedAt) return 'cancelled';
     }
@@ -372,6 +379,15 @@ export class ContextEmbeddingService {
         organizationId: entry.organizationId,
         isDeleted: false,
       },
+      select: {
+        brandId: true,
+        id: true,
+        isVisible: true,
+        scope: true,
+        staleAt: true,
+        syncState: true,
+        userId: true,
+      },
     });
     const version = await tx.knowledgeSourceVersion.findFirst({
       where: {
@@ -379,6 +395,13 @@ export class ContextEmbeddingService {
         sourceId: entry.knowledgeSourceId ?? '',
         organizationId: entry.organizationId,
         isDeleted: false,
+      },
+      select: {
+        id: true,
+        isCurrent: true,
+        retentionState: true,
+        retrievalState: true,
+        supersededByVersionId: true,
       },
     });
     if (
@@ -419,6 +442,7 @@ export class ContextEmbeddingService {
             ],
           },
         },
+        select: { expectedCurrentVersionId: true },
       });
       if (!refresh?.expectedCurrentVersionId) return 'cancelled';
       const predecessor = await tx.knowledgeSourceVersion.findFirst({
@@ -429,6 +453,7 @@ export class ContextEmbeddingService {
           isCurrent: true,
           isDeleted: false,
         },
+        select: { id: true },
       });
       if (!predecessor) return 'cancelled';
     }

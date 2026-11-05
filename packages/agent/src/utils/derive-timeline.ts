@@ -10,6 +10,8 @@ import {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics-period';
 
+const ACTION_SUFFIX_PATTERN = /:[^:]+$/;
+
 export interface EnrichedWorkEvent extends AgentWorkEvent {
   durationMs?: number;
   creditsUsed?: number;
@@ -560,7 +562,7 @@ export function mergeAnalyticsSnapshotActions(
       periodSnapshots,
     },
     id: preferred.id?.startsWith('analytics-snapshot:')
-      ? preferred.id.replace(/:[^:]+$/, ':merged')
+      ? preferred.id.replace(ACTION_SUFFIX_PATTERN, ':merged')
       : 'analytics-snapshot:merged',
     title: 'Analytics summary',
     type: 'analytics_snapshot_card',

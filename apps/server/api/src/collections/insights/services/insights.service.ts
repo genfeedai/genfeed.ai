@@ -332,6 +332,7 @@ export class InsightsService implements OnModuleInit {
 
       const existing = await this.prisma.insight.findFirst({
         where: scopedWhere(organizationId, { id: insightId }),
+        select: { data: true },
       });
 
       if (!existing) throw new Error('Insight not found');

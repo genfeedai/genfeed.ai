@@ -89,6 +89,7 @@ export class IntegrationsService {
     // Check if integration for this platform already exists
     const existing = await this.prisma.orgIntegration.findFirst({
       where: scopedWhere(orgId, { platform }),
+      select: { id: true },
     });
 
     if (existing) {

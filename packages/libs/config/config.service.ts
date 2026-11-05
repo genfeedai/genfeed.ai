@@ -41,6 +41,8 @@ import type { MediaUrlConfig } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 interface ApiEnvConfig extends IEnvConfig {
   BETTER_AUTH_ENABLED?: 'true' | 'false';
   BETTER_AUTH_API_KEY?: string;
@@ -223,7 +225,7 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
   public get cdnUrl(): string {
     return (
       this.envConfig.GENFEEDAI_CDN_URL ?? 'https://cdn.genfeed.ai'
-    ).replace(/\/+$/, '');
+    ).replace(TRAILING_SLASHES_PATTERN, '');
   }
 
   /**
@@ -325,7 +327,7 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     const internalUrl = this.envConfig.GENFEEDAI_API_URL?.trim();
 
     return (publicUrl || internalUrl || 'https://api.genfeed.ai').replace(
-      /\/+$/,
+      TRAILING_SLASHES_PATTERN,
       '',
     );
   }

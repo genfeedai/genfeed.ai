@@ -1,3 +1,7 @@
+const ONE_OR_TWO_DIGITS_PATTERN = /^\d{1,2}$/;
+const SINGLE_DIGIT_PATTERN = /^\d$/;
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
   minute: '2-digit',
@@ -10,7 +14,7 @@ function formatTime(hour: number, minute: number): string {
 
 function parseNumberList(value: string): number[] | null {
   const parts = value.split(',');
-  if (!parts.every((part) => /^\d{1,2}$/.test(part))) {
+  if (!parts.every((part) => ONE_OR_TWO_DIGITS_PATTERN.test(part))) {
     return null;
   }
 
@@ -36,7 +40,7 @@ function formatDayOfWeek(dayOfWeek: string): string | null {
     return 'weekday';
   }
 
-  if (!/^\d$/.test(dayOfWeek)) {
+  if (!SINGLE_DIGIT_PATTERN.test(dayOfWeek)) {
     return null;
   }
 
@@ -48,7 +52,7 @@ export function formatRecurringSchedule(
   timezone: string,
   count?: number,
 ): string {
-  const cronParts = schedule.trim().split(/\s+/);
+  const cronParts = schedule.trim().split(WHITESPACE_RUN_PATTERN);
   const countLabel = count && count > 1 ? ` • ${count} assets per run` : '';
 
   if (cronParts.length !== 5) {

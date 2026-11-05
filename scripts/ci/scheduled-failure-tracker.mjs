@@ -3,6 +3,39 @@ import { createHash } from 'node:crypto';
 import { applyTrackerLabel } from './ci-tracker-labels.mjs';
 import { triageCiFailureOnProject } from './genfeed-project-board.mjs';
 
+const CR_LINE_ENDINGS_PATTERN = /\r\n?/gu;
+const HORIZONTAL_WHITESPACE_RUNS_PATTERN = /[\t ]+/gu;
+const PADDED_NEWLINES_PATTERN = / *\n */gu;
+const PRIVATE_KEY_BLOCKS_PATTERN =
+  /-----BEGIN [^-\n]*PRIVATE KEY-----[\s\S]*?-----END [^-\n]*PRIVATE KEY-----/giu;
+const GITHUB_TOKENS_PATTERN =
+  /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/gu;
+const AWS_ACCESS_KEY_IDS_PATTERN = /\bAKIA[0-9A-Z]{16}\b/gu;
+const BEARER_TOKENS_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]{8,}\b/giu;
+const SECRET_ASSIGNMENTS_PATTERN =
+  /\b(token|password|passwd|secret|api[_-]?key|authorization|credential)\b(\s*[:=]\s*|\s+)([^\s,;]+)/giu;
+const URL_CREDENTIALS_PATTERN = /(https?:\/\/)[^\s/@:]+:[^\s/@]+@/giu;
+const CODE_FENCES_PATTERN = /```/gu;
+const HTTP_URLS_PATTERN = /https?:\/\/\S+/gu;
+const GIT_SHAS_PATTERN = /\b[0-9a-f]{40}\b/giu;
+const UUIDS_PATTERN =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu;
+const ISO_TIMESTAMPS_PATTERN =
+  /\b\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d+)?z\b/giu;
+const DURATIONS_PATTERN =
+  /\b\d+(?:\.\d+)?\s*(?:ms|s|sec|seconds?|minutes?)\b/giu;
+const WHITESPACE_RUNS_PATTERN = /\s+/gu;
+const LINE_COLUMN_SUFFIXES_PATTERN = /:\d+(?::\d+)?\b/gu;
+const NUMBERS_PATTERN = /\b\d+\b/gu;
+const TEST_FILE_LINE_SUFFIXES_PATTERN =
+  /(\.(?:spec|test)\.[cm]?[jt]sx?):\d+(?::\d+)?\b/giu;
+const BYTE_ORDER_MARK_PATTERN = /^\ufeff/gu;
+const LOG_TAB_PREFIX_PATTERN = /^(?:[^\t\n]*\t){2}/gu;
+const LOG_TIMESTAMP_PREFIX_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s*/gu;
+const ANNOTATION_PREFIX_PATTERN = /^##\[(?:error|notice|warning)\]\s*/giu;
+const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/u;
+
 export const SCHEDULED_FAILURE_MARKER = 'genfeed-scheduled-failure:v1';
 export const PUBLIC_EXCERPT_LIMIT = 1_200;
 export const SIGNATURE_LIMIT = 240;
@@ -61,30 +94,24 @@ const ANSI_ESCAPE_PATTERN = new RegExp(
 function normalizeWhitespace(value) {
   return String(value ?? '')
     .replace(ANSI_ESCAPE_PATTERN, '')
-    .replace(/\r\n?/gu, '\n')
-    .replace(/[\t ]+/gu, ' ')
-    .replace(/ *\n */gu, '\n')
+    .replace(CR_LINE_ENDINGS_PATTERN, '\n')
+    .replace(HORIZONTAL_WHITESPACE_RUNS_PATTERN, ' ')
+    .replace(PADDED_NEWLINES_PATTERN, '\n')
     .trim();
 }
 
 export function redactPublicEvidence(value, limit = PUBLIC_EXCERPT_LIMIT) {
   const redacted = normalizeWhitespace(value)
+    .replace(PRIVATE_KEY_BLOCKS_PATTERN, '[REDACTED PRIVATE KEY]')
+    .replace(GITHUB_TOKENS_PATTERN, '[REDACTED TOKEN]')
+    .replace(AWS_ACCESS_KEY_IDS_PATTERN, '[REDACTED AWS KEY]')
+    .replace(BEARER_TOKENS_PATTERN, 'Bearer [REDACTED]')
     .replace(
-      /-----BEGIN [^-\n]*PRIVATE KEY-----[\s\S]*?-----END [^-\n]*PRIVATE KEY-----/giu,
-      '[REDACTED PRIVATE KEY]',
-    )
-    .replace(
-      /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/gu,
-      '[REDACTED TOKEN]',
-    )
-    .replace(/\bAKIA[0-9A-Z]{16}\b/gu, '[REDACTED AWS KEY]')
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}\b/giu, 'Bearer [REDACTED]')
-    .replace(
-      /\b(token|password|passwd|secret|api[_-]?key|authorization|credential)\b(\s*[:=]\s*|\s+)([^\s,;]+)/giu,
+      SECRET_ASSIGNMENTS_PATTERN,
       (_match, key, separator) => `${key}${separator}[REDACTED]`,
     )
-    .replace(/(https?:\/\/)[^\s/@:]+:[^\s/@]+@/giu, '$1[REDACTED]@')
-    .replace(/```/gu, "'''");
+    .replace(URL_CREDENTIALS_PATTERN, '$1[REDACTED]@')
+    .replace(CODE_FENCES_PATTERN, "'''");
 
   if (redacted.length <= limit) {
     return redacted;
@@ -97,34 +124,25 @@ export function redactPublicEvidence(value, limit = PUBLIC_EXCERPT_LIMIT) {
 function normalizeFailureSignatureVolatility(value) {
   return redactPublicEvidence(value, SIGNATURE_LIMIT * 3)
     .toLowerCase()
-    .replace(/https?:\/\/\S+/gu, '<url>')
-    .replace(/\b[0-9a-f]{40}\b/giu, '<sha>')
-    .replace(
-      /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu,
-      '<uuid>',
-    )
-    .replace(
-      /\b\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d+)?z\b/giu,
-      '<timestamp>',
-    )
-    .replace(
-      /\b\d+(?:\.\d+)?\s*(?:ms|s|sec|seconds?|minutes?)\b/giu,
-      '<duration>',
-    )
-    .replace(/\s+/gu, ' ')
+    .replace(HTTP_URLS_PATTERN, '<url>')
+    .replace(GIT_SHAS_PATTERN, '<sha>')
+    .replace(UUIDS_PATTERN, '<uuid>')
+    .replace(ISO_TIMESTAMPS_PATTERN, '<timestamp>')
+    .replace(DURATIONS_PATTERN, '<duration>')
+    .replace(WHITESPACE_RUNS_PATTERN, ' ')
     .trim();
 }
 
 export function normalizeFailureSignature(value) {
   const signature = normalizeFailureSignatureVolatility(value)
-    .replace(/:\d+(?::\d+)?\b/gu, ':<line>')
-    .replace(/\b\d+\b/gu, '<n>');
+    .replace(LINE_COLUMN_SUFFIXES_PATTERN, ':<line>')
+    .replace(NUMBERS_PATTERN, '<n>');
   return signature.slice(0, SIGNATURE_LIMIT);
 }
 
 function normalizeActionableScenarioSignature(value) {
   const signature = normalizeFailureSignatureVolatility(value).replace(
-    /(\.(?:spec|test)\.[cm]?[jt]sx?):\d+(?::\d+)?\b/giu,
+    TEST_FILE_LINE_SUFFIXES_PATTERN,
     '$1:<line>',
   );
 
@@ -133,10 +151,10 @@ function normalizeActionableScenarioSignature(value) {
 
 function stripWorkflowLogPrefix(line) {
   return String(line ?? '')
-    .replace(/^\ufeff/gu, '')
-    .replace(/^(?:[^\t\n]*\t){2}/gu, '')
-    .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s*/gu, '')
-    .replace(/^##\[(?:error|notice|warning)\]\s*/giu, '')
+    .replace(BYTE_ORDER_MARK_PATTERN, '')
+    .replace(LOG_TAB_PREFIX_PATTERN, '')
+    .replace(LOG_TIMESTAMP_PREFIX_PATTERN, '')
+    .replace(ANNOTATION_PREFIX_PATTERN, '')
     .trim();
 }
 
@@ -323,7 +341,7 @@ function shortSha(sha) {
 
 function runKey(value) {
   const key = String(value);
-  return /^[1-9]\d*$/u.test(key) ? key : null;
+  return POSITIVE_INTEGER_PATTERN.test(key) ? key : null;
 }
 
 function countedGreenRunIds(state) {

@@ -39,6 +39,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 const RESUME_LEASE_MS = 5 * 60 * 1000;
 
 @Injectable()
@@ -274,7 +276,7 @@ export class WorkflowNodeContinuationService {
       ![measured.duration, measured.framesPerSecond].every(
         (value) => Number.isFinite(value) && value > 0,
       ) ||
-      !/^[a-f0-9]{64}$/.test(measured.assetHash) ||
+      !SHA256_HEX_PATTERN.test(measured.assetHash) ||
       !measured.assetKey
     )
       throw new Error('Fal output measurement is incomplete');
@@ -287,6 +289,12 @@ export class WorkflowNodeContinuationService {
           externalId: input.externalId,
           provider: 'fal',
           status: WorkflowNodeContinuationStatus.WAITING_PROVIDER,
+        },
+        select: {
+          id: true,
+          providerResult: true,
+          status: true,
+          updatedAt: true,
         },
       });
       if (!row)

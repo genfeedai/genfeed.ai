@@ -156,6 +156,12 @@ describe('warm-up preparation orchestration', () => {
     expect(brands.applyBrandKitDraft).not.toHaveBeenCalled();
     expect(tx.warmupAccount.findFirst).toHaveBeenLastCalledWith({
       where: { id: 'warmup-1', organizationId: 'org-1', isDeleted: false },
+      select: {
+        auditEvents: true,
+        diagnostics: true,
+        organizationId: true,
+        status: true,
+      },
     });
     expect(tx.warmupAccount.update).toHaveBeenCalledWith(
       expect.objectContaining({

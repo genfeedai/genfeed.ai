@@ -19,6 +19,8 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const NON_WORD_RUNS_PATTERN = /[^\p{L}\p{N}]+/gu;
+
 const MAX_WINDOW_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;
 const SIGNAL_TYPES: ListeningSignalType[] = [
   'volume',
@@ -784,7 +786,7 @@ function normalizeText(value: string): string {
   return value
     .normalize('NFKC')
     .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(NON_WORD_RUNS_PATTERN, ' ')
     .trim();
 }
 

@@ -105,6 +105,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         id: postId,
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       }),
+      select: { credentialId: true, id: true, publishedAt: true },
     });
     if (!post?.credentialId || !post.publishedAt) return null;
     const account = await this.prisma.contentLearningAccount.findFirst({
@@ -113,6 +114,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         credentialId: post.credentialId,
         isDeleted: false,
       },
+      select: { mode: true },
     });
     if (account?.mode === 'disabled') return null;
     if (
@@ -159,6 +161,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         scopeKey = this.id(input.scopeKey, 'scopeKey');
       const account = await this.prisma.contentLearningAccount.findFirst({
         where: { organizationId, credentialId, isDeleted: false },
+        select: { mode: true },
       });
       if (!account || account.mode === 'disabled')
         return { status: 'unavailable', reason: 'account_unavailable' };
@@ -190,6 +193,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
             ? 'dataset-train'
             : 'dataset-evaluate',
       },
+      select: { id: true, resultReferences: true },
     });
     if (!operation)
       throw new BadRequestException('Stored authorized operation required');
@@ -217,9 +221,11 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     });
     const authoritative = await this.prisma.contentLearningOperation.findFirst({
       where: { id: operation.id, organizationId, isDeleted: false },
+      select: { error: true, status: true },
     });
     const run = await this.prisma.contentLearningRun.findFirst({
       where: { id: refs.runId, isDeleted: false },
+      select: { status: true },
     });
     return {
       operationId: operation.id,
@@ -239,6 +245,12 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         id: postId,
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       }),
+      select: {
+        credentialId: true,
+        id: true,
+        platform: true,
+        publishedAt: true,
+      },
     });
     if (!post?.credentialId || !post.publishedAt)
       return { status: 'unavailable', reason: 'publication_unavailable' };
@@ -248,6 +260,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         credentialId: post.credentialId,
         isDeleted: false,
       },
+      select: { mode: true },
     });
     if (account?.mode === 'disabled')
       return { status: 'unavailable', reason: 'disabled' };
@@ -476,6 +489,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       return null;
     const organization = await this.prisma.organization.findFirst({
       where: { id: organizationId, isDeleted: false },
+      select: { id: true, isDeleted: true },
     });
     if (
       !organization ||
@@ -489,6 +503,12 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         organizationId,
         isDeleted: false,
         isActive: true,
+      },
+      select: {
+        id: true,
+        isActive: true,
+        isDeleted: true,
+        organizationId: true,
       },
     });
     if (
@@ -506,6 +526,14 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         brandId: account.brandId,
         isDeleted: false,
         isConnected: true,
+      },
+      select: {
+        brandId: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+        organizationId: true,
+        platform: true,
       },
     });
     if (
@@ -731,6 +759,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         type: { in: ['dataset-train', 'dataset-evaluate'] },
       },
       orderBy: { createdAt: 'asc' },
+      select: { id: true, resultReferences: true, type: true },
     });
     for (const operation of operations) {
       try {

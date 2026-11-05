@@ -85,6 +85,7 @@ async function applyPostRewrite({
   if (item.postId) {
     const post = await transaction.post.findFirst({
       where: { id: item.postId, organizationId, isDeleted: false },
+      select: { updatedAt: true },
     });
     if (
       !post ||

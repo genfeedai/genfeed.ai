@@ -183,7 +183,10 @@ describe('StudioLooksService', () => {
       isDeleted: false,
       organizationId: 'org-1',
     };
-    expect(studioLook.findFirst).toHaveBeenNthCalledWith(1, { where });
+    expect(studioLook.findFirst).toHaveBeenNthCalledWith(1, {
+      where,
+      select: { assetType: true },
+    });
     expect(studioLook.updateMany).toHaveBeenCalledWith({
       data: { label: 'Updated' },
       where,

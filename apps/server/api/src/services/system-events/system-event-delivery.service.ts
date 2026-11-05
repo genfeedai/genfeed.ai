@@ -278,6 +278,12 @@ export class SystemEventDeliveryService {
     // tenant-scope-ignore: super-admin schedules exactly one destination delivery
     const row = await this.prisma.systemEventDelivery.findFirst({
       where: { id, isDeleted: false },
+      select: {
+        deliveredAt: true,
+        eventId: true,
+        failedAt: true,
+        skippedAt: true,
+      },
     });
     if (!row) return false;
     if (row.deliveredAt || row.skippedAt) return true;

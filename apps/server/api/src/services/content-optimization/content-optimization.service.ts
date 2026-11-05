@@ -46,6 +46,9 @@ import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
+const NON_ALPHANUMERIC_RUNS_PATTERN = /[^a-z0-9]+/g;
+const EDGE_HYPHEN_PATTERN = /(^-|-$)/g;
+
 export interface PerformanceAnalysis {
   summary: WeeklySummary;
   optimizationCycle: OptimizationCycleResult;
@@ -986,8 +989,8 @@ export class ContentOptimizationService implements OnModuleInit {
   ): string {
     const slug = value
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(NON_ALPHANUMERIC_RUNS_PATTERN, '-')
+      .replace(EDGE_HYPHEN_PATTERN, '');
 
     return `${category}-${slug}`;
   }

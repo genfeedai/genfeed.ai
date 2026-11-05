@@ -13,6 +13,8 @@ import {
   useState,
 } from 'react';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+
 type AgentConversationTurnNavigatorProps = {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   timeline: TimelineEntry[];
@@ -27,7 +29,7 @@ const ACTIVE_TURN_VIEWPORT_RATIO = 0.3;
 const TURN_LABEL_MAX_LENGTH = 72;
 
 function buildTurnLabel(content: string, index: number): string {
-  const normalized = content.replace(/\s+/g, ' ').trim();
+  const normalized = content.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   if (!normalized) {
     return `Prompt ${index + 1}`;
   }

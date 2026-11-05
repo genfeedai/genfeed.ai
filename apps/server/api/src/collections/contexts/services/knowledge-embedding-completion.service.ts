@@ -268,6 +268,7 @@ export class KnowledgeEmbeddingCompletionService {
             },
           },
         },
+        select: { id: true },
       });
       if (failed) {
         await this.fail(tx, source, version, manifest);
@@ -294,6 +295,7 @@ export class KnowledgeEmbeddingCompletionService {
           ],
         },
       }),
+      select: { id: true },
     });
     if (unfinished)
       throw new ConflictException('Knowledge source ingestion is in progress');
@@ -336,12 +338,14 @@ export class KnowledgeEmbeddingCompletionService {
         candidateVersionId: latest.id,
         tickKey: 'manual-version:' + latest.id,
       }),
+      select: { expectedCurrentVersionId: true, id: true, status: true },
     });
     if (!run) return null;
     if (run.status !== 'FAILED' || latest.processingState !== 'FAILED')
       throw new BadRequestException('Manual candidate is still being ingested');
     const current = await tx.knowledgeSourceVersion.findFirst({
       where: scopedWhere(organizationId, { sourceId, isCurrent: true }),
+      select: { id: true },
     });
     if (!current || current.id !== run.expectedCurrentVersionId)
       throw new ConflictException('Manual candidate predecessor changed');
@@ -355,6 +359,7 @@ export class KnowledgeEmbeddingCompletionService {
           ],
         },
       }),
+      select: { id: true },
     });
     if (unfinished)
       throw new ConflictException('Knowledge source ingestion is in progress');
@@ -409,6 +414,7 @@ export class KnowledgeEmbeddingCompletionService {
             ],
           },
         }),
+        select: { id: true },
       });
       if (!run)
         throw new BadRequestException(
@@ -494,6 +500,12 @@ export class KnowledgeEmbeddingCompletionService {
       },
       orderBy: { knowledgeChunkIndex: 'asc' },
       take: 201,
+      select: {
+        data: true,
+        embeddingGeneration: true,
+        embeddingStoredGeneration: true,
+        knowledgeChunkIndex: true,
+      },
     });
     if (
       rows.length !== manifest.expectedChunkCount ||
@@ -585,6 +597,7 @@ export class KnowledgeEmbeddingCompletionService {
             ],
           },
         },
+        select: { expectedCurrentVersionId: true },
       });
       const current =
         run?.expectedCurrentVersionId &&

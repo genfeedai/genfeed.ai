@@ -35,6 +35,8 @@ import {
 } from './label-quality';
 import { collectCandidates } from './row-mapping';
 
+const CRLF_PATTERN = /\r\n/g;
+
 type BuildInput = {
   snapshots: GoldenSetScopeSnapshot[];
   key: string;
@@ -45,7 +47,7 @@ function compare(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 function normalise(text: string): string {
-  return text.replace(/\r\n/g, '\n').trim();
+  return text.replace(CRLF_PATTERN, '\n').trim();
 }
 export function buildGoldenSet({
   snapshots,

@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+const SINGLE_QUOTES_PATTERN = /'/g;
+
 type AlertTargetType = 'email' | 'slack';
 
 interface CliArgs {
@@ -116,7 +119,7 @@ function readTargetType(value: string | undefined): AlertTargetType {
 }
 
 export function normalizePostHogHost(host: string): string {
-  const trimmed = host.trim().replace(/\/+$/, '');
+  const trimmed = host.trim().replace(TRAILING_SLASHES_PATTERN, '');
   if (!trimmed) {
     return 'https://us.posthog.com';
   }
@@ -190,7 +193,7 @@ export function parseArgs(argv: string[]): CliArgs {
 }
 
 function escapeSqlString(value: string): string {
-  return value.replace(/'/g, "''");
+  return value.replace(SINGLE_QUOTES_PATTERN, "''");
 }
 
 function buildRunbookUrl(anchor: string): string {

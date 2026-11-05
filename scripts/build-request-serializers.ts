@@ -12,6 +12,10 @@ import { fileURLToPath } from 'node:url';
 import { type BuildResult, build, version } from 'esbuild';
 import { z } from 'zod';
 
+const UNSAFE_MAP_PATH_PATTERN = /^[\\/]|[:?#\\]/;
+const SOURCE_MAPPING_URLS_PATTERN =
+  /(?:\/\/[#@]\s*sourceMappingURL=([^\r\n]+)|\/\*[#@]\s*sourceMappingURL=([^*]+)\*\/)/g;
+
 const packageDirectory = 'packages/serializers';
 const artifactName = 'request-runtime.bundle.js';
 const compilerBindings = { global: 'globalThis' };
@@ -101,7 +105,7 @@ function localMapPath(
   reference: string,
   packageRoot: string,
 ): string {
-  if (!reference || /^[\\/]|[:?#\\]/.test(reference))
+  if (!reference || UNSAFE_MAP_PATH_PATTERN.test(reference))
     throw new Error('Invalid local source-map reference');
   const candidate = path.resolve(parent, reference);
   if (!confinedPath(packageRoot, candidate))
@@ -208,11 +212,9 @@ export function validateRequestRuntimeBuild(root: string, result: BuildResult) {
       const urls =
         content === null
           ? []
-          : [
-              ...content.matchAll(
-                /(?:\/\/[#@]\s*sourceMappingURL=([^\r\n]+)|\/\*[#@]\s*sourceMappingURL=([^*]+)\*\/)/g,
-              ),
-            ].map((match) => (match[1] ?? match[2]).trim());
+          : [...content.matchAll(SOURCE_MAPPING_URLS_PATTERN)].map((match) =>
+              (match[1] ?? match[2]).trim(),
+            );
       if (urls.length > 1)
         throw new Error('Conflicting local source-map references');
       if (urls.length) {

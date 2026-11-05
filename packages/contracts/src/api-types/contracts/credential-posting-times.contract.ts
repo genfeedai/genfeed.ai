@@ -17,6 +17,8 @@ import {
   readLocalDateTime,
 } from '../helpers/local-date-time';
 
+const CLOCK_TIME_PATTERN = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+
 export const MAX_CREDENTIAL_POSTING_TIMES = 48;
 export const MAX_NEXT_SLOT_DAYS = 365;
 
@@ -54,7 +56,7 @@ export function formatClockTime(time: ClockTime): string {
 }
 
 export function parseClockTime(value: string): ClockTime | null {
-  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+  const match = CLOCK_TIME_PATTERN.exec(value.trim());
   if (!match) {
     return null;
   }

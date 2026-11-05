@@ -3,6 +3,13 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
+const PRISMA_COMPOUND_KEY_PATTERN = /@@(?:id|unique)\(\[([^\]]+)\]/;
+const PRISMA_FIELD_LINE_PATTERN =
+  /^\s*(\w+)\s+([A-Za-z]\w*)(?:\[\])?\??(?:\s|$)/;
+const PRISMA_RELATION_FIELDS_PATTERN = /@relation\([^)]*fields:\s*\[([^\]]+)\]/;
+const ID_FIELD_NAME_PATTERN = /^(.+)Id$/;
+const WHITESPACE_CHAR_PATTERN = /\s/;
+
 const INCLUDE_GLOBS = ['apps/server/**/*.ts'];
 /**
  * Prisma result-extension fields: computed on read, valid in a `select`, and
@@ -152,7 +159,7 @@ function collectModelMetadata(schema: string): Map<string, ModelMetadata> {
     const relations = new Map<string, string>();
 
     for (const line of body.split('\n')) {
-      const compoundFields = /@@(?:id|unique)\(\[([^\]]+)\]/.exec(line)?.[1];
+      const compoundFields = PRISMA_COMPOUND_KEY_PATTERN.exec(line)?.[1];
       if (compoundFields) {
         fields.add(
           compoundFields
@@ -162,12 +169,11 @@ function collectModelMetadata(schema: string): Map<string, ModelMetadata> {
         );
       }
 
-      const fieldDefinition =
-        /^\s*(\w+)\s+([A-Za-z]\w*)(?:\[\])?\??(?:\s|$)/.exec(line);
+      const fieldDefinition = PRISMA_FIELD_LINE_PATTERN.exec(line);
       const field = fieldDefinition?.[1];
       const fieldType = fieldDefinition?.[2];
       const relationScalarFields =
-        /@relation\([^)]*fields:\s*\[([^\]]+)\]/.exec(line)?.[1];
+        PRISMA_RELATION_FIELDS_PATTERN.exec(line)?.[1];
       if (field && fieldType && modelNames.has(fieldType)) {
         relationFields.add(field);
       }
@@ -189,7 +195,7 @@ function collectModelMetadata(schema: string): Map<string, ModelMetadata> {
     }
 
     for (const field of fields) {
-      const scalarAlias = /^(.+)Id$/.exec(field)?.[1];
+      const scalarAlias = ID_FIELD_NAME_PATTERN.exec(field)?.[1];
       if (scalarAlias && !fields.has(scalarAlias)) {
         relations.set(scalarAlias, field);
       }
@@ -764,7 +770,7 @@ function inspectFilterExpression(
       if (alias === 'isDeleted' && value.kind === ts.SyntaxKind.FalseKeyword) {
         end = property.getEnd();
         const source = sourceFile.getFullText();
-        while (/\s/.test(source[end] ?? '')) {
+        while (WHITESPACE_CHAR_PATTERN.test(source[end] ?? '')) {
           end += 1;
         }
         if (source[end] === ',') {

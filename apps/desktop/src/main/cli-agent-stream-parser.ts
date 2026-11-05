@@ -17,6 +17,10 @@ import {
   GENFEED_MCP_SERVER_NAME,
 } from './cli-agent-runtime.constants';
 
+const WHITESPACE_RUNS_PATTERN = /\s+/g;
+const GENFEED_KEY_PATTERN = /\bgf_[A-Za-z0-9._-]+/;
+const GENFEED_KEYS_PATTERN = /\bgf_[A-Za-z0-9._-]+/g;
+
 /** Terminal outcome parsed from the CLI stream. */
 export interface CliAgentParsedResult {
   errorMessage?: string;
@@ -73,7 +77,7 @@ function readNumber(
 }
 
 function truncate(value: string, maxLength: number): string {
-  const singleLine = value.replace(/\s+/g, ' ').trim();
+  const singleLine = value.replace(WHITESPACE_RUNS_PATTERN, ' ').trim();
   return singleLine.length > maxLength
     ? `${singleLine.slice(0, maxLength - 1)}…`
     : singleLine;
@@ -97,8 +101,8 @@ function redact(value: unknown, depth = 0): unknown {
     );
   }
 
-  if (typeof value === 'string' && /\bgf_[A-Za-z0-9._-]+/.test(value)) {
-    return value.replace(/\bgf_[A-Za-z0-9._-]+/g, '[redacted]');
+  if (typeof value === 'string' && GENFEED_KEY_PATTERN.test(value)) {
+    return value.replace(GENFEED_KEYS_PATTERN, '[redacted]');
   }
 
   return value;

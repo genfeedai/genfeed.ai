@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 
+const GIT_SHA_PATTERN = /^[a-f0-9]{40}$/;
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+
 export const observedComponents = [
   'StudioPlaygroundWorkspace',
   'StudioPlaygroundComposer',
@@ -67,7 +70,7 @@ export function compareEvidence(before, after) {
       receipt.viewport?.height !== 1000
     )
       errors.push(`${label}: viewport missing or unsupported`);
-    if (!/^[a-f0-9]{40}$/.test(receipt.sourceHead ?? ''))
+    if (!GIT_SHA_PATTERN.test(receipt.sourceHead ?? ''))
       errors.push(`${label}: source head missing`);
     if (receipt.generationRequests !== 1)
       errors.push(`${label}: generation request count is not one`);
@@ -83,8 +86,8 @@ export function compareEvidence(before, after) {
     const previous = before.screenshots?.[state];
     const current = after.screenshots?.[state];
     if (
-      !/^[a-f0-9]{64}$/.test(previous ?? '') ||
-      !/^[a-f0-9]{64}$/.test(current ?? '')
+      !SHA256_HEX_PATTERN.test(previous ?? '') ||
+      !SHA256_HEX_PATTERN.test(current ?? '')
     ) {
       errors.push(`${state} capture missing`);
     } else if (previous !== current) errors.push(`${state} pixels differ`);

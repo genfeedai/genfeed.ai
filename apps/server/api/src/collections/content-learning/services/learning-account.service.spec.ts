@@ -1394,6 +1394,7 @@ describe('brand receiving validation and mutation share exclusive entry', () => 
       });
       expect(f.tx.brand.findFirst).toHaveBeenCalledWith({
         where: { id: 'brand', organizationId: 'org', isDeleted: false },
+        select: { id: true },
       });
       expect(f.tx.member.findFirst.mock.invocationCallOrder[0]).toBeLessThan(
         f.tx.brand.findFirst.mock.invocationCallOrder[0],
@@ -1491,6 +1492,7 @@ describe('brand receiving validation and mutation share exclusive entry', () => 
           stage: { in: ['canary', 'limited', 'stable'] },
           isDeleted: false,
         },
+        select: { id: true },
       });
       expect(f.dependencies.valid).toHaveBeenCalledWith(
         'release',

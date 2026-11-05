@@ -1,6 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
+const CWD_FLAG_PATTERN = /\scwd\s/u;
+const WHITESPACE_RUN_PATTERN = /\s+/u;
+
 export type PortlessRouteStatus = {
   pid: number;
   target: string;
@@ -112,8 +115,9 @@ function readNextServers(): NextServerStatus[] {
     );
     const cwdLine = (cwdResult.stdout ?? '')
       .split('\n')
-      .find((entry) => /\scwd\s/u.test(entry));
-    const cwd = cwdLine?.trim().split(/\s+/u).at(-1) ?? '(unknown)';
+      .find((entry) => CWD_FLAG_PATTERN.test(entry));
+    const cwd =
+      cwdLine?.trim().split(WHITESPACE_RUN_PATTERN).at(-1) ?? '(unknown)';
     return [{ ...parsed, cwd }];
   });
 }

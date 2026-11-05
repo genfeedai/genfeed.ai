@@ -25,6 +25,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
 @AutoSwagger()
 @Controller('services/mastodon')
 export class MastodonController {
@@ -180,6 +182,6 @@ export class MastodonController {
       );
     }
 
-    return `${appUrl.replace(/\/+$/, '')}/oauth/mastodon`;
+    return `${appUrl.replace(TRAILING_SLASHES_PATTERN, '')}/oauth/mastodon`;
   }
 }

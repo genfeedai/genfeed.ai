@@ -22,6 +22,11 @@ import {
   validateResult,
 } from './protocol.mjs';
 
+const VISUAL_CODE_JOB_FILE_PATTERN = /^visual-code-[a-f0-9]{40}\.json$/;
+const SNAKE_CASE_WORD_PATTERN = /^[a-z_]+$/;
+const JOB_PATH_PATTERN =
+  /^\/jobs\/([a-zA-Z0-9_-]{1,200})(?:\/(cancel|result))?$/;
+
 const IMAGE = 'genfeed-visual-code:4.0.530';
 const CAPACITY = 16 * 1024 ** 3;
 export function containerName(id) {
@@ -220,7 +225,7 @@ export class Coordinator {
       'ffprobe_unavailable',
     );
     for (const filename of await readdir(this.directory)) {
-      if (!/^visual-code-[a-f0-9]{40}\.json$/.test(filename)) continue;
+      if (!VISUAL_CODE_JOB_FILE_PATTERN.test(filename)) continue;
       const receipt = JSON.parse(
         await readFile(resolve(this.directory, filename), 'utf8'),
       );
@@ -306,7 +311,7 @@ export class Coordinator {
       outcome = controller.signal.aborted ? 'cancelled' : 'failed';
       diagnostic = controller.signal.aborted
         ? 'cancelled_or_deadline'
-        : error instanceof Error && /^[a-z_]+$/.test(error.message)
+        : error instanceof Error && SNAKE_CASE_WORD_PATTERN.test(error.message)
           ? error.message
           : 'renderer_output_invalid';
     } finally {
@@ -403,10 +408,7 @@ async function main() {
           ),
         );
       }
-      const match =
-        /^\/jobs\/([a-zA-Z0-9_-]{1,200})(?:\/(cancel|result))?$/.exec(
-          url.pathname,
-        );
+      const match = JOB_PATH_PATTERN.exec(url.pathname);
       if (!match) return json(404, { error: 'not_found' });
       const receipt = coordinator.jobs.get(match[1]);
       if (!receipt) return json(404, { error: 'not_found' });
@@ -436,7 +438,7 @@ async function main() {
             ? 503
             : 400,
         {
-          error: /^[a-z_]+$/.test(code) ? code : 'invalid_request',
+          error: SNAKE_CASE_WORD_PATTERN.test(code) ? code : 'invalid_request',
         },
       );
     }

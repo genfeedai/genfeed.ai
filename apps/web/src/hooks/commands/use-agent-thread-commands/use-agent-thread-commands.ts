@@ -5,6 +5,8 @@ import { MessageSquare } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useCommandPalette } from '@/hooks/ui/use-command-palette/use-command-palette';
 
+const WHITESPACE_RUN_PATTERN = /\s+/;
+
 export interface AgentThreadCommandItem {
   id: string;
   title?: string;
@@ -37,7 +39,7 @@ export function useAgentThreadCommands({
     () =>
       threads.filter(hasCommandThreadId).map((thread) => {
         const title = thread.title || 'Untitled Thread';
-        const titleWords = title.toLowerCase().split(/\s+/);
+        const titleWords = title.toLowerCase().split(WHITESPACE_RUN_PATTERN);
 
         return {
           action: () => onNavigate(`/agent/${thread.id}`),

@@ -6,6 +6,8 @@ import {
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
+const PROVIDER_ERROR_CODE_PATTERN = /^[a-z][a-z0-9_.-]{0,63}$/i;
+
 interface InstagramGraphErrorBody {
   code?: number;
   error_subcode?: number;
@@ -120,7 +122,7 @@ function readInstagramProviderStringCode(error: unknown): string | undefined {
   const errorCode = readNonBlankString(data.error_code);
   const code = directError ?? errorCode;
 
-  return code && /^[a-z][a-z0-9_.-]{0,63}$/i.test(code) ? code : undefined;
+  return code && PROVIDER_ERROR_CODE_PATTERN.test(code) ? code : undefined;
 }
 
 function readInstagramProviderNumericCode(error: unknown): number | undefined {

@@ -29,6 +29,8 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
+const META_AD_ACCOUNT_PREFIX_PATTERN = /^act_/;
+
 const PAUSED_DRAFT_DAILY_BUDGET = 5;
 
 export interface PausedMetaCampaignDraftInput {
@@ -229,7 +231,8 @@ export class PausedMetaCampaignDraftService implements OnModuleInit {
       (account) =>
         account.id === state.input.adAccountId ||
         `act_${account.id}` === state.input.adAccountId ||
-        account.id === state.input.adAccountId.replace(/^act_/, ''),
+        account.id ===
+          state.input.adAccountId.replace(META_AD_ACCOUNT_PREFIX_PATTERN, ''),
     );
     if (!selected) {
       throw new BadRequestException(

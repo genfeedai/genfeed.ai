@@ -38,6 +38,9 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+const SINGLE_LINE_PATTERN = /^[^\r\n]*$/;
+const SNOWFLAKE_ID_PATTERN = /^\d{17,20}$/;
+
 const { confidence, mediaPerceptionFrameCount, mediaPerceptionLookbackHours } =
   PLATFORM_FEATURE_SETTING_BOUNDS;
 
@@ -144,7 +147,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly linkedinTrendSourceUrls?: string | null;
 
   @ValidateIf(
@@ -152,7 +155,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly agentContextCompressionModel?: string | null;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -189,14 +192,14 @@ export class UpdatePlatformSettingDto {
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly replicateModelHardware?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   @IsIn(['private', 'public'])
   readonly replicateModelVisibility?: 'private' | 'public';
 
@@ -204,7 +207,7 @@ export class UpdatePlatformSettingDto {
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly replicateTrainerModel?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
@@ -217,14 +220,14 @@ export class UpdatePlatformSettingDto {
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly replicateTargetResolution?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly klingModel?: string;
 
   @ValidateIf(
@@ -232,14 +235,14 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly elevenlabsModel?: string | null;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MinLength(1)
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly murekaModel?: string;
 
   @ValidateIf(
@@ -247,8 +250,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdDeployments?: string | null;
 
   @ValidateIf(
@@ -256,8 +259,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdPosts?: string | null;
 
   @ValidateIf(
@@ -265,8 +268,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdStudio?: string | null;
 
   @ValidateIf(
@@ -274,8 +277,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdUsers?: string | null;
 
   @ValidateIf(
@@ -283,8 +286,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdModels?: string | null;
 
   @ValidateIf(
@@ -292,8 +295,8 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
-  @Matches(/^\d{17,20}$/)
+  @Matches(SINGLE_LINE_PATTERN)
+  @Matches(SNOWFLAKE_ID_PATTERN)
   readonly discordChannelIdBilling?: string | null;
 
   @ValidateIf(
@@ -301,7 +304,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   @IsUrl({ protocols: ['https'], require_protocol: true })
   readonly discordBotAvatarUrl?: string | null;
 
@@ -310,7 +313,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly discordWebhookNamePrefix?: string | null;
 
   @ValidateIf(
@@ -318,7 +321,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   readonly discordWebhookReason?: string | null;
 
   @ValidateIf(
@@ -326,7 +329,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   @Matches(EMAIL_ADDRESS_PATTERN)
   readonly emailFromAddress?: string | null;
 
@@ -335,7 +338,7 @@ export class UpdatePlatformSettingDto {
   )
   @IsString()
   @MaxLength(320)
-  @Matches(/^[^\r\n]*$/)
+  @Matches(SINGLE_LINE_PATTERN)
   @IsEmail()
   readonly emailReplyToAddress?: string | null;
 

@@ -19,6 +19,10 @@ import { buildGenerationBody, settingsFromBody } from './generation';
 import type { FrameSamplerPort } from './judge';
 import type { MediaProbePort } from './readiness';
 
+const STUB_MEDIA_DIMENSIONS_PATTERN = /\/(\d+)x(\d+)(?:x(\d+)s)?\.(?:png|mp4)$/;
+const RUBRIC_BLOCK_PATTERN = /Rubric \(index\. line\):\n([\s\S]*?)\n\n/;
+const RUBRIC_LINE_NUMBER_PATTERN = /^\d+\. /;
+
 /**
  * Deterministic stand-ins so `--suite=media-ladder --dispatcher=stub` runs end
  * to end in CI with no network: generation returns a synthetic artifact URL
@@ -145,7 +149,7 @@ export class StubMediaGeneration implements MediaGenerationPort {
 export class StubMediaProbe implements MediaProbePort {
   async probe(url: string, medium: Medium) {
     const [, width, height, seconds] =
-      /\/(\d+)x(\d+)(?:x(\d+)s)?\.(?:png|mp4)$/.exec(url) ?? [];
+      STUB_MEDIA_DIMENSIONS_PATTERN.exec(url) ?? [];
     return {
       audioCodec: null,
       container: medium === 'image' ? 'png' : 'mp4',
@@ -203,9 +207,10 @@ function rubricLines(message: EvalMessage | undefined): number {
       : content
           .map((part) => (part.type === 'text' ? part.text : ''))
           .join('\n');
-  const block =
-    /Rubric \(index\. line\):\n([\s\S]*?)\n\n/.exec(text)?.[1] ?? '';
-  return block.split('\n').filter((line) => /^\d+\. /.test(line)).length;
+  const block = RUBRIC_BLOCK_PATTERN.exec(text)?.[1] ?? '';
+  return block
+    .split('\n')
+    .filter((line) => RUBRIC_LINE_NUMBER_PATTERN.test(line)).length;
 }
 
 /** Answer quality from its URLs only; each judge adds a small per-model skew. */

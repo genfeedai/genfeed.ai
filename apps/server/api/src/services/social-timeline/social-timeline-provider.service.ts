@@ -18,6 +18,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 import { TwitterApi } from 'twitter-api-v2';
 
+const RECONNECT_REQUIRED_ERROR_PATTERN =
+  /invalid.grant|invalid.*token|expired.*token|reconnect|credential.*not found/i;
+const BILLING_ERROR_PATTERN = /credits|payment|usage.to.run|budget/i;
+
 export function timelineCapability(
   platform: string,
   grantedScopes?: readonly string[],
@@ -69,17 +73,12 @@ export function classifyTimelineError(error: unknown): {
     response.status ?? record.status ?? record.code ?? data.status,
   );
   const text = error instanceof Error ? error.message : '';
-  if (
-    status === 401 ||
-    /invalid.grant|invalid.*token|expired.*token|reconnect|credential.*not found/i.test(
-      text,
-    )
-  )
+  if (status === 401 || RECONNECT_REQUIRED_ERROR_PATTERN.test(text))
     return {
       status: 'reconnect',
       message: 'Reconnect this account to restore access.',
     };
-  if (status === 402 || /credits|payment|usage.to.run|budget/i.test(text))
+  if (status === 402 || BILLING_ERROR_PATTERN.test(text))
     return {
       status: 'budget_blocked',
       message: 'Provider credits or collection budget are exhausted.',
