@@ -155,11 +155,14 @@ export class WorkflowApiService extends HTTPBaseService {
    * The active organization's most-run workflows, ordered by execution count
    * then most recent run (GET /workflows/most-used, limit 1–12).
    */
-  async listMostUsed(limit?: number): Promise<WorkflowUsageSummary[]> {
+  async listMostUsed(
+    limit?: number,
+    signal?: AbortSignal,
+  ): Promise<WorkflowUsageSummary[]> {
     try {
       const response = await this.instance.get<JsonApiResponseDocument>(
         '/most-used',
-        { params: limit === undefined ? undefined : { limit } },
+        { params: limit === undefined ? undefined : { limit }, signal },
       );
       return deserializeCollection<WorkflowUsageSummary>(response.data);
     } catch (error) {

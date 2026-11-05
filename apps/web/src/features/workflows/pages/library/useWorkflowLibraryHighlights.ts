@@ -1,13 +1,17 @@
 'use client';
 
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { NotificationsService } from '@services/core/notifications.service';
-import { UsersService } from '@services/organization/users.service';
+import type { UsersService } from '@services/organization/users.service';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { createUsersService } from '@/components/shell/me-settings-query';
 import {
   createWorkflowApiService,
+  type WorkflowApiService,
   type WorkflowSummary,
   type WorkflowUsageSummary,
 } from '@/features/workflows/services/workflow-api';
@@ -18,104 +22,159 @@ interface HighlightState<T> {
   hasError: boolean;
 }
 
-const EMPTY_STATE = { items: [], isLoading: true, hasError: false };
+interface FavoritesData {
+  ids: string[];
+  items: WorkflowSummary[];
+}
 
-/** Favorites and org usage settle independently of the paginated library. */
+const NO_IDS: string[] = [];
+
+/** The saved ids were read but their workflows could not be. */
+class FavoriteWorkflowsReadError extends Error {
+  constructor(readonly favoriteIds: string[]) {
+    super('Favorite workflows could not be read');
+    this.name = 'FavoriteWorkflowsReadError';
+  }
+}
+
+function highlightState<T>(
+  data: T[] | undefined,
+  isPending: boolean,
+  isFetching: boolean,
+  isError: boolean,
+): HighlightState<T> {
+  // A failed background refresh keeps the loaded rows and reports nothing.
+  const hasData = data !== undefined;
+  return {
+    hasError: !hasData && isError && !isFetching,
+    isLoading: !hasData && (isPending || isFetching),
+    items: data ?? [],
+  };
+}
+
+/**
+ * Favorites and org usage settle independently of the paginated library. Both
+ * are cached per scope (and viewer), so returning to the library paints them
+ * at once and refreshes them in the background; a saved favorite and a
+ * library edit are written into those caches.
+ */
 export function useWorkflowLibraryHighlights() {
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const getWorkflows = useAuthedService(createWorkflowApiService);
-  const getUsers = useAuthedService((token) => UsersService.getInstance(token));
+  const getUsers = useAuthedService(createUsersService);
+  const queryClient = useQueryClient();
   const translate = useTranslations('common.automation.workflows.library');
-  const [favorites, setFavorites] =
-    useState<HighlightState<WorkflowSummary>>(EMPTY_STATE);
-  const [mostUsed, setMostUsed] =
-    useState<HighlightState<WorkflowUsageSummary>>(EMPTY_STATE);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
-  const [revision, setRevision] = useState(0);
-  const activeRequest = useRef<AbortController | null>(null);
-  const savingRequest = useRef<AbortController | null>(null);
+  const isScopeLoadable =
+    isReady && Boolean(organizationId) && (pageScope !== 'brand' || !!brandId);
+  const scopeKey = JSON.stringify([organizationId, pageScope, brandId ?? null]);
+  const scopeRef = useRef(scopeKey);
+  scopeRef.current = scopeKey;
+  const savingScopeRef = useRef<string | null>(null);
+  const [savingScope, setSavingScope] = useState<string | null>(null);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision explicitly retries the section requests.
-  useEffect(() => {
-    const controller = new AbortController();
-    activeRequest.current = controller;
-    setFavorites(EMPTY_STATE);
-    setMostUsed(EMPTY_STATE);
-    setFavoriteIds([]);
-    setIsSavingFavorite(false);
-    if (!isReady || !organizationId || (pageScope === 'brand' && !brandId)) {
-      return () => controller.abort();
-    }
+  const favoritesKey = useMemo<QueryKey>(
+    () => [
+      'workflow-library-favorites',
+      organizationId,
+      pageScope,
+      brandId ?? null,
+    ],
+    [brandId, organizationId, pageScope],
+  );
+  const mostUsedKey = useMemo<QueryKey>(
+    () => ['workflow-library-most-used', organizationId],
+    [organizationId],
+  );
 
-    void (async () => {
+  const favoritesQuery = useAuthedQuery<UsersService, FavoritesData>({
+    enabled: isScopeLoadable,
+    queryFn: async (users, signal) => {
+      const settings = await users.findMeSettings(signal);
+      const ids = settings.favoriteWorkflowIds ?? [];
+      if (ids.length === 0) {
+        return { ids, items: [] };
+      }
+      signal.throwIfAborted();
       try {
-        const users = await getUsers();
-        const settings = await users.findMeSettings(controller.signal);
-        if (controller.signal.aborted) return;
-        const ids = settings.favoriteWorkflowIds ?? [];
-        setFavoriteIds(ids);
-        if (ids.length === 0) {
-          setFavorites({ items: [], isLoading: false, hasError: false });
-          return;
-        }
         const workflows = await getWorkflows();
-        if (controller.signal.aborted) return;
-        const visibleWorkflows = await workflows.listByIds(
-          ids,
-          controller.signal,
+        const visibleWorkflows = await workflows.listByIds(ids, signal);
+        const byId = new Map(
+          visibleWorkflows.map((workflow) => [workflow.id, workflow]),
         );
-        if (!controller.signal.aborted) {
-          const byId = new Map(
-            visibleWorkflows.map((workflow) => [workflow.id, workflow]),
-          );
-          const items = ids.flatMap((id) => {
-            const workflow = byId.get(id);
-            return workflow
-              ? [{ ...workflow, nodeCount: workflow.nodes.length }]
-              : [];
-          });
-          setFavorites({ items, isLoading: false, hasError: false });
-        }
+        const items = ids.flatMap((id) => {
+          const workflow = byId.get(id);
+          return workflow
+            ? [{ ...workflow, nodeCount: workflow.nodes.length }]
+            : [];
+        });
+        return { ids, items };
       } catch {
-        if (!controller.signal.aborted) {
-          setFavorites({ items: [], isLoading: false, hasError: true });
-        }
+        // The saved ids stay known, so a retry does not lose them.
+        throw new FavoriteWorkflowsReadError(ids);
       }
-    })();
-    void (async () => {
-      try {
-        const workflows = await getWorkflows();
-        const items = await workflows.listMostUsed(5);
-        if (!controller.signal.aborted) {
-          setMostUsed({ items, isLoading: false, hasError: false });
-        }
-      } catch {
-        if (!controller.signal.aborted) {
-          setMostUsed({ items: [], isLoading: false, hasError: true });
-        }
-      }
-    })();
-    return () => controller.abort();
-  }, [
-    brandId,
-    getUsers,
-    getWorkflows,
-    isReady,
-    organizationId,
-    pageScope,
-    revision,
-  ]);
+    },
+    queryKey: favoritesKey,
+    service: createUsersService,
+  });
+
+  const mostUsedQuery = useAuthedQuery<
+    WorkflowApiService,
+    WorkflowUsageSummary[]
+  >({
+    enabled: isScopeLoadable,
+    queryFn: (workflows, signal) => workflows.listMostUsed(5, signal),
+    queryKey: mostUsedKey,
+    service: createWorkflowApiService,
+  });
+
+  const favoritesError = favoritesQuery.error;
+  const favoriteIds =
+    favoritesQuery.data?.ids ??
+    (favoritesError instanceof FavoriteWorkflowsReadError
+      ? favoritesError.favoriteIds
+      : NO_IDS);
+  const favorites = highlightState(
+    favoritesQuery.data?.items,
+    favoritesQuery.isPending,
+    favoritesQuery.isFetching,
+    favoritesQuery.isError,
+  );
+  const mostUsed = highlightState(
+    mostUsedQuery.data,
+    mostUsedQuery.isPending,
+    mostUsedQuery.isFetching,
+    mostUsedQuery.isError,
+  );
+  const isSavingFavorite = savingScope === scopeKey;
+
+  const updateFavorites = useCallback(
+    (update: (current: FavoritesData) => FavoritesData) => {
+      queryClient.setQueriesData<FavoritesData>(
+        { queryKey: favoritesKey },
+        (current) => (current ? update(current) : current),
+      );
+    },
+    [favoritesKey, queryClient],
+  );
+
+  const updateMostUsed = useCallback(
+    (update: (current: WorkflowUsageSummary[]) => WorkflowUsageSummary[]) => {
+      queryClient.setQueriesData<WorkflowUsageSummary[]>(
+        { queryKey: mostUsedKey },
+        (current) => (current ? update(current) : current),
+      );
+    },
+    [mostUsedKey, queryClient],
+  );
 
   const toggleFavorite = useCallback(
     async (workflow: WorkflowSummary) => {
-      const request = activeRequest.current;
+      const scope = scopeKey;
       if (
-        !request ||
-        request.signal.aborted ||
+        !isScopeLoadable ||
         favorites.isLoading ||
         favorites.hasError ||
-        savingRequest.current === request
+        savingScopeRef.current === scope
       )
         return;
       const wasFavorite = favoriteIds.includes(workflow.id);
@@ -123,68 +182,85 @@ export function useWorkflowLibraryHighlights() {
         NotificationsService.getInstance().error(translate('favoriteLimit'));
         return;
       }
-      savingRequest.current = request;
-      setIsSavingFavorite(true);
+      savingScopeRef.current = scope;
+      setSavingScope(scope);
       try {
         const users = await getUsers();
-        if (request.signal.aborted) return;
+        if (scopeRef.current !== scope) return;
         const settings = await users.patchMeFavoriteWorkflowIds(
           wasFavorite
             ? favoriteIds.filter((id) => id !== workflow.id)
             : [...favoriteIds, workflow.id],
         );
-        if (request.signal.aborted) return;
+        if (scopeRef.current !== scope) return;
         const ids = settings.favoriteWorkflowIds ?? [];
-        setFavoriteIds(ids);
-        setFavorites((current) => ({
-          ...current,
+        // A read still in flight began before this save; drop it so it
+        // cannot put the old favorites back.
+        await queryClient.cancelQueries({ queryKey: favoritesKey });
+        updateFavorites((current) => ({
+          ids,
           items: [
             ...current.items.filter((item) => item.id !== workflow.id),
             workflow,
           ].filter((item) => ids.includes(item.id)),
         }));
       } catch {
-        if (!request.signal.aborted)
+        if (scopeRef.current === scope)
           NotificationsService.getInstance().error(
             translate('favoriteSaveError'),
           );
       } finally {
-        if (savingRequest.current === request) savingRequest.current = null;
-        if (!request.signal.aborted) setIsSavingFavorite(false);
+        if (savingScopeRef.current === scope) savingScopeRef.current = null;
+        setSavingScope((current) => (current === scope ? null : current));
       }
     },
-    [favoriteIds, favorites.hasError, favorites.isLoading, getUsers, translate],
+    [
+      favoriteIds,
+      favorites.hasError,
+      favorites.isLoading,
+      favoritesKey,
+      getUsers,
+      isScopeLoadable,
+      queryClient,
+      scopeKey,
+      translate,
+      updateFavorites,
+    ],
   );
 
   const updateWorkflow = useCallback(
     (id: string, update: Partial<WorkflowSummary>) => {
-      setFavorites((current) => ({
+      updateFavorites((current) => ({
         ...current,
         items: current.items.map((item) =>
           item.id === id ? { ...item, ...update } : item,
         ),
       }));
-      setMostUsed((current) => ({
-        ...current,
-        items: current.items.map((item) =>
-          item.id === id ? { ...item, ...update } : item,
-        ),
-      }));
+      updateMostUsed((current) =>
+        current.map((item) => (item.id === id ? { ...item, ...update } : item)),
+      );
     },
-    [],
+    [updateFavorites, updateMostUsed],
   );
 
-  const removeWorkflow = useCallback((id: string) => {
-    setFavorites((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== id),
-    }));
-    setMostUsed((current) => ({
-      ...current,
-      items: current.items.filter((item) => item.id !== id),
-    }));
-    setFavoriteIds((current) => current.filter((item) => item !== id));
-  }, []);
+  const removeWorkflow = useCallback(
+    (id: string) => {
+      updateFavorites((current) => ({
+        ids: current.ids.filter((item) => item !== id),
+        items: current.items.filter((item) => item.id !== id),
+      }));
+      updateMostUsed((current) => current.filter((item) => item.id !== id));
+    },
+    [updateFavorites, updateMostUsed],
+  );
+
+  const { refetch: refetchFavorites } = favoritesQuery;
+  const { refetch: refetchMostUsed } = mostUsedQuery;
+  const reload = useCallback(() => {
+    if (!isScopeLoadable) return;
+    void refetchFavorites();
+    void refetchMostUsed();
+  }, [isScopeLoadable, refetchFavorites, refetchMostUsed]);
 
   return {
     favorites: {
@@ -199,6 +275,6 @@ export function useWorkflowLibraryHighlights() {
     toggleFavorite,
     updateWorkflow,
     removeWorkflow,
-    reload: () => setRevision((value) => value + 1),
+    reload,
   };
 }
