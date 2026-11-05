@@ -321,6 +321,7 @@ export class VisualProjectsService implements OnModuleInit {
         requestId: input.requestId,
         isDeleted: false,
       },
+      select: { id: true, inputHash: true },
     });
     if (existing) {
       if (existing.inputHash !== inputHash)
@@ -412,6 +413,7 @@ export class VisualProjectsService implements OnModuleInit {
           requestId: input.requestId,
           isDeleted: false,
         },
+        select: { id: true, inputHash: true },
       });
       if (!replay) throw new ConflictException('request_identity_conflict');
       if (replay.inputHash !== inputHash)
@@ -474,6 +476,7 @@ export class VisualProjectsService implements OnModuleInit {
         isDeleted: false,
         status: { notIn: terminal },
       },
+      select: { id: true },
     });
     if (active) throw new ConflictException('visual_revision_in_progress');
     if (operation !== 'revise' && !prior.sourceCode)
@@ -722,6 +725,7 @@ export class VisualProjectsService implements OnModuleInit {
           brandId: brandId,
           isDeleted: false,
         },
+        select: { currentRevision: true },
       });
       if (current.currentRevision !== prepared.input.expectedRevision)
         throw new ConflictException('stale_visual_revision');

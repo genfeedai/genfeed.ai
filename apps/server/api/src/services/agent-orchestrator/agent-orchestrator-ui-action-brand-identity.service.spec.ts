@@ -284,6 +284,7 @@ describe('brand identity proposal consumption durability', () => {
           isDeleted: false,
           status: 'active',
         },
+        select: { brandId: true, contextVersion: true },
       });
       expect(f.transaction.agentMessage.findFirst).toHaveBeenCalledWith({
         where: {

@@ -381,6 +381,7 @@ export class PatternExtractionWorkflowService implements OnModuleInit {
         const existing =
           await transaction.patternExtractionCheckpoint.findUnique({
             where: { source },
+            select: { data: true },
           });
         const contributions = this.readContributions(existing?.data);
         contributions[organizationHash] = {

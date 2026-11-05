@@ -235,6 +235,7 @@ export class BrandOsScanService {
         organizationId: input.organizationId,
         isDeleted: false,
       },
+      select: { agentConfig: true },
     });
     if (!brandSnapshot) return this.readTerminalScan(input);
     let marker: BrandOsScanMarker | null;
@@ -537,6 +538,7 @@ export class BrandOsScanService {
         isDeleted: false,
         status: BrandOsRevisionStatus.APPROVED,
       },
+      select: { content: true, id: true, updatedAt: true },
     });
     return row
       ? {

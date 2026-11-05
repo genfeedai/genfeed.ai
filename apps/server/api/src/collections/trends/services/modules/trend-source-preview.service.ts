@@ -432,6 +432,7 @@ export class TrendSourcePreviewService {
     // tenant-scope-ignore: write-scope equality is proven above; where is either explicit global scope or scopedWhere tenant scope and always includes isDeleted
     const existingDoc = await this.prisma.trend.findFirst({
       where,
+      select: { data: true },
     });
     if (existingDoc) {
       const existingData =

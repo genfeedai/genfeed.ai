@@ -699,6 +699,7 @@ export class SocialSourcesService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(organizationId, { id: brandId }),
+      select: { id: true },
     });
     if (!brand) {
       throw new BadRequestException(
@@ -729,6 +730,7 @@ export class SocialSourcesService {
         id: credentialId,
         platform: credentialPlatform,
       }),
+      select: { id: true },
     });
     if (!credential) {
       throw new BadRequestException(

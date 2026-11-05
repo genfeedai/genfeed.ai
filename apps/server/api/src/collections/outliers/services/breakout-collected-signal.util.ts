@@ -82,6 +82,13 @@ async function detectCapturedBreakout(
       organizationId: input.source.organizationId,
       isDeleted: false,
     },
+    select: {
+      breakoutThreshold: true,
+      maturityHoursByPlatform: true,
+      minimumSampleSize: true,
+      outlierThreshold: true,
+      windowSize: true,
+    },
   });
   const configuration = outlierConfigurationSchema.parse(
     row

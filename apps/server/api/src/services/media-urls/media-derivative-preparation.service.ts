@@ -86,6 +86,7 @@ export class MediaDerivativePreparationService {
           policyVersion: MEDIA_DELIVERY_POLICY_VERSION,
           purpose,
         },
+        select: { state: true },
       });
       // A failed render needs explicit authenticated recovery, not perpetual public polling.
       if (!existing || existing.state === 'PENDING')
@@ -235,7 +236,10 @@ export class MediaDerivativePreparationService {
       purpose: data.purpose,
       sourceIdentity: data.sourceIdentity,
     };
-    const variant = await this.prisma.mediaDeliveryVariant.findFirst({ where });
+    const variant = await this.prisma.mediaDeliveryVariant.findFirst({
+      where,
+      select: { state: true },
+    });
     if (
       !variant ||
       variant.state === 'READY' ||

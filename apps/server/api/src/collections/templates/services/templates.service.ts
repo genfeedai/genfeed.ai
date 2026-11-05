@@ -152,6 +152,7 @@ export class TemplatesService {
           key: dto.key,
           purpose: 'prompt',
         },
+        select: { id: true },
       });
       if (existing) {
         throw new Error(`Template with key "${dto.key}" already exists`);

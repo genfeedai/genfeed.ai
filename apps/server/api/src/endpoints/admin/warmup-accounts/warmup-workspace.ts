@@ -74,6 +74,7 @@ export async function reconcileWarmupWorkspace(
   });
   const customer = await tx.user.findFirst({
     where: { id: customerUserId, isDeleted: false },
+    select: { id: true },
   });
   if (!organization || !brand || !customer)
     throw new BadRequestException(
@@ -122,6 +123,7 @@ export async function reconcileWarmupWorkspace(
   } else {
     const existingLink = await tx.billingAccountOrganization.findFirst({
       where: { organizationId, isDeleted: false, status: 'LINKED' },
+      select: { billingAccountId: true },
     });
     if (existingLink) {
       billingAccountId = existingLink.billingAccountId;
@@ -149,6 +151,7 @@ export async function reconcileWarmupWorkspace(
         { organizationId: null },
       ],
     },
+    select: { id: true },
   });
   if (foreignWallet)
     throw new BadRequestException(
@@ -168,6 +171,7 @@ export async function reconcileWarmupWorkspace(
       isDeleted: false,
       status: 'LINKED',
     },
+    select: { id: true },
   });
   if (!link)
     await tx.billingAccountOrganization.create({
@@ -677,6 +681,7 @@ export async function claimWarmupWorkspace(
 ): Promise<string | undefined> {
   const existing = await tx.warmupAccount.findFirst({
     where: { invitationId, organizationId, isDeleted: false },
+    select: { id: true },
   });
   if (!existing) return undefined;
   await lockWarmup(tx, existing.id);
@@ -714,6 +719,7 @@ export async function claimWarmupWorkspace(
     });
   const role = await tx.role.findFirst({
     where: { key: 'admin', isDeleted: false },
+    select: { id: true, key: true },
   });
   if (!role) throw new BadRequestException('Admin role is unavailable');
   await tx.member.updateMany({

@@ -245,6 +245,7 @@ export class OAuthRefreshTokenService {
         organizationId: record.organizationId,
         userId: record.userId,
       },
+      select: { compromisedAt: true, revokedAt: true },
     });
     if (settled?.compromisedAt || settled?.revokedAt) {
       await this.revokeRefreshTokenById(
@@ -403,6 +404,7 @@ export class OAuthRefreshTokenService {
         organizationId: record.organizationId,
         userId: record.userId,
       },
+      select: { replacedById: true },
     });
     let nextId = current?.replacedById ?? record.replacedById;
     for (let depth = 0; nextId && depth < MAX_REFRESH_CHAIN_DEPTH; depth += 1) {

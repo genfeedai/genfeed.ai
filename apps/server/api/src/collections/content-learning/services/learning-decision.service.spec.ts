@@ -117,6 +117,12 @@ describe('lightweight scoped preview isolation', () => {
           credentialId: 'credential',
           isDeleted: false,
         },
+        select: {
+          epoch: true,
+          failureReason: true,
+          mode: true,
+          revision: true,
+        },
       });
       expect(accounts.read).not.toHaveBeenCalled();
       expect(accounts.ensure).not.toHaveBeenCalled();

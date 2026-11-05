@@ -747,6 +747,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
           externalPostId: params.parentPostId,
           ...(params.brandId ? { brandId: params.brandId } : {}),
         }),
+        select: { data: true, id: true },
       });
 
       if (!target) {

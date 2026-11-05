@@ -106,6 +106,7 @@ export class ArticleAnalyticsService extends BaseService<
     // Fetch article to get required fields for upsert
     const article = await this.prisma.article.findFirst({
       where: scopedWhere(organizationId, { id: articleId }),
+      select: { brandId: true, organizationId: true, userId: true },
     });
     if (!article) {
       this.logger.error(`Article ${articleId} not found for analytics update`);

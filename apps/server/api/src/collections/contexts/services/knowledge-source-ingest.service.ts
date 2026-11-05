@@ -554,6 +554,7 @@ export class KnowledgeSourceIngestService {
           isDeleted: false,
         },
         orderBy: { generation: 'desc' },
+        select: { expectedChunkCount: true },
       });
       if (staged) {
         const status = await this.embeddingCompletion.complete(
@@ -630,6 +631,14 @@ export class KnowledgeSourceIngestService {
   ): Promise<void> {
     const source = await tx.knowledgeSource.findFirst({
       where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      select: {
+        consecutiveFailures: true,
+        firstFailureAt: true,
+        gracePeriodMinutes: true,
+        kind: true,
+        refreshIntervalMinutes: true,
+        staleAt: true,
+      },
     });
     const consecutiveFailures = (source?.consecutiveFailures ?? 0) + 1;
     const firstFailureAt = source?.firstFailureAt ?? now;

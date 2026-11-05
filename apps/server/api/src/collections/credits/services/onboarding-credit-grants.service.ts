@@ -96,6 +96,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { billingAccountId: true },
       });
       if (!organization) return null;
       const idempotencyKey = `onboarding:welcome:${userId}`;
@@ -186,6 +187,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { id: true },
       });
       if (!organization) return 'unavailable';
       return (await this.findTrialGrant(tx, userId)) ? 'claimed' : 'claimable';
@@ -223,6 +225,7 @@ export class OnboardingCreditGrantsService {
           isProactiveOnboarding: false,
           warmupAccounts: { none: { isDeleted: false } },
         },
+        select: { billingAccountId: true },
       });
       if (!organization) return null;
       const idempotencyKey = trialIdempotencyKey(userId);
@@ -304,6 +307,11 @@ export class OnboardingCreditGrantsService {
     const outcome = await this.runSerializable(async (tx) => {
       const settings = await tx.organizationSetting.findFirst({
         where: { organizationId },
+        select: {
+          id: true,
+          onboardingJourneyCompletedAt: true,
+          onboardingJourneyMissions: true,
+        },
       });
       if (!settings) return { missions: [], additions: [] };
       const missions = this.organizationSettingsService.normalizeJourneyState(

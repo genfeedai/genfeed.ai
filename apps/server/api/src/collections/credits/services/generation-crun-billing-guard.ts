@@ -72,6 +72,7 @@ export async function runCrunBillingMutation<T>(
                       workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
                     }),
               }),
+              select: { metadata: true },
             });
             const metadata = modelBillableQuoteSnapshotSchema.safeParse(
               hold?.metadata &&
@@ -168,6 +169,7 @@ export async function recordCrunSubmissionFailure(
             organizationId,
             isDeleted: false,
           }),
+          select: { actorUserId: true, id: true, metadata: true },
         });
         const submitted = submittedGenerationMetadataSchema.safeParse(
           hold?.metadata,

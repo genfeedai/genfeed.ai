@@ -160,6 +160,7 @@ describe('MonitoredAccountsService active filters', () => {
 
     expect(delegate.findFirst).toHaveBeenCalledWith({
       where: { id: 'account-1', isDeleted: false, organizationId: 'org-1' },
+      select: { config: true },
     });
     expectCloudGuardPasses('MonitoredAccount', 'findFirst', delegate.findFirst);
   });

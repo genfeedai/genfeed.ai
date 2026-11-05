@@ -362,6 +362,7 @@ export class KnowledgeRefreshService {
         organizationId: input.organizationId,
         isDeleted: false,
       },
+      select: { embeddingGeneration: true },
     });
     if (version && version.embeddingGeneration >= 1) {
       const outcome = await this.embeddingCompletion.complete(
@@ -378,6 +379,7 @@ export class KnowledgeRefreshService {
         candidateVersionId: input.versionId,
         sourceId: input.sourceId,
       }),
+      select: { id: true },
     });
     if (!run) {
       return;
@@ -660,6 +662,7 @@ export class KnowledgeRefreshService {
   ): Promise<KnowledgeRefreshResult> {
     const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(actor.organizationId, { sourceId, tickKey }),
+      select: { id: true },
     });
     return { refreshRunId: existing?.id ?? sourceId, sourceId };
   }
@@ -738,6 +741,7 @@ export class KnowledgeRefreshService {
     if (existingWorkflowId) {
       const existing = await this.prisma.workflow.findFirst({
         where: scopedWhere(actor.organizationId, { id: existingWorkflowId }),
+        select: { id: true, organizationId: true },
       });
       if (existing) {
         // Bind the schedule to the authenticated configuring actor on every
@@ -847,6 +851,7 @@ export class KnowledgeRefreshService {
         isCurrent: true,
         sourceId,
       }),
+      select: { payload: true, provenance: true },
     });
     return (
       this.readPayloadUrl(version?.payload) ??

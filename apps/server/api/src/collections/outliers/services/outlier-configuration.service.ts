@@ -8,6 +8,14 @@ export class OutlierConfigurationService {
   async resolve(organizationId: string) {
     const row = await this.prisma.outlierConfiguration.findFirst({
       where: { organizationId, isDeleted: false },
+      select: {
+        breakoutThreshold: true,
+        id: true,
+        maturityHoursByPlatform: true,
+        minimumSampleSize: true,
+        outlierThreshold: true,
+        windowSize: true,
+      },
     });
     const values = outlierConfigurationSchema.parse(
       row

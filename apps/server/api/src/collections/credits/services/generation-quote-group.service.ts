@@ -77,6 +77,7 @@ export class GenerationQuoteGroupService {
           isDeleted: false,
           workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
         },
+        select: { id: true, metadata: true, status: true },
       });
       if (!hold || hold.status !== CreditReservationStatus.RESERVED) return;
       const expectedMetadata = z
@@ -180,6 +181,7 @@ export class GenerationQuoteGroupService {
         isDeleted: false,
         workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
       },
+      select: { expiresAt: true, metadata: true, status: true },
     });
     if (!hold || hold.status !== CreditReservationStatus.RESERVED)
       throw new BusinessLogicException('Generation quote hold has ended');

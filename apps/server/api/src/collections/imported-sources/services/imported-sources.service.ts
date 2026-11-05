@@ -164,6 +164,7 @@ export class ImportedSourcesService {
               isDeleted: true,
             },
             orderBy: [{ version: 'desc' }, { id: 'desc' }],
+            select: { id: true },
           });
           if (deleted)
             throw importedSourceStateError('IMPORTED_SOURCE_DELETED', {

@@ -37,6 +37,7 @@ describe('PlatformMarginService', () => {
     await expect(service.hydrate()).resolves.toBe(1.4);
     expect(findUnique).toHaveBeenCalledWith({
       where: { key: PLATFORM_SETTING_KEY },
+      select: { marginMultiplierGeneration: true },
     });
     expect(getRuntimeMarginMultiplier()).toBe(1.4);
   });

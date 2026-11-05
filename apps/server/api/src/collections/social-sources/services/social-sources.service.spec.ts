@@ -102,6 +102,7 @@ describe('SocialSourcesService', () => {
 
     expect(brand.findFirst).toHaveBeenCalledWith({
       where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      select: { id: true },
     });
     expect(socialSource.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -174,6 +175,7 @@ describe('SocialSourcesService', () => {
         organizationId: 'org-1',
         platform: 'TWITTER',
       },
+      select: { id: true },
     });
     expect(socialSource.create).not.toHaveBeenCalled();
   });
@@ -904,6 +906,7 @@ describe('SocialSourcesService', () => {
     expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
     expect(brand.findFirst).toHaveBeenCalledWith({
       where: { id: 'foreign', organizationId: 'org-1', isDeleted: false },
+      select: { id: true },
     });
   });
   it('passes canonical validation scope and preserves governance denial', async () => {

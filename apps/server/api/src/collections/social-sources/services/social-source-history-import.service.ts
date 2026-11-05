@@ -90,6 +90,7 @@ export class SocialSourceHistoryImportService {
 
     const brand = await this.prisma.brand.findFirst({
       where: scopedWhere(params.organizationId, { id: credential.brandId }),
+      select: { id: true },
     });
     if (!brand) {
       return { skipReason: 'credential_unavailable', status: 'skipped' };

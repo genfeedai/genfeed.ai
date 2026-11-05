@@ -142,6 +142,13 @@ export class StripeWebhookBillingService {
         organizationId: subscription.organizationId,
         isDeleted: false,
       },
+      select: {
+        billingAccountId: true,
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        stripeCustomerId: true,
+      },
     });
     if (!customer || customer.isDeleted)
       throw new StripeWebhookBillingError('identity_missing');
