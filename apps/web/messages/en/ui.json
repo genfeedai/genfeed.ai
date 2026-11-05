@@ -494,6 +494,11 @@
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right"
   },
+  "threadList": {
+    "earlier": "Earlier",
+    "last7Days": "Previous 7 days",
+    "today": "Today"
+  },
   "viewMenu": {
     "label": "View"
   },

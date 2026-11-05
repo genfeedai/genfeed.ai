@@ -10,13 +10,17 @@ import {
   getJsonApiErrorMessage,
 } from '@services/core/json-api-error-message';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import CollectionList from '@ui/collection/CollectionList';
 import Container from '@ui/layout/container/Container';
 import { useCreativeProjectsPresence } from '@ui/layout/creative-app-workspace/CreativeAppWorkspace';
 import CreativeProjectsEmptyState from '@ui/layout/creative-app-workspace/CreativeProjectsEmptyState';
-import { ListRow } from '@ui/lists/list-row/ListRow';
-import { Badge } from '@ui/primitives/badge';
+import {
+  formatThreadTime,
+} from '@ui/lists/thread-list/group-by-recency';
+import {
+  ThreadListRecencySections,
+  ThreadListRow,
+  ThreadListSubtitle,
+} from '@ui/lists/thread-list/ThreadList';
 import { Button } from '@ui/primitives/button';
 import { Rocket } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -24,6 +28,7 @@ import { useEffect, useState } from 'react';
 import SearchField from '@/components/content/search-field/SearchField';
 import SubscriptionRequiredState from '@/features/workflows/components/guards/subscription/SubscriptionRequiredState';
 import { createTurboProjectsApi } from './turbo-projects-api';
+import { turboProjectListStatus } from './turbo-project-list-status';
 
 /**
  * The right side of the Turbo workspace while no project is open: one list of
@@ -101,40 +106,29 @@ export default function TurboProjectsList() {
   }
   function row(project: ITurboProject) {
     return (
-      <ListRow
-        density="compact"
+      <ThreadListRow
+        actions={[
+          {
+            id: 'delete',
+            isDestructive: true,
+            label: t('delete'),
+            onSelect: () => void remove(project.id),
+          },
+        ]}
+        actionsLabel={t('actions', { name: project.name })}
         href={href(`${APP_ROUTES.STUDIO.TURBO}/${project.id}`)}
-        key={project.id}
-        meta={
-          <>
-            <span>{formatEnumLabel(project.kind)}</span>
-            <span>{t('itemCount', { count: project.itemCounts.total })}</span>
-            <span>
-              {project.updatedAt
-                ? new Date(project.updatedAt).toLocaleString(locale)
-                : ''}
-            </span>
-          </>
+        status={turboProjectListStatus(project.status)}
+        statusLabel={formatEnumLabel(project.status)}
+        subtitle={
+          <ThreadListSubtitle
+            parts={[
+              formatEnumLabel(project.kind),
+              t('itemCount', { count: project.itemCounts.total }),
+            ]}
+          />
         }
+        time={formatThreadTime(project.updatedAt, locale)}
         title={project.name}
-        trailing={
-          <div className="flex items-center gap-2">
-            <Badge status={project.status.toLowerCase()}>
-              {formatEnumLabel(project.status)}
-            </Badge>
-            <CollectionItemActions
-              overflow={[
-                {
-                  id: 'delete',
-                  isDestructive: true,
-                  label: t('delete'),
-                  onSelect: () => void remove(project.id),
-                },
-              ]}
-              overflowLabel={t('actions', { name: project.name })}
-            />
-          </div>
-        }
       />
     );
   }
@@ -181,7 +175,7 @@ export default function TurboProjectsList() {
       }
       titleVisibility="sr-only"
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {error && <p role="alert">{error}</p>}
         {isEmpty && isSearching ? (
           <CreativeProjectsEmptyState icon={Rocket} title={t('emptySearch')} />
@@ -194,7 +188,12 @@ export default function TurboProjectsList() {
           />
         ) : null}
         {projects.length > 0 ? (
-          <CollectionList>{projects.map(row)}</CollectionList>
+          <ThreadListRecencySections
+            getDate={(project) => project.updatedAt}
+            getKey={(project) => project.id}
+            items={projects}
+            renderRow={row}
+          />
         ) : null}
         {(hasMore || error) && (
           <Button
