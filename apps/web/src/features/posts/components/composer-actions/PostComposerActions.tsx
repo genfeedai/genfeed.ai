@@ -3,33 +3,26 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { POST_ENHANCEMENT_CREDITS } from '@genfeedai/contracts/constants';
 import type { PostQuickActionKey } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { stripHtmlToPlainText } from '@genfeedai/helpers/security/strip-html.helper';
-import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
-import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
-import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptBarCompactSelect from '@ui/prompt-bars/components/toolbar/PromptBarCompactSelect';
-import PromptBarSendButton from '@ui/prompt-bars/components/toolbar/PromptBarSendButton';
-import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
-import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { Check, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import type {
+  PostComposerActionsProps,
   PostComposerPresetKey,
-  PostComposerPromptBarProps,
   TweetTone,
-} from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar.props';
+} from '@/features/posts/components/composer-actions/PostComposerActions.props';
 import {
   type PostComposerPreset,
   QUICK_ACTION_KEYS,
   REWRITE_PRESETS,
   THREAD_PRESETS,
   TONE_KEYS,
-} from '@/features/posts/components/composer-prompt-bar/post-composer-prompt-bar.helpers';
-import { usePromptBarSubmission } from '@/features/posts/hooks/use-prompt-bar-submission/use-prompt-bar-submission';
+} from '@/features/posts/components/composer-actions/post-composer-actions.helpers';
 
 interface RewriteProposal {
   label: string;
@@ -52,11 +45,12 @@ type PendingRequest =
   | { kind: 'thread'; label: string };
 
 /**
- * Page-level AI composer for a post and its thread, built from the shared
- * prompt-bar pieces used by Agent and Storyboard. Presets cover rewrites and
- * thread building; every AI result is a proposal the user accepts or discards.
+ * One row of one-tap AI actions under the post: rewrite presets, thread
+ * actions and a tone. Every AI result is a proposal the user accepts or
+ * discards. Free-form instructions belong to the agent, which "Ask agent"
+ * opens on this post's own conversation.
  */
-export default function PostComposerPromptBar({
+export default function PostComposerActions({
   targetLabel,
   targetContent,
   platformLabel,
@@ -70,10 +64,10 @@ export default function PostComposerPromptBar({
   onAddThreadPosts,
   onEndWithGrok,
   onAddFirstComment,
+  onAskAgent,
   className,
-}: PostComposerPromptBarProps) {
-  const translate = useTranslations('ui.postComposerPromptBar');
-  const customLabel = translate('yourInstruction');
+}: PostComposerActionsProps) {
+  const translate = useTranslations('ui.postComposerActions');
   const toneSelectOptions = TONE_KEYS.map((key) => ({
     label: translate(`tones.${key}`),
     value: key,
@@ -90,7 +84,7 @@ export default function PostComposerPromptBar({
   const isRunning = isBusy || pendingLabel !== null || isAddingThread;
   const hasTargetContent = Boolean(stripHtmlToPlainText(targetContent));
 
-  const run = async (request: PendingRequest): Promise<boolean> => {
+  const run = async (request: PendingRequest): Promise<void> => {
     lastRequestRef.current = request;
     setPendingLabel(request.label);
     setProposal(null);
@@ -100,7 +94,7 @@ export default function PostComposerPromptBar({
       if (request.kind === 'thread') {
         const texts = onDraftThread ? await onDraftThread(tone) : null;
         if (!texts || texts.length === 0) {
-          return false;
+          return;
         }
         const draftId = Date.now();
         setThreadProposal({
@@ -110,38 +104,17 @@ export default function PostComposerPromptBar({
           })),
           tone,
         });
-        return true;
+        return;
       }
 
       const text = await onRewrite(request.prompt, request.actionKey, tone);
-      if (!text) {
-        return false;
+      if (text) {
+        setProposal({ label: request.label, text, tone });
       }
-      setProposal({ label: request.label, text, tone });
-      return true;
     } finally {
       setPendingLabel(null);
     }
   };
-
-  // Trim, in-flight guard, clear-on-success and Enter-to-submit are shared with
-  // every other prompt bar.
-  const { handleSubmit, isSubmitDisabled, prompt, setPrompt } =
-    usePromptBarSubmission({
-      isEnhancing: isRunning,
-      onSubmit: async (trimmedPrompt: string) => {
-        const isOk = await run({
-          actionKey: null,
-          kind: 'rewrite',
-          label: customLabel,
-          prompt: trimmedPrompt,
-        });
-        if (!isOk) {
-          // Rejecting keeps the prompt so the user can retry.
-          throw new Error('Rewrite failed');
-        }
-      },
-    });
 
   const presets: PostComposerPreset[] = [
     ...(canDraftThread ? [THREAD_PRESETS.thread] : []),
@@ -149,16 +122,6 @@ export default function PostComposerPromptBar({
     ...(canAddFirstComment ? [THREAD_PRESETS.comment] : []),
     ...REWRITE_PRESETS,
   ];
-
-  const presetItems: PromptBarSuggestionItem[] = presets.map((preset) => {
-    const Icon = preset.icon;
-    return {
-      icon: <Icon className="size-4" />,
-      id: preset.key,
-      label: translate(`presets.${preset.key}`),
-      prompt: preset.prompt ? preset.prompt(platformLabel) : '',
-    };
-  });
 
   const runPreset = (key: PostComposerPresetKey) => {
     if (key === 'thread') {
@@ -216,9 +179,6 @@ export default function PostComposerPromptBar({
       setIsAddingThread(false);
     }
   };
-
-  const isPresetRowVisible =
-    !prompt.trim() && !proposal && !threadProposal && pendingLabel === null;
 
   const proposalActions = (
     acceptLabel: string,
@@ -337,75 +297,48 @@ export default function PostComposerPromptBar({
     ) : null;
 
   return (
-    <PromptBarContainer
-      className={className}
-      layoutMode="sticky-bottom"
-      maxWidth="full"
-      topContent={
-        resultPanel || isPresetRowVisible ? (
-          <div className="grid gap-3 pb-3">
-            {resultPanel}
-            {isPresetRowVisible ? (
-              <PromptBarSuggestions
-                suggestions={presetItems}
-                maxSuggestions={presetItems.length}
-                isDisabled={isRunning || !hasTargetContent}
-                onSuggestionSelect={(item) =>
-                  runPreset(item.id as PostComposerPresetKey)
-                }
-              />
-            ) : null}
-          </div>
-        ) : undefined
-      }
+    <section
+      aria-label={translate('label')}
+      className={cn('grid gap-2', className)}
     >
-      <PromptBarComposer
-        data-testid="post-composer-prompt-bar"
-        density="compact"
-        beforeBody={
-          <p className="flex items-center gap-1.5 px-3.5 pt-2.5 text-2xs font-medium text-foreground/60">
-            {translate('actingOn')}
-            <span className="rounded bg-tertiary px-1.5 py-0.5 text-foreground/80">
-              {targetLabel}
-            </span>
-          </p>
-        }
-      >
-        <PromptEditor
-          ariaLabel={translate('instructionAria')}
-          value={prompt}
-          isDisabled={isRunning}
-          placeholder={translate('placeholder')}
-          onValueChange={setPrompt}
-          onSubmit={() => void handleSubmit()}
-          className="min-h-12"
-        />
-        <PromptBarToolbar
-          leading={
-            <PromptBarCompactSelect
-              ariaLabel={translate('toneAria')}
-              isDisabled={isRunning}
-              options={toneSelectOptions}
-              value={tone}
-              onChange={(value) => setTone(value as TweetTone)}
+      {resultPanel}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {presets.map((preset) => {
+          const Icon = preset.icon;
+          return (
+            <Button
+              key={preset.key}
+              label={translate(`presets.${preset.key}`)}
+              icon={<Icon className="size-3.5" />}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              textTransform="none"
+              isDisabled={isRunning || !hasTargetContent}
+              onClick={() => runPreset(preset.key)}
             />
-          }
-          trailing={
-            <>
-              <span className="text-2xs text-muted-foreground">
-                {translate('creditPerRun', { count: POST_ENHANCEMENT_CREDITS })}
-              </span>
-              <PromptBarSendButton
-                ariaLabel={translate('rewrite')}
-                isDisabled={isSubmitDisabled || !hasTargetContent}
-                isLoading={pendingLabel === customLabel}
-                onClick={() => void handleSubmit()}
-                tooltip={translate('rewrite')}
-              />
-            </>
-          }
+          );
+        })}
+        <PromptBarCompactSelect
+          ariaLabel={translate('toneAria')}
+          isDisabled={isRunning}
+          options={toneSelectOptions}
+          value={tone}
+          onChange={(value) => setTone(value as TweetTone)}
         />
-      </PromptBarComposer>
-    </PromptBarContainer>
+        <span className="ml-auto text-2xs text-muted-foreground">
+          {translate('creditPerRun', { count: POST_ENHANCEMENT_CREDITS })}
+        </span>
+        {onAskAgent ? (
+          <Button
+            label={translate('askAgent')}
+            icon={<MessageSquare className="size-3.5" />}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            textTransform="none"
+            onClick={onAskAgent}
+          />
+        ) : null}
+      </div>
+    </section>
   );
 }

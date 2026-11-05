@@ -15,8 +15,8 @@ export type PostComposerPresetKey =
   | 'grok'
   | 'comment';
 
-export interface PostComposerPromptBarProps {
-  /** What the bar acts on, shown in the context row (e.g. "Post 2", "Caption"). */
+export interface PostComposerActionsProps {
+  /** What the actions apply to, shown beside a proposal (e.g. "Post 2", "Caption"). */
   targetLabel: string;
   /** Current HTML of the target post, shown as "before" beside a rewrite. */
   targetContent: string;
@@ -47,5 +47,10 @@ export interface PostComposerPromptBarProps {
   onAddThreadPosts?: (texts: string[]) => Promise<void>;
   onEndWithGrok?: () => void;
   onAddFirstComment?: () => void;
+  /**
+   * Open the agent on this post's own conversation, for anything the one-tap
+   * actions do not cover. The button is hidden when no agent can open here.
+   */
+  onAskAgent?: () => void;
   className?: string;
 }

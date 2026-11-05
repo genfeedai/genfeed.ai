@@ -2,6 +2,10 @@ import { type AgentThread, useAgentChatStore } from '@genfeedai/agent';
 import { AgentThreadKind, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  AGENT_DOCK_THREAD_KEYS_STORAGE_KEY,
+  readRememberedThreadId,
+} from './agent-dock-thread-keys';
 import { useAgentDockThreads } from './use-agent-dock-threads';
 
 type StoredMessage = ReturnType<
@@ -162,6 +166,97 @@ describe('useAgentDockThreads history and lifecycle', () => {
           'Spring launch plan',
         ]),
       );
+    });
+  });
+
+  describe('record conversation', () => {
+    const master: AgentThread = {
+      ...makeThread('master-1', 'Master'),
+      kind: AgentThreadKind.MASTER,
+    };
+    const getMasterThread = vi.fn(async (): Promise<AgentThread> => master);
+    const apiWithMaster = { getMasterThread, getMessages, getThreads };
+
+    beforeEach(() => {
+      getMasterThread.mockClear();
+      window.localStorage.removeItem(AGENT_DOCK_THREAD_KEYS_STORAGE_KEY);
+    });
+
+    it('opens a fresh conversation for a post, not the master', async () => {
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true, true, 'post:post-1'),
+      );
+
+      await waitFor(() => expect(getThreads).toHaveBeenCalled());
+      expect(getMasterThread).not.toHaveBeenCalled();
+      expect(result.current.activeThreadId).toBeNull();
+    });
+
+    it("remembers the post's thread once the first message creates it", async () => {
+      renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true, true, 'post:post-1'),
+      );
+
+      act(() => useAgentChatStore.getState().setActiveThread('thread-2'));
+
+      await waitFor(() =>
+        expect(readRememberedThreadId('post:post-1')).toBe('thread-2'),
+      );
+    });
+
+    it("reopens the post's own thread when the post is opened again", async () => {
+      window.localStorage.setItem(
+        AGENT_DOCK_THREAD_KEYS_STORAGE_KEY,
+        JSON.stringify({ 'post:post-1': 'thread-2' }),
+      );
+      useAgentChatStore.getState().setActiveThread('thread-1');
+
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true, true, 'post:post-1'),
+      );
+
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('thread-2'),
+      );
+      expect(getMessages).toHaveBeenCalledWith('thread-2', { limit: 100 });
+    });
+
+    it('switches threads as the selected post changes', async () => {
+      window.localStorage.setItem(
+        AGENT_DOCK_THREAD_KEYS_STORAGE_KEY,
+        JSON.stringify({ 'post:post-1': 'thread-1' }),
+      );
+
+      const { rerender, result } = renderHook(
+        ({ threadKey }) =>
+          useAgentDockThreads(apiWithMaster, true, true, threadKey),
+        { initialProps: { threadKey: 'post:post-1' } },
+      );
+      await waitFor(() =>
+        expect(result.current.activeThreadId).toBe('thread-1'),
+      );
+
+      rerender({ threadKey: 'post:post-2' });
+
+      expect(result.current.activeThreadId).toBeNull();
+    });
+
+    it('starts the post over when its remembered thread is gone', async () => {
+      window.localStorage.setItem(
+        AGENT_DOCK_THREAD_KEYS_STORAGE_KEY,
+        JSON.stringify({ 'post:post-1': 'deleted-thread' }),
+      );
+      getMessages.mockRejectedValueOnce(new Error('not found'));
+
+      const { result } = renderHook(() =>
+        useAgentDockThreads(apiWithMaster, true, true, 'post:post-1'),
+      );
+
+      await waitFor(() =>
+        expect(readRememberedThreadId('post:post-1')).toBeNull(),
+      );
+      expect(result.current.activeThreadId).toBeNull();
+      expect(useAgentChatStore.getState().error).toBeNull();
     });
   });
 });

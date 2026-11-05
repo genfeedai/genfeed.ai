@@ -2,9 +2,10 @@
 
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { ClipboardCheck, Sparkles, SquarePen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { createElement, useEffect, useMemo, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 
 const WHITESPACE_RUNS_PATTERN = /\s+/g;
 
@@ -13,8 +14,14 @@ interface AgentDraftContextInput {
   contentFormat?: string;
   draftType: 'article' | 'newsletter' | 'post' | 'thread';
   instructions?: string;
+  /** False leaves the agent's page context alone (default true). */
+  isEnabled?: boolean;
   onApplySuggestion?: (payload: AgentDraftSuggestionPayload) => void;
+  /** Composer placeholder; defaults to a generic one for the draft type. */
+  placeholder?: string;
   selectionRootId?: string;
+  /** Suggestions about this draft; defaults to Improve / Rewrite / Checklist. */
+  suggestedActions?: SuggestedAction[];
   summary?: string;
   title?: string;
 }
@@ -72,14 +79,22 @@ export function useAgentDraftContext({
   contentFormat,
   draftType,
   instructions,
+  isEnabled = true,
   onApplySuggestion,
+  placeholder,
   selectionRootId,
+  suggestedActions,
   summary,
   title,
 }: AgentDraftContextInput): void {
   const pathname = usePathname();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
   const [selectedText, setSelectedText] = useState<string | undefined>();
+  // The route's own context, put back when the draft unmounts (a detail panel
+  // closing) so the agent does not keep offering suggestions for a gone draft.
+  const routeContextRef = useRef<AgentPageContextState | null | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -127,10 +142,11 @@ export function useAgentDraftContext({
       draftSummary: clampContextText(summary),
       draftTitle: clampContextText(title),
       draftType,
-      placeholder: `Ask the co-pilot to improve this ${draftType}...`,
+      placeholder:
+        placeholder ?? `Ask the co-pilot to improve this ${draftType}...`,
       route: pathname,
       selectedText,
-      suggestedActions: createDraftActions(draftType),
+      suggestedActions: suggestedActions ?? createDraftActions(draftType),
     }),
     [
       body,
@@ -138,18 +154,41 @@ export function useAgentDraftContext({
       draftType,
       instructions,
       pathname,
+      placeholder,
       selectedText,
+      suggestedActions,
       summary,
       title,
     ],
   );
 
   useEffect(() => {
+    if (!isEnabled) {
+      return;
+    }
+    if (routeContextRef.current === undefined) {
+      routeContextRef.current = useAgentChatStore.getState().pageContext;
+    }
     setPageContext(context);
-  }, [context, setPageContext]);
+  }, [context, isEnabled, setPageContext]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !onApplySuggestion) {
+    if (!isEnabled) {
+      return;
+    }
+    return () => {
+      const current = useAgentChatStore.getState().pageContext;
+      if (current?.route === pathname && current.draftType === draftType) {
+        useAgentChatStore
+          .getState()
+          .setPageContext(routeContextRef.current ?? null);
+      }
+      routeContextRef.current = undefined;
+    };
+  }, [draftType, isEnabled, pathname]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isEnabled || !onApplySuggestion) {
       return;
     }
 
@@ -183,5 +222,5 @@ export function useAgentDraftContext({
         AGENT_DRAFT_SUGGESTION_EVENT,
         handleDraftSuggestion,
       );
-  }, [onApplySuggestion]);
+  }, [isEnabled, onApplySuggestion]);
 }

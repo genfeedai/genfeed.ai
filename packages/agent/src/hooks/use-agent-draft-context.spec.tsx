@@ -192,4 +192,47 @@ describe('useAgentDraftContext', () => {
       }),
     ).not.toThrow();
   });
+
+  it('offers the suggestions and placeholder the page passes', () => {
+    renderHook(() =>
+      useAgentDraftContext({
+        draftType: 'post',
+        placeholder: 'Ask about this post…',
+        suggestedActions: [
+          { label: 'Better hooks', prompt: 'Write three hooks.' },
+        ],
+      }),
+    );
+
+    const context = getPageContext();
+    expect(context.placeholder).toBe('Ask about this post…');
+    expect(context.suggestedActions).toEqual([
+      { label: 'Better hooks', prompt: 'Write three hooks.' },
+    ]);
+  });
+
+  it("puts the route's context back when the draft unmounts", () => {
+    const routeContext = { placeholder: 'Ask about your posts...', route: '/' };
+    useAgentChatStore.getState().setPageContext(routeContext);
+
+    const { unmount } = renderHook(() =>
+      useAgentDraftContext({ draftType: 'post' }),
+    );
+    expect(getPageContext().draftType).toBe('post');
+
+    unmount();
+
+    expect(useAgentChatStore.getState().pageContext).toEqual(routeContext);
+  });
+
+  it('leaves the page context alone while disabled', () => {
+    const routeContext = { placeholder: 'Ask about your posts...', route: '/' };
+    useAgentChatStore.getState().setPageContext(routeContext);
+
+    renderHook(() =>
+      useAgentDraftContext({ draftType: 'post', isEnabled: false }),
+    );
+
+    expect(useAgentChatStore.getState().pageContext).toEqual(routeContext);
+  });
 });

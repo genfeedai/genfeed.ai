@@ -60,6 +60,11 @@ export interface PostDetailHeaderProps {
   onDuplicate?: () => void;
   onExpandToThread?: (count: 2 | 3 | 5) => void;
   onRepurpose?: () => void;
+  /**
+   * Opens the agent on this post's own conversation. Without it, "Ask Agent"
+   * starts a new conversation on the agent page.
+   */
+  onAskAgent?: () => void;
   /** Immediate publish — the primary action for an unscheduled draft. */
   onPublishNow?: () => void;
   /** Commits the schedule draft — the primary action once a date is picked. */
@@ -100,6 +105,7 @@ export default function PostDetailHeader({
   onDuplicate: _onDuplicate,
   onExpandToThread,
   onRepurpose,
+  onAskAgent,
   onPublishNow,
   onScheduleSave,
   isScheduleDirty = false,
@@ -216,12 +222,16 @@ export default function PostDetailHeader({
         id: 'performance',
         label: translate('performance'),
       });
-      actions.push({
-        href: buildPostAgentHref(getPostLabel(post)),
+      const askAgent = {
         icon: <Sparkles className="size-4" />,
         id: 'ask-agent',
         label: translate('askAgent'),
-      });
+      };
+      actions.push(
+        onAskAgent
+          ? { ...askAgent, onSelect: onAskAgent }
+          : { ...askAgent, href: buildPostAgentHref(getPostLabel(post)) },
+      );
     }
 
     if (isEditable) {
@@ -255,6 +265,7 @@ export default function PostDetailHeader({
     canExpandToThread,
     isEditable,
     isExpandingToThread,
+    onAskAgent,
     onCreateRemix,
     onDelete,
     onRepurpose,

@@ -96,6 +96,26 @@
       "firstCommentHint": "Posted right after the post",
       "remove": "Remove",
       "firstCommentPlaceholder": "Add context, a link or a question…"
+    },
+    "agent": {
+      "contextLabel": "Post · {label}",
+      "placeholder": "Ask about this post…",
+      "untitled": "Untitled post",
+      "anyPlatform": "social",
+      "suggestions": {
+        "hooks": {
+          "label": "Better hooks",
+          "prompt": "Write three stronger opening lines for this {platform} post, and say which one you would pick and why."
+        },
+        "review": {
+          "label": "Review before posting",
+          "prompt": "Review this {platform} post before it goes out: the hook, clarity, call to action, length and anything that breaks {platform} rules. List concrete fixes."
+        },
+        "timing": {
+          "label": "Best time to post",
+          "prompt": "When should this {platform} post go out? Suggest the best time slots for my audience and explain why."
+        }
+      }
     }
   },
   "list": {

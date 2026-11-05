@@ -53,6 +53,12 @@ export interface ProductWorkspaceSurfaceAdapter {
     readonly organizationId: string;
   };
   readonly surfaceKey: WorkspaceShellSurfaceKey;
+  /**
+   * Pins the dock to one record's own conversation (e.g. `post:<id>`): the
+   * dock reopens the thread it last held for that record, or starts a fresh
+   * one, instead of the master conversation.
+   */
+  readonly threadKey?: string;
 }
 
 type ProductWorkspaceSurfaceAdapterRegistrar = (
@@ -336,15 +342,16 @@ export function useWorkspaceSurfaceAdapter(): ProductWorkspaceSurfaceAdapter | n
 
 /**
  * Product routes register only while mounted inside the universal shell. In the
- * legacy routed experience the hook intentionally becomes a no-op.
+ * legacy routed experience the hook intentionally becomes a no-op, as it does
+ * for a `null` registration (nothing to hand the conversation yet).
  */
 export function useRegisterWorkspaceSurfaceAdapter(
-  registration: ProductWorkspaceSurfaceAdapter,
+  registration: ProductWorkspaceSurfaceAdapter | null,
 ): void {
   const register = useContext(ProductWorkspaceSurfaceAdapterRegistrarContext);
 
   useLayoutEffect(() => {
-    if (!register) {
+    if (!register || !registration) {
       return;
     }
 

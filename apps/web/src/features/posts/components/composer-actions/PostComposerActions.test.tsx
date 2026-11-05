@@ -7,46 +7,15 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import PostComposerPromptBar from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar';
-import type { PostComposerPromptBarProps } from '@/features/posts/components/composer-prompt-bar/PostComposerPromptBar.props';
+import PostComposerActions from '@/features/posts/components/composer-actions/PostComposerActions';
+import type { PostComposerActionsProps } from '@/features/posts/components/composer-actions/PostComposerActions.props';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
   return { useTranslations: translateFromCatalog };
 });
-
-// The TipTap editor needs a real DOM layout; a textarea keeps these tests on
-// the bar's own behaviour.
-vi.mock('@ui/prompt-editor/PromptEditor', () => ({
-  default: ({
-    ariaLabel,
-    value,
-    isDisabled,
-    onValueChange,
-    onSubmit,
-  }: {
-    ariaLabel?: string;
-    value?: string;
-    isDisabled?: boolean;
-    onValueChange?: (value: string) => void;
-    onSubmit?: () => void;
-  }) => (
-    <textarea
-      aria-label={ariaLabel}
-      value={value}
-      disabled={isDisabled}
-      onChange={(event) => onValueChange?.(event.target.value)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          onSubmit?.();
-        }
-      }}
-    />
-  ),
-}));
 
 vi.mock('@ui/prompt-bars/components/toolbar/PromptBarCompactSelect', () => ({
   default: ({
@@ -74,23 +43,8 @@ vi.mock('@ui/prompt-bars/components/toolbar/PromptBarCompactSelect', () => ({
   ),
 }));
 
-vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
-  default: ({
-    children,
-    topContent,
-  }: {
-    children: ReactNode;
-    topContent?: ReactNode;
-  }) => (
-    <div>
-      {topContent}
-      {children}
-    </div>
-  ),
-}));
-
-function renderBar(overrides: Partial<PostComposerPromptBarProps> = {}) {
-  const props: PostComposerPromptBarProps = {
+function renderActions(overrides: Partial<PostComposerActionsProps> = {}) {
+  const props: PostComposerActionsProps = {
     isBusy: false,
     onApplyRewrite: vi.fn(),
     onRewrite: vi.fn().mockResolvedValue('<p>Shorter text</p>'),
@@ -99,18 +53,20 @@ function renderBar(overrides: Partial<PostComposerPromptBarProps> = {}) {
     targetLabel: 'Caption',
     ...overrides,
   };
-  return { ...render(<PostComposerPromptBar {...props} />), props };
+  return { ...render(<PostComposerActions {...props} />), props };
 }
 
-describe('PostComposerPromptBar', () => {
+describe('PostComposerActions', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows what it acts on and the rewrite presets', () => {
-    renderBar();
+  it('shows the rewrite presets as one row of buttons', () => {
+    renderActions();
 
-    expect(screen.getByText('Caption')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'AI actions' }),
+    ).toBeInTheDocument();
     for (const name of ['Shorten', 'Simplify', 'Boost', 'Hashtags']) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
@@ -120,7 +76,7 @@ describe('PostComposerPromptBar', () => {
   });
 
   it('shows the credits an enhancement is admitted for, not a hard-coded 1', () => {
-    renderBar();
+    renderActions();
 
     // The enhancements route holds the Gemini 3.8 Flash row's flat cost: 3.
     expect(POST_ENHANCEMENT_CREDITS).toBe(3);
@@ -129,7 +85,7 @@ describe('PostComposerPromptBar', () => {
   });
 
   it('offers thread presets only when allowed', () => {
-    renderBar({
+    renderActions({
       canAddFirstComment: true,
       canDraftThread: true,
       canEndWithGrok: true,
@@ -147,7 +103,7 @@ describe('PostComposerPromptBar', () => {
   });
 
   it('proposes a rewrite as plain text and applies it only on accept', async () => {
-    const { props } = renderBar();
+    const { props } = renderActions();
 
     fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
 
@@ -172,7 +128,7 @@ describe('PostComposerPromptBar', () => {
   });
 
   it('sends non-quick-action presets without an action key', async () => {
-    const { props } = renderBar();
+    const { props } = renderActions();
 
     fireEvent.click(screen.getByRole('button', { name: 'Hashtags' }));
 
@@ -188,7 +144,7 @@ describe('PostComposerPromptBar', () => {
   it('proposes thread posts and adds them only on accept', async () => {
     const onDraftThread = vi.fn().mockResolvedValue(['Reply one', 'Reply two']);
     const onAddThreadPosts = vi.fn().mockResolvedValue(undefined);
-    renderBar({ canDraftThread: true, onAddThreadPosts, onDraftThread });
+    renderActions({ canDraftThread: true, onAddThreadPosts, onDraftThread });
 
     fireEvent.click(screen.getByRole('button', { name: 'Turn into a thread' }));
 
@@ -212,7 +168,7 @@ describe('PostComposerPromptBar', () => {
     const onAddThreadPosts = vi
       .fn()
       .mockRejectedValue(new Error('save failed'));
-    renderBar({
+    renderActions({
       canDraftThread: true,
       onAddThreadPosts,
       onDraftThread: vi.fn().mockResolvedValue(['Reply one', 'Reply two']),
@@ -234,7 +190,7 @@ describe('PostComposerPromptBar', () => {
 
   it('discards a thread proposal without adding posts', async () => {
     const onAddThreadPosts = vi.fn();
-    renderBar({
+    renderActions({
       canDraftThread: true,
       onAddThreadPosts,
       onDraftThread: vi.fn().mockResolvedValue(['Reply one']),
@@ -252,7 +208,7 @@ describe('PostComposerPromptBar', () => {
   it('runs thread actions that need no AI directly', () => {
     const onEndWithGrok = vi.fn();
     const onAddFirstComment = vi.fn();
-    renderBar({
+    renderActions({
       canAddFirstComment: true,
       canEndWithGrok: true,
       onAddFirstComment,
@@ -266,46 +222,56 @@ describe('PostComposerPromptBar', () => {
     expect(onAddFirstComment).toHaveBeenCalledOnce();
   });
 
-  it('submits a custom instruction with the chosen tone', async () => {
-    const { props } = renderBar();
+  it('rewrites in the chosen tone', async () => {
+    const { props } = renderActions();
 
     fireEvent.change(screen.getByLabelText('Tone'), {
       target: { value: 'viral' },
     });
-    fireEvent.change(screen.getByLabelText('Ask AI to write or rewrite'), {
-      target: { value: '  open with the result  ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Rewrite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Simplify' }));
 
     await waitFor(() => {
       expect(props.onRewrite).toHaveBeenCalledWith(
-        'open with the result',
-        null,
+        expect.stringContaining('Simplify'),
+        'simplify',
         'viral',
       );
     });
   });
 
-  it('keeps the instruction when the rewrite fails', async () => {
-    renderBar({ onRewrite: vi.fn().mockResolvedValue(null) });
+  it('shows no proposal when the rewrite fails', async () => {
+    renderActions({ onRewrite: vi.fn().mockResolvedValue(null) });
 
-    fireEvent.change(screen.getByLabelText('Ask AI to write or rewrite'), {
-      target: { value: 'make it sharper' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Rewrite' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Shorten' }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Ask AI to write or rewrite')).toHaveValue(
-        'make it sharper',
-      );
+      expect(screen.getByRole('button', { name: 'Shorten' })).toBeEnabled();
     });
     expect(
       screen.queryByRole('region', { name: 'AI rewrite' }),
     ).not.toBeInTheDocument();
   });
 
+  it('hands free-form requests to the agent', () => {
+    const onAskAgent = vi.fn();
+    renderActions({ onAskAgent });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ask agent' }));
+
+    expect(onAskAgent).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('hides the agent button where no agent can open', () => {
+    renderActions();
+
+    expect(
+      screen.queryByRole('button', { name: 'Ask agent' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('disables presets while the page is busy', () => {
-    renderBar({ isBusy: true });
+    renderActions({ isBusy: true });
 
     expect(screen.getByRole('button', { name: 'Shorten' })).toBeDisabled();
   });
