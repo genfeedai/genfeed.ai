@@ -5,7 +5,10 @@ import {
 } from '@api/services/email-product-signals/email-product-signals.workflow';
 import { LowCreditThresholdService } from '@api/services/low-credit-threshold/low-credit-threshold.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
+import {
+  CreditTransactionCategory,
+  LifecycleEmailDeliveryStatus,
+} from '@genfeedai/contracts';
 import { IngredientStatus } from '@genfeedai/prisma';
 import { Traced } from '@libs/tracing/traced';
 import { Injectable } from '@nestjs/common';
@@ -68,7 +71,12 @@ export class LifecycleEmailWorkService {
     while (true) {
       const due = await this.prisma.lifecycleEmailDelivery.findMany({
         where: {
-          status: { in: ['scheduled', 'failed'] },
+          status: {
+            in: [
+              LifecycleEmailDeliveryStatus.SCHEDULED,
+              LifecycleEmailDeliveryStatus.FAILED,
+            ],
+          },
           scheduledFor: { lte: now },
         },
         select: { id: true, metadata: true, userId: true },

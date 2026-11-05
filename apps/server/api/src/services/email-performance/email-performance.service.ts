@@ -20,7 +20,10 @@ import { NotificationPreferenceService } from '@api/services/notifications/workf
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { NotificationDeliveryStatus } from '@genfeedai/contracts';
+import {
+  LifecycleEmailDeliveryStatus,
+  NotificationDeliveryStatus,
+} from '@genfeedai/contracts';
 import type { NotificationTopic } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { escapeSystemEmailHtml } from '@helpers/email/system-email.helper';
@@ -354,9 +357,17 @@ export class EmailPerformanceService {
           where: {
             id: legacyId,
             userId,
-            status: { notIn: ['sent', 'canceled'] },
+            status: {
+              notIn: [
+                LifecycleEmailDeliveryStatus.SENT,
+                LifecycleEmailDeliveryStatus.CANCELED,
+              ],
+            },
           },
-          data: { status: 'skipped', skippedAt: new Date() },
+          data: {
+            status: LifecycleEmailDeliveryStatus.SKIPPED,
+            skippedAt: new Date(),
+          },
         });
     });
   }
@@ -394,9 +405,19 @@ export class EmailPerformanceService {
           where: {
             id: input.legacyId,
             userId: input.userId,
-            status: { notIn: ['sent', 'canceled', 'skipped'] },
+            status: {
+              notIn: [
+                LifecycleEmailDeliveryStatus.SENT,
+                LifecycleEmailDeliveryStatus.CANCELED,
+                LifecycleEmailDeliveryStatus.SKIPPED,
+              ],
+            },
           },
-          data: { status: 'sent', sentAt: now, failureReason: null },
+          data: {
+            status: LifecycleEmailDeliveryStatus.SENT,
+            sentAt: now,
+            failureReason: null,
+          },
         });
     });
   }
@@ -435,7 +456,13 @@ export class EmailPerformanceService {
           where: {
             id: input.legacyId,
             userId: input.userId,
-            status: { notIn: ['sent', 'canceled', 'skipped'] },
+            status: {
+              notIn: [
+                LifecycleEmailDeliveryStatus.SENT,
+                LifecycleEmailDeliveryStatus.CANCELED,
+                LifecycleEmailDeliveryStatus.SKIPPED,
+              ],
+            },
           },
           data: { status: 'failed', failureReason: 'email_delivery_failed' },
         });
