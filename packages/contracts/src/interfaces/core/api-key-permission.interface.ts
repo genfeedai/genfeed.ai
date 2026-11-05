@@ -9,12 +9,28 @@ export interface IApiKeyPermissionResource {
   readScopes: readonly string[];
   /** Scopes `write` adds on top of `readScopes`. */
   writeScopes: readonly string[];
-  /** Whether a signed-in user may grant it to their own key. */
-  isSelfService: boolean;
 }
+
+/** A level per registry resource id; a missing id means `none`. */
+export type ApiKeyPermissionLevels = Readonly<
+  Record<string, ApiKeyPermissionLevel | undefined>
+>;
 
 export interface IApiKeyPermissionGroup {
   id: string;
   label: string;
   resources: readonly IApiKeyPermissionResource[];
+}
+
+/** What a platform admin gets back after minting a partner key. */
+export interface IAdminPartnerApiKeyResult {
+  apiKeyId: string;
+  defaultBrandId: string | null;
+  expiresAt: string | null;
+  /** The plain key. Shown once; only its hash is stored. */
+  key: string;
+  label: string;
+  organizationId: string;
+  scopes: string[];
+  userId: string;
 }

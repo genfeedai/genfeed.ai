@@ -183,6 +183,75 @@ test.describe('Settings Connections & Sub-Pages', () => {
       await expect(settingsPage.generateApiKeyButton).toBeVisible();
     });
 
+    test('creates a key with the levels chosen in the grouped editor', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
+      const createdBodies: Array<{ scopes?: string[] }> = [];
+      await authenticatedPage.route(API_KEYS_PATTERN, async (route: Route) => {
+        if (route.request().method() !== 'POST') {
+          await route.fallback();
+          return;
+        }
+        createdBodies.push(route.request().postDataJSON());
+        await route.fulfill({
+          body: JSON.stringify({
+            data: {
+              attributes: {
+                isRevoked: false,
+                key: 'gf_test_e2e_created',
+                label: 'MCP Server',
+                lastUsedAt: null,
+                scopes: [],
+              },
+              id: 'api-key-created',
+              type: 'api-key',
+            },
+          }),
+          contentType: 'application/json',
+          status: 201,
+        });
+      });
+
+      await settingsPage.goToApiKeys();
+
+      const canvas = settingsPage.canvas;
+      await canvas
+        .getByRole('group', { name: 'Scope preset' })
+        .getByRole('radio', { name: 'Read' })
+        .click();
+      await canvas
+        .getByRole('group', { exact: true, name: 'Videos' })
+        .getByRole('radio', { name: 'None' })
+        .click();
+      await canvas
+        .getByRole('group', { exact: true, name: 'Images' })
+        .getByRole('radio', { name: 'Write' })
+        .click();
+      await expect(
+        canvas
+          .getByRole('group', { name: 'Brands and brand context' })
+          .getByRole('radio'),
+      ).toHaveText(['None', 'Read']);
+
+      await settingsPage.generateApiKeyButton.click();
+
+      await expect(canvas.getByText('gf_test_e2e_created')).toBeVisible();
+      expect(createdBodies).toHaveLength(1);
+      expect(createdBodies[0]?.scopes).toEqual([
+        'images:read',
+        'images:create',
+        'images:update',
+        'images:delete',
+        'prompts:read',
+        'articles:read',
+        'brands:read',
+        'analytics:read',
+        'credits:read',
+      ]);
+    });
+
     test('is reachable from the organization settings sidebar', async ({
       authenticatedPage,
     }) => {
