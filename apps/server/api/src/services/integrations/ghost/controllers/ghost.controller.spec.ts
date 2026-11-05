@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ExternalCredentialProfile } from '@api/collections/credentials/credential.types';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   returnBadRequest,
@@ -212,8 +213,11 @@ describe('GhostController', () => {
         title: 'My Ghost Blog',
       } as never);
       credentialsService.updateExternalProfile.mockImplementation(
-        async (_id: string, _organizationId: string, profile: never) =>
-          ({ externalProfile: profile }) as never,
+        async (
+          _id: string,
+          _organizationId: string,
+          profile: ExternalCredentialProfile,
+        ) => ({ externalProfile: profile }) as never,
       );
 
       const result = await controller.connect(mockRequest, mockUser, {
