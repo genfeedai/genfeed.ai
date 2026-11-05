@@ -1,73 +1,107 @@
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { describe, expect, it, vi } from 'vitest';
-import { BRANDED_DISPATCH_RECOVERY_BATCH_SIZE } from './branded-dispatch-recovery.constants';
+import { describe, expect, it } from 'vitest';
 import { CronBrandedDispatchRecoveryService } from './cron.branded-dispatch-recovery.service';
 
-const ids = (prefix: string, count: number) =>
-  Array.from({ length: count }, (_, index) => `${prefix}-${index}`);
+type Receipts =
+  BrandedGenerationReceiptsService['recoverExpiredDispatchesSystem'];
+type ReceiptState = 'blocked' | 'resolved';
 
-function setup(pages: Array<{ blocked: string[]; skipped: string[] }>) {
-  const recover = vi.fn();
-  for (const page of pages) recover.mockResolvedValueOnce(page);
-  recover.mockResolvedValue({ blocked: [], skipped: [] });
-  const logger = { log: vi.fn() };
+const NOW = new Date('2026-10-13T10:00:00.000Z');
+
+/**
+ * The sweep over an in-memory table of expired `resolved` receipts. A page
+ * takes up to `limit` of them, minus excluded ids, and blocks each one, except
+ * `poison` receipts, which it can never block and reports as skipped.
+ */
+function sweepOver(count: number, poison: string[] = []) {
+  const receipts = new Map<string, ReceiptState>(
+    [
+      ...poison,
+      ...Array.from({ length: count }, (_, index) => `receipt-${index}`),
+    ].map((id) => [id, 'resolved']),
+  );
+  const pages: Array<{ excluded: number; now: Date | undefined }> = [];
+  const logged: unknown[] = [];
+  const recover: Receipts = async ({ excludeIds = [], limit, now }) => {
+    pages.push({ excluded: excludeIds.length, now });
+    const page = [...receipts]
+      .filter(([id, state]) => state === 'resolved' && !excludeIds.includes(id))
+      .slice(0, limit)
+      .map(([id]) => id);
+    const skipped = page.filter((id) => poison.includes(id));
+    const blocked = page.filter((id) => !poison.includes(id));
+    for (const id of blocked) {
+      receipts.set(id, 'blocked');
+    }
+    return { blocked, skipped } as Awaited<ReturnType<Receipts>>;
+  };
   const service = new CronBrandedDispatchRecoveryService(
-    logger as unknown as LoggerService,
+    {
+      log: (_message: string, totals: unknown) => {
+        logged.push(totals);
+      },
+    } as unknown as LoggerService,
     {
       recoverExpiredDispatchesSystem: recover,
     } as unknown as BrandedGenerationReceiptsService,
   );
-  return { logger, recover, service };
+  const stillResolved = () =>
+    [...receipts.values()].filter((state) => state === 'resolved').length;
+  return { logged, pages, service, stillResolved };
 }
 
 describe('CronBrandedDispatchRecoveryService', () => {
-  it('blocks expired receipts and reports the totals', async () => {
-    const { logger, recover, service } = setup([
-      { blocked: ['r1', 'r2'], skipped: ['r3'] },
-    ]);
-    const now = new Date('2026-10-13T10:00:00.000Z');
-    await expect(service.recoverExpiredDispatches(now)).resolves.toEqual({
+  it('blocks expired receipts in one page and reports the totals', async () => {
+    const { logged, pages, service, stillResolved } = sweepOver(2, ['poison']);
+
+    await expect(service.recoverExpiredDispatches(NOW)).resolves.toEqual({
       blocked: 2,
       skipped: 1,
     });
-    expect(recover).toHaveBeenCalledTimes(1);
-    expect(recover).toHaveBeenCalledWith({
-      excludeIds: [],
-      limit: BRANDED_DISPATCH_RECOVERY_BATCH_SIZE,
-      now,
-    });
-    expect(logger.log).toHaveBeenCalledTimes(1);
+
+    expect(pages).toEqual([{ excluded: 0, now: NOW }]);
+    expect(stillResolved()).toBe(1);
+    expect(logged).toEqual([
+      {
+        blocked: 2,
+        context: 'CronBrandedDispatchRecoveryService',
+        skipped: 1,
+      },
+    ]);
   });
 
   it('stays quiet when nothing expired', async () => {
-    const { logger, service } = setup([]);
-    await expect(service.recoverExpiredDispatches()).resolves.toEqual({
+    const { logged, service } = sweepOver(0);
+
+    await expect(service.recoverExpiredDispatches(NOW)).resolves.toEqual({
       blocked: 0,
       skipped: 0,
     });
-    expect(logger.log).not.toHaveBeenCalled();
+    expect(logged).toEqual([]);
   });
 
-  it('pages through a backlog and never re-reads receipts it skipped', async () => {
-    const full = ids('b', BRANDED_DISPATCH_RECOVERY_BATCH_SIZE - 1);
-    const { recover, service } = setup([
-      { blocked: full, skipped: ['poison'] },
-      { blocked: ['tail'], skipped: [] },
-    ]);
-    const totals = await service.recoverExpiredDispatches();
-    expect(totals).toEqual({ blocked: full.length + 1, skipped: 1 });
-    expect(recover).toHaveBeenCalledTimes(2);
-    expect(recover.mock.calls[1][0].excludeIds).toEqual(['poison']);
+  it('pages through a backlog without re-reading a receipt it could not block', async () => {
+    const { pages, service, stillResolved } = sweepOver(150, ['poison']);
+
+    await expect(service.recoverExpiredDispatches(NOW)).resolves.toEqual({
+      blocked: 150,
+      skipped: 1,
+    });
+
+    expect(pages.map((page) => page.excluded)).toEqual([0, 1]);
+    expect(stillResolved()).toBe(1);
   });
 
-  it('bounds one run to a fixed number of pages', async () => {
-    const page = {
-      blocked: ids('b', BRANDED_DISPATCH_RECOVERY_BATCH_SIZE),
-      skipped: [],
-    };
-    const { recover, service } = setup(Array.from({ length: 50 }, () => page));
-    await service.recoverExpiredDispatches();
-    expect(recover).toHaveBeenCalledTimes(20);
+  it('stops after 20 pages and leaves the rest of a large backlog to the next run', async () => {
+    const { pages, service, stillResolved } = sweepOver(2_500);
+
+    await expect(service.recoverExpiredDispatches(NOW)).resolves.toEqual({
+      blocked: 2_000,
+      skipped: 0,
+    });
+
+    expect(pages).toHaveLength(20);
+    expect(stillResolved()).toBe(500);
   });
 });
