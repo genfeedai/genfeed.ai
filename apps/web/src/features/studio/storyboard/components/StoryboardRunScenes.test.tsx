@@ -1,8 +1,18 @@
 import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
+import {
   BRAND_REMIX_RUN_CONTRACT,
   brandRemixRunViewSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
+import {
+  fireEvent,
+  render as renderView,
+  screen,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardRunScenes from './StoryboardRunScenes';
 
@@ -16,11 +26,22 @@ vi.mock('@/hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
 vi.mock('@/features/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: () => ({ voices: [], isLoading: false }),
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getService,
 }));
 vi.mock('@genfeedai/agent/components/ContentLibraryPicker', () => ({
-  ContentLibraryPicker: () => null,
+  ContentLibraryPicker: ({ isOpen, items }: ContentLibraryPickerProps) =>
+    isOpen ? (
+      <ul aria-label="Video library">
+        {(items ?? []).map((item) => (
+          <li key={item.id}>{item.contentTitle}</li>
+        ))}
+      </ul>
+    ) : null,
 }));
 vi.mock('@/features/studio/storyboard/components/StoryboardSelect', () => ({
   default: ({
@@ -44,10 +65,15 @@ vi.mock('@/features/studio/storyboard/components/StoryboardSelect', () => ({
 vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: () => null,
 }));
+const findAllVideos = vi.fn().mockResolvedValue([]);
 const getService = vi.fn().mockResolvedValue({
-  findAll: vi.fn().mockResolvedValue([]),
+  findAll: findAllVideos,
   findOne: vi.fn(),
 });
+/** Each render gets its own cache unless a spec passes a shared wrapper. */
+function render(ui: ReactElement) {
+  return renderView(ui, { wrapper: queryClientWrapper() });
+}
 const actions = {
   saveScenes: vi.fn(),
   attachSceneSource: vi.fn(),
@@ -223,5 +249,41 @@ describe('Storyboard run scene actions', () => {
         ]),
       },
     });
+  });
+  it('offers the cached library videos at once when the picker is opened again', async () => {
+    findAllVideos.mockResolvedValueOnce([
+      {
+        brandId: 'brand',
+        id: 'video-1',
+        metadata: { label: 'Launch clip' },
+        scope: 'USER',
+        status: 'GENERATED',
+      },
+    ]);
+    const client = createTestQueryClient();
+    const firstVisit = renderView(
+      <StoryboardRunScenes
+        run={fixture()}
+        actions={actions}
+        isWorking={false}
+      />,
+      { wrapper: queryClientWrapper(client) },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'attach' }));
+    expect(await screen.findByText('Launch clip')).toBeInTheDocument();
+    firstVisit.unmount();
+
+    findAllVideos.mockImplementationOnce(() => new Promise(() => {}));
+    renderView(
+      <StoryboardRunScenes
+        run={fixture()}
+        actions={actions}
+        isWorking={false}
+      />,
+      { wrapper: queryClientWrapper(client) },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'attach' }));
+
+    expect(screen.getByText('Launch clip')).toBeInTheDocument();
   });
 });

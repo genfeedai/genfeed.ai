@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import type { BrandRemixStoryboardScene } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
@@ -26,6 +26,9 @@ import { useStoryboardAssets } from '@/features/studio/storyboard/hooks/use-stor
 import { getStoryboardAssetLabel } from '@/features/studio/storyboard/utils/storyboard-asset-label';
 import { getStoryboardScenePreview } from '@/features/studio/storyboard/utils/storyboard-scene-preview';
 import { useAvatarImages } from '@/hooks/data/ingredients/use-avatar-images/use-avatar-images';
+
+const LIBRARY_VIDEO_STATUSES: string[] = ['UPLOADED', 'GENERATED', 'VALIDATED'];
+const EMPTY_VIDEOS: Video[] = [];
 
 export default function StoryboardRunScenes({
   run,
@@ -66,11 +69,31 @@ export default function StoryboardRunScenes({
     }));
   const [storyboard, setStoryboard] = useState(run.concept?.storyboard ?? []);
   const [isPickerOpen, setPickerOpen] = useState(false);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [libraryError, setLibraryError] = useState<string>();
-  const getVideos = useAuthedService((token: string) =>
-    VideosService.getInstance(token),
-  );
+  // Read while the picker is open; reopening it offers the cached videos at
+  // once and refreshes them in the background.
+  const libraryQuery = useAuthedQuery<VideosService, Video[]>({
+    enabled: isPickerOpen && Boolean(run.brandId),
+    queryFn: async (service, signal) => {
+      const list = await service.findAll(
+        {
+          brandId: run.brandId,
+          scope: 'USER',
+          status: LIBRARY_VIDEO_STATUSES,
+          limit: 100,
+        },
+        signal,
+      );
+      return list.filter(
+        (video) =>
+          LIBRARY_VIDEO_STATUSES.includes(video.status ?? '') &&
+          video.scope === 'USER' &&
+          video.brandId === run.brandId,
+      );
+    },
+    queryKey: ['storyboard-source-videos', run.brandId],
+    service: (token: string) => VideosService.getInstance(token),
+  });
+  const videos = libraryQuery.data ?? EMPTY_VIDEOS;
   const pipeline = run.scenePipeline;
   const sceneAssets = useStoryboardAssets(
     `${run.id}:${run.revision}`,
@@ -127,46 +150,10 @@ export default function StoryboardRunScenes({
   useEffect(() => {
     setStoryboard(run.concept?.storyboard ?? []);
   }, [run.concept]);
-  const libraryErrorLabel = t('libraryError');
-  useEffect(() => {
-    const controller = new AbortController();
-    setLibraryError(undefined);
-    setVideos([]);
-    const load = async () => {
-      try {
-        const service = await getVideos();
-        if (isPickerOpen) {
-          const list = await service.findAll(
-            {
-              brandId: run.brandId,
-              scope: 'USER',
-              status: ['UPLOADED', 'GENERATED', 'VALIDATED'],
-              limit: 100,
-            },
-            controller.signal,
-          );
-          if (!controller.signal.aborted)
-            setVideos(
-              list.filter(
-                (video) =>
-                  ['UPLOADED', 'GENERATED', 'VALIDATED'].includes(
-                    video.status ?? '',
-                  ) &&
-                  video.scope === 'USER' &&
-                  video.brandId === run.brandId,
-              ),
-            );
-        }
-      } catch (error) {
-        if (!controller.signal.aborted)
-          setLibraryError(
-            error instanceof Error ? error.message : libraryErrorLabel,
-          );
-      }
-    };
-    if (isPickerOpen) void load();
-    return () => controller.abort();
-  }, [getVideos, isPickerOpen, run.brandId, libraryErrorLabel]);
+  const libraryError =
+    isPickerOpen && libraryQuery.error
+      ? libraryQuery.error.message || t('libraryError')
+      : undefined;
   const patch = (index: number, edit: Partial<BrandRemixStoryboardScene>) =>
     setStoryboard((current) =>
       current.map((scene, position) =>

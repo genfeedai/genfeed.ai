@@ -6793,14 +6793,6 @@
       "workspace": "web"
     },
     {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/web/src/features/ingredients/detail/use-ingredient-detail.test.ts",
-      "fingerprint": "c38ce926e005b5ac01ab",
-      "message": "Property 'label' does not exist on type 'IIngredient'.",
-      "workspace": "web"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/web/src/features/ingredients/hooks/use-ingredient-metadata/use-ingredient-metadata.test.ts",

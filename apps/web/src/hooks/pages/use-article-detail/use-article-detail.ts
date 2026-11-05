@@ -11,8 +11,10 @@ import type { Article } from '@genfeedai/models/content/article.model';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ArticleFormState } from '@/props/content/article-editor.props';
@@ -56,6 +58,33 @@ const DEFAULT_FORM_STATE: ArticleFormState = {
   tags: '',
 };
 
+function articleDetailQueryKey(articleId: string) {
+  return ['article-detail', articleId] as const;
+}
+
+function toFormState(article: Article): ArticleFormState {
+  return {
+    category: article.category || ('post' as ArticleCategory),
+    content: article.content || '',
+    label: article.label || '',
+    slug: article.slug || '',
+    status: article.status || ArticleStatus.DRAFT,
+    summary: article.summary || '',
+    tags: article.tags?.map((t) => t.label || t.id).join(', ') || '',
+  };
+}
+
+function isSameForm(left: ArticleFormState, right: ArticleFormState): boolean {
+  return (
+    left.label === right.label &&
+    left.slug === right.slug &&
+    left.summary === right.summary &&
+    left.content === right.content &&
+    left.category === right.category &&
+    left.tags === right.tags
+  );
+}
+
 export function useArticleDetail({
   articleId,
 }: UseArticleDetailOptions): UseArticleDetailReturn {
@@ -70,67 +99,87 @@ export function useArticleDetail({
     useCallback((token: string) => ArticlesService.getInstance(token), []),
   );
 
-  const [article, setArticle] = useState<Article | null>(null);
-  const [form, setForm] = useState<ArticleFormState>(DEFAULT_FORM_STATE);
-  const [isLoading, setIsLoading] = useState(!!articleId);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isScoringSeo, setIsScoringSeo] = useState(false);
-  const [isSavingExternalUrl, setIsSavingExternalUrl] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const initialFormRef = useRef<ArticleFormState>(DEFAULT_FORM_STATE);
-
   // Resolve article ID from route param or query string
   const resolvedId = articleId || searchParams?.get('id') || undefined;
 
-  const isDirty =
-    form.label !== initialFormRef.current.label ||
-    form.slug !== initialFormRef.current.slug ||
-    form.summary !== initialFormRef.current.summary ||
-    form.content !== initialFormRef.current.content ||
-    form.category !== initialFormRef.current.category ||
-    form.tags !== initialFormRef.current.tags;
-
-  const fetchArticle = useCallback(async () => {
-    if (!resolvedId) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const service = await getArticlesService();
-      const data = await service.findOne(resolvedId);
-      setArticle(data);
-
-      const formState: ArticleFormState = {
-        category: data.category || ('post' as ArticleCategory),
-        content: data.content || '',
-        label: data.label || '',
-        slug: data.slug || '',
-        status: data.status || ArticleStatus.DRAFT,
-        summary: data.summary || '',
-        tags: data.tags?.map((t) => t.label || t.id).join(', ') || '',
-      };
-
-      setForm(formState);
-      initialFormRef.current = formState;
-    } catch (err) {
-      logger.error('Failed to fetch article', err);
-      setError('Failed to load article');
-      notificationsService.error('Failed to load article');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [resolvedId, getArticlesService, notificationsService]);
+  // The article reads through React Query, so reopening it paints the cached
+  // copy at once and refreshes it in the background.
+  const queryClient = useQueryClient();
+  const articleQuery = useAuthedQuery<ArticlesService, Article>({
+    enabled: Boolean(resolvedId),
+    queryFn: (service, signal) => service.findOne(resolvedId ?? '', {}, signal),
+    queryKey: articleDetailQueryKey(resolvedId ?? ''),
+    service: (token: string) => ArticlesService.getInstance(token),
+  });
+  const article = resolvedId ? (articleQuery.data ?? null) : null;
+  const isLoading = Boolean(resolvedId) && articleQuery.isPending;
+  const articleError = resolvedId ? articleQuery.error : null;
+  const error = articleError && !article ? 'Failed to load article' : null;
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchArticle();
-    return () => controller.abort();
-  }, [fetchArticle]);
+    if (!articleError) {
+      return;
+    }
+    logger.error('Failed to fetch article', articleError);
+    notificationsService.error('Failed to load article');
+  }, [articleError, notificationsService]);
+
+  // The form is seeded from the article: at once from a cached copy, again
+  // when another article opens, and from a fresh read only while the form is
+  // untouched, so a background refresh never overwrites the user's edits.
+  // A mutation writes its result into the cache at `ownWriteAtRef`; the form
+  // already reflects it, so that write never re-seeds the form.
+  const [form, setForm] = useState<ArticleFormState>(() =>
+    article ? toFormState(article) : DEFAULT_FORM_STATE,
+  );
+  const initialFormRef = useRef<ArticleFormState>(form);
+  const seededRef = useRef<{ id: string; updatedAt: number } | null>(
+    article && resolvedId
+      ? { id: resolvedId, updatedAt: articleQuery.dataUpdatedAt }
+      : null,
+  );
+  const ownWriteAtRef = useRef(0);
+  const formRef = useRef(form);
+  formRef.current = form;
+  const articleUpdatedAt = articleQuery.dataUpdatedAt;
+
+  useEffect(() => {
+    if (!article || !resolvedId) {
+      return;
+    }
+    const seeded = seededRef.current;
+    const isNewArticle = seeded?.id !== resolvedId;
+    if (!isNewArticle && seeded.updatedAt === articleUpdatedAt) {
+      return;
+    }
+    seededRef.current = { id: resolvedId, updatedAt: articleUpdatedAt };
+    const isOwnWrite = articleUpdatedAt === ownWriteAtRef.current;
+    const isUntouched = isSameForm(formRef.current, initialFormRef.current);
+    if (isNewArticle || (!isOwnWrite && isUntouched)) {
+      const formState = toFormState(article);
+      setForm(formState);
+      initialFormRef.current = formState;
+    }
+  }, [article, articleUpdatedAt, resolvedId]);
+
+  const writeArticle = useCallback(
+    (id: string, next: Article) => {
+      const updatedAt = Date.now();
+      ownWriteAtRef.current = updatedAt;
+      queryClient.setQueriesData<Article>(
+        { queryKey: articleDetailQueryKey(id) },
+        () => next,
+        { updatedAt },
+      );
+    },
+    [queryClient],
+  );
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isScoringSeo, setIsScoringSeo] = useState(false);
+  const [isSavingExternalUrl, setIsSavingExternalUrl] = useState(false);
+
+  const isDirty = !isSameForm(form, initialFormRef.current);
 
   const setFormField = useCallback(
     <K extends keyof ArticleFormState>(key: K, value: ArticleFormState[K]) => {
@@ -165,7 +214,7 @@ export function useArticleDetail({
 
       if (resolvedId) {
         const updated = await service.patch(resolvedId, payload);
-        setArticle(updated);
+        writeArticle(resolvedId, updated);
         initialFormRef.current = { ...form };
         notificationsService.success('Article saved');
       } else {
@@ -173,7 +222,6 @@ export function useArticleDetail({
           ...payload,
           organizationId,
         });
-        setArticle(created);
         initialFormRef.current = { ...form };
         notificationsService.success('Article created');
         router.push(href(createArtifactEditorRoute('article', created.id)));
@@ -193,6 +241,7 @@ export function useArticleDetail({
     notificationsService,
     organizationId,
     router,
+    writeArticle,
   ]);
 
   const handlePublish = useCallback(async () => {
@@ -203,14 +252,14 @@ export function useArticleDetail({
     try {
       const service = await getArticlesService();
       const updated = await service.publish(resolvedId);
-      setArticle(updated);
+      writeArticle(resolvedId, updated);
       setForm((prev) => ({ ...prev, status: ArticleStatus.PUBLISHED }));
       notificationsService.success('Article published');
     } catch (err) {
       logger.error('Failed to publish article', err);
       notificationsService.error('Failed to publish article');
     }
-  }, [resolvedId, getArticlesService, notificationsService]);
+  }, [resolvedId, getArticlesService, notificationsService, writeArticle]);
 
   /** A connected-blog delivery also marks the article published server-side. */
   const handleArticleDelivered = useCallback(() => {
@@ -227,7 +276,7 @@ export function useArticleDetail({
       try {
         const service = await getArticlesService();
         const updated = await service.patch(resolvedId, { externalUrl });
-        setArticle(updated);
+        writeArticle(resolvedId, updated);
         notificationsService.success(
           externalUrl ? 'Live link saved' : 'Live link removed',
         );
@@ -238,7 +287,7 @@ export function useArticleDetail({
         setIsSavingExternalUrl(false);
       }
     },
-    [resolvedId, getArticlesService, notificationsService],
+    [resolvedId, getArticlesService, notificationsService, writeArticle],
   );
 
   const handleArchive = useCallback(async () => {
@@ -249,14 +298,14 @@ export function useArticleDetail({
     try {
       const service = await getArticlesService();
       const updated = await service.archive(resolvedId);
-      setArticle(updated);
+      writeArticle(resolvedId, updated);
       setForm((prev) => ({ ...prev, status: ArticleStatus.ARCHIVED }));
       notificationsService.success('Article archived');
     } catch (err) {
       logger.error('Failed to archive article', err);
       notificationsService.error('Failed to archive article');
     }
-  }, [resolvedId, getArticlesService, notificationsService]);
+  }, [resolvedId, getArticlesService, notificationsService, writeArticle]);
 
   const handleDelete = useCallback(async () => {
     if (!resolvedId) {
@@ -266,13 +315,23 @@ export function useArticleDetail({
     try {
       const service = await getArticlesService();
       await service.delete(resolvedId);
+      queryClient.removeQueries({
+        queryKey: articleDetailQueryKey(resolvedId),
+      });
       notificationsService.success('Article deleted');
       router.push(href(APP_ROUTES.PUBLISHING.ROOT));
     } catch (err) {
       logger.error('Failed to delete article', err);
       notificationsService.error('Failed to delete article');
     }
-  }, [resolvedId, getArticlesService, href, notificationsService, router]);
+  }, [
+    resolvedId,
+    getArticlesService,
+    href,
+    notificationsService,
+    queryClient,
+    router,
+  ]);
 
   const handleScoreSeo = useCallback(async () => {
     if (!resolvedId || isScoringSeo || isDirty) {
@@ -284,7 +343,7 @@ export function useArticleDetail({
     try {
       const service = await getArticlesService();
       const updated = await service.scoreSeo(resolvedId);
-      setArticle(updated);
+      writeArticle(resolvedId, updated);
       notificationsService.success('SEO score updated');
     } catch (err) {
       logger.error('Failed to score article SEO', err);
@@ -298,6 +357,7 @@ export function useArticleDetail({
     isDirty,
     getArticlesService,
     notificationsService,
+    writeArticle,
   ]);
 
   return {

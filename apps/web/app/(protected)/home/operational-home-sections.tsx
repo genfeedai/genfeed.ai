@@ -25,6 +25,7 @@ import {
   getPublishingPostHref,
   getPublishingReleaseHref,
 } from '@helpers/content/posts.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
@@ -48,7 +49,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { WorkspaceSurface } from '@/components/overview/WorkspaceSurface';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -90,6 +91,10 @@ const ACTIVITY_ROW_LIMIT = 5;
 const NEEDS_YOU_LIMIT = 5;
 const WORKFLOW_UNAVAILABLE_LABEL = 'Workflow unavailable';
 const UPCOMING_SCHEDULE_DAYS = 7;
+
+function toLocalDayKey(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
 
 function ErrorLine({
   description,
@@ -495,36 +500,20 @@ function UpcomingScheduleBlock({
   orgSlug: string;
 }) {
   const translate = useTranslations('common');
-  const getReleaseGroupsService = useAuthedService((token: string) =>
-    ReleaseGroupsService.getInstance(token),
-  );
-  const [scheduleDays, setScheduleDays] = useState<
-    UpcomingScheduleDay[] | null
-  >(null);
-  const [isError, setIsError] = useState(false);
-  const [refreshToken, setRefreshToken] = useState(0);
+  // The window starts today, so a new day is a new read.
+  const windowDay = toLocalDayKey(new Date());
+  const scheduleQuery = useAuthedQuery<
+    ReleaseGroupsService,
+    UpcomingScheduleDay[]
+  >({
+    enabled: Boolean(brandSlug),
+    queryFn: async (service, signal) => {
+      const windowStart = new Date();
+      windowStart.setHours(0, 0, 0, 0);
+      const windowEnd = new Date(windowStart);
+      windowEnd.setDate(windowEnd.getDate() + UPCOMING_SCHEDULE_DAYS);
 
-  const refresh = useCallback(async () => {
-    setRefreshToken((current) => current + 1);
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshToken intentionally re-runs the load after a manual retry
-  useEffect(() => {
-    if (!brandSlug) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const loadSchedule = async () => {
       try {
-        const service = await getReleaseGroupsService();
-
-        const windowStart = new Date();
-        windowStart.setHours(0, 0, 0, 0);
-        const windowEnd = new Date(windowStart);
-        windowEnd.setDate(windowEnd.getDate() + UPCOMING_SCHEDULE_DAYS);
-
         // Same scheduler read model the publish calendar queries — the window
         // filter narrows releases, the target filter narrows to live sends.
         const releases = await service.findAllPages(
@@ -534,34 +523,30 @@ function UpcomingScheduleBlock({
             executionState: [TargetExecutionState.SCHEDULED],
             startDate: windowStart.toISOString(),
           },
-          controller.signal,
+          signal,
         );
-
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        setScheduleDays(
-          summarizeUpcomingSchedule(
-            releases,
-            windowStart,
-            UPCOMING_SCHEDULE_DAYS,
-          ),
+        return summarizeUpcomingSchedule(
+          releases,
+          windowStart,
+          UPCOMING_SCHEDULE_DAYS,
         );
-        setIsError(false);
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
+        if (!signal.aborted) {
+          logger.error('Failed to load the upcoming schedule', error);
         }
-        logger.error('Failed to load the upcoming schedule', error);
-        setIsError(true);
+        throw error;
       }
-    };
+    },
+    queryKey: ['home-upcoming-schedule', brandId ?? null, windowDay],
+    service: (token: string) => ReleaseGroupsService.getInstance(token),
+  });
+  const { refetch: refetchSchedule } = scheduleQuery;
+  const scheduleDays = scheduleQuery.data ?? null;
+  const isError = scheduleQuery.isError;
 
-    void loadSchedule();
-
-    return () => controller.abort();
-  }, [brandId, brandSlug, getReleaseGroupsService, refreshToken]);
+  const refresh = useCallback(async () => {
+    await refetchSchedule();
+  }, [refetchSchedule]);
 
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,

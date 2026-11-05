@@ -3,14 +3,17 @@
 import { PersonasService } from '@genfeedai/services/content/personas.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { isCancelledRequest } from '@genfeedai/services/core/operation-error';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useEffect, useState } from 'react';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import type { LibraryCharacterOption } from '@/features/library/props/library-browser.props';
+
+const NO_OPTIONS: LibraryCharacterOption[] = [];
 
 /**
  * The characters the active brand can use, for the Library character filter.
  * Availability is decided server-side (own brand plus shared to it), so the
- * list is exactly what the filter will honour.
+ * list is exactly what the filter will honour. The list is cached per brand:
+ * returning to the Library paints it at once, and the previous brand's
+ * characters are never shown while the next brand loads.
  */
 export function useLibraryCharacterOptions({
   brandId,
@@ -19,58 +22,34 @@ export function useLibraryCharacterOptions({
   brandId?: string | null;
   isEnabled: boolean;
 }): LibraryCharacterOption[] {
-  const getPersonasService = useAuthedService((token: string) =>
-    PersonasService.getInstance(token),
-  );
-  const [options, setOptions] = useState<LibraryCharacterOption[]>([]);
-
-  useEffect(() => {
-    if (!isEnabled || !brandId) {
-      setOptions([]);
-      return;
-    }
-
-    // Never show the previous brand's characters while the next brand loads.
-    setOptions([]);
-    const abortController = new AbortController();
-
-    async function load(): Promise<void> {
+  const optionsQuery = useAuthedQuery<
+    PersonasService,
+    LibraryCharacterOption[]
+  >({
+    enabled: isEnabled && Boolean(brandId),
+    queryFn: async (service, signal) => {
       try {
-        const service = await getPersonasService();
         const characters = await service.listAllCharacters({
           brandId: brandId ?? undefined,
-          signal: abortController.signal,
+          signal,
         });
-
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setOptions(
-          characters.map((character) => ({
-            avatarIngredientId: character.avatarIngredientId,
-            id: character.id,
-            label: character.label,
-          })),
-        );
+        return characters.map((character) => ({
+          avatarIngredientId: character.avatarIngredientId,
+          id: character.id,
+          label: character.label,
+        }));
       } catch (error) {
-        if (abortController.signal.aborted || isCancelledRequest(error)) {
-          return;
+        if (!signal.aborted && !isCancelledRequest(error)) {
+          logger.error('Failed to load Library character filter options', {
+            error,
+          });
         }
-
-        logger.error('Failed to load Library character filter options', {
-          error,
-        });
-        setOptions([]);
+        throw error;
       }
-    }
+    },
+    queryKey: ['library-character-options', brandId ?? null],
+    service: (token: string) => PersonasService.getInstance(token),
+  });
 
-    void load();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [brandId, getPersonasService, isEnabled]);
-
-  return options;
+  return isEnabled && brandId ? (optionsQuery.data ?? NO_OPTIONS) : NO_OPTIONS;
 }

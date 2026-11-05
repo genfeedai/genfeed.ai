@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import { selectView } from '@app-tests/view-menu.helpers';
 import {
   ContextSidebarOutlet,
@@ -31,7 +32,8 @@ import type {
 import {
   act,
   fireEvent,
-  render,
+  type RenderOptions,
+  render as renderView,
   screen,
   waitFor,
   within,
@@ -43,6 +45,8 @@ import {
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
+  Fragment,
+  type ReactElement,
   type ReactNode,
   StrictMode,
   useCallback,
@@ -822,6 +826,23 @@ function controlsFor(endpoint = 'kling/v2-5-turbo-pro'): CrunInputControls {
           }),
     },
   };
+}
+
+/**
+ * Every render gets its own query cache, inside any wrapper the spec passes;
+ * a `rerender` keeps it.
+ */
+function render(ui: ReactElement, options?: RenderOptions) {
+  const QueryClientHost = queryClientWrapper();
+  const Host = options?.wrapper ?? Fragment;
+  return renderView(ui, {
+    ...options,
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientHost>
+        <Host>{children}</Host>
+      </QueryClientHost>
+    ),
+  });
 }
 
 /** The saved draft has been read, so a continuation is no longer deferred. */

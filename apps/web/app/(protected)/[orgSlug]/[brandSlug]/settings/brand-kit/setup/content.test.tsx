@@ -1,9 +1,26 @@
 import '@testing-library/jest-dom/vitest';
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsInterviewPage from './content';
+
+function render(
+  ui: ReactElement,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const mocks = vi.hoisted(() => ({
   brandDetail: {
@@ -44,6 +61,11 @@ vi.mock('@/hooks/pages/use-brand-detail/use-brand-detail', () => ({
 
 vi.mock('@/hooks/utils/use-brand-interview/use-brand-interview', () => ({
   useBrandInterview: () => mocks.useBrandInterview,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -639,5 +661,19 @@ describe('BrandSettingsInterviewPage', () => {
     render(<BrandSettingsInterviewPage />);
 
     expect(screen.getByText('Brand not found.')).toBeVisible();
+  });
+
+  it('paints the cached completeness score at once when reopened', async () => {
+    const client = createTestQueryClient();
+    const { unmount } = render(<BrandSettingsInterviewPage />, client);
+    expect(await screen.findByText('42%')).toBeVisible();
+    unmount();
+
+    mocks.getInterviewService.mockResolvedValue({
+      getCompleteness: vi.fn(() => new Promise(() => undefined)),
+    });
+    render(<BrandSettingsInterviewPage />, client);
+
+    expect(screen.getByText('42%')).toBeVisible();
   });
 });

@@ -1,3 +1,4 @@
+import { queryClientWrapper } from '@app-tests/query-client.harness';
 import {
   ContextSidebarHeaderOutlet,
   ContextSidebarProvider,
@@ -12,12 +13,13 @@ import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';
 import {
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StudioPlaygroundJob } from '@/features/studio/playground/types';
 import StudioPlaygroundInspector from './StudioPlaygroundInspector';
@@ -135,6 +137,11 @@ vi.mock('@services/ingredients/videos.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
+
+/** The generation cost reads through React Query; each render gets a fresh cache. */
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: queryClientWrapper() });
+}
 
 const recipeJob = {
   createdAt: 1,

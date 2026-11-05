@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
@@ -61,8 +65,11 @@ describe('useStudioPlaygroundModels', () => {
       makeModel('argil/atom', ModelCategory.VOICE),
     ]);
 
-    const { result } = renderHook(() =>
-      useStudioPlaygroundModels(ModelCategory.VOICE, 'org-1'),
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.VOICE, 'org-1'),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
 
     await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
@@ -89,8 +96,11 @@ describe('useStudioPlaygroundModels', () => {
       },
     ]);
 
-    const { result } = renderHook(() =>
-      useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
 
     await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
@@ -109,8 +119,11 @@ describe('useStudioPlaygroundModels', () => {
       makeModel('music-b', ModelCategory.MUSIC),
     ]);
 
-    const { result } = renderHook(() =>
-      useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
 
     await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
@@ -118,8 +131,11 @@ describe('useStudioPlaygroundModels', () => {
   });
 
   it('returns an empty catalog without fetching when there is no category', () => {
-    const { result } = renderHook(() =>
-      useStudioPlaygroundModels(null, 'org-1'),
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(null, 'org-1'),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
 
     expect(result.current.models).toEqual([]);
@@ -151,6 +167,7 @@ describe('useStudioPlaygroundModels', () => {
             category: ModelCategory.MUSIC as ModelCategory,
             organizationId: 'org-1',
           },
+          wrapper: queryClientWrapper(),
         },
       );
       await waitFor(() =>
@@ -186,7 +203,10 @@ describe('useStudioPlaygroundModels', () => {
       const { rerender, unmount } = renderHook(
         ({ organizationId }) =>
           useStudioPlaygroundModels(ModelCategory.MUSIC, organizationId),
-        { initialProps: { organizationId: 'org-1' } },
+        {
+          initialProps: { organizationId: 'org-1' },
+          wrapper: queryClientWrapper(),
+        },
       );
       await waitFor(() => expect(mocks.getToken).toHaveBeenCalledTimes(1));
       if (operation === 'unmount') unmount();
@@ -213,7 +233,10 @@ describe('useStudioPlaygroundModels', () => {
       const { result, rerender } = renderHook(
         ({ organizationId }) =>
           useStudioPlaygroundModels(ModelCategory.MUSIC, organizationId),
-        { initialProps: { organizationId: 'org-1' } },
+        {
+          initialProps: { organizationId: 'org-1' },
+          wrapper: queryClientWrapper(),
+        },
       );
       await waitFor(() => expect(mocks.findAll).toHaveBeenCalledTimes(1));
       rerender({ organizationId: 'org-2' });
@@ -241,8 +264,11 @@ describe('useStudioPlaygroundModels', () => {
     mocks.findAll.mockResolvedValue([
       makeModel('current-owner', ModelCategory.MUSIC),
     ]);
-    const { result, rerender } = renderHook(() =>
-      useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+    const { result, rerender } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
     await waitFor(() => expect(result.current.isModelCatalogReady).toBe(true));
     rerender();
@@ -253,9 +279,39 @@ describe('useStudioPlaygroundModels', () => {
     expect(mocks.findAll).toHaveBeenCalledTimes(1);
   });
 
+  it('paints the cached catalog at once when Studio is opened again', async () => {
+    const client = createTestQueryClient();
+    mocks.findAll.mockResolvedValue([
+      makeModel('music-a', ModelCategory.MUSIC),
+    ]);
+    const firstVisit = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() =>
+      expect(firstVisit.result.current.isModelCatalogReady).toBe(true),
+    );
+    firstVisit.unmount();
+
+    mocks.findAll.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, 'org-1'),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.isLoadingModels).toBe(false);
+    expect(result.current.isModelCatalogReady).toBe(true);
+    expect(result.current.models.map((model) => model.key)).toEqual([
+      'music-a',
+    ]);
+  });
+
   it('does not fetch without an organization', () => {
-    const { result } = renderHook(() =>
-      useStudioPlaygroundModels(ModelCategory.MUSIC, undefined),
+    const { result } = renderHook(
+      () => useStudioPlaygroundModels(ModelCategory.MUSIC, undefined),
+      {
+        wrapper: queryClientWrapper(),
+      },
     );
     expect(result.current.models).toEqual([]);
     expect(result.current.isModelCatalogReady).toBe(false);

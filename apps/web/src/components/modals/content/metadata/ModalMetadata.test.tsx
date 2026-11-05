@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
@@ -54,18 +58,24 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
+const { mockFindAll } = vi.hoisted(() => ({
+  mockFindAll: vi.fn(async () => [
+    { id: 'folder-1', label: 'Campaign assets' },
+  ]),
+}));
+
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
-  default: () => () =>
-    Promise.resolve({
-      findAll: vi.fn().mockResolvedValue([]),
-      updateMetadata: vi.fn(),
-    }),
   useAuthedService: () => () =>
     Promise.resolve({
-      findAll: vi.fn().mockResolvedValue([]),
+      findAll: mockFindAll,
       updateMetadata: vi.fn(),
     }),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
 }));
 
 vi.mock('@/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
@@ -102,7 +112,29 @@ describe('ModalMetadata', () => {
   };
 
   it('renders metadata form', () => {
-    render(<ModalMetadata {...defaultProps} />);
+    render(<ModalMetadata {...defaultProps} />, {
+      wrapper: queryClientWrapper(),
+    });
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
+  it('offers the cached folders at once when reopened', async () => {
+    const client = createTestQueryClient();
+    const firstOpen = render(<ModalMetadata {...defaultProps} />, {
+      wrapper: queryClientWrapper(client),
+    });
+    expect(
+      await screen.findByRole('option', { name: 'Campaign assets' }),
+    ).toBeInTheDocument();
+    firstOpen.unmount();
+
+    mockFindAll.mockImplementationOnce(() => new Promise(() => {}));
+    render(<ModalMetadata {...defaultProps} />, {
+      wrapper: queryClientWrapper(client),
+    });
+
+    expect(
+      screen.getByRole('option', { name: 'Campaign assets' }),
+    ).toBeInTheDocument();
   });
 });

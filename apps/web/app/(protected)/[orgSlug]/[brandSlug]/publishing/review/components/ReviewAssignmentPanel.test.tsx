@@ -1,8 +1,13 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { ContentFormat, TurboRunItemStatus } from '@genfeedai/contracts';
 import type { ITurboRunItem } from '@genfeedai/contracts/interfaces';
-import { render, screen, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +19,11 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', async () => ({
+  useAuthIdentity: (await import('@app-tests/query-client.harness'))
+    .useTestViewer,
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getMembersService,
@@ -55,6 +65,13 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 import ReviewAssignmentPanel from './ReviewAssignmentPanel';
+
+function render(
+  ui: ReactElement,
+  client: QueryClient = createTestQueryClient(),
+) {
+  return rtlRender(ui, { wrapper: queryClientWrapper(client) });
+}
 
 const baseItem: ITurboRunItem = {
   turboRunId: 'batch-1',
@@ -182,5 +199,34 @@ describe('ReviewAssignmentPanel', () => {
     expect(screen.getByText('Unavailable member')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Unassign' }));
     expect(onUnassign).toHaveBeenCalledWith('item-1');
+  });
+
+  it('lists the cached teammates at once when the panel opens again', async () => {
+    const client = createTestQueryClient();
+    const { unmount } = render(
+      <ReviewAssignmentPanel
+        isActioning={false}
+        item={baseItem}
+        onAssign={vi.fn()}
+        onUnassign={vi.fn()}
+      />,
+      client,
+    );
+    expect(await screen.findByText('Jane Doe (@jane)')).toBeInTheDocument();
+    unmount();
+
+    mocks.findAllPages.mockReturnValue(new Promise(() => undefined));
+    render(
+      <ReviewAssignmentPanel
+        isActioning={false}
+        item={baseItem}
+        onAssign={vi.fn()}
+        onUnassign={vi.fn()}
+      />,
+      client,
+    );
+
+    expect(screen.getByText('Jane Doe (@jane)')).toBeInTheDocument();
+    expect(screen.getByText('Sam Lee (@sam)')).toBeInTheDocument();
   });
 });

@@ -1,3 +1,7 @@
+import {
+  createTestQueryClient,
+  queryClientWrapper,
+} from '@app-tests/query-client.harness';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -69,7 +73,7 @@ describe('saved Storyboard voice eligibility', () => {
       .mockResolvedValueOnce([voice('other', { organizationId: 'org-2' })]);
     const { result, rerender } = renderHook(
       ({ org }) => useStoryboardVoices('brand-1', org),
-      { initialProps: { org: 'org-1' } },
+      { initialProps: { org: 'org-1' }, wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(mocks.findAllPages).toHaveBeenCalledOnce());
     expect(mocks.findAllPages.mock.calls[0][0]).toMatchObject({
@@ -88,12 +92,34 @@ describe('saved Storyboard voice eligibility', () => {
     mocks.findAllPages
       .mockRejectedValueOnce(new Error('Offline'))
       .mockResolvedValueOnce([]);
-    const { result } = renderHook(() =>
-      useStoryboardVoices('brand-1', 'org-1'),
+    const { result } = renderHook(
+      () => useStoryboardVoices('brand-1', 'org-1'),
+      { wrapper: queryClientWrapper() },
     );
     await waitFor(() => expect(result.current.status).toBe('failed'));
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.status).toBe('loaded'));
     expect(result.current.voices).toEqual([]);
+  });
+  it('paints the cached voices at once when the plan is opened again', async () => {
+    const client = createTestQueryClient();
+    mocks.findAllPages.mockResolvedValueOnce([voice('narrator')]);
+    const firstVisit = renderHook(
+      () => useStoryboardVoices('brand-1', 'org-1'),
+      { wrapper: queryClientWrapper(client) },
+    );
+    await waitFor(() =>
+      expect(firstVisit.result.current.status).toBe('loaded'),
+    );
+    firstVisit.unmount();
+
+    mocks.findAllPages.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(
+      () => useStoryboardVoices('brand-1', 'org-1'),
+      { wrapper: queryClientWrapper(client) },
+    );
+
+    expect(result.current.status).toBe('loaded');
+    expect(result.current.voices.map((row) => row.id)).toEqual(['narrator']);
   });
 });

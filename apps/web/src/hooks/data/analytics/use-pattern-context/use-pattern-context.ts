@@ -12,9 +12,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useEffect, useState } from 'react';
 import type { PatternLabFilters } from '@/props/analytics/performance-lab.props';
 
 export interface UsePatternContextReturn {
@@ -26,83 +25,74 @@ export interface UsePatternContextReturn {
 
 const EMPTY_PATTERNS: ICreativePattern[] = [];
 
-/** Loads one server-side page of patterns and its pagination metadata. */
+/**
+ * Loads one server-side page of patterns and its pagination metadata. Pages
+ * are cached per brand, filters and page: returning paints the cached page at
+ * once, and the analytics Refresh re-reads it in the background.
+ */
 export function usePatternContext(
   filters?: PatternLabFilters,
   page: number = 1,
 ): UsePatternContextReturn {
   const { brandId } = useCollectionScope();
   const refreshTrigger = useOptionalAnalyticsContext()?.refreshTrigger ?? 0;
-  const getCreativePatternsService = useAuthedService((token: string) =>
-    CreativePatternsService.getInstance(token),
-  );
-  const [patternsPage, setPatternsPage] =
-    useState<IPaginatedResponse<ICreativePattern> | null>(null);
-  const patterns = patternsPage?.items ?? EMPTY_PATTERNS;
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const scopeKey = ['creative-patterns', brandId || null] as const;
+  const patternFilters = {
+    brandId: brandId || undefined,
+    patternType: filters?.patternType,
+    platform: filters?.platform,
+    scope: filters?.scope,
+  };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshTrigger explicitly re-reads the patterns.
-  useEffect(() => {
-    const controller = new AbortController();
-
-    setIsLoading(true);
-    setError(null);
-
-    void getCreativePatternsService()
-      .then((service) =>
-        service.findAll(
-          {
-            brandId: brandId || undefined,
-            patternType: filters?.patternType,
-            platform: filters?.platform,
-            scope: filters?.scope,
-          },
+  const patternsQuery = useAuthedQuery<
+    CreativePatternsService,
+    IPaginatedResponse<ICreativePattern>
+  >({
+    // A new page or filter keeps the current rows on screen while it loads.
+    keepPreviousDataWithin: scopeKey,
+    queryFn: async (service, signal) => {
+      try {
+        return await service.findAll(
+          patternFilters,
           { limit: ITEMS_PER_PAGE, page },
-          controller.signal,
-        ),
-      )
-      .then((nextPatterns) => {
-        if (controller.signal.aborted) {
-          return;
+          signal,
+        );
+      } catch (err: unknown) {
+        if (!signal.aborted) {
+          logger.error('usePatternContext: fetch failed', {
+            error: err,
+            reportToSentry: false,
+          });
         }
-        setPatternsPage(nextPatterns);
-        setIsLoading(false);
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        if (err instanceof Error && err.name === 'AbortError') {
-          return;
-        }
-        const message =
-          err instanceof Error ? err.message : 'Failed to load patterns';
-        logger.error('usePatternContext: fetch failed', {
-          error: err,
-          reportToSentry: false,
-        });
-        setError(message);
-        setIsLoading(false);
-      });
+        throw err;
+      }
+    },
+    queryKey: [
+      ...scopeKey,
+      {
+        patternType: filters?.patternType ?? null,
+        platform: filters?.platform ?? null,
+        scope: filters?.scope ?? null,
+      },
+      page,
+    ],
+    refreshKey: refreshTrigger,
+    service: (token: string) => CreativePatternsService.getInstance(token),
+  });
 
-    return () => {
-      controller.abort();
-    };
-  }, [
-    brandId,
-    filters?.platform,
-    filters?.patternType,
-    filters?.scope,
-    getCreativePatternsService,
-    page,
-    refreshTrigger,
-  ]);
+  const patternsPage = patternsQuery.data;
+  const queryError: unknown = patternsQuery.error;
+  const error =
+    queryError && !patternsPage
+      ? queryError instanceof Error
+        ? queryError.message
+        : 'Failed to load patterns'
+      : null;
 
   return {
     error,
-    isLoading,
-    patterns,
+    isLoading: patternsQuery.isPending,
+    patterns: patternsPage?.items ?? EMPTY_PATTERNS,
     pageTotals: patternsPage
       ? { totalDocs: patternsPage.total, totalPages: patternsPage.totalPages }
       : EMPTY_PAGE_TOTALS,

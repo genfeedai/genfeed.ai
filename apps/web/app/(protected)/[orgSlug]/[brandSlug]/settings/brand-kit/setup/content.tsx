@@ -4,13 +4,15 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandInterviewAnswerValue,
   BrandInterviewGroup,
+  IBrandInterviewCompleteness,
   IBrandInterviewQuestion,
   IBrandInterviewStep,
 } from '@genfeedai/contracts/interfaces';
 import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { logger } from '@services/core/logger.service';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
@@ -427,12 +429,33 @@ export default function BrandGuidedSetupPage() {
     skipQuestion,
   } = useBrandInterview(brandId || null);
 
-  const getInterviewService = useAuthedService((token: string) =>
-    BrandInterviewService.getInstance(token),
-  );
+  // The completeness score is cached per brand, so reopening the interview
+  // paints it at once; a finished interview invalidates it.
+  const queryClient = useQueryClient();
+  const completenessQuery = useAuthedQuery<
+    BrandInterviewService,
+    IBrandInterviewCompleteness
+  >({
+    enabled: Boolean(brandId) && status === 'idle',
+    queryFn: async (service, signal) => {
+      try {
+        return await service.getCompleteness(brandId, signal);
+      } catch (err: unknown) {
+        if (
+          !signal.aborted &&
+          !(err instanceof Error && err.name === 'AbortError')
+        ) {
+          logger.error('Failed to load interview score', err);
+        }
+        throw err;
+      }
+    },
+    queryKey: ['brand-interview-completeness', brandId],
+    service: (token: string) => BrandInterviewService.getInstance(token),
+  });
+  const idleScore = completenessQuery.data?.overallScore ?? null;
 
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
-  const [idleScore, setIdleScore] = useState<number | null>(null);
 
   const frontierFieldKey = currentQuestion?.fieldKey ?? null;
 
@@ -518,47 +541,15 @@ export default function BrandGuidedSetupPage() {
     [brandId, fieldKey, setDraftAnswer],
   );
 
-  useEffect(() => {
-    if (!brandId || status !== 'idle') {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const fetchCompleteness = async () => {
-      try {
-        const service = await getInterviewService();
-        const result = await service.getCompleteness(
-          brandId,
-          controller.signal,
-        );
-
-        if (!controller.signal.aborted) {
-          setIdleScore(result.overallScore);
-        }
-      } catch (err: unknown) {
-        if (
-          !controller.signal.aborted &&
-          !(err instanceof Error && err.name === 'AbortError')
-        ) {
-          logger.error('Failed to load interview score', err);
-        }
-      }
-    };
-
-    void fetchCompleteness();
-
-    return () => {
-      controller.abort();
-    };
-  }, [brandId, status, getInterviewService]);
-
   const handleInterviewComplete = useCallback(() => {
     if (brandId) {
       clearBrandDrafts(brandId);
+      void queryClient.invalidateQueries({
+        queryKey: ['brand-interview-completeness', brandId],
+      });
     }
     void handleRefreshBrand();
-  }, [brandId, clearBrandDrafts, handleRefreshBrand]);
+  }, [brandId, clearBrandDrafts, handleRefreshBrand, queryClient]);
 
   useEffect(() => {
     if (status === 'complete') {

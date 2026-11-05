@@ -6,13 +6,15 @@ import {
   SocialSourceHistoryImportStatus,
 } from '@genfeedai/contracts';
 import type { ISocialSource } from '@genfeedai/contracts/interfaces';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AccountHistoryImportPanelProps } from '@props/pages/brand-integrations.props';
 import { SocialSourcesService } from '@services/social/social-sources.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type BadgeVariant = 'default' | 'info' | 'success' | 'warning' | 'destructive';
 
@@ -23,6 +25,10 @@ const STATUS_VARIANT: Record<SocialSourceHistoryImportStatus, BadgeVariant> = {
   [SocialSourceHistoryImportStatus.SCHEDULED]: 'info',
   [SocialSourceHistoryImportStatus.SKIPPED]: 'warning',
 };
+
+function ownAccountSourcesQueryKey(brandId: string) {
+  return ['own-account-sources', brandId] as const;
+}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '';
@@ -40,44 +46,26 @@ export default function AccountHistoryImportPanel({
   connection,
 }: AccountHistoryImportPanelProps) {
   const translate = useTranslations('pages.accountHistoryImport');
-  const [source, setSource] = useState<ISocialSource | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
   const [status, setStatus] = useState<'queued' | 'error' | null>(null);
   const getSocialSourcesService = useAuthedService((token) =>
     SocialSourcesService.getInstance(token),
   );
 
-  const loadSource = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const service = await getSocialSourcesService();
-        const ownAccounts = await service.listOwnAccountSources(brandId);
-        if (!signal?.aborted) {
-          setSource(
-            ownAccounts.find(
-              (item) => item.credentialId === connection.credentialId,
-            ) ?? null,
-          );
-        }
-      } catch {
-        if (!signal?.aborted) {
-          setSource(null);
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [brandId, connection.credentialId, getSocialSourcesService],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadSource(controller.signal);
-    return () => controller.abort();
-  }, [loadSource]);
+  // The brand's own-account sources are cached per brand and shared by every
+  // account's panel, so reopening the settings paints the last import at once.
+  // A failed read shows the account as not imported.
+  const queryClient = useQueryClient();
+  const sourcesQuery = useAuthedQuery<SocialSourcesService, ISocialSource[]>({
+    queryFn: (service) => service.listOwnAccountSources(brandId),
+    queryKey: ownAccountSourcesQueryKey(brandId),
+    service: (token: string) => SocialSourcesService.getInstance(token),
+  });
+  const isLoading = sourcesQuery.isPending;
+  const source =
+    sourcesQuery.data?.find(
+      (item) => item.credentialId === connection.credentialId,
+    ) ?? null;
 
   async function importNow() {
     if (isScheduling) return;
@@ -90,7 +78,9 @@ export default function AccountHistoryImportPanel({
         brandId,
       );
       setStatus(result.status === 'scheduled' ? 'queued' : 'error');
-      await loadSource();
+      await queryClient.invalidateQueries({
+        queryKey: ownAccountSourcesQueryKey(brandId),
+      });
     } catch {
       setStatus('error');
     } finally {
