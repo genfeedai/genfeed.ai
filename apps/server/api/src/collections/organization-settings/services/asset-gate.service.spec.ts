@@ -1,86 +1,118 @@
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { AssetGateService } from './asset-gate.service';
 import type { OrganizationSettingsService } from './organization-settings.service';
 
-describe('AssetGateService', () => {
-  let organizationSettingsService: { patchAll: ReturnType<typeof vi.fn> };
-  let accessBootstrapCacheService: {
-    invalidateForOrganization: ReturnType<typeof vi.fn>;
+interface SettingsRow {
+  hasGeneratedFirstAsset: boolean;
+  isDeleted: boolean;
+  organizationId: string;
+}
+
+/**
+ * The gate over an in-memory settings table whose bulk patch updates every row
+ * matching the filter, an access cache that counts invalidations per org, and
+ * a logger that keeps warnings. `isDown` makes the table throw.
+ */
+function gateOver(rows: SettingsRow[], options: { isDown?: boolean } = {}) {
+  const table = rows.map((row) => ({ ...row }));
+  const invalidated: string[] = [];
+  const warnings: string[] = [];
+  const settings = {
+    patchAll: async (
+      filter: Partial<SettingsRow>,
+      update: Partial<SettingsRow>,
+    ) => {
+      if (options.isDown) {
+        throw new Error('db down');
+      }
+      const matching = table.filter((row) =>
+        Object.entries(filter).every(
+          ([field, value]) => row[field as keyof SettingsRow] === value,
+        ),
+      );
+      for (const row of matching) {
+        Object.assign(row, update);
+      }
+      return { modifiedCount: matching.length };
+    },
   };
-  let logger: { warn: ReturnType<typeof vi.fn> };
-  let service: AssetGateService;
+  const service = new AssetGateService(
+    settings as unknown as OrganizationSettingsService,
+    {
+      invalidateForOrganization: async (organizationId: string) => {
+        invalidated.push(organizationId);
+      },
+    } as unknown as AccessBootstrapCacheService,
+    {
+      warn: (message: string) => {
+        warnings.push(message);
+      },
+    } as unknown as LoggerService,
+  );
+  return { invalidated, service, table, warnings };
+}
 
-  beforeEach(() => {
-    organizationSettingsService = { patchAll: vi.fn() };
-    accessBootstrapCacheService = { invalidateForOrganization: vi.fn() };
-    logger = { warn: vi.fn() };
+const unset = (organizationId: string, isDeleted = false): SettingsRow => ({
+  hasGeneratedFirstAsset: false,
+  isDeleted,
+  organizationId,
+});
 
-    service = new AssetGateService(
-      organizationSettingsService as unknown as OrganizationSettingsService,
-      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
-      logger as unknown as LoggerService,
-    );
-  });
-
-  it('flips the flag atomically and invalidates the org cache on first asset', async () => {
-    organizationSettingsService.patchAll.mockResolvedValue({
-      modifiedCount: 1,
-    });
+describe('AssetGateService', () => {
+  it('unlocks the org on its first asset and refreshes its access once', async () => {
+    const { invalidated, service, table } = gateOver([
+      unset('org-1'),
+      unset('org-2'),
+    ]);
 
     await service.markFirstAssetGenerated('org-1');
+    await service.markFirstAssetGenerated('org-1');
 
-    // Monotonic false -> true, scoped to the org, only where still unset.
-    expect(organizationSettingsService.patchAll).toHaveBeenCalledWith(
+    expect(table).toEqual([
       {
-        hasGeneratedFirstAsset: false,
+        hasGeneratedFirstAsset: true,
         isDeleted: false,
         organizationId: 'org-1',
       },
-      { hasGeneratedFirstAsset: true },
-    );
-    expect(
-      accessBootstrapCacheService.invalidateForOrganization,
-    ).toHaveBeenCalledWith('org-1');
+      unset('org-2'),
+    ]);
+    expect(invalidated).toEqual(['org-1']);
   });
 
-  it('does NOT invalidate when the flag was already set (no transition)', async () => {
-    organizationSettingsService.patchAll.mockResolvedValue({
-      modifiedCount: 0,
-    });
+  it('leaves a deleted settings row locked', async () => {
+    const { invalidated, service, table } = gateOver([unset('org-1', true)]);
 
     await service.markFirstAssetGenerated('org-1');
 
-    expect(organizationSettingsService.patchAll).toHaveBeenCalledTimes(1);
-    expect(
-      accessBootstrapCacheService.invalidateForOrganization,
-    ).not.toHaveBeenCalled();
+    expect(table).toEqual([unset('org-1', true)]);
+    expect(invalidated).toEqual([]);
   });
 
   it.each([undefined, null, ''])(
-    'no-ops on a missing organization id (%s)',
+    'does nothing without an organization id (%s)',
     async (organizationId) => {
+      const { invalidated, service, table } = gateOver([unset('org-1')]);
+
       await service.markFirstAssetGenerated(organizationId);
 
-      expect(organizationSettingsService.patchAll).not.toHaveBeenCalled();
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
+      expect(table).toEqual([unset('org-1')]);
+      expect(invalidated).toEqual([]);
     },
   );
 
-  it('swallows and logs errors so generation is never broken', async () => {
-    organizationSettingsService.patchAll.mockRejectedValue(
-      new Error('db down'),
-    );
+  it('logs a database failure instead of breaking the generation', async () => {
+    const { invalidated, service, warnings } = gateOver([unset('org-1')], {
+      isDown: true,
+    });
 
     await expect(
       service.markFirstAssetGenerated('org-1'),
     ).resolves.toBeUndefined();
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(
-      accessBootstrapCacheService.invalidateForOrganization,
-    ).not.toHaveBeenCalled();
+    expect(warnings).toEqual([
+      'markFirstAssetGenerated failed for organization org-1',
+    ]);
+    expect(invalidated).toEqual([]);
   });
 });
