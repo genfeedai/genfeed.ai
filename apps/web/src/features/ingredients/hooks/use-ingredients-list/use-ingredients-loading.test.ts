@@ -544,7 +544,8 @@ describe('useIngredientsLoading', () => {
     act(() => result.current.setIngredients([approved]));
     ingredientsFindAllMock.mockRejectedValueOnce(new Error('unavailable'));
     await act(async () => result.current.findAllIngredientsByCategory(true));
-    expect(result.current.ingredients).toEqual([approved]);
+    // Cache writes reach the hook on the next tick, not inside this act.
+    await waitFor(() => expect(result.current.ingredients).toEqual([approved]));
     expect(mockNotificationError).toHaveBeenCalledWith(
       'Failed to refresh videos',
     );
