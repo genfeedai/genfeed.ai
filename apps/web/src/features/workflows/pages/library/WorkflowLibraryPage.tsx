@@ -243,8 +243,7 @@ export default function WorkflowLibraryPage() {
       <Button
         label={translate('actions.retry')}
         onClick={() => {
-          const controller = new AbortController();
-          loadWorkflows(controller.signal);
+          void loadWorkflows();
         }}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
