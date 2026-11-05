@@ -27,10 +27,7 @@ import { serializeCrunQuoteIntent } from '@/hooks/prompt-bar/use-crun-generation
 
 interface UseIngredientsGenerationProps {
   notificationsService: NotificationsService;
-  findAllIngredientsByCategory: (
-    isRefreshing?: boolean,
-    signal?: AbortSignal,
-  ) => Promise<void>;
+  findAllIngredientsByCategory: (isRefreshing?: boolean) => Promise<void>;
 }
 
 export function useIngredientsGeneration({

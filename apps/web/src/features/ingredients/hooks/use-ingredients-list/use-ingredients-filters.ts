@@ -1,9 +1,5 @@
 'use client';
 
-import {
-  type IngredientCategorySchema,
-  ingredientCategorySchema,
-} from '@genfeedai/client/schemas';
 import { useIngredientsContext } from '@genfeedai/contexts/content/ingredients-context/ingredients-context';
 import {
   IngredientCategory,
@@ -16,11 +12,9 @@ import {
   isAvatarSourceImageIngredient,
   isAvatarVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
 
 const ingredientFormatValues = new Set<string>(Object.values(IngredientFormat));
 
@@ -72,13 +66,6 @@ export function useIngredientsFilters({
 
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
-  const form = useForm<IngredientCategorySchema>({
-    defaultValues: {
-      status: '',
-    },
-    resolver: standardSchemaResolver(ingredientCategorySchema),
-  });
-
   const clearFilters = useCallback(() => {
     setQuery({
       category: '',
@@ -112,7 +99,6 @@ export function useIngredientsFilters({
     brandId,
     clearFilters,
     currentPage,
-    form,
     formatFilter,
     getFilteredIngredients,
     getMediaIngredients,

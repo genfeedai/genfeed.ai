@@ -25,7 +25,6 @@ export function useIngredientsList({
     brandId,
     clearFilters,
     currentPage,
-    form,
     formatFilter,
     getFilteredIngredients,
     getMediaIngredients,
@@ -46,7 +45,6 @@ export function useIngredientsList({
   const loadingState = useIngredientsLoading({
     brandId,
     currentPage,
-    form,
     formatFilter,
     isScopeReady,
     loadFolders: folderNavigation === 'content',

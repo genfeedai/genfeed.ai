@@ -1,6 +1,5 @@
 'use client';
 
-import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -33,15 +32,42 @@ import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
+import { useAuthedQuery } from '@hooks/auth/use-authed-query/use-authed-query';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
+import {
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { libraryAssetsRefreshIncludesList } from '@/features/ingredients/hooks/library-assets-refresh';
 
 const INGREDIENTS_CACHE_TTL_MS = 15 * 60 * 1000;
+const EMPTY_INGREDIENTS: IIngredient[] = [];
+const EMPTY_FOLDERS: IFolder[] = [];
 
 /** Where the next Library page starts: a keyset cursor, or a page number for orders the API cannot keyset-page. */
 type IngredientsNextPage = { cursor: string } | { page: number } | null;
+
+/**
+ * One cached Library list: the rows loaded so far (first page plus every
+ * "load more" page) and where the next page starts.
+ */
+interface IngredientsListData {
+  items: IIngredient[];
+  listQuery: IQueryParams | null;
+  nextPage: IngredientsNextPage;
+}
+
+/** The last-good rows kept in localStorage, shown when the API is down. */
+interface IngredientsOfflineFallback {
+  cachedAt: string | null;
+  cacheKey: string;
+  items: IIngredient[];
+}
 
 function resolveNextPage(
   result: IPaginatedResponse<Ingredient>,
@@ -130,6 +156,98 @@ function sanitizeQueryParams(queryParams: IQueryParams): IQueryParams {
   );
 }
 
+interface IngredientsListParamsInput {
+  adminBrand: string;
+  adminOrganization: string;
+  brandId?: string | null;
+  currentPage: number;
+  formatFilter?: string;
+  organizationId?: string | null;
+  query: IFilters;
+  scope: PageScope;
+  singularType: string;
+  type: string;
+}
+
+/** The list request for the current scope, filters and page. */
+function buildIngredientsListParams({
+  adminBrand,
+  adminOrganization,
+  brandId,
+  currentPage,
+  formatFilter,
+  organizationId,
+  query,
+  scope,
+  singularType,
+  type,
+}: IngredientsListParamsInput): IQueryParams {
+  let queryParams: IQueryParams = {
+    ...query,
+    limit: ITEMS_PER_PAGE * 2,
+    page: currentPage,
+  };
+
+  if (scope === PageScope.BRAND && brandId) {
+    const resolvedBrandId =
+      typeof query.brand === 'string' && query.brand.trim() !== ''
+        ? query.brand
+        : brandId;
+    if (resolvedBrandId) {
+      queryParams.brand = resolvedBrandId;
+    }
+  } else if (scope === PageScope.ORGANIZATION && organizationId) {
+    // Same endpoint and query as a brand; `allBrands` only widens the
+    // brand axis to every brand in the organization.
+    queryParams.allBrands = true;
+  }
+  if (scope === PageScope.SUPERADMIN) {
+    // Platform admins see every organization unless the subbar picker
+    // narrows to one; the API refuses `allOrganizations` for anyone else.
+    if (adminOrganization) {
+      queryParams.organizationId = adminOrganization;
+    } else {
+      queryParams.allOrganizations = true;
+    }
+    if (adminBrand) {
+      queryParams.brandId = adminBrand;
+    }
+    const adminCategory = parseIngredientCategory(singularType);
+    if (type !== 'ingredients' && adminCategory) {
+      queryParams.categories = [adminCategory];
+    }
+  }
+
+  if (Array.isArray(queryParams.status) && queryParams.status.length === 0) {
+    delete queryParams.status;
+  }
+
+  if (formatFilter) {
+    queryParams.format = formatFilter;
+  }
+
+  const isMediaList =
+    singularType === IngredientCategory.VIDEO ||
+    singularType === IngredientCategory.IMAGE ||
+    singularType === IngredientCategory.GIF;
+  if (isMediaList) {
+    queryParams.lightweight = true;
+  }
+
+  if (
+    singularType === IngredientCategory.VOICE ||
+    singularType === IngredientCategory.MUSIC
+  ) {
+    queryParams = {
+      ...queryParams,
+      isDefault: true,
+      status: queryParams.status || IngredientStatus.UPLOADED,
+    };
+  }
+
+  return sanitizeQueryParams(queryParams);
+}
+
 interface UseIngredientsLoadingProps {
   type: string;
   scope: PageScope;
@@ -139,7 +257,6 @@ interface UseIngredientsLoadingProps {
   formatFilter?: string;
   currentPage: number;
   query: IFilters;
-  form: UseFormReturn<IngredientCategorySchema>;
   setIsRefreshing: (isRefreshing: boolean) => void;
   onRefresh?: (fn: () => void) => void;
   parsedSearchParams: URLSearchParams;
@@ -151,6 +268,11 @@ interface UseIngredientsLoadingProps {
   isScopeReady: boolean;
 }
 
+/**
+ * The Library list and its folders, read through React Query: coming back to
+ * a Library page paints the rows it showed last time and refreshes them in the
+ * background, instead of starting from the skeleton again.
+ */
 export function useIngredientsLoading({
   type,
   scope,
@@ -160,7 +282,6 @@ export function useIngredientsLoading({
   formatFilter,
   currentPage,
   query,
-  form,
   setIsRefreshing,
   onRefresh,
   parsedSearchParams,
@@ -168,15 +289,14 @@ export function useIngredientsLoading({
   isScopeReady,
 }: UseIngredientsLoadingProps) {
   const notificationsService = NotificationsService.getInstance();
+  const queryClient = useQueryClient();
 
   // The admin library reads the unified `/ingredients` list for every tab, so
   // the all-organizations view and the type tabs share one endpoint and one
   // keyset pager; the type becomes a `categories` filter below.
+  const serviceType = scope === PageScope.SUPERADMIN ? 'ingredients' : type;
   const getIngredientsService = useAuthedService((token) =>
-    IngredientsService.getInstance(
-      scope === PageScope.SUPERADMIN ? 'ingredients' : type,
-      token,
-    ),
+    IngredientsService.getInstance(serviceType, token),
   );
   const adminOrganization =
     scope === PageScope.SUPERADMIN
@@ -189,32 +309,64 @@ export function useIngredientsLoading({
     IngredientsService.getInstance(token),
   );
 
-  const getFoldersService = useAuthedService((token: string) =>
-    FoldersService.getInstance(token),
+  const shouldLoadData =
+    scope === PageScope.SUPERADMIN ||
+    scope === PageScope.ORGANIZATION ||
+    (scope === PageScope.BRAND && Boolean(brandId));
+
+  const listParams = useMemo(
+    () =>
+      buildIngredientsListParams({
+        adminBrand,
+        adminOrganization,
+        brandId,
+        currentPage,
+        formatFilter,
+        organizationId,
+        query,
+        scope,
+        singularType,
+        type,
+      }),
+    [
+      adminBrand,
+      adminOrganization,
+      brandId,
+      currentPage,
+      formatFilter,
+      organizationId,
+      query,
+      scope,
+      singularType,
+      type,
+    ],
   );
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingFolders, setIsLoadingFolders] = useState(true);
-  const [cachedAt, setCachedAt] = useState<string | null>(null);
-  const [isUsingCache, setIsUsingCache] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  const loadSequenceRef = useRef(0);
-  const nextPageRef = useRef<IngredientsNextPage>(null);
-  const lastListQueryRef = useRef<IQueryParams | null>(null);
-  const loadMoreControllerRef = useRef<AbortController | null>(null);
-  const [hasMoreIngredients, setHasMoreIngredients] = useState(false);
-  const [isLoadingMoreIngredients, setIsLoadingMoreIngredients] =
-    useState(false);
-  const [ingredients, setIngredients] = useState<IIngredient[]>([]);
-  const [folders, setFolders] = useState<IFolder[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(
-    (parsedSearchParams.get('folder') as string) || undefined,
+  const listQueryKey = useMemo<QueryKey>(
+    () => [
+      'library-ingredients',
+      type,
+      scope,
+      organizationId ?? null,
+      brandId ?? null,
+      listParams,
+    ],
+    [brandId, listParams, organizationId, scope, type],
   );
+  const listQueryKeyRef = useRef(listQueryKey);
+  listQueryKeyRef.current = listQueryKey;
 
-  const socketSubscriptionsRef = useRef<Array<() => void>>([]);
-
-  const _queryKey = useMemo(() => JSON.stringify(query ?? {}), [query]);
+  const offlineCacheKey = useMemo(
+    () =>
+      createCacheKey(
+        type,
+        scope,
+        brandId ?? 'none',
+        organizationId ?? 'none',
+        JSON.stringify(listParams),
+      ),
+    [brandId, listParams, organizationId, scope, type],
+  );
 
   const ingredientsCache = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -234,248 +386,247 @@ export function useIngredientsLoading({
     });
   }, []);
 
-  const ingredientsCacheKey = useMemo(
-    () =>
-      createCacheKey(
-        type,
-        scope,
-        brandId ?? 'none',
-        organizationId ?? 'none',
-        adminOrganization || 'all',
-        adminBrand || 'all',
-        _queryKey ?? 'none',
-        formatFilter ?? 'all',
-        currentPage,
-      ),
-    [
-      type,
-      scope,
-      brandId,
-      organizationId,
-      adminOrganization,
-      adminBrand,
-      _queryKey,
-      formatFilter,
-      currentPage,
-    ],
+  // Every first-page read starts a new list, so a "load more" page still in
+  // flight for the previous list is dropped instead of appended.
+  const loadSequenceRef = useRef(0);
+  const loadMoreControllerRef = useRef<AbortController | null>(null);
+  const [isLoadingMoreIngredients, setIsLoadingMoreIngredients] =
+    useState(false);
+  // Local edits (archive, review, delete) to the offline fallback rows.
+  const [fallbackEdits, setFallbackEdits] =
+    useState<IngredientsOfflineFallback | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(
+    (parsedSearchParams.get('folder') as string) || undefined,
   );
 
-  const findAllIngredientsByCategory = useCallback(
-    async (isRefreshing: boolean = false, signal?: AbortSignal) => {
-      const sequence = ++loadSequenceRef.current;
-      // A reload replaces the list, so any older page still in flight is moot.
+  const socketSubscriptionsRef = useRef<Array<() => void>>([]);
+
+  const url = `GET /${type}`;
+
+  const listQuery = useAuthedQuery<IngredientsService, IngredientsListData>({
+    enabled: shouldLoadData,
+    queryFn: async (service, signal) => {
+      loadSequenceRef.current += 1;
       loadMoreControllerRef.current?.abort();
       loadMoreControllerRef.current = null;
       setIsLoadingMoreIngredients(false);
-      setIsLoading(!isRefreshing);
-      setIsRefreshing(isRefreshing);
-      setLoadError(null);
 
-      const url = `GET /${type}`;
+      const isRecoveryShelf =
+        scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED;
+      let data: IngredientsListData;
+      if (isRecoveryShelf) {
+        data = {
+          items: await service.findAllPages(listParams, signal),
+          listQuery: null,
+          nextPage: null,
+        };
+      } else {
+        // Keyset pages: no per-page count, and older assets stay as cheap
+        // to reach as the newest. Orders the API cannot keyset-page come
+        // back with page-number links instead.
+        const pageQuery: IQueryParams = { ...listParams, paging: 'cursor' };
+        const result = await service.findAllPage(pageQuery, signal);
+        data = {
+          items: result.items,
+          listQuery: pageQuery,
+          nextPage: resolveNextPage(result),
+        };
+      }
+
+      logger.info(`${url} success`, { count: data.items.length });
+      ingredientsCache?.set(
+        offlineCacheKey,
+        data.items,
+        INGREDIENTS_CACHE_TTL_MS,
+      );
+      ingredientsCacheMeta?.set(
+        offlineCacheKey,
+        new Date().toISOString(),
+        INGREDIENTS_CACHE_TTL_MS,
+      );
+      return data;
+    },
+    queryKey: listQueryKey,
+    service: (token: string) =>
+      IngredientsService.getInstance(serviceType, token),
+  });
+
+  const {
+    data: listData,
+    error: listError,
+    errorUpdatedAt: listErrorUpdatedAt,
+    isError: isListError,
+    isPending: isListPending,
+    refetch: refetchList,
+  } = listQuery;
+  const hasListData = listData !== undefined;
+
+  // A failed read with no rows to keep shows the last-good rows from
+  // localStorage when there are any, else the error.
+  const offlineFallback = useMemo<IngredientsOfflineFallback | null>(() => {
+    if (!isListError || hasListData) {
+      return null;
+    }
+    const cached = ingredientsCache?.get(offlineCacheKey) ?? [];
+    return cached.length > 0
+      ? {
+          cachedAt: ingredientsCacheMeta?.get(offlineCacheKey) ?? null,
+          cacheKey: offlineCacheKey,
+          items: cached,
+        }
+      : null;
+  }, [
+    hasListData,
+    ingredientsCache,
+    ingredientsCacheMeta,
+    isListError,
+    offlineCacheKey,
+  ]);
+  const activeFallback =
+    offlineFallback && fallbackEdits?.cacheKey === offlineCacheKey
+      ? { ...offlineFallback, items: fallbackEdits.items }
+      : offlineFallback;
+  const hasLoadFailed =
+    isListError &&
+    !hasListData &&
+    activeFallback === null &&
+    !isIgnoredLibraryFailure(listError);
+  const loadError = hasLoadFailed ? `Failed to load ${type}` : null;
+
+  // A failed background refresh keeps the rows on screen and is only
+  // reported; a failed first read with nothing to show also tells the user.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: listErrorUpdatedAt marks each new failed read.
+  useEffect(() => {
+    if (!isListError || isIgnoredLibraryFailure(listError)) {
+      return;
+    }
+    if (hasListData) {
+      reportLibraryOperationFailure(url, listError);
+    } else if (hasLoadFailed) {
+      reportLibraryOperationFailure(url, listError);
+      notificationsService.error(`Failed to load ${type}`);
+    }
+  }, [isListError, listErrorUpdatedAt]);
+
+  const isUsingCache = activeFallback !== null;
+  const cachedAt = activeFallback?.cachedAt ?? null;
+  const ingredients =
+    listData?.items ?? activeFallback?.items ?? EMPTY_INGREDIENTS;
+  const hasMoreIngredients = (listData?.nextPage ?? null) !== null;
+  const isLoading = shouldLoadData ? isListPending : !isScopeReady;
+  const activeFallbackRef = useRef(activeFallback);
+  activeFallbackRef.current = activeFallback;
+
+  const setIngredients = useCallback(
+    (update: SetStateAction<IIngredient[]>) => {
+      const apply = (current: IIngredient[]) =>
+        typeof update === 'function' ? update(current) : update;
+
+      const key = listQueryKeyRef.current;
+      const hasCachedList = queryClient
+        .getQueriesData<IngredientsListData>({ queryKey: key })
+        .some(([, data]) => data !== undefined);
+
+      if (!hasCachedList) {
+        const fallback = activeFallbackRef.current;
+        if (fallback) {
+          setFallbackEdits((current) => ({
+            ...fallback,
+            items: apply(
+              current?.cacheKey === fallback.cacheKey
+                ? current.items
+                : fallback.items,
+            ),
+          }));
+        }
+        return;
+      }
+
+      queryClient.setQueriesData<IngredientsListData>(
+        { queryKey: key },
+        (current) =>
+          current ? { ...current, items: apply(current.items) } : current,
+      );
+    },
+    [queryClient],
+  );
+
+  // A user refresh counts as refreshing until its last overlapping read ends.
+  const refreshingCountRef = useRef(0);
+  const findAllIngredientsByCategory = useCallback(
+    async (isRefreshing: boolean = false) => {
+      if (!shouldLoadData) {
+        return;
+      }
+      if (isRefreshing) {
+        refreshingCountRef.current += 1;
+        setIsRefreshing(true);
+      }
 
       try {
-        let queryParams: IQueryParams = {
-          ...form.getValues(),
-          ...query,
-          limit: ITEMS_PER_PAGE * 2,
-          page: currentPage,
-        };
-
-        if (scope === PageScope.BRAND && brandId) {
-          const resolvedBrandId =
-            typeof query.brand === 'string' && query.brand.trim() !== ''
-              ? query.brand
-              : brandId;
-          if (resolvedBrandId) {
-            queryParams.brand = resolvedBrandId;
-          }
-        } else if (scope === PageScope.ORGANIZATION && organizationId) {
-          // Same endpoint and query as a brand; `allBrands` only widens the
-          // brand axis to every brand in the organization.
-          queryParams.allBrands = true;
-        }
-        if (scope === PageScope.SUPERADMIN) {
-          // Platform admins see every organization unless the subbar picker
-          // narrows to one; the API refuses `allOrganizations` for anyone else.
-          if (adminOrganization) {
-            queryParams.organizationId = adminOrganization;
-          } else {
-            queryParams.allOrganizations = true;
-          }
-          if (adminBrand) {
-            queryParams.brandId = adminBrand;
-          }
-          const adminCategory = parseIngredientCategory(singularType);
-          if (type !== 'ingredients' && adminCategory) {
-            queryParams.categories = [adminCategory];
-          }
-        }
-
-        if (
-          Array.isArray(queryParams.status) &&
-          queryParams.status.length === 0
-        ) {
-          delete queryParams.status;
-        }
-
-        if (query.folder) {
-          queryParams.folder = query.folder;
-        }
-
-        if (formatFilter) {
-          queryParams.format = formatFilter;
-        }
-
-        const isMediaList =
-          singularType === IngredientCategory.VIDEO ||
-          singularType === IngredientCategory.IMAGE ||
-          singularType === IngredientCategory.GIF;
-        if (isMediaList) {
-          queryParams.lightweight = true;
-        }
-
-        if (
-          singularType === IngredientCategory.VOICE ||
-          singularType === IngredientCategory.MUSIC
-        ) {
-          queryParams = {
-            ...queryParams,
-            isDefault: true,
-            status: queryParams.status || IngredientStatus.UPLOADED,
-          };
-        }
-
-        queryParams = sanitizeQueryParams(queryParams);
-
-        const isRecoveryShelf =
-          scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED;
-        let data: Ingredient[] = [];
-        let nextPage: IngredientsNextPage = null;
-        let listQuery: IQueryParams | null = null;
-
-        const service = await getIngredientsService();
-        if (isRecoveryShelf) {
-          data = await service.findAllPages(queryParams, signal);
-        } else {
-          // Keyset pages: no per-page count, and older assets stay as cheap
-          // to reach as the newest. Orders the API cannot keyset-page come
-          // back with page-number links instead.
-          listQuery = { ...queryParams, paging: 'cursor' };
-          const result = await service.findAllPage(listQuery, signal);
-          data = result.items;
-          nextPage = resolveNextPage(result);
-        }
-
-        if (signal?.aborted || sequence !== loadSequenceRef.current) {
-          return;
-        }
-
-        logger.info(`${url} success`, { count: data.length });
-
-        nextPageRef.current = nextPage;
-        lastListQueryRef.current = listQuery;
-        setHasMoreIngredients(nextPage !== null);
-        setIngredients(data);
-
-        if (ingredientsCache && ingredientsCacheMeta) {
-          ingredientsCache.set(
-            ingredientsCacheKey,
-            data,
-            INGREDIENTS_CACHE_TTL_MS,
-          );
-          ingredientsCacheMeta.set(
-            ingredientsCacheKey,
-            new Date().toISOString(),
-            INGREDIENTS_CACHE_TTL_MS,
-          );
-        }
-
-        setIsUsingCache(false);
-        setCachedAt(null);
-        setLoadError(null);
-      } catch (error) {
-        if (
-          isIgnoredLibraryFailure(error, signal) ||
-          sequence !== loadSequenceRef.current
-        ) {
-          return;
-        }
-        const cached = ingredientsCache?.get(ingredientsCacheKey) ?? [];
-        const cachedTimestamp =
-          ingredientsCacheMeta?.get(ingredientsCacheKey) ?? null;
-
-        if (isRefreshing) {
-          reportLibraryOperationFailure(url, error);
+        const hadRows = queryClient
+          .getQueriesData<IngredientsListData>({
+            queryKey: listQueryKeyRef.current,
+          })
+          .some(([, data]) => data !== undefined);
+        const result = await refetchList();
+        if (result.isError && hadRows && isRefreshing) {
           notificationsService.error(`Failed to refresh ${type}`);
-        } else if (cached.length > 0) {
-          setIngredients(cached);
-          setIsUsingCache(true);
-          setCachedAt(cachedTimestamp);
-          setLoadError(null);
-        } else {
-          setIsUsingCache(false);
-          setCachedAt(null);
-          setLoadError(`Failed to load ${type}`);
-          reportLibraryOperationFailure(url, error);
-          notificationsService.error(`Failed to load ${type}`);
         }
       } finally {
-        if (!signal?.aborted && sequence === loadSequenceRef.current) {
-          setIsLoading(false);
-          setIsRefreshing(false);
+        if (isRefreshing) {
+          refreshingCountRef.current -= 1;
+          if (refreshingCountRef.current === 0) {
+            setIsRefreshing(false);
+          }
         }
       }
     },
     [
-      brandId,
-      ingredientsCache,
-      ingredientsCacheKey,
-      ingredientsCacheMeta,
-      formatFilter,
-      getIngredientsService,
       notificationsService,
-      organizationId,
-      adminOrganization,
-      adminBrand,
-      scope,
-      currentPage,
+      queryClient,
+      refetchList,
       setIsRefreshing,
-      singularType,
+      shouldLoadData,
       type,
-      form.getValues,
-      query,
     ],
   );
 
   const loadMoreIngredients = useCallback(async () => {
-    const nextPage = nextPageRef.current;
-    const listQuery = lastListQueryRef.current;
-    if (!nextPage || !listQuery || loadMoreControllerRef.current) {
+    const nextPage = listData?.nextPage ?? null;
+    const lastListQuery = listData?.listQuery ?? null;
+    if (!nextPage || !lastListQuery || loadMoreControllerRef.current) {
       return;
     }
 
     const sequence = loadSequenceRef.current;
+    const key = listQueryKeyRef.current;
     const controller = new AbortController();
     loadMoreControllerRef.current = controller;
     setIsLoadingMoreIngredients(true);
-    const url = `GET /${type}`;
 
     try {
       const service = await getIngredientsService();
       const pageQuery: IQueryParams =
         'cursor' in nextPage
-          ? { ...listQuery, cursor: nextPage.cursor }
-          : { ...listQuery, page: nextPage.page };
+          ? { ...lastListQuery, cursor: nextPage.cursor }
+          : { ...lastListQuery, page: nextPage.page };
       const result = await service.findAllPage(pageQuery, controller.signal);
 
       if (controller.signal.aborted || sequence !== loadSequenceRef.current) {
         return;
       }
 
-      nextPageRef.current = resolveNextPage(result);
-      setHasMoreIngredients(nextPageRef.current !== null);
-      setIngredients((current) =>
-        appendUniqueIngredients(current, result.items),
+      queryClient.setQueriesData<IngredientsListData>(
+        { queryKey: key },
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: appendUniqueIngredients(current.items, result.items),
+                nextPage: resolveNextPage(result),
+              }
+            : current,
       );
     } catch (error) {
       if (
@@ -492,79 +643,74 @@ export function useIngredientsLoading({
         setIsLoadingMoreIngredients(false);
       }
     }
-  }, [getIngredientsService, notificationsService, type]);
+  }, [
+    getIngredientsService,
+    listData,
+    notificationsService,
+    queryClient,
+    type,
+    url,
+  ]);
 
-  const findAllFolders = useCallback(
-    async (signal?: AbortSignal) => {
-      const url = 'GET /folders';
-
-      setIsLoadingFolders(true);
-      try {
-        const service = await getFoldersService();
-
-        const queryParams: IQueryParams = {};
-
-        if (scope === PageScope.BRAND && brandId) {
-          queryParams.brand = brandId;
-        } else if (scope === PageScope.ORGANIZATION && organizationId) {
-          queryParams.organization = organizationId;
-        }
-
-        const data = await service.findAll(queryParams);
-
-        if (signal?.aborted) {
-          return;
-        }
-
-        setFolders(data);
-        logger.info(`${url} success`, data);
-      } catch (error) {
-        if (isIgnoredLibraryFailure(error, signal)) {
-          return;
-        }
-        reportLibraryOperationFailure(url, error);
-      } finally {
-        setIsLoadingFolders(false);
+  const shouldLoadFolders = loadFolders && shouldLoadData;
+  const foldersQuery = useAuthedQuery<FoldersService, IFolder[]>({
+    enabled: shouldLoadFolders,
+    queryFn: async (service, signal) => {
+      const queryParams: IQueryParams = {};
+      if (scope === PageScope.BRAND && brandId) {
+        queryParams.brand = brandId;
+      } else if (scope === PageScope.ORGANIZATION && organizationId) {
+        queryParams.organization = organizationId;
       }
+
+      const data = await service.findAll(queryParams, signal);
+      logger.info('GET /folders success', data);
+      return data;
     },
-    [brandId, organizationId, scope, getFoldersService],
-  );
+    queryKey: [
+      'library-folders',
+      scope,
+      organizationId ?? null,
+      brandId ?? null,
+    ],
+    service: (token: string) => FoldersService.getInstance(token),
+  });
 
-  // Load on mount and on every query/page change: `findAllIngredientsByCategory`
-  // depends on `query` and `currentPage`, so this is the only list fetch.
+  const {
+    data: folders = EMPTY_FOLDERS,
+    error: foldersError,
+    errorUpdatedAt: foldersErrorUpdatedAt,
+    isError: isFoldersError,
+    isPending: isFoldersPending,
+    refetch: refetchFolders,
+  } = foldersQuery;
+  const isLoadingFolders =
+    loadFolders && (shouldLoadData ? isFoldersPending : !isScopeReady);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: foldersErrorUpdatedAt marks each new failed read.
   useEffect(() => {
-    const abortController = new AbortController();
-
-    const shouldLoadData =
-      scope === PageScope.SUPERADMIN ||
-      scope === PageScope.ORGANIZATION ||
-      (scope === PageScope.BRAND && brandId);
-
-    if (shouldLoadData) {
-      findAllIngredientsByCategory(false, abortController.signal);
-    } else if (isScopeReady) {
-      setIsLoading(false);
+    if (isFoldersError && !isIgnoredLibraryFailure(foldersError)) {
+      reportLibraryOperationFailure('GET /folders', foldersError);
     }
+  }, [foldersErrorUpdatedAt, isFoldersError]);
 
+  const findAllFolders = useCallback(async () => {
+    if (shouldLoadFolders) {
+      await refetchFolders();
+    }
+  }, [refetchFolders, shouldLoadFolders]);
+
+  useEffect(() => {
     if (onRefresh) {
       onRefresh(() => findAllIngredientsByCategory(true));
     }
-
-    return () => {
-      abortController.abort();
-    };
-  }, [brandId, findAllIngredientsByCategory, isScopeReady, onRefresh, scope]);
+  }, [findAllIngredientsByCategory, onRefresh]);
 
   useEffect(() => {
-    let controller: AbortController | undefined;
     const handleLibraryAssetsRefresh = (event: Event) => {
-      if (!libraryAssetsRefreshIncludesList(event)) {
-        return;
+      if (libraryAssetsRefreshIncludesList(event)) {
+        void findAllIngredientsByCategory(true);
       }
-
-      controller?.abort();
-      controller = new AbortController();
-      void findAllIngredientsByCategory(true, controller.signal);
     };
 
     window.addEventListener(
@@ -573,38 +719,12 @@ export function useIngredientsLoading({
     );
 
     return () => {
-      controller?.abort();
       window.removeEventListener(
         LIBRARY_ASSETS_REFRESH_EVENT,
         handleLibraryAssetsRefresh,
       );
     };
   }, [findAllIngredientsByCategory]);
-
-  // Load folders on mount
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    if (!loadFolders) {
-      setIsLoadingFolders(false);
-      return () => {
-        abortController.abort();
-      };
-    }
-
-    const shouldLoadFolders =
-      scope === PageScope.SUPERADMIN ||
-      scope === PageScope.ORGANIZATION ||
-      (scope === PageScope.BRAND && brandId);
-
-    if (shouldLoadFolders) {
-      findAllFolders(abortController.signal);
-    }
-
-    return () => {
-      abortController.abort();
-    };
-  }, [brandId, findAllFolders, loadFolders, scope]);
 
   // Sync folder param from URL
   useEffect(() => {
@@ -645,7 +765,6 @@ export function useIngredientsLoading({
     loadError,
     notificationsService,
     selectedFolderId,
-    setFolders,
     setIngredients,
     setSelectedFolderId,
     socketSubscriptionsRef,
