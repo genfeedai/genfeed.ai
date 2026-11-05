@@ -130,6 +130,26 @@ describe('OAuthPlatformForm', () => {
     vi.restoreAllMocks();
   });
 
+  it('shows the connected account picture with the platform logo', async () => {
+    mocks.postVerify.mockResolvedValue({
+      externalAvatar: 'https://cdn.example/shayla.jpg',
+      externalHandle: 'shayla',
+      externalName: 'Shayla',
+      id: 'credential-1',
+      isConnected: true,
+    });
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    expect(await screen.findByText('Instagram Connected')).toBeVisible();
+    expect(
+      document.querySelector('[data-connection-account]'),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector('[data-connection-platform="Instagram"]'),
+    ).toBeInTheDocument();
+  });
+
   it('verifies an OAuth callback and redirects to the return path', async () => {
     render(<OAuthPlatformForm platform="instagram" />);
 
