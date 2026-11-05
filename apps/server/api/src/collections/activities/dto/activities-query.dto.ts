@@ -1,7 +1,7 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class ActivitiesQueryDto extends BaseQueryDto {
   @IsOptional()
@@ -18,4 +18,14 @@ export class ActivitiesQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description:
+      "Superadmin only: list one user's activities across organizations",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  userId?: string;
 }

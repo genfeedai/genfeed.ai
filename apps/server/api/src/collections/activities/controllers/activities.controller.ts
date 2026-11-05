@@ -114,6 +114,12 @@ export class ActivitiesController {
       }
     }
 
+    // An operator can narrow any list to one user, across organizations. A
+    // member's list is already bounded to their own scope and ignores it.
+    if (isSuperAdmin && query.userId) {
+      where.userId = query.userId;
+    }
+
     if (query.activeOnly) {
       where.action = {
         in: Object.values(ActivityKey).filter(

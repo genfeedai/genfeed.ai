@@ -4,10 +4,15 @@ import { ButtonVariant, PlatformRole } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import { VenetianMask } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { AdminUserDetailPanelProps } from '@/features/admin/props/admin-user.props';
 import UserDetails from './user-details';
+
+const UserSidebarActivity = dynamic(() => import('./user-sidebar-activity'), {
+  ssr: false,
+});
 
 /** Quick look at a user from the list; the full page lives at `.../users/:id`. */
 export default function UserDetailPanel({
@@ -36,6 +41,8 @@ export default function UserDetailPanel({
       </div>
 
       <UserDetails key={user.id} user={user} onUpdated={onUpdated} />
+
+      <UserSidebarActivity userId={user.id} />
     </div>
   );
 }

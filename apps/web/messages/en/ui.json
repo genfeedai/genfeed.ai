@@ -1038,6 +1038,13 @@
       "usagePerDay": "Credits used per day",
       "usageTitle": "Credits used, last 30 days"
     },
+    "user": {
+      "noActivity": "No activity recorded yet",
+      "noOrganizations": "No organization activity yet",
+      "organizationsTitle": "Organizations, last 50 activities",
+      "recentActivity": "Recent activity",
+      "unnamedOrg": "Unnamed organization"
+    },
     "training": {
       "baseModel": "Base model",
       "generatedImages": "Generated images",
