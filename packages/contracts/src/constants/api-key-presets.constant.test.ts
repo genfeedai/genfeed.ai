@@ -18,6 +18,11 @@ describe('API key scope presets', () => {
     expect(API_KEY_SCOPE_PRESETS.content).not.toContain('posts:publish');
   });
 
+  it('lets a content key read the brands it generates for', () => {
+    expect(API_KEY_SCOPE_PRESETS.content).toContain('brands:read');
+    expect(API_KEY_SCOPE_PRESETS.content).not.toContain('brands:write');
+  });
+
   it('defaults MCP publishing to approval-first capabilities', () => {
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:draft');
     expect(API_KEY_SCOPE_PRESETS.mcp).toContain('posts:schedule');

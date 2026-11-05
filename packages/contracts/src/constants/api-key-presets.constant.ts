@@ -8,6 +8,7 @@ export const API_KEY_SCOPE_PRESETS = {
     'prompts:create',
     'articles:read',
     'articles:create',
+    'brands:read',
     'posts:draft',
   ],
   full: [

@@ -172,12 +172,15 @@ Scopes are checked per endpoint. Requests missing a required scope return
 | Posts | `posts:draft`, `posts:schedule`, `posts:approve`, `posts:publish` |
 | Workspace | `brands:read`, `credits:read`, `analytics:read` |
 
+Every `/brands` read route needs `brands:read`; a key with `brands:write` (minted
+server-side) reads too, and brand analytics also accept `analytics:read`.
+
 The four self-service presets are:
 
 | Preset | Intent |
 | --- | --- |
 | `read` | Read-only access to content, brands, credits, and analytics. |
-| `content` | Read plus content creation, including drafts. No scheduling or publishing. |
+| `content` | Read and create videos, images, prompts and articles, read brands, and save post drafts. No scheduling or publishing. |
 | `mcp` | Content creation plus scheduling and approval. Approval-first: excludes direct publishing. |
 | `full` | Every self-service scope, including `posts:publish` and destructive updates. |
 

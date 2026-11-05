@@ -82,13 +82,13 @@ describe('API key permission registry', () => {
     });
   });
 
-  it('shows the content preset as Write on content and post drafts', () => {
+  it('shows the content preset as Write on content and post drafts, Read on brands', () => {
     expect(
       resolveApiKeyPermissionLevels(API_KEY_SCOPE_PRESETS.content),
     ).toEqual({
       analytics: 'none',
       articles: 'write',
-      brands: 'none',
+      brands: 'read',
       credits: 'none',
       'direct-publishing': 'none',
       images: 'write',
