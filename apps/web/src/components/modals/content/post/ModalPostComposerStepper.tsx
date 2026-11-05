@@ -1,13 +1,10 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModalPostComposerStep,
   ModalPostComposerStepperProps,
 } from '@genfeedai/props/modals/modal.props';
-import { Button } from '@ui/primitives/button';
-import { Check } from 'lucide-react';
+import { Stepper } from '@ui/primitives/stepper';
 import { useTranslations } from 'next-intl';
 
 const STEPS: ModalPostComposerStep[] = ['channels', 'content'];
@@ -21,47 +18,22 @@ export default function ModalPostComposerStepper({
   onStepChange,
 }: ModalPostComposerStepperProps) {
   const translate = useTranslations('ui.postComposer.steps');
-  const currentIndex = STEPS.indexOf(step);
+  const currentStep = STEPS.indexOf(step);
 
   return (
-    <nav aria-label={translate('label')} className="flex items-center gap-3">
-      {STEPS.map((value, index) => {
-        const isCurrent = value === step;
-        const isDone = index < currentIndex;
-
-        return (
-          <div className="flex items-center gap-3" key={value}>
-            {index > 0 ? (
-              <span aria-hidden="true" className="h-px w-7 bg-border" />
-            ) : null}
-            <Button
-              aria-current={isCurrent ? 'step' : undefined}
-              className={cn(
-                'inline-flex items-center gap-2 text-sm font-medium',
-                isCurrent ? 'text-foreground' : 'text-foreground/60',
-              )}
-              isDisabled={!isDone && !isCurrent}
-              onClick={() => onStepChange(value)}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'flex size-5 items-center justify-center rounded-full text-2xs',
-                  isCurrent && 'bg-foreground text-background',
-                  isDone && 'bg-success/15 text-success',
-                  !isCurrent && !isDone && 'shadow-border',
-                )}
-              >
-                {isDone ? <Check className="size-3" /> : index + 1}
-              </span>
-              {translate(value)}
-            </Button>
-          </div>
-        );
-      })}
+    <nav aria-label={translate('label')}>
+      <Stepper
+        currentStep={currentStep}
+        onStepSelect={(index) => {
+          const target = STEPS[index];
+          if (target) onStepChange(target);
+        }}
+        steps={STEPS.map((value, index) => ({
+          id: value,
+          isDisabled: index > currentStep,
+          label: translate(value),
+        }))}
+      />
     </nav>
   );
 }

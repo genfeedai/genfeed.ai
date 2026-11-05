@@ -49,7 +49,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-workspace' }),
 }));
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 vi.mock('@ui/modals/modal/Modal', () => ({
