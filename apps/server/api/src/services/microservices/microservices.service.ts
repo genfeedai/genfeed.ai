@@ -606,8 +606,10 @@ export class MicroservicesService implements OnModuleInit, HealthContributor {
     services: ServiceHealth[];
     timestamp: string;
   }> {
-    const redisHealthy = await this.checkRedisHealth();
-    const services = await this.checkAllServices();
+    const [redisHealthy, services] = await Promise.all([
+      this.checkRedisHealth(),
+      this.checkAllServices(),
+    ]);
 
     return {
       redis: redisHealthy,

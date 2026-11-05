@@ -150,21 +150,16 @@ export class PostDraftGenerationService {
   ): Promise<PostDraftGenerationResult> {
     if (!dto.requestKey)
       throw new BadRequestException('branded_request_key_required');
-    const brandMode = await this.brandedModeResolver.resolve(
-      identity,
-      dto.brandId,
-    );
-    const model = await this.agentChatModelRegistry.resolveModelKey(
-      undefined,
-      DEFAULT_MINI_TEXT_MODEL,
-    );
+    const [brandMode, model, referencePost, recentPosts] = await Promise.all([
+      this.brandedModeResolver.resolve(identity, dto.brandId),
+      this.agentChatModelRegistry.resolveModelKey(
+        undefined,
+        DEFAULT_MINI_TEXT_MODEL,
+      ),
+      this.resolveReferencePost(dto, identity),
+      this.resolveRecentPosts(dto, identity, context.brand.id),
+    ]);
     const learningReceipt = await this.resolveAccountlessLearningReceipt(
-      dto,
-      identity,
-      context.brand.id,
-    );
-    const referencePost = await this.resolveReferencePost(dto, identity);
-    const recentPosts = await this.resolveRecentPosts(
       dto,
       identity,
       context.brand.id,

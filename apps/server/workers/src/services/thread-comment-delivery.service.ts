@@ -199,15 +199,19 @@ export class ThreadCommentDeliveryService {
       return;
     }
 
-    const credential = (await this.credentialsService.findOne({
-      id: parent.credentialId,
-      isDeleted: false,
-      organizationId: parent.organizationId,
-    })) as CredentialDocument | null;
-    const organization = (await this.organizationsService.findOne({
-      id: parent.organizationId,
-      isDeleted: false,
-    })) as OrganizationDocument | null;
+    const [credentialRecord, organizationRecord] = await Promise.all([
+      this.credentialsService.findOne({
+        id: parent.credentialId,
+        isDeleted: false,
+        organizationId: parent.organizationId,
+      }),
+      this.organizationsService.findOne({
+        id: parent.organizationId,
+        isDeleted: false,
+      }),
+    ]);
+    const credential = credentialRecord as CredentialDocument | null;
+    const organization = organizationRecord as OrganizationDocument | null;
 
     if (!credential || !organization) {
       this.logger.error(`${url} missing credential or organization`, {

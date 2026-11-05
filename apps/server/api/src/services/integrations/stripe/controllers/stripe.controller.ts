@@ -129,14 +129,14 @@ export class StripeController {
         return returnNotFound('User', user.id);
       }
 
-      let subscription = await this.subscriptionsService.findByOrganizationId(
-        user.organizationId,
-      );
-
-      const organization = await this.organizationsService.findOne({
-        id: user.organizationId,
-        isDeleted: false,
-      });
+      const [fetchedSubscription, organization] = await Promise.all([
+        this.subscriptionsService.findByOrganizationId(user.organizationId),
+        this.organizationsService.findOne({
+          id: user.organizationId,
+          isDeleted: false,
+        }),
+      ]);
+      let subscription = fetchedSubscription;
       if (!organization) {
         return returnNotFound('Organization', user.organizationId);
       }

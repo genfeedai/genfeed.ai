@@ -58,12 +58,16 @@ export class AgentStrategyConversationQueueService {
     posts: ConversationSource[],
     now: Date = new Date(),
   ): Promise<ConversationIngestResult> {
-    const open = await this.listOpen(owner, now);
-    const seen = await this.opportunities.listByStrategy(
-      owner.strategyId,
-      owner.organizationId,
-      { isConversationQueue: true },
-    );
+    const [open, seen] = await Promise.all([
+      this.listOpen(owner, now),
+      this.opportunities.listByStrategy(
+        owner.strategyId,
+        owner.organizationId,
+        {
+          isConversationQueue: true,
+        },
+      ),
+    ]);
     const seenIds = new Set(
       seen.map((row) => readConversation(row)?.source.id).filter(Boolean),
     );

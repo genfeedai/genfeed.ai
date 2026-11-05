@@ -234,8 +234,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       'organizationId',
     );
     const credentialId = requiredString(request.credentialId, 'credentialId');
-    await this.loadCredential(credentialId, organizationId);
-    const bots = await this.replyBotConfigsService.findActive(organizationId);
+    const [, bots] = await Promise.all([
+      this.loadCredential(credentialId, organizationId),
+      this.replyBotConfigsService.findActive(organizationId),
+    ]);
     return {
       items: bots.map((bot) => ({
         botConfigId: bot.id.toString(),
@@ -263,11 +265,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     skipped: number;
   }> {
     const request = readBotRequest(action.input.request);
-    const botConfig = await this.loadBotConfig(request);
-    const credential = await this.loadCredential(
-      request.credentialId,
-      request.organizationId,
-    );
+    const [botConfig, credential] = await Promise.all([
+      this.loadBotConfig(request),
+      this.loadCredential(request.credentialId, request.organizationId),
+    ]);
     const platformInput =
       credential.platform ?? botConfig.platform ?? ReplyBotPlatform.TWITTER;
     const platform = normalizeReplyBotPlatform(platformInput);

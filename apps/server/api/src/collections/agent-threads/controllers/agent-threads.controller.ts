@@ -378,13 +378,15 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveDatabaseUserId(user);
-      const thread = await this.agentThreadsService.findOne(
-        scopedWhere(organizationId, {
-          id: threadId,
-          isDeleted: false,
-        }),
-      );
+      const [dbUserId, thread] = await Promise.all([
+        this.resolveDatabaseUserId(user),
+        this.agentThreadsService.findOne(
+          scopedWhere(organizationId, {
+            id: threadId,
+            isDeleted: false,
+          }),
+        ),
+      ]);
       const status = String(
         (thread as { status?: string | null } | null)?.status ?? '',
       ).toLowerCase();

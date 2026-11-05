@@ -68,14 +68,16 @@ export class IntegrationsService {
       throw new ForbiddenException(
         'Only an organization owner or administrator can bind agent reports',
       );
-    for (const binding of config.agentReportBindings) {
-      const brand = await this.prisma.brand.findFirst({
-        where: scopedWhere(organizationId, { id: binding.brandId }),
-        select: { id: true },
-      });
-      if (!brand)
-        throw new ForbiddenException('Agent report brand is unavailable');
-    }
+    const brands = await Promise.all(
+      config.agentReportBindings.map((binding) =>
+        this.prisma.brand.findFirst({
+          where: scopedWhere(organizationId, { id: binding.brandId }),
+          select: { id: true },
+        }),
+      ),
+    );
+    if (brands.some((brand) => !brand))
+      throw new ForbiddenException('Agent report brand is unavailable');
   }
 
   async create(

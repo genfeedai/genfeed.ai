@@ -313,16 +313,17 @@ export class AgentCampaignExecutionService {
       });
     }
 
-    let agentsRunning = 0;
-    for (const agentId of campaign.agents) {
-      const strategy = await this.agentStrategiesService.findOneById(
-        agentId.toString(),
-        organizationId,
-      );
-      if (strategy?.isActive) {
-        agentsRunning++;
-      }
-    }
+    const strategies = await Promise.all(
+      campaign.agents.map((agentId) =>
+        this.agentStrategiesService.findOneById(
+          agentId.toString(),
+          organizationId,
+        ),
+      ),
+    );
+    const agentsRunning = strategies.filter(
+      (strategy) => strategy?.isActive,
+    ).length;
 
     const executions = await this.prisma.workflowExecution.findMany({
       select: { nodeResults: { select: { status: true } } },

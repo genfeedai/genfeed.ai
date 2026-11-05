@@ -700,9 +700,10 @@ export class TrackedLinksService {
     createdAt: Date;
     lastClickAt?: Date;
   }> {
-    const link = await this.getById(linkId, organizationId);
-
-    const clickBreakdowns = await this.getClickBreakdowns([linkId]);
+    const [link, clickBreakdowns] = await Promise.all([
+      this.getById(linkId, organizationId),
+      this.getClickBreakdowns([linkId]),
+    ]);
 
     const linkDoc = link as unknown as Record<string, unknown> & {
       stats: { totalClicks: number; uniqueClicks: number; lastClickAt?: Date };

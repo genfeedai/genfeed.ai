@@ -117,17 +117,19 @@ export class MediaTextDecisionService {
     ) {
       return 'skipped';
     }
-    const ingredient = await this.prisma.ingredient.findFirst({
-      select: {
-        brand: { select: { description: true, label: true } },
-        brandId: true,
-      },
-      where: scopedWhere(job.organizationId, { id: job.ingredientId }),
-    });
-    const perception = await this.mediaPerceptionService.getForAsset(
-      job.organizationId,
-      job.ingredientId,
-    );
+    const [ingredient, perception] = await Promise.all([
+      this.prisma.ingredient.findFirst({
+        select: {
+          brand: { select: { description: true, label: true } },
+          brandId: true,
+        },
+        where: scopedWhere(job.organizationId, { id: job.ingredientId }),
+      }),
+      this.mediaPerceptionService.getForAsset(
+        job.organizationId,
+        job.ingredientId,
+      ),
+    ]);
     if (!ingredient || !perception || hasPendingArtefacts(perception)) {
       return 'skipped';
     }

@@ -131,12 +131,14 @@ export class HeygenWebhookService {
         return;
       }
 
-      let metadata = await this.metadataService.findOne({
-        id: callbackId,
-      });
-      let ingredient = await this.ingredientsService.findOne({
-        id: callbackId,
-      });
+      let [metadata, ingredient] = await Promise.all([
+        this.metadataService.findOne({
+          id: callbackId,
+        }),
+        this.ingredientsService.findOne({
+          id: callbackId,
+        }),
+      ]);
 
       if (!metadata && ingredient?.metadataId) {
         metadata = await this.metadataService.findOne({

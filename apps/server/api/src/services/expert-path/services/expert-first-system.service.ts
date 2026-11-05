@@ -180,15 +180,14 @@ export class ExpertFirstSystemService {
     }
 
     try {
-      const plan = await this.contentPlansService.getByIdOrFail(
-        organizationId,
-        record.planId,
-        brandId,
-      );
-      const items = await this.contentPlanItemsService.listByPlan(
-        organizationId,
-        record.planId,
-      );
+      const [plan, items] = await Promise.all([
+        this.contentPlansService.getByIdOrFail(
+          organizationId,
+          record.planId,
+          brandId,
+        ),
+        this.contentPlanItemsService.listByPlan(organizationId, record.planId),
+      ]);
       return { items, plan };
     } catch (error: unknown) {
       if (error instanceof NotFoundException) {

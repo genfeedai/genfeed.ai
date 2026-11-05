@@ -51,8 +51,10 @@ export class NewsletterImportFeedService {
   }
 
   async generateBrandFeed(brandId: string): Promise<string> {
-    const brand = await this.findPublicFeedBrand(brandId);
-    const newsletters = await this.findPublishedNewsletters(brandId);
+    const [brand, newsletters] = await Promise.all([
+      this.findPublicFeedBrand(brandId),
+      this.findPublishedNewsletters(brandId),
+    ]);
     const feedUrl = `${this.apiUrl}/public/rss/brands/${brandId}/newsletters`;
     const siteUrl = brand.slug
       ? `${this.siteUrl}/u/${brand.slug}`

@@ -108,10 +108,12 @@ export class AgentOrchestratorUiActionService {
     host: AgentOrchestratorUiActionHost,
     threadId: string,
   ): Promise<AgentChatResult> {
-    await this.assertThreadIsActive(threadId, context.organizationId);
-    const orgSettings = await this.organizationSettingsService.findOne({
-      organizationId: context.organizationId,
-    });
+    const [, orgSettings] = await Promise.all([
+      this.assertThreadIsActive(threadId, context.organizationId),
+      this.organizationSettingsService.findOne({
+        organizationId: context.organizationId,
+      }),
+    ]);
     const { policy: basePolicy } = resolveEffectiveAgentExecutionConfig({
       organizationSettings: orgSettings,
     });

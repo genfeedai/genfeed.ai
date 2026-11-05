@@ -440,27 +440,24 @@ export async function listPublicationInsights(
   )
     throw new BadRequestException('Invalid publication pagination');
   const where = publicationWhere(query, scope);
-  const totalDocs = await prisma.post.count({
-    where: scopedWhere(scope.organizationId, {
-      ...where,
-      brandId: scope.brandId,
-      isDeleted: false,
-    }),
+  const pageWhere = scopedWhere(scope.organizationId, {
+    ...where,
+    brandId: scope.brandId,
+    isDeleted: false,
   });
-  const posts = await prisma.post.findMany({
-    where: scopedWhere(scope.organizationId, {
-      ...where,
-      brandId: scope.brandId,
-      isDeleted: false,
+  const [totalDocs, posts] = await Promise.all([
+    prisma.post.count({ where: pageWhere }),
+    prisma.post.findMany({
+      where: pageWhere,
+      take: limit,
+      skip: (page - 1) * limit,
+      orderBy: [
+        { publicationDate: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+        { id: 'asc' },
+      ],
     }),
-    take: limit,
-    skip: (page - 1) * limit,
-    orderBy: [
-      { publicationDate: { sort: 'desc', nulls: 'last' } },
-      { createdAt: 'desc' },
-      { id: 'asc' },
-    ],
-  });
+  ]);
   const docs = await projectPage(prisma, posts, scope);
   const totalPages = Math.ceil(totalDocs / limit);
   return {

@@ -382,15 +382,19 @@ export class ImageGenerationAdmissionService {
         sourceIds,
         'image',
       );
-    for (const id of sourceIds) {
-      // A granted character's reference image belongs to its owner.
-      const image = await this.findSourceImage({
-        availableAvatarIds,
-        brandId,
-        grantedAvatarOwners,
-        id,
-        organizationId,
-      });
+    // A granted character's reference image belongs to its owner.
+    const images = await Promise.all(
+      sourceIds.map((id) =>
+        this.findSourceImage({
+          availableAvatarIds,
+          brandId,
+          grantedAvatarOwners,
+          id,
+          organizationId,
+        }),
+      ),
+    );
+    for (const image of images) {
       if (!image) throw new NotFoundException('Reference image');
       if (
         ![
