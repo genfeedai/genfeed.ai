@@ -336,7 +336,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/moonrise/settings/connected-accounts',
+      '/acme/moonrise/settings/accounts',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',

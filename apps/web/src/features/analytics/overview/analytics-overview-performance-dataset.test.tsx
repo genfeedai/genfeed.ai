@@ -179,7 +179,7 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     });
     expect(link).toHaveAttribute(
       'href',
-      '/acme/brand/settings/connected-accounts',
+      '/acme/brand/settings/accounts',
     );
   });
 

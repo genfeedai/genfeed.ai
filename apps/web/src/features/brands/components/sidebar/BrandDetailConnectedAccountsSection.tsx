@@ -18,7 +18,7 @@ import {
 /**
  * Connected accounts for a brand: one row per account with its platform icon
  * and status. The title and Manage sit above the card like every other
- * section; connecting and reconnecting live on /settings/connected-accounts.
+ * section; connecting and reconnecting live on /settings/accounts.
  */
 export default function BrandDetailConnectedAccountsSection({
   connections,

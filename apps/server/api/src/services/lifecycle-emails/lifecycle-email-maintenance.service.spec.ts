@@ -128,7 +128,7 @@ describe('system recap policy', () => {
     );
   });
   it.each([
-    [false, 'settings/connected-accounts', 'connect_account'],
+    [false, 'settings/accounts', 'connect_account'],
     [true, 'playground', 'publish_content'],
   ] as const)(
     'links the recap to the canonical next step when connected=%s',

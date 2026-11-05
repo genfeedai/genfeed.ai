@@ -328,7 +328,7 @@ describe('routes.constant', () => {
         'coffee',
         APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
       ),
-    ).toBe('/acme/coffee/settings/connected-accounts');
+    ).toBe('/acme/coffee/settings/accounts');
     expect(
       createBrandAppRoute(
         'acme',

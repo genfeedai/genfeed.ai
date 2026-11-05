@@ -472,7 +472,7 @@ describe('AnalyticsOverview', () => {
       <AnalyticsOverview scope={PageScope.SUPERADMIN} basePath="/admin" />,
     );
     expect(markup).toContain('/acme/~/settings/integrations');
-    expect(markup).not.toContain('/acme/brand-x/settings/connected-accounts');
+    expect(markup).not.toContain('/acme/brand-x/settings/accounts');
     expect(markup).not.toContain('/acme/brand-x/publishing');
     expect(markup).toContain('href="/publishing');
     expect(markup).toContain('/admin/brands');
@@ -502,7 +502,7 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain('Create content');
     expect(markup).toContain('Manage connections');
     expect(markup).toContain('/acme/brand-x/publishing');
-    expect(markup).toContain('/acme/brand-x/settings/connected-accounts');
+    expect(markup).toContain('/acme/brand-x/settings/accounts');
     expect(markup).not.toContain('/settings/api-keys');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');
