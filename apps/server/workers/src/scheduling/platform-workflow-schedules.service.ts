@@ -190,10 +190,7 @@ export class PlatformWorkflowSchedulesService {
             where: {
               isDeleted: false,
               organizationId: organization.id,
-              result: {
-                path: ['metadata', 'canonicalId'],
-                equals: canonicalId,
-              },
+              canonicalId,
               status: {
                 in: [
                   PrismaWorkflowExecutionStatus.PENDING,
@@ -332,10 +329,10 @@ export class PlatformWorkflowSchedulesService {
         isDeleted: false,
         status: PrismaWorkflowExecutionStatus.PENDING,
         idempotencyKey: { startsWith: 'proactive:' },
-        result: { path: ['metadata', 'source'], equals: 'proactive' },
+        source: 'proactive',
         OR: recoveryCandidates.map((strategy) => ({
           organizationId: strategy.organizationId,
-          result: { path: ['metadata', 'strategyId'], equals: strategy.id },
+          strategyId: strategy.id,
         })),
       },
       select: { organizationId: true },

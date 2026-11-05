@@ -34,7 +34,7 @@ import type {
   IAgentRunProjection,
   IAgentThreadExternalRuntime,
 } from '@genfeedai/contracts/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -74,9 +74,8 @@ export type WorkflowExecutionRecord = {
 };
 
 /**
- * One row of the thread -> execution join. `threadId` is not a column: agent
- * turns store it inside the execution `result` JSON at `metadata.threadId`
- * (written by `AgentOrchestratorService`), so it is projected out in SQL.
+ * One row of the thread -> execution join. `threadId` is the execution column
+ * promoted from `result.metadata.threadId` (written by `AgentOrchestratorService`).
  */
 type ThreadExecutionRow = {
   createdAt?: Date;
@@ -880,12 +879,7 @@ export class AgentThreadsService extends BaseService<
       : null;
   }
 
-  /**
-   * Latest workflow executions for the listed threads. Agent turns record the
-   * originating thread in the execution `result` JSON (`metadata.threadId`),
-   * not in a column, so the join is projected in SQL rather than scanned in
-   * memory over every execution in the organization.
-   */
+  /** Latest workflow executions for the listed threads, newest first. */
   private async findExecutionsByThreadIds(
     organizationId: string,
     threadIds: string[],
@@ -895,25 +889,20 @@ export class AgentThreadsService extends BaseService<
       return [];
     }
 
-    // The thread predicate must be the jsonb path `#>` expression that
-    // `workflow_executions_agent_thread_lookup_idx` indexes. A `->>` text
-    // comparison cannot use it and walks every execution of the organization,
-    // detoasting each `result` blob.
-    return this.prisma.$queryRaw<ThreadExecutionRow[]>`
-      SELECT
-        execution.id AS "id",
-        execution."createdAt" AS "createdAt",
-        execution.status::text AS "status",
-        execution.result -> 'metadata' ->> 'threadId' AS "threadId"
-      FROM workflow_executions AS execution
-      WHERE execution."organizationId" = ${organizationId}
-        AND execution."isDeleted" = false
-        AND (execution.result #> '{metadata,threadId}'::text[]) IN (${Prisma.join(
-          threadIds.map((threadId) => Prisma.sql`to_jsonb(${threadId}::text)`),
-        )})
-      ORDER BY execution."createdAt" DESC
-      LIMIT ${limit}
-    `;
+    // Served by `workflow_executions_thread_idx`; no `result` blob is read.
+    const rows = await this.prisma.workflowExecution.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true, id: true, status: true, threadId: true },
+      take: limit,
+      where: {
+        isDeleted: false,
+        organizationId,
+        threadId: { in: threadIds },
+      },
+    });
+    return rows.flatMap(({ threadId, ...row }) =>
+      threadId ? [{ ...row, threadId }] : [],
+    );
   }
 
   private async findLatestGeneratedAssetsByThreadIds(

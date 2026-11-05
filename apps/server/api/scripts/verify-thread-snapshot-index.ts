@@ -27,7 +27,7 @@ const prisma = new PrismaClient({
 });
 const queries: { query: string; params: string }[] = [];
 prisma.$on('query', (event) => queries.push(event));
-const indexName = 'workflow_executions_thread_snapshot_idx';
+const indexName = 'workflow_executions_thread_idx';
 const hostile = `thread'"; DROP TABLE workflow_executions; -- 雪\\`;
 const date = new Date('2026-09-08T10:00:00.000Z');
 function snapshot(
@@ -83,18 +83,14 @@ function nodes(node: PlanNode): PlanNode[] {
 }
 function assertBounded(plan: PlanNode) {
   const scans = nodes(plan).filter((node) => node['Index Name'] === indexName);
-  assert.equal(
-    scans.length,
-    3,
-    'Expected three snapshot expression index scans',
-  );
+  assert.equal(scans.length, 3, 'Expected three thread index scans');
   for (const scan of scans) {
     assert.equal(scan['Node Type'], 'Index Scan');
     for (const predicate of [
       'organizationId',
       'isDeleted',
-      'metadata,threadId',
-      'metadata,canonicalId',
+      'threadId',
+      'canonicalId',
     ]) {
       assert(
         scan['Index Cond']?.includes(predicate),
@@ -125,6 +121,17 @@ async function explain(label: string) {
   );
   return result.rows[0]['QUERY PLAN'][0].Plan as PlanNode;
 }
+async function applyMigration(name: string) {
+  await db.query(
+    await readFile(
+      new URL(
+        `../../../../packages/prisma/prisma/migrations/${name}/migration.sql`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+}
 let created = false;
 try {
   await admin.connect();
@@ -135,7 +142,10 @@ try {
     CREATE TABLE workflow_executions (
       id TEXT PRIMARY KEY, "organizationId" TEXT NOT NULL, "isDeleted" BOOLEAN NOT NULL DEFAULT false,
       result JSONB, status "WorkflowExecutionStatus" NOT NULL DEFAULT 'PENDING',
-      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(), "startedAt" TIMESTAMP, "completedAt" TIMESTAMP
+      "createdAt" TIMESTAMP NOT NULL DEFAULT NOW(), "startedAt" TIMESTAMP, "completedAt" TIMESTAMP, error TEXT
+    );
+    CREATE TABLE data_backfills (
+      id TEXT PRIMARY KEY, "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, report JSONB NOT NULL
     );
     CREATE INDEX baseline_scope ON workflow_executions ("organizationId", "isDeleted", "createdAt" DESC);
     INSERT INTO workflow_executions (id, "organizationId", result)
@@ -145,6 +155,12 @@ try {
     INSERT INTO workflow_executions (id, "organizationId", result)
     SELECT 'dense-' || n, 'org-1', jsonb_build_object('metadata', jsonb_build_object('threadId', 'dense', 'canonicalId', 'unrelated-' || n))
     FROM generate_series(1, 20000) n`);
+  // Rows above predate the promoted columns: the backfill fills them. Rows
+  // inserted below go through the insert trigger.
+  await applyMigration('20261105090000_workflow_execution_metadata_columns');
+  await applyMigration(
+    '20261105090050_backfill_workflow_execution_metadata_columns',
+  );
   for (const [
     index,
     canonicalId,
@@ -190,15 +206,7 @@ try {
   const beforePlan = await explain('BEFORE');
   assert.throws(() => assertBounded(beforePlan), /Expected three/);
   console.log('PASS: bounded-plan assertion fails without the migration');
-  await db.query(
-    await readFile(
-      new URL(
-        '../../../../packages/prisma/prisma/migrations/20260914170000_workflow_thread_snapshot_index/migration.sql',
-        import.meta.url,
-      ),
-      'utf8',
-    ),
-  );
+  await applyMigration('20261105090100_workflow_execution_thread_index');
   const validity = await db.query(
     'SELECT indisvalid, indisready FROM pg_index WHERE indexrelid = $1::regclass',
     [indexName],

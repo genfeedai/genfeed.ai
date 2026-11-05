@@ -658,7 +658,7 @@ export class ContentEngineService {
       take: 1000,
       where: scopedWhere(organizationId, {
         createdAt: { gte: since },
-        result: { path: ['metadata', 'campaignId'], equals: campaignId },
+        campaignId,
       }),
     });
 

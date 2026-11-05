@@ -326,12 +326,7 @@ export class AgentCampaignExecutionService {
 
     const executions = await this.prisma.workflowExecution.findMany({
       select: { nodeResults: { select: { status: true } } },
-      where: scopedWhere(organizationId, {
-        result: {
-          path: ['metadata', 'campaignId'],
-          equals: campaignId,
-        },
-      }),
+      where: scopedWhere(organizationId, { campaignId }),
     });
 
     const contentProduced = executions.reduce(

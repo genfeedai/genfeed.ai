@@ -5541,6 +5541,21 @@ model WorkflowExecution {
 
   trigger String?
 
+  /// Identity keys copied out of `result.metadata` when the execution is
+  /// created, so hot filters never read or detoast the `result` blob. They are
+  /// written once by `WorkflowExecutionsService.createExecution` and never
+  /// change; `result.metadata` keeps its copy for the runtime document.
+  canonicalId    String?
+  source         String?
+  /// `metadata.strategyId`, falling back to `metadata.agentStrategyId`.
+  strategyId     String?
+  brandId        String?
+  threadId       String?
+  dispatchClass  String?
+  dispatchId     String?
+  campaignId     String?
+  isSystemAction Boolean @default(false)
+
   @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
@@ -5548,6 +5563,7 @@ model WorkflowExecution {
   @@index([workflowId, organizationId], map: "workflow_executions_workflow_org_idx")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
+  @@index([organizationId, isDeleted, threadId, canonicalId, createdAt(sort: Desc), id(sort: Desc)], map: "workflow_executions_thread_idx")
   @@map("workflow_executions")
   @@unique([id, organizationId])
   readScope WorkflowExecutionReadScope?

@@ -4,13 +4,24 @@ import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { Prisma } from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 
 type CustomerExecutionQuery = Pick<
   WorkflowExecutionQueryDto,
   'brandId' | 'status' | 'strategyId' | 'trigger' | 'workflowId'
 >;
+
+/**
+ * An intentional proactive agent run: the agent-turn system workflow started
+ * by a strategy. Matches the `workflow_executions_proactive_turn_brand_idx`
+ * partial index predicate, so keep the two in step.
+ */
+const PROACTIVE_AGENT_TURN = {
+  canonicalId: 'agent.turn.execute',
+  source: 'proactive',
+  strategyId: { not: null },
+} satisfies Prisma.WorkflowExecutionWhereInput;
 
 /**
  * The workflows each arm of the customer-activity filter admits, resolved up
@@ -86,30 +97,8 @@ function buildCustomerExecutionIdsWhere(
   ids: CustomerExecutionWorkflowIds,
 ): Prisma.WorkflowExecutionWhereInput {
   const proactive: Prisma.WorkflowExecutionWhereInput = {
-    AND: [
-      { result: { path: ['metadata', 'source'], equals: 'proactive' } },
-      {
-        result: {
-          path: ['metadata', 'canonicalId'],
-          equals: 'agent.turn.execute',
-        },
-      },
-      {
-        NOT: {
-          result: { path: ['metadata', 'strategyId'], equals: Prisma.AnyNull },
-        },
-      },
-      ...(query.brandId
-        ? [
-            {
-              result: {
-                path: ['metadata', 'brandId'],
-                equals: query.brandId,
-              },
-            },
-          ]
-        : []),
-    ],
+    ...PROACTIVE_AGENT_TURN,
+    ...(query.brandId ? { brandId: query.brandId } : {}),
     workflowId: { in: ids.agentTurn },
   };
 
@@ -127,26 +116,7 @@ function buildCustomerExecutionIdsWhere(
           ...(query.brandId ? [] : [{ workflowId: { in: ids.batch } }]),
         ],
       },
-      ...(query.strategyId
-        ? [
-            {
-              OR: [
-                {
-                  result: {
-                    path: ['metadata', 'strategyId'],
-                    equals: query.strategyId,
-                  },
-                },
-                {
-                  result: {
-                    path: ['metadata', 'agentStrategyId'],
-                    equals: query.strategyId,
-                  },
-                },
-              ],
-            },
-          ]
-        : []),
+      ...(query.strategyId ? [{ strategyId: query.strategyId }] : []),
     ],
   };
 }
@@ -163,20 +133,7 @@ export function buildCustomerExecutionWhere(
   }
 
   const proactive: Prisma.WorkflowExecutionWhereInput = {
-    AND: [
-      { result: { path: ['metadata', 'source'], equals: 'proactive' } },
-      {
-        result: {
-          path: ['metadata', 'canonicalId'],
-          equals: 'agent.turn.execute',
-        },
-      },
-      {
-        NOT: {
-          result: { path: ['metadata', 'strategyId'], equals: Prisma.AnyNull },
-        },
-      },
-    ],
+    ...PROACTIVE_AGENT_TURN,
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
@@ -238,37 +195,12 @@ export function buildCustomerExecutionWhere(
                     brandId: query.brandId,
                   },
                 },
-                {
-                  ...proactive,
-                  result: {
-                    path: ['metadata', 'brandId'],
-                    equals: query.brandId,
-                  },
-                },
+                { ...proactive, brandId: query.brandId },
               ],
             },
           ]
         : []),
-      ...(query.strategyId
-        ? [
-            {
-              OR: [
-                {
-                  result: {
-                    path: ['metadata', 'strategyId'],
-                    equals: query.strategyId,
-                  },
-                },
-                {
-                  result: {
-                    path: ['metadata', 'agentStrategyId'],
-                    equals: query.strategyId,
-                  },
-                },
-              ],
-            },
-          ]
-        : []),
+      ...(query.strategyId ? [{ strategyId: query.strategyId }] : []),
     ],
   };
 }

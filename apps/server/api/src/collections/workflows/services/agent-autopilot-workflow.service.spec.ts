@@ -657,8 +657,8 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
         isDeleted: false,
         status: 'PENDING',
         idempotencyKey: { startsWith: 'proactive:' },
-        result: { path: ['metadata', 'source'], equals: 'proactive' },
-        OR: [{ result: { path: ['metadata', 'strategyId'], equals: row.id } }],
+        source: 'proactive',
+        strategyId: { in: [row.id] },
       },
     });
     expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
@@ -852,9 +852,7 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     const pending = vi
       .fn()
       .mockResolvedValue(
-        rows
-          .slice(0, 3)
-          .map((row) => ({ result: { metadata: { strategyId: row.id } } })),
+        rows.slice(0, 3).map((row) => ({ strategyId: row.id })),
       );
     const prisma = {
       agentStrategy: { findMany: vi.fn().mockResolvedValue(rows) },
@@ -877,16 +875,14 @@ describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
     });
 
     expect(pending).toHaveBeenCalledExactlyOnceWith({
-      select: { result: true },
+      select: { strategyId: true },
       where: {
         organizationId: 'org-1',
         isDeleted: false,
         status: 'PENDING',
         idempotencyKey: { startsWith: 'proactive:' },
-        result: { path: ['metadata', 'source'], equals: 'proactive' },
-        OR: rows.map((row) => ({
-          result: { path: ['metadata', 'strategyId'], equals: row.id },
-        })),
+        source: 'proactive',
+        strategyId: { in: rows.map((row) => row.id) },
       },
     });
     expect(

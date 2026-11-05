@@ -183,8 +183,8 @@ export async function readThreadWorkflowSnapshot(
      FROM workflow_executions
      WHERE "organizationId" = ${snapshot.organizationId}
        AND "isDeleted" = false
-       AND (result #> '{metadata,threadId}'::text[]) = ${JSON.stringify(snapshot.threadId)}::jsonb
-       AND (result #> '{metadata,canonicalId}'::text[]) = ${JSON.stringify(canonicalId)}::jsonb
+       AND "threadId" = ${snapshot.threadId}
+       AND "canonicalId" = ${canonicalId}
      ORDER BY "createdAt" DESC, id DESC LIMIT 1)
   `,
   );

@@ -31,7 +31,7 @@ describe('AgentThreadsService Prisma row contract', () => {
   let brandDelegate: { findMany: ReturnType<typeof vi.fn> };
   let delegate: AgentThreadDelegate;
   let ingredientDelegate: { findMany: ReturnType<typeof vi.fn> };
-  let queryRaw: ReturnType<typeof vi.fn>;
+  let executionFindMany: ReturnType<typeof vi.fn>;
   let snapshotDelegate: { findMany: ReturnType<typeof vi.fn> };
   let service: AgentThreadsService;
 
@@ -43,16 +43,16 @@ describe('AgentThreadsService Prisma row contract', () => {
       update: vi.fn(),
     };
     ingredientDelegate = { findMany: vi.fn().mockResolvedValue([]) };
-    queryRaw = vi.fn().mockResolvedValue([]);
+    executionFindMany = vi.fn().mockResolvedValue([]);
     snapshotDelegate = { findMany: vi.fn().mockResolvedValue([]) };
 
     service = new AgentThreadsService(
       {
-        $queryRaw: queryRaw,
         agentThread: delegate,
         agentThreadSnapshot: snapshotDelegate,
         brand: brandDelegate,
         ingredient: ingredientDelegate,
+        workflowExecution: { findMany: executionFindMany },
       } as unknown as PrismaService,
       {
         debug: vi.fn(),
@@ -154,7 +154,7 @@ describe('AgentThreadsService Prisma row contract', () => {
 
     expect(result.docs).toEqual([]);
     expect(snapshotDelegate.findMany).not.toHaveBeenCalled();
-    expect(queryRaw).not.toHaveBeenCalled();
+    expect(executionFindMany).not.toHaveBeenCalled();
   });
 
   it('leaves the thread query unfiltered by source when source is omitted', async () => {
@@ -218,9 +218,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         threadId: 'thread-1',
       },
     ]);
-    // `threadId` is not a column: the service projects it out of the execution
-    // `result` JSON, so the raw join result is what maps assets back to threads.
-    queryRaw.mockResolvedValue([
+    executionFindMany.mockResolvedValue([
       { id: 'execution-1', status: 'COMPLETED', threadId: 'thread-1' },
     ]);
     ingredientDelegate.findMany.mockResolvedValue([
@@ -262,7 +260,7 @@ describe('AgentThreadsService Prisma row contract', () => {
     );
   });
 
-  it('looks executions up through the indexed jsonb thread path', async () => {
+  it('looks executions up by the promoted thread column, without the result blob', async () => {
     delegate.findMany.mockResolvedValue([
       { id: 'thread-1', organizationId: 'org-1', userId: 'user-1' },
     ]);
@@ -277,17 +275,16 @@ describe('AgentThreadsService Prisma row contract', () => {
       FIRST_PAGE,
     );
 
-    const [strings, ...values] = queryRaw.mock.calls[0] as [
-      TemplateStringsArray,
-      ...unknown[],
-    ];
-    const sql = strings.join('?');
-
-    // `workflow_executions_agent_thread_lookup_idx` indexes the `#>` jsonb
-    // path; a `->>` text predicate cannot use it and scans every execution.
-    expect(sql).toContain("execution.result #> '{metadata,threadId}'::text[]");
-    expect(sql).not.toMatch(/->> 'threadId' IN/);
-    expect(JSON.stringify(values)).toContain('thread-1');
+    expect(executionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { createdAt: true, id: true, status: true, threadId: true },
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          threadId: { in: ['thread-1'] },
+        },
+      }),
+    );
   });
 
   it('falls back to the latest meaningful timeline response for list previews', async () => {
@@ -361,7 +358,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         threadId: 'thread-1',
       },
     ]);
-    queryRaw.mockResolvedValue([
+    executionFindMany.mockResolvedValue([
       { id: 'execution-1', status: 'COMPLETED', threadId: 'thread-1' },
     ]);
 
@@ -508,7 +505,7 @@ describe('AgentThreadsService Prisma row contract', () => {
     delegate.findMany.mockResolvedValue([
       { id: 'thread-queued', organizationId: 'org-1', userId: 'user-1' },
     ]);
-    queryRaw.mockResolvedValue([
+    executionFindMany.mockResolvedValue([
       {
         id: 'execution-new',
         status: 'PENDING',
@@ -536,7 +533,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         data: { activeRun: { runId: 'execution-old', status: 'failed' } },
       },
     ]);
-    queryRaw.mockResolvedValue([
+    executionFindMany.mockResolvedValue([
       {
         id: 'execution-new',
         status: 'PENDING',
@@ -567,7 +564,7 @@ describe('AgentThreadsService Prisma row contract', () => {
           },
         },
       ]);
-      queryRaw.mockResolvedValue([
+      executionFindMany.mockResolvedValue([
         {
           id: 'execution-stopped',
           status,

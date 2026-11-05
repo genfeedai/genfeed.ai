@@ -36,25 +36,9 @@ describe('customer execution visibility', () => {
           OR: [
             authored,
             {
-              AND: [
-                {
-                  result: { path: ['metadata', 'source'], equals: 'proactive' },
-                },
-                {
-                  result: {
-                    path: ['metadata', 'canonicalId'],
-                    equals: 'agent.turn.execute',
-                  },
-                },
-                {
-                  NOT: {
-                    result: {
-                      path: ['metadata', 'strategyId'],
-                      equals: Prisma.AnyNull,
-                    },
-                  },
-                },
-              ],
+              canonicalId: 'agent.turn.execute',
+              source: 'proactive',
+              strategyId: { not: null },
               workflow: {
                 organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
                 isDeleted: false,
@@ -97,26 +81,12 @@ describe('customer execution visibility', () => {
               },
             },
             expect.objectContaining({
-              result: { path: ['metadata', 'brandId'], equals: 'brand-1' },
-              AND: expect.arrayContaining([
-                {
-                  result: { path: ['metadata', 'source'], equals: 'proactive' },
-                },
-              ]),
+              brandId: 'brand-1',
+              source: 'proactive',
             }),
           ],
         },
-        {
-          OR: [
-            { result: { path: ['metadata', 'strategyId'], equals: 'agent-1' } },
-            {
-              result: {
-                path: ['metadata', 'agentStrategyId'],
-                equals: 'agent-1',
-              },
-            },
-          ],
-        },
+        { strategyId: 'agent-1' },
       ],
     });
   });
@@ -125,8 +95,8 @@ describe('customer execution visibility', () => {
 /**
  * Behavioral (#5398): builds a minimal in-memory evaluator for the exact
  * Prisma filter shapes `buildCustomerExecutionWhere` emits (`AND`/`OR`/`NOT`,
- * relation objects, and JSON `{ path, equals }` filters against `result` /
- * `workflow.metadata`) and checks whether representative rows would or
+ * relation objects, `{ not: null }`, and JSON `{ path, equals }` filters
+ * against `workflow.metadata`) and checks whether representative rows would or
  * would not be selected — the structural tests above catch a shape
  * regression, these catch a visibility regression. Same pattern as
  * `daily-publishing.integration.spec.ts`'s file-local `matches()` fake —
@@ -144,7 +114,10 @@ type FakeExecution = {
   workflowId?: string;
   status?: string;
   trigger?: string;
-  result?: Record<string, unknown>;
+  brandId?: string;
+  canonicalId?: string;
+  source?: string;
+  strategyId?: string | null;
   workflow: FakeWorkflow;
 };
 
@@ -194,6 +167,14 @@ function evaluateFilter(
     ) {
       return (expected as { in: unknown[] }).in.includes(actual);
     }
+    if (
+      expected !== null &&
+      typeof expected === 'object' &&
+      'not' in expected &&
+      (expected as { not: unknown }).not === null
+    ) {
+      return actual !== null && actual !== undefined;
+    }
     if (isJsonPathFilter(expected)) {
       const resolved = resolveJsonPath(actual, expected.path);
       if (expected.equals === Prisma.AnyNull) {
@@ -231,7 +212,7 @@ function batchParentExecution(
   return {
     organizationId: 'org-1',
     isDeleted: false,
-    result: { metadata: { canonicalId: BATCH_WORKFLOW_EXECUTION_ID } },
+    canonicalId: BATCH_WORKFLOW_EXECUTION_ID,
     workflow: {
       organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       isDeleted: false,
@@ -256,7 +237,7 @@ describe('batch execution visibility (behavioral, #5398)', () => {
 
   it('excludes a non-batch hidden system workflow execution', () => {
     const execution = batchParentExecution({
-      result: { metadata: { canonicalId: 'some.other.system.workflow' } },
+      canonicalId: 'some.other.system.workflow',
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
@@ -281,13 +262,9 @@ describe('batch execution visibility (behavioral, #5398)', () => {
     const execution: FakeExecution = {
       organizationId: 'org-1',
       isDeleted: false,
-      result: {
-        metadata: {
-          source: 'proactive',
-          canonicalId: 'agent.turn.execute',
-          strategyId: 'agent-1',
-        },
-      },
+      source: 'proactive',
+      canonicalId: 'agent.turn.execute',
+      strategyId: 'agent-1',
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
@@ -343,25 +320,9 @@ describe('customer execution visibility by workflow id', () => {
           OR: [
             { workflowId: { in: ['wf-1', 'wf-2'] } },
             {
-              AND: [
-                {
-                  result: { path: ['metadata', 'source'], equals: 'proactive' },
-                },
-                {
-                  result: {
-                    path: ['metadata', 'canonicalId'],
-                    equals: 'agent.turn.execute',
-                  },
-                },
-                {
-                  NOT: {
-                    result: {
-                      path: ['metadata', 'strategyId'],
-                      equals: Prisma.AnyNull,
-                    },
-                  },
-                },
-              ],
+              canonicalId: 'agent.turn.execute',
+              source: 'proactive',
+              strategyId: { not: null },
               workflowId: { in: ['wf-agent'] },
             },
             { workflowId: { in: ['wf-batch'] } },
@@ -389,26 +350,12 @@ describe('customer execution visibility by workflow id', () => {
           OR: [
             { workflowId: { in: ['wf-1', 'wf-2'] } },
             expect.objectContaining({
+              brandId: 'brand-1',
               workflowId: { in: ['wf-agent'] },
-              AND: expect.arrayContaining([
-                {
-                  result: { path: ['metadata', 'brandId'], equals: 'brand-1' },
-                },
-              ]),
             }),
           ],
         },
-        {
-          OR: [
-            { result: { path: ['metadata', 'strategyId'], equals: 'agent-1' } },
-            {
-              result: {
-                path: ['metadata', 'agentStrategyId'],
-                equals: 'agent-1',
-              },
-            },
-          ],
-        },
+        { strategyId: 'agent-1' },
       ],
     });
   });
@@ -420,18 +367,14 @@ describe('customer execution visibility by workflow id', () => {
       workflowId: 'wf-1',
       workflow: { organizationId: 'org-1', isDeleted: false },
     };
-    const agentTurn = (strategyId: unknown): FakeExecution => ({
+    const agentTurn = (strategyId: string | null): FakeExecution => ({
       organizationId: 'org-1',
       isDeleted: false,
       workflowId: 'wf-agent',
-      result: {
-        metadata: {
-          source: 'proactive',
-          canonicalId: 'agent.turn.execute',
-          brandId: 'brand-1',
-          strategyId,
-        },
-      },
+      source: 'proactive',
+      canonicalId: 'agent.turn.execute',
+      brandId: 'brand-1',
+      strategyId,
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
@@ -441,7 +384,7 @@ describe('customer execution visibility by workflow id', () => {
     const batchExecution = batchParentExecution({ workflowId: 'wf-batch' });
     const hiddenSystem = batchParentExecution({
       workflowId: 'wf-other-system',
-      result: { metadata: { canonicalId: 'some.other.system.workflow' } },
+      canonicalId: 'some.other.system.workflow',
       workflow: {
         organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
         isDeleted: false,
@@ -453,7 +396,7 @@ describe('customer execution visibility by workflow id', () => {
     const rows = [
       authoredExecution,
       agentTurn('agent-1'),
-      agentTurn(undefined),
+      agentTurn(null),
       batchExecution,
       hiddenSystem,
     ];
