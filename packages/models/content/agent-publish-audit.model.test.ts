@@ -1,3 +1,8 @@
+import {
+  createBrand,
+  createOrganization,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({
@@ -37,10 +42,10 @@ import { AgentPublishAudit } from './agent-publish-audit.model';
 describe('AgentPublishAudit', () => {
   it('hydrates nested organization, brand, and user objects', () => {
     const audit = new AgentPublishAudit({
-      brand: { id: 'brand-1' },
+      brand: createBrand({ id: 'brand-1' }),
       id: 'audit-1',
-      organization: { id: 'org-1' },
-      user: { id: 'user-1' },
+      organization: createOrganization({ id: 'org-1' }),
+      user: createUser({ id: 'user-1' }),
     });
     expect(audit.organization).toMatchObject({ id: 'org-1' });
     expect(audit.brand).toMatchObject({ id: 'brand-1' });

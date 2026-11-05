@@ -3,12 +3,11 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import type {
-  IActivity,
-  IIngredient,
-  ISetting,
-  IUser,
-} from '@genfeedai/contracts/interfaces';
+import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
+import {
+  createBaseEntity,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', async (importOriginal) => ({
@@ -34,46 +33,6 @@ vi.mock('@models/auth/user.model', () => ({
 
 import { Activity } from '@models/analytics/activity.model';
 import { Ingredient } from '@models/content/ingredient.model';
-
-const createBaseEntity = <T extends { id: string }>(
-  partial: Partial<T> = {},
-): Pick<T, 'id'> & {
-  createdAt: string;
-  isDeleted: boolean;
-  updatedAt: string;
-} => ({
-  createdAt: '2026-01-01T00:00:00.000Z',
-  id: (partial.id ?? 'entity-1') as string,
-  isDeleted: false,
-  updatedAt: '2026-01-01T00:00:00.000Z',
-});
-
-const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
-  ...createBaseEntity<ISetting>(partial),
-  contentPreferences: [],
-  isAdvancedMode: false,
-  isFirstLogin: false,
-  isMenuCollapsed: false,
-  isTrendNotificationsEmail: false,
-  isTrendNotificationsInApp: false,
-  isTrendNotificationsTelegram: false,
-  isVideoNotificationsEmail: false,
-  isVerified: false,
-  theme: 'light',
-  trendNotificationsFrequency: 'DAILY',
-  trendNotificationsMinViralScore: 0,
-  ...partial,
-});
-
-const createUser = (partial: Partial<IUser> = {}): IUser => ({
-  ...createBaseEntity<IUser>(partial),
-  email: 'test@example.com',
-  firstName: 'Test',
-  handle: 'test-user',
-  lastName: 'User',
-  settings: createSetting(),
-  ...partial,
-});
 
 const createActivity = (partial: Partial<IActivity> = {}) =>
   new Activity({

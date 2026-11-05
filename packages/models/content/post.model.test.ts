@@ -4,17 +4,19 @@ import {
   IngredientStatus,
   PostCategory,
   PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
-  IBrand,
   ICredential,
   IIngredient,
-  IOrganization,
-  IOrganizationSetting,
   IPost,
-  ISetting,
-  IUser,
 } from '@genfeedai/contracts/interfaces';
+import {
+  createBaseEntity,
+  createBrand,
+  createOrganization,
+  createUser,
+} from '@genfeedai/helpers/testing/entity-fixtures';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
@@ -104,104 +106,6 @@ vi.mock('@models/organization/organization.model', () => ({
 
 import { Post } from '@models/content/post.model';
 
-const createBaseEntity = <T extends { id: string }>(
-  partial: Partial<T> = {},
-): Pick<T, 'id'> & {
-  createdAt: string;
-  isDeleted: boolean;
-  updatedAt: string;
-} => ({
-  createdAt: '2026-01-01T00:00:00.000Z',
-  id: (partial.id ?? 'entity-1') as string,
-  isDeleted: false,
-  updatedAt: '2026-01-01T00:00:00.000Z',
-});
-
-const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
-  ...createBaseEntity<ISetting>(partial),
-  contentPreferences: [],
-  isAdvancedMode: false,
-  isFirstLogin: false,
-  isMenuCollapsed: false,
-  isTrendNotificationsEmail: false,
-  isTrendNotificationsInApp: false,
-  isTrendNotificationsTelegram: false,
-  isVideoNotificationsEmail: false,
-  isVerified: false,
-  theme: 'light',
-  trendNotificationsFrequency: 'DAILY',
-  trendNotificationsMinViralScore: 0,
-  ...partial,
-});
-
-const createUser = (partial: Partial<IUser> = {}): IUser => ({
-  ...createBaseEntity<IUser>(partial),
-  email: 'test@example.com',
-  firstName: 'Test',
-  handle: 'test-user',
-  lastName: 'User',
-  settings: createSetting(),
-  ...partial,
-});
-
-const createOrganizationSetting = (
-  partial: Partial<IOrganizationSetting> = {},
-): IOrganizationSetting => ({
-  ...createBaseEntity<IOrganizationSetting>(partial),
-  brandsLimit: 1,
-  isAutoEvaluateEnabled: false,
-  isFleetNsfwVisible: false,
-  isGenerateArticlesEnabled: true,
-  isGenerateImagesEnabled: true,
-  isGenerateMusicEnabled: true,
-  isGenerateVideosEnabled: true,
-  isNotificationsDiscordEnabled: false,
-  isNotificationsTelegramEnabled: false,
-  isNotificationsEmailEnabled: false,
-  isVerifyIngredientEnabled: false,
-  isVerifyScriptEnabled: false,
-  isVerifyVideoEnabled: false,
-  isVoiceControlEnabled: false,
-  isWatermarkEnabled: false,
-  isWebhookEnabled: false,
-  isWhitelabelEnabled: false,
-  seatsLimit: 1,
-  ...partial,
-});
-
-const createOrganization = (
-  partial: Partial<IOrganization> = {},
-): IOrganization => ({
-  ...createBaseEntity<IOrganization>(partial),
-  isSelected: false,
-  label: 'Test Organization',
-  settings: createOrganizationSetting(),
-  user: createUser(),
-  ...partial,
-});
-
-const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
-  ...createBaseEntity<IBrand>(partial),
-  backgroundColor: '#000000',
-  credentials: [],
-  description: 'Brand description',
-  fontFamily: 'Inter',
-  handle: 'test-brand',
-  isActive: true,
-  isFleetEnabled: false,
-  isDefault: false,
-  isSelected: false,
-  isVerified: false,
-  label: 'Test Brand',
-  links: [],
-  organization: createOrganization(),
-  primaryColor: '#ffffff',
-  scope: AssetScope.BRAND,
-  secondaryColor: '#cccccc',
-  user: createUser(),
-  ...partial,
-});
-
 const createCredential = (partial: Partial<ICredential> = {}): ICredential => ({
   ...createBaseEntity<ICredential>(partial),
   brandId: 'brand-123',
@@ -243,6 +147,7 @@ const createPostFixture = (partial: Partial<IPost> = {}): IPost => ({
   platform: CredentialPlatform.TWITTER,
   publicationDate: '2026-01-01T00:00:00.000Z',
   status: PostStatus.DRAFT,
+  targetExecutionState: TargetExecutionState.DRAFT,
   uploadedAt: '2026-01-01T00:00:00.000Z',
   user: createUser(),
   ...partial,
@@ -290,7 +195,7 @@ describe('Post', () => {
       });
 
       expect(post.credential).toBeDefined();
-      expect(post.credential.id).toBe('cred-123');
+      expect(post.credential?.id).toBe('cred-123');
     });
 
     it('should handle populated user', () => {
@@ -449,6 +354,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.YOUTUBE,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe(
@@ -462,6 +368,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.YOUTUBE,
           status: PostStatus.UNLISTED,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe(
@@ -475,6 +382,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.YOUTUBE,
           status: PostStatus.PRIVATE,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe(
@@ -498,6 +406,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.YOUTUBE,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
           url: 'https://custom.url',
         });
 
@@ -509,6 +418,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.YOUTUBE,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBeNull();
@@ -532,6 +442,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TWITTER,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
           url: 'https://custom.url',
         });
 
@@ -543,6 +454,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TWITTER,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBeNull();
@@ -555,6 +467,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TIKTOK,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe(
@@ -569,6 +482,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TIKTOK,
           status: PostStatus.PRIVATE,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe('https://www.tiktok.com/@user123');
@@ -581,6 +495,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.INSTAGRAM,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe('https://instagram.com/p/ABC');
@@ -593,6 +508,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.INSTAGRAM,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBeNull();
@@ -605,6 +521,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TWITTER,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe('https://x.com/user123/status/tweet123');
@@ -617,6 +534,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.TWITTER,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe('https://x.com/i/status/tweet123');
@@ -628,6 +546,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.LINKEDIN,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe(
@@ -641,6 +560,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: CredentialPlatform.FACEBOOK,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBe('https://www.facebook.com/fb123');
@@ -652,6 +572,7 @@ describe('Post', () => {
           id: 'post-123',
           platform: 'UNKNOWN' as CredentialPlatform,
           status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         });
 
         expect(post.platformUrl).toBeNull();
