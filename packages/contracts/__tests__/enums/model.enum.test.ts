@@ -257,6 +257,12 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.FAL_FLUX_2_PRO).toBe('fal-ai/flux-2-pro');
       expect(MODEL_KEYS.FAL_RECRAFT_V4_PRO).toBe('fal-ai/recraft/v4/pro');
       expect(MODEL_KEYS.FAL_GPT_IMAGE_2).toBe('fal-ai/gpt-image-2');
+      expect(MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE).toBe(
+        'fal-ai/gpt-image-2.6-flare',
+      );
+      expect(MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST).toBe(
+        'fal-ai/gpt-image-2.6-sunburst',
+      );
       expect(MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO).toBe(
         'fal-ai/kling-video/v3/pro',
       );

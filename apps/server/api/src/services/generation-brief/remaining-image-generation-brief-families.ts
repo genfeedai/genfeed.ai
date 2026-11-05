@@ -89,6 +89,18 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           seedSupported: false,
         }),
         profile(
+          'fal-gpt-image-2-6-flare-capability',
+          MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE,
+          0,
+          { nativeFields: ['quality'], seedSupported: false },
+        ),
+        profile(
+          'fal-gpt-image-2-6-sunburst-capability',
+          MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST,
+          0,
+          { nativeFields: ['quality'], seedSupported: false },
+        ),
+        profile(
           'gpt-image-2-5-flare-capability',
           MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
           16,

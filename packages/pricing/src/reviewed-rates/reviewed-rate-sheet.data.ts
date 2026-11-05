@@ -3789,6 +3789,134 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-21T20:55:14.793Z',
   },
   {
+    // fal bills GPT Image 2.6 per token ($30/M image output) and has published
+    // no 2.6 per-image table (page checked 2026-11-05). These are fal's own
+    // published GPT Image 2.5 figures at 1024x1024 (same token prices), the
+    // nearest fal evidence: https://fal.ai/learn/devs/gpt-image-2-5-vs-gpt-image-2
+    // Larger sizes cost more (3840x2160 high is $0.10008), so replace these with
+    // measured 2.6 rates once fal publishes them.
+    endpoint: 'openai/gpt-image-2.6/flare/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05268,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.00588,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.01317,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05268,
+        when: {
+          model_variant: 'high',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          fieldType: 'string',
+          default: 'high',
+        },
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/openai/gpt-image-2.6/flare/text-to-image',
+    verifiedAt: '2026-11-05T00:30:00.000Z',
+  },
+  {
+    // fal bills GPT Image 2.6 per token ($30/M image output) and has published
+    // no 2.6 per-image table (page checked 2026-11-05). These are fal's own
+    // published GPT Image 2.5 figures at 1024x1024 (same token prices), the
+    // nearest fal evidence: https://fal.ai/learn/devs/gpt-image-2-5-vs-gpt-image-2
+    // Larger sizes cost more (3840x2160 high is $0.10008), so replace these with
+    // measured 2.6 rates once fal publishes them.
+    endpoint: 'openai/gpt-image-2.6/sunburst/text-to-image',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05268,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.00588,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.01317,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05268,
+        when: {
+          model_variant: 'high',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          fieldType: 'string',
+          default: 'high',
+        },
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/openai/gpt-image-2.6/sunburst/text-to-image',
+    verifiedAt: '2026-11-05T00:30:00.000Z',
+  },
+  {
     // fal's pricing API (GET /v1/models/pricing, 2026-11-04) and the model page
     // both state a flat $0.25 per image, the same as Replicate's Recraft V4 Pro.
     endpoint: 'fal-ai/recraft/v4/pro/text-to-image',

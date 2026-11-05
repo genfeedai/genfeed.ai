@@ -582,6 +582,57 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.211,
   },
   /**
+   * GPT Image 2.6 Flare via fal (text-to-image only). fal bills per token and
+   * has published no 2.6 per-image table, so the rate is its published 2.5
+   * table (same token prices) at 1024×1024: $0.05268 at `high`, the top
+   * quality fal accepts. Seeded at `high` so a missing quality never
+   * undercharges. Replicate does not list 2.6.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
+    description:
+      'OpenAI GPT Image 2.6 Flare via fal — fast, high-quality everyday image generation.',
+    endpoint: 'openai/gpt-image-2.6/flare/text-to-image',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_GPT_IMAGE_2_6_FLARE,
+    label: 'GPT Image 2.6 Flare',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'gpt-image-2.6/flare/text-to-image',
+      owner: 'openai',
+    },
+    providerCostUsd: 0.05268,
+  },
+  /**
+   * GPT Image 2.6 Sunburst via fal (text-to-image only). Same token prices and
+   * rate basis as Flare.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
+    description:
+      'OpenAI GPT Image 2.6 Sunburst via fal — precision image generation for detailed, premium work.',
+    endpoint: 'openai/gpt-image-2.6/sunburst/text-to-image',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_GPT_IMAGE_2_6_SUNBURST,
+    label: 'GPT Image 2.6 Sunburst',
+    provider: ModelProvider.FAL,
+    providerConfig: {
+      name: 'gpt-image-2.6/sunburst/text-to-image',
+      owner: 'openai',
+    },
+    providerCostUsd: 0.05268,
+  },
+  /**
    * Video upscaler — USD per output second (conservative mid band).
    * Not the category default (Topaz remains empty-registry fallback).
    */

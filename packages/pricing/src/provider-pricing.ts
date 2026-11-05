@@ -178,6 +178,8 @@ const GPT_IMAGE_2_5_KEYS = new Set([
 
 const GPT_IMAGE_KEYS = new Set([
   'fal-ai/gpt-image-2',
+  'fal-ai/gpt-image-2.6-flare',
+  'fal-ai/gpt-image-2.6-sunburst',
   'openai/gpt-image-1.5',
   'openai/gpt-image-2',
 ]);

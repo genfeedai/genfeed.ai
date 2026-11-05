@@ -135,6 +135,8 @@ export const MODEL_KEYS = {
   FAL_FLUX_2_PRO: 'fal-ai/flux-2-pro',
   FAL_RECRAFT_V4_PRO: 'fal-ai/recraft/v4/pro',
   FAL_GPT_IMAGE_2: 'fal-ai/gpt-image-2',
+  FAL_GPT_IMAGE_2_6_FLARE: 'fal-ai/gpt-image-2.6-flare',
+  FAL_GPT_IMAGE_2_6_SUNBURST: 'fal-ai/gpt-image-2.6-sunburst',
   FAL_KLING_VIDEO_V3_PRO: 'fal-ai/kling-video/v3/pro',
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
