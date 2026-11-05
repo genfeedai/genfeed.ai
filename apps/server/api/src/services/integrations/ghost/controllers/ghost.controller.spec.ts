@@ -91,7 +91,8 @@ describe('GhostController', () => {
 
   describe('connect', () => {
     const validBody = {
-      apiKey: '64f0c0ab12cd34ef56ab78cd:9a1b2c3d4e5f6071',
+      // A fake Admin key in Ghost's `id:secret` hex shape.
+      apiKey: `${'a'.repeat(24)}:${'b'.repeat(64)}`,
       brandId: mockBrandId,
       ghostUrl: 'https://myblog.ghost.io',
     };
@@ -159,7 +160,7 @@ describe('GhostController', () => {
       ],
       [
         'a Content API key instead of an Admin key',
-        { apiKey: 'a1b2c3d4e5f6a7b8c9d0e1f2a3' },
+        { apiKey: 'c'.repeat(26) },
         undefined,
         { code: 'API_KEY_CONNECT_INVALID_KEY_FORMAT', status: 400 },
       ],

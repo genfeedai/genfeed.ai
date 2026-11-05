@@ -1,7 +1,8 @@
 import { ApiKeyConnectErrorCode } from '@genfeedai/contracts';
 import { parseGhostConnectInput } from './ghost-connect-input.util';
 
-const KEY = '64f0c0ab12cd34ef56ab78cd:9a1b2c3d4e5f60718293a4b5c6d7e8f9';
+// A fake Admin key in Ghost's `id:secret` hex shape.
+const KEY = `${'a'.repeat(24)}:${'b'.repeat(64)}`;
 
 describe('parseGhostConnectInput', () => {
   it.each([
