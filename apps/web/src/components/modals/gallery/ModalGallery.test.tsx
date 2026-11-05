@@ -12,7 +12,7 @@ const library = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -90,19 +90,24 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   ),
 }));
 
+/** What the picker handed back, and whether it closed: the caller's view. */
 function renderGallery(
   overrides: Partial<Parameters<typeof ModalGallery>[0]> = {},
 ) {
-  const props = {
-    category: IngredientCategory.IMAGE,
-    isOpen: true,
-    onClose: vi.fn(),
-    onSelect: vi.fn(),
-    title: 'Pick media',
-    ...overrides,
-  };
-  render(<ModalGallery {...props} />);
-  return props;
+  const outcome = { isClosed: false, picks: [] as unknown[] };
+  render(
+    <ModalGallery
+      category={IngredientCategory.IMAGE}
+      isOpen
+      onClose={() => {
+        outcome.isClosed = true;
+      }}
+      onSelect={(items) => outcome.picks.push(items)}
+      title="Pick media"
+      {...overrides}
+    />,
+  );
+  return outcome;
 }
 
 describe('ModalGallery', () => {
@@ -115,30 +120,28 @@ describe('ModalGallery', () => {
   });
 
   it('picks a single video on click and closes', () => {
-    const props = renderGallery({ category: IngredientCategory.VIDEO });
+    const outcome = renderGallery({ category: IngredientCategory.VIDEO });
 
     fireEvent.click(screen.getByRole('button', { name: 'asset-2' }));
 
-    expect(props.onSelect).toHaveBeenCalledWith([{ id: 'asset-2' }]);
-    expect(props.onClose).toHaveBeenCalledOnce();
+    expect(outcome).toEqual({ isClosed: true, picks: [[{ id: 'asset-2' }]] });
   });
 
   it('collects several images and adds them together', () => {
-    const props = renderGallery();
+    const outcome = renderGallery();
 
     fireEvent.click(screen.getByRole('button', { name: 'asset-1' }));
     fireEvent.click(screen.getByRole('button', { name: 'asset-3' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add 2' }));
 
-    expect(props.onSelect).toHaveBeenCalledWith([
-      { id: 'asset-1' },
-      { id: 'asset-3' },
-    ]);
-    expect(props.onClose).toHaveBeenCalledOnce();
+    expect(outcome).toEqual({
+      isClosed: true,
+      picks: [[{ id: 'asset-1' }, { id: 'asset-3' }]],
+    });
   });
 
   it('keeps already-attached media when one more is added', () => {
-    const props = renderGallery({
+    const outcome = renderGallery({
       maxSelectableItems: 5,
       selectedReferences: ['asset-1', 'asset-2'],
     });
@@ -150,23 +153,21 @@ describe('ModalGallery', () => {
     fireEvent.click(screen.getByRole('button', { name: 'asset-3' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add 3' }));
 
-    expect(props.onSelect).toHaveBeenCalledWith([
-      { id: 'asset-1' },
-      { id: 'asset-2' },
-      { id: 'asset-3' },
+    expect(outcome.picks).toEqual([
+      [{ id: 'asset-1' }, { id: 'asset-2' }, { id: 'asset-3' }],
     ]);
   });
 
   it('confirms a changed video choice instead of replacing it on click', () => {
-    const props = renderGallery({
+    const outcome = renderGallery({
       category: IngredientCategory.VIDEO,
       selectedId: 'asset-1',
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'asset-2' }));
-    expect(props.onSelect).not.toHaveBeenCalled();
+    expect(outcome.picks).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Add 1' }));
 
-    expect(props.onSelect).toHaveBeenCalledWith([{ id: 'asset-2' }]);
+    expect(outcome.picks).toEqual([[{ id: 'asset-2' }]]);
   });
 });
