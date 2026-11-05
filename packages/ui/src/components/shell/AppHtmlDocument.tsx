@@ -17,6 +17,12 @@ export interface AppHtmlDocumentProps {
   dnsPrefetch?: readonly string[];
   head?: ReactNode;
   lang?: string;
+  /**
+   * Set false for a surface React owns end to end. Browser page translation
+   * rewrites text nodes into wrappers React does not know about, and the next
+   * update throws `insertBefore ... not a child of this node`.
+   */
+  isTranslatable?: boolean;
 }
 
 export default function AppHtmlDocument({
@@ -28,12 +34,14 @@ export default function AppHtmlDocument({
   dnsPrefetch = DNS_PREFETCH_ORIGINS,
   head,
   lang = 'en',
+  isTranslatable = true,
 }: AppHtmlDocumentProps) {
   const isSystemPreference = initialTheme === 'system';
 
   return (
     <html
       lang={lang}
+      translate={isTranslatable ? undefined : 'no'}
       className={fontVariables}
       data-theme={isSystemPreference ? undefined : initialTheme}
       style={{
@@ -63,6 +71,7 @@ export default function AppHtmlDocument({
         {dnsPrefetch.map((origin) => (
           <link href={origin} key={origin} rel="dns-prefetch" />
         ))}
+        {isTranslatable ? null : <meta content="notranslate" name="google" />}
         {head}
         <ThemeDocumentBootstrapScript />
       </head>
