@@ -53,7 +53,11 @@ describe('TerminalService', () => {
     mockAdapter = createMockAdapter(mockPty);
     delete process.env.GENFEED_CLOUD;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('is disabled by default, even during local development', () => {
@@ -95,7 +99,7 @@ describe('TerminalService', () => {
   });
 
   it('requires explicit enablement in self-hosted production', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     const disabled = createService(
       { GENFEED_LOCAL_TERMINAL: undefined, NODE_ENV: 'production' },
       mockAdapter,
@@ -110,7 +114,7 @@ describe('TerminalService', () => {
   });
 
   it('documents the accepted production enablement value in disabled errors', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     const service = createService(
       { GENFEED_LOCAL_TERMINAL: '1', NODE_ENV: 'production' },
       mockAdapter,

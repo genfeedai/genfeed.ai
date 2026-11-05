@@ -46,7 +46,7 @@ describe('WebhooksController', () => {
         data: {
           output: 'https://example.com/result.mp4',
         },
-        id: 'job_123',
+        event: 'prediction.completed',
         service: 'replicate',
         status: 'completed',
       };
@@ -71,8 +71,8 @@ describe('WebhooksController', () => {
         data: {
           error: 'Processing failed',
         },
-        id: 'video_456',
-        service: 'openai',
+        event: 'video.failed',
+        service: 'kling',
         status: 'failed',
       };
 
